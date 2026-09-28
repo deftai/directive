@@ -1,0 +1,469 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5111",
+    "updated": "2026-09-28T20:12:05Z"
+  },
+  "plan": {
+    "title": "process(design-critique): default arc to yolo no-ingest + recommended Dual-stop; add ingest and noyolo",
+    "status": "running",
+    "narratives": {
+      "Description": "process(design-critique): default arc to yolo no-ingest + recommended Dual-stop; add ingest and noyolo",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5111",
+      "Overview": "\n\n1. **Closed spend recommendation source.** Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today). That line is the Dual-stop recommendation input. On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`. Explicit `n=1` / `n=3` / `n≥3` still override. Ambiguous mixes still ask. ⊗ Treat silence as hard-coded N=1. ⊗ Resolve spend from issue/comment/skill English. Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.\n\n2. **Run posture default.** Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics). Checkout tokens still win. Ambiguous mixes still ask. Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.\n\n3. **`ingest` opt-out.** Closed launch-utterance token `ingest` resolves to checkout posture only. Never write `arc-mode: ingest`. Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb. Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.\n\n4. **`noyolo` + default yolo-standing.** Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only. Closed token `noyolo` clears standing (operator confirm/amend required). Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals). Add parser + fixtures; skill pointer names the default and the two opt-outs.\n\n5. **Surfaces.** `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.\n\n6. **Non-goals.** Do not auto-ingest after ingest-ready. Do not change leftover-split consent. Do not replace Dual-stop or pain-audit gates. Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f\n\n\n",
+      "Labels": "design, determinism, agent-experience, process, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities"
+    },
+    "items": [
+      {
+        "title": "**Closed spend recommendation source.** Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today). That line is the Dual-stop recommendation input. On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`. Explicit `n=1` / `n=3` / `n≥3` still override. Ambiguous mixes still ask. ⊗ Treat silence as hard-coded N=1. ⊗ Resolve spend from issue/comment/skill English. Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5116#ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "**Run posture default.** Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics). Checkout tokens still win. Ambiguous mixes still ask. Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5116#ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "**`ingest` opt-out.** Closed launch-utterance token `ingest` resolves to checkout posture only. Never write `arc-mode: ingest`. Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb. Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5116#ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "**`noyolo` + default yolo-standing.** Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only. Closed token `noyolo` clears standing (operator confirm/amend required). Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals). Add parser + fixtures; skill pointer names the default and the two opt-outs.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5116.",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedVia": "leftover-complete-pass"
+          }
+        }
+      },
+      {
+        "title": "**Surfaces.** `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5116#ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "**Non-goals.** Do not auto-ingest after ingest-ready. Do not change leftover-split consent. Do not replace Dual-stop or pain-audit gates. Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5116.",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedVia": "leftover-complete-pass"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "design",
+      "determinism",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5111",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5111: process(design-critique): default arc to yolo no-ingest + recommended Dual-stop; add ingest and noyolo"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "arc-mode: no-ingest",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/design-critique/run-posture.ts",
+          "packages/core/src/design-critique/spend.ts",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "CHANGELOG.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Current known state (2026-09-28 Stage A)\n\nStage A `task triage:evaluate -- 5111` on origin/master `56e37e8ae956`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/56e37e8ae956/cfeaad87-b870-47c1-a008-31bd5d6ea53a`\n\n### Live gap\n\nBare `arc <N>` still asks for run-posture and Dual-stop spend before Stop 1. Yolo is opt-in. Bare `ingest` asks (`ingest-is-not-posture`); contract forbids a front-door mode named `ingest`. There is no closed `noyolo` token and no spend path that resolves missing `n=` to the agents' Dual-stop recommendation.\n\n### Spend recommendation\n\nConcrete process/contract/parser recut with closed Acceptance and named bound surfaces (`design-critique.md`, `run-posture.ts`, `spend.ts`, skill pointer, fixtures). Recommended Dual-stop **N=1**.\n\nOperator launched with **#5111 desired defaults**: yolo + no-ingest + use recommended Dual-stop (no `n=` ask).\n\nCatalog facets added: area:cli, core-capabilities, determinism. Chip: design-critique:mechanism-shaped.",
+          "id": 5875818916,
+          "html_url": "https://github.com/deftai/directive/issues/5111#issuecomment-5875818916",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:11:43Z",
+          "updated_at": "2026-09-28T18:11:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because bare arc launch still asks for posture/spend/yolo before Stop 1 instead of defaulting to no-ingest + yolo-standing + the agents Dual-stop recommendation, and the closed opt-outs ingest / noyolo are missing.\n\ncharter: refutation\nrefutation-target: Missing run-posture / spend / yolo tokens on an arc launch must ask before Stop 1; bare ingest asks and must not be a front-door mode; yolo is opt-in standing only; missing spend must not resolve from the agents Dual-stop recommendation.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\n\nOperator directed arc using new desired defaults from this issue (#5111). Concrete closed-AC process/parser recut; recommended Dual-stop N=1 applied without a spend ask.\n\npain: P1, P2, P3\n\nP1. Missing posture / spend / yolo tokens still ask before Stop 1 instead of defaulting to arc-mode: no-ingest, yolo-standing, and spend equal to the agents Dual-stop recommendation (spend-ask: resolved).\nP2. Bare ingest asks (ingest-is-not-posture) and the contract forbids a front-door ingest mode, so there is no closed opt-out of the no-ingest default to checkout.\nP3. No closed noyolo token; yolo standing is opt-in only, so leaving default yolo requires inventing English rather than a parser token.\n\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-5111-dc\norigin-ref: origin/HEAD\ndispatch-sha: 56e37e8ae956484c5ff729909eb3ef528085a6e3\npin-kind: origin-default\ntarget-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f\n\nPin reads use git show 56e37e8ae956484c5ff729909eb3ef528085a6e3:. Single Grok seat. Not dual-launched. Non-goals: do not auto-ingest after ingest-ready; do not change leftover-split consent; do not replace Dual-stop or pain-audit gates; do not hard-code silence as N=1 when the published recommendation is N≥3.",
+          "id": 5875820477,
+          "html_url": "https://github.com/deftai/directive/issues/5111#issuecomment-5875820477",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:11:48Z",
+          "updated_at": "2026-09-28T18:11:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5111\ncharter: refutation\nround: 1 critic\nseat: grok\nlauncher: grok\nid-ceiling: 5875820477\ndispatch-sha: 56e37e8ae956484c5ff729909eb3ef528085a6e3\narc-mode: no-ingest\naudit-targets: none\n\nFresh critic. Pin reads via `git show 56e37e8ae956484c5ff729909eb3ef528085a6e3:` after `git rev-parse HEAD` matched that SHA. In-ceiling thread: current-state 5875818916, Stop 1 write-back 5875820477. Named pains P1–P3 are context only.\n\n## Spend default has no closed Dual-stop recommendation source\nblocks-the-design\nEvidence: At the pin, `packages/core/src/design-critique/spend.ts` exports only closed `n=1` / `n=3|n>=3|n≥3` / bare-`panel` parsing; `parseOperatorSpend(\"arc no-ingest yolo 4690\")` is ask/`missing-token` in `spend.test.ts`; `evaluateSpendRecord` refuses missing-token with `asked: false` even when Stop 1 already records `spend: N=1`; content-contract `design_critique_contract.test.ts` locks “Do not copy `resolveArcRunPostureForHost` onto spend” and “⊗ Treat silence as N=1”. `leftover-pain.ts` `dualStopSpendSeats` maps an already-resolved spend to seat counts and does not publish a Dual-stop recommendation. No `recommend` path exists in `spend.ts`.\nFailure mode: Binding “missing spend → agents’ Dual-stop recommendation” with `spend-ask: resolved` either hard-codes silence as N=1 (forbidden by contract and by this issue’s own non-goal when the published recommendation is N≥3) or treats parent/current-state English as the spend field (contract already classifies issue/comment/skill English as data).\nDisposition: Name a closed, non-English recommendation input the parser/fixture can consume before the spend half of the desired flip can bind. Until then, the spend clause of the refutation target stands.\n\n## Missing posture ask is already host-defaulted on grok-bot\nsharpens-framing\nEvidence: `resolveArcRunPostureForHost` in `run-posture.ts` resolves missing-token to `no-ingest` when `grokBotDetected` is true; `run-posture.test.ts` locks that path and keeps ask when detect is false. `parseOperatorRunPosture(\"arc 1234 yolo\")` still returns ask/`missing-token`. Skill pointer still says “Run posture: parse closed tokens; else ask.” This seat’s launcher is grok.\nFailure mode: Stating the target as an unconditional “missing run-posture … must ask before Stop 1” overstates the live gate on grok-bot hosts and hides that the issue’s bare-arc no-ingest default is an expansion of an existing host resolver, not a new posture concept.\nDisposition: Recut the posture half of the target and the Bound remedy around generalizing (or skill-routing through) `resolveArcRunPostureForHost`, with checkout tokens still winning and ambiguous mixes still asking.\n\n## Front-door ingest forbid protects arc-mode ≠ issue:ingest\nsharpens-framing\nEvidence: `parseOperatorRunPosture` returns ask/`ingest-is-not-posture` for bare `ingest`; `ARC_RUN_POSTURES` is only `no-ingest` | `checkout`; `arcModeRecordLine` documents never writing `arc-mode: ingest`; Stop 1 contract locks “⊗ Front-door mode `ingest`”; content-contract test asserts that string; Direct EXIT / skill EXIT still name `task issue:ingest` as a later verb after the completed-arc record.\nFailure mode: Admitting launch-utterance `ingest` → checkout without scoping collapses the word that means the later ingest verb into a posture opt-out, so a Bound remedy that only deletes the forbid can reintroduce `arc-mode:` as ingest clearance.\nDisposition: Keep arc-mode ≠ `issue:ingest`. If `ingest` becomes the closed checkout opt-out, bind it as Stop 1 launch-parse only, keep Direct EXIT as a separate later verb, and recut the `ingest-is-not-posture` / front-door locks together with fixtures.\n\n## Default yolo-standing arms the confirm conjunct without a closed token\nsharpens-framing\nEvidence: Operator-verbs contract text: yolo standing on the launching utterance is the confirm conjunct for a posted all-accept successor map; parse yolo as a closed token with word boundaries on the operator chat utterance only. `run-posture.ts` / `spend.ts` contain no yolo-standing / `noyolo` parser. Skill lists yolo as standing confirm, not a missing-token default. `evaluateYoloStandingLeftoverScope` in leftover-pain consumes standing as confirm scope, not as spend.\nFailure mode: Bare `arc <N>` defaulting yolo-standing without an utterance token silently replaces the operator confirm/amend offer on all-accept maps; `noyolo` is the only proposed off switch and does not exist yet.\nDisposition: Bound remedy must treat default standing as equivalent to a closed `yolo` token for the confirm conjunct, require a real `noyolo` parse, and keep leftover-split / pain / Handoff outside that conjunct (unchanged non-goals).\n\n## Refutation target survival\nPartial. The spend clause (“missing spend must not resolve from the agents Dual-stop recommendation”) survives at this pin because no closed Dual-stop recommendation source exists to resolve from. The absolute missing-posture ask does not survive as stated on grok-bot hosts. The bare-ingest forbid survives as the arc-mode ≠ `issue:ingest` separation and does not survive as an unscoped absolute token ban if checkout opt-out is the closed meaning. Yolo-as-opt-in survives as today’s confirm-conjunct gate until default standing plus `noyolo` are explicitly bound.\r\n\n",
+          "id": 5875925403,
+          "html_url": "https://github.com/deftai/directive/issues/5111#issuecomment-5875925403",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:18:47Z",
+          "updated_at": "2026-09-28T18:18:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nBare arc still asks too often, but the spend half cannot silently invent N from English. The gap survives in sharpened form: default no-ingest + default yolo-standing + `ingest`/`noyolo` opt-outs are bindable once missing spend resolves from a closed Dual-stop recommendation field the parent records, not from prose. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5875820477. Critic 5875925403 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target survives in sharpened form. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5875820477\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 56e37e8ae956484c5ff729909eb3ef528085a6e3\n\n## Takes\n\n- 5875925403 Spend default has no closed Dual-stop recommendation source — accept-into-contract\n- 5875925403 Missing posture ask is already host-defaulted on grok-bot — accept-into-contract\n- 5875925403 Front-door ingest forbid protects arc-mode ≠ issue:ingest — accept-into-contract\n- 5875925403 Default yolo-standing arms the confirm conjunct without a closed token — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. **Closed spend recommendation source.** Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today). That line is the Dual-stop recommendation input. On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`. Explicit `n=1` / `n=3` / `n≥3` still override. Ambiguous mixes still ask. ⊗ Treat silence as hard-coded N=1. ⊗ Resolve spend from issue/comment/skill English. Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.\n\n2. **Run posture default.** Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics). Checkout tokens still win. Ambiguous mixes still ask. Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.\n\n3. **`ingest` opt-out.** Closed launch-utterance token `ingest` resolves to checkout posture only. Never write `arc-mode: ingest`. Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb. Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.\n\n4. **`noyolo` + default yolo-standing.** Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only. Closed token `noyolo` clears standing (operator confirm/amend required). Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals). Add parser + fixtures; skill pointer names the default and the two opt-outs.\n\n5. **Surfaces.** `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.\n\n6. **Non-goals.** Do not auto-ingest after ingest-ready. Do not change leftover-split consent. Do not replace Dual-stop or pain-audit gates. Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f\n\n## Parent-side substantiation\n\nThe critic blocked the spend flip until a closed Dual-stop recommendation source exists; item 1 names `spend-recommend:` as that source so missing `n=` can resolve without English or silent N=1. Items 2–4 accept the three sharpenings: generalize no-ingest default, bind `ingest`→checkout without arc-mode:ingest, and default yolo-standing with `noyolo`. Item 5 is the write-set; item 6 keeps the issue non-goals.\n\naudit:spend-recommend-closed-source sha=56e37e8ae956484c5ff729909eb3ef528085a6e3 pointer=comment:5875925403 reading=asserted\naudit:posture-default-no-ingest sha=56e37e8ae956484c5ff729909eb3ef528085a6e3 pointer=comment:5875925403 reading=asserted\naudit:ingest-optout-checkout-only sha=56e37e8ae956484c5ff729909eb3ef528085a6e3 pointer=comment:5875925403 reading=asserted\naudit:default-yolo-plus-noyolo sha=56e37e8ae956484c5ff729909eb3ef528085a6e3 pointer=comment:5875925403 reading=asserted",
+          "id": 5875939661,
+          "html_url": "https://github.com/deftai/directive/issues/5111#issuecomment-5875939661",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:19:45Z",
+          "updated_at": "2026-09-28T18:19:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5111\ncharter: refutation\nspend: N=1\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5875939661\ndispatch-sha: 56e37e8ae956484c5ff729909eb3ef528085a6e3\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\nFresh critic. `git rev-parse HEAD` matched `56e37e8ae956484c5ff729909eb3ef528085a6e3`. Pin reads via `git show` that SHA. In-ceiling inputs: Stop 1 `5875820477`, round-1 critic `5875925403`, successor lean `5875939661`.\n\n## Coverage census\n\nStop 1 named P1–P3. Lean Bound remedy items 1–4 (plus surfaces/non-goals 5–6) are the claimed relief. Pin checks: `spend.ts` still missing-token asks with no recommend path; `run-posture.ts` still `ingest-is-not-posture` for bare `ingest` and host-defaults missing-token only under `grokBotDetected`; contract/skill still treat yolo as opt-in standing with no `noyolo` parser at the pin.\n\n- **P1** → items 1 + 2 + 4: closed `spend-recommend: N=1|N≥3` before Stop 1 so missing `n=` / `panel` resolves with `spend-ask: resolved` without English or silent N=1; missing-token posture → `arc-mode: no-ingest` for all hosts; bare arc defaults `yolo-standing:` as confirm-conjunct equivalent to closed `yolo`. Round-1 spend block accepted into item 1.\n- **P2** → item 3: launch-utterance `ingest` → checkout only; never `arc-mode: ingest`; Direct EXIT / `task issue:ingest` stays a later verb; `ingest-is-not-posture` and front-door forbid recut together.\n- **P3** → item 4: closed `noyolo` clears default standing; leftover-split / pain / Handoff stay outside the conjunct.\n\n## spend-recommend surface left to implement\nfootnote\nEvidence: Item 1 binds the closed classes and the resolve path into `spend.ts` / Spend (#4705) locks, and forbids English or hard-coded silence-as-N=1. It says the parent records `spend-recommend:` before Stop 1 without naming which durable artifact carries that line (session field, current-state comment, or Stop 1 body prior to ask).\nFailure mode: Implementers may disagree on fixture inputs while still shipping the same closed resolve semantics.\nDisposition: Census only. Does not change the harvested Bound remedy or reopen P1.\n\n## Checkout opt-out and default yolo raise authority on preserved seams\nfootnote\nEvidence: Injection / swarm lens applies: item 3 admits a mutating checkout path from a launch token; item 4 arms the all-accept confirm conjunct by default. Lean item 3 keeps `arc-mode` ≠ `issue:ingest`; item 4 / item 6 keep leftover-split, pain coverage, Handoff, and auto-ingest outside that conjunct.\nFailure mode: A later implement that collapses those seams would reintroduce the round-1 sharpenings the lean already accepted.\nDisposition: Census only. Bound remedy already names the seams; no harvest change.\n\n## Verdict\n\nFootnote-only. No `blocks-the-design`. No `sharpens-framing` that changes Bound remedy harvest. Coverage of audit-targets pain-P1, pain-P2, pain-P3 holds on lean `5875939661` as written.\r\n\n",
+          "id": 5875991084,
+          "html_url": "https://github.com/deftai/directive/issues/5111#issuecomment-5875991084",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:23:18Z",
+          "updated_at": "2026-09-28T18:23:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Finding | Class | Disposition | Cite |\n| --- | --- | --- | --- |\n| Spend default has no closed Dual-stop recommendation source | blocks-the-design | accept-into-contract — Bound item 1 names closed `spend-recommend: N=1\\|N≥3` | 5875925403 |\n| Missing posture ask is already host-defaulted on grok-bot | sharpens-framing | accept-into-contract — Bound item 2 generalizes missing → no-ingest | 5875925403 |\n| Front-door ingest forbid protects arc-mode ≠ issue:ingest | sharpens-framing | accept-into-contract — Bound item 3: `ingest`→checkout only; never arc-mode:ingest | 5875925403 |\n| Default yolo-standing arms confirm conjunct without closed token | sharpens-framing | accept-into-contract — Bound item 4: default standing + `noyolo` | 5875925403 |\n\nDisagreement set: empty.\nPain-audit 5875991084 of lean 5875939661: footnote-only for harvest; coverage of pain-P1, pain-P2, pain-P3 holds.",
+          "id": 5876008584,
+          "html_url": "https://github.com/deftai/directive/issues/5111#issuecomment-5876008584",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:24:30Z",
+          "updated_at": "2026-09-28T18:24:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nBare arc should default to no-ingest + yolo-standing + Dual-stop spend from a closed `spend-recommend:` line, with `ingest` and `noyolo` as opt-outs. Bound remedy names that recommend field so missing `n=` resolves without English or silent N=1, generalizes the posture default, binds checkout-only ingest opt-out, and adds noyolo. Pain-audit 5875991084 of lean 5875939661 was footnote-only. The same parent wrote Stop 1 5875820477. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5875939661",
+          "id": 5876009815,
+          "html_url": "https://github.com/deftai/directive/issues/5111#issuecomment-5876009815",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:24:35Z",
+          "updated_at": "2026-09-28T18:24:35Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nFlip the design-critique arc skill front door so a bare `arc <N>` (or equivalent trigger) defaults to **yolo + no-ingest + Dual-stop spend = the agents' published recommendation** for that issue shape. Today those three axes still ask (or require opt-in tokens) before Stop 1.\n\nAdd two closed opt-out parameters on the launching utterance:\n\n- `ingest` — leave the no-ingest default\n- `noyolo` — leave yolo standing\n\n## Current behavior (problem)\n\nFrom `content/contracts/design-critique.md` Run posture (#4072 / #4296) and Spend (#4705), plus `parseOperatorRunPosture` / `parseOperatorSpend`:\n\n- Missing run-posture token asks before Stop 1 (`arc <N> yolo` still asks).\n- Bare `ingest` asks (`ingest-is-not-posture`); contract forbids a front-door mode named `ingest`.\n- Yolo is standing only when the operator says `yolo`; it does not pick posture or spend.\n- Missing spend token asks before Stop 1 even when the parent already has a Dual-stop recommendation (N=1 vs N≥3) for the issue shape.\n- Silence must not resolve to N=1; there is no \"use recommended N\" closed default.\n\nOperator habit is already \"no-ingest yolo\" plus \"use recommended n\". The skill still makes every arc restate those three tokens.\n\n## Desired behavior\n\nOn a bare arc launch (no posture / yolo / spend tokens):\n\n1. **Run posture** defaults to `arc-mode: no-ingest` (github-only dest via `ensureArcDest`; parent stays read-only / unclaimed).\n2. **Yolo standing** defaults on (`yolo-standing:` recorded on Stop 1). Same confirm-conjunct semantics as today's explicit `yolo` (all-accept map confirm only; still does not confirm leftover splits, waive pain, or auto-ingest).\n3. **Spend** defaults to the **agents' Dual-stop recommendation** for that issue (the same N the parent would print in today's spend-ask). Record `spend:` and `spend-ask: resolved` from that recommendation. Explicit `n=1` / `n=3` / `n≥3` still override when present.\n\n### New closed parameters\n\n| Token | Effect |\n| --- | --- |\n| `ingest` | Opt out of the no-ingest default. Resolve to checkout posture (mutating checkout path). Recut today's ask-on-`ingest` / ⊗ front-door-mode-`ingest` rules so this is a real closed opt-out. Still does not mid-arc auto-run `task issue:ingest`; Direct EXIT / completed-arc ingest remains a separate later verb unless the operator names it after the record. |\n| `noyolo` | Opt out of default yolo standing. Operator confirm/amend stays required for bind / path-1 confirm conjunct. |\n\nAffirmative tokens that already resolve no-ingest (`direct`, `github-only`, `no-ingest`, …) and `checkout` stay valid. Ambiguous combinations still ask.\n\n## Bound surfaces\n\n- `content/contracts/design-critique.md` — Run posture + Spend + Yolo standing sections; reverse missing-token-ask defaults; admit `ingest` / `noyolo` closed tokens; keep Direct EXIT ingest as a later verb.\n- `packages/core/src/design-critique/run-posture.ts` (+ tests) — default missing → no-ingest; `ingest` → checkout; keep ambiguous asks.\n- `packages/core/src/design-critique/spend.ts` (+ tests) — missing spend → recommended Dual-stop class (wire or document the recommendation source the parent already uses); do not treat silence as hard-coded N=1.\n- Yolo standing parse (wherever the closed `yolo` token is matched) — default on; add `noyolo`.\n- `content/skills/deft-directive-design-critique/SKILL.md` / pack source — pointer that bare arc inherits these defaults; name the two opt-outs.\n- Content-contract / fixture locks that currently require missing-token asks or forbid front-door `ingest`.\n\n## Acceptance\n\n- [ ] Bare `arc <N>` (or skill trigger with only an issue id) records `arc-mode: no-ingest`, `yolo-standing:`, and `spend:` equal to the agents' Dual-stop recommendation without a posture/spend/yolo ask before Stop 1.\n- [ ] `arc <N> noyolo` clears yolo standing and keeps no-ingest + recommended spend unless overridden.\n- [ ] `arc <N> ingest` resolves checkout posture and keeps default yolo + recommended spend unless overridden.\n- [ ] `arc <N> ingest noyolo n=3` (and other explicit mixes) honor each closed token; ambiguous mixes still ask.\n- [ ] Explicit `n=1` / `n=3` / `n≥3` override the recommendation.\n- [ ] Completed-arc Direct EXIT still names `task issue:ingest` as a later operator verb; default no-ingest does not auto-ingest.\n- [ ] Contract, parsers, skill pointer, and fixtures agree; no silent N=1 when the published recommendation is N≥3.\n\n## Non-goals\n\n- Auto-ingest after ingest-ready chip.\n- Changing leftover-split consent (yolo still does not confirm leftover filing).\n- Replacing Dual-stop or pain-audit gates.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5619090776,
+        "origin": "deftai/directive#5111",
+        "id": "github.issue.5619090776"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f"
+      },
+      "lifecycleWrite": {
+        "action": "cancel",
+        "writtenAt": "2026-09-28T20:12:05Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [],
+      "admitted_source_sentences": [
+        "Closed spend recommendation source. Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today).",
+        "That line is the Dual-stop recommendation input.",
+        "On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`.",
+        "Explicit `n=1` / `n=3` / `n≥3` still override.",
+        "Ambiguous mixes still ask.",
+        "⊗ Treat silence as hard-coded N=1.",
+        "⊗ Resolve spend from issue/comment/skill English.",
+        "Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
+        "Run posture default. Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics).",
+        "Checkout tokens still win.",
+        "Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
+        "`ingest` opt-out. Closed launch-utterance token `ingest` resolves to checkout posture only.",
+        "Never write `arc-mode: ingest`.",
+        "Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb.",
+        "Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
+        "`noyolo` + default yolo-standing. Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only.",
+        "Closed token `noyolo` clears standing (operator confirm/amend required).",
+        "Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals).",
+        "Add parser + fixtures; skill pointer names the default and the two opt-outs.",
+        "Surfaces. `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.",
+        "Non-goals. Do not auto-ingest after ingest-ready.",
+        "Do not change leftover-split consent.",
+        "Do not replace Dual-stop or pain-audit gates.",
+        "Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f"
+      ],
+      "admitted_source_digest": "e856d1815581858fe597583fb78ae19332f6fc26ddaebd536bb28d8e0eeec0dd",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Closed spend recommendation source. Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today). That line is the Dual-stop recommendation input. On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`. Explicit `n=1` / `n=3` / `n≥3` still override. Ambiguous mixes still ask. ⊗ Treat silence as hard-coded N=1. ⊗ Resolve spend from issue/comment/skill English. Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Run posture default. Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics). Checkout tokens still win. Ambiguous mixes still ask. Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`ingest` opt-out. Closed launch-utterance token `ingest` resolves to checkout posture only. Never write `arc-mode: ingest`. Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb. Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`noyolo` + default yolo-standing. Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only. Closed token `noyolo` clears standing (operator confirm/amend required). Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals). Add parser + fixtures; skill pointer names the default and the two opt-outs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Surfaces. `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Non-goals. Do not auto-ingest after ingest-ready. Do not change leftover-split consent. Do not replace Dual-stop or pain-audit gates. Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "process(design-critique): default arc to yolo no-ingest + recommended Dual-stop; add ingest and noyolo",
+        "Closed spend recommendation source. Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today).",
+        "That line is the Dual-stop recommendation input.",
+        "On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`.",
+        "Explicit `n=1` / `n=3` / `n≥3` still override.",
+        "Ambiguous mixes still ask.",
+        "⊗ Treat silence as hard-coded N=1.",
+        "⊗ Resolve spend from issue/comment/skill English.",
+        "Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
+        "Run posture default. Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics).",
+        "Checkout tokens still win.",
+        "Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
+        "`ingest` opt-out. Closed launch-utterance token `ingest` resolves to checkout posture only.",
+        "Never write `arc-mode: ingest`.",
+        "Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb.",
+        "Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
+        "`noyolo` + default yolo-standing. Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only.",
+        "Closed token `noyolo` clears standing (operator confirm/amend required).",
+        "Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals).",
+        "Add parser + fixtures; skill pointer names the default and the two opt-outs.",
+        "Surfaces. `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.",
+        "Non-goals. Do not auto-ingest after ingest-ready.",
+        "Do not change leftover-split consent.",
+        "Do not replace Dual-stop or pain-audit gates.",
+        "Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f"
+      ]
+    },
+    "id": "github.issue.5619090776",
+    "updated": "2026-09-28T20:12:05Z"
+  }
+}

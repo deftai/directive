@@ -1,0 +1,369 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5110",
+    "updated": "2026-09-28T20:43:34Z"
+  },
+  "plan": {
+    "title": "bug(hooks,verify): readiness recovery must not concatenate UNUSED_HOST_HOOKS_RECOVERY on matcher drift (leftover from #4574)",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(hooks,verify): readiness recovery must not concatenate UNUSED_HOST_HOOKS_RECOVERY on matcher drift (leftover from #4574)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5110",
+      "Overview": "\n\n1. Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).\n2. Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).\n3. Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.\n4. Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.\n5. Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path. Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.\n6. Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1\n\n\n",
+      "Labels": "bug, doctor, agent-experience, process, grok-build, harness, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "title": "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5117#58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5117#58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5117#58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5117#58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path. Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5117#58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5117.",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedVia": "leftover-complete-pass"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "harness",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5110",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5110: bug(hooks,verify): readiness recovery must not concatenate UNUSED_HOST_HOOKS_RECOVERY on matcher drift (leftover from #4574)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [],
+      "admitted_source_sentences": [
+        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).",
+        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).",
+        "Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.",
+        "Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.",
+        "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path.",
+        "Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.",
+        "Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1"
+      ],
+      "admitted_source_digest": "743e7cb5c49be55d210ef48fb002822a97fe593f3d1eaa727e4df3e81a456f58",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path. Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(hooks,verify): readiness recovery must not concatenate UNUSED_HOST_HOOKS_RECOVERY on matcher drift (leftover from #4574)",
+        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).",
+        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).",
+        "Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.",
+        "Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.",
+        "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path.",
+        "Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.",
+        "Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because tip still concatenates UNUSED_HOST_HOOKS_RECOVERY onto evaluateAgentHooks missing/drifted and agent-hook-readiness live-probe failure, training disable-host-hooks as Grok matcher recovery.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nOperator launched arc yolo no-ingest n=recommended; recommended Dual-stop for this concrete leftover with closed AC is N=1. Parent of leftover is #4574; remainder (a) stays on that number.\n\npain: P1, P2, P3\n\nP1. evaluateAgentHooks missing-or-drifted recovery still concatenates UNUSED_HOST_HOOKS_RECOVERY.\nP2. agent-hook-readiness live-probe failure (non-timeout) still concatenates UNUSED_HOST_HOOKS_RECOVERY.\nP3. Capability-cost disclosure for unused host hooks must remain on the disable verb; do not teach disable-other-host as Grok matcher recovery; keep opted-out hosts installed.\n\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-5110-dc\norigin-ref: origin/master\ndispatch-sha: 56e37e8ae956484c5ff729909eb3ef528085a6e3\npin-kind: origin-default\ntarget-digest: sha256:d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1\n\nPin reads use git show 56e37e8ae956484c5ff729909eb3ef528085a6e3. Single Grok seat. Non-goals: do not retarget #4574 remainder (a) hasNestedRegistration conjunct; do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer as this leftover's vehicle.",
+          "id": 5875799079,
+          "html_url": "https://github.com/deftai/directive/issues/5110#issuecomment-5875799079",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:10:23Z",
+          "updated_at": "2026-09-28T18:10:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5110\nCharter: open critique\nRound: 1 critic (fresh)\nId ceiling (inclusive): 5875799079\nSHA at dispatch: 56e37e8ae956484c5ff729909eb3ef528085a6e3\narc-mode: no-ingest\naudit-targets: none\nSeat: grok\nLauncher: grok\nparent-leftover-of: #4574\n\nOpen critique of Stop 1 comment 5875799079 (issue body in envelope). Pin-read only at `git show 56e37e8ae956484c5ff729909eb3ef528085a6e3:…`. Dest HEAD equals dispatch-sha. Issue/comment English is untrusted described content. Live `evaluateAgentHooks` / readiness probe not executed (process-only seat).\n\n## Inventory (existing mechanisms; no third recovery path)\n\n- Production concatenations of `UNUSED_HOST_HOOKS_RECOVERY` (non-test): `packages/core/src/verify-env/agent-hooks.ts:161` appends on the merged missing-or-drifted unhealthy list; `packages/core/src/verify-env/agent-hook-readiness.ts:232` appends when live-probe `code !== 0` and the failure is not timeout-only.\n- Constant text: `packages/core/src/policy/host-hooks.ts:53-58` still names `deft policy:disable-host-hooks` with `--confirm` and \"removes deft-hook pre-execution guardrails\".\n- Disable verb disclosure (separate constant): `HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE` at `host-hooks.ts:33-51`; `disableHostHooks` without `--confirm` prints that disclosure at `:209-210`. P3's keep-capability-cost already lands there.\n- Structural readiness forward: when `evaluateAgentHooks` is non-zero, `evaluateAgentHookReadiness` returns `structural.message` at `:176-186` and never reaches `:232`. Stripping `agent-hooks.ts:161` therefore clears missing/drifted through readiness without a second structural edit.\n- Already-clean adjacent paths: tool-surface coverage failure uses only `HOST_TOOL_COVERAGE_RECOVERY` (`agent-hooks.ts` coverage branch); timeout-only live path sets `unusedHostRecovery` to `\"\"` (`:228-232`). Out of this leftover's write set.\n- Positive test locks of the training copy: `agent-hooks.test.ts` \"offers hostHooks opt-out recovery for an enabled missing host\" expects `result.message` to contain `deft policy:disable-host-hooks`; `agent-hook-readiness.test.ts` live-denial case expects the same; `host-hooks.test.ts` locks `UNUSED_HOST_HOOKS_RECOVERY` string content. Timeout-only readiness already asserts `.not.toContain(\"disable-host-hooks\")`.\n- Non-goals hold on tip: grok `hasNestedRegistration` / `DIRECT_WRITE_HOOK_MATCHER` writer are untouched by a strip-only leftover; remainder (a) stays on #4574.\n\n## F1. sharpens-framing — Bound remedy must invert the positive recovery locks and retire the orphan constant\n\n**class:** sharpens-framing\n\n**Evidence.** Stop 1 P1/P2 and the issue AC name strip-from-message only. At this SHA the green tests still require the anti-pattern: missing-host `evaluateAgentHooks` message must contain `disable-host-hooks` (`agent-hooks.test.ts` around the \"offers hostHooks opt-out recovery…\" case); non-timeout live readiness must contain it (`agent-hook-readiness.test.ts` live-denial case). After both production appends are removed, `UNUSED_HOST_HOOKS_RECOVERY` has zero production callers; disable capability-cost already uses `HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE`, not this recovery string.\n\n**Failure mode.** A lean that only deletes the two concatenations leaves CI red on the positive locks, inviting a stub re-append \"to keep tests green,\" or leaves a dead export whose string still teaches disable-host-hooks and can be rewired by a later recovery edit. P3's \"keep capability-cost on the disable verb\" is then misread as keep `UNUSED_HOST_HOOKS_RECOVERY` alive.\n\n**Disposition.** Bound remedy / AC should state: (1) flip those two message expectations to `.not.toContain(\"disable-host-hooks\")` (mirror the existing timeout-only negative); (2) delete `UNUSED_HOST_HOOKS_RECOVERY` and its string-only `host-hooks.test.ts` locks once call sites are gone; (3) keep `HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE` on the unconfirmed disable path. Design can bind with that sharpening; without it the strip is under-specified relative to tip locks.\n\n## F2. footnote — Two named sites are necessary and sufficient on this pin\n\n**class:** footnote\n\n**Evidence.** `git grep` at 56e37e8ae956484c5ff729909eb3ef528085a6e3 finds exactly two production append sites (`agent-hooks.ts:161`, `agent-hook-readiness.ts:232`). Structural readiness forwards the first; live non-timeout uses the second. Coverage and timeout-only already omit the constant. Stop 1 P1+P2 match that inventory; parent critic 5701421478 F1's both-sites requirement is satisfied by this leftover's scope.\n\n**Failure mode.** None for bind if both sites strip. A one-site ship would retrain on the other path; this envelope already names both.\n\n**Disposition.** Census only. Accept the two-site strip as the production write set. Do not widen into coverage recovery or timeout copy.\n\n## F3. footnote — Opted-out hosts and disable disclosure need no product change for this leftover\n\n**class:** footnote\n\n**Evidence.** `evaluateAgentHooks` already reports intentional `hostHooks` disabled hosts on the success path; `disableHostHooks(confirm:false)` already prints `HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE`. Strip-only edits do not call disable or change deposit for opted-out hosts.\n\n**Failure mode.** None if implement stays text-and-test. Teaching disable as matcher recovery is the defect; keeping Claude installed is already the default policy until an operator confirms disable.\n\n**Disposition.** Census only. P3 is preservative confirmation, not a third code path.\n\n## Injection / swarm lens\n\nTriggered: readiness failure copy is an authority-reducing instruction autonomous agents follow on mutation-gate miss, and disable changes tracked shared `hostHooks` state. Deterministic control is the strip itself plus negative message locks; capability-cost stays behind the confirm-gated disable verb.\n\n## Road not taken\n\nChose to treat Stop 1's two-site strip as nearly bindable and sharpen only the test/constant retirement, rather than re-litigate #4574 remainder (a) or demand a mergeNestedConfig writer change. Rejected \"keep `UNUSED_HOST_HOOKS_RECOVERY` as documentation\" because tip already has a dedicated disable disclosure constant and zero post-strip callers.\n\n## Steelman\n\nStrongest rejected position: AC as written is enough — strip two concatenations, leave tests to implementer taste, keep the unused constant for wording reuse. What would flip F1: tip tests already asserting absence of `disable-host-hooks` on missing and live-failure messages, or a Stop 1 bullet that names those inversions and constant deletion. Measured positive locks and a second disclosure constant on the disable verb.\n\n## Census\n\n- blocks-the-design: (none)\n- sharpens-framing: F1\n- footnote: F2, F3\r\n\n",
+          "id": 5875843217,
+          "html_url": "https://github.com/deftai/directive/issues/5110#issuecomment-5875843217",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:13:20Z",
+          "updated_at": "2026-09-28T18:13:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nTip still concatenates UNUSED_HOST_HOOKS_RECOVERY onto evaluateAgentHooks missing/drifted and agent-hook-readiness live-probe failure, training disable-host-hooks as matcher recovery. Critic 5875843217 kept the two-site strip and sharpened that Bound remedy must invert the positive test locks that still require disable-host-hooks in those messages, then retire the orphan UNUSED_HOST_HOOKS_RECOVERY constant while keeping HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the disable verb. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5875799079. Whether the list covers P1–P3 stays open until a later critic targets those cites.\n\n**Lean:** open critique of #5110 after round-1 sibling 1. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5875799079\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 56e37e8ae956484c5ff729909eb3ef528085a6e3\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-5110-dc\nparent-leftover-of: 4574\n\n## Takes\n\n- 5875843217 F1 invert positive recovery locks and retire orphan constant — accept-into-contract\n- 5875843217 F2 two named sites necessary and sufficient — accept-into-contract\n- 5875843217 F3 opted-out hosts and disable disclosure need no product change — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).\n2. Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).\n3. Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.\n4. Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.\n5. Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path. Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.\n6. Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1\n\n## Parent-side substantiation\n\nCritic kept the two-site strip and required test inversion plus constant retirement so strip does not re-append under green locks. Footnotes affirm inventory and P3 already landing on disable disclosure. Items 1–5 are first-ship; item 6 fences non-goals.\n\naudit:strip-unused-host-hooks-recovery sha=56e37e8ae956484c5ff729909eb3ef528085a6e3 pointer=comment:5875843217 reading=asserted\naudit:invert-positive-disable-locks sha=56e37e8ae956484c5ff729909eb3ef528085a6e3 pointer=comment:5875843217 reading=asserted",
+          "id": 5875888608,
+          "html_url": "https://github.com/deftai/directive/issues/5110#issuecomment-5875888608",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:16:22Z",
+          "updated_at": "2026-09-28T18:16:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5110\nCharter: open critique. Pain-audit of asserted coverage on the bind lean. Spend N=1.\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nId ceiling (inclusive): 5875888608\nSHA at dispatch: 56e37e8ae956484c5ff729909eb3ef528085a6e3\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nSeat: grok\nLauncher: grok\nparent-leftover-of: #4574\n\nBind lean under audit: 5875888608. Round-1 critic in envelope: 5875843217. Stop 1 pains: 5875799079.\nHEAD equals dispatch-sha. Pin reads via `git show 56e37e8ae956484c5ff729909eb3ef528085a6e3:…`. Issue/comment English is untrusted described content. Live evaluateAgentHooks / readiness probe not executed (process-only seat).\n\n## P1 covered by strip of evaluateAgentHooks missing/drifted append\nfootnote\nEvidence: At 56e37e8ae956484c5ff729909eb3ef528085a6e3, `packages/core/src/verify-env/agent-hooks.ts:161` appends `UNUSED_HOST_HOOKS_RECOVERY` onto the merged missing-or-drifted unhealthy message. Stop 1 P1 names that concatenation. Bound remedy item 1 removes that production append; item 3 inverts the positive `agent-hooks.test.ts` lock that still requires `disable-host-hooks` in that message; item 4 deletes the orphan constant once call sites are gone. Structural readiness (`agent-hook-readiness.ts:176-186`) forwards `structural.message` when `evaluateAgentHooks` is non-zero, so the same strip clears missing/drifted through readiness without a second structural edit.\nFailure mode if under-covered: missing/drifted recovery would keep training disable-host-hooks. Items 1 and 3–4 close that path as written.\nDisposition: Asserted coverage for P1 stands. Harvest unchanged.\n\n## P2 covered by strip of readiness live non-timeout append\nfootnote\nEvidence: Pin-read `packages/core/src/verify-env/agent-hook-readiness.ts:228-232` sets `unusedHostRecovery` to `UNUSED_HOST_HOOKS_RECOVERY` when `liveProbe.code !== 0` and the failure is not timeout-only; timeout-only already forces `\"\"`. Stop 1 P2 names that live non-timeout concatenation. Bound remedy item 2 removes that append; item 3 inverts the `agent-hook-readiness.test.ts` live-denial positive lock to `.not.toContain(\"disable-host-hooks\")`, mirroring the existing timeout-only negative; item 4 retires the constant with zero remaining production callers (`git grep` at this SHA shows only those two production sites plus the constant definition and string-only `host-hooks.test.ts` locks).\nFailure mode if under-covered: live non-timeout readiness would keep teaching disable as matcher recovery after structural is clean. Item 2 closes that site.\nDisposition: Asserted coverage for P2 stands. Harvest unchanged.\n\n## P3 covered by keep-disclosure on disable plus strip of teaching path\nfootnote\nEvidence: Stop 1 P3 is preservative: capability-cost stays on the disable verb; do not teach disable-other-host as Grok matcher recovery; keep opted-out hosts installed. At this SHA, `HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE` already prints from `disableHostHooks(confirm:false)` (`host-hooks.ts:33-51` / unconfirmed path ~:209-210). Bound remedy item 5 keeps that disclosure constant on the unconfirmed disable path and restates the opted-out / no-teach fence. Items 1–2 remove the readiness/matcher teaching vehicle; item 4 deletes `UNUSED_HOST_HOOKS_RECOVERY` so the orphan string cannot be rewired as a third recovery path. Round-1 F3 already recorded that opted-out install and disable disclosure need no product change for this leftover.\nFailure mode if under-covered: strip could be misread as deleting capability-cost, or the orphan recovery string could be kept as documentation and reattached. Items 4–5 fence that collapse.\nDisposition: Asserted coverage for P3 stands. Harvest unchanged.\n\n## Sibling positive asserts fall with the same invert\nfootnote\nEvidence: Beyond the named `disable-host-hooks` token, the missing-host case in `agent-hooks.test.ts` still positively requires `deft policy:show --field=hostHooks`, `--confirm`, and `deft-hook pre-execution guardrails`; live-denial readiness still positively requires `deft-hook pre-execution guardrails`. Those substrings come from `UNUSED_HOST_HOOKS_RECOVERY` and are absent from `AGENT_HOOK_NO_SWAP_RECOVERY` / `AGENT_HOOK_WORKTREE_REPAIR_RECOVERY`. Bound remedy item 3 already points at those two tests and says mirror the timeout-only negative; item 4 deletes the constant and its string-only locks. Clearing the sibling positives is the same invert cluster, not a new write set.\nFailure mode: implement ambiguity only if item 3 is read as flipping solely the `disable-host-hooks` substring while leaving the other positives green-required. The Bound remedy list already names the tests and the constant retirement.\nDisposition: Does not change harvested Bound remedy items 1–6. Bindable as written.\n\n## Injection / swarm lens\n\nTriggered: readiness failure copy is an authority-reducing instruction agents follow on mutation-gate miss; disable changes tracked shared `hostHooks` state. Deterministic control remains the two-site strip plus negative message locks; capability-cost stays behind the confirm-gated disable verb (item 5). No new shared-state writer in this leftover.\n\n## Census\n\n- blocks-the-design: (none)\n- sharpens-framing: (none)\n- footnote: P1 coverage, P2 coverage, P3 coverage, sibling-assert invert note\n\nBound remedy items 1–5 cover pain-P1, pain-P2, and pain-P3 by stripping both production concatenations, inverting the positive recovery locks, retiring the orphan constant, and keeping capability-cost on the disable verb. Item 6 fences non-goals. Footnote-only; bind map stays bindable; no Recut required from this audit.\r\n\n",
+          "id": 5875932357,
+          "html_url": "https://github.com/deftai/directive/issues/5110#issuecomment-5875932357",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:19:15Z",
+          "updated_at": "2026-09-28T18:19:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nReadiness recovery still concatenates UNUSED_HOST_HOOKS_RECOVERY onto missing/drifted and live-probe failure paths, training disable-host-hooks as matcher recovery. Bound remedy strips both production sites, inverts the positive test locks, retires the orphan constant, and keeps HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the disable verb. Pain-audit 5875932357 of lean 5875888608 was footnote-only for harvest. The same parent wrote Stop 1 5875799079. No product implement in this session — arc ends at ingest-ready.\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Two production UNUSED_HOST_HOOKS_RECOVERY append sites remain on tip | critic 5875843217; pin agent-hooks.ts / agent-hook-readiness.ts | verified |\n| Bound remedy strips both sites, inverts positive locks, retires constant | lean 5875888608 items 1–4 | verified |\n| Disable capability-cost stays on HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE | lean item 5; critic F3 | verified |\n| Pain-P1–P3 coverage honest (footnote-only audit) | pain-audit 5875932357 | verified |\n| Agents agreed (empty disagreement set) | pain-audit footnote-only | verified |\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5875888608.",
+          "id": 5875936628,
+          "html_url": "https://github.com/deftai/directive/issues/5110#issuecomment-5875936628",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:19:33Z",
+          "updated_at": "2026-09-28T18:19:33Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nLeftover from design-critique on #4574 (parent issue-create after Handoff).\n\nOn dual-host Grok trees, matcher-drift / missing hook recovery still concatenates `UNUSED_HOST_HOOKS_RECOVERY`, which trains `deft policy:disable-host-hooks` (often Claude) as the fix for Grok deposit drift. That recovery belongs on the disable verb's capability-cost disclosure, not on readiness failure paths.\n\n## Bound remainder (this issue only)\n\n- `evaluateAgentHooks` missing-or-drifted recovery must **not** concatenate `UNUSED_HOST_HOOKS_RECOVERY`.\n- `agent-hook-readiness` live-probe failure (non-timeout) must **not** concatenate `UNUSED_HOST_HOOKS_RECOVERY`.\n- Capability-cost disclosure for unused host hooks stays on the disable verb itself.\n- Keep Claude (and other opted-out hosts) installed; do not teach disable-other-host as Grok matcher recovery.\n\n## Non-goals\n\n- Do not retarget #4574 remainder (a): grok-only `hasNestedRegistration` direct-write conjunct swap to literal `write` / `search_replace` tokens. That stays on #4574.\n- Do not change shared `mergeNestedConfig` `DIRECT_WRITE_HOOK_MATCHER` writer as the vehicle for this leftover.\n\n## Origin\n\n- Parent: #4574\n- Design-critique cites: Handoff 5701187531 / 5701442161; critic 5701421478 F3; parent 5702066209 (leftover unfiled)\n- OP clarifying context on parent: comment 5780279283 (Lifecycle/update hooks adoption framing)\n\n## Acceptance\n\n- Missing/drifted agent-hooks recovery text no longer appends `UNUSED_HOST_HOOKS_RECOVERY`.\n- Live-probe readiness failure text no longer appends `UNUSED_HOST_HOOKS_RECOVERY`.\n- Disable-host-hooks path still documents capability cost where the operator intentionally disables a host.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5619046174,
+        "origin": "deftai/directive#5110",
+        "id": "github.issue.5619046174"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/verify-env/agent-hooks.test.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.test.ts",
+          "packages/core/src/policy/host-hooks.ts",
+          "packages/core/src/policy/host-hooks.test.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "lifecycleWrite": {
+        "action": "cancel",
+        "writtenAt": "2026-09-28T20:43:34Z"
+      }
+    },
+    "id": "github.issue.5619046174",
+    "updated": "2026-09-28T20:43:34Z"
+  }
+}

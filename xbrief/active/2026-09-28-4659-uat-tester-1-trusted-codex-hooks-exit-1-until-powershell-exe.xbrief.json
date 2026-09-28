@@ -1,0 +1,440 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4659",
+    "updated": "2026-09-28T20:24:02Z"
+  },
+  "plan": {
+    "title": "[UAT Tester 1] Trusted Codex hooks exit 1 until PowerShell execution policy is loosened",
+    "status": "running",
+    "narratives": {
+      "Description": "[UAT Tester 1] Trusted Codex hooks exit 1 until PowerShell execution policy is loosened",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4659",
+      "Overview": "\n\n1. Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.\n2. Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted. Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.\n3. Keep Codex trust as its own axis (manual-review-required). Do not treat Trust-all as sufficient for this exit-1 class.\n4. Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662. It does not substitute for items 1–2.\n5. Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails. CHANGELOG Unreleased if not already covered by #4654 ship notes.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320\n\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, harness, area:installer, area:cli, platform:windows, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "title": "Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5114#cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted. Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5114#cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Keep Codex trust as its own axis (manual-review-required). Do not treat Trust-all as sufficient for this exit-1 class.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5114#cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662. It does not substitute for items 1–2.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5114.",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedVia": "leftover-complete-pass"
+          }
+        }
+      },
+      {
+        "title": "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails. CHANGELOG Unreleased if not already covered by #4654 ship notes.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5114#cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "harness",
+      "area:installer",
+      "area:cli",
+      "platform:windows",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4659",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4659: [UAT Tester 1] Trusted Codex hooks exit 1 until PowerShell execution policy is loosened"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [],
+      "admitted_source_sentences": [
+        "Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.",
+        "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted.",
+        "Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
+        "Keep Codex trust as its own axis (manual-review-required).",
+        "Do not treat Trust-all as sufficient for this exit-1 class.",
+        "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662.",
+        "It does not substitute for items 1–2.",
+        "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails.",
+        "CHANGELOG Unreleased if not already covered by #4654 ship notes.",
+        "relieves: P1 relieves: P2 Target-digest: sha256:dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320"
+      ],
+      "admitted_source_digest": "d222aa0921e91468c27baf4a963b7784b3442041a4058d0d604c14bdd9b66473",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted. Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Keep Codex trust as its own axis (manual-review-required). Do not treat Trust-all as sufficient for this exit-1 class.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662. It does not substitute for items 1–2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails. CHANGELOG Unreleased if not already covered by #4654 ship notes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[UAT Tester 1] Trusted Codex hooks exit 1 until PowerShell execution policy is loosened",
+        "Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.",
+        "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted.",
+        "Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
+        "Keep Codex trust as its own axis (manual-review-required).",
+        "Do not treat Trust-all as sufficient for this exit-1 class.",
+        "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662.",
+        "It does not substitute for items 1–2.",
+        "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails.",
+        "CHANGELOG Unreleased if not already covered by #4654 ship notes.",
+        "relieves: P1 relieves: P2 Target-digest: sha256:dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "UAT: **focused-test-pass-1**\n\n`nheroux-bit` cannot apply labels on this repo (`AddLabelsToLabelable` denied). Please add the `focused-test-pass-1` label to this issue.",
+          "id": 5705168330,
+          "html_url": "https://github.com/deftai/directive/issues/4659#issuecomment-5705168330",
+          "user": {
+            "login": "nheroux-bit",
+            "id": 278998440,
+            "node_id": "U_kgDOEKEtqA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/278998440?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/nheroux-bit",
+            "html_url": "https://github.com/nheroux-bit",
+            "followers_url": "https://api.github.com/users/nheroux-bit/followers",
+            "following_url": "https://api.github.com/users/nheroux-bit/following{/other_user}",
+            "gists_url": "https://api.github.com/users/nheroux-bit/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/nheroux-bit/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/nheroux-bit/subscriptions",
+            "organizations_url": "https://api.github.com/users/nheroux-bit/orgs",
+            "repos_url": "https://api.github.com/users/nheroux-bit/repos",
+            "events_url": "https://api.github.com/users/nheroux-bit/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/nheroux-bit/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T21:58:48Z",
+          "updated_at": "2026-09-16T21:58:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Lifecycle: installing Directive, updating it, and getting one clear next step when something looks wrong. It also covers whether the version someone thinks they installed is the version that is actually running.\n\nWhat a new person hits: The editor hooks Directive installs are trusted, and on Windows they still exit with an error until the PowerShell script policy is loosened.\n\nWhy that ruins the product for them: The integration they were told to trust does not run. Fixing it means changing a security setting they did not come here to learn.\n\nHow likely: High for Windows users who get the command itself running. The hooks fail on the next step, still before any project work.\n\n",
+          "id": 5780283696,
+          "html_url": "https://github.com/deftai/directive/issues/4659#issuecomment-5780283696",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:38:23Z",
+          "updated_at": "2026-09-22T16:38:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because after Codex Trust-all on deposited .codex/hooks.json, hooks still exit 1 on Windows until PowerShell execution policy is loosened, so the trusted integration does not run until a security setting change the operator did not come to learn.\n\ncharter: refutation\nrefutation-target: Trusted Codex hooks exiting with code 1 on Windows until the operator loosens PowerShell execution policy (e.g. RemoteSigned) is an acceptable host-configuration prerequisite outside Directive's deposit and doctor path, so no product change is required once Trust-all is granted.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator asked for the appropriate count. This is a concrete UAT harness defect adjacent to the landed #4654 .ps1 shim fix and the #4662 README gap. It is not a whole-motion babysit hang. N=1.\n\npain: P1, P2\n\nP1. After Codex Trust-all on deposited .codex/hooks.json, every turn reports Hook failed / hook exited with code 1 until PowerShell execution policy is loosened.\nP2. Init/doctor report hooks registered/functional while the hooks still exit 1, so the operator has no clear next step that names the execution-policy wall without changing a security setting.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4659-dc\norigin-ref: origin/master\ndispatch-sha: cc35711343757aa095a861d50c90b1fc1f0b3c7a\npin-kind: origin-default\ntarget-digest: sha256:cc11d686c647e6e4392a7a7457b702d80f9e0abfd086479ad8bc7252dd915386\n\nPin reads use git show cc35711343757aa095a861d50c90b1fc1f0b3c7a. Related: #4654 (package bin .ps1 shims), #4662 (README execution-policy). Do not restore ExecutionPolicy Bypass. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5821308204,
+          "html_url": "https://github.com/deftai/directive/issues/4659#issuecomment-5821308204",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:01:10Z",
+          "updated_at": "2026-09-24T20:01:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nseat: grok\nlauncher: grok\n\nround: 1\ncharter: refutation\nissue: deftai/directive#4659\ndispatch-sha: cc35711343757aa095a861d50c90b1fc1f0b3c7a\nid-ceiling: 5821308204\narc-mode: no-ingest\n\nRefutation target under test (Stop 1 comment 5821308204): Trusted Codex hooks exiting with code 1 on Windows until the operator loosens PowerShell execution policy (e.g. RemoteSigned) is an acceptable host-configuration prerequisite outside Directive's deposit and doctor path, so no product change is required once Trust-all is granted.\n\n**Verdict: the refutation target does not survive.**\n\n## Doctor functionality green while PowerShell host spawn refuses the same bin\nblocks-the-design\nEvidence: At `cc35711343757aa095a861d50c90b1fc1f0b3c7a`, deposit writes bare `deft-hook --host codex --event …` (`packages/core/src/init-deposit/agent-hooks.ts` `command()` / `nestedGroup()`). Live probe resolves via `resolveCommandOnPath` + default PATHEXT (`.COM;.EXE;.BAT;.CMD`) and spawns that path (`packages/core/src/verify-env/command-spawn.ts`, `agent-hooks-live-probe.ts`); PATHEXT does not include `.PS1`. On this Windows host, Node resolve selected `…\\npm\\deft-hook.CMD` while `Get-Command deft-hook` selected `…\\npm\\deft-hook.ps1`. Under process `Restricted`, invoking that `.ps1` threw `PSSecurityException` (“running scripts is disabled”); `deft-hook.cmd` still ran. Doctor success copy after a green live probe is `registered-and-functional` / “live probe passed” and only calls out Codex trust + unverified interception (`packages/core/src/doctor/main.ts` ~1014–1028). No doctor/verify path at this SHA greps to `ExecutionPolicy` / `PSSecurityException`. Recovery for a broken live probe names reinstall/`deft update`, not execution policy (`LIVE_PROBE_BROKEN_RECOVERY`).\nFailure mode: After Codex Trust-all, every turn can still report Hook failed / exit 1 whenever the host resolves `deft-hook` through PowerShell’s `.ps1` preference, while init/doctor already told the operator the hooks are registered and functional. That is P2 inside the doctor path: the gate that claims functionality does not measure the spawn environment the host actually uses.\nDisposition: Do not bind “outside … doctor path” or “no product change.” Before bind, either make readiness fail closed (or name a clear next step) when the PowerShell-visible bin cannot run under Restricted, or make install/deposit guarantee the host reaches a non-`.ps1` entry without a policy change. Do not restore ExecutionPolicy Bypass.\n\n## In-tree #4654 already rejects “acceptable host config” for `deft-hook`\nblocks-the-design\nEvidence: Unreleased CHANGELOG at this SHA tracks #4654: after install, `directive` / `deft` / `deft-ts` / `deft-hook` / `deft-verify-encoding` resolve to the `.cmd` when PowerShell refuses scripts. `packages/cli/src/windows-bin-ps1.ts` removes package-owned `.ps1` shims postinstall and explicitly does not change the operator’s execution policy. `windows-bin-ps1.test.ts` “Get-Command after install (#4654)” asserts under `-ExecutionPolicy Restricted` that after removal each package bin’s `Get-Command` source ends with `.cmd` and runs. Published `@deftai/directive@0.119.8` on this host still has `deft-hook.ps1` beside `.cmd` and `postinstall` absent from that install’s `package.json` — the Tracking fix is in-tree / Unreleased, not yet what the UAT pin ran.\nFailure mode: Binding “no product change is required once Trust-all is granted” contradicts the product remedy already chosen for the same bin the Codex deposit invokes. It also freezes #4659 as docs-or-nothing while the tree is mid-ship on the mechanism that makes Trust-all irrelevant to this exit-1 class.\nDisposition: Recut the presumption away from host-config acceptance. Treat #4659 as whether shipping/verifying the #4654 `.cmd`-reachability path closes Codex host exit 1 on Restricted Windows, plus any residual doctor honesty if host spawn still diverges after that ship. Adjacent README naming stays on open #4662; it is not a substitute for binding “no product change.”\n\n## Trust-all is the wrong sufficiency gate for this exit-1 wall\nsharpens-framing\nEvidence: `content/contracts/agent-hook-readiness.md` separates registration, command functionality, host trust, and interception; Codex trust is `manual-review-required` and must not be described as active merely because registration and shim work. Issue body (UAT @0.119.1): Trust-all already granted, then every turn Hook failed / exit 1 until execution policy was loosened; only then did hooks enforce. Doctor’s green Codex note is about unread trust / unverified interception, not about PowerShell script policy.\nFailure mode: If the bound story says the remaining prerequisite is “outside product once Trust-all is granted,” operators who already Trusted keep hitting opaque exit 1 with remediation aimed at trust or reinstall, never at `.ps1` resolution / Restricted policy.\nDisposition: Drop Trust-all as the sufficiency clause. Keep trust as its own axis. Frame the Windows exit-1 remainder as host-spawn reachability of `deft-hook` (the #4654 class) and doctor/probe honesty about that spawn, not as another trust click.\n\n## Injection / swarm lens\nsharpens-framing\nEvidence: Deposit installs host-executed command strings; live broken recovery says reinstall/`deft update` (`LIVE_PROBE_BROKEN_RECOVERY`); SUPPORT / `hook-runtime-unavailable.md` already document opaque non-zero exits when `deft-hook` cannot run, but for missing-runtime / leftover Cursor failClosed (typically 127), not Restricted `.ps1`. Stop 1 forbids restoring ExecutionPolicy Bypass.\nFailure mode: Headless or swarm Windows workers treat every-turn exit 1 as broken install or deny noise, thrash reinstall/update, or an agent “fix” by teaching Bypass — a security-policy change outside the deposit contract — while doctor stays green.\nDisposition: Any bound recovery must name Restricted / `.ps1` vs `.cmd` reachability (or the shipped #4654 postinstall) without Bypass, and must not leave doctor success copy implying the Codex host path was proven.\n\n## README execution-policy gap is owned next door\nfootnote\nEvidence: `README.md` at this SHA has Windows install/USER.md paths and no RemoteSigned / `*.cmd` cold-start note. Open #4662 is exactly that docs UAT. This seat is not a pain-audit.\nFailure mode: Docs-only silence worsens discovery; it does not by itself make the “no product change” presumption true once #4654 exists in-tree.\nDisposition: Keep #4662 as the README remainder. Do not use it to clear or reinstate the refutation target.\r\n\n",
+          "id": 5821434531,
+          "html_url": "https://github.com/deftai/directive/issues/4659#issuecomment-5821434531",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:08:49Z",
+          "updated_at": "2026-09-24T20:08:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nTrusted Codex hooks that exit 1 on Windows until PowerShell policy is loosened are not an acceptable outside-product prerequisite. Doctor can report registered-and-functional while the Codex host still resolves deft-hook through a Restricted .ps1. Trust-all is the wrong sufficiency gate. The product remedy already chosen for this bin class is #4654 .cmd reachability without ExecutionPolicy Bypass. #4659 binds as shipping/verifying that path for the Codex host spawn, plus doctor honesty when the PowerShell-visible bin cannot run under Restricted. README naming stays on #4662.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5821434531 checks the findings. Whether the list covers the two pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5821308204\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: cc35711343757aa095a861d50c90b1fc1f0b3c7a\n\n## Takes\n\n- 5821434531 Doctor functionality green while PowerShell host spawn refuses the same bin — accept-into-contract\n- 5821434531 In-tree #4654 already rejects “acceptable host config” for deft-hook — accept-into-contract\n- 5821434531 Trust-all is the wrong sufficiency gate for this exit-1 wall — accept-into-contract\n- 5821434531 Injection / swarm lens — accept-into-contract\n\nFootnote, outside the take map: 5821434531 README execution-policy gap is owned next door (#4662).\n\nSpec-path:\n\n## Bound remedy\n\n1. Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.\n2. Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted. Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.\n3. Keep Codex trust as its own axis (manual-review-required). Do not treat Trust-all as sufficient for this exit-1 class.\n4. Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662. It does not substitute for items 1–2.\n5. Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails. CHANGELOG Unreleased if not already covered by #4654 ship notes.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320\n\n## Parent-side substantiation\n\nThe critic required dropping host-config acceptance, aligning with #4654, and separating trust from spawn reachability. Items 1–3 do that. #4662 stays the docs remainder.\n\naudit:cmd-reachability sha=cc35711343757aa095a861d50c90b1fc1f0b3c7a pointer=comment:5821434531 reading=asserted\naudit:doctor-honesty sha=cc35711343757aa095a861d50c90b1fc1f0b3c7a pointer=comment:5821434531 reading=asserted\n\n",
+          "id": 5821456326,
+          "html_url": "https://github.com/deftai/directive/issues/4659#issuecomment-5821456326",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:10:11Z",
+          "updated_at": "2026-09-28T17:47:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2\nseat: grok\nlauncher: grok\n\nround: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\ncharter: refutation\nissue: deftai/directive#4659\ndispatch-sha: cc35711343757aa095a861d50c90b1fc1f0b3c7a\nid-ceiling: 5821456326\narc-mode: no-ingest\ntarget: https://github.com/deftai/directive/issues/4659\n\nPain-audit of successor lean 5821456326 (asserted `relieves: P1` / `relieves: P2`) against Stop 1 pains in 5821308204 and Bound remedy items 1–5. Round-1 critic 5821434531 is in envelope. HEAD and pin reads match `cc35711343757aa095a861d50c90b1fc1f0b3c7a`.\n\n**P1** (Stop 1): After Codex Trust-all on deposited `.codex/hooks.json`, every turn reports Hook failed / hook exited with code 1 until PowerShell execution policy is loosened.\n**P2** (Stop 1): Init/doctor report hooks registered/functional while the hooks still exit 1, so the operator has no clear next step that names the execution-policy wall without changing a security setting.\n\n## Bound remedy items 1, 3, and 5 cover P1\nfootnote\nEvidence: At the pin SHA, deposit writes bare `deft-hook --host … --event …` (`packages/core/src/init-deposit/agent-hooks.ts` `command()` / `nestedGroup()`). Unreleased CHANGELOG tracks #4654 `.cmd` reachability when PowerShell refuses scripts; `packages/cli/src/windows-bin-ps1.ts` removes package-owned `.ps1` shims (including `deft-hook`) without changing ExecutionPolicy; `windows-bin-ps1.test.ts` “Get-Command after install (#4654)” asserts under `-ExecutionPolicy Restricted` that `deft-hook` source ends with `.cmd` and runs. Lean item 1 requires the Codex host path that runs deposited commands to reach a non-`.ps1` entry under Restricted without Bypass; item 3 keeps Trust-all off the sufficiency gate; item 5 requires tests for Restricted Get-Command / `.cmd` reachability for `deft-hook` as used by Codex deposit.\nFailure mode: None under this Bound remedy for the UAT P1 class. Closing `.ps1`-under-Restricted spawn removes the every-turn exit-1 wall that Trust-all does not address.\nDisposition: No harvest change. The asserted P1 cite matches items 1/3/5 as written.\n\n## Bound remedy item 2 covers P2\nfootnote\nEvidence: Re-verified at pin: live probe resolves via `resolveCommandOnPath` with default PATHEXT `.COM;.EXE;.BAT;.CMD` (no `.PS1`) in `packages/core/src/verify-env/command-spawn.ts`; doctor success copy is `registered-and-functional` / “live probe passed” with Codex trust as `manual-review-required` only (`packages/core/src/doctor/main.ts`); `LIVE_PROBE_BROKEN_RECOVERY` is reinstall/`deft update` only (`agent-hooks-live-probe.ts`); no doctor/verify path at this SHA greps to `ExecutionPolicy` / `PSSecurityException`. Round-1 recorded Node selecting `.CMD` while PowerShell `Get-Command` selected `.ps1` under Restricted. Lean item 2 requires doctor/live-probe must not report `registered-and-functional` when the PowerShell-visible `deft-hook` cannot run under Restricted, and replaces that green with fail-closed or a next step that names Restricted / `.ps1` vs `.cmd` (or shipped #4654), not reinstall-only and not Bypass. Item 1 removes the underlying host/doctor spawn split after ship.\nFailure mode: None under this Bound remedy for P2. The false-green plus missing named next-step is exactly item 2’s contract.\nDisposition: No harvest change. The asserted P2 cite matches item 2 (with item 1 as the ship path that ends the split).\n\n## README / #4662 remainder stays outside the pain cites\nfootnote\nEvidence: Lean item 4 keeps RemoteSigned / `*.cmd` cold-start copy on open #4662; round-1 already filed that as a footnote; Stop 1 listed #4662 as related.\nFailure mode: Docs silence can worsen discovery after ship; it does not reopen P1 or P2 under the Bound remedy above.\nDisposition: No harvest change. Keep #4662 adjacent; do not fold it into P1–P2 coverage.\n\n## Injection / swarm recovery copy is already inside item 2\nfootnote\nEvidence: Round-1 injection finding (accepted into contract) warned headless Windows workers thrash reinstall/update or teach Bypass while doctor stays green. Lean item 2 forbids reinstall-only and Bypass in the named next step; item 3 keeps trust as its own axis (`content/contracts/agent-hook-readiness.md` manual-review-required).\nFailure mode: None residual for P1–P2 beyond what items 2–3 already bind.\nDisposition: No harvest change.\r\n\n",
+          "id": 5821667807,
+          "html_url": "https://github.com/deftai/directive/issues/4659#issuecomment-5821667807",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:24:25Z",
+          "updated_at": "2026-09-24T20:24:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nTrusted Codex hooks that exit 1 under Restricted PowerShell are not an acceptable outside-product prerequisite. Ship/verify #4654 .cmd reachability for deft-hook on the Codex host path, and make doctor honest when the PowerShell-visible bin cannot run. Trust-all is a separate axis. README naming stays on #4662.\n\n## Verified-claims table\n\n| Claim | Method | Verdict |\n| --- | --- | --- |\n| Deposit invokes bare deft-hook; doctor can green while PowerShell resolves .ps1 under Restricted. | git show agent-hooks.ts, command-spawn.ts, doctor/main.ts at cc35711343757aa095a861d50c90b1fc1f0b3c7a; re-derived in 5821434531 and 5821667807. | verified |\n| In-tree #4654 removes package .ps1 shims and asserts .cmd under Restricted without Bypass. | windows-bin-ps1.ts/tests and Unreleased CHANGELOG at pin; critic 5821434531. | verified |\n| Trust-all is not the sufficiency gate for this exit-1 class. | agent-hook-readiness.md; UAT body; lean items 1/3; 5821434531. | verified |",
+          "id": 5821682624,
+          "html_url": "https://github.com/deftai/directive/issues/4659#issuecomment-5821682624",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:25:30Z",
+          "updated_at": "2026-09-24T20:25:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nCodex host exit 1 under Restricted is a deft-hook .cmd-reachability and doctor-honesty problem, not an acceptable host-config prerequisite after Trust-all. Bound remedy follows #4654 without ExecutionPolicy Bypass. README remainder stays on #4662. The same parent wrote the Stop 1 warrant. Pain-audit 5821667807 re-derived the rows footnote-only.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5821456326.",
+          "id": 5821683114,
+          "html_url": "https://github.com/deftai/directive/issues/4659#issuecomment-5821683114",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:25:32Z",
+          "updated_at": "2026-09-24T20:25:32Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C6 FAIL\n**Defect:** 6\n\n### Expected\nAfter Codex \"Trust all\" on deposited `.codex/hooks.json`, hooks run. Init/doctor reported hooks registered/functional.\n\n### What happened\nEvery turn: `Hook failed / hook exited with code 1`. `deft session:start` died on `deft.ps1` until execution policy was `RemoteSigned`. Then hooks started enforcing (deny messages instead of exit 1).\n\n### Evidence\nFirst Codex session transcript after `read AGENTS.md and follow it`.\n\n### Environment\nCodex TUI, Windows, Directive 0.119.1.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5480357909,
+        "origin": "deftai/directive#4659",
+        "id": "github.issue.5480357909"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/cli/src/windows-bin-ps1.ts",
+          "packages/cli/src/windows-bin-ps1.test.ts",
+          "packages/core/src/verify-env/command-spawn.ts",
+          "packages/core/src/doctor/main.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "lifecycleWrite": {
+        "action": "cancel",
+        "writtenAt": "2026-09-28T20:24:02Z"
+      }
+    },
+    "id": "github.issue.5480357909",
+    "updated": "2026-09-28T20:24:02Z"
+  }
+}

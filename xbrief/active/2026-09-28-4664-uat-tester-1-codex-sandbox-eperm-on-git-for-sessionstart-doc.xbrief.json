@@ -1,0 +1,443 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4664",
+    "updated": "2026-09-28T21:39:04Z"
+  },
+  "plan": {
+    "title": "[UAT Tester 1] Codex sandbox EPERM on git for session:start, doctor ritual, ingest, and promote",
+    "status": "running",
+    "narratives": {
+      "Description": "[UAT Tester 1] Codex sandbox EPERM on git for session:start, doctor ritual, ingest, and promote",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4664",
+      "Overview": "\n\n1. Drop the “Directive need not document” conjunct. README and doctor/ritual recovery must name a concrete durable outside-sandbox approval path for ritual git under Codex (what to approve, once vs per session, where in the Codex TUI), reusing the existing Codex trust / Cursor sandbox remediation pattern already in swarm/preamble/docs. Do not invent a second in-process git substitute.\n2. Replace “ad-hoc outside-sandbox approvals” with that durable operator action. Repeated per-verb Environment: local prompts do not discharge P2.\n3. Optional implement detail: execGit may name EPERM with a Codex outside-sandbox tip; that is recovery copy shape after items 1–2, not a separate mechanism.\n4. Tests or docs contract lock the presence of the Codex ritual-git recovery sentence on the README / doctor surfaces named in item 1. CHANGELOG Unreleased line.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:c512baab6092d97b47cef24a4fc2738afcad2b017259075d04d865cd53e3b82c\n\n\n",
+      "Labels": "bug, documentation, adoption-blocker, agent-experience, harness, area:cli, platform:windows, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:continuity"
+    },
+    "items": [
+      {
+        "title": "Drop the “Directive need not document” conjunct. README and doctor/ritual recovery must name a concrete durable outside-sandbox approval path for ritual git under Codex (what to approve, once vs per session, where in the Codex TUI), reusing the existing Codex trust / Cursor sandbox remediation pattern already in swarm/preamble/docs. Do not invent a second in-process git substitute.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5115#e6fb18944301d570634eca4b397c383d69e5fac5",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Replace “ad-hoc outside-sandbox approvals” with that durable operator action. Repeated per-verb Environment: local prompts do not discharge P2.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5115#e6fb18944301d570634eca4b397c383d69e5fac5",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Optional implement detail: execGit may name EPERM with a Codex outside-sandbox tip; that is recovery copy shape after items 1–2, not a separate mechanism.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5115#e6fb18944301d570634eca4b397c383d69e5fac5",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Tests or docs contract lock the presence of the Codex ritual-git recovery sentence on the README / doctor surfaces named in item 1. CHANGELOG Unreleased line.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5115#e6fb18944301d570634eca4b397c383d69e5fac5",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "documentation",
+      "adoption-blocker",
+      "agent-experience",
+      "harness",
+      "area:cli",
+      "platform:windows",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "core-capabilities",
+      "promise:continuity"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4664",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4664: [UAT Tester 1] Codex sandbox EPERM on git for session:start, doctor ritual, ingest, and promote"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [],
+      "admitted_source_sentences": [
+        "Drop the “Directive need not document” conjunct.",
+        "README and doctor/ritual recovery must name a concrete durable outside-sandbox approval path for ritual git under Codex (what to approve, once vs per session, where in the Codex TUI), reusing the existing Codex trust / Cursor sandbox remediation pattern already in swarm/preamble/docs.",
+        "Do not invent a second in-process git substitute.",
+        "Replace “ad-hoc outside-sandbox approvals” with that durable operator action.",
+        "Repeated per-verb Environment: local prompts do not discharge P2.",
+        "Optional implement detail: execGit may name EPERM with a Codex outside-sandbox tip; that is recovery copy shape after items 1–2, not a separate mechanism.",
+        "Tests or docs contract lock the presence of the Codex ritual-git recovery sentence on the README / doctor surfaces named in item 1.",
+        "CHANGELOG Unreleased line.",
+        "relieves: P1 relieves: P2 Target-digest: sha256:c512baab6092d97b47cef24a4fc2738afcad2b017259075d04d865cd53e3b82c"
+      ],
+      "admitted_source_digest": "fd1235546b8793046ad00962733cecab6f0d0195a30b6ba859209ce149b11d90",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Drop the “Directive need not document” conjunct. README and doctor/ritual recovery must name a concrete durable outside-sandbox approval path for ritual git under Codex (what to approve, once vs per session, where in the Codex TUI), reusing the existing Codex trust / Cursor sandbox remediation pattern already in swarm/preamble/docs. Do not invent a second in-process git substitute.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Replace “ad-hoc outside-sandbox approvals” with that durable operator action. Repeated per-verb Environment: local prompts do not discharge P2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Optional implement detail: execGit may name EPERM with a Codex outside-sandbox tip; that is recovery copy shape after items 1–2, not a separate mechanism.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Tests or docs contract lock the presence of the Codex ritual-git recovery sentence on the README / doctor surfaces named in item 1. CHANGELOG Unreleased line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[UAT Tester 1] Codex sandbox EPERM on git for session:start, doctor ritual, ingest, and promote",
+        "Drop the “Directive need not document” conjunct.",
+        "README and doctor/ritual recovery must name a concrete durable outside-sandbox approval path for ritual git under Codex (what to approve, once vs per session, where in the Codex TUI), reusing the existing Codex trust / Cursor sandbox remediation pattern already in swarm/preamble/docs.",
+        "Do not invent a second in-process git substitute.",
+        "Replace “ad-hoc outside-sandbox approvals” with that durable operator action.",
+        "Repeated per-verb Environment: local prompts do not discharge P2.",
+        "Optional implement detail: execGit may name EPERM with a Codex outside-sandbox tip; that is recovery copy shape after items 1–2, not a separate mechanism.",
+        "Tests or docs contract lock the presence of the Codex ritual-git recovery sentence on the README / doctor surfaces named in item 1.",
+        "CHANGELOG Unreleased line.",
+        "relieves: P1 relieves: P2 Target-digest: sha256:c512baab6092d97b47cef24a4fc2738afcad2b017259075d04d865cd53e3b82c"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "UAT: **focused-test-pass-1**\n\n`nheroux-bit` cannot apply labels on this repo (`AddLabelsToLabelable` denied). Please add the `focused-test-pass-1` label to this issue.",
+          "id": 5705169321,
+          "html_url": "https://github.com/deftai/directive/issues/4664#issuecomment-5705169321",
+          "user": {
+            "login": "nheroux-bit",
+            "id": 278998440,
+            "node_id": "U_kgDOEKEtqA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/278998440?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/nheroux-bit",
+            "html_url": "https://github.com/nheroux-bit",
+            "followers_url": "https://api.github.com/users/nheroux-bit/followers",
+            "following_url": "https://api.github.com/users/nheroux-bit/following{/other_user}",
+            "gists_url": "https://api.github.com/users/nheroux-bit/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/nheroux-bit/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/nheroux-bit/subscriptions",
+            "organizations_url": "https://api.github.com/users/nheroux-bit/orgs",
+            "repos_url": "https://api.github.com/users/nheroux-bit/repos",
+            "events_url": "https://api.github.com/users/nheroux-bit/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/nheroux-bit/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T21:58:53Z",
+          "updated_at": "2026-09-16T21:58:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Continuity: closing the laptop and coming back, or handing the work to another session, using only what was written down. When something gets stuck, the recovery on screen should work.\n\nWhat a new person hits: Inside Codex, the sandbox blocks git. Starting a session, running doctor, taking in an issue, and promoting work all need git, so they all fail.\n\nWhy that ruins the product for them: The host they chose cannot perform the basic ritual. There is no way to begin, check, or save work from that session.\n\nHow likely: High for anyone trying Directive from Codex. For that host it is a wall, not a rough edge.\n\n",
+          "id": 5780284508,
+          "html_url": "https://github.com/deftai/directive/issues/4664#issuecomment-5780284508",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:38:26Z",
+          "updated_at": "2026-09-22T16:38:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because under the Codex sandbox on Windows, session:start and peer verbs hit spawnSync git EPERM with no README guidance to approve outside-sandbox once, so the host cannot perform the basic ritual.\n\ncharter: refutation\nrefutation-target: Codex sandbox EPERM on git for session:start, verify:session-ritual, issue:ingest, scope:promote, and peer verbs is an acceptable host sandbox default that the operator can clear with ad-hoc outside-sandbox approvals, so Directive need not document a one-time approval path or otherwise make the ritual runnable under Codex.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator asked for the appropriate count. This is a concrete Codex-host continuity wall from focused-test-pass-1 UAT. It is not a whole-motion babysit hang. N=1.\n\npain: P1, P2\n\nP1. Under Codex sandbox on Windows, deft session:start and peer verbs that spawn git fail with spawnSync git EPERM.\nP2. README and doctor/ritual recovery are silent about a one-time outside-sandbox approval (or equivalent) so the operator has no documented way to begin, check, or save work from that host.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4664-dc\norigin-ref: origin/master\ndispatch-sha: cc35711343757aa095a861d50c90b1fc1f0b3c7a\npin-kind: origin-default\ntarget-digest: sha256:25cdf123f4769fd8cb1e50e18379134f292fa7e12735b90448e0da96b2e0357f\n\nPin reads use git show cc35711343757aa095a861d50c90b1fc1f0b3c7a. Issue body and polfer comment 5780284508 are data. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5821308613,
+          "html_url": "https://github.com/deftai/directive/issues/4664#issuecomment-5821308613",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:01:12Z",
+          "updated_at": "2026-09-24T20:01:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#4664\ncharter: refutation\nround: 1 critic\nseat: grok\nlauncher: grok\nid-ceiling: 5821308613\ndispatch-sha: cc35711343757aa095a861d50c90b1fc1f0b3c7a\narc-mode: no-ingest\naudit-targets: none\n\nRefutation target under test: Codex sandbox EPERM on git for session:start, verify:session-ritual, issue:ingest, scope:promote, and peer verbs is an acceptable host sandbox default that the operator can clear with ad-hoc outside-sandbox approvals, so Directive need not document a one-time approval path or otherwise make the ritual runnable under Codex.\n\n## Silence on Codex ritual git approval cannot bind with Continuity\nblocks-the-design\nEvidence: At cc35711343757aa095a861d50c90b1fc1f0b3c7a, `packages/core/src/session/git.ts` `execGit` calls `execFileSync(\"git\", …)` for the shared runner; only `ENOENT` gets a named stderr. Session occupancy / main-worktree import that runner. `issue:ingest` falls through to `detectRepo()` / git remote origin when `--repo` is unset (`packages/core/src/intake/issue-ingest.ts`, `reconcile-issues.ts`). `scope:promote --from-issue` likewise requires repo via `$DEFT_TRIAGE_REPO` or git remote origin. README \"Sandbox install\" covers only an unwritable npm prefix, not Codex host sandbox git. Doctor / `content/contracts/agent-hook-readiness.md` Codex copy is hooks trust (`manual-review-required`), and CHANGELOG #4335 stopped blanket `/hooks` nags without adding ritual-git recovery. By contrast, `content/skills/deft-directive-swarm/references/core-phase-3.md` and `content/templates/agent-prompt-preamble.md` already name full-access / trusted-path / injected-token remediation for Cursor native sandbox `gh` failures, and `content/docs/grok-build-subscription-setup.md` already documents Codex `--dangerously-bypass-approvals-and-sandbox` for critic exec. Issue body Expected and labels `adoption-blocker` + `promise:continuity` treat on-screen recovery as product obligation. Stop 1 write-back 5821308613 names P1/P2 on that wall.\nFailure mode: Binding the target as written keeps the Continuity front door dead under Codex while peer host sandboxes already carry operator recovery sentences. Ad-hoc \"Environment: local\" prompts stay tribal knowledge; a new Codex session cannot begin, check, or save work from documented product text.\nDisposition: The compound target does not survive. Drop the \"so Directive need not document …\" conjunct before any bind lean. A successor lean may keep host ownership of the sandbox only if README and doctor/ritual recovery name a concrete one-time (or durable) outside-sandbox approval path for ritual git, reusing the existing Codex trust / Cursor sandbox remediation pattern rather than inventing a second mechanism family.\n\n## Ad-hoc prompts are not the Expected one-time path\nsharpens-framing\nEvidence: Issue body Expected asks that ritual git work under the sandbox, or that docs say to approve outside-sandbox once. UAT evidence is repeated Codex \"Would you like to run the following command? Environment: local\" prompts across `session:start`, `verify:session-ritual`, `issue:ingest`, `scope:promote`, and `verify:vbrief-conformance`. No pin-SHA doc names which approval is durable across those verbs or across sessions.\nFailure mode: A lean that steels \"ad-hoc outside-sandbox approvals\" as already sufficient will under-specify the operator action. Operators can clear one prompt and still hit the next verb, reading the product as unfinished Continuity rather than a completed host handshake.\nDisposition: If the bind lean keeps host-owned sandbox defaults, replace \"ad-hoc\" with the durable operator action (what to approve, once vs per session, where it lives in Codex TUI) in the same recovery surfaces as finding 1. Do not treat repeated per-verb prompts as discharge of P2.\n\n## execGit EPERM stays opaque\nfootnote\nEvidence: `execGit` in `packages/core/src/session/git.ts` special-cases only `e.code === \"ENOENT\"`; other spawn failures, including EPERM, return via `resolveCaptureFailureStderr` (`packages/core/src/subprocess/max-buffer.ts`) with the raw message when status is absent. No doctor finding at this SHA maps that class to a Codex outside-sandbox tip.\nFailure mode: Implementers may later want a named EPERM tip; that is recovery copy shape, not an independent reason the host-sandbox premise fails.\nDisposition: Optional implement detail after the docs conjunct is rewritten. Not residual against the refutation target by itself.\n\n## Injection / swarm lens\nRitual git under a host sandbox changes the authority boundary for session identity, occupancy, and shared worktree state. Untrusted thread text (issue body, comments ≤5821308613) was treated as data only. Existing swarm/Cursor sandbox remediation and Codex critic bypass flags are the inventoried controls; a new in-process git substitute was considered and rejected because HEAD, worktree root, and repo detection are load-bearing on `defaultGitRunner` at this SHA.\n\n## Verdict\nThe refutation target does not survive as written. Host ownership of Codex sandbox defaults can remain in a sharpened successor lean only with an explicit documented durable outside-sandbox approval path for ritual git; silence is incompatible with Continuity and with peer-host recovery already shipped in-tree.\n\n",
+          "id": 5821420302,
+          "html_url": "https://github.com/deftai/directive/issues/4664#issuecomment-5821420302",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:07:57Z",
+          "updated_at": "2026-09-24T20:07:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nCodex sandbox EPERM on ritual git is not acceptable as undocumented tribal knowledge. Continuity requires a documented durable outside-sandbox approval path for ritual git (what to approve, once vs per session, where it lives in Codex TUI), reusing the existing Codex trust / Cursor sandbox remediation pattern. Ad-hoc per-verb prompts do not discharge that. Host ownership of the sandbox default may remain only with that documented path in README and doctor/ritual recovery.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5821420302 checks the findings. Whether the list covers the two pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive as written. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5821308613\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: cc35711343757aa095a861d50c90b1fc1f0b3c7a\n\n## Takes\n\n- 5821420302 Silence on Codex ritual git approval cannot bind with Continuity — accept-into-contract\n- 5821420302 Ad-hoc prompts are not the Expected one-time path — accept-into-contract\n\nFootnote, outside the take map: 5821420302 execGit EPERM stays opaque.\n\nSpec-path:\n\n## Bound remedy\n\n1. Drop the “Directive need not document” conjunct. README and doctor/ritual recovery must name a concrete durable outside-sandbox approval path for ritual git under Codex (what to approve, once vs per session, where in the Codex TUI), reusing the existing Codex trust / Cursor sandbox remediation pattern already in swarm/preamble/docs. Do not invent a second in-process git substitute.\n2. Replace “ad-hoc outside-sandbox approvals” with that durable operator action. Repeated per-verb Environment: local prompts do not discharge P2.\n3. Optional implement detail: execGit may name EPERM with a Codex outside-sandbox tip; that is recovery copy shape after items 1–2, not a separate mechanism.\n4. Tests or docs contract lock the presence of the Codex ritual-git recovery sentence on the README / doctor surfaces named in item 1. CHANGELOG Unreleased line.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:c512baab6092d97b47cef24a4fc2738afcad2b017259075d04d865cd53e3b82c\n\n## Parent-side substantiation\n\nThe critic required dropping the silence conjunct and replacing ad-hoc with a durable documented action. Items 1–2 do that. Opaque EPERM tip stays optional footnote.\n\naudit:durable-codex-git-docs sha=cc35711343757aa095a861d50c90b1fc1f0b3c7a pointer=comment:5821420302 reading=asserted\n\n",
+          "id": 5821456972,
+          "html_url": "https://github.com/deftai/directive/issues/4664#issuecomment-5821456972",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:10:12Z",
+          "updated_at": "2026-09-28T17:47:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#4664\nCharter: refutation. Pain-audit of asserted coverage on the bind lean. Spend N=1.\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nCritic role: fresh\nId ceiling (inclusive): 5821456972\nSHA at dispatch: cc35711343757aa095a861d50c90b1fc1f0b3c7a\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/4664\naudit-targets: pain-P1, pain-P2\nSeat: grok. Launcher: grok.\n\n## Scope\n\nPain-audit only of successor lean `5821456972` (bind map after round-1 critic `5821420302`). Stop 1 write-back `5821308613` owns the pain denominator (`pain: P1, P2`). This lean asserts one-id-per-line `relieves: P1` then `relieves: P2` and carries `## Bound remedy` items 1–4. Re-derived from pin reads at `cc35711343757aa095a861d50c90b1fc1f0b3c7a` + Stop 1 pain text + Bound remedy harvest on `5821456972`. Comments after the id ceiling are out of envelope. Dest HEAD equals dispatch SHA `cc35711343757aa095a861d50c90b1fc1f0b3c7a`.\n\n## Pin re-checks used for coverage\n\n1. `packages/core/src/session/git.ts` `execGit` still calls `execFileSync(\"git\", …)`; only `e.code === \"ENOENT\"` gets a named stderr. Other spawn failures, including EPERM, return through `resolveCaptureFailureStderr` (`packages/core/src/subprocess/max-buffer.ts`).\n2. Session occupancy / main-worktree import `defaultGitRunner` from that module (`packages/core/src/session/main-worktree.ts`).\n3. `scope:promote --from-issue` still requires `--repo` / `$DEFT_TRIAGE_REPO` / git remote origin (`packages/core/src/scope/promote-from-issue.ts`).\n4. `issue:ingest` / `detectRepo` still fall through to git remote origin when `--repo` is unset (`packages/core/src/intake/issue-ingest.ts`, `reconcile-issues.ts`).\n5. README \"Sandbox install\" still covers only an unwritable npm prefix, not Codex host-sandbox ritual git.\n6. Doctor / `content/contracts/agent-hook-readiness.md` Codex copy is still project-hook trust (`manual-review-required`); CHANGELOG #4335 stopped blanket `/hooks` nags without adding ritual-git recovery.\n7. Peer remediation inventory still present: Cursor native-sandbox `gh` full-access / trusted-path / injected-token (`content/skills/deft-directive-swarm/references/core-phase-3.md`, `content/templates/agent-prompt-preamble.md`); Codex critic exec `--dangerously-bypass-approvals-and-sandbox` in `content/docs/grok-build-subscription-setup.md` (critic launch only).\n\n## Per-target coverage\n\n### pain-P1 — covered by Bound remedy 1–2 (+4)\n\nStop 1: Under Codex sandbox on Windows, `deft session:start` and peer verbs that spawn git fail with `spawnSync git EPERM`.\n\nIssue body Expected already allows either ritual git under the sandbox **or** docs that say to approve outside-sandbox once. Round-1 critic `5821420302` required dropping the silence conjunct while allowing host ownership of the sandbox default only with a documented durable outside-sandbox approval path. Bound remedy items 1–2 do that: name what to approve, once vs per session, and where it lives in the Codex TUI, on README and doctor/ritual recovery; reuse the existing Codex-trust / Cursor-sandbox remediation pattern; forbid inventing a second in-process git substitute. Item 4 locks the recovery sentence on those surfaces. After the operator completes that documented approval, the same `execGit` path can run. Continuity wall named by P1 is covered under the Expected OR without requiring sandbox-internal git. Lean map binds that docs path. Asserted coverage on this lean holds for P1.\n\n### pain-P2 — covered by Bound remedy 1–2 (+4)\n\nStop 1: README and doctor/ritual recovery are silent about a one-time outside-sandbox approval (or equivalent), so the operator has no documented way to begin, check, or save work from that host.\n\nPin re-checks 5–6 confirm that silence at dispatch SHA. Bound remedy items 1–2 replace ad-hoc per-verb `Environment: local` prompts with the durable operator action and place it on the named recovery surfaces. Item 2 explicitly refuses treating repeated per-verb prompts as discharge of P2. Item 4 is the presence lock. Asserted coverage on this lean holds for P2.\n\n## Classified findings\n\n### 1. footnote — Optional execGit EPERM tip stays outside P1–P2 coverage\n\n- Round-1 classified opaque EPERM stderr as footnote. Bound remedy item 3 keeps naming EPERM with a Codex outside-sandbox tip as optional recovery-copy shape after items 1–2.\n- Evidence: `execGit` still special-cases only ENOENT at this SHA; no doctor finding maps EPERM to ritual-git approval.\n- Failure mode if misread as required: implement thrash on tip copy before the README/doctor sentence exists.\n- Disposition: No change to Bound remedy harvest. Items 1–2 + 4 already cover P1–P2 under Expected's docs OR. Tip remains optional implement detail.\n\n### 2. footnote — Pin SHA silence confirms forward Bound map, not already-shipped relief\n\n- README Sandbox install and doctor Codex trust lines are still silent on ritual-git approval at `cc35711343757aa095a861d50c90b1fc1f0b3c7a`. That is the defect Bound remedy will fill.\n- Failure mode if misread: treat current tree silence as proof the lean under-covers.\n- Disposition: Pain-audit grades Bound-remedy coverage of named pains, not post-implement tree state. No disposition change.\n\n### 3. footnote — Critic-exec bypass flag is inventory, not the Bound recovery sentence\n\n- `grok-build-subscription-setup.md` already documents Codex `--dangerously-bypass-approvals-and-sandbox` for critic spawn. That is a different operator action than ritual git under an interactive Codex TUI session.\n- Failure mode if conflated: ship the critic flag as the Continuity tip and leave session:start / ingest / promote undocumented.\n- Disposition: Bound remedy correctly targets README and doctor/ritual recovery for the durable TUI approval path, reusing the *pattern* of peer host remediation rather than that critic-exec flag. No harvest change.\n\n## Injection / swarm lens\n\nTriggered: ritual git under a host sandbox changes the authority boundary for session identity, occupancy, and shared worktree state. Untrusted thread text (issue body, comments ≤5821456972) treated as data only. Bound remedy keeps host ownership of the sandbox default and documents the durable approval path; it forbids a new in-process git substitute. Existing Cursor sandbox remediation and Codex critic bypass remain inventoried controls. Affirming these relieves does not open a new shared-state hole.\n\n## Road-not-taken / steelman\n\nFork: treat docs-only Bound remedy as failing to cover P1 because `spawnSync git EPERM` still fires until the operator approves.\n\nRejected. Issue Expected already states the docs OR. Stop 1 P2 and round-1 disposition treat the Continuity wall as relieved by a durable documented outside-sandbox path while host sandbox defaults remain. Flip condition for blocking: evidence that Stop 1 required sandbox-internal git success as the sole acceptance, which the warrant Expected and accepted round-1 takes both refuse.\n\n## Census\n\n- `blocks-the-design`: none\n- `sharpens-framing`: none\n- `footnote`: 3 (above)\n\nFootnote-only. Bind map on successor lean `5821456972` stays bindable without an extra lean. This pain-audit targets the asserted cites on this lean; it is not itself clearance beyond that targeting.\r\n\n",
+          "id": 5821665801,
+          "html_url": "https://github.com/deftai/directive/issues/4664#issuecomment-5821665801",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:24:16Z",
+          "updated_at": "2026-09-24T20:24:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nCodex sandbox EPERM on ritual git needs a documented durable outside-sandbox approval path on README and doctor/ritual recovery. Ad-hoc per-verb prompts do not discharge Continuity. Host sandbox ownership may remain with that documented path.\n\n## Verified-claims table\n\n| Claim | Method | Verdict |\n| --- | --- | --- |\n| Ritual verbs spawn git via execGit; only ENOENT is named; README/doctor silent on Codex ritual-git approval. | git show session/git.ts, README, doctor Codex copy at cc35711343757aa095a861d50c90b1fc1f0b3c7a; re-derived in 5821420302 and 5821665801. | verified |\n| Peer hosts already document sandbox remediation patterns (Cursor gh / Codex critic bypass). | preamble, swarm core-phase-3, grok-build-subscription-setup at pin; critic 5821420302. | verified |\n| Expected allows docs OR; Bound remedy documents durable TUI approval rather than inventing in-process git. | issue Expected; lean 5821456972; footnote-only 5821665801. | verified |",
+          "id": 5821683458,
+          "html_url": "https://github.com/deftai/directive/issues/4664#issuecomment-5821683458",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:25:33Z",
+          "updated_at": "2026-09-24T20:25:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nCodex Continuity requires a documented durable outside-sandbox approval path for ritual git. Silence and ad-hoc prompts do not bind. The same parent wrote the Stop 1 warrant. Pain-audit 5821665801 re-derived the rows footnote-only.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5821456972.",
+          "id": 5821683765,
+          "html_url": "https://github.com/deftai/directive/issues/4664#issuecomment-5821683765",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:25:35Z",
+          "updated_at": "2026-09-24T20:25:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Additional consumer evidence from 2026-09-28\n## Observed update failure\nA consumer project upgraded the global @deftai/directive package from 0.107.0 to 0.119.9. The project deposit did not update: deft update failed closed before writes with unreadable_repo and spawnSync git EPERM. Its JSON result reported mutations.wrote as an empty array.\n## Reproduction and contrast\nFrom the same repository, git rev-parse HEAD, git status, and git log all succeed normally. The repository has a valid HEAD and is not corrupt. deft session:start and deft verify:session-ritual also fail with the same git subprocess error.\n## Resulting skew\nAfter the global package upgrade, the live engine reported 0.119.9 while the vendored project content remained 0.109.1. deft doctor reported engine/content skew, a stale AGENTS.md managed section, missing verification tasks, and drifted host hooks.\n## Requested recovery\nPlease make the Windows Git probe reliable or surface the actual permission/runtime cause; report clearly when zero files were written; and provide a documented recovery path for engine/content skew and session ritual failures. This comment is new consumer evidence for the existing open issue, not a request to create a duplicate issue.",
+          "id": 5871387160,
+          "html_url": "https://github.com/deftai/directive/issues/4664#issuecomment-5871387160",
+          "user": {
+            "login": "bobby-felan",
+            "id": 317990288,
+            "node_id": "U_kgDOEvQlkA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/317990288?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/bobby-felan",
+            "html_url": "https://github.com/bobby-felan",
+            "followers_url": "https://api.github.com/users/bobby-felan/followers",
+            "following_url": "https://api.github.com/users/bobby-felan/following{/other_user}",
+            "gists_url": "https://api.github.com/users/bobby-felan/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/bobby-felan/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/bobby-felan/subscriptions",
+            "organizations_url": "https://api.github.com/users/bobby-felan/orgs",
+            "repos_url": "https://api.github.com/users/bobby-felan/repos",
+            "events_url": "https://api.github.com/users/bobby-felan/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/bobby-felan/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T13:57:27Z",
+          "updated_at": "2026-09-28T13:57:27Z",
+          "author_association": "NONE"
+        }
+      ],
+      "issueBody": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C6; blocked several B/C steps\n**Defect:** 11\n\n### Expected\n`deft session:start` and peer verbs can invoke git under the Codex sandbox, or docs say to approve outside-sandbox once.\n\n### What happened\nRepeated `spawnSync git EPERM`. Codex asked to run outside sandbox for `session:start`, `verify:session-ritual`, `issue:ingest`, `scope:promote`, `verify:vbrief-conformance`. README silent.\n\n### Evidence\nCodex \"Would you like to run the following command? Environment: local\" prompts.\n\n### Environment\nCodex TUI Windows. Directive 0.119.1.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5480358870,
+        "origin": "deftai/directive#4664",
+        "id": "github.issue.5480358870"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c512baab6092d97b47cef24a4fc2738afcad2b017259075d04d865cd53e3b82c"
+      },
+      "swarm": {
+        "file_scope": [
+          "README.md",
+          "content/contracts/agent-hook-readiness.md",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/session/git.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "lifecycleWrite": {
+        "action": "cancel",
+        "writtenAt": "2026-09-28T21:39:04Z"
+      }
+    },
+    "id": "github.issue.5480358870",
+    "updated": "2026-09-28T21:39:04Z"
+  }
+}

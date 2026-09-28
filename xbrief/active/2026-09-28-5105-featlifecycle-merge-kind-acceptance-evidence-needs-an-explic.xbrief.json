@@ -1,0 +1,474 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5105",
+    "updated": "2026-09-28T18:50:05Z"
+  },
+  "plan": {
+    "title": "feat(lifecycle): merge-kind acceptance evidence needs an explicit declaration, not keyword inference",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(lifecycle): merge-kind acceptance evidence needs an explicit declaration, not keyword inference",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5105",
+      "Overview": "\n\n1. Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES. Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.\n2. Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape). Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence). Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.\n3. Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one. Do not auto-stamp merge from keywords or empty-axis alone.\n4. Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g. kind: test cannot point at a non-test artifact). recorded_by remains non-authoritative control.\n5. skipAcceptanceEvidenceGate stays without a production caller. CHANGELOG [Unreleased] entry.\n6. Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change. Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e\n\n\n",
+      "Labels": "enhancement, design, agent-experience, process, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "title": "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES. Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5112#60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape). Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence). Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5112.",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedVia": "leftover-complete-pass"
+          }
+        }
+      },
+      {
+        "title": "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one. Do not auto-stamp merge from keywords or empty-axis alone.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5112#60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g. kind: test cannot point at a non-test artifact). recorded_by remains non-authoritative control.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5112#60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "skipAcceptanceEvidenceGate stays without a production caller. CHANGELOG [Unreleased] entry.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/5112#60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change. Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5112.",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedVia": "leftover-complete-pass"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5105",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5105: feat(lifecycle): merge-kind acceptance evidence needs an explicit declaration, not keyword inference"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3791",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3791"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [],
+      "admitted_source_sentences": [
+        "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES.",
+        "Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
+        "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape).",
+        "Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence).",
+        "Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
+        "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one.",
+        "Do not auto-stamp merge from keywords or empty-axis alone.",
+        "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g.",
+        "kind: test cannot point at a non-test artifact).",
+        "recorded_by remains non-authoritative control.",
+        "skipAcceptanceEvidenceGate stays without a production caller.",
+        "CHANGELOG [Unreleased] entry.",
+        "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change.",
+        "Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e"
+      ],
+      "admitted_source_digest": "4550c27a06d3216cf00b50096f768bfff9dc12983daf8b6b3fc71257ec7d73db",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES. Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape). Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence). Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one. Do not auto-stamp merge from keywords or empty-axis alone.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g. kind: test cannot point at a non-test artifact). recorded_by remains non-authoritative control.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "skipAcceptanceEvidenceGate stays without a production caller. CHANGELOG [Unreleased] entry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change. Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(lifecycle): merge-kind acceptance evidence needs an explicit declaration, not keyword inference",
+        "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES.",
+        "Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
+        "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape).",
+        "Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence).",
+        "Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
+        "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one.",
+        "Do not auto-stamp merge from keywords or empty-axis alone.",
+        "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g.",
+        "kind: test cannot point at a non-test artifact).",
+        "recorded_by remains non-authoritative control.",
+        "skipAcceptanceEvidenceGate stays without a production caller.",
+        "CHANGELOG [Unreleased] entry.",
+        "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change.",
+        "Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Current known state (2026-09-28 Stage A)\n\nStage A `task triage:evaluate -- 5105` on origin/master `df69642fb0dd`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/df69642fb0dd/d4442873-6004-4054-9e25-de605a866b38`\n\n### Live product gap\n\nSplit from #3791 part two after round-1 critics found no honest keyword-inference path for merge-kind acceptance evidence. Current tip still lacks explicit `merge` declaration + merge-kind stamp sibling with production caller and kind-versus-pointer coherence (issue body cites critic pins at cb4c743; re-verify at dest SHA).\n\n### Spend recommendation\n\nLeftover continuation of an already-critiqued #3791 remainder with a converged proposed direction. Recommended Dual-stop **N=1**. Operator asked for the same flow; spend recorded as N=1.\n\nCatalog facets applied. Chip: design-critique:mechanism-shaped.",
+          "id": 5873233456,
+          "html_url": "https://github.com/deftai/directive/issues/5105#issuecomment-5873233456",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T15:31:13Z",
+          "updated_at": "2026-09-28T15:31:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because merge-kind acceptance evidence still cannot be stamped honestly from keyword inference, so criteria that merge does not prove can be auto-accepted or left incoherent without an explicit merge declaration and production stamp path.\n\ncharter: refutation\nrefutation-target: Without an explicit merge declaration and a merge-kind stamp sibling with a production caller, finalizeCohort / acceptance evidence cannot honestly stamp only criteria a merge establishes, and keyword inference / isEvidenceKindSuitable still over-accepts or mis-stamps criteria.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator directed the same evaluate/label/arc flow. This is a leftover of #3791 part two with critic-converged direction; recommended spend N=1.\n\npain: P1, P2, P3\n\nP1. Criteria cannot explicitly declare merge as a required evidence kind (requires / requiredEvidenceKind / acceptanceAxis stay on STRICT_ACCEPTANCE_AXES only).\nP2. There is no merge-kind stamp sibling to stampDeclaredTestEvidence that stamps only merge-declared criteria with a delivery-tip ancestry pointer, plus a production caller after persist/bind on the clause-keyed walk.\nP3. Inferred-only / undeclared criteria can still be over-accepted or left without visible remaining-work failure, and stamp-time kind-versus-pointer coherence does not refuse incoherent stamps for human and agent authors alike.\n\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-5105-dc\norigin-ref: origin/HEAD\ndispatch-sha: df69642fb0dd6496d333393f84a9500a917ab446\npin-kind: origin-default\ntarget-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e\n\nPin reads use git show df69642fb0dd6496d333393f84a9500a917ab446. Single Grok seat. Not dual-launched. Out of scope: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change.\n\n",
+          "id": 5873233762,
+          "html_url": "https://github.com/deftai/directive/issues/5105#issuecomment-5873233762",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T15:31:14Z",
+          "updated_at": "2026-09-28T15:31:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1 critic. Fresh seat. Charter refutation. Id ceiling 5873233762. Dispatch SHA df69642fb0dd6496d333393f84a9500a917ab446 (git rev-parse HEAD matched; pin reads via git show).\n\nRefutation target under test: Without an explicit merge declaration and a merge-kind stamp sibling with a production caller, finalizeCohort / acceptance evidence cannot honestly stamp only criteria a merge establishes, and keyword inference / isEvidenceKindSuitable still over-accepts or mis-stamps criteria.\n\n## Verdict on the target\n\nThe refutation target survives. At this SHA, criteria still cannot positively declare `merge` on `requires` / `requiredEvidenceKind` / `acceptanceAxis`; no merge-kind stamp sibling exists; `stampDeclaredTestEvidence` still has no production caller; empty-axis suitability still accepts any evidence kind including `merge`; pointer-shape coherence at parse time still exists only for `uat`.\n\n## Merge declaration must stay outside STRICT_ACCEPTANCE_AXES\nsharpens-framing\nEvidence: `git show df69642fb0dd6496d333393f84a9500a917ab446:packages/core/src/scope/acceptance-evidence.ts` — `STRICT_ACCEPTANCE_AXES` is defined as axes merge/review alone cannot satisfy (`deploy|smoke|uat|observed_behavior`). `inferRequiredStrictAxes` admits explicit `requires` / `requiredEvidenceKind` / `acceptanceAxis` only when the value is in that set, so `requires: \"merge\"` is ignored and falls through. Re-ran the extracted suitability rules: `{requires:\"merge\"}` yields `[]` and `isEvidenceKindSuitable(\"merge\", []) === true`. When any strict axis is present, `isEvidenceKindSuitable` returns false for `kind === \"merge\" | \"review\"` before axis equality.\nFailure mode: Binding \"add merge to the fields that today accept only STRICT_ACCEPTANCE_AXES\" by placing `merge` inside `STRICT_ACCEPTANCE_AXES` makes a merge-declared criterion reject `kind: merge` evidence, so the stamp sibling cannot satisfy the gate it was built for.\nDisposition: Bound lean must widen the declaration vocabulary without folding `merge` into `STRICT_ACCEPTANCE_AXES`, or must recut suitability so a declared merge requirement accepts `kind: merge`.\n\n## Production stamp inventory is stampMatchAnyFileEvidence, not stampDeclaredTestEvidence\nsharpens-framing\nEvidence: `git grep stampDeclaredTestEvidence` at the pin shows the symbol only in `acceptance-evidence.ts` (definition) and `acceptance-evidence.test.ts`. Production verb `scope:stamp-evidence` (`packages/core/src/scope/stamp-evidence.ts`) calls `stampMatchAnyFileEvidence`, which also stamps `kind: \"test\"` and skips when `inferRequiredStrictAxes(...).length > 0`. No merge-kind writer exists beside either helper.\nFailure mode: Binding a \"sibling to stampDeclaredTestEvidence\" plus \"give both writers a production caller\" without naming the live #4840 path leaves the merge stamp orphaned the same way #4732 is, while `scope:stamp-evidence` keeps auto-writing `kind: test` on empty-axis clause rows.\nDisposition: Inventory `stampMatchAnyFileEvidence` / `scope:stamp-evidence` before inventing a third writer; put the merge sibling's production caller on the persist/bind → complete walk (and/or that verb), and say what happens to the unused #4732 helper.\n\n## finalizeCohort owns delivery evidence; acceptance kind stamps are on the complete gate\nsharpens-framing\nEvidence: `finalize-cohort.ts` imports `completeCohort` and `delivery-evidence` helpers; pin grep finds no `acceptance-evidence` / `stampDeclared*` / `stampNamespaced*` / `evaluateAcceptanceEvidenceGate` import in finalize itself. `complete-cohort.ts` dry-runs `persistClauseKeyedPendingItems` then `evaluateAcceptanceEvidenceGate` on a clone and does not stamp `x-directive/evidence`. `transition.ts` on `complete` persists clause-keyed items then evaluates the gate; `skipAcceptanceEvidenceGate` is documented test-only and has no non-test production assignment at this SHA.\nFailure mode: Binding prose that treats finalizeCohort as the place that currently keyword-stamps or mis-stamps merge-kind acceptance evidence mis-aims the caller and can leave DeliveryEvidence (#3041, out of scope) entangled with acceptance `kind: merge`.\nDisposition: State that finalize already drives complete, and that the missing production merge-kind stamp belongs on that acceptance complete / stamp path after persist/bind — not as a rewrite of delivery-evidence ancestry.\n\n## Over-accept, inference, and pointer coherence are three mechanisms\nsharpens-framing\nEvidence: Same pin file — (1) `isEvidenceKindSuitable` returns true when `requiredAxes.length === 0` for every kind including `merge` and `test`; (2) `stampDeclaredTestEvidence` / `stampMatchAnyFileEvidence` use inference only as a negative skip (`strict-axis`) then stamp `kind: \"test\"` — they never choose `merge` from keywords; (3) `parseEvidence` calls `uatPointerShapeError` only when `kindRaw === \"uat\"`; other kinds accept any non-empty pointer. `pr-closeout-attestable/evaluate.ts` still tells authors `recorded_by accepts any non-empty string`.\nFailure mode: Collapsing those into \"keyword inference / isEvidenceKindSuitable still over-accepts or mis-stamps\" lets a lean fix only empty-axis suitability and still ship incoherent `kind: test` → `.md` pointers, or fix only pointer shape and still leave empty-axis merge over-accept.\nDisposition: Keep P1–P3, but name three controls in the lean: positive merge declaration, empty-axis over-accept at the gate, and stamp-time kind-versus-pointer coherence for human and agent authors alike. Do not credit inference with a stamp it does not perform.\n\n## Road not taken\n\nSteelmanned alternative: treat empty-axis + verified delivery-tip ancestry as sufficient to auto-stamp `kind: merge` without an explicit declaration. Rejected because the same empty-axis path accepts behavioural titles such as \"Works for solo and external contributions.\" under `isEvidenceKindSuitable(\"merge\", [])`, which is the honesty failure the target names. What would flip that verdict: a deterministic positive predicate that a criterion is merge-established without author declaration — none exists at this SHA, and prior #3791 critics already closed keyword inference as that predicate.\n\n## Injection / swarm lens\n\nThe target changes what shared post-merge complete may attest about acceptance criteria (authority over plan item evidence, concurrency with finalize/complete writers). Existing controls to compose: `evaluateAcceptanceEvidenceGate`, `persistClauseKeyedPendingItems`, `verifyDeliveryAncestry` / delivery-evidence for the pointer half, `uatPointerShapeError` as the coherence precedent, and the test-only fence on `skipAcceptanceEvidenceGate`. No new swarm mesh or prompt-ingest surface is required for the declaration + stamp sibling themselves.\r\n\n",
+          "id": 5873331174,
+          "html_url": "https://github.com/deftai/directive/issues/5105#issuecomment-5873331174",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T15:36:15Z",
+          "updated_at": "2026-09-28T15:36:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMerge-kind acceptance evidence still cannot be declared positively, and there is still no merge-kind stamp with a production caller. Empty-axis suitability still over-accepts any kind including merge. The gap survives. merge must be declarable without folding into STRICT_ACCEPTANCE_AXES; the live production stamp inventory is stampMatchAnyFileEvidence / scope:stamp-evidence; the missing caller belongs on the acceptance complete path after persist/bind, not as a rewrite of finalize delivery-evidence. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5873233762. Critic 5873331174 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target survives in sharpened form. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5873233762\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: df69642fb0dd6496d333393f84a9500a917ab446\n\n## Takes\n\n- 5873331174 Merge declaration must stay outside STRICT_ACCEPTANCE_AXES — accept-into-contract\n- 5873331174 Production stamp inventory is stampMatchAnyFileEvidence, not stampDeclaredTestEvidence — accept-into-contract\n- 5873331174 finalizeCohort owns delivery evidence; acceptance kind stamps are on the complete gate — accept-into-contract\n- 5873331174 Over-accept, inference, and pointer coherence are three mechanisms — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES. Recut suitability so a declared merge requirement accepts kind: merge evidence.\n2. Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape). Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence). Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.\n3. Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one. Do not auto-stamp merge from keywords or empty-axis alone.\n4. Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g. kind: test cannot point at a non-test artifact). recorded_by remains non-authoritative control.\n5. skipAcceptanceEvidenceGate stays without a production caller. CHANGELOG [Unreleased] entry.\n6. Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change. Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e\n\n## Parent-side substantiation\n\nThe critic kept the honesty gap and required four lean fences: declaration vocabulary outside STRICT_ACCEPTANCE_AXES, live stamp inventory, complete-path caller vs finalize delivery-evidence, and three distinct controls for over-accept / inference / pointer coherence. Items 1–4 are first-ship product; items 5–6 fence scope.\n\naudit:merge-declare-outside-strict-axes sha=df69642fb0dd6496d333393f84a9500a917ab446 pointer=comment:5873331174 reading=asserted\naudit:merge-stamp-on-complete-path sha=df69642fb0dd6496d333393f84a9500a917ab446 pointer=comment:5873331174 reading=asserted\n\n",
+          "id": 5873345442,
+          "html_url": "https://github.com/deftai/directive/issues/5105#issuecomment-5873345442",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T15:36:57Z",
+          "updated_at": "2026-09-28T15:36:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\n\nRound 4 Pass-4 pain-audit of relieves. Fresh critic. Charter refutation. Spend N=1. Id ceiling 5873345442. Dispatch SHA df69642fb0dd6496d333393f84a9500a917ab446 (git rev-parse HEAD matched; pin reads via git show). Seat: grok. Launcher: grok. arc-mode: no-ingest.\n\nBind lean under audit: 5873345442 (asserts relieves P1, P2, P3). Stop 1 pains: 5873233762. Prior critic sharpenings in envelope: 5873331174 (merge outside STRICT_ACCEPTANCE_AXES; live stamp inventory; complete-path caller).\n\n## Coverage honesty summary\n\nAgainst the pin, Bound remedy items 1–4 map onto P1–P3 and already absorb the three round-1 fences. No finding blocks the design. One sharpening: the suitability recut must refuse empty-axis / undeclared `kind: merge`, or P3's over-accept half can still pass after a hand stamp. Footnotes only for already-licensed implement forks.\n\n## Suitability dual for empty-axis merge over-accept\nsharpens-framing\nEvidence: Pin `packages/core/src/scope/acceptance-evidence.ts` — `isEvidenceKindSuitable` returns true when `requiredAxes.length === 0` for every kind including `merge`. `inferRequiredStrictAxes` ignores `requires: \"merge\"` because merge is outside `STRICT_ACCEPTANCE_AXES`. Bound item 1 only states the positive half (\"Recut suitability so a declared merge requirement accepts kind: merge\"). Bound item 3 labels empty-axis over-accept and says inferred-only / undeclared stay unattested with visible failure, plus \"Do not auto-stamp merge from keywords or empty-axis alone.\" Auto-stamp skip does not stop a human or agent `parseEvidence` path from recording `kind: merge` on an undeclared criterion; under today's empty-axis rule that stamp still evaluates suitable.\nFailure mode: Implement can satisfy the written item-1 sentence, leave `requiredAxes.length === 0 → true` for merge, and still over-accept undeclared merge stamps — so P3's over-accept half is not honestly closed by the list as narrowly readable.\nDisposition: For honest P3 (and coherent item 3), Bound item 1 must state the dual — `kind: merge` suitable only when merge is explicitly declared — or item 3 must name gate refusal of `kind: merge` on empty / undeclared axes. Positive declaration alone is not enough.\n\n## P1 declaration outside STRICT maps to Bound item 1\nfootnote\nEvidence: Pin confirms `STRICT_ACCEPTANCE_AXES = deploy|smoke|uat|observed_behavior` and explicit-field admission only via that set; `merge` is already in `ACCEPTANCE_EVIDENCE_KINDS` as a stampable kind. Bound item 1 names declaration on requires / requiredEvidenceKind / acceptanceAxis without folding merge into STRICT, matching critic 5873331174.\nFailure mode: None for P1 coverage honesty once the suitability dual above is in the harvest reading.\nDisposition: P1's \"cannot explicitly declare\" gap is named by item 1; keep the outside-STRICT fence.\n\n## P2 sibling, ancestry, caller, and live inventory map to Bound item 2\nfootnote\nEvidence: Pin grep — `stampDeclaredTestEvidence` only in acceptance-evidence.ts/.test.ts; production `scope:stamp-evidence` calls `stampMatchAnyFileEvidence` after `persistClauseKeyedPendingItems`; `transition` complete persists then `evaluateAcceptanceEvidenceGate` with no merge-kind writer; finalize-cohort uses delivery-evidence / `verifyDeliveryAncestry` and drives `completeCohort` without importing acceptance stamp helpers. Bound item 2 names the merge-only sibling, delivery-tip ancestry pointer, production caller on persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence), and the #4732 orphan disposition.\nFailure mode: The and/or leaves complete-after-persist versus the evidence-only verb as implement choice; that fork was already in critic 5873331174 disposition and does not erase the \"no production caller\" absence once either surface lands.\nDisposition: P2 coverage holds under the sharpened inventory; prefer the complete-path caller when choosing, because that is the clause-keyed walk the pain and issue sketch name.\n\n## P3 pointer-coherence half maps to Bound item 4\nfootnote\nEvidence: Pin `parseEvidence` calls `uatPointerShapeError` only when `kindRaw === \"uat\"`; other kinds accept any non-empty pointer. Bound item 4 extends that coherence to human and agent stamps alike and keeps `recorded_by` non-authoritative.\nFailure mode: None for this half of P3; over-accept honesty is the separate suitability-dual finding above.\nDisposition: Item 4 covers the coherence conjunct; item 3 plus the dual covers over-accept / remaining-work.\n\n## Road not taken\n\nSteelmanned alternative: treat Bound items 1+3 as already implying the suitability dual without further wording, because item 3 is titled empty-axis over-accept at the gate. Rejected for pain-audit honesty: item 1's operative sentence is one-directional, and a compliant implement can ship that sentence alone. What would flip: an operative Bound line that `kind: merge` is suitable only under explicit merge declaration.\n\n## Injection / swarm lens\n\nN/A for this pain-audit of asserted coverage. No new authority, untrusted-input, identity, or shared-state surface beyond what round-1 already scoped onto the acceptance complete / stamp path.\n\n",
+          "id": 5873420569,
+          "html_url": "https://github.com/deftai/directive/issues/5105#issuecomment-5873420569",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T15:40:41Z",
+          "updated_at": "2026-09-28T15:40:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nRecut after pain-audit 5873420569. Bound remedy item 1 must state the dual: kind: merge is suitable only when merge is explicitly declared (empty-axis / undeclared must refuse). Positive declaration alone leaves P3 over-accept open. All other Bound remedy items from lean 5873345442 stay. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5873233762 and lean 5873345442.\n\n**Lean:** Recut of 5873345442. This map is the bind.\n\nsiblings: 0\nRound: 1\nResidual: none\nsupersedes: 5873345442\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: df69642fb0dd6496d333393f84a9500a917ab446\n\n## Takes\n\n- 5873420569 Suitability dual for kind: merge — accept-into-contract\n- 5873420569 P1 declaration outside STRICT maps to Bound item 1 — accept-into-contract\n- 5873420569 P2 sibling, ancestry, caller, and live inventory map to Bound item 2 — accept-into-contract\n- 5873420569 P3 pointer-coherence half maps to Bound item 4 — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES. Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.\n2. Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape). Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence). Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.\n3. Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one. Do not auto-stamp merge from keywords or empty-axis alone.\n4. Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g. kind: test cannot point at a non-test artifact). recorded_by remains non-authoritative control.\n5. skipAcceptanceEvidenceGate stays without a production caller. CHANGELOG [Unreleased] entry.\n6. Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change. Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e\n\n## Parent-side substantiation\n\nPain-audit 5873420569 required the suitability dual on item 1 so P3 over-accept cannot survive a hand stamp of undeclared kind: merge. Items 2–6 unchanged from 5873345442.\n\naudit:merge-suitability-dual sha=df69642fb0dd6496d333393f84a9500a917ab446 pointer=comment:5873420569 reading=asserted\n\n",
+          "id": 5873433727,
+          "html_url": "https://github.com/deftai/directive/issues/5105#issuecomment-5873433727",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T15:41:22Z",
+          "updated_at": "2026-09-28T15:41:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\n\nRound 4 Pass-4 pain-audit of relieves. Fresh critic. Charter refutation. Spend N=1. Id ceiling 5873433727. Dispatch SHA df69642fb0dd6496d333393f84a9500a917ab446 (git rev-parse HEAD matched; pin reads via git show). Seat: grok. Launcher: grok. arc-mode: no-ingest.\n\nBind lean under audit: Recut 5873433727 (supersedes 5873345442; asserts relieves P1, P2, P3). Prior pain-audit 5873420569 asked for the suitability dual on item 1. Stop 1 pains: 5873233762. Round-1 fences in envelope: 5873331174.\n\n## Coverage honesty summary\n\nRecut item 1 now states both halves of the suitability dual. Against the pin, Bound remedy items 1–4 map onto P1–P3 with the prior sharpening absorbed. No finding blocks the design. No further harvest change. Footnote-only coverage confirmations.\n\n## P1 declaration outside STRICT maps to Recut item 1\nfootnote\nEvidence: Pin `packages/core/src/scope/acceptance-evidence.ts` — `STRICT_ACCEPTANCE_AXES = deploy|smoke|uat|observed_behavior`; `merge` is already in `ACCEPTANCE_EVIDENCE_KINDS`; `inferRequiredStrictAxes` admits explicit fields only when the value is in STRICT, so `requires: \"merge\"` still falls through. Recut item 1 keeps declaration on requires / requiredEvidenceKind / acceptanceAxis without folding merge into STRICT, and adds the dual: declared merge accepts `kind: merge`; `kind: merge` is suitable only when merge is explicitly declared (empty-axis / undeclared must refuse).\nFailure mode: None for P1 coverage honesty under this harvest.\nDisposition: P1's \"cannot explicitly declare\" gap is named by item 1; no further harvest change.\n\n## P2 sibling, ancestry, caller, and live inventory map to Recut item 2\nfootnote\nEvidence: Pin grep — `stampDeclaredTestEvidence` only in acceptance-evidence.ts/.test.ts; production `scope:stamp-evidence` calls `stampMatchAnyFileEvidence` after `persistClauseKeyedPendingItems`; no merge-kind writer beside either helper. Recut item 2 (unchanged from 5873345442) names the merge-only sibling, delivery-tip ancestry pointer, production caller on persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence), and the #4732 orphan disposition.\nFailure mode: The and/or leaves complete-after-persist versus the evidence-only verb as implement choice; that fork was already licensed by critic 5873331174 and does not erase the \"no production caller\" absence once either surface lands.\nDisposition: P2 coverage holds; prefer the complete-path caller when choosing. No further harvest change.\n\n## P3 over-accept and pointer-coherence map to Recut items 1, 3, and 4\nfootnote\nEvidence: Pin — `isEvidenceKindSuitable` returns true when `requiredAxes.length === 0` for every kind including `merge`; `parseEvidence` calls `uatPointerShapeError` only when `kindRaw === \"uat\"`. Prior pain-audit 5873420569 required the dual so empty-axis undeclared `kind: merge` cannot survive a hand stamp. Recut item 1 now states that dual; item 3 keeps inferred-only / undeclared unattested with visible failure and no auto-stamp from keywords or empty-axis alone; item 4 extends kind-versus-pointer coherence to human and agent stamps and keeps `recorded_by` non-authoritative.\nFailure mode: None for P3 coverage honesty once the dual is operative on item 1.\nDisposition: Over-accept and remaining-work are closed by items 1+3; coherence by item 4. No further harvest change.\n\n## Road not taken\n\nSteelmanned alternative: require another Recut to move the dual into a separate Bound line or to force the complete-path caller as the only surface. Rejected: item 1 already states both suitability halves in operative Bound prose, and the caller and/or was already accepted into contract. What would flip: an operative gap where empty-axis `kind: merge` could still evaluate suitable after implementing the written list as narrowly readable — none remains on this harvest.\n\n## Injection / swarm lens\n\nN/A for this pain-audit of asserted coverage. No new authority, untrusted-input, identity, or shared-state surface beyond what round-1 already scoped onto the acceptance complete / stamp path.\n\n",
+          "id": 5873467831,
+          "html_url": "https://github.com/deftai/directive/issues/5105#issuecomment-5873467831",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T15:43:19Z",
+          "updated_at": "2026-09-28T15:43:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMerge-kind acceptance evidence needs an explicit declaration outside STRICT_ACCEPTANCE_AXES, a merge-kind stamp with a complete-path production caller, empty-axis refuse for undeclared kind: merge, and stamp-time kind-versus-pointer coherence. Pain-audit 5873467831 of Recut lean 5873433727 was footnote-only. The same parent wrote Stop 1 5873233762. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5873433727.\n\n",
+          "id": 5873475929,
+          "html_url": "https://github.com/deftai/directive/issues/5105#issuecomment-5873475929",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T15:43:47Z",
+          "updated_at": "2026-09-28T15:43:47Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "**Summary**\n\n#3791 part two asked `finalizeCohort` to stamp merge-kind acceptance evidence for \"criteria a merge genuinely establishes.\" All three round-1 critics on #3791 found no honest way to decide that set, so this is split out from #3791 as its own issue. The narrower version the critics converged on is below.\n\n**Why the original framing does not bind**\n\n- `isEvidenceKindSuitable` returns true for any kind when `inferRequiredStrictAxes` finds no axis. The strict-axis filter is a negative filter, not positive evidence that a merge proves a criterion (critics 5732002909, 5732007507).\n- Run against #3791's own eight acceptance bullets, five infer no axis and would accept `kind: merge`, including behavioural claims such as \"Works for solo and external contributions.\" Two cannot be satisfied at all: one infers all four strict axes, and one infers `uat` from the proper noun \"UAT Tester 6\" (critic 5732051162).\n- `recorded_by` is not a control: `pr-closeout-attestable/evaluate.ts` already tells authors it accepts any non-empty string (critic 5732051162).\n- Comment 5433984468 on #3791 showed the failure in practice: real pointers, wrong kinds (`kind: test` on `.md` files).\n\n**Proposed direction**\n\n1. Add `merge` as an explicitly declarable requirement (`requires` / `requiredEvidenceKind` / `acceptanceAxis`). Today these accept only `STRICT_ACCEPTANCE_AXES`.\n2. Add a merge-kind sibling to `stampDeclaredTestEvidence` (#4732). It stamps only criteria that explicitly declare `merge`. The pointer must resolve to a commit that is an ancestor of the refreshed delivery tip (same shape as `verifyDeliveryAncestry`).\n3. Give both writers a production caller. `stampDeclaredTestEvidence` has none today. The stamp runs after persist/bind on the same clause-keyed walk, so `clause:N` rows added by `persistClauseKeyedPendingItems` are not missed.\n4. Criteria that are inferred-only or undeclared stay unattested, and the run fails visibly, naming each one.\n5. Kind-versus-pointer coherence at stamp time for human and agent stamps alike, extending what `uatPointerShapeError` does for `uat` (comment 5433984468). For example, `kind: test` cannot point at a non-test artifact.\n\n**Acceptance sketch**\n\n- A criterion can declare `merge` explicitly, and schema plus gate tests cover it\n- Merge-kind stamps are written only for criteria that declare it, with a pointer verified as an ancestor of the delivery tip\n- Inferred-only criteria are never auto-stamped and are reported as remaining work\n- `stampDeclaredTestEvidence` and the merge-kind sibling have a production caller\n- Stamp-time kind-versus-pointer checks refuse incoherent stamps from any author\n- `skipAcceptanceEvidenceGate` stays without a production caller\n- CHANGELOG `[Unreleased]` entry\n\n**Out of scope**\n\n- The post-merge lifecycle move itself (#3791, and the shipped #4937, #4864 and #4919 work)\n- The pre-merge attestable gate (#3781, shipped)\n- Changing the delivery-evidence requirement (#3041)\n\n**Provenance**\n\nSplit out of #3791 part two per the round-1 critics above. The code references are from the critics' pin-reads at cb4c743 and are not re-verified against the current tip.\n\nRefs #3791, #3781, #3240, #3156, #4732, #4563, #3041.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5617010702,
+        "origin": "deftai/directive#5105",
+        "id": "github.issue.5617010702"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "lifecycleWrite": {
+        "action": "cancel",
+        "writtenAt": "2026-09-28T18:50:05Z"
+      }
+    },
+    "id": "github.issue.5617010702",
+    "updated": "2026-09-28T18:50:05Z"
+  }
+}

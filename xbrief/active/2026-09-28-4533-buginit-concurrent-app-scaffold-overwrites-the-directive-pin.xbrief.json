@@ -1,0 +1,664 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4533",
+    "updated": "2026-09-28T18:04:21Z"
+  },
+  "plan": {
+    "title": "bug(init): concurrent app scaffold overwrites the Directive pin and AGENTS.md",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(init): concurrent app scaffold overwrites the Directive pin and AGENTS.md",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4533",
+      "Overview": "\n\n- Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant). If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`). If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet. Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse. A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.\n- Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`). Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only). Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).\n- Lockfile appearance / unpinned lockfile stays leftover on #4429. Drop the sentence that a matching package.json pin plus an empty lockfile is not recovery from this remainder.\n- Drop \"a README-only repo should stay greenfield\" from this Bound remedy. If README-only classification remains wanted, leftover-split a classifier issue.\n- Keep `doctor --full` out of Bound remedy as the P1 control.\n- Later overwrite after process exit remains an explicit limit. Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder. A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture.\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, area:installer, status:claimed, design-critique:ingest-ready, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "title": "Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant). If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`). If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet. Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse. A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/4992#d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`). Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only). Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/4992#d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Lockfile appearance / unpinned lockfile stays leftover on #4429. Drop the sentence that a matching package.json pin plus an empty lockfile is not recovery from this remainder.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #4992.",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedVia": "leftover-complete-pass"
+          }
+        }
+      },
+      {
+        "title": "Drop \"a README-only repo should stay greenfield\" from this Bound remedy. If README-only classification remains wanted, leftover-split a classifier issue.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #4992.",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedVia": "leftover-complete-pass"
+          }
+        }
+      },
+      {
+        "title": "Keep `doctor --full` out of Bound remedy as the P1 control.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/4992#d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Later overwrite after process exit remains an explicit limit. Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder. A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "github.com/deftai/directive/pull/4992#d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "area:installer",
+      "status:claimed",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4533",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4533: bug(init): concurrent app scaffold overwrites the Directive pin and AGENTS.md"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "directive init",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "directive update",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/init-deposit/init-deposit.ts",
+          "packages/core/src/init-deposit/init-deposit.test.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/init-dispatch.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Lifecycle: installing Directive, updating it, and getting one clear next step when something looks wrong. It also covers whether the version someone thinks they installed is the version that is actually running.\n\nWhat a new person hits: Creating the application overwrites Directive's version pin and the agent instructions that setup just wrote.\n\nWhy that ruins the product for them: The first bit of real project work deletes the install's own bookkeeping. What they set up is gone, and they did not ask for that.\n\nHow likely: High on a first project that also creates an app, which is a normal way to build something small.\n\n",
+          "id": 5780278401,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5780278401",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:38:02Z",
+          "updated_at": "2026-09-22T16:38:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because `directive init` is not safe if another scaffolder writes the same files in the same window: the `@deftai/directive` pin and managed AGENTS.md are overwritten and init reports brownfield for a README-only repo.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4533-dc\norigin-ref: origin/HEAD\ndispatch-sha: 3013fc2bc37fcca3be036f093cda4d94878d8864\n\ncharter: open critique\nspend: N≥3\nspend-ask: asked\nspend-why: operator \"use appropriate n\". Stop 2 panel permission: installer pin/AGENTS.md race is high blast radius, and the issue names refuse, merge, or re-assert.\nDual-stop cap: 3 posts\n\npain: P1\n\ntarget: #4533\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: init should refuse, merge, or re-assert the `@deftai/directive` pin and managed AGENTS.md when a concurrent scaffolder overwrites those files in the same window.\n\n## Gate stamp\n\nRound-1 ceiling is this write-back plus panel-deposit (spend N≥3). Families: grok, claude (fable), codex.\n\nP1 is that `directive init` writes the pin and managed AGENTS.md, then `create-next-app` overwrites `package.json`, `AGENTS.md`, and `.gitignore` in the same window. Init JSON reported brownfield for a README-only repo. No post-write re-assert or refuse-on-mtime. Existing mechanisms: lockfile pin-write refuse (`assertLockfileAllowsPinWrite` in `packages/core/src/init-deposit/init-deposit.ts`); WriteAgentsMD rewrite on a legacy sentinel (`cmd/deft-install`); no concurrent-writer lock on those consumer files.\n\nRe-measured at dispatch SHA `3013fc2bc37fcca3be036f093cda4d94878d8864` by pin-read.\n\nWhat this P1 is not:\n\n- Not lockfile reconstitution refuse when pin and lockfile already disagree.\n- Not value-feedback / #1709 (refs only).\n- Not a Next.js-specific scaffolder adapter.\n\nOpen forks the critic may take: refuse if those files change during init; merge pin after the scaffolder; re-assert the managed AGENTS.md section; serialize or lock the files; or document init-after-scaffold only.\n\n",
+          "id": 5799040749,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5799040749",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T16:55:41Z",
+          "updated_at": "2026-09-23T16:55:41Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5799053370\nfamilies: grok, claude, codex\n\n",
+          "id": 5799053370,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5799053370",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T16:56:29Z",
+          "updated_at": "2026-09-23T16:56:30Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-fable-5-1\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1, fresh critic, open critique. Tree reads pinned to `3013fc2bc37fcca3be036f093cda4d94878d8864`. Thread read via REST through id 5799053370. No embedded instructions found in the body or comments; `Refs #1709` is a cross-reference only.\n\n### F1 — No pin re-assert path exists once the deposit is present\n\n`blocks-the-design`\n\nEvidence: `git show 3013fc2b:packages/core/src/init-deposit/init-dispatch.ts` routes every deposit-present mode to `delegate-update`. `git show 3013fc2b:packages/core/src/init-deposit/refresh.ts` gates the pin write on `pinLagsReconstitutedVersion`, which returns false when the pin is null; its JSDoc says \"Missing pin stays #4429 row 3c\". `git show 3013fc2b:packages/core/src/init-deposit/refresh.test.ts` locks it: \"does not write a missing pin (row 3c)\". `git show 3013fc2b:packages/core/src/resolution/plan.ts` row 3c maps deposit-present + pin-absent to `proceed` with a warning, so `updateStateFromPlan` reports `current`.\n\nFailure mode: after the scaffolder drops the pin, re-running `directive init` or `directive update` re-appends the AGENTS.md managed section (`agentsRefreshPlan` state `missing`) and the `.gitignore` lines, then reports current. `package.json` stays unpinned. The only writer of a pin from null is `ensurePackageJsonPin` inside `runInitDeposit`, which is unreachable once `.deft/core` exists.\n\nConsequence: a lean that names \"re-run init / update\" as the re-assert cannot bind. The lean must either name a pin write in the update path for the deposit-present + pin-absent state, or scope pin recovery out in words. Existing machinery covers the hard part: `reconstituteConsumerPinAndLock` already runs the closed lockfile-only argv (#4710); only the null-pin gate blocks it.\n\nSteelman for keeping row 3c: it stops `update` from editing `package.json` on consumers that never pinned. What flips it: a policy opt-out, or accepting that #4429 already made \"pinned\" the converged state. No on-disk signal at this SHA separates \"pin lost\" from \"never pinned\" (`VERSION` `fetched_by` and `GENERATION.json` `stampedBy` are rewritten by update).\n\n### F2 — Refuse-on-change and lock forks cannot see this failure\n\n`sharpens-framing`\n\nEvidence: issue body timeline (described content): Directive files ~11:23:33, `package.json` overwritten again ~11:23:35 by the scaffolder's package-manager step. `git show 3013fc2b:packages/core/src/init-deposit/scaffold.ts` writes via `containedWrite` mode `replace`; a grep of `packages/core/src/init-deposit` at the SHA finds no advisory lock, mtime check, or exclusive-create path. `create-next-app` and npm honor no lock init could take.\n\nFailure mode: a re-read-after-write check only covers init's process lifetime. An overwrite two seconds later, possibly after exit, escapes it. A lock is honored by nobody else. Torn writes are not the mode either; the foreign process wrote a complete stale image.\n\nConsequence: drop refuse and serialize as primary remedies, or state them as best-effort. The design center is post-hoc detection plus idempotent repair (F1). One deterministic detector already exists: init stages `package.json`, `AGENTS.md`, `.gitignore` (`installerManagedMatchers` in `hygiene.ts`, `depositStagePaths`), so index-vs-worktree divergence on those paths is exactly the signal the reporter saw (\"the index still had the pin\"). It lasts until the operator commits.\n\n### F3 — Scaffold-then-init is not a clean ordering either\n\n`sharpens-framing`\n\nEvidence: `assertLockfileAllowsPinWrite` in `git show 3013fc2b:packages/core/src/init-deposit/init-deposit.ts` throws when any lockfile exists and the exact pin is absent, before any deposit. `git show 3013fc2b:packages/core/src/init-deposit/init-deposit.test.ts` locks it: \"refuses the pin write when a lockfile exists without the exact pin (#4429)\". A finished `create-next-app` leaves `package-lock.json`.\n\nFailure mode: init-first gets overwritten (this issue); scaffold-first refuses and deposits nothing until the operator hand-adds the pin and refreshes the lockfile.\n\nConsequence: a \"document init-after-scaffold only\" disposition binds only if it names that manual step. The cheaper road is inventory reuse: init calls the same closed lockfile-only argv update already uses instead of refusing, which turns the refusal into the merge the issue asks for.\n\n### F4 — The brownfield label is the hasGit rule, not the race\n\n`sharpens-framing`\n\nEvidence: `decideInitDispatch` returns `brownfield-install` when `hasAppCode || hasGit`. `git show 3013fc2b:packages/core/src/init-deposit/init-dispatch.test.ts` asserts `hasGit` alone yields `brownfield-install`. At classify time the scaffolder's `package.json` already existed (11:23:12 < 11:23:33), so `hasAppCode` was also true. Both `scaffold` and `brownfield-install` call the same `runInitDepositCli` with identical arguments.\n\nFailure mode: none behavioral. The label text \"app code, no Directive deposit\" misdescribes a README-only clone.\n\nConsequence: \"a README-only repo should stay greenfield\" is not evidence of the race and is contradicted by a tested rule. Remove it from this issue's acceptance or split it as a label-text fix.\n\n### F5 — Gate stamp inventories the wrong AGENTS.md writer\n\n`footnote`\n\n`cmd/deft-install` `WriteAgentsMD` is the frozen Go bridge. Live `directive init` routes `git show 3013fc2b:packages/cli/src/init-cli/init.ts` → `runInitDispatchCli` → TS `writeAgentsMd` → `agentsRefreshPlan` (`git show 3013fc2b:packages/core/src/platform/agents-md.ts`), whose `missing` state appends the managed section after existing prose. Inventory that path.\n\n### F6 — Doctor signal strength is unverified from the tree\n\n`footnote`\n\nAt this SHA the missing pin is a plan warning and a reconciliation line (`doctor/main.ts` `resolveReconciliationLine`), and a missing managed section is `severity: \"warning\"`. Neither drives doctor's exit code. The reporter's \"green only after that merge\" cannot be attributed to these checks from tree evidence.\n\n",
+          "id": 5799192201,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5799192201",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T17:04:14Z",
+          "updated_at": "2026-09-23T17:04:14Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nOpen critique of [#4533](https://github.com/deftai/directive/issues/4533) P1 (concurrent scaffolder vs pin + managed AGENTS.md). Re-measured at dispatch SHA `3013fc2bc37fcca3be036f093cda4d94878d8864` via `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:<path>` (dest HEAD equals that SHA). In-envelope thread: [5780278401](https://github.com/deftai/directive/issues/4533#issuecomment-5780278401), Stop 1 [5799040749](https://github.com/deftai/directive/issues/4533#issuecomment-5799040749), panel-deposit [5799053370](https://github.com/deftai/directive/issues/4533#issuecomment-5799053370).\n\n## Inventory\n\nExisting writers already merge at call time:\n\n- `assertLockfileAllowsPinWrite` in `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/init-deposit.ts` refuses a present lockfile whose `package.json` does not already carry the exact pin. It runs before `reconstituteDepositFromContent`. It does not re-run after writes.\n- `ensurePackageJsonPin` in `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/scaffold.ts` reads current `package.json` and sets `@deftai/directive` as an exact devDependency. Absent file → create; present file → merge fields. Write is `containedProjectWrite` `mode: \"replace\"`.\n- `writeAgentsMd` in the same file plans via `agentsRefreshPlan` and replace-writes. Foreign AGENTS.md with no managed sentinel is `state: \"missing\"` → `wrapLegacyInMarkers` (append). It does not call `applyAgentsRefresh`.\n- `applyAgentsRefresh` in `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/platform/agents-md.ts` takes `withAppendLock` on AGENTS.md (#1329) for Directive install/upgrade/migrate/refresh writers. Init's `writeAgentsMd` is outside that lock.\n- `ensureInitGitignoreLines` in `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/gitignore.ts` reconciles canonical lines into the current `.gitignore`.\n- `cmd/deft-install` `WriteAgentsMD` (`git show 3013fc2bc37fcca3be036f093cda4d94878d8864:cmd/deft-install/setup.go`) creates / surgical-rewrites / appends. Same call-time merge. `directive init` on the reported 0.118.1 engine is the TS dispatcher.\n- `runInitDispatchCli` classifies once, then `scaffold` and `brownfield-install` both call `runInitDepositCli` (`git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/init-dispatch.ts`).\n- `runInitDeposit` order: lockfile refuse → copy `.deft/core` → `ensurePackageJsonPin` → gitignore → `writeAgentsMd` → hooks / generation stamp. After the first `writeAgentsMd` there is no second pin write, no second AGENTS.md write, no `readPin`. `buildInstallSummaryJson` sets `deposit_completed: true` from hook readiness.\n- `directive update` / `refresh.ts` already calls `ensurePackageJsonPin` and `writeAgentsMd` again.\n- contained-write `O_EXCL` is `mode: \"create\"` only (`git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/fs/contained-write.ts`). Init projections use replace. No flock on consumer `package.json` / `AGENTS.md` / `.gitignore` in the init-deposit writers.\n\nBlob assertions on those `git show` paths: hasGit-or-hasAppCode brownfield; shared deposit CLI; classify-once; lockfile refuse before copy; pin→gitignore→AGENTS.md inside `runInitDeposit`; no re-assert after `writeAgentsMd`; install JSON omits pin postcondition; pin merge + replace write; `writeAgentsMd` unlocked; `#1329` lock on `applyAgentsRefresh`; foreign AGENTS wrap; plan 3c proceed on null pin; doctor skip on missing markers; no flock in init writers; update reapplies pin and AGENTS.md.\n\n## Findings\n\n### F1 `blocks-the-design`: bind one postcondition sequence; the Expected three-way fork does not close P1\n\nEvidence. Stop 1 records P1 as pin + managed AGENTS.md overwritten in the same window, with open forks refuse / merge / re-assert / lock / docs-only. The repro timestamps are Next files ~11:23:12, Directive files ~11:23:33, Next `package.json` again ~11:23:35. `ensurePackageJsonPin` already is merge. `writeAgentsMd` already is append-or-rewrite. Those run once. `assertLockfileAllowsPinWrite` already is refuse, and it is a start-of-init check. `#1329` already is an advisory lock among Directive writers, and init does not take it. `create-next-app` does not take `AGENTS.md.lock`. Replace-write plus a non-participating last writer is lost-update. A lockfile that appears after the refuse recreates the unreconstitutable pin/lock mismatch #4429 was written to prevent.\n\nFailure mode. Init returns success (`deposit_completed: true`, stdout \"AGENTS.md : updated\") while the working tree is a Next app (`tmp-app`), the managed section is gone, and the next agent session loads Next agent-rules. That is the adoption-blocker in [5780278401](https://github.com/deftai/directive/issues/4533#issuecomment-5780278401): first real project work deletes the install's bookkeeping.\n\nDisposition. A successor lean binds P1 when Bound remedy is this sequence, using the writers already in inventory: before init reports success, re-read `readPin` + managed-section presence; if either is missing, call `ensurePackageJsonPin` and `writeAgentsMd` (gitignore too if the lean includes `.gitignore`); if still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet. Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse. A new flock / exclusive create / docs-only \"init after scaffold\" line does not bind. An in-process mtime check with no re-apply still loses the 11:23:35 write.\n\n### F2 `sharpens-framing`: the brownfield state line is the hasGit classifier, printed before deposit\n\nEvidence. `decideInitDispatch` returns `brownfield-install` when `facts.hasAppCode || facts.hasGit`. `classify` sets `hasGit` from `.git` as dir or file (`git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/resolution/classify.ts`). `package.json` is an `APP_CODE_MARKERS` entry. Label text is `brownfield project (app code, no Directive deposit)` — the string in Actual. `printInitDispatchSummary` runs before `runScaffold`. `init-dispatch.test.ts` locks `hasGit: true` → `brownfield-install`. Both dispatch arms call the same `runInitDepositCli`.\n\nFailure mode. Binding \"a README-only repo should stay greenfield\" recuts #2265 independently of last-writer-wins. A cloned GitHub README is brownfield today with no Next process. The same label also fires when Next's `package.json` lands before classify. Treating the label as proof of the race mixes two defects and can ship a classifier change that leaves P1 open.\n\nDisposition. Drop the greenfield-label success criterion from this Bound remedy. If README-only greenfield remains wanted, leftover-split a classifier issue. Race work stays on the terminal pin + AGENTS.md postcondition, which both dispatch arms already share.\n\n### F3 `sharpens-framing`: doctor --full is proceed+note on a stripped pin, and skips a replaced AGENTS.md\n\nEvidence. `plan()` row 3c (`git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/resolution/plan.ts`): `hasDeftCore` and `pinVersion === null` returns `proceed` plus warning \"no committed package.json pin\"; comment cites #4429 (error would retro-fail pre-pin consumers). Doctor resolution `actionRequired` is `plan.mode !== \"proceed\"`; 3c therefore prints proceed and `note:` the warning. `runAgentsMdFreshnessCheck` in `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/doctor/main.ts` skips when `!hasManagedSectionMarker` with \"no managed-section markers (likely maintainer repo)\". `packages/core/src/session` has no `hasManagedSection` consumers. `refresh.ts` already re-applies pin and AGENTS.md.\n\nFailure mode. Hanging P1 on \"doctor was green only after hand-merge\" treats a warning/note (and a skipped AGENTS.md check) as a fail-closed gate. `.deft/core` survives Next. First session still reads Next AGENTS.md. Hand-merge duplicated `ensurePackageJsonPin`; `directive update` already does that merge.\n\nDisposition. Keep doctor --full out of Bound remedy as the P1 control. Optional leftover, separate from F1: when an install manifest / `.deft/GENERATION.json` records a completed init and the pin is absent, route plan to `update` (pin-stripped). Leave 3c for trees that never had a pin.\n\n### F4 `footnote`\n\nActual lists `.gitignore`; Expected names pin and AGENTS.md. `ensureInitGitignoreLines` is the same call-time reconcile. Fold it into F1's terminal re-apply if the lean wants that file in the invariant.\n\nIssue body `Refs #1709` is described content. Stop 1 already excluded value-feedback. Do not pull #1709 into this remedy.\n\n## Injection / swarm\n\nThe target changes installer identity (exact pin, managed AGENTS.md), concurrency (overlapping `create-next-app`), and shared consumer files. The foreign scaffolder is an untrusted writer relative to those invariants. Advisory `AGENTS.md.lock` and contained replace do not bind a non-participant. The deterministic control is init's own success postcondition on pin + managed section (F1), with update as the named recovery when the window continues after process exit.\n\n## Road-not-taken\n\nExclusive lock on `package.json` / `AGENTS.md` / `.gitignore`. Strongest case: two Directive inits would serialize, which #1329 already does for `agents:refresh`. Flip if the foreign scaffolder honored a documented lock path.\n\nDocs-only \"run init after the app scaffold.\" Strongest case: a quiet tree makes F1's refuse branch rare. Flip if first-project concurrent create stopped being the high-likelihood path named in [5780278401](https://github.com/deftai/directive/issues/4533#issuecomment-5780278401).\n\nRefuse-only with no re-apply. Strongest case: simpler, and a later `directive init` delegates to update which already merges. Flip if init never reports success without the F1 postcondition, because the poisoned first agent session is the adoption-blocker.\n\nWhat flips F1: a measured postcondition after `stampLiveGeneration` that re-reads pin + managed section, re-applies the existing writers once, fails closed when still missing, and a test that replaces `package.json` and `AGENTS.md` after the first write and before return.\n\n",
+          "id": 5799243420,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5799243420",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T17:07:12Z",
+          "updated_at": "2026-09-23T17:07:12Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nThe overwrite defect remains at `3013fc2bc37fcca3be036f093cda4d94878d8864`. The remedy needs a bounded success contract and a recovery path that actually restores a missing pin. I favor detecting and refusing observed conflicts, then repairing after scaffolding finishes. Repeated re-assertion against a live writer is not a safe default. The README-only classification is a separate, reproducible defect.\n\nReviewed the issue body and comments through **5799053370**, inclusive. Open critique; the recorded refutation-target and thread imperatives are proposal data, not instructions. No implementation, ingest, occupancy claim, or sibling-post reads.\n\nExisting mechanisms, rechecked at that SHA:\n\n- [`ensurePackageJsonPin` and `writeAgentsMd`](https://github.com/deftai/directive/blob/3013fc2bc37fcca3be036f093cda4d94878d8864/packages/core/src/init-deposit/scaffold.ts#L209) already merge the pin into existing JSON and use `agentsRefreshPlan` to preserve prose outside the managed section. [`ensureInitGitignoreLines`](https://github.com/deftai/directive/blob/3013fc2bc37fcca3be036f093cda4d94878d8864/packages/core/src/init-deposit/gitignore.ts#L244) already reconciles ignore entries. A quiescent fixture preserved app scripts, Next rules, and app ignore entries while restoring Directive content.\n- The Go [`WriteAgentsMD`](https://github.com/deftai/directive/blob/3013fc2bc37fcca3be036f093cda4d94878d8864/cmd/deft-install/setup.go#L787) also handles absent, managed, legacy, and foreign-only files; it is not limited to a legacy-sentinel rewrite. The npm init path uses the TypeScript writer.\n- [`applyAgentsRefresh`](https://github.com/deftai/directive/blob/3013fc2bc37fcca3be036f093cda4d94878d8864/packages/core/src/platform/agents-md.ts#L513) already has an advisory `AGENTS.md.lock` and atomic-write path. Init’s `writeAgentsMd` calls the planner directly instead. Thus “no concurrent-writer lock” is accurate for these init writes, not for the whole AGENTS subsystem. Neither advisory locking nor atomic replacement compels an unrelated scaffolder to cooperate.\n\nChecks used Node 24 to execute SHA-pinned TypeScript source with types/import wiring removed. Filesystem writers, pin reader, AGENTS parser/planner, ignore reconciler, classifier, and init control flow were exercised on temporary fixtures. Unrelated deposits and hook readiness were stubbed; staging used real Git on the three target files. Controlled interleavings replace timing sleeps. These are source-level reproductions, **not** a full `create-next-app` end-to-end run or evidence of the historical process-exit time.\n\n## 1. blocks-the-design — Bound the concurrency guarantee; pin presence alone does not prove safety\n\n**Evidence:** [`runInitDeposit`](https://github.com/deftai/directive/blob/3013fc2bc37fcca3be036f093cda4d94878d8864/packages/core/src/init-deposit/init-deposit.ts#L351) writes pin/ignore/AGENTS once, later stages, then stamps generation and returns. Injecting a foreign overwrite after those writes but before staging produced exit `0`, `success: true`, and generation-stamp invocation with all three Directive invariants absent. Overwriting immediately after staging produced the same success, with the pin retained in the index but absent from the working file. Separately, an injected package write between `ensurePackageJsonPin`’s read and write lost the scaffolder’s newly added build script while leaving the Directive pin present.\n\n**Failure mode:** A final pin/managed-marker check alone can miss app content already lost by a stale read/merge/write. A one-time re-assertion, mtime check, advisory lock, or atomic rename cannot prevent an uncooperative writer from replacing the file after the last observation. The incident timestamps establish ordering, not whether the last overwrite preceded init’s return.\n\n**Disposition:** The broad “safe in the same window” promise cannot bind without defining the observation interval and supported writer coordination. First-ship acceptance should cover detected drift, preservation of foreign content, and truthful partial-failure reporting before success; include `.gitignore` and the staged/working divergence. Refusal must not restore stale whole-file snapshots or reset unrelated staged work. A stronger no-lost-update guarantee needs serialization that includes the scaffolder. Later overwrites remain an explicit limit, not something a final re-read can prevent.\n\n## 2. blocks-the-design — “Finish scaffolding, then rerun init” does not currently restore the missing pin\n\n**Evidence:** [`init-dispatch.ts`](https://github.com/deftai/directive/blob/3013fc2bc37fcca3be036f093cda4d94878d8864/packages/core/src/init-deposit/init-dispatch.ts#L76) delegates an existing deposit to update. In [`refresh.ts`](https://github.com/deftai/directive/blob/3013fc2bc37fcca3be036f093cda4d94878d8864/packages/core/src/init-deposit/refresh.ts#L759), `pinLagsReconstitutedVersion` requires `current !== null`; `reconstituteConsumerPinAndLock` returns immediately otherwise. On the overwritten-package fixture, the actual repair helper returned `null` with **zero pin-writer calls**.\n\n**Failure mode:** Conflict refusal after partial deposit leaves a footprint. The advertised retry can therefore take update’s path and continue without reconstructing the erased pin. Restoring AGENTS and ignore entries alone leaves the installation’s reconstruction anchor missing.\n\n**Disposition:** A refusal-first design needs one demonstrated recovery sequence for **deposit present + pin absent**, including the scaffold’s lockfile. Either extend the existing recovery path deliberately or specify the explicit pin/lock repair prerequisite before retry. A docs-only “run init again” disposition does not relieve this case. Preserve the exact intended version rather than silently choosing a newer engine.\n\n## 3. blocks-the-design — A pin-only re-assertion can bypass the existing lockfile refusal\n\n**Evidence:** [`assertLockfileAllowsPinWrite`](https://github.com/deftai/directive/blob/3013fc2bc37fcca3be036f093cda4d94878d8864/packages/core/src/init-deposit/init-deposit.ts#L175) checks lockfile existence and the **package.json** pin, before awaited content copying. It does not parse lockfile dependency state. The control with a pre-existing lockfile and missing pin refused. Creating that lockfile and an unpinned package during the copy interval instead yielded exit `0` and `success: true`, with Directive added only to package.json. A matching package pin plus an empty lockfile also passed the guard.\n\n**Failure mode:** Re-adding the dependency can produce apparently repaired metadata while the frozen-install inputs disagree. Merely rerunning this guard after setting the pin is ineffective: the matching-pin early return admits that state.\n\n**Disposition:** The conflict model must include lockfile appearance/replacement and evaluate it before accepting a pin repair. Reuse the existing offline refusal/remediation contract for the narrow concurrent-change case; a new lockfile parser or automatic package-manager execution is not required to close that detection gap. The acceptance fixture needs a barrier after the initial guard and before pin write. A passing pin assertion is insufficient evidence of recovery.\n\n## 4. sharpens-framing — README-only brownfield routing is independent of the race\n\n**Evidence:** A real temporary Git repository containing only README produced `hasGit: true`, `hasAppCode: false`, yet `brownfield-install`. [`decideInitDispatch`](https://github.com/deftai/directive/blob/3013fc2bc37fcca3be036f093cda4d94878d8864/packages/core/src/init-deposit/init-dispatch.ts#L68) explicitly uses `hasAppCode || hasGit`; the [existing test](https://github.com/deftai/directive/blob/3013fc2bc37fcca3be036f093cda4d94878d8864/packages/core/src/init-deposit/init-dispatch.test.ts#L173) locks in the Git-only result. Both routes call the same deposit implementation.\n\n**Failure mode:** Even fully serialized installation reports “app code” and recommends brownfield work for a README-only Git repo. Conversely, real app files present when classification runs are legitimate app evidence, regardless of the directory’s earlier history.\n\n**Disposition:** Keep README-only classification as a separate acceptance case against the shared facts. Correct the Git-only implication and its expectation; define the snapshot being described. Do not use this label as evidence that the concurrent-write remedy worked.\n\nThe strongest rejected option is automatic merge/re-assertion: the existing merge helpers make it attractive once the other writer has stopped. I would favor it if the flow can prove that writer’s completion, preserve newer app changes, reconcile the pin/lock contract, and verify the resulting working files before claiming success. A private lock or a quiet-time delay does not supply that proof.",
+          "id": 5799251694,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5799251694",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T17:07:37Z",
+          "updated_at": "2026-09-23T17:07:37Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAll three round-1 critics reproduced last-writer-wins on pin and managed AGENTS.md, and refused Expected \"refuse, merge, or re-assert\" as three equal first ships. Confirming this map recuts first-ship to a success postcondition: re-read pin and managed section, re-apply the existing writers once, fail closed if still missing, and restore a missing pin when the deposit is already present. README-only brownfield labeling and doctor --full stay out of this remainder.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. Charter stays open critique.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after three-family panel. Cites critics 5799192201 (claude-fable-5-1), 5799243420 (grok-4.6), 5799251694 (gpt-6). Supersedes Stop 1 write-back 5799040749. Round 1 sibling count 3.\n\nTarget-digest: sha256:b84e566b8b4d21cb29b9c3a08bb0982616e254cede9241610c7793a0838d4117\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4533-dc\norigin-ref: origin/HEAD\ndispatch-sha: 3013fc2bc37fcca3be036f093cda4d94878d8864\nDual-stop cap: 3 posts\ndest-wo: leftover-complete\n\n## Takes\n\n- 5799192201 F1 No pin re-assert path exists once the deposit is present — accept-into-contract\n- 5799192201 F2 Refuse-on-change and lock forks cannot see this failure — accept-into-contract\n- 5799192201 F3 Scaffold-then-init is not a clean ordering either — accept-into-contract\n- 5799192201 F4 The brownfield label is the hasGit rule, not the race — accept-into-contract\n- 5799243420 F1 Bind one postcondition sequence; the Expected three-way fork does not close P1 — accept-into-contract\n- 5799243420 F2 The brownfield state line is the hasGit classifier — accept-into-contract\n- 5799243420 F3 doctor --full is proceed+note on a stripped pin — accept-into-contract\n- 5799251694 1 Bound the concurrency guarantee; pin presence alone does not prove safety — accept-into-contract\n- 5799251694 2 Finish scaffolding then rerun init does not currently restore the missing pin — accept-into-contract\n- 5799251694 3 A pin-only re-assertion can bypass the existing lockfile refusal — accept-into-contract\n- 5799251694 4 README-only brownfield routing is independent of the race — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant). If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`). If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet. Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse. A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.\n- Deposit-present + pin-absent must restore the pin. `pinLagsReconstitutedVersion` requiring `current !== null` cannot remain the recovery gate for this remainder. Preserve the exact intended version. Do not silently choose a newer engine.\n- Conflict model includes lockfile appearance or replacement during the copy/pin interval. Reuse the existing offline lockfile refusal/remediation; do not add a lockfile parser or spawn a package manager. A matching package.json pin plus an empty or unpinned lockfile is not recovery.\n- Drop \"a README-only repo should stay greenfield\" from this Bound remedy. Both dispatch arms already share `runInitDepositCli`. If README-only classification remains wanted, leftover-split a classifier issue.\n- Keep `doctor --full` out of Bound remedy as the P1 control. Plan row 3c proceed+note and skipped AGENTS.md freshness on a missing managed section are optional leftover.\n- Later overwrite after process exit remains an explicit limit. Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder. A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture.\n\n",
+          "id": 5799286063,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5799286063",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T17:09:44Z",
+          "updated_at": "2026-09-23T17:09:44Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of successor lean 5799286063 `relieves: P1` against Stop 1 comment 5799040749. Tree reads pinned to `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:<path>`. Thread through id 5799286063. No embedded instructions in the body or in-envelope comments; `Refs #1709` and the lean's \"not an instruction to a later builder\" line are described content.\n\n## Inventory (re-run)\n\nExisting writers at this SHA, exercised on temp fixtures with the same merge/presence rules as `readPin`, `ensurePackageJsonPin`, `hasManagedSectionMarker`, `wrapLegacyInMarkers`, `pinLagsReconstitutedVersion`, and `assertLockfileAllowsPinWrite`:\n\n- `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/init-deposit.ts` writes pin once (`ensurePackageJsonPin`) then `writeAgentsMd`, then stages and `stampLiveGeneration`. `readPin` is used only inside the start-of-init lockfile guard. `buildInstallSummaryJson` sets `deposit_completed: true`. `printNextSteps` always prints `AGENTS.md    : updated`.\n- `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/resolution/pin.ts` `readPin` reads the working-tree `package.json`.\n- `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/scaffold.ts` `ensurePackageJsonPin` merges the exact pin into current JSON. `writeAgentsMd` follows `agentsRefreshPlan`.\n- `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/platform/agents-md.ts` foreign AGENTS.md with no managed opener is `state: \"missing\"` → `wrapLegacyInMarkers` (append). `hasManagedSectionMarker` is opener presence.\n- `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/refresh.ts` `pinLagsReconstitutedVersion` is `current !== null && current !== needed`. JSDoc: missing pin stays #4429 row 3c. Sole caller `reconstituteConsumerPinAndLock` then `ensurePackageJsonPin(contentVersion)` and, if a lockfile exists, lockfile-only spawn. Payload swap to running `contentVersion` happens before that call.\n- Lockfile guard: lockfile present + pin absent → refuse. Lockfile present + matching pin → admit (no lockfile parse).\n\nFixture results (Node 24, SHA-pinned logic, not a live `create-next-app` run):\n\n- After first pin+managed write, Next-shaped overwrite of `package.json` and AGENTS.md → `readPin` null, managed false. One Bound-remedy pass restores pin `0.118.1` and managed presence, keeps `name: tmp-app` and `scripts.dev`, appends the managed section after Next rules.\n- Null pin → `pinLagsReconstitutedVersion` false.\n- Empty `package-lock.json` after pin write → existing assert admits.\n- Empty `package-lock.json` before pin write → existing assert refuses.\n- Bound-remedy pass then existing assert on that lockfile → pin restored and assert admits.\n- Second overwrite after the one pass → pin/managed missing again (refuse branch if a later re-read runs; TOCTOU after the last observation is the lean's explicit post-exit limit).\n\n## Findings\n\n### F1 `blocks-the-design`: Bound remedy cannot both restore a missing pin and reuse the existing lockfile refuse on the incident tree\n\nEvidence. Stop 1 P1 is pin + managed AGENTS.md overwritten in the same window. The reported follow-on write is the scaffolder package-manager step (~2s after Directive files). That step is the usual writer of `package-lock.json`. Successor lean 5799286063 harvests all of: (1) re-read pin/managed, re-apply existing writers once, refuse naming re-run `directive init` / `directive update`; (2) deposit-present + pin-absent must restore the pin, and `pinLagsReconstitutedVersion` requiring `current !== null` cannot remain the gate; (3) reuse the existing offline lockfile refuse, do not spawn a package manager, and \"a matching package.json pin plus an empty or unpinned lockfile is not recovery.\"\n\nThose three cannot share one implementation on a deposit-present, pin-absent, lockfile-present tree:\n\n- Existing assert refuses the pin write (`lockBeforePinRefused`). Re-running `directive init` with `.deft/core` present delegates to update (`git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/init-dispatch.ts`). Update currently writes no pin (`nullPinLags: false`).\n- Flipping the named `pinLagsReconstitutedVersion` gate enters `reconstituteConsumerPinAndLock`, which writes running `contentVersion` (newer engine after payload swap) and spawns lockfile-only when a lockfile exists. Bullet 2 forbids the newer engine. Bullet 3 forbids spawn.\n- Writing the pin with `ensurePackageJsonPin` and skipping spawn leaves matching pin + empty lockfile, which the fixture shows the existing assert admits, and which bullet 3 says is not recovery.\n- Reusing the assert as a barrier before pin write leaves pin absent, which bullet 2 forbids.\n\nStop 1 already excluded lockfile reconstitution refuse when pin and lockfile already disagree from this P1. Bullet 3 puts that conjunct back into the remainder that cites `relieves: P1`.\n\nFailure mode. A builder who implements every harvested bullet never reaches a Bound-remedy success on the Next+npm tree: first init restores pin then refuses on the lockfile sentence; named re-run either no-ops the pin, spawns, upgrades the engine, or admits the state bullet 3 rejects. A builder who drops bullet 3 to close P1 edits the harvest without a new lean.\n\nDisposition. Successor lean 5799286063 cannot stay bindable as written. P1 remainder is the in-process pin + managed-section postcondition (bullet 1) plus a deposit-present pin write that does not go through `reconstituteConsumerPinAndLock`. Lockfile appearance / unpinned lockfile stays on #4429 leftover. Drop the \"not recovery\" sentence from this remainder.\n\n### F2 `sharpens-framing`: name the null-pin writer and version source; do not treat the pinLags function as the writer\n\nEvidence. `pinLagsReconstitutedVersion` is only the boolean inside `reconstituteConsumerPinAndLock`. `ensurePackageJsonPin` already writes from a null pin. Update records `previousDepositVersion` before swap and then pins `contentVersion` after swap.\n\nFailure mode. Reading bullet 2 as \"flip that boolean\" selects spawn + post-swap engine. Reading it as \"call `ensurePackageJsonPin` with `previousDepositVersion` / `.deft/core/VERSION`\" restores the lost pin at the installed payload.\n\nDisposition. On the recut remainder, name `ensurePackageJsonPin` and the recorded deposit version as the recovery writer. Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710), not for this null-pin hole.\n\n### F3 `footnote`\n\nIn-process bullet 1 matches the reported timestamps (pin write is before AGENTS.md, neutralization, staging, and stamp, so a +2s package.json overwrite is still inside `runInitDeposit`). The fixture's one re-apply restores pin and managed presence. Next agent-rules stay first in AGENTS.md; presence is the harvested detector. Stale read/merge/write that keeps the pin and drops Next scripts does not trip that detector; that is gpt-6 heading 1 leftover, not Stop 1 P1. README-only brownfield and `doctor --full` are already out of this remainder. `.gitignore` stays optional in the lean.\n\n## Injection / swarm\n\nThe foreign scaffolder is an untrusted writer of installer identity files. Advisory `AGENTS.md.lock` and contained replace do not bind it. The existing lockfile assert is a cooperative offline pin/lock contract (#4429), not a detector for that writer. P1 control is init's own pin + managed-section postcondition (F1 remainder), with update as named recovery only after that postcondition's pin writer exists.\n\n## Road-not-taken\n\nKeep bullet 3 in this remainder and add operator `npm install --package-lock-only` to the refuse text. Strongest case: frozen-install integrity after a pin repair. Flip if Stop 1's \"what this P1 is not\" still excludes lockfile reconstitution from this cite. It does, so the leftover split is the bindable remainder.\n\n",
+          "id": 5799590655,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5799590655",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T17:27:12Z",
+          "updated_at": "2026-09-23T17:27:12Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe reserved pain-audit blocked the harvest: restoring a missing pin and reusing the existing lockfile refuse cannot share one implementation on a Next+npm tree. Confirming this map recuts Bound-remedy to the in-process pin + managed-section postcondition plus `ensurePackageJsonPin` at the recorded deposit version. Lockfile appearance stays leftover on #4429. Dual-stop numbered cap is spent; a second pain-audit of this recut needs a Dual-stop raise.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 (Bound-remedy recut after blocking pain-audit; reserved slot spent).\nSpec-path: next-build contract is not this body.\n\n**Lean:** Recut-supersedes successor lean 5799286063 after pain-audit 5799590655. Round 1 sibling count 3. Cites critics 5799192201, 5799243420, 5799251694, and pain-audit 5799590655.\n\nTarget-digest: sha256:b84e566b8b4d21cb29b9c3a08bb0982616e254cede9241610c7793a0838d4117\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4533-dc\norigin-ref: origin/HEAD\ndispatch-sha: 3013fc2bc37fcca3be036f093cda4d94878d8864\nDual-stop cap: 3 posts\ndest-wo: leftover-complete\n\n## Takes\n\n- 5799192201 F1 No pin re-assert path exists once the deposit is present — accept-into-contract\n- 5799192201 F2 Refuse-on-change and lock forks cannot see this failure — accept-into-contract\n- 5799192201 F3 Scaffold-then-init is not a clean ordering either — accept-into-contract\n- 5799192201 F4 The brownfield label is the hasGit rule, not the race — accept-into-contract\n- 5799243420 F1 Bind one postcondition sequence; the Expected three-way fork does not close P1 — accept-into-contract\n- 5799243420 F2 The brownfield state line is the hasGit classifier — accept-into-contract\n- 5799243420 F3 doctor --full is proceed+note on a stripped pin — accept-into-contract\n- 5799251694 1 Bound the concurrency guarantee; pin presence alone does not prove safety — accept-into-contract\n- 5799251694 2 Finish scaffolding then rerun init does not currently restore the missing pin — accept-into-contract\n- 5799251694 3 A pin-only re-assertion can bypass the existing lockfile refusal — accept-into-contract\n- 5799251694 4 README-only brownfield routing is independent of the race — accept-into-contract\n- 5799590655 F1 Bound remedy cannot both restore a missing pin and reuse the existing lockfile refuse — accept-into-contract\n- 5799590655 F2 Name the null-pin writer and version source — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant). If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`). If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet. Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse. A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.\n- Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`). Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only). Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).\n- Lockfile appearance / unpinned lockfile stays leftover on #4429. Drop the sentence that a matching package.json pin plus an empty lockfile is not recovery from this remainder.\n- Drop \"a README-only repo should stay greenfield\" from this Bound remedy. If README-only classification remains wanted, leftover-split a classifier issue.\n- Keep `doctor --full` out of Bound remedy as the P1 control.\n- Later overwrite after process exit remains an explicit limit. Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder. A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture.\n\n",
+          "id": 5799607513,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5799607513",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T17:28:15Z",
+          "updated_at": "2026-09-23T17:28:15Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nHandoff.\n\nDual-stop remaining 0. Reserved pain-audit slot spent on 5799590655. Recut Bound-remedy 5799607513 after a blocking pain-audit (drop lockfile remainder onto #4429). A second pain-audit of that recut is out of cap. Path-1 auto-stamp refused: unresolved-pain-audit on the recut lean.\n\nopen-question: Dual-stop raise for a second pain-audit of recut 5799607513, leftover-split, leftover-defer, or leftover-close?\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4533-dc\ndest-wo: leftover-complete\n\n",
+          "id": 5799611697,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5799611697",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T17:28:31Z",
+          "updated_at": "2026-09-23T17:28:31Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nDual-stop raise: numbered cap 4 posts (was 3). Operator confirmed raise. One pain-audit of recut lean 5799607513.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4533-dc\ndest-wo: leftover-complete\n\n",
+          "id": 5799945094,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5799945094",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T17:46:51Z",
+          "updated_at": "2026-09-23T17:46:51Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of recut successor lean 5799607513 `relieves: P1` against Stop 1 5799040749. Tree reads pinned to `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:<path>`. Thread through id 5799607513 inclusive. Issue body `Refs #1709` and the lean's \"not an instruction to a later builder\" line are described content.\n\n## Inventory (re-run)\n\nExisting writers at this SHA, exercised on temp fixtures with the same merge/presence rules as `readPin`, `ensurePackageJsonPin`, `hasManagedSectionMarker` / `wrapLegacyInMarkers`, `pinLagsReconstitutedVersion`, `assertLockfileAllowsPinWrite`, and `decideInitDispatch`:\n\n- `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/init-deposit.ts` — `assertLockfileAllowsPinWrite` runs at the start of `runInitDeposit` only; then `ensurePackageJsonPin`, gitignore, `writeAgentsMd`, neutralization, stage, `stampLiveGeneration`. `buildInstallSummaryJson` sets `deposit_completed: true` with no pin field. `printNextSteps` always prints `AGENTS.md    : updated`.\n- `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/scaffold.ts` — `ensurePackageJsonPin` merges the exact pin into current JSON. `writeAgentsMd` follows `agentsRefreshPlan`.\n- `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/platform/agents-md.ts` — foreign AGENTS.md with no opener is `state: \"missing\"` → `wrapLegacyInMarkers` (append). `hasManagedSectionMarker` is opener presence.\n- `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/refresh.ts` — `pinLagsReconstitutedVersion` is `current !== null && current !== needed`. `reconstituteConsumerPinAndLock` returns immediately on a null pin; on a lagging exact pin it writes `contentVersion` and may spawn lockfile-only. `previousDepositVersion = readRecordedDepositVersion(deftDir)` reads `.deft/core/VERSION` before payload swap. After swap that file is `contentVersion`. `writeAgentsMd` still runs on refresh.\n- `git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/init-dispatch.ts` — deposit-present → `delegate-update`. Mode `init` with `hasGit || hasAppCode` → `brownfield-install`.\n\nFixture results (Node 24, SHA-pinned logic; this is a source-level reproduction, not a live `create-next-app` run):\n\n- T1: Next-shaped overwrite of `package.json` and AGENTS.md → `readPin` null, managed false. One Bound-remedy pass restores pin `0.118.1` and managed presence, keeps `name: tmp-app` and `scripts.dev`, appends the managed section after Next rules.\n- T2: null pin → `pinLagsReconstitutedVersion` false.\n- T4: empty lockfile before pin write → existing assert refuses.\n- T5: Bound-remedy pass then existing assert on that lockfile → pin restored and assert admits.\n- T6: second overwrite after the one pass → pin/managed missing again (refuse branch).\n- T7: git-only `init` → `brownfield-install`; deposit-present → `delegate-update`.\n- T13: update reconstitution writer is skipped on a null pin.\n- T12: overwrite between `ensurePackageJsonPin` read and write keeps the pin and drops a newly added `build` script; the presence detector stays quiet.\n- T8 / T14: `previousDepositVersion` and live `.deft/core/VERSION` match on a same-engine quiet re-run; they diverge after a payload swap.\n\n## Findings\n\n### F1 `footnote`\n\nStop 1 P1 is pin plus managed AGENTS.md overwritten in the same window, with no post-write re-assert. Recut Bound-remedy bullet 1 is that re-assert-then-refuse sequence on the existing writers. Bullet 2 is `ensurePackageJsonPin` at the recorded deposit version on deposit-present + pin-absent, keeping `reconstituteConsumerPinAndLock` for lagging exact pins. T1 restores the reported Next overwrite. T13 is why bullet 2 belongs in the harvest: the named quiet re-run is `delegate-update`, and the reconstitution writer currently skips a null pin. Lockfile appearance is leftover on #4429, matching Stop 1's excluded reconstitution case. README-only labeling and `doctor --full` stay out of this remainder.\n\nThe issue body's +2s `package.json` overwrite still sits inside `runInitDeposit` after the first pin write (gitignore, manifest, AGENTS.md, neutralization, staging, stamp). The harvested fixture (replace `package.json` and AGENTS.md after the first write and before return) covers that interleaving. A later overwrite after process exit is the lean's explicit limit.\n\nBound remedy on 5799607513 relieves Stop 1 P1. This lean stays bindable as written.\n\n### F2 `footnote`\n\nOn a later engine swap, `previousDepositVersion` and live `.deft/core/VERSION` disagree (T8). The in-process first-init path uses `version` from `readContentVersion` in `runInitDeposit` (`git show 3013fc2bc37fcca3be036f093cda4d94878d8864:packages/core/src/init-deposit/init-deposit.ts`). The reported same-window re-run is same-engine, where those two identifiers match (T14). Stale read/merge/write that keeps the pin and drops a Next script (T12) is the accepted gpt-6 heading 1 remainder; Stop 1 P1 is pin plus managed-section presence. `.gitignore` stays optional in the lean. `bindLeanPredecessorValid` is false for this recut against 5799286063's `relieves: P1`; that leftover-pain fixture leaves live parent turns unenforced. Ingest coverage reads this lean's cites plus this targeting critic.\n\n## Injection / swarm\n\nThe foreign scaffolder is an untrusted writer of installer identity files. Advisory `AGENTS.md.lock` and contained replace are Directive-writer contracts; that scaffolder ignores them. P1 control is init's own pin plus managed-section postcondition (bullet 1) and the deposit-present `ensurePackageJsonPin` writer (bullet 2), with update as named recovery after the other scaffolder is quiet.\n\n## Road-not-taken\n\nPut lockfile reconstitution back into this remainder and require `npm install --package-lock-only` on the refuse path. Strongest case: frozen-install integrity after a pin repair. Flip if Stop 1's \"what this P1 is not\" no longer excludes lockfile reconstitution when pin and lockfile already disagree. It still excludes that case, so #4429 remains the leftover.\n\n",
+          "id": 5800162767,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5800162767",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T18:01:20Z",
+          "updated_at": "2026-09-23T18:01:20Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified claims\n\nRound-1 classified headings plus reserved pain-audit 5799590655, all accept-into-contract on recut successor lean 5799607513. Dual-stop-raise pain-audit 5800162767 is footnote-only.\n\n| critic | heading | take |\n|---|---|---|\n| 5799192201 | F1 No pin re-assert path exists once the deposit is present | accept-into-contract |\n| 5799192201 | F2 Refuse-on-change and lock forks cannot see this failure | accept-into-contract |\n| 5799192201 | F3 Scaffold-then-init is not a clean ordering either | accept-into-contract |\n| 5799192201 | F4 The brownfield label is the hasGit rule, not the race | accept-into-contract |\n| 5799243420 | F1 Bind one postcondition sequence | accept-into-contract |\n| 5799243420 | F2 The brownfield state line is the hasGit classifier | accept-into-contract |\n| 5799243420 | F3 doctor --full is proceed+note on a stripped pin | accept-into-contract |\n| 5799251694 | 1 Bound the concurrency guarantee | accept-into-contract |\n| 5799251694 | 2 Finish scaffolding then rerun init does not restore the missing pin | accept-into-contract |\n| 5799251694 | 3 A pin-only re-assertion can bypass the existing lockfile refusal | accept-into-contract |\n| 5799251694 | 4 README-only brownfield routing is independent of the race | accept-into-contract |\n| 5799590655 | F1 Bound remedy cannot both restore a missing pin and reuse the existing lockfile refuse | accept-into-contract |\n| 5799590655 | F2 Name the null-pin writer and version source | accept-into-contract |\n\n",
+          "id": 5800205115,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5800205115",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T18:04:03Z",
+          "updated_at": "2026-09-23T18:04:03Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5799607513.\n\n",
+          "id": 5800205462,
+          "html_url": "https://github.com/deftai/directive/issues/4533#issuecomment-5800205462",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T18:04:04Z",
+          "updated_at": "2026-09-23T18:04:04Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Summary\n\n`directive init` is not safe if another scaffolder writes the same files in the same window. On a new `deftai/CarExpenseTracker` install (engine 0.118.1), `create-next-app` and `directive init --yes` both wrote `package.json`, `AGENTS.md`, and `.gitignore`.\n\n## Expected\n\nInit should refuse, merge, or re-assert the `@deftai/directive` pin and managed `AGENTS.md` section if those files change under it. A README-only repo should stay greenfield.\n\n## Actual\n\n- Working `package.json` became a Next.js app named `tmp-app` (Next 16 / React 19).\n- The index still had the Directive pin `@deftai/directive@0.118.1`.\n- `AGENTS.md` was replaced by the Next.js agent-rules block.\n- Init JSON reported `brownfield project (app code, no Directive deposit)` for a repo that had only a GitHub README when init started.\n\nHand-merge recovered the pin. `directive doctor --full` was green only after that merge.\n\n## Notes\n\nRepro is timing-dependent: Next files landed ~11:23:12, Directive files ~11:23:33, then Next overwrote `package.json` again ~11:23:35. Consumer: `deftai/CarExpenseTracker`.\n\nRefs #1709",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5452840160,
+        "origin": "deftai/directive#4533",
+        "id": "github.issue.5452840160"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b84e566b8b4d21cb29b9c3a08bb0982616e254cede9241610c7793a0838d4117"
+      },
+      "lifecycleWrite": {
+        "action": "cancel",
+        "writtenAt": "2026-09-28T18:04:21Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [],
+      "admitted_source_sentences": [
+        "Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant).",
+        "If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`).",
+        "If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet.",
+        "Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse.",
+        "A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.",
+        "Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`).",
+        "Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only).",
+        "Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).",
+        "Lockfile appearance / unpinned lockfile stays leftover on #4429.",
+        "Drop the sentence that a matching package.json pin plus an empty lockfile is not recovery from this remainder.",
+        "Drop \"a README-only repo should stay greenfield\" from this Bound remedy.",
+        "If README-only classification remains wanted, leftover-split a classifier issue.",
+        "Keep `doctor --full` out of Bound remedy as the P1 control.",
+        "Later overwrite after process exit remains an explicit limit.",
+        "Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder.",
+        "A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture."
+      ],
+      "admitted_source_digest": "526cae72d4bd4f40d436faac28ec874ce5e4f769c65bc1af981c26594c3a0dfb",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant). If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`). If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet. Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse. A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`). Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only). Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Lockfile appearance / unpinned lockfile stays leftover on #4429. Drop the sentence that a matching package.json pin plus an empty lockfile is not recovery from this remainder.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Drop \"a README-only repo should stay greenfield\" from this Bound remedy. If README-only classification remains wanted, leftover-split a classifier issue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Keep `doctor --full` out of Bound remedy as the P1 control.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Later overwrite after process exit remains an explicit limit. Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder. A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(init): concurrent app scaffold overwrites the Directive pin and AGENTS.md",
+        "Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant).",
+        "If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`).",
+        "If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet.",
+        "Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse.",
+        "A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.",
+        "Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`).",
+        "Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only).",
+        "Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).",
+        "Lockfile appearance / unpinned lockfile stays leftover on #4429.",
+        "Drop the sentence that a matching package.json pin plus an empty lockfile is not recovery from this remainder.",
+        "Drop \"a README-only repo should stay greenfield\" from this Bound remedy.",
+        "If README-only classification remains wanted, leftover-split a classifier issue.",
+        "Keep `doctor --full` out of Bound remedy as the P1 control.",
+        "Later overwrite after process exit remains an explicit limit.",
+        "Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder.",
+        "A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture."
+      ]
+    },
+    "id": "github.issue.5452840160",
+    "updated": "2026-09-28T18:04:21Z"
+  }
+}
