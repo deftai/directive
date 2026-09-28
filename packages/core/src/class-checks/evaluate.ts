@@ -519,8 +519,6 @@ function isCiHarnessGithubWorkflow(relPath: string): boolean {
     base === "ci.yaml" ||
     base === "ci-lane.yml" ||
     base === "ci-lane.yaml" ||
-    base === "docs-site.yml" ||
-    base === "docs-site.yaml" ||
     base === "branch-gate.yml" ||
     base === "branch-gate.yaml" ||
     base.startsWith("greenfield-") ||
