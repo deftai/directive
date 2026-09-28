@@ -32,6 +32,12 @@ export const DIRECT_RUN_POSTURE_TOKENS = [
   "no worktrees",
   "no-ingest",
   "no ingest",
+  "do not ingest",
+  "does not ingest",
+  "don't ingest",
+  "dont ingest",
+  "never ingest",
+  "not ingest",
 ] as const;
 
 /** Published closed tokens that resolve to `checkout`. */
@@ -52,17 +58,21 @@ export type DirectDispatchVerdict =
   | { ok: false; violations: readonly DirectDispatchViolation[] };
 
 const NO_INGEST_TOKEN_RE =
-  /\b(?:direct|directly|forge-only|github-only|github[ \t]+only|on[ \t]+github|no[ \t]+worktrees|no-ingest|no[ \t]+ingest)\b/i;
+  /\b(?:direct|directly|forge-only|github-only|github[ \t]+only|on[ \t]+github|no[ \t]+worktrees|no-ingest|no[ \t]+ingest|do(?:es)?[ \t]+not[ \t]+ingest|don'?t[ \t]+ingest|never[ \t]+ingest|not[ \t]+ingest)\b/i;
 const CHECKOUT_TOKEN_RE = /\bcheckout\b/i;
-/** Bare `ingest` only (checkout opt-out). `no-ingest` / `no ingest` are github-only tokens. */
-const INGEST_TOKEN_RE = /(?<!no[ \t-])\bingest\b/i;
+/**
+ * Bare `ingest` only (checkout opt-out). Negated forms (`no-ingest`,
+ * `do not ingest`, `don't ingest`, …) are github-only tokens, not checkout.
+ */
+const INGEST_TOKEN_RE = /(?<!(?:no|not|never)[ \t-]|don'?t[ \t])\bingest\b/i;
 const DISPATCH_SHA_RE = /^[0-9a-f]{7,40}$/i;
 
 /**
  * Parse an operator utterance for the run-posture closed set.
  * Yolo is not a posture token. Bare `ingest` resolves to checkout posture
- * only — never as a front-door arc-mode named ingest. GitHub-only closed
- * tokens resolve to `no-ingest`, not no-worktree.
+ * only — never as a front-door arc-mode named ingest. Negated ingest
+ * (`do not ingest`, `don't ingest`, …) resolves to `no-ingest`, not checkout.
+ * GitHub-only closed tokens resolve to `no-ingest`, not no-worktree.
  */
 export function parseOperatorRunPosture(utterance: string): RunPostureParse {
   const hasNoIngest = NO_INGEST_TOKEN_RE.test(utterance);

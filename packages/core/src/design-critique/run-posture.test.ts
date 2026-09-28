@@ -117,6 +117,39 @@ describe("parseOperatorRunPosture (#4072 / #4296)", () => {
     expect(arcModeRecordLine("checkout")).not.toContain("ingest");
   });
 
+  it("resolves negated ingest to no-ingest, not checkout", () => {
+    expect(parseOperatorRunPosture("arc 1234 do not ingest")).toEqual({
+      kind: "resolved",
+      posture: "no-ingest",
+    });
+    expect(parseOperatorRunPosture("arc 1234 don't ingest")).toEqual({
+      kind: "resolved",
+      posture: "no-ingest",
+    });
+    expect(parseOperatorRunPosture("arc 1234 dont ingest")).toEqual({
+      kind: "resolved",
+      posture: "no-ingest",
+    });
+    expect(parseOperatorRunPosture("arc 1234 does not ingest")).toEqual({
+      kind: "resolved",
+      posture: "no-ingest",
+    });
+    expect(parseOperatorRunPosture("arc 1234 never ingest")).toEqual({
+      kind: "resolved",
+      posture: "no-ingest",
+    });
+    expect(parseOperatorRunPosture("arc 1234 not ingest")).toEqual({
+      kind: "resolved",
+      posture: "no-ingest",
+    });
+    expect(
+      resolveArcRunPostureForHost({
+        utterance: "arc 1234 do not ingest",
+        grokBotDetected: false,
+      }),
+    ).toEqual({ kind: "resolved", posture: "no-ingest" });
+  });
+
   it("asks when closed tokens collide", () => {
     expect(parseOperatorRunPosture("arc 1 direct checkout")).toEqual({
       kind: "ask",
