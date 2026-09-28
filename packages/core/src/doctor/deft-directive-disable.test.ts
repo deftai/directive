@@ -14,7 +14,8 @@ const temps: string[] = [];
 
 afterEach(() => {
   for (const t of temps.splice(0)) {
-    rmSync(t, { recursive: true, force: true });
+    // Windows suite-load can leave AV/handles briefly locking temp trees (#5089).
+    rmSync(t, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
   vi.restoreAllMocks();
 });
