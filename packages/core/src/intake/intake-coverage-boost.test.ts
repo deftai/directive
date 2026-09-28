@@ -286,9 +286,10 @@ describe("intake coverage boost", () => {
         },
       );
       expect(summary.total).toBe(1);
-      expect(summary.notices).toEqual([
-        expect.stringContaining("plan.items is empty after body harvest"),
-      ]);
+      expect(summary.notices).toHaveLength(1);
+      const notice = (summary.notices as string[])[0] ?? "";
+      // Path/issue label retained after stripping CREATED/DRY-RUN (#4671 bulk notices).
+      expect(notice).toMatch(/proposed\/.+\n[\s\S]*plan\.items is empty after body harvest/);
       rmSync(dir, { recursive: true, force: true });
     });
 

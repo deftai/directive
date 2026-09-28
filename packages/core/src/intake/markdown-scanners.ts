@@ -310,17 +310,28 @@ export function extractRequirementsSectionItems(text: string): CheckboxItem[] {
   if (text.length === 0) {
     return [];
   }
-  // Prefer the first non-empty Requirements: section when an earlier label is empty.
-  let offset = 0;
-  for (const line of text.split("\n")) {
-    if (isRequirementsColonLabelLine(line)) {
-      const match: ColonLabelMatch = { sectionStart: offset + line.length };
-      const items = parseListItems(sliceColonLabelSection(text, match));
-      if (items.length > 0) {
-        return items;
-      }
+  // Single pass: prefer the first non-empty Requirements: section (no per-label rescan).
+  const lines = text.split("\n");
+  let i = 0;
+  while (i < lines.length) {
+    if (!isRequirementsColonLabelLine(lines[i] ?? "")) {
+      i += 1;
+      continue;
     }
-    offset += line.length + 1;
+    i += 1;
+    const bodyLines: string[] = [];
+    while (i < lines.length) {
+      const line = lines[i] ?? "";
+      if (isAtxHeadingLine(line) || isSameShapeColonLabelLine(line)) {
+        break;
+      }
+      bodyLines.push(line);
+      i += 1;
+    }
+    const items = parseListItems(bodyLines.join("\n"));
+    if (items.length > 0) {
+      return items;
+    }
   }
   return [];
 }
