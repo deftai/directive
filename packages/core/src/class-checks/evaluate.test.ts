@@ -361,6 +361,28 @@ describe("evaluateClassChecks (#4980)", () => {
     expect(result.findings.some((f) => f.kind === "production-references-test-root")).toBe(true);
   });
 
+  it("release-check.yml CI harness keeps fixture exemption (#5097)", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: [".github/workflows/release-check.yml"],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["src/**"],
+        testRoots: ["tests/**"],
+        fixtureRoots: ["tests/fixtures/**"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        [
+          ".github/workflows/release-check.yml",
+          "Copy-Item tests\\fixtures\\seed.json $fixtureDir\n",
+        ],
+      ]),
+    });
+    expect(
+      result.findings.filter((f) => f.kind === "production-references-test-root"),
+    ).toHaveLength(0);
+  });
+
   it("fails closed on malformed merge-base PROJECT-DEFINITION classChecks", () => {
     const badJson = parseClassChecksFromProjectDefinition("{ not json");
     expect(badJson.ok).toBe(false);
