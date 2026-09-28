@@ -161,6 +161,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
 <!-- deft:managed-section v3 sha=a60bb4d8695a refreshed=2026-09-28T19:43:47Z session=f8b83c8f1d2e -->
+<!-- deft:managed-section v3 sha=51729815a3a7 refreshed=2026-09-28T20:07:04Z session=af2209b8a032 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -176,6 +177,11 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Opaque non-zero exit (usually 127) on every mutation = `deft-hook` is not executable on this host, not a Directive deny — no Directive code ran, and no in-session flag reaches it. Out of band: `deft policy:disable-host-hooks --host cursor --confirm`, or install the runtime (`npm i -g @deftai/directive@<pin>`). Depth: `.deft/core/docs/hook-runtime-unavailable.md`.
 ⊗ Hand-edit `failClosed` in `.cursor/hooks.json` — the next `deft update` rewrites it and silently re-arms the lockout.
+
+## Codex ritual-git recovery (#4664)
+
+! When Codex sandbox blocks ritual `git` (`spawnSync git EPERM` / prompt `Environment: local`), approve outside-sandbox for ritual `git` once for the session (session-scoped or `/approvals` workspace trust — not repeated per-verb prompts). Distinct from npm-prefix Sandbox install and from Codex project-hook `/hooks` trust. Depth: `.deft/core/contracts/agent-hook-readiness.md` / README Codex ritual git.
+⊗ Invent an in-process git substitute for HEAD / worktree / repo detection. ⊗ Treat repeated per-verb `Environment: local` prompts as Continuity discharge.
 
 ## Session routing (#2176)
 
