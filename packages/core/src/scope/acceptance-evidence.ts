@@ -29,7 +29,7 @@ import {
   type EvaluateVerifyAcOptions,
   evaluateVerifyAcFromPlan,
 } from "../product-first-done-gate/evaluate.js";
-import { type GitRunner } from "../session/git.js";
+import type { GitRunner } from "../session/git.js";
 import {
   isMatchAnyFilePointer,
   readAcceptanceClauses,
@@ -411,10 +411,7 @@ function parseEvidence(raw: unknown):
   if (!isNonEmptyString(obj.recorded_by)) {
     return { ok: false, message: "evidence.recorded_by is required" };
   }
-  const shape = evidencePointerShapeError(
-    kindRaw as AcceptanceEvidenceKind,
-    obj.pointer.trim(),
-  );
+  const shape = evidencePointerShapeError(kindRaw as AcceptanceEvidenceKind, obj.pointer.trim());
   if (shape !== null) {
     return { ok: false, message: shape };
   }
@@ -858,12 +855,10 @@ export function stampDeclaredMergeEvidence(
     typeof options.recorded_at === "string" && options.recorded_at.trim().length > 0
       ? options.recorded_at.trim()
       : utcNowIso();
-  const mergeCommit =
-    typeof options.mergeCommit === "string" ? options.mergeCommit.trim() : "";
+  const mergeCommit = typeof options.mergeCommit === "string" ? options.mergeCommit.trim() : "";
   const deliveryBranch =
     typeof options.deliveryBranch === "string" ? options.deliveryBranch.trim() : "";
-  const projectRoot =
-    typeof options.projectRoot === "string" ? options.projectRoot.trim() : "";
+  const projectRoot = typeof options.projectRoot === "string" ? options.projectRoot.trim() : "";
   const clauses = readAcceptanceClauses(plan.acceptance);
   const stampedIds: string[] = [];
   const skipped: StampDeclaredTestEvidenceSkip[] = [];
@@ -924,9 +919,7 @@ export function stampDeclaredMergeEvidence(
   return { stampedIds, skipped };
 }
 
-function readCompletionProvenance(
-  plan: Record<string, unknown>,
-): Record<string, unknown> | null {
+function readCompletionProvenance(plan: Record<string, unknown>): Record<string, unknown> | null {
   const metadata = asRecord(plan.metadata);
   if (metadata === null) {
     return null;
@@ -948,8 +941,7 @@ function autoStampMergeFromCompletionProvenance(
     return;
   }
   const mergeCommit = typeof prov.mergeCommit === "string" ? prov.mergeCommit.trim() : "";
-  const deliveryBranch =
-    typeof prov.deliveryBranch === "string" ? prov.deliveryBranch.trim() : "";
+  const deliveryBranch = typeof prov.deliveryBranch === "string" ? prov.deliveryBranch.trim() : "";
   if (mergeCommit.length === 0 || deliveryBranch.length === 0) {
     return;
   }

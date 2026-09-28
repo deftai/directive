@@ -145,9 +145,7 @@ describe("acceptance evidence inference (#3240)", () => {
     expect(itemDeclaresMergeRequirement({ requiredEvidenceKind: "merge" })).toBe(true);
     expect(itemDeclaresMergeRequirement({ acceptanceAxis: "merge" })).toBe(true);
     expect(itemDeclaresMergeRequirement({ title: "merge lands on master" })).toBe(false);
-    expect(inferRequiredStrictAxes({ requires: "merge", title: "smoke after deploy" })).toEqual(
-      [],
-    );
+    expect(inferRequiredStrictAxes({ requires: "merge", title: "smoke after deploy" })).toEqual([]);
     expect(inferRequiredStrictAxes({ requires: "smoke" })).toEqual(["smoke"]);
   });
 
