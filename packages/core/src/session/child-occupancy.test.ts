@@ -116,7 +116,6 @@ beforeAll(() => {
   foreignFixture();
 }, 60_000 /* #5084 suite-load hookTimeout */);
 
-
 describe("child occupancy dispatch record (#3999)", () => {
   const now = new Date("2026-08-31T12:00:00Z");
   const agentId = "child-agent";
