@@ -1,12 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF ingested from GitHub issue #4574",
-    "updated": "2026-09-28T19:58:18Z"
+    "description": "Leftover-complete for Tracking #4574 / PR #5118",
+    "updated": "2026-09-28T23:48:47Z"
   },
   "plan": {
     "title": "bug(hooks,update): engine 0.119 expects EditNotebook matcher but update leaves 0.116 grok hooks drifted/missing",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks,update): engine 0.119 expects EditNotebook matcher but update leaves 0.116 grok hooks drifted/missing",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4574",
@@ -15,84 +15,100 @@
     },
     "items": [
       {
-        "title": "For host === \"grok\" only, change the direct-write conjunct of hasNestedRegistration: drop matcher === DIRECT_WRITE_HOOK_MATCHER; require the managed grok tool.before PreToolUse entry whose matcher satisfies matcherHasLiteralToken(matcher, token) for every name in HOST_TOOL_SURFACE_AUDIT.grok.mutation.directWrite (today write, search_replace; source from that catalog or GROK_MUTATION_TOOL_CATALOG.directWrite; do not mint a third string list). Explicitly refuse matcher === \"write|search_replace\" as the registration bar.",
-        "status": "completed",
         "id": "clause.1",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
-      },
-      {
-        "title": "Keep SessionStart, compact, spawn, shell, and MCP on current registration health. Keep claude, cursor, and codex valid() paths on exact-equality over NESTED_PRE_TOOL_MATCHERS / hasCursorRegistration.",
+        "title": "For host === \"grok\" only, change the direct-write conjunct of hasNestedRegistration: drop matcher === DIRECT_WRITE_HOOK_MATCHER; require the managed grok tool.before PreToolUse entry whose matcher satisfies matcherHasLiteralToken(matcher, token) for every name in HOST_TOOL_SURFACE_AUDIT.grok.mutation.directWrite (today write, search_replace; source from that catalog or GROK_MUTATION_TOOL_CATALOG.directWrite; do not mint a third string list).",
         "status": "completed",
-        "id": "clause.2",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "978321de7ec0f617a18a3b27732cb192426a3f96",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
+        "id": "clause.2",
+        "title": "Explicitly refuse matcher === \"write|search_replace\" as the registration bar.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "978321de7ec0f617a18a3b27732cb192426a3f96",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.3",
+        "title": "Keep SessionStart, compact, spawn, shell, and MCP on current registration health.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "978321de7ec0f617a18a3b27732cb192426a3f96",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.4",
+        "title": "Keep claude, cursor, and codex valid() paths on exact-equality over NESTED_PRE_TOOL_MATCHERS / hasCursorRegistration.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "978321de7ec0f617a18a3b27732cb192426a3f96",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.5",
         "title": "Do not change mergeNestedConfig's shared DIRECT_WRITE_HOOK_MATCHER writer.",
         "status": "completed",
-        "id": "clause.3",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "978321de7ec0f617a18a3b27732cb192426a3f96",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
+        "id": "clause.6",
         "title": "Keep inspectHostToolCoverage as the additional after-registration check.",
         "status": "completed",
-        "id": "clause.4",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "978321de7ec0f617a18a3b27732cb192426a3f96",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
+        "id": "clause.7",
         "title": "Non-goals: leftover (b) UNUSED_HOST_HOOKS_RECOVERY concatenation stays on #5110; missing .grok/hooks/deft.json remains missing before any matcher predicate; do not fork a grok-only merge writer.",
         "status": "completed",
-        "id": "clause.5",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "978321de7ec0f617a18a3b27732cb192426a3f96",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.8",
+        "title": "relieves: P1 Target-digest: sha256:3a5c5c78c96840bbf6ba3a0611e189fe4b02b9c4afdfa5a8db4ced234c54fb73",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "978321de7ec0f617a18a3b27732cb192426a3f96",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -124,9 +140,95 @@
       }
     ],
     "acceptance": {
-      "none_stated": true,
+      "none_stated": false,
       "source_rung": "stated",
-      "commands": []
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/class-checks/index.test.ts",
+          "cwd": "."
+        }
+      ],
+      "admitted_source_sentences": [
+        "For host === \"grok\" only, change the direct-write conjunct of hasNestedRegistration: drop matcher === DIRECT_WRITE_HOOK_MATCHER; require the managed grok tool.before PreToolUse entry whose matcher satisfies matcherHasLiteralToken(matcher, token) for every name in HOST_TOOL_SURFACE_AUDIT.grok.mutation.directWrite (today write, search_replace; source from that catalog or GROK_MUTATION_TOOL_CATALOG.directWrite; do not mint a third string list).",
+        "Explicitly refuse matcher === \"write|search_replace\" as the registration bar.",
+        "Keep SessionStart, compact, spawn, shell, and MCP on current registration health.",
+        "Keep claude, cursor, and codex valid() paths on exact-equality over NESTED_PRE_TOOL_MATCHERS / hasCursorRegistration.",
+        "Do not change mergeNestedConfig's shared DIRECT_WRITE_HOOK_MATCHER writer.",
+        "Keep inspectHostToolCoverage as the additional after-registration check.",
+        "Non-goals: leftover (b) UNUSED_HOST_HOOKS_RECOVERY concatenation stays on #5110; missing .grok/hooks/deft.json remains missing before any matcher predicate; do not fork a grok-only merge writer.",
+        "relieves: P1 Target-digest: sha256:3a5c5c78c96840bbf6ba3a0611e189fe4b02b9c4afdfa5a8db4ced234c54fb73"
+      ],
+      "admitted_source_digest": "97346d9a0d11df09dfe3963ffb87b8211ae3df9372f0fc855d79ed5468f51883",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "For host === \"grok\" only, change the direct-write conjunct of hasNestedRegistration: drop matcher === DIRECT_WRITE_HOOK_MATCHER; require the managed grok tool.before PreToolUse entry whose matcher satisfies matcherHasLiteralToken(matcher, token) for every name in HOST_TOOL_SURFACE_AUDIT.grok.mutation.directWrite (today write, search_replace; source from that catalog or GROK_MUTATION_TOOL_CATALOG.directWrite; do not mint a third string list).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Explicitly refuse matcher === \"write|search_replace\" as the registration bar.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Keep SessionStart, compact, spawn, shell, and MCP on current registration health.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep claude, cursor, and codex valid() paths on exact-equality over NESTED_PRE_TOOL_MATCHERS / hasCursorRegistration.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not change mergeNestedConfig's shared DIRECT_WRITE_HOOK_MATCHER writer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Keep inspectHostToolCoverage as the additional after-registration check.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Non-goals: leftover (b) UNUSED_HOST_HOOKS_RECOVERY concatenation stays on #5110; missing .grok/hooks/deft.json remains missing before any matcher predicate; do not fork a grok-only merge writer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "relieves: P1 Target-digest: sha256:3a5c5c78c96840bbf6ba3a0611e189fe4b02b9c4afdfa5a8db4ced234c54fb73",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "sentences": [],
+      "confessions": [
+        "For host === \"grok\" only, change the direct-write conjunct of hasNestedRegistration: drop matcher === DIRECT_WRITE_HOOK_MATCHER; require the managed grok tool.before PreToolUse entry whose matcher satisfies matcherHasLiteralToken(matcher, token) for every name in HOST_TOOL_SURFACE_AUDIT.grok.mutation.directWrite (today write, search_replace; source from that catalog or GROK_MUTATION_TOOL_CATALOG.directWrite; do not mint a third string list).",
+        "Explicitly refuse matcher === \"write|search_replace\" as the registration bar.",
+        "Keep SessionStart, compact, spawn, shell, and MCP on current registration health.",
+        "Keep claude, cursor, and codex valid() paths on exact-equality over NESTED_PRE_TOOL_MATCHERS / hasCursorRegistration.",
+        "Do not change mergeNestedConfig's shared DIRECT_WRITE_HOOK_MATCHER writer.",
+        "Keep inspectHostToolCoverage as the additional after-registration check.",
+        "Non-goals: leftover (b) UNUSED_HOST_HOOKS_RECOVERY concatenation stays on #5110; missing .grok/hooks/deft.json remains missing before any matcher predicate; do not fork a grok-only merge writer.",
+        "relieves: P1 Target-digest: sha256:3a5c5c78c96840bbf6ba3a0611e189fe4b02b9c4afdfa5a8db4ced234c54fb73"
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "metadata": {
       "intended_placement": {
@@ -956,11 +1058,6 @@
         "origin": "deftai/directive#4574",
         "id": "github.issue.5466647322"
       },
-      "x-directive/admitted-target-digest": {
-        "schema": "deft.scope.admitted-target-digest.v1",
-        "algorithm": "sha256",
-        "sha256": "3a5c5c78c96840bbf6ba3a0611e189fe4b02b9c4afdfa5a8db4ced234c54fb73"
-      },
       "swarm": {
         "file_scope": [
           "packages/core/src/init-deposit/agent-hooks.ts",
@@ -970,13 +1067,37 @@
           "CHANGELOG.md"
         ]
       },
-      "lifecycleWrite": {
-        "action": "cancel",
-        "writtenAt": "2026-09-28T19:58:18Z"
+      "productPullRequest": 5118,
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3a5c5c78c96840bbf6ba3a0611e189fe4b02b9c4afdfa5a8db4ced234c54fb73"
       },
-      "productPullRequest": 5118
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5118,
+        "prBase": null,
+        "mergeCommit": "978321de7ec0f617a18a3b27732cb192426a3f96",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c5226dcf2082743cdca5c6445d197e7c551e2f2a",
+        "verifiedAt": "2026-09-28T23:48:47Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-28T23:48:47Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-28T23:48:47Z"
+      }
     },
     "id": "github.issue.5466647322",
-    "updated": "2026-09-28T19:58:18Z"
+    "updated": "2026-09-28T23:48:47Z"
   }
 }

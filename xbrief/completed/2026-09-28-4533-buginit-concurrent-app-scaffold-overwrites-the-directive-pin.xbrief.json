@@ -1,12 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF ingested from GitHub issue #4533",
-    "updated": "2026-09-28T18:04:21Z"
+    "description": "Leftover-complete for Tracking #4533 / PR #4992",
+    "updated": "2026-09-28T23:47:57Z"
   },
   "plan": {
     "title": "bug(init): concurrent app scaffold overwrites the Directive pin and AGENTS.md",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(init): concurrent app scaffold overwrites the Directive pin and AGENTS.md",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4533",
@@ -15,100 +15,196 @@
     },
     "items": [
       {
-        "title": "Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant). If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`). If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet. Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse. A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.",
-        "status": "completed",
         "id": "clause.1",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`). Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only). Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).",
-        "status": "completed",
         "id": "clause.2",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Lockfile appearance / unpinned lockfile stays leftover on #4429. Drop the sentence that a matching package.json pin plus an empty lockfile is not recovery from this remainder.",
-        "status": "completed",
         "id": "clause.3",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
-      },
-      {
-        "title": "Drop \"a README-only repo should stay greenfield\" from this Bound remedy. If README-only classification remains wanted, leftover-split a classifier issue.",
+        "title": "If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet.",
         "status": "completed",
-        "id": "clause.4",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
+        "id": "clause.4",
+        "title": "Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.5",
+        "title": "A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.6",
+        "title": "Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.7",
+        "title": "Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.8",
+        "title": "Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.9",
+        "title": "Lockfile appearance / unpinned lockfile stays leftover on #4429.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.10",
+        "title": "Drop the sentence that a matching package.json pin plus an empty lockfile is not recovery from this remainder.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.11",
+        "title": "Drop \"a README-only repo should stay greenfield\" from this Bound remedy.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.12",
+        "title": "If README-only classification remains wanted, leftover-split a classifier issue.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.13",
         "title": "Keep `doctor --full` out of Bound remedy as the P1 control.",
         "status": "completed",
-        "id": "clause.5",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Later overwrite after process exit remains an explicit limit. Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder. A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture.",
+        "id": "clause.14",
+        "title": "Later overwrite after process exit remains an explicit limit.",
         "status": "completed",
-        "id": "clause.6",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.15",
+        "title": "Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.16",
+        "title": "A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -578,23 +674,200 @@
         "origin": "deftai/directive#4533",
         "id": "github.issue.5452840160"
       },
+      "productPullRequest": 4992,
       "x-directive/admitted-target-digest": {
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "b84e566b8b4d21cb29b9c3a08bb0982616e254cede9241610c7793a0838d4117"
       },
-      "lifecycleWrite": {
-        "action": "cancel",
-        "writtenAt": "2026-09-28T18:04:21Z"
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4992,
+        "prBase": null,
+        "mergeCommit": "d06eb43ba9232ac7448ed10c0030c054db4fe07b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c5226dcf2082743cdca5c6445d197e7c551e2f2a",
+        "verifiedAt": "2026-09-28T23:47:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
       },
-      "productPullRequest": 4992
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-28T23:47:57Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-28T23:47:57Z"
+      }
     },
     "acceptance": {
-      "none_stated": true,
+      "none_stated": false,
       "source_rung": "stated",
-      "commands": []
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/class-checks/index.test.ts",
+          "cwd": "."
+        }
+      ],
+      "admitted_source_sentences": [
+        "Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant).",
+        "If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`).",
+        "If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet.",
+        "Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse.",
+        "A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.",
+        "Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`).",
+        "Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only).",
+        "Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).",
+        "Lockfile appearance / unpinned lockfile stays leftover on #4429.",
+        "Drop the sentence that a matching package.json pin plus an empty lockfile is not recovery from this remainder.",
+        "Drop \"a README-only repo should stay greenfield\" from this Bound remedy.",
+        "If README-only classification remains wanted, leftover-split a classifier issue.",
+        "Keep `doctor --full` out of Bound remedy as the P1 control.",
+        "Later overwrite after process exit remains an explicit limit.",
+        "Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder.",
+        "A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture."
+      ],
+      "admitted_source_digest": "526cae72d4bd4f40d436faac28ec874ce5e4f769c65bc1af981c26594c3a0dfb",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Lockfile appearance / unpinned lockfile stays leftover on #4429.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Drop the sentence that a matching package.json pin plus an empty lockfile is not recovery from this remainder.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Drop \"a README-only repo should stay greenfield\" from this Bound remedy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "If README-only classification remains wanted, leftover-split a classifier issue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Keep `doctor --full` out of Bound remedy as the P1 control.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Later overwrite after process exit remains an explicit limit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "sentences": [],
+      "confessions": [
+        "Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant).",
+        "If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`).",
+        "If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet.",
+        "Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse.",
+        "A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.",
+        "Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`).",
+        "Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only).",
+        "Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).",
+        "Lockfile appearance / unpinned lockfile stays leftover on #4429.",
+        "Drop the sentence that a matching package.json pin plus an empty lockfile is not recovery from this remainder.",
+        "Drop \"a README-only repo should stay greenfield\" from this Bound remedy.",
+        "If README-only classification remains wanted, leftover-split a classifier issue.",
+        "Keep `doctor --full` out of Bound remedy as the P1 control.",
+        "Later overwrite after process exit remains an explicit limit.",
+        "Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder.",
+        "A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture."
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5452840160",
-    "updated": "2026-09-28T18:04:21Z"
+    "updated": "2026-09-28T23:47:57Z"
   }
 }

@@ -1,12 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF ingested from GitHub issue #3791",
-    "updated": "2026-09-28T19:47:09Z"
+    "description": "Leftover-complete for Tracking #3791 / PR #5113",
+    "updated": "2026-09-28T23:47:41Z"
   },
   "plan": {
     "title": "feat(lifecycle): automate the post-merge brief sweep and stamp the evidence a merge can honestly produce",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(lifecycle): automate the post-merge brief sweep and stamp the evidence a merge can honestly produce",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3791",
@@ -15,68 +15,208 @@
     },
     "items": [
       {
-        "title": "Close P1 with a lifecycle-only bot-merge carve-out consumed by finalize-cohort’s existing `evaluateAgentMerge` → `enableLeftoverAutoMerge` path. Membership is fail-closed on the durable finalize PR class (`swarm/finalize/*` or equivalent). Not a general bot-merge remint. Land must also name the human-merge stack that holds the hang: either a fail-closed branch-protection / ruleset exception for that same durable finalize class so required-reviewer hosts can actually auto-land, or an explicit recorded first-ship assumption that surface-3 does not require a human reviewer on `swarm/finalize/*`. Do not treat `FINALIZE_CLAIM_STALE_MS` claim-stale as PR-stale.",
-        "status": "completed",
         "id": "clause.1",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Close P1 with a lifecycle-only bot-merge carve-out consumed by finalize-cohort’s existing `evaluateAgentMerge` → `enableLeftoverAutoMerge` path.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Close P2 by recording that next-session finalize-owed + session-start blocking (#4919), together with live-closer leftover-complete (#4937), is the accepted discharge of this issue’s original automatic post-merge / one-CI-run ask for first ship. Residual windows (deferred / read-only / no soon session) stay explicit. Update issue/AC prose on ingest to match. Do not re-open a deftai/directive-only merge-event workflow.",
-        "status": "completed",
         "id": "clause.2",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
-      },
-      {
-        "title": "Close P3 by composing the existing orphan-active signature into owed discovery when `productPullRequest` is absent: admit first ship when the signature shows shipped **and** a merged PR number is present in `prRefs` for the derive (do not key compose on `assessOrphanSignature` reason-string equality for “linked PR is merged”). Derive `productPr` from that prRefs merged PR and the issue from brief origin, then call the existing finalizeOwed → finalizeCohort path (`prNumbers` + `storyTokens`; empty-closing delivery evidence via #4937). Empty-`prRefs` closed-origin-only stays out of first ship (item 4). Keep `verify:orphan-active` a detector only. AC must prove an unmarked stuck brief with a merged linked PR (Shinran7 issue 6 / PR 7 shape on an upgraded package acceptable) becomes inventory-visible and finalize-clearable. Optional one-time mark migration stays out of first ship unless required for that compose.",
+        "title": "Membership is fail-closed on the durable finalize PR class (`swarm/finalize/*` or equivalent).",
         "status": "completed",
-        "id": "clause.3",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
+        "id": "clause.3",
+        "title": "Not a general bot-merge remint.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.4",
+        "title": "Land must also name the human-merge stack that holds the hang: either a fail-closed branch-protection / ruleset exception for that same durable finalize class so required-reviewer hosts can actually auto-land, or an explicit recorded first-ship assumption that surface-3 does not require a human reviewer on `swarm/finalize/*`.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.5",
+        "title": "Do not treat `FINALIZE_CLAIM_STALE_MS` claim-stale as PR-stale.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.6",
+        "title": "Close P2 by recording that next-session finalize-owed + session-start blocking (#4919), together with live-closer leftover-complete (#4937), is the accepted discharge of this issue’s original automatic post-merge / one-CI-run ask for first ship.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.7",
+        "title": "Residual windows (deferred / read-only / no soon session) stay explicit.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.8",
+        "title": "Update issue/AC prose on ingest to match.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.9",
+        "title": "Do not re-open a deftai/directive-only merge-event workflow.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.10",
+        "title": "Close P3 by composing the existing orphan-active signature into owed discovery when `productPullRequest` is absent: admit first ship when the signature shows shipped and a merged PR number is present in `prRefs` for the derive (do not key compose on `assessOrphanSignature` reason-string equality for “linked PR is merged”).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.11",
+        "title": "Derive `productPr` from that prRefs merged PR and the issue from brief origin, then call the existing finalizeOwed → finalizeCohort path (`prNumbers` + `storyTokens`; empty-closing delivery evidence via #4937).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.12",
+        "title": "Empty-`prRefs` closed-origin-only stays out of first ship (item 4).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.13",
+        "title": "Keep `verify:orphan-active` a detector only.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.14",
+        "title": "AC must prove an unmarked stuck brief with a merged linked PR (Shinran7 issue 6 / PR 7 shape on an upgraded package acceptable) becomes inventory-visible and finalize-clearable.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.15",
+        "title": "Optional one-time mark migration stays out of first ship unless required for that compose.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.16",
         "title": "Out of this issue: merge-kind acceptance evidence (#5105); growing orphan-active into a writer; closed-origin-only unmarked discovery with empty prRefs; re-binding the retracted dest-overlay/--stories harvest blocked by 5732662100 except as already shipped by #4937/#4864/#4919.",
         "status": "completed",
-        "id": "clause.4",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.17",
+        "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:6e2719378436f011dd62562fcfd7b705ff01804583dafac625886e98688137a7",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -103,9 +243,176 @@
       }
     ],
     "acceptance": {
-      "none_stated": true,
+      "none_stated": false,
       "source_rung": "stated",
-      "commands": []
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/class-checks/index.test.ts",
+          "cwd": "."
+        }
+      ],
+      "admitted_source_sentences": [
+        "Close P1 with a lifecycle-only bot-merge carve-out consumed by finalize-cohort’s existing `evaluateAgentMerge` → `enableLeftoverAutoMerge` path.",
+        "Membership is fail-closed on the durable finalize PR class (`swarm/finalize/*` or equivalent).",
+        "Not a general bot-merge remint.",
+        "Land must also name the human-merge stack that holds the hang: either a fail-closed branch-protection / ruleset exception for that same durable finalize class so required-reviewer hosts can actually auto-land, or an explicit recorded first-ship assumption that surface-3 does not require a human reviewer on `swarm/finalize/*`.",
+        "Do not treat `FINALIZE_CLAIM_STALE_MS` claim-stale as PR-stale.",
+        "Close P2 by recording that next-session finalize-owed + session-start blocking (#4919), together with live-closer leftover-complete (#4937), is the accepted discharge of this issue’s original automatic post-merge / one-CI-run ask for first ship.",
+        "Residual windows (deferred / read-only / no soon session) stay explicit.",
+        "Update issue/AC prose on ingest to match.",
+        "Do not re-open a deftai/directive-only merge-event workflow.",
+        "Close P3 by composing the existing orphan-active signature into owed discovery when `productPullRequest` is absent: admit first ship when the signature shows shipped and a merged PR number is present in `prRefs` for the derive (do not key compose on `assessOrphanSignature` reason-string equality for “linked PR is merged”).",
+        "Derive `productPr` from that prRefs merged PR and the issue from brief origin, then call the existing finalizeOwed → finalizeCohort path (`prNumbers` + `storyTokens`; empty-closing delivery evidence via #4937).",
+        "Empty-`prRefs` closed-origin-only stays out of first ship (item 4).",
+        "Keep `verify:orphan-active` a detector only.",
+        "AC must prove an unmarked stuck brief with a merged linked PR (Shinran7 issue 6 / PR 7 shape on an upgraded package acceptable) becomes inventory-visible and finalize-clearable.",
+        "Optional one-time mark migration stays out of first ship unless required for that compose.",
+        "Out of this issue: merge-kind acceptance evidence (#5105); growing orphan-active into a writer; closed-origin-only unmarked discovery with empty prRefs; re-binding the retracted dest-overlay/--stories harvest blocked by 5732662100 except as already shipped by #4937/#4864/#4919.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:6e2719378436f011dd62562fcfd7b705ff01804583dafac625886e98688137a7"
+      ],
+      "admitted_source_digest": "6f9431f2ae0ec55a0bdba63eb5094ebfe641f023ff21981da475289d5bc160e3",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Close P1 with a lifecycle-only bot-merge carve-out consumed by finalize-cohort’s existing `evaluateAgentMerge` → `enableLeftoverAutoMerge` path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Membership is fail-closed on the durable finalize PR class (`swarm/finalize/*` or equivalent).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Not a general bot-merge remint.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Land must also name the human-merge stack that holds the hang: either a fail-closed branch-protection / ruleset exception for that same durable finalize class so required-reviewer hosts can actually auto-land, or an explicit recorded first-ship assumption that surface-3 does not require a human reviewer on `swarm/finalize/*`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not treat `FINALIZE_CLAIM_STALE_MS` claim-stale as PR-stale.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Close P2 by recording that next-session finalize-owed + session-start blocking (#4919), together with live-closer leftover-complete (#4937), is the accepted discharge of this issue’s original automatic post-merge / one-CI-run ask for first ship.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Residual windows (deferred / read-only / no soon session) stay explicit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Update issue/AC prose on ingest to match.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Do not re-open a deftai/directive-only merge-event workflow.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Close P3 by composing the existing orphan-active signature into owed discovery when `productPullRequest` is absent: admit first ship when the signature shows shipped and a merged PR number is present in `prRefs` for the derive (do not key compose on `assessOrphanSignature` reason-string equality for “linked PR is merged”).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Derive `productPr` from that prRefs merged PR and the issue from brief origin, then call the existing finalizeOwed → finalizeCohort path (`prNumbers` + `storyTokens`; empty-closing delivery evidence via #4937).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Empty-`prRefs` closed-origin-only stays out of first ship (item 4).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Keep `verify:orphan-active` a detector only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "AC must prove an unmarked stuck brief with a merged linked PR (Shinran7 issue 6 / PR 7 shape on an upgraded package acceptable) becomes inventory-visible and finalize-clearable.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Optional one-time mark migration stays out of first ship unless required for that compose.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Out of this issue: merge-kind acceptance evidence (#5105); growing orphan-active into a writer; closed-origin-only unmarked discovery with empty prRefs; re-binding the retracted dest-overlay/--stories harvest blocked by 5732662100 except as already shipped by #4937/#4864/#4919.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:6e2719378436f011dd62562fcfd7b705ff01804583dafac625886e98688137a7",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "sentences": [],
+      "confessions": [
+        "Close P1 with a lifecycle-only bot-merge carve-out consumed by finalize-cohort’s existing `evaluateAgentMerge` → `enableLeftoverAutoMerge` path.",
+        "Membership is fail-closed on the durable finalize PR class (`swarm/finalize/*` or equivalent).",
+        "Not a general bot-merge remint.",
+        "Land must also name the human-merge stack that holds the hang: either a fail-closed branch-protection / ruleset exception for that same durable finalize class so required-reviewer hosts can actually auto-land, or an explicit recorded first-ship assumption that surface-3 does not require a human reviewer on `swarm/finalize/*`.",
+        "Do not treat `FINALIZE_CLAIM_STALE_MS` claim-stale as PR-stale.",
+        "Close P2 by recording that next-session finalize-owed + session-start blocking (#4919), together with live-closer leftover-complete (#4937), is the accepted discharge of this issue’s original automatic post-merge / one-CI-run ask for first ship.",
+        "Residual windows (deferred / read-only / no soon session) stay explicit.",
+        "Update issue/AC prose on ingest to match.",
+        "Do not re-open a deftai/directive-only merge-event workflow.",
+        "Close P3 by composing the existing orphan-active signature into owed discovery when `productPullRequest` is absent: admit first ship when the signature shows shipped and a merged PR number is present in `prRefs` for the derive (do not key compose on `assessOrphanSignature` reason-string equality for “linked PR is merged”).",
+        "Derive `productPr` from that prRefs merged PR and the issue from brief origin, then call the existing finalizeOwed → finalizeCohort path (`prNumbers` + `storyTokens`; empty-closing delivery evidence via #4937).",
+        "Empty-`prRefs` closed-origin-only stays out of first ship (item 4).",
+        "Keep `verify:orphan-active` a detector only.",
+        "AC must prove an unmarked stuck brief with a merged linked PR (Shinran7 issue 6 / PR 7 shape on an upgraded package acceptable) becomes inventory-visible and finalize-clearable.",
+        "Optional one-time mark migration stays out of first ship unless required for that compose.",
+        "Out of this issue: merge-kind acceptance evidence (#5105); growing orphan-active into a writer; closed-origin-only unmarked discovery with empty prRefs; re-binding the retracted dest-overlay/--stories harvest blocked by 5732662100 except as already shipped by #4937/#4864/#4919.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:6e2719378436f011dd62562fcfd7b705ff01804583dafac625886e98688137a7"
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "metadata": {
       "intended_placement": {
@@ -993,11 +1300,6 @@
         "origin": "deftai/directive#3791",
         "id": "github.issue.5263493395"
       },
-      "x-directive/admitted-target-digest": {
-        "schema": "deft.scope.admitted-target-digest.v1",
-        "algorithm": "sha256",
-        "sha256": "6e2719378436f011dd62562fcfd7b705ff01804583dafac625886e98688137a7"
-      },
       "swarm": {
         "file_scope": [
           "packages/core/src/swarm/finalize-cohort.ts",
@@ -1008,13 +1310,37 @@
           "packages/core/src/swarm/finalize-owed.ts"
         ]
       },
-      "lifecycleWrite": {
-        "action": "cancel",
-        "writtenAt": "2026-09-28T19:47:09Z"
+      "productPullRequest": 5113,
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "6e2719378436f011dd62562fcfd7b705ff01804583dafac625886e98688137a7"
       },
-      "productPullRequest": 5113
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5113,
+        "prBase": null,
+        "mergeCommit": "7946582f1d4fde6367143d0e547a2d0c68d2c328",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c5226dcf2082743cdca5c6445d197e7c551e2f2a",
+        "verifiedAt": "2026-09-28T23:47:41Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-28T23:47:41Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-28T23:47:41Z"
+      }
     },
     "id": "github.issue.5263493395",
-    "updated": "2026-09-28T19:47:09Z"
+    "updated": "2026-09-28T23:47:41Z"
   }
 }

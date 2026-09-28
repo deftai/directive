@@ -1,12 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF ingested from GitHub issue #5110",
-    "updated": "2026-09-28T20:43:34Z"
+    "description": "Leftover-complete for Tracking #5110 / PR #5117",
+    "updated": "2026-09-28T23:49:04Z"
   },
   "plan": {
     "title": "bug(hooks,verify): readiness recovery must not concatenate UNUSED_HOST_HOOKS_RECOVERY on matcher drift (leftover from #4574)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks,verify): readiness recovery must not concatenate UNUSED_HOST_HOOKS_RECOVERY on matcher drift (leftover from #4574)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5110",
@@ -15,100 +15,100 @@
     },
     "items": [
       {
+        "id": "clause.1",
         "title": "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).",
         "status": "completed",
-        "id": "clause.1",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
+        "id": "clause.2",
         "title": "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).",
         "status": "completed",
-        "id": "clause.2",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
+        "id": "clause.3",
         "title": "Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.",
         "status": "completed",
-        "id": "clause.3",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
+        "id": "clause.4",
         "title": "Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.",
         "status": "completed",
-        "id": "clause.4",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path. Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.",
-        "status": "completed",
         "id": "clause.5",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
+        "id": "clause.6",
+        "title": "Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.7",
         "title": "Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.",
         "status": "completed",
-        "id": "clause.6",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.8",
+        "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -133,9 +133,95 @@
       }
     ],
     "acceptance": {
-      "none_stated": true,
+      "none_stated": false,
       "source_rung": "stated",
-      "commands": []
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/class-checks/index.test.ts",
+          "cwd": "."
+        }
+      ],
+      "admitted_source_sentences": [
+        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).",
+        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).",
+        "Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.",
+        "Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.",
+        "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path.",
+        "Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.",
+        "Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1"
+      ],
+      "admitted_source_digest": "743e7cb5c49be55d210ef48fb002822a97fe593f3d1eaa727e4df3e81a456f58",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "sentences": [],
+      "confessions": [
+        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).",
+        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).",
+        "Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.",
+        "Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.",
+        "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path.",
+        "Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.",
+        "Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1"
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "metadata": {
       "intended_placement": {
@@ -298,11 +384,6 @@
         "origin": "deftai/directive#5110",
         "id": "github.issue.5619046174"
       },
-      "x-directive/admitted-target-digest": {
-        "schema": "deft.scope.admitted-target-digest.v1",
-        "algorithm": "sha256",
-        "sha256": "d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1"
-      },
       "swarm": {
         "file_scope": [
           "packages/core/src/verify-env/agent-hooks.ts",
@@ -314,13 +395,37 @@
           "CHANGELOG.md"
         ]
       },
-      "lifecycleWrite": {
-        "action": "cancel",
-        "writtenAt": "2026-09-28T20:43:34Z"
+      "productPullRequest": 5117,
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1"
       },
-      "productPullRequest": 5117
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5117,
+        "prBase": null,
+        "mergeCommit": "58d4fd125e490f4626a7489b59e1b1eed0849bc8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c5226dcf2082743cdca5c6445d197e7c551e2f2a",
+        "verifiedAt": "2026-09-28T23:49:04Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-28T23:49:04Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-28T23:49:04Z"
+      }
     },
     "id": "github.issue.5619046174",
-    "updated": "2026-09-28T20:43:34Z"
+    "updated": "2026-09-28T23:49:04Z"
   }
 }

@@ -1,12 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF ingested from GitHub issue #5105",
-    "updated": "2026-09-28T18:50:05Z"
+    "description": "Leftover-complete for Tracking #5105 / PR #5112",
+    "updated": "2026-09-28T23:47:07Z"
   },
   "plan": {
     "title": "feat(lifecycle): merge-kind acceptance evidence needs an explicit declaration, not keyword inference",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(lifecycle): merge-kind acceptance evidence needs an explicit declaration, not keyword inference",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5105",
@@ -15,100 +15,184 @@
     },
     "items": [
       {
-        "title": "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES. Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
-        "status": "completed",
         "id": "clause.1",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape). Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence). Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
-        "status": "completed",
         "id": "clause.2",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one. Do not auto-stamp merge from keywords or empty-axis alone.",
-        "status": "completed",
         "id": "clause.3",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g. kind: test cannot point at a non-test artifact). recorded_by remains non-authoritative control.",
-        "status": "completed",
         "id": "clause.4",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "skipAcceptanceEvidenceGate stays without a production caller. CHANGELOG [Unreleased] entry.",
-        "status": "completed",
         "id": "clause.5",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change. Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.",
-        "status": "completed",
         "id": "clause.6",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.7",
+        "title": "Do not auto-stamp merge from keywords or empty-axis alone.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.8",
+        "title": "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.9",
+        "title": "kind: test cannot point at a non-test artifact).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.10",
+        "title": "recorded_by remains non-authoritative control.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.11",
+        "title": "skipAcceptanceEvidenceGate stays without a production caller.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.12",
+        "title": "CHANGELOG [Unreleased] entry.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.13",
+        "title": "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.14",
+        "title": "Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.15",
+        "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -136,9 +220,158 @@
       }
     ],
     "acceptance": {
-      "none_stated": true,
+      "none_stated": false,
       "source_rung": "stated",
-      "commands": []
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/class-checks/index.test.ts",
+          "cwd": "."
+        }
+      ],
+      "admitted_source_sentences": [
+        "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES.",
+        "Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
+        "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape).",
+        "Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence).",
+        "Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
+        "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one.",
+        "Do not auto-stamp merge from keywords or empty-axis alone.",
+        "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g.",
+        "kind: test cannot point at a non-test artifact).",
+        "recorded_by remains non-authoritative control.",
+        "skipAcceptanceEvidenceGate stays without a production caller.",
+        "CHANGELOG [Unreleased] entry.",
+        "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change.",
+        "Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e"
+      ],
+      "admitted_source_digest": "4550c27a06d3216cf00b50096f768bfff9dc12983daf8b6b3fc71257ec7d73db",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Do not auto-stamp merge from keywords or empty-axis alone.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "kind: test cannot point at a non-test artifact).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "recorded_by remains non-authoritative control.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "skipAcceptanceEvidenceGate stays without a production caller.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "CHANGELOG [Unreleased] entry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "sentences": [],
+      "confessions": [
+        "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES.",
+        "Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
+        "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape).",
+        "Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence).",
+        "Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
+        "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one.",
+        "Do not auto-stamp merge from keywords or empty-axis alone.",
+        "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g.",
+        "kind: test cannot point at a non-test artifact).",
+        "recorded_by remains non-authoritative control.",
+        "skipAcceptanceEvidenceGate stays without a production caller.",
+        "CHANGELOG [Unreleased] entry.",
+        "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change.",
+        "Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e"
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "metadata": {
       "intended_placement": {
@@ -388,11 +621,6 @@
         "origin": "deftai/directive#5105",
         "id": "github.issue.5617010702"
       },
-      "x-directive/admitted-target-digest": {
-        "schema": "deft.scope.admitted-target-digest.v1",
-        "algorithm": "sha256",
-        "sha256": "b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e"
-      },
       "swarm": {
         "file_scope": [
           "packages/core/src/scope/acceptance-evidence.ts",
@@ -400,13 +628,37 @@
           "CHANGELOG.md"
         ]
       },
-      "lifecycleWrite": {
-        "action": "cancel",
-        "writtenAt": "2026-09-28T18:50:05Z"
+      "productPullRequest": 5112,
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e"
       },
-      "productPullRequest": 5112
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5112,
+        "prBase": null,
+        "mergeCommit": "60c77d88ebb4f52aee113949f2ffbf614fe6c670",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c5226dcf2082743cdca5c6445d197e7c551e2f2a",
+        "verifiedAt": "2026-09-28T23:47:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-28T23:47:07Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-28T23:47:07Z"
+      }
     },
     "id": "github.issue.5617010702",
-    "updated": "2026-09-28T18:50:05Z"
+    "updated": "2026-09-28T23:47:07Z"
   }
 }

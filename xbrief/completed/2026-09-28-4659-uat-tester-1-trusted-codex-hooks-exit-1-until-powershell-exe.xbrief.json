@@ -1,12 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF ingested from GitHub issue #4659",
-    "updated": "2026-09-28T20:24:02Z"
+    "description": "Leftover-complete for Tracking #4659 / PR #5114",
+    "updated": "2026-09-28T23:48:15Z"
   },
   "plan": {
     "title": "[UAT Tester 1] Trusted Codex hooks exit 1 until PowerShell execution policy is loosened",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[UAT Tester 1] Trusted Codex hooks exit 1 until PowerShell execution policy is loosened",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4659",
@@ -15,84 +15,124 @@
     },
     "items": [
       {
+        "id": "clause.1",
         "title": "Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.",
         "status": "completed",
-        "id": "clause.1",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted. Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
-        "status": "completed",
         "id": "clause.2",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Keep Codex trust as its own axis (manual-review-required). Do not treat Trust-all as sufficient for this exit-1 class.",
-        "status": "completed",
         "id": "clause.3",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662. It does not substitute for items 1–2.",
-        "status": "completed",
         "id": "clause.4",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Keep Codex trust as its own axis (manual-review-required).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails. CHANGELOG Unreleased if not already covered by #4654 ship notes.",
-        "status": "completed",
         "id": "clause.5",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Do not treat Trust-all as sufficient for this exit-1 class.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.6",
+        "title": "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.7",
+        "title": "It does not substitute for items 1–2.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.8",
+        "title": "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.9",
+        "title": "CHANGELOG Unreleased if not already covered by #4654 ship notes.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.10",
+        "title": "relieves: P1 relieves: P2 Target-digest: sha256:dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -116,9 +156,113 @@
       }
     ],
     "acceptance": {
-      "none_stated": true,
+      "none_stated": false,
       "source_rung": "stated",
-      "commands": []
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/class-checks/index.test.ts",
+          "cwd": "."
+        }
+      ],
+      "admitted_source_sentences": [
+        "Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.",
+        "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted.",
+        "Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
+        "Keep Codex trust as its own axis (manual-review-required).",
+        "Do not treat Trust-all as sufficient for this exit-1 class.",
+        "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662.",
+        "It does not substitute for items 1–2.",
+        "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails.",
+        "CHANGELOG Unreleased if not already covered by #4654 ship notes.",
+        "relieves: P1 relieves: P2 Target-digest: sha256:dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320"
+      ],
+      "admitted_source_digest": "d222aa0921e91468c27baf4a963b7784b3442041a4058d0d604c14bdd9b66473",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep Codex trust as its own axis (manual-review-required).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not treat Trust-all as sufficient for this exit-1 class.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "It does not substitute for items 1–2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "CHANGELOG Unreleased if not already covered by #4654 ship notes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "relieves: P1 relieves: P2 Target-digest: sha256:dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "sentences": [],
+      "confessions": [
+        "Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.",
+        "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted.",
+        "Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
+        "Keep Codex trust as its own axis (manual-review-required).",
+        "Do not treat Trust-all as sufficient for this exit-1 class.",
+        "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662.",
+        "It does not substitute for items 1–2.",
+        "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails.",
+        "CHANGELOG Unreleased if not already covered by #4654 ship notes.",
+        "relieves: P1 relieves: P2 Target-digest: sha256:dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320"
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "metadata": {
       "intended_placement": {
@@ -368,11 +512,6 @@
         "origin": "deftai/directive#4659",
         "id": "github.issue.5480357909"
       },
-      "x-directive/admitted-target-digest": {
-        "schema": "deft.scope.admitted-target-digest.v1",
-        "algorithm": "sha256",
-        "sha256": "dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320"
-      },
       "swarm": {
         "file_scope": [
           "packages/core/src/init-deposit/agent-hooks.ts",
@@ -383,13 +522,37 @@
           "CHANGELOG.md"
         ]
       },
-      "lifecycleWrite": {
-        "action": "cancel",
-        "writtenAt": "2026-09-28T20:24:02Z"
+      "productPullRequest": 5114,
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320"
       },
-      "productPullRequest": 5114
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5114,
+        "prBase": null,
+        "mergeCommit": "cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c5226dcf2082743cdca5c6445d197e7c551e2f2a",
+        "verifiedAt": "2026-09-28T23:48:15Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-28T23:48:15Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-28T23:48:15Z"
+      }
     },
     "id": "github.issue.5480357909",
-    "updated": "2026-09-28T20:24:02Z"
+    "updated": "2026-09-28T23:48:15Z"
   }
 }

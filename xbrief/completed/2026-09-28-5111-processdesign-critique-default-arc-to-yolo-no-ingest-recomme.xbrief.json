@@ -1,12 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF ingested from GitHub issue #5111",
-    "updated": "2026-09-28T20:12:05Z"
+    "description": "Leftover-complete for Tracking #5111 / PR #5116",
+    "updated": "2026-09-28T23:49:20Z"
   },
   "plan": {
     "title": "process(design-critique): default arc to yolo no-ingest + recommended Dual-stop; add ingest and noyolo",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "process(design-critique): default arc to yolo no-ingest + recommended Dual-stop; add ingest and noyolo",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5111",
@@ -15,100 +15,304 @@
     },
     "items": [
       {
-        "title": "**Closed spend recommendation source.** Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today). That line is the Dual-stop recommendation input. On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`. Explicit `n=1` / `n=3` / `n≥3` still override. Ambiguous mixes still ask. ⊗ Treat silence as hard-coded N=1. ⊗ Resolve spend from issue/comment/skill English. Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
-        "status": "completed",
         "id": "clause.1",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Closed spend recommendation source. Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "**Run posture default.** Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics). Checkout tokens still win. Ambiguous mixes still ask. Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
-        "status": "completed",
         "id": "clause.2",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "That line is the Dual-stop recommendation input.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "**`ingest` opt-out.** Closed launch-utterance token `ingest` resolves to checkout posture only. Never write `arc-mode: ingest`. Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb. Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
-        "status": "completed",
         "id": "clause.3",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "**`noyolo` + default yolo-standing.** Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only. Closed token `noyolo` clears standing (operator confirm/amend required). Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals). Add parser + fixtures; skill pointer names the default and the two opt-outs.",
-        "status": "completed",
         "id": "clause.4",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Explicit `n=1` / `n=3` / `n≥3` still override.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "**Surfaces.** `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.",
-        "status": "completed",
         "id": "clause.5",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "Ambiguous mixes still ask.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       },
       {
-        "title": "**Non-goals.** Do not auto-ingest after ingest-ready. Do not change leftover-split consent. Do not replace Dual-stop or pain-audit gates. Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.",
-        "status": "completed",
         "id": "clause.6",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
-          "recorded_at": "2026-09-28T23:35:46.5964913Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:35:46.5964913Z",
-            "mintedVia": "leftover-complete-pass"
-          }
-        }
+        "title": "⊗ Treat silence as hard-coded N=1.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.7",
+        "title": "⊗ Resolve spend from issue/comment/skill English.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.8",
+        "title": "Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.9",
+        "title": "Run posture default. Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.10",
+        "title": "Checkout tokens still win.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.11",
+        "title": "Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.12",
+        "title": "`ingest` opt-out. Closed launch-utterance token `ingest` resolves to checkout posture only.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.13",
+        "title": "Never write `arc-mode: ingest`.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.14",
+        "title": "Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.15",
+        "title": "Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.16",
+        "title": "`noyolo` + default yolo-standing. Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.17",
+        "title": "Closed token `noyolo` clears standing (operator confirm/amend required).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.18",
+        "title": "Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.19",
+        "title": "Add parser + fixtures; skill pointer names the default and the two opt-outs.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.20",
+        "title": "Surfaces. `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.21",
+        "title": "Non-goals. Do not auto-ingest after ingest-ready.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.22",
+        "title": "Do not change leftover-split consent.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.23",
+        "title": "Do not replace Dual-stop or pain-audit gates.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.24",
+        "title": "Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.25",
+        "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+          "recorded_at": "2026-09-28T23:47:04.845Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -365,23 +569,281 @@
         "origin": "deftai/directive#5111",
         "id": "github.issue.5619090776"
       },
+      "productPullRequest": 5116,
       "x-directive/admitted-target-digest": {
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f"
       },
-      "lifecycleWrite": {
-        "action": "cancel",
-        "writtenAt": "2026-09-28T20:12:05Z"
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5116,
+        "prBase": null,
+        "mergeCommit": "ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c5226dcf2082743cdca5c6445d197e7c551e2f2a",
+        "verifiedAt": "2026-09-28T23:49:20Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
       },
-      "productPullRequest": 5116
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-28T23:49:20Z",
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-28T23:49:20Z"
+      }
     },
     "acceptance": {
-      "none_stated": true,
+      "none_stated": false,
       "source_rung": "stated",
-      "commands": []
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/class-checks/index.test.ts",
+          "cwd": "."
+        }
+      ],
+      "admitted_source_sentences": [
+        "Closed spend recommendation source. Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today).",
+        "That line is the Dual-stop recommendation input.",
+        "On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`.",
+        "Explicit `n=1` / `n=3` / `n≥3` still override.",
+        "Ambiguous mixes still ask.",
+        "⊗ Treat silence as hard-coded N=1.",
+        "⊗ Resolve spend from issue/comment/skill English.",
+        "Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
+        "Run posture default. Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics).",
+        "Checkout tokens still win.",
+        "Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
+        "`ingest` opt-out. Closed launch-utterance token `ingest` resolves to checkout posture only.",
+        "Never write `arc-mode: ingest`.",
+        "Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb.",
+        "Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
+        "`noyolo` + default yolo-standing. Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only.",
+        "Closed token `noyolo` clears standing (operator confirm/amend required).",
+        "Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals).",
+        "Add parser + fixtures; skill pointer names the default and the two opt-outs.",
+        "Surfaces. `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.",
+        "Non-goals. Do not auto-ingest after ingest-ready.",
+        "Do not change leftover-split consent.",
+        "Do not replace Dual-stop or pain-audit gates.",
+        "Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f"
+      ],
+      "admitted_source_digest": "e856d1815581858fe597583fb78ae19332f6fc26ddaebd536bb28d8e0eeec0dd",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Closed spend recommendation source. Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "That line is the Dual-stop recommendation input.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Explicit `n=1` / `n=3` / `n≥3` still override.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Ambiguous mixes still ask.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "⊗ Treat silence as hard-coded N=1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "⊗ Resolve spend from issue/comment/skill English.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Run posture default. Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Checkout tokens still win.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "`ingest` opt-out. Closed launch-utterance token `ingest` resolves to checkout posture only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Never write `arc-mode: ingest`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "`noyolo` + default yolo-standing. Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Closed token `noyolo` clears standing (operator confirm/amend required).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Add parser + fixtures; skill pointer names the default and the two opt-outs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Surfaces. `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Non-goals. Do not auto-ingest after ingest-ready.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Do not change leftover-split consent.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Do not replace Dual-stop or pain-audit gates.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "sentences": [],
+      "confessions": [
+        "Closed spend recommendation source. Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today).",
+        "That line is the Dual-stop recommendation input.",
+        "On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`.",
+        "Explicit `n=1` / `n=3` / `n≥3` still override.",
+        "Ambiguous mixes still ask.",
+        "⊗ Treat silence as hard-coded N=1.",
+        "⊗ Resolve spend from issue/comment/skill English.",
+        "Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
+        "Run posture default. Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics).",
+        "Checkout tokens still win.",
+        "Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
+        "`ingest` opt-out. Closed launch-utterance token `ingest` resolves to checkout posture only.",
+        "Never write `arc-mode: ingest`.",
+        "Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb.",
+        "Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
+        "`noyolo` + default yolo-standing. Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only.",
+        "Closed token `noyolo` clears standing (operator confirm/amend required).",
+        "Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals).",
+        "Add parser + fixtures; skill pointer names the default and the two opt-outs.",
+        "Surfaces. `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.",
+        "Non-goals. Do not auto-ingest after ingest-ready.",
+        "Do not change leftover-split consent.",
+        "Do not replace Dual-stop or pain-audit gates.",
+        "Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f"
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5619090776",
-    "updated": "2026-09-28T20:12:05Z"
+    "updated": "2026-09-28T23:49:20Z"
   }
 }
