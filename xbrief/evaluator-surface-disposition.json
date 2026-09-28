@@ -1,17 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5080,
+  "issue": 5097,
   "surfaces": [
-    "Taskfile.yml",
-    "tasks/verify.yml",
-    "vitest.config.ts",
-    "packages/core/src/check/gate-lists.ts",
-    "packages/core/src/consumer-check-contract/evaluate.ts",
-    "packages/core/src/evaluator-surface/evaluate.ts",
-    "packages/core/src/durable-effect-acquisition/**",
-    "packages/cli/src/verify-durable-effect-acquisition.ts",
+    "packages/core/src/class-checks/evaluate.ts",
+    "packages/core/src/class-checks/evaluate.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #5080: compose verify:durable-effect-acquisition on consumer and framework check lists. Consumes the #5056 presentation-ceiling artifact. Disclosure only; not #3164 authorization."
+  "note": "Disclosure for #5097: class-checks class-2 CI harness allowlist for .github/workflows (ci.yml family). Shipping/docs-site/unknown workflows stay fail-closed. Disclosure only; not #3164 authorization."
 }
