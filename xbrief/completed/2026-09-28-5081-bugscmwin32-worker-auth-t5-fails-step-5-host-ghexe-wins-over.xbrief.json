@@ -1,0 +1,588 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5081",
+    "updated": "2026-09-28T02:50:23Z"
+  },
+  "plan": {
+    "title": "bug(scm,win32): worker-auth T5 fails Step 5 — host gh.exe wins over fake gh.cmd (/user exit 1)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(scm,win32): worker-auth T5 fails Step 5 — host gh.exe wins over fake gh.cmd (/user exit 1)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5081",
+      "Overview": "## Summary\nWindows `task release` Step 5 fails `worker-auth-cli.integration.test.ts` T5 (assigned host-gh admitted on ambiguous runtime). Exit 2 with `SCM not ready: gh auth status passed but GitHub /user failed: exit 1`. Tip Linux TypeScript CI is green on the same SHA.\n\n## Evidence\n- Release cut `0.119.10` Step 5: `Tests 3 failed | 19172 passed` (2026-09-28).\n- Isolated: `pnpm exec vitest run packages/core/src/scm/worker-auth-cli.integration.test.ts` — T5 fails; T1/T2/T4/subdir pass.\n- Repro stderr: `gh auth status passed but GitHub /user failed: exit 1`.\n- Fake-gh `calls.log` empty in a harness repro → product `which(\\\"gh\\\")` likely resolving the real host `gh.exe` instead of the PATH-prepended fake `gh.cmd`.\n- Sibling false failures from `DEFT_SKIP_TS_BUILD=1` leaking into `ts-build-fresh.test.ts` (fixed by not exporting that env for Step 5; also harden the test to clear skip in fail cases).\n\n## Acceptance\n- [ ] T5 passes on win32 with the existing fake-gh PATH prepend (no host `gh.exe` steal).\n- [ ] `ts-build-fresh` fail cases pass even when parent env has `DEFT_SKIP_TS_BUILD=1`.\n- [ ] CHANGELOG [Unreleased] Fixed bullet.\n- [ ] Windows `task release` Step 5 can proceed past this class (no T5 / ts-build-fresh env false fail).\n\n## Refs\nBlocks release `0.119.10`. Child of #5016 / #3663 worker-auth surface.\r\n\n",
+      "Labels": "bug"
+    },
+    "items": [
+      {
+        "title": "T5 passes on win32 with the existing fake-gh PATH prepend (no host `gh.exe` steal).",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "title": "`ts-build-fresh` fail cases pass even when parent env has `DEFT_SKIP_TS_BUILD=1`.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "title": "CHANGELOG [Unreleased] Fixed bullet.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "title": "Windows `task release` Step 5 can proceed past this class (no T5 / ts-build-fresh env false fail).",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5082",
+          "recorded_at": "2026-09-28T02:50:22.571Z",
+          "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5081",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5081: bug(scm,win32): worker-auth T5 fails Step 5 — host gh.exe wins over fake gh.cmd (/user exit 1)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/scm/worker-auth-cli.integration.test.ts",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scm/binary.ts",
+          "packages/core/src/scm/binary.test.ts",
+          "packages/core/src/scm/readiness.ts",
+          "packages/core/src/scm/call.ts",
+          "packages/core/src/scm/main.ts",
+          "packages/core/src/scm/gh-rest.ts",
+          "packages/core/src/platform/ts-build-fresh.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scm/worker-auth-cli.integration.test.ts packages/core/src/platform/ts-build-fresh.test.ts packages/core/src/scm/binary.test.ts"
+        ],
+        "expected_outputs": [
+          "T5 passes on win32",
+          "ts-build-fresh fail cases ignore inherited DEFT_SKIP_TS_BUILD",
+          "CHANGELOG Unreleased Fixed bullet for #5081"
+        ],
+        "depends_on": [],
+        "conflict_group": "scm-win32-gh-cmd",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "default",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5608062460,
+        "origin": "deftai/directive#5081",
+        "id": "github.issue.5608062460"
+      },
+      "productPullRequest": 5082,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5082,
+        "prBase": null,
+        "mergeCommit": "7d74b5306001213584c8769010741d23f360e4ed",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7d74b5306001213584c8769010741d23f360e4ed",
+        "verifiedAt": "2026-09-28T02:50:23Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-28T02:50:23Z",
+      "completedSessionId": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-28T02:50:23Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(scm,win32): worker-auth T5 fails Step 5 — host gh.exe wins over fake gh.cmd (/user exit 1)",
+        "Summary Windows `task release` Step 5 fails `worker-auth-cli.integration.test.ts` T5 (assigned host-gh admitted on ambiguous runtime).",
+        "Exit 2 with `SCM not ready: gh auth status passed but GitHub /user failed: exit 1`.",
+        "Tip Linux TypeScript CI is green on the same SHA.",
+        "Evidence - Release cut `0.119.10` Step 5: `Tests 3 failed | 19172 passed` (2026-09-28).",
+        "Isolated: `pnpm exec vitest run packages/core/src/scm/worker-auth-cli.integration.test.ts` — T5 fails; T1/T2/T4/subdir pass.",
+        "Repro stderr: `gh auth status passed but GitHub /user failed: exit 1`.",
+        "Fake-gh `calls.log` empty in a harness repro → product `which(\\\"gh\\\")` likely resolving the real host `gh.exe` instead of the PATH-prepended fake `gh.cmd`.",
+        "Sibling false failures from `DEFT_SKIP_TS_BUILD=1` leaking into `ts-build-fresh.test.ts` (fixed by not exporting that env for Step 5; also harden the test to clear skip in fail cases).",
+        "Acceptance - [ ] T5 passes on win32 with the existing fake-gh PATH prepend (no host `gh.exe` steal).",
+        "[ ] `ts-build-fresh` fail cases pass even when parent env has `DEFT_SKIP_TS_BUILD=1`.",
+        "[ ] CHANGELOG [Unreleased] Fixed bullet.",
+        "[ ] Windows `task release` Step 5 can proceed past this class (no T5 / ts-build-fresh env false fail).",
+        "Refs Blocks release `0.119.10`.",
+        "Child of #5016 / #3663 worker-auth surface.",
+        "T5 passes on win32 with the existing fake-gh PATH prepend (no host `gh.exe` steal).",
+        "`ts-build-fresh` fail cases pass even when parent env has `DEFT_SKIP_TS_BUILD=1`.",
+        "CHANGELOG [Unreleased] Fixed bullet.",
+        "Windows `task release` Step 5 can proceed past this class (no T5 / ts-build-fresh env false fail)."
+      ],
+      "admitted_source_sentences": [
+        "Summary Windows `task release` Step 5 fails `worker-auth-cli.integration.test.ts` T5 (assigned host-gh admitted on ambiguous runtime).",
+        "Exit 2 with `SCM not ready: gh auth status passed but GitHub /user failed: exit 1`.",
+        "Tip Linux TypeScript CI is green on the same SHA.",
+        "Evidence - Release cut `0.119.10` Step 5: `Tests 3 failed | 19172 passed` (2026-09-28).",
+        "Isolated: `pnpm exec vitest run packages/core/src/scm/worker-auth-cli.integration.test.ts` — T5 fails; T1/T2/T4/subdir pass.",
+        "Repro stderr: `gh auth status passed but GitHub /user failed: exit 1`.",
+        "Fake-gh `calls.log` empty in a harness repro → product `which(\\\"gh\\\")` likely resolving the real host `gh.exe` instead of the PATH-prepended fake `gh.cmd`.",
+        "Sibling false failures from `DEFT_SKIP_TS_BUILD=1` leaking into `ts-build-fresh.test.ts` (fixed by not exporting that env for Step 5; also harden the test to clear skip in fail cases).",
+        "Acceptance - [ ] T5 passes on win32 with the existing fake-gh PATH prepend (no host `gh.exe` steal).",
+        "[ ] `ts-build-fresh` fail cases pass even when parent env has `DEFT_SKIP_TS_BUILD=1`.",
+        "[ ] CHANGELOG [Unreleased] Fixed bullet.",
+        "[ ] Windows `task release` Step 5 can proceed past this class (no T5 / ts-build-fresh env false fail).",
+        "Refs Blocks release `0.119.10`.",
+        "Child of #5016 / #3663 worker-auth surface."
+      ],
+      "admitted_source_digest": "e8fc17027ee86caff9543cd95804b9216a7945f1a8e48a479286bbe70e0c4847",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "T5 passes on win32 with the existing fake-gh PATH prepend (no host `gh.exe` steal).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 2,
+          "text": "`ts-build-fresh` fail cases pass even when parent env has `DEFT_SKIP_TS_BUILD=1`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] Fixed bullet.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Windows `task release` Step 5 can proceed past this class (no T5 / ts-build-fresh env false fail).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Summary Windows `task release` Step 5 fails `worker-auth-cli.integration.test.ts` T5 (assigned host-gh admitted on ambiguous runtime).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 6,
+          "text": "Exit 2 with `SCM not ready: gh auth status passed but GitHub /user failed: exit 1`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 7,
+          "text": "Tip Linux TypeScript CI is green on the same SHA.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 8,
+          "text": "Evidence - Release cut `0.119.10` Step 5: `Tests 3 failed | 19172 passed` (2026-09-28).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 9,
+          "text": "Isolated: `pnpm exec vitest run packages/core/src/scm/worker-auth-cli.integration.test.ts` — T5 fails; T1/T2/T4/subdir pass.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 10,
+          "text": "Repro stderr: `gh auth status passed but GitHub /user failed: exit 1`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 11,
+          "text": "Fake-gh `calls.log` empty in a harness repro → product `which(\\\"gh\\\")` likely resolving the real host `gh.exe` instead of the PATH-prepended fake `gh.cmd`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 12,
+          "text": "Sibling false failures from `DEFT_SKIP_TS_BUILD=1` leaking into `ts-build-fresh.test.ts` (fixed by not exporting that env for Step 5; also harden the test to clear skip in fail cases).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 13,
+          "text": "Acceptance - [ ] T5 passes on win32 with the existing fake-gh PATH prepend (no host `gh.exe` steal).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 14,
+          "text": "[ ] `ts-build-fresh` fail cases pass even when parent env has `DEFT_SKIP_TS_BUILD=1`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 15,
+          "text": "[ ] CHANGELOG [Unreleased] Fixed bullet.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 16,
+          "text": "[ ] Windows `task release` Step 5 can proceed past this class (no T5 / ts-build-fresh env false fail).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 17,
+          "text": "Refs Blocks release `0.119.10`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        },
+        {
+          "id": 18,
+          "text": "Child of #5016 / #3663 worker-auth surface.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/5082",
+            "recorded_at": "2026-09-28T02:50:22.571Z",
+            "recorded_by": "host:grok:v1:MDFhMGU1M2YtYjBiNi03MjYxLWIwM2YtZjFlOWIyNDY1ZDg0"
+          }
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(scm,win32): worker-auth T5 fails Step 5 — host gh.exe wins over fake gh.cmd (/user exit 1)"
+      ]
+    },
+    "id": "github.issue.5608062460",
+    "updated": "2026-09-28T02:50:23Z"
+  }
+}
