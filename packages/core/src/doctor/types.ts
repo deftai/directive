@@ -9,6 +9,7 @@ import type {
   AgentHookLiveProbeResult,
   AgentHookLiveProbeSeams,
 } from "../verify-env/agent-hooks-live-probe.js";
+import type { PowershellBinReachabilityResult } from "../verify-env/command-spawn.js";
 
 export const EXIT_CLEAN = 0;
 export const EXIT_DRIFT = 1;
@@ -213,6 +214,8 @@ export interface DoctorSeams {
     projectRoot: string,
     seams?: AgentHookLiveProbeSeams,
   ) => AgentHookLiveProbeResult;
+  /** Restricted PowerShell Get-Command reachability for deft-hook (#4659). */
+  readonly probePowershellDeftHookReachability?: () => PowershellBinReachabilityResult;
   /**
    * xBRIEF project-envelope staleness probe (#2971). Injected so doctor can
    * fail closed on 0.6 project JSON under an xbrief/ layout without re-deriving

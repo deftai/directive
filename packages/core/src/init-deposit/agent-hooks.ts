@@ -117,6 +117,7 @@ function object(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+/** Bare PATH name hosts invoke; Windows .cmd reachability is #4654/#4659, not Bypass. */
 function command(host: HookHost, event: HookEvent): string {
   return `${DEFT_HOOK_COMMAND_MARKER} --host ${host} --event ${event}`;
 }

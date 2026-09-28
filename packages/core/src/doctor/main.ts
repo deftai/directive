@@ -7,6 +7,7 @@ import {
 } from "../check/consumer-gate-integrity.js";
 import { contentRoot } from "../content-root.js";
 import {
+  DEFT_HOOK_COMMAND_MARKER,
   inspectSessionStartNotice,
   type SessionStartNoticeInspection,
 } from "../init-deposit/agent-hooks.js";
@@ -45,6 +46,10 @@ import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { evaluateAgentHooks } from "../verify-env/agent-hooks.js";
 import { probeAgentHooksLive } from "../verify-env/agent-hooks-live-probe.js";
+import {
+  POWERSHELL_RESTRICTED_CMD_RECOVERY,
+  probePowershellBinReachability,
+} from "../verify-env/command-spawn.js";
 import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
 import {
@@ -1006,6 +1011,25 @@ export function runAgentHooksLiveProbeCheck(
         status: liveResult.code === 2 ? "unavailable" : "non-functional",
         cases: liveResult.cases,
         suggestion: "npm i -g @deftai/directive@latest && deft update",
+      });
+      return;
+    }
+    const psReach = (
+      seams.probePowershellDeftHookReachability ??
+      (() => probePowershellBinReachability(DEFT_HOOK_COMMAND_MARKER))
+    )();
+    if (!psReach.skipped && !psReach.ok) {
+      const message =
+        `${liveCheckName}: PowerShell-visible ${DEFT_HOOK_COMMAND_MARKER} is not reachable under Restricted (${psReach.detail}). ` +
+        POWERSHELL_RESTRICTED_CMD_RECOVERY;
+      sink.warn(message);
+      addFinding({
+        severity: "warning",
+        message,
+        check: liveCheckName,
+        status: "non-functional",
+        suggestion: POWERSHELL_RESTRICTED_CMD_RECOVERY,
+        powershell_reachability: psReach,
       });
       return;
     }

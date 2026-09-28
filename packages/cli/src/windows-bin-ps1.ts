@@ -6,6 +6,8 @@
  * A .ps1 is removed only when its sibling .cmd records a target inside this
  * install, so an ambient PNPM_HOME from another install is left alone.
  * It does not change npx.ps1, npm.ps1, or the operator's execution policy.
+ * Codex deposits bare deft-hook (#4659); this postinstall is what makes Restricted
+ * Get-Command select deft-hook.cmd without ExecutionPolicy Bypass.
  */
 import { existsSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
 import { basename, dirname, join, win32 } from "node:path";

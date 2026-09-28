@@ -107,6 +107,12 @@ describe("runAgentHooksHealthCheck", () => {
           hosts: [],
           durationMs: 1,
         }),
+        probePowershellDeftHookReachability: () => ({
+          ok: true as const,
+          skipped: true as const,
+          source: null,
+          detail: "test-skip",
+        }),
       },
     );
     expect(findings.at(-1)).toEqual(
@@ -240,6 +246,12 @@ describe("runAgentHooksLiveProbeCheck", () => {
           registrations: [],
         }),
         probeAgentHooksLive: liveProbe,
+        probePowershellDeftHookReachability: () => ({
+          ok: true as const,
+          skipped: true as const,
+          source: null,
+          detail: "test-skip",
+        }),
       },
     );
 
@@ -275,6 +287,12 @@ describe("runAgentHooksLiveProbeCheck", () => {
           registrations: [],
         }),
         probeAgentHooksLive: liveProbe,
+        probePowershellDeftHookReachability: () => ({
+          ok: true as const,
+          skipped: true as const,
+          source: null,
+          detail: "test-skip",
+        }),
       },
     );
 
@@ -324,6 +342,12 @@ describe("runAgentHooksLiveProbeCheck", () => {
           ],
         }),
         probeAgentHooksLive: liveProbe,
+        probePowershellDeftHookReachability: () => ({
+          ok: true as const,
+          skipped: true as const,
+          source: null,
+          detail: "test-skip",
+        }),
       },
     );
 
@@ -358,6 +382,12 @@ describe("runAgentHooksLiveProbeCheck", () => {
           hosts: [{ host: "cursor", status: "non-functional" }],
           durationMs: 1,
         }),
+        probePowershellDeftHookReachability: () => ({
+          ok: true as const,
+          skipped: true as const,
+          source: null,
+          detail: "test-skip",
+        }),
       },
     );
 
@@ -390,6 +420,12 @@ describe("runAgentHooksLiveProbeCheck", () => {
           hosts: [],
           durationMs: 1,
         }),
+        probePowershellDeftHookReachability: () => ({
+          ok: true as const,
+          skipped: true as const,
+          source: null,
+          detail: "test-skip",
+        }),
       },
     );
 
@@ -415,6 +451,12 @@ describe("runAgentHooksLiveProbeCheck", () => {
           cases: [],
           hosts: [],
           durationMs: 7,
+        }),
+        probePowershellDeftHookReachability: () => ({
+          ok: true as const,
+          skipped: true as const,
+          source: null,
+          detail: "test-skip",
         }),
       },
     );
@@ -457,6 +499,12 @@ describe("runAgentHooksLiveProbeCheck", () => {
           hosts: [{ host: "codex", status: "functional" }],
           durationMs: 3,
         }),
+        probePowershellDeftHookReachability: () => ({
+          ok: true as const,
+          skipped: true as const,
+          source: null,
+          detail: "test-skip",
+        }),
       },
     );
 
@@ -487,5 +535,58 @@ describe("runAgentHooksLiveProbeCheck", () => {
     expect(findings).toEqual([
       expect.objectContaining({ message: expect.stringContaining("live probe exploded") }),
     ]);
+  });
+
+  it("fails closed when Restricted PowerShell cannot reach deft-hook.cmd (#4659)", () => {
+    const findings: Finding[] = [];
+    const lines: string[] = [];
+    runAgentHooksLiveProbeCheck(
+      "/project",
+      createPlainSink({ write: (text) => lines.push(text) }),
+      (finding) => findings.push(finding),
+      {
+        evaluateAgentHooks: () => ({
+          code: 0,
+          message: "registered",
+          stream: "stdout",
+          registrations: [
+            {
+              host: "codex",
+              path: ".codex/hooks.json",
+              status: "healthy",
+              detail: "registered",
+              compactSupport: "unsupported",
+            },
+          ],
+        }),
+        probeAgentHooksLive: () => ({
+          code: 0,
+          message: "live probe passed",
+          cases: [],
+          hosts: [{ host: "codex", status: "functional" }],
+          durationMs: 2,
+        }),
+        probePowershellDeftHookReachability: () => ({
+          ok: false,
+          skipped: false,
+          source: "C:\\npm\\deft-hook.ps1",
+          detail: "Get-Command selected .ps1 under Restricted",
+        }),
+      },
+    );
+
+    expect(findings).toEqual([
+      expect.objectContaining({
+        check: "agent-hooks-live-probe",
+        status: "non-functional",
+        severity: "warning",
+        suggestion: expect.stringMatching(/Restricted|\.cmd|#4654|postinstall/i),
+      }),
+    ]);
+    expect(findings[0]?.suggestion ?? "").toMatch(/Do not set ExecutionPolicy Bypass/i);
+    expect(findings[0]?.suggestion ?? "").toMatch(/\.cmd|#4654|postinstall/i);
+    expect(findings[0]?.status).not.toBe("registered-and-functional");
+    expect(lines.join("")).toMatch(/Restricted/);
+    expect(lines.join("")).toContain("deft-hook");
   });
 });

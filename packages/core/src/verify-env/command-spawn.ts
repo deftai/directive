@@ -126,3 +126,107 @@ export function spawnCommandText(
     stderr,
   };
 }
+
+/** #4659: next step when PowerShell-visible deft-hook is still a Restricted .ps1. */
+export const POWERSHELL_RESTRICTED_CMD_RECOVERY =
+  "Next step: package postinstall must remove the deft-hook.ps1 shim so Get-Command under Restricted selects deft-hook.cmd (#4654). Do not set ExecutionPolicy Bypass; reinstall alone is not enough while the .ps1 remains.";
+
+export interface PowershellBinReachabilityResult {
+  readonly ok: boolean;
+  readonly skipped: boolean;
+  readonly source: string | null;
+  readonly detail: string;
+}
+
+export interface ProbePowershellBinReachabilityOptions {
+  readonly platform?: NodeJS.Platform;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly spawnSyncFn?: typeof spawnSync;
+}
+
+/**
+ * Under Restricted PowerShell, confirm Get-Command resolves to a non-.ps1 entry
+ * and that entry runs (#4659 / #4654). Node PATHEXT probes alone can green while
+ * the host still selects .ps1.
+ */
+export function probePowershellBinReachability(
+  commandName: string,
+  options: ProbePowershellBinReachabilityOptions = {},
+): PowershellBinReachabilityResult {
+  const platform = options.platform ?? process.platform;
+  if (platform !== "win32") {
+    return { ok: true, skipped: true, source: null, detail: "non-windows" };
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(commandName)) {
+    return { ok: false, skipped: false, source: null, detail: "unsafe command name" };
+  }
+  const env = options.env ?? process.env;
+  const systemRoot = env.SystemRoot ?? env.SYSTEMROOT ?? "C:\\Windows";
+  const powershellExe = win32.join(
+    systemRoot,
+    "System32",
+    "WindowsPowerShell",
+    "v1.0",
+    "powershell.exe",
+  );
+  const script = [
+    `$cmd = Get-Command -Name ${commandName} -ErrorAction Stop`,
+    `Write-Output ('SRC|' + $cmd.Source)`,
+    `& $cmd.Source --help 1>$null 2>$null`,
+  ].join("; ");
+  const spawn = options.spawnSyncFn ?? spawnSync;
+  const result = spawn(
+    powershellExe,
+    ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Restricted", "-Command", script],
+    { encoding: "utf8", env, windowsHide: true, timeout: 15_000 },
+  );
+  const stdout = typeof result.stdout === "string" ? result.stdout : "";
+  const stderr = typeof result.stderr === "string" ? result.stderr : "";
+  const errText = result.error === undefined ? "" : result.error.message;
+  const combined = `${stderr}\n${errText}\n${stdout}`;
+  const srcLine = stdout.split(/\r?\n/).find((line) => line.startsWith("SRC|"));
+  const source = srcLine === undefined ? null : srcLine.slice(4);
+  if (result.status !== 0) {
+    const policy = /PSSecurityException|running scripts is disabled|UnauthorizedAccess/i.test(
+      combined,
+    );
+    return {
+      ok: false,
+      skipped: false,
+      source,
+      detail: policy
+        ? `Restricted PowerShell refused ${commandName} (likely .ps1): ${combined.trim().slice(0, 240)}`
+        : `Restricted PowerShell probe failed for ${commandName}: ${combined.trim().slice(0, 240)}`,
+    };
+  }
+  if (source === null || source.length === 0) {
+    return {
+      ok: false,
+      skipped: false,
+      source: null,
+      detail: `Get-Command ${commandName} produced no Source`,
+    };
+  }
+  if (/\.ps1$/i.test(source)) {
+    return {
+      ok: false,
+      skipped: false,
+      source,
+      detail: `Get-Command selected .ps1 under Restricted: ${source}`,
+    };
+  }
+  if (!/\.(cmd|bat|exe|com)$/i.test(source)) {
+    return {
+      ok: false,
+      skipped: false,
+      source,
+      detail: `Get-Command source is not a non-.ps1 executable shim: ${source}`,
+    };
+  }
+  return {
+    ok: true,
+    skipped: false,
+    source,
+    detail: `Restricted Get-Command selected ${source}`,
+  };
+}

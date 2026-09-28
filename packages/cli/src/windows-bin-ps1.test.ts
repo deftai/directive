@@ -335,6 +335,13 @@ describe("windows bin .ps1 removal (#4654)", () => {
 const itWin = it.skipIf(process.platform !== "win32");
 
 describe("windows Get-Command after install (#4654)", () => {
+  it("locks Codex deposit bare deft-hook to the #4654 package bin set (#4659)", () => {
+    expect(PACKAGE_BIN_NAMES).toContain("deft-hook");
+    expect(PACKAGE_BIN_NAMES).toEqual(
+      expect.arrayContaining(["directive", "deft", "deft-ts", "deft-hook", "deft-verify-encoding"]),
+    );
+  });
+
   itWin(
     "selects the .cmd for each package bin under Restricted and does not touch npm or npx",
     () => {
@@ -365,7 +372,10 @@ describe("windows Get-Command after install (#4654)", () => {
       const after = powershell(prefix, `${sourceCommand()}\n${runCommand()}`);
       expect(after.status, `${after.stderr}\n${after.stdout}`).toBe(0);
       for (const name of PACKAGE_BIN_NAMES) {
-        expect(lineSource(after.stdout, name).toLowerCase().endsWith(`${name}.cmd`)).toBe(true);
+        expect(
+          lineSource(after.stdout, name).toLowerCase().endsWith(`${name}.cmd`),
+          `Codex-deposited bare ${name} must resolve to .cmd under Restricted (#4659)`,
+        ).toBe(true);
       }
       const runs = after.stdout
         .split(/\r?\n/)
