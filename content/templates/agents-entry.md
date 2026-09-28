@@ -17,8 +17,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Codex ritual-git recovery (#4664)
 
-! When Codex sandbox blocks ritual `git` (`spawnSync git EPERM` / prompt `Environment: local`), approve outside-sandbox for ritual `git` once for the session (session-scoped or `/approvals` workspace trust — not repeated per-verb prompts). Distinct from npm-prefix Sandbox install and from Codex project-hook `/hooks` trust. Depth: `.deft/core/contracts/agent-hook-readiness.md` / README Codex ritual git.
-⊗ Invent an in-process git substitute for HEAD / worktree / repo detection. ⊗ Treat repeated per-verb `Environment: local` prompts as Continuity discharge.
+! Codex sandbox EPERM on ritual `git` → approve outside-sandbox once for the session (`/approvals` / session trust). Depth: `.deft/core/contracts/agent-hook-readiness.md`. ⊗ Invent an in-process git substitute; ⊗ treat repeated per-verb prompts as Continuity discharge.
 
 ## Session routing (#2176)
 
