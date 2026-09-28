@@ -20,12 +20,12 @@
         "id": "clause.1",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5113.",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
             "mintedVia": "leftover-complete-pass"
           }
         }
@@ -36,12 +36,12 @@
         "id": "clause.2",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5113.",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
             "mintedVia": "leftover-complete-pass"
           }
         }
@@ -50,11 +50,16 @@
         "title": "Close P3 by composing the existing orphan-active signature into owed discovery when `productPullRequest` is absent: admit first ship when the signature shows shipped **and** a merged PR number is present in `prRefs` for the derive (do not key compose on `assessOrphanSignature` reason-string equality for “linked PR is merged”). Derive `productPr` from that prRefs merged PR and the issue from brief origin, then call the existing finalizeOwed → finalizeCohort path (`prNumbers` + `storyTokens`; empty-closing delivery evidence via #4937). Empty-`prRefs` closed-origin-only stays out of first ship (item 4). Keep `verify:orphan-active` a detector only. AC must prove an unmarked stuck brief with a merged linked PR (Shinran7 issue 6 / PR 7 shape on an upgraded package acceptable) becomes inventory-visible and finalize-clearable. Optional one-time mark migration stays out of first ship unless required for that compose.",
         "status": "completed",
         "id": "clause.3",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5113#7946582f1d4fde6367143d0e547a2d0c68d2c328",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
@@ -63,12 +68,12 @@
         "id": "clause.4",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5113.",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
             "mintedVia": "leftover-complete-pass"
           }
         }

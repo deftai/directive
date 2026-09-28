@@ -18,44 +18,64 @@
         "title": "Drop the “Directive need not document” conjunct. README and doctor/ritual recovery must name a concrete durable outside-sandbox approval path for ritual git under Codex (what to approve, once vs per session, where in the Codex TUI), reusing the existing Codex trust / Cursor sandbox remediation pattern already in swarm/preamble/docs. Do not invent a second in-process git substitute.",
         "status": "completed",
         "id": "clause.1",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5115#e6fb18944301d570634eca4b397c383d69e5fac5",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "Replace “ad-hoc outside-sandbox approvals” with that durable operator action. Repeated per-verb Environment: local prompts do not discharge P2.",
         "status": "completed",
         "id": "clause.2",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5115#e6fb18944301d570634eca4b397c383d69e5fac5",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "Optional implement detail: execGit may name EPERM with a Codex outside-sandbox tip; that is recovery copy shape after items 1–2, not a separate mechanism.",
         "status": "completed",
         "id": "clause.3",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5115#e6fb18944301d570634eca4b397c383d69e5fac5",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "Tests or docs contract lock the presence of the Codex ritual-git recovery sentence on the README / doctor surfaces named in item 1. CHANGELOG Unreleased line.",
         "status": "completed",
         "id": "clause.4",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5115#e6fb18944301d570634eca4b397c383d69e5fac5",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       }
     ],

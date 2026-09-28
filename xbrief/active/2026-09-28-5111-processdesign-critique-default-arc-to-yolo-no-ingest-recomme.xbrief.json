@@ -18,33 +18,48 @@
         "title": "**Closed spend recommendation source.** Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today). That line is the Dual-stop recommendation input. On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`. Explicit `n=1` / `n=3` / `n≥3` still override. Ambiguous mixes still ask. ⊗ Treat silence as hard-coded N=1. ⊗ Resolve spend from issue/comment/skill English. Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
         "status": "completed",
         "id": "clause.1",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5116#ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "**Run posture default.** Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics). Checkout tokens still win. Ambiguous mixes still ask. Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
         "status": "completed",
         "id": "clause.2",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5116#ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "**`ingest` opt-out.** Closed launch-utterance token `ingest` resolves to checkout posture only. Never write `arc-mode: ingest`. Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb. Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
         "status": "completed",
         "id": "clause.3",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5116#ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
@@ -53,12 +68,12 @@
         "id": "clause.4",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5116.",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
             "mintedVia": "leftover-complete-pass"
           }
         }
@@ -67,11 +82,16 @@
         "title": "**Surfaces.** `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.",
         "status": "completed",
         "id": "clause.5",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5116#ce9c15d7657d7ca50d4002a032ca2a935efe6ad9",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
@@ -80,12 +100,12 @@
         "id": "clause.6",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5116.",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
             "mintedVia": "leftover-complete-pass"
           }
         }

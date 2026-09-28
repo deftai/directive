@@ -18,33 +18,48 @@
         "title": "Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.",
         "status": "completed",
         "id": "clause.1",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5114#cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted. Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
         "status": "completed",
         "id": "clause.2",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5114#cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "Keep Codex trust as its own axis (manual-review-required). Do not treat Trust-all as sufficient for this exit-1 class.",
         "status": "completed",
         "id": "clause.3",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5114#cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
@@ -53,12 +68,12 @@
         "id": "clause.4",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5114.",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
             "mintedVia": "leftover-complete-pass"
           }
         }
@@ -67,11 +82,16 @@
         "title": "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails. CHANGELOG Unreleased if not already covered by #4654 ship notes.",
         "status": "completed",
         "id": "clause.5",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5114#cc9a8682c86ac5d11bfadc307d03eba60d2f3861",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       }
     ],

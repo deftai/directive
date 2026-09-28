@@ -18,44 +18,64 @@
         "title": "For host === \"grok\" only, change the direct-write conjunct of hasNestedRegistration: drop matcher === DIRECT_WRITE_HOOK_MATCHER; require the managed grok tool.before PreToolUse entry whose matcher satisfies matcherHasLiteralToken(matcher, token) for every name in HOST_TOOL_SURFACE_AUDIT.grok.mutation.directWrite (today write, search_replace; source from that catalog or GROK_MUTATION_TOOL_CATALOG.directWrite; do not mint a third string list). Explicitly refuse matcher === \"write|search_replace\" as the registration bar.",
         "status": "completed",
         "id": "clause.1",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5118#978321de7ec0f617a18a3b27732cb192426a3f96",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "Keep SessionStart, compact, spawn, shell, and MCP on current registration health. Keep claude, cursor, and codex valid() paths on exact-equality over NESTED_PRE_TOOL_MATCHERS / hasCursorRegistration.",
         "status": "completed",
         "id": "clause.2",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5118#978321de7ec0f617a18a3b27732cb192426a3f96",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "Do not change mergeNestedConfig's shared DIRECT_WRITE_HOOK_MATCHER writer.",
         "status": "completed",
         "id": "clause.3",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5118#978321de7ec0f617a18a3b27732cb192426a3f96",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "Keep inspectHostToolCoverage as the additional after-registration check.",
         "status": "completed",
         "id": "clause.4",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5118#978321de7ec0f617a18a3b27732cb192426a3f96",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
@@ -64,12 +84,12 @@
         "id": "clause.5",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #5118.",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
             "mintedVia": "leftover-complete-pass"
           }
         }

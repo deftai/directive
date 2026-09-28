@@ -18,22 +18,32 @@
         "title": "Before init reports success, re-read `readPin` and managed-section presence (and `.gitignore` if that file is in the invariant). If either pin or managed section is missing, call the existing writers once (`ensurePackageJsonPin`, `writeAgentsMd`, `ensureInitGitignoreLines`). If still missing, non-zero refuse that names re-run `directive init` / `directive update` after the other scaffolder is quiet. Expected \"refuse, merge, or re-assert\" collapses onto re-assert-then-refuse. A new flock / exclusive-create / docs-only \"init after scaffold\" line does not bind.",
         "status": "completed",
         "id": "clause.1",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/4992#d06eb43ba9232ac7448ed10c0030c054db4fe07b",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "Deposit-present + pin-absent restores the pin with `ensurePackageJsonPin` at the recorded deposit version (`previousDepositVersion` / `.deft/core/VERSION`). Do not route this null-pin hole through `reconstituteConsumerPinAndLock` (that path writes running `contentVersion` and may spawn lockfile-only). Keep `reconstituteConsumerPinAndLock` for lagging exact pins (#4710).",
         "status": "completed",
         "id": "clause.2",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/4992#d06eb43ba9232ac7448ed10c0030c054db4fe07b",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
@@ -42,12 +52,12 @@
         "id": "clause.3",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #4992.",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
             "mintedVia": "leftover-complete-pass"
           }
         }
@@ -58,12 +68,12 @@
         "id": "clause.4",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Out of first-ship / leftover-complete after Tracking cancel miss; shipped product PR #4992.",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-28T23:27:37.545Z",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
             "mintedVia": "leftover-complete-pass"
           }
         }
@@ -72,22 +82,32 @@
         "title": "Keep `doctor --full` out of Bound remedy as the P1 control.",
         "status": "completed",
         "id": "clause.5",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/4992#d06eb43ba9232ac7448ed10c0030c054db4fe07b",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       },
       {
         "title": "Later overwrite after process exit remains an explicit limit. Advisory `AGENTS.md.lock` does not bind a non-participating scaffolder. A test that replaces `package.json` and `AGENTS.md` after the first write and before return is the fixture.",
         "status": "completed",
         "id": "clause.6",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/4992#d06eb43ba9232ac7448ed10c0030c054db4fe07b",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after Tracking cancel miss; product already shipped on master. Operator disposition for lifecycle record only.",
+          "recorded_at": "2026-09-28T23:35:46.5964913Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-28T23:35:46.5964913Z",
+            "mintedVia": "leftover-complete-pass"
+          }
         }
       }
     ],
