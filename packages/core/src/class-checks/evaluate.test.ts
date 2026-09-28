@@ -344,6 +344,23 @@ describe("evaluateClassChecks (#4980)", () => {
     ).toHaveLength(0);
   });
 
+  it("keeps class 2 on release/publish workflows (#5097)", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: [".github/workflows/release.yml"],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["src/**"],
+        testRoots: ["tests/**"],
+        fixtureRoots: ["tests/fixtures/**"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        [".github/workflows/release.yml", "cp tests/fixtures/seed.json ./dist/\n"],
+      ]),
+    });
+    expect(result.findings.some((f) => f.kind === "production-references-test-root")).toBe(true);
+  });
+
   it("fails closed on malformed merge-base PROJECT-DEFINITION classChecks", () => {
     const badJson = parseClassChecksFromProjectDefinition("{ not json");
     expect(badJson.ok).toBe(false);

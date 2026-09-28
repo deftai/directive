@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **fix(class-checks): allow .github/workflows to reference test/fixture roots (CI staging) (#5097).** Class 2 still fails closed for non-workflow deploy/pipeline paths.
+- **fix(class-checks): allow CI harness workflows (not release/npm-publish) to reference test/fixture roots (#5097).** Class 2 still fails closed for non-workflow deploy/pipeline paths.
 
 ### Added
 - **feat(lifecycle): explicit merge-kind acceptance evidence (#5105).** Criteria may declare merge via `x-directive/requires` (outside the strict smoke/uat/deploy/observed_behavior axes). Declared merge stamps from delivery tip ancestry on `scope:complete`; undeclared empty-axis criteria still refuse bare `kind:merge`. Refs #3791, #3240.

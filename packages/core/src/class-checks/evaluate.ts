@@ -508,6 +508,14 @@ function isGithubWorkflowPath(relPath: string): boolean {
   return /(^|\/)\.github\/workflows\//i.test(relPath.replace(/\\/g, "/"));
 }
 
+/** Release/publish workflows are production shipping surfaces — keep class 2. */
+function isShippingGithubWorkflow(relPath: string): boolean {
+  const base = relPath.replace(/\\/g, "/").split("/").pop()?.toLowerCase() ?? "";
+  return (
+    /^(release|npm-publish)(\.|$)/.test(base) || /(^|[.-])(release|publish)([.-]|$)/.test(base)
+  );
+}
+
 function scanProductionReferences(
   relPath: string,
   content: string,
@@ -522,9 +530,9 @@ function scanProductionReferences(
   if (isUnderAnyRoot(relPath, policy.testRoots) || isUnderAnyRoot(relPath, policy.fixtureRoots)) {
     return null;
   }
-  // CI workflows may stage declared fixtures (and run tests). Class 2 targets
-  // shipped production/deploy paths, not .github/workflows harness steps (#5097).
-  if (isGithubWorkflowPath(relPath)) {
+  // CI harness workflows may stage declared fixtures. Release/publish workflows
+  // stay under class 2 so shipping surfaces cannot reference test roots (#5097).
+  if (isGithubWorkflowPath(relPath) && !isShippingGithubWorkflow(relPath)) {
     return null;
   }
   const underSource = isUnderAnyRoot(relPath, policy.sourceRoots);
