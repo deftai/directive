@@ -508,16 +508,23 @@ function isGithubWorkflowPath(relPath: string): boolean {
   return /(^|\/)\.github\/workflows\//i.test(relPath.replace(/\\/g, "/"));
 }
 
-/** Release/publish workflows are production shipping surfaces — keep class 2. */
-function isShippingGithubWorkflow(relPath: string): boolean {
+/**
+ * Explicit CI harness workflow basenames (fail-closed). Unknown workflow names
+ * — including release/publish variants — stay under class 2 (#5097).
+ */
+function isCiHarnessGithubWorkflow(relPath: string): boolean {
   const base = relPath.replace(/\\/g, "/").split("/").pop()?.toLowerCase() ?? "";
-  // Exact shipping workflow basenames only — do not treat release-check.yml /
-  // publish-test.yml CI harness names as shipping (#5097 / Greptile).
   return (
-    base === "release.yml" ||
-    base === "release.yaml" ||
-    base === "npm-publish.yml" ||
-    base === "npm-publish.yaml"
+    base === "ci.yml" ||
+    base === "ci.yaml" ||
+    base === "ci-lane.yml" ||
+    base === "ci-lane.yaml" ||
+    base === "docs-site.yml" ||
+    base === "docs-site.yaml" ||
+    base === "branch-gate.yml" ||
+    base === "branch-gate.yaml" ||
+    base.startsWith("greenfield-") ||
+    base.startsWith("one-pr-unit")
   );
 }
 
@@ -535,11 +542,12 @@ function scanProductionReferences(
   if (isUnderAnyRoot(relPath, policy.testRoots) || isUnderAnyRoot(relPath, policy.fixtureRoots)) {
     return null;
   }
-  // CI harness workflows may stage declared fixtures. Release/publish workflows
-  // stay under class 2 so shipping surfaces cannot reference test roots (#5097).
-  if (isGithubWorkflowPath(relPath) && !isShippingGithubWorkflow(relPath)) {
+  // Only known CI harness workflows may stage fixtures/test roots. Shipping and
+  // unknown workflow names remain class-2 fail-closed (#5097).
+  if (isGithubWorkflowPath(relPath) && isCiHarnessGithubWorkflow(relPath)) {
     return null;
   }
+
   const underSource = isUnderAnyRoot(relPath, policy.sourceRoots);
   const looksLikeDeploy =
     /(^|\/)(infra|deploy|deployment|terraform|bicep|cloudformation)(\/|$)/i.test(relPath) ||
