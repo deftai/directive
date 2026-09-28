@@ -19,6 +19,7 @@ triggers:
 <!-- Source of truth: packs/skills/skills-pack-0.1.json -->
 <!-- Regenerate with: task packs:render -->
 <!-- Edit the source, not this file. Slice instead of loading every SKILL.md: task packs:slice skills by-trigger --trigger <kw> (or list) -->
+
 # Design Critique
 
 Thin router into the design-critique contract. Operator dispatches from the brief template.
