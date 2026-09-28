@@ -46,4 +46,22 @@ describe("session git EPERM spawn path (#4664)", () => {
     expect(result.stderr).toContain(CODEX_RITUAL_GIT_EPERM_TIP);
     expect(gitIsAncestor("/tmp", "a", "b", () => result)).toBeNull();
   });
+
+  it("never treats EPERM status 0 as git success / confirmed ancestry", () => {
+    // status:0 is still a spawn failure; resolveCaptureFailureStderr keeps
+    // empty captured stderr when status is numeric, so tip-only is expected.
+    const err = Object.assign(new Error("spawnSync git EPERM"), {
+      code: "EPERM",
+      status: 0,
+      message: "spawnSync git EPERM",
+    });
+    execFileSyncMock.mockImplementation(() => {
+      throw err;
+    });
+
+    const result = defaultGitRunner("/tmp", ["merge-base", "--is-ancestor", "old", "new"]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain(CODEX_RITUAL_GIT_EPERM_TIP);
+    expect(gitIsAncestor("/tmp", "old", "new", () => result)).toBeNull();
+  });
 });

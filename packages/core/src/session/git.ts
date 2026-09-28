@@ -49,9 +49,9 @@ function execGit(projectRoot: string, args: readonly string[], timeoutMs?: numbe
     if (e.code === "ENOENT") {
       return { code: 127, stdout: "", stderr: "git executable not found on PATH" };
     }
-    // #4664: spawn EPERM is not a git exit. Never return 1 — gitIsAncestor
-    // treats 1 as "not an ancestor" (false history drift). Keep original
-    // diagnostic and point at the Codex ritual-git tip.
+    // #4664: spawn EPERM is not a git exit. Always code 2 — never 0
+    // (false ancestry) or 1 (false history drift for gitIsAncestor).
+    // Keep original diagnostic and point at the Codex ritual-git tip.
     if (e.code === "EPERM") {
       const detail = resolveCaptureFailureStderr({
         captured: coerceGitBytes(e.stderr).toString("utf8").trimEnd(),
@@ -59,7 +59,7 @@ function execGit(projectRoot: string, args: readonly string[], timeoutMs?: numbe
         message: e.message,
       });
       return {
-        code: typeof e.status === "number" && e.status !== 1 ? e.status : 2,
+        code: 2,
         stdout: gitStdoutString(coerceGitBytes(e.stdout), args),
         stderr:
           detail.length > 0
