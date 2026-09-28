@@ -16,12 +16,20 @@ vi.mock("../scope/transition.js", () => ({
 }));
 
 import { CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION } from "../intake/clause-derivation.js";
+import { deriveUnmarkedFinalizeAdmit } from "../orphan-active/evaluate.js";
+import { firstMergedPrRef } from "../orphan-active/refs.js";
 import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { runTransition } from "../scope/transition.js";
 import { EXIT_CONFIG_ERROR, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
-import { finalizeClaimRef, finalizeCohort } from "./finalize-cohort.js";
+import {
+  FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION,
+  finalizeClaimRef,
+  finalizeCohort,
+  isDurableFinalizeHeadRef,
+} from "./finalize-cohort.js";
 import { finalizeCohortMain, parseFinalizeCohortArgv } from "./finalize-cohort-cli.js";
+import { discoverFinalizeOwed } from "./finalize-owed.js";
 import type { TextCaptureResult } from "./subprocess.js";
 
 function writeActiveStory(
@@ -1854,7 +1862,7 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
-  it("skips leftover auto-merge under requireHumanMerge and hands off (#4919)", () => {
+  it("arms leftover auto-merge via finalize-class carve-out under requireHumanMerge (#3791)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-human-merge-"));
     const storyPath = writeActiveStory(project, "story-4919", 4919);
     writeFileSync(
@@ -1884,6 +1892,8 @@ describe("finalizeCohort", () => {
     const prevBot = process.env.DEFT_ALLOW_BOT_MERGE;
     delete process.env.DEFT_ALLOW_BOT_MERGE;
     try {
+      expect(isDurableFinalizeHeadRef("swarm/finalize/story-4919")).toBe(true);
+      expect(isDurableFinalizeHeadRef("feature/other")).toBe(false);
       const result = finalizeCohort({
         projectRoot: project,
         storyTokens: [storyPath],
@@ -1902,12 +1912,19 @@ describe("finalizeCohort", () => {
       });
       expect(result.exitCode).toBe(EXIT_INCOMPLETE);
       expect(result.result.pending?.kind).toBe("origin-close");
-      expect(ghCalls.some((cmd) => cmd.includes("merge") && cmd.includes("--auto"))).toBe(false);
+      expect(ghCalls.some((cmd) => cmd.includes("merge") && cmd.includes("--auto"))).toBe(true);
+      expect(
+        result.result.warnings.some(
+          (w) =>
+            w.includes("finalize-class carve-out") &&
+            w.includes(FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION),
+        ),
+      ).toBe(true);
       expect(
         result.result.warnings.some(
           (w) => w.includes("auto-merge skipped") && w.includes("requireHumanMerge"),
         ),
-      ).toBe(true);
+      ).toBe(false);
     } finally {
       if (prevBot === undefined) {
         delete process.env.DEFT_ALLOW_BOT_MERGE;
@@ -2413,5 +2430,166 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
       stdout.mockRestore();
       stderr.mockRestore();
     }
+  });
+});
+
+describe("unmarked finalize compose from orphan signature (#3791 P3)", () => {
+  it("admits when orphan shipped and prRefs carries a merged PR (not reason-string keyed)", () => {
+    const plan = {
+      title: "shinran7-shape",
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/Shinran7/directive-uat/issues/6",
+          type: "x-xbrief/github-issue",
+        },
+        {
+          uri: "https://github.com/Shinran7/directive-uat/pull/7",
+          type: "x-xbrief/github-pr",
+        },
+      ],
+    };
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/pulls/7")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ merged_at: "2026-09-01T00:00:00Z" }),
+          stderr: "",
+        };
+      }
+      if (joined.includes("/issues/6")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ state: "closed", labels: [] }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+    const admit = deriveUnmarkedFinalizeAdmit(plan, "Shinran7/directive-uat", runGh);
+    expect(admit).not.toBeNull();
+    expect(admit?.productPr).toBe(7);
+    expect(admit?.issue).toBe(6);
+    expect(admit?.detail).toContain("merged prRefs #7");
+    expect(firstMergedPrRef([{ repo: "Shinran7/directive-uat", number: 7 }], runGh)?.number).toBe(
+      7,
+    );
+  });
+
+  it("refuses empty-prRefs closed-origin-only (out of first ship)", () => {
+    const plan = {
+      title: "closed-only",
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/6",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    };
+    const runGh: RunGhFn = (cmd) => {
+      if (cmd.join(" ").includes("/issues/6")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ state: "closed", labels: [] }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+    expect(deriveUnmarkedFinalizeAdmit(plan, "deftai/directive", runGh)).toBeNull();
+  });
+
+  it("makes an unmarked stuck brief inventory-visible and finalize-clearable", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-unmarked-3791-"));
+    const rel = "xbrief/active/stuck-unmarked.xbrief.json";
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, rel),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "stuck-unmarked",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/6",
+              type: "x-xbrief/github-issue",
+            },
+            {
+              uri: "https://github.com/deftai/directive/pull/7",
+              type: "x-xbrief/github-pr",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const tipBlobs = new Map<string, string>([[rel, readFileSync(join(root, rel), "utf8")]]);
+    const runGit = (_projectRoot: string, args: readonly string[]) => {
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const matched = [...tipBlobs.keys()].filter((p) =>
+          prefixes.some((pref) => p.startsWith(String(pref))),
+        );
+        return { code: 0, stdout: matched.join("\n"), stderr: "" };
+      }
+      if (args[0] === "show") {
+        const spec = String(args[1] ?? "");
+        const tipRel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+        const body = tipBlobs.get(tipRel);
+        return body !== undefined
+          ? { code: 0, stdout: body, stderr: "" }
+          : { code: 1, stdout: "", stderr: "missing" };
+      }
+      if (args[0] === "ls-remote") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "merge-base") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/pulls?")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
+      if (joined.includes("/pulls/7")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            merged_at: "2026-09-01T00:00:00Z",
+            merge_commit_sha: "deadbeef",
+            base: { ref: "master" },
+          }),
+          stderr: "",
+        };
+      }
+      if (joined.includes("/issues/6")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ state: "open", labels: [] }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
+    };
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit,
+      runGh,
+    });
+    const owed = inventory.stories.filter((s) => s.state === "owed");
+    expect(owed).toHaveLength(1);
+    expect(owed[0]?.productPr).toBe(7);
+    expect(owed[0]?.issue).toBe(6);
+    expect(owed[0]?.blocks).toBe(true);
+    expect(owed[0]?.detail).toContain("unmarked compose");
+    rmSync(root, { recursive: true, force: true });
   });
 });

@@ -2,6 +2,7 @@ import {
   describeUnknownReservedReferenceType,
   referenceTypeMatches,
 } from "@deftai/directive-types";
+import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { parseGithubIssueUri } from "../triage/reconcile/parse-uri.js";
 
 export interface IssueRef {
@@ -12,6 +13,45 @@ export interface IssueRef {
 export interface PrRef {
   readonly repo: string;
   readonly number: number;
+}
+
+/**
+ * Live PR merge probe for unmarked finalize compose (#3791).
+ * Returns true when merged_at is a non-empty string, false when explicitly null,
+ * null when the lookup failed.
+ */
+export function fetchPrMerged(ref: PrRef, runGh: RunGhFn): boolean | null {
+  const path = `repos/${ref.repo}/pulls/${ref.number}`;
+  const result = runGh(["gh", "api", path]);
+  if (result.returncode !== 0) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(result.stdout) as unknown;
+    if (payload === null || typeof payload !== "object") {
+      return null;
+    }
+    const mergedAt = (payload as Record<string, unknown>).merged_at;
+    if (mergedAt === null) {
+      return false;
+    }
+    return typeof mergedAt === "string" && mergedAt.length > 0;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * First confirmed-merged PR in `prRefs` (#3791 P3 derive). Empty or all-unmerged → null.
+ * Does not consult orphan reason strings.
+ */
+export function firstMergedPrRef(prRefs: readonly PrRef[], runGh: RunGhFn): PrRef | null {
+  for (const pr of prRefs) {
+    if (fetchPrMerged(pr, runGh) === true) {
+      return pr;
+    }
+  }
+  return null;
 }
 
 export interface UnknownReservedRef {

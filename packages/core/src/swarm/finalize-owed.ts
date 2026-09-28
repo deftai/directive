@@ -9,6 +9,7 @@ import { resolve } from "node:path";
 import { extractIssueRef } from "../capacity/backfill.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { TIP_NONTERMINAL_FOLDERS } from "../lifecycle/completed-tracked-on-delivery.js";
+import { deriveUnmarkedFinalizeAdmit } from "../orphan-active/evaluate.js";
 import {
   briefPairingKey,
   briefPlanIdentity,
@@ -481,11 +482,21 @@ export function discoverFinalizeOwed(
     if (plan === null) {
       continue;
     }
-    const productPr = productPullRequestFromPlan(plan);
-    const issue = issueFromPlan(plan, options.repo);
+    let productPr = productPullRequestFromPlan(plan);
+    let issue = issueFromPlan(plan, options.repo);
+    let unmarkedDetail: string | null = null;
     if (productPr === null) {
-      // Unmarked non-delivered → backlog (ignored).
-      continue;
+      // Unmarked: compose orphan-active signature when shipped + merged prRefs (#3791 P3).
+      // Empty-prRefs closed-origin-only stays out of first ship.
+      const admit = deriveUnmarkedFinalizeAdmit(plan, options.repo, runGh);
+      if (admit === null) {
+        continue;
+      }
+      productPr = admit.productPr;
+      if (issue === null) {
+        issue = admit.issue;
+      }
+      unmarkedDetail = admit.detail;
     }
     if (issue === null) {
       stories.push({
@@ -496,7 +507,10 @@ export function discoverFinalizeOwed(
         claimRef: finalizeClaimRef(null, [productPr], []),
         pairingKey: briefPairingKey(relPath),
         planIdentity: briefPlanIdentity(plan),
-        detail: "mark present but issue ref missing or foreign repo",
+        detail:
+          unmarkedDetail !== null
+            ? `${unmarkedDetail}; issue ref missing or foreign repo`
+            : "mark present but issue ref missing or foreign repo",
         blocks: false,
       });
       continue;
@@ -625,7 +639,10 @@ export function discoverFinalizeOwed(
       claimRef,
       pairingKey: briefPairingKey(relPath),
       planIdentity: briefPlanIdentity(plan),
-      detail: "marked nonterminal; snapshot accepted; no twin",
+      detail:
+        unmarkedDetail !== null
+          ? `${unmarkedDetail}; snapshot accepted; no twin`
+          : "marked nonterminal; snapshot accepted; no twin",
       blocks: true,
     });
   }

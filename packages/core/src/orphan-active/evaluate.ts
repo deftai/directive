@@ -28,7 +28,13 @@ import {
   SCOPED_LATENCY_BUDGET_MS,
   type StateResolution,
 } from "./issue-state.js";
-import { collectGithubRefs, type IssueRef, type PrRef } from "./refs.js";
+import {
+  collectGithubRefs,
+  fetchPrMerged,
+  firstMergedPrRef,
+  type IssueRef,
+  type PrRef,
+} from "./refs.js";
 import { listActiveRunningBriefs } from "./running-briefs.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
@@ -182,27 +188,6 @@ function resolveIssueState(
   return resolution.state;
 }
 
-function fetchPrMerged(ref: PrRef, runGh: RunGhFn): boolean | null {
-  const path = `repos/${ref.repo}/pulls/${ref.number}`;
-  const result = runGh(["gh", "api", path]);
-  if (result.returncode !== 0) {
-    return null;
-  }
-  try {
-    const payload = JSON.parse(result.stdout) as unknown;
-    if (payload === null || typeof payload !== "object") {
-      return null;
-    }
-    const mergedAt = (payload as Record<string, unknown>).merged_at;
-    if (mergedAt === null) {
-      return false;
-    }
-    return typeof mergedAt === "string" && mergedAt.length > 0;
-  } catch {
-    return null;
-  }
-}
-
 interface OrphanAssessment {
   readonly orphaned: boolean;
   readonly reason: string | null;
@@ -315,6 +300,59 @@ function assessOrphanSignature(
 
 function briefReferencesIssue(issues: readonly IssueRef[], issue: number): boolean {
   return issues.some((ref) => ref.number === issue);
+}
+
+export interface UnmarkedFinalizeAdmit {
+  readonly productPr: number;
+  readonly issue: number;
+  readonly detail: string;
+}
+
+/**
+ * First-ship unmarked compose for finalize-owed (#3791 P3).
+ * When `productPullRequest` is absent, admit only if the orphan signature shows
+ * shipped **and** `prRefs` carries a confirmed-merged PR for the derive.
+ * Does not key compose on reason-string equality for "linked PR is merged".
+ * Empty-`prRefs` closed-origin-only stays out (returns null). Detector-only for
+ * `verify:orphan-active` — this helper is a pure derive for owed discovery.
+ */
+export function deriveUnmarkedFinalizeAdmit(
+  plan: Record<string, unknown>,
+  defaultRepo: string,
+  runGh: RunGhFn,
+): UnmarkedFinalizeAdmit | null {
+  const { issues, prs } = collectGithubRefs(plan, defaultRepo);
+  if (prs.length === 0) {
+    return null;
+  }
+  const merged = firstMergedPrRef(prs, runGh);
+  if (merged === null) {
+    return null;
+  }
+  const tally = new BasisTally();
+  const ctx: ResolveContext = {
+    projectRoot: "",
+    runGh,
+    skipGh: false,
+    nowMs: Date.now(),
+    inventory: new OpenIssueInventory(runGh),
+  };
+  // Kind === shipped (not reason-string equality) so closed-origin short-circuit
+  // cases that still carry derivable prRefs remain admitted (#3791).
+  const assessment = assessOrphanSignature(issues, prs, ctx, null, tally);
+  if (!assessment.orphaned || assessment.kind !== "shipped") {
+    return null;
+  }
+  const repoLower = defaultRepo.toLowerCase();
+  const origin = issues.find((ref) => ref.repo.toLowerCase() === repoLower) ?? issues[0] ?? null;
+  if (origin === null) {
+    return null;
+  }
+  return {
+    productPr: merged.number,
+    issue: origin.number,
+    detail: `unmarked compose: orphan shipped with merged prRefs #${String(merged.number)}`,
+  };
 }
 
 /** Basis, ghx caveat, and budget lines shared by the pass and refusal messages (#3767). */

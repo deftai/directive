@@ -805,6 +805,30 @@ export function finalizeClaimRef(
   return `swarm/finalize/${deriveFinalizeBranchLabel(label, prNumbers, storyTokens)}`;
 }
 
+/** Durable finalize leftover head class (#3791). Fail-closed membership for lifecycle auto-merge. */
+export const DURABLE_FINALIZE_HEAD_PREFIX = "swarm/finalize/";
+
+/**
+ * First-ship assumption (#3791 P1): surface-3 (branch protection / required reviewers)
+ * does not require a human reviewer on `swarm/finalize/*` for leftover auto-land.
+ * Hosts that do require reviewers need a BP/ruleset exception for this same class.
+ * Claim-stale (`FINALIZE_CLAIM_STALE_MS`) is not PR-stale.
+ */
+export const FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION =
+  "first-ship assumption: surface-3 does not require a human reviewer on swarm/finalize/* (#3791)";
+
+/** Fail-closed: only heads under the durable finalize prefix admit the lifecycle carve-out. */
+export function isDurableFinalizeHeadRef(headRef: string | null | undefined): boolean {
+  if (typeof headRef !== "string") {
+    return false;
+  }
+  const trimmed = headRef.trim();
+  return (
+    trimmed.startsWith(DURABLE_FINALIZE_HEAD_PREFIX) &&
+    trimmed.length > DURABLE_FINALIZE_HEAD_PREFIX.length
+  );
+}
+
 function storySlugs(storyPaths: readonly string[]): string {
   return storyPaths
     .map((p) => {
@@ -1962,13 +1986,23 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       }
       const lifecyclePr = prUrl === null ? null : lifecyclePrNumber(prUrl);
       if (errors.length === 0 && repo !== null && lifecyclePr !== null) {
-        // Arm GitHub auto-merge only when agent merge is allowed (#4919 / #1193).
+        // Arm GitHub auto-merge when agent merge is allowed (#4919 / #1193), or via the
+        // lifecycle-only finalize-class carve-out (#3791). Not a general bot-merge remint.
+        // First-ship discharge of the original one-CI-run ask remains next-session
+        // finalize-owed + session-start blocking (#4919) with live-closer leftover-complete
+        // (#4937); residual windows (deferred / read-only / no soon session) stay explicit.
         const agentMerge = evaluateAgentMerge(projectRoot);
-        if (agentMerge.allowed) {
+        const finalizeClassOk = isDurableFinalizeHeadRef(branch);
+        if (agentMerge.allowed || finalizeClassOk) {
           const autoMerge = enableLeftoverAutoMerge(repo, lifecyclePr, runGh);
           if (!autoMerge.ok) {
             warnings.push(
               `lifecycle PR #${String(lifecyclePr)}: auto-merge not enabled (${autoMerge.detail})`,
+            );
+          } else if (!agentMerge.allowed && finalizeClassOk) {
+            warnings.push(
+              `lifecycle PR #${String(lifecyclePr)}: auto-merge via finalize-class carve-out; ` +
+                FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION,
             );
           }
         } else {

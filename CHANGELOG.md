@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **feat(lifecycle): explicit merge-kind acceptance evidence (#5105).** Criteria may declare merge via `x-directive/requires` (outside the strict smoke/uat/deploy/observed_behavior axes). Declared merge stamps from delivery tip ancestry on `scope:complete`; undeclared empty-axis criteria still refuse bare `kind:merge`. Refs #3791, #3240.
 
+- **feat(lifecycle): finalize-class bot-merge carve-out + unmarked orphan compose (#3791).** `finalize-cohort` arms leftover auto-merge on `swarm/finalize/*` even when `requireHumanMerge` is on (fail-closed class membership; recorded first-ship assumption that surface-3 does not require a human reviewer on that class — hosts with required reviewers need a BP/ruleset exception). Claim-stale is not PR-stale. Next-session finalize-owed + session-start blocking (#4919) with live-closer leftover-complete (#4937) is the accepted first-ship discharge of the original one-CI-run ask; residual windows stay explicit. Unmarked active briefs become finalize-owed inventory when orphan signature shows shipped **and** `prRefs` carries a merged PR (derive `productPr` + origin issue; empty-`prRefs` closed-origin-only out of first ship). `verify:orphan-active` stays a detector. Merge-kind stamps stay on #5105. Tracking #3791.
+
 ### Changed
 
 ### Fixed
