@@ -133,11 +133,15 @@ export function spawnScmBinary(
   }
   if (scmSpawnNeedsShell(resolved)) {
     const comspec = environ.ComSpec ?? process.env.ComSpec ?? "cmd.exe";
-    return spawnSync(comspec, ["/d", "/s", "/c", buildWin32CmdLine(resolved, args)], {
+    // Outer quotes + windowsVerbatimArguments: cmd.exe /s must not strip
+    // protection from a spaced .cmd path when an arg is also quoted (#5081).
+    const commandLine = `"${buildWin32CmdLine(resolved, args)}"`;
+    return spawnSync(comspec, ["/d", "/s", "/c", commandLine], {
       ...options,
       env: environ,
       shell: false,
       windowsHide: options.windowsHide ?? true,
+      windowsVerbatimArguments: true,
     });
   }
   return spawnSync(resolved, [...args], {
