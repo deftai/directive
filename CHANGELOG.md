@@ -31,10 +31,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Durable-effect acquisition repair (#5080).** Resolve immutable URL and call provenance, preserve effect multiplicity across harmless markup and CSS edits, and compare live files without resurrecting deletions. Recognize all #5056 ceiling shapes, require typed human approval for grants, and include the gate in generated agent guidance. Refs PR #5101.
 - **fix(lifecycle): merge declaration no longer hides co-declared smoke/strict axes (#5105).** Explicit `x-directive/requires: merge` plus `x-directive/acceptanceAxis: smoke` (or another strict axis) still requires the strict-axis evidence; merge alone cannot complete the criterion.
 
+<<<<<<< HEAD
 - **fix(lifecycle): finalize leftover auto-merge requires bot-merge override (#3791 / PR #5113).** `evaluateFinalizeClassMergeCarveOut` arms only when durable `swarm/finalize/*` membership AND the documented #1193 bot-merge override (`policy:allow-bot-merge` / `DEFT_ALLOW_BOT_MERGE` / requireHumanMerge effective false) both hold. Branch prefix alone no longer bypasses requireHumanMerge; denied path names bot-merge policy or human merge. First-ship surface-3 assumption retained when the override is on.
 
 - **fix(lifecycle): harden #3791 unmarked compose + finalize carve-out residual.** Carve-out goes through `evaluateFinalizeClassMergeCarveOut` (durable `swarm/finalize/*` membership + recorded first-ship assumption), not a bare branch-prefix. Unmarked admit requires same-repo delivery identity for PR and origin issue; `firstMergedPrRef` is the sole merge probe so a second lookup failure cannot drop confirmed admission. Tracking #3791 / PR #5113.
+<<<<<<< HEAD
 - **Durable-effect acquisition repair (#5080).** Resolve immutable URL and call provenance, preserve effect multiplicity across harmless markup and CSS edits, and compare live files without resurrecting deletions. Recognize all #5056 ceiling shapes and require typed human approval for grants. Refs PR #5101.
+=======
+=======
+- **fix(session): spawn-level git EPERM no longer looks like history drift (#4664).** `execGit` EPERM returns code 2 (never 1), so `gitIsAncestor` yields null instead of false; stderr keeps the original diagnostic plus the Codex ritual-git tip. Focused EPERM path test. Tracking #4664.
+>>>>>>> ce3274952 (fix(session): spawn git EPERM must not look like history drift (#4664))
+>>>>>>> 00d321a7a (fix(session): spawn git EPERM must not look like history drift (#4664))
 
 ### Removed
 

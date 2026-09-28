@@ -49,12 +49,22 @@ function execGit(projectRoot: string, args: readonly string[], timeoutMs?: numbe
     if (e.code === "ENOENT") {
       return { code: 127, stdout: "", stderr: "git executable not found on PATH" };
     }
-    // #4664: name Codex outside-sandbox tip on EPERM; docs own the durable path.
+    // #4664: spawn EPERM is not a git exit. Never return 1 — gitIsAncestor
+    // treats 1 as "not an ancestor" (false history drift). Keep original
+    // diagnostic and point at the Codex ritual-git tip.
     if (e.code === "EPERM") {
+      const detail = resolveCaptureFailureStderr({
+        captured: coerceGitBytes(e.stderr).toString("utf8").trimEnd(),
+        status: e.status,
+        message: e.message,
+      });
       return {
-        code: typeof e.status === "number" ? e.status : 1,
+        code: typeof e.status === "number" && e.status !== 1 ? e.status : 2,
         stdout: gitStdoutString(coerceGitBytes(e.stdout), args),
-        stderr: CODEX_RITUAL_GIT_EPERM_TIP,
+        stderr:
+          detail.length > 0
+            ? `${detail}\n${CODEX_RITUAL_GIT_EPERM_TIP}`
+            : CODEX_RITUAL_GIT_EPERM_TIP,
       };
     }
     return {
