@@ -262,11 +262,12 @@ describe("probePowershellBinReachability (#4659)", () => {
     expect(POWERSHELL_RESTRICTED_CMD_RECOVERY).toMatch(/Do not set ExecutionPolicy Bypass/);
   });
 
-  it("passes when Restricted Get-Command selects .cmd", () => {
+  it("passes when Restricted Get-Command selects .cmd even if --help exits 2", () => {
+    // Real deft-hook.cmd rejects --help with exit 2; that must not fail the probe.
     const spawnSyncFn = vi.fn(() => ({
-      status: 0,
+      status: 2,
       stdout: "SRC|C:\\npm\\deft-hook.cmd\n",
-      stderr: "",
+      stderr: "unrecognized argument: --help\n",
       error: undefined,
       signal: null,
       output: [],

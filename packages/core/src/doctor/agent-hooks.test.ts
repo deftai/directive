@@ -589,4 +589,59 @@ describe("runAgentHooksLiveProbeCheck", () => {
     expect(lines.join("")).toMatch(/Restricted/);
     expect(lines.join("")).toContain("deft-hook");
   });
+
+  it("does not mark hooks non-functional for stale PATH .ps1 when every host is disabled (#4659)", () => {
+    const findings: Finding[] = [];
+    const psReach = vi.fn(() => ({
+      ok: false as const,
+      skipped: false as const,
+      source: "C:\\npm\\deft-hook.ps1",
+      detail: "Get-Command selected .ps1 under Restricted",
+    }));
+    runAgentHooksLiveProbeCheck(
+      "/project",
+      createPlainSink({ write: () => undefined }),
+      (finding) => findings.push(finding),
+      {
+        evaluateAgentHooks: () => ({
+          code: 0,
+          message: "registered",
+          stream: "stdout",
+          registrations: [
+            {
+              host: "codex",
+              path: ".codex/hooks.json",
+              status: "disabled",
+              detail: "disabled",
+              compactSupport: "unsupported",
+            },
+            {
+              host: "cursor",
+              path: ".cursor/hooks.json",
+              status: "disabled",
+              detail: "disabled",
+              compactSupport: "deposited",
+            },
+          ],
+        }),
+        probeAgentHooksLive: () => ({
+          code: 0,
+          message: "deft agent hooks live probe skipped: every host is intentionally disabled.",
+          cases: [],
+          hosts: [],
+          durationMs: 0,
+        }),
+        probePowershellDeftHookReachability: psReach,
+      },
+    );
+
+    expect(psReach).not.toHaveBeenCalled();
+    expect(findings).toEqual([
+      expect.objectContaining({
+        check: "agent-hooks-live-probe",
+        status: "registered-and-functional",
+        live_probe: "passed",
+      }),
+    ]);
+  });
 });

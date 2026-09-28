@@ -186,10 +186,40 @@ export function probePowershellBinReachability(
   const combined = `${stderr}\n${errText}\n${stdout}`;
   const srcLine = stdout.split(/\r?\n/).find((line) => line.startsWith("SRC|"));
   const source = srcLine === undefined ? null : srcLine.slice(4);
+  const policy = /PSSecurityException|running scripts is disabled|UnauthorizedAccess/i.test(
+    combined,
+  );
+  // Classify Get-Command source before process exit: deft-hook.cmd rejects --help
+  // with exit 2, which must not fail after Restricted selected a non-.ps1 shim.
+  if (source !== null && source.length > 0) {
+    if (/\.ps1$/i.test(source)) {
+      return {
+        ok: false,
+        skipped: false,
+        source,
+        detail: policy
+          ? `Restricted PowerShell refused ${commandName} (likely .ps1): ${combined.trim().slice(0, 240)}`
+          : `Get-Command selected .ps1 under Restricted: ${source}`,
+      };
+    }
+    if (/\.(cmd|bat|exe|com)$/i.test(source)) {
+      if (policy) {
+        return {
+          ok: false,
+          skipped: false,
+          source,
+          detail: `Restricted PowerShell refused ${commandName} (likely .ps1): ${combined.trim().slice(0, 240)}`,
+        };
+      }
+      return {
+        ok: true,
+        skipped: false,
+        source,
+        detail: `Restricted Get-Command selected ${source}`,
+      };
+    }
+  }
   if (result.status !== 0) {
-    const policy = /PSSecurityException|running scripts is disabled|UnauthorizedAccess/i.test(
-      combined,
-    );
     return {
       ok: false,
       skipped: false,
@@ -207,26 +237,10 @@ export function probePowershellBinReachability(
       detail: `Get-Command ${commandName} produced no Source`,
     };
   }
-  if (/\.ps1$/i.test(source)) {
-    return {
-      ok: false,
-      skipped: false,
-      source,
-      detail: `Get-Command selected .ps1 under Restricted: ${source}`,
-    };
-  }
-  if (!/\.(cmd|bat|exe|com)$/i.test(source)) {
-    return {
-      ok: false,
-      skipped: false,
-      source,
-      detail: `Get-Command source is not a non-.ps1 executable shim: ${source}`,
-    };
-  }
   return {
-    ok: true,
+    ok: false,
     skipped: false,
     source,
-    detail: `Restricted Get-Command selected ${source}`,
+    detail: `Get-Command source is not a non-.ps1 executable shim: ${source}`,
   };
 }
