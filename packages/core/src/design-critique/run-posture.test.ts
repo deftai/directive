@@ -4,6 +4,7 @@ import {
   ARC_MODE_FIELD,
   ARC_RUN_POSTURES,
   arcModeRecordLine,
+  CHECKOUT_RUN_POSTURE_TOKENS,
   DIRECT_POSTING_PATH,
   DIRECT_RUN_POSTURE_TOKENS,
   DIRECT_SESSION_START,
@@ -92,7 +93,7 @@ describe("parseOperatorRunPosture (#4072 / #4296)", () => {
     }
   });
 
-  it("asks when yolo has no posture token", () => {
+  it("returns missing-token when yolo has no posture token", () => {
     expect(parseOperatorRunPosture("arc 1234 yolo")).toEqual({
       kind: "ask",
       reason: "missing-token",
@@ -103,11 +104,17 @@ describe("parseOperatorRunPosture (#4072 / #4296)", () => {
     });
   });
 
-  it("does not treat ingest as a front-door mode", () => {
+  it("resolves bare ingest to checkout posture only", () => {
     expect(parseOperatorRunPosture("arc 1234 yolo ingest")).toEqual({
-      kind: "ask",
-      reason: "ingest-is-not-posture",
+      kind: "resolved",
+      posture: "checkout",
     });
+    expect(parseOperatorRunPosture("arc 5111 ingest")).toEqual({
+      kind: "resolved",
+      posture: "checkout",
+    });
+    expect(arcModeRecordLine("checkout")).toBe("arc-mode: checkout");
+    expect(arcModeRecordLine("checkout")).not.toContain("ingest");
   });
 
   it("asks when closed tokens collide", () => {
@@ -121,7 +128,7 @@ describe("parseOperatorRunPosture (#4072 / #4296)", () => {
     });
   });
 
-  it("resolves checkout as the mutating run posture, not ingest", () => {
+  it("resolves checkout as the mutating run posture; never arc-mode ingest", () => {
     expect(parseOperatorRunPosture("arc 1234 checkout")).toEqual({
       kind: "resolved",
       posture: "checkout",
@@ -131,33 +138,39 @@ describe("parseOperatorRunPosture (#4072 / #4296)", () => {
     expect(NO_INGEST_ARC_MODE).toBe("no-ingest");
     expect(ARC_RUN_POSTURES).not.toContain("ingest");
     expect(ARC_RUN_POSTURES).not.toContain("direct");
+    expect(CHECKOUT_RUN_POSTURE_TOKENS).toContain("ingest");
     expect(ARC_MODE_FIELD).toBe("arc-mode:");
   });
 });
 
-describe("resolveArcRunPostureForHost (#4202)", () => {
-  it("defaults missing-token to no-ingest only after grok-bot detect", () => {
+describe("resolveArcRunPostureForHost (#4202 / #5111)", () => {
+  it("defaults missing-token to no-ingest for all hosts", () => {
     expect(
       resolveArcRunPostureForHost({ utterance: "run an arc on #286", grokBotDetected: true }),
     ).toEqual({ kind: "resolved", posture: "no-ingest" });
     expect(
       resolveArcRunPostureForHost({ utterance: "run an arc on #286", grokBotDetected: false }),
-    ).toEqual({ kind: "ask", reason: "missing-token" });
+    ).toEqual({ kind: "resolved", posture: "no-ingest" });
+    expect(
+      resolveArcRunPostureForHost({ utterance: "arc 1234 yolo", grokBotDetected: false }),
+    ).toEqual({ kind: "resolved", posture: "no-ingest" });
   });
 
-  it("lets checkout tokens win over the grok-bot no-ingest default", () => {
+  it("lets checkout and ingest tokens win over the no-ingest default", () => {
     expect(
       resolveArcRunPostureForHost({ utterance: "arc 1234 checkout", grokBotDetected: true }),
     ).toEqual({ kind: "resolved", posture: "checkout" });
+    expect(
+      resolveArcRunPostureForHost({ utterance: "arc 1234 ingest", grokBotDetected: false }),
+    ).toEqual({ kind: "resolved", posture: "checkout" });
   });
 
-  it("does not treat ingest as a defaulted front-door mode", () => {
+  it("still asks on ambiguous mixes", () => {
     expect(
-      resolveArcRunPostureForHost({ utterance: "arc 1234 ingest", grokBotDetected: true }),
-    ).toEqual({ kind: "ask", reason: "ingest-is-not-posture" });
+      resolveArcRunPostureForHost({ utterance: "arc 1 direct ingest", grokBotDetected: false }),
+    ).toEqual({ kind: "ask", reason: "ambiguous" });
   });
 });
-
 describe("evaluateDirectDispatch (#4072 / #4296)", () => {
   it("accepts read-only GitHub comments, dest worktree, and SHA-pinned reads when parent is unclaimed", () => {
     expect(

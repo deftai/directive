@@ -17,7 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **feat(lifecycle): explicit merge-kind acceptance evidence (#5105).** Criteria may declare merge via `x-directive/requires` (outside the strict smoke/uat/deploy/observed_behavior axes). Declared merge stamps from delivery tip ancestry on `scope:complete`; undeclared empty-axis criteria still refuse bare `kind:merge`. Refs #3791, #3240.
 
+<<<<<<< HEAD
 - **feat(lifecycle): finalize-class bot-merge carve-out + unmarked orphan compose (#3791).** `finalize-cohort` arms leftover auto-merge on `swarm/finalize/*` only when the documented #1193 bot-merge override is also on (fail-closed class membership + `policy:allow-bot-merge` / `DEFT_ALLOW_BOT_MERGE`; recorded first-ship assumption that surface-3 does not require a human reviewer on that class *when the override is on* — hosts with required reviewers need a BP/ruleset exception). Claim-stale is not PR-stale. Next-session finalize-owed + session-start blocking (#4919) with live-closer leftover-complete (#4937) is the accepted first-ship discharge of the original one-CI-run ask; residual windows stay explicit. Unmarked active briefs become finalize-owed inventory when orphan signature shows shipped **and** `prRefs` carries a merged PR (derive `productPr` + origin issue; empty-`prRefs` closed-origin-only out of first ship). `verify:orphan-active` stays a detector. Merge-kind stamps stay on #5105. Tracking #3791.
+=======
+- **design-critique: bare arc defaults no-ingest + yolo-standing + spend-recommend; ingest/noyolo opt-outs (#5111).** Missing posture → `arc-mode: no-ingest` via `resolveArcRunPostureForHost` for all hosts; launch `ingest` → checkout only (never `arc-mode: ingest`); bare yolo-standing on with closed `noyolo`; missing spend resolves from closed `spend-recommend: N=1|N≥3` with `spend-ask: resolved`. Explicit `n=` still overrides. Refs #5111, #4705, #4072.
+>>>>>>> 9276c4561 (process(design-critique): default bare arc to yolo no-ingest + spend-recommend (#5111))
 
 ### Changed
 

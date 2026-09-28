@@ -19,7 +19,6 @@ triggers:
 <!-- Source of truth: packs/skills/skills-pack-0.1.json -->
 <!-- Regenerate with: task packs:render -->
 <!-- Edit the source, not this file. Slice instead of loading every SKILL.md: task packs:slice skills by-trigger --trigger <kw> (or list) -->
-
 # Design Critique
 
 Thin router into the design-critique contract. Operator dispatches from the brief template.
@@ -51,9 +50,10 @@ Yolo first-lean cites: Yolo leftover-pain. Honest pain cites. Not operator next-
 Walk / walk all. Auto-stamp when agents agree: Operator verbs.
 Parent chip write: scm:issue:design-critique-chip. Stale ingest-ready query: scm:issue:design-critique-stale-ready.
 Chip apply miss is non-blocking convenience; do not halt. Ingest waits on the completed-arc record, not a catalog chip.
-Run posture: parse closed tokens; else ask. Field lives in the contract.
-Spend: parse closed tokens; else ask. Field lives in the contract. Consume parseOperatorSpend.
-Grok-bot detect default and widget apply-set live in the contract. Consume parseOperatorRunPosture.
+Run posture: missing defaults to no-ingest via resolveArcRunPostureForHost; ingest resolves checkout; closed collisions ask. Field lives in the contract.
+Spend: closed n= or spend-recommend; else ask. Field lives in the contract. Consume parseOperatorSpend.
+Yolo standing: default on; noyolo clears; yolo affirms. Confirm conjunct only. Not ingest.
+Widget apply-set lives in the contract. Consume parseOperatorRunPosture / parseOperatorYoloStanding.
 Widgets: numbered Discuss and Back. Plain English first in main-chat. `## Plain-language summary`.
 
 Each critic dispatch EXITs after posting.

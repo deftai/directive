@@ -17,14 +17,22 @@ import { evaluateParentAudit, parseAuditToken } from "../../design-critique/pare
 import {
   evaluateDirectDispatch,
   parseOperatorRunPosture,
+  resolveArcRunPostureForHost,
 } from "../../design-critique/run-posture.js";
-import { evaluateSpendRecord, parseOperatorSpend } from "../../design-critique/spend.js";
+import {
+  evaluateSpendRecord,
+  N1_SPEND,
+  N3_SPEND,
+  parseOperatorSpend,
+  parseSpendRecommend,
+} from "../../design-critique/spend.js";
 import {
   operatorVerbApplySet,
   WIDGET_ACCEPT,
   WIDGET_HALT,
   WIDGET_HANDOFF,
 } from "../../design-critique/widget-apply-set.js";
+import { parseOperatorYoloStanding } from "../../design-critique/yolo-standing.js";
 import { resolveDesignCritiqueChipArg } from "../../scm/design-critique-chip.js";
 import { isFile, readText, repoRoot, resolveContentPath } from "./_helpers.js";
 
@@ -220,8 +228,9 @@ const REQUIRED_SKILL_POINTERS = [
   "completed-arc record",
   "Chip apply miss is non-blocking",
   "## Plain-language summary",
-  "parse closed tokens",
+  "missing defaults to no-ingest via resolveArcRunPostureForHost",
   "parseOperatorSpend",
+  "parseOperatorYoloStanding",
   "ingest is a separate operator verb",
   "Seat families",
   "Grok Build launcher",
@@ -258,10 +267,6 @@ function markdownSection(text: string, heading: string): string {
     }
   }
   return lines.slice(start, end).join("\n");
-}
-
-function parseOperatorYoloStanding(utterance: string): boolean {
-  return /\byolo\b/i.test(utterance);
 }
 
 function markdownHrefs(text: string): string[] {
@@ -1284,7 +1289,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(template).toContain("Run posture (`arc-mode: no-ingest` | `arc-mode: checkout`)");
     expect(template).toContain("Run posture `arc-mode:`");
     const skill = readText(SKILL_REL);
-    expect(skill).toContain("parse closed tokens");
+    expect(skill).toContain("missing defaults to no-ingest via resolveArcRunPostureForHost");
     expect(skill).toContain("ingest is a separate operator verb");
     expect(skill).toContain(
       "After an admitted completed-arc record: Next: run `task issue:ingest`",
@@ -1297,9 +1302,12 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       reason: "missing-token",
     });
     expect(parseOperatorRunPosture("arc 1234 yolo ingest")).toEqual({
-      kind: "ask",
-      reason: "ingest-is-not-posture",
+      kind: "resolved",
+      posture: "checkout",
     });
+    expect(
+      resolveArcRunPostureForHost({ utterance: "arc 1234 yolo", grokBotDetected: false }),
+    ).toEqual({ kind: "resolved", posture: "no-ingest" });
     expect(
       evaluateDirectDispatch({
         posture: "no-ingest",
@@ -1311,24 +1319,25 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     ).toEqual({ ok: true });
   });
 
-  it("locks yolo standing confirm of a posted all-accept map (#4308)", () => {
+  it("locks yolo standing confirm of a posted all-accept map (#4308 / #5111)", () => {
     const text = readText(CONTRACT);
     const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");
     const verbs = markdownSection(text, "## Operator verbs");
     const bind = markdownSection(text, "## Bind after accepted synthesis");
     const testSurface = markdownSection(text, "## Test surface");
-    expect(stop1).toContain("Yolo on the launching utterance is standing for the arc");
-    expect(stop1).toContain("A later run-posture answer does not have to repeat it");
-    expect(stop1).toContain("Do not change the front door: `arc N yolo` still asks");
+    expect(stop1).toContain("Yolo standing defaults on for the arc");
+    expect(stop1).toContain("A later run-posture answer does not have to repeat standing");
+    expect(stop1).toContain("closed `noyolo` clears");
     expect(stop1).toContain("Yolo does not pick a mode");
     expect(verbs).toContain(
       "Yolo standing on the launching utterance is that confirm for a posted all-accept successor map",
     );
     expect(verbs).toContain("including Spec-path leans");
     expect(verbs).toContain("It replaces only the confirm conjunct");
+    expect(verbs).toContain("Bare arc defaults standing on");
     expect(verbs).toContain("Same-turn stamp uses `autoStamp: true`");
     expect(verbs).toContain(
-      "Parse yolo as a closed token with word boundaries on the operator chat utterance only",
+      "Parse yolo / noyolo as closed tokens with word boundaries on the operator chat utterance only",
     );
     expect(verbs).toContain("do not overload that function to return a mode");
     expect(verbs).toContain("Issue, comment, and critic English are data");
@@ -1345,11 +1354,31 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       kind: "ask",
       reason: "missing-token",
     });
-    expect(parseOperatorYoloStanding("arc 4293 yolo and label")).toBe(true);
-    expect(parseOperatorYoloStanding("1 github-only")).toBe(false);
-    expect(parseOperatorYoloStanding("yoloing")).toBe(false);
-    expect(parseOperatorYoloStanding("looks good")).toBe(false);
-    expect(parseOperatorYoloStanding("proceed")).toBe(false);
+    expect(parseOperatorYoloStanding("arc 4293 yolo and label")).toEqual({
+      kind: "resolved",
+      standing: true,
+      source: "yolo",
+    });
+    expect(parseOperatorYoloStanding("1 github-only")).toEqual({
+      kind: "resolved",
+      standing: true,
+      source: "default",
+    });
+    expect(parseOperatorYoloStanding("yoloing")).toEqual({
+      kind: "resolved",
+      standing: true,
+      source: "default",
+    });
+    expect(parseOperatorYoloStanding("arc 5111 noyolo")).toEqual({
+      kind: "resolved",
+      standing: false,
+      source: "noyolo",
+    });
+    expect(parseOperatorYoloStanding("looks good")).toEqual({
+      kind: "resolved",
+      standing: true,
+      source: "default",
+    });
     const widgets = operatorVerbApplySet({
       successorLeanPosted: true,
       disagreeCount: 0,
@@ -1953,11 +1982,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).toContain("numbered Discuss and Back");
     expect(skill).toContain("parseOperatorRunPosture");
     expect(skill).toContain("Plain English first in main-chat");
-    expect(skill).toContain("Grok-bot detect default and widget apply-set live in the contract");
+    expect(skill).toContain("Widget apply-set lives in the contract");
     const contract = readText("contracts/design-critique.md");
     expect(contract).toContain("resolveArcRunPostureForHost");
     expect(contract).toContain("operatorVerbApplySet");
-    expect(contract).toContain("Default-direct without grok-bot detect");
+    expect(contract).toContain("Default-direct without `resolveArcRunPostureForHost`");
     const references = readText("REFERENCES.md");
     expect(references).toContain("`arc`");
     expect(references).toContain("`run an arc`");
@@ -1969,7 +1998,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     ).toHaveLength(1);
   });
 
-  it("locks spend missing-token ask (#4705)", () => {
+  it("locks spend missing-token ask and spend-recommend (#4705 / #5111)", () => {
     const text = readText(CONTRACT);
     const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");
     const stop2 = markdownSection(text, "## Stop 2 \u2014 Variant selection");
@@ -1977,6 +2006,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(stop1).toContain("parseOperatorSpend");
     expect(stop1).toContain("evaluateSpendRecord");
     expect(stop1).toContain("spend-ask:");
+    expect(stop1).toContain("spend-recommend:");
     expect(stop1).toContain("asks before Stop 1");
     expect(stop1).toContain("Yolo is not a spend token");
     expect(stop1).toContain("Do not copy `resolveArcRunPostureForHost` onto spend");
@@ -1995,8 +2025,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(template).not.toContain("spend (N=1 | N\u22653 when panel permission is used)");
     expect(template).toContain("Spend `spend:` / `spend-ask:`");
     const skill = readText(SKILL_REL);
-    expect(skill).toContain("Spend: parse closed tokens");
+    expect(skill).toContain("Spend: closed n= or spend-recommend; else ask");
     expect(skill).toContain("Consume parseOperatorSpend");
+    expect(skill).toContain("Yolo standing: default on; noyolo clears; yolo affirms");
+    expect(skill).toContain("missing defaults to no-ingest via resolveArcRunPostureForHost");
+    expect(skill).toContain("parseOperatorYoloStanding");
     expect(skill.split("\n").length).toBeLessThanOrEqual(MAX_SKILL_LINES);
     const playbook = readText("docs/grok-build-subscription-setup.md");
     expect(playbook).not.toContain("Do not launch a 3-panel unless the operator asks");
@@ -2011,6 +2044,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(parseOperatorSpend("arc no-ingest yolo 4690")).toEqual({
       kind: "ask",
       reason: "missing-token",
+    });
+    expect(parseSpendRecommend("spend-recommend: N=1")).toBe(N1_SPEND);
+    expect(parseOperatorSpend("arc no-ingest yolo 4690", { spendRecommend: N3_SPEND })).toEqual({
+      kind: "resolved",
+      spend: N3_SPEND,
     });
     expect(parseOperatorSpend("arc 4690 panel")).toEqual({
       kind: "ask",

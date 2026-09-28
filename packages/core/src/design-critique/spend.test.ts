@@ -7,10 +7,13 @@ import {
   N1_SPEND,
   N3_SPEND,
   parseOperatorSpend,
+  parseSpendRecommend,
   SPEND_ASK_FIELD,
   SPEND_ASK_REMEDIATION,
   SPEND_FIELD,
+  SPEND_RECOMMEND_FIELD,
   spendAskRecordLine,
+  spendRecommendRecordLine,
   spendRecordLine,
 } from "./spend.js";
 
@@ -319,18 +322,65 @@ describe("evaluateSpendRecord (#4705)", () => {
 });
 
 describe("spend does not copy grok-bot run-posture default (#4705)", () => {
-  it("asks missing-token even when grok-bot detect would default posture", () => {
+  it("asks missing-token without spend-recommend even when posture defaults", () => {
     const utterance = "arc no-ingest yolo 4690";
     expect(parseOperatorSpend(utterance)).toEqual({
       kind: "ask",
       reason: "missing-token",
     });
     expect(
-      resolveArcRunPostureForHost({ utterance: "run an arc on #286", grokBotDetected: true }),
+      resolveArcRunPostureForHost({ utterance: "run an arc on #286", grokBotDetected: false }),
     ).toEqual({ kind: "resolved", posture: "no-ingest" });
     expect(parseOperatorSpend("run an arc on #286")).toEqual({
       kind: "ask",
       reason: "missing-token",
+    });
+  });
+});
+
+describe("spend-recommend closed source (#5111)", () => {
+  it("parses closed spend-recommend lines only", () => {
+    expect(parseSpendRecommend("spend-recommend: N=1")).toBe(N1_SPEND);
+    expect(parseSpendRecommend("spend-recommend: N≥3")).toBe(N3_SPEND);
+    expect(parseSpendRecommend("spend-recommend: N>=3")).toBeNull();
+    expect(parseSpendRecommend("use recommended n")).toBeNull();
+    expect(parseSpendRecommend(null)).toBeNull();
+    expect(spendRecommendRecordLine(N1_SPEND)).toBe("spend-recommend: N=1");
+    expect(SPEND_RECOMMEND_FIELD).toBe("spend-recommend:");
+  });
+
+  it("resolves missing utterance token from spend-recommend without silent N=1", () => {
+    expect(parseOperatorSpend("arc no-ingest yolo 4690", { spendRecommend: N1_SPEND })).toEqual({
+      kind: "resolved",
+      spend: N1_SPEND,
+    });
+    expect(parseOperatorSpend("arc no-ingest yolo 4690", { spendRecommend: N3_SPEND })).toEqual({
+      kind: "resolved",
+      spend: N3_SPEND,
+    });
+    expect(parseOperatorSpend("arc no-ingest yolo 4690")).toEqual({
+      kind: "ask",
+      reason: "missing-token",
+    });
+    expect(
+      evaluateSpendRecord({
+        parse: parseOperatorSpend("arc 5111", { spendRecommend: N3_SPEND }),
+        asked: false,
+        answer: null,
+        stop1Spend: N3_SPEND,
+        spendAsk: "resolved",
+      }),
+    ).toEqual({ ok: true, spend: N3_SPEND });
+  });
+
+  it("lets explicit n= tokens override spend-recommend", () => {
+    expect(parseOperatorSpend("arc 5111 n=1", { spendRecommend: N3_SPEND })).toEqual({
+      kind: "resolved",
+      spend: N1_SPEND,
+    });
+    expect(parseOperatorSpend("arc 5111 n=3", { spendRecommend: N1_SPEND })).toEqual({
+      kind: "resolved",
+      spend: N3_SPEND,
     });
   });
 });
