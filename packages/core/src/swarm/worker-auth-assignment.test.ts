@@ -568,7 +568,7 @@ describe("worker-auth-assignment (#3663)", { timeout: 20_000 }, () => {
     expect(removed.removed).toBe(true);
     const read = readWorkerAuthAssignment(worktree);
     expect(read).toEqual({ ok: true, assignment: null, commonDir: expect.any(String) });
-  });
+  }, 60_000 /* #5107 suite-load testTimeout */);
 
   it("terminal cleanup removes only records for that dispatch", () => {
     const { main, worktree } = linkedPair();

@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SCM readiness trusts provisioned GitHub credentials and enforces explicit worker assignments (#5016).** Unassigned processes use gh's effective source for the target host. Runtime/socket labels no longer select credentials. Assigned host-gh refuses an applicable ambient token; assigned injected-token still requires delivery correlation and the expected user. Installation authentication may be admitted without claiming App identity when no user is required. `runGhMerge` runs a fresh assignment/auth preflight. Refs #3693, #3663.
 
 ### Fixed
+- **test(win32): raise worker-auth-assignment owner-bound-remove suite-load testTimeout (Tracking #5107).**
 - **fix(update): partition dirty-deposit consumer projections; skip PROJECT-DEFINITION org-force-on (Tracking #5096).** Schema sync (#2595) and pin restore (#4533/#4710) stay intentional with mandatory report. Full skip/refuse/rewrite ledger is `consumer_projections`; `skipped_consumer_projections` lists skipped+refused only. Refs #3029, #3395, #4710.
 - **test(win32): retry EPERM temp cleanup in doctor disable tests (Tracking #5089).**
 - **test(win32): raise two more Step 5 suite-load testTimeouts (Tracking #5086).**
