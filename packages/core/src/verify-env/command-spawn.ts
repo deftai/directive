@@ -211,6 +211,20 @@ export function probePowershellBinReachability(
           detail: `Restricted PowerShell refused ${commandName} (likely .ps1): ${combined.trim().slice(0, 240)}`,
         };
       }
+      // Healthy: exit 0, or known --help exit 2 from deft-hook.cmd. Timeouts,
+      // spawn errors, and other non-zero statuses stay failures (#4659 Greptile).
+      const status = result.status;
+      const spawnFailed = result.error !== undefined;
+      const healthyHelpExit = status === 0 || status === 2;
+      if (spawnFailed || status === null || !healthyHelpExit) {
+        const statusLabel = status === null ? "null" : String(status);
+        return {
+          ok: false,
+          skipped: false,
+          source,
+          detail: `Restricted PowerShell selected ${source} but launch failed (status=${statusLabel}): ${combined.trim().slice(0, 240)}`,
+        };
+      }
       return {
         ok: true,
         skipped: false,

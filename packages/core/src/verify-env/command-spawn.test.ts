@@ -287,6 +287,46 @@ describe("probePowershellBinReachability (#4659)", () => {
     );
   });
 
+  it("fails closed when Restricted selects .cmd but launch fails (not --help exit 2)", () => {
+    const spawnSyncFn = vi.fn(() => ({
+      status: 1,
+      stdout: "SRC|C:\\npm\\deft-hook.cmd\n",
+      stderr: "The system cannot execute the specified program.\n",
+      error: undefined,
+      signal: null,
+      output: [],
+      pid: 1,
+    })) as unknown as typeof import("node:child_process").spawnSync;
+    const result = probePowershellBinReachability("deft-hook", {
+      platform: "win32",
+      env: { SystemRoot: "C:\\Windows" },
+      spawnSyncFn,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.source?.toLowerCase().endsWith(".cmd")).toBe(true);
+    expect(result.detail).toMatch(/launch failed|status=1/i);
+  });
+
+  it("fails closed when Restricted selects .cmd then the probe times out", () => {
+    const spawnSyncFn = vi.fn(() => ({
+      status: null,
+      stdout: "SRC|C:\\npm\\deft-hook.cmd\n",
+      stderr: "",
+      error: Object.assign(new Error("spawnSync powershell.exe ETIMEDOUT"), { code: "ETIMEDOUT" }),
+      signal: "SIGTERM",
+      output: [],
+      pid: 1,
+    })) as unknown as typeof import("node:child_process").spawnSync;
+    const result = probePowershellBinReachability("deft-hook", {
+      platform: "win32",
+      env: { SystemRoot: "C:\\Windows" },
+      spawnSyncFn,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.source?.toLowerCase().endsWith(".cmd")).toBe(true);
+    expect(result.detail).toMatch(/launch failed|status=null|ETIMEDOUT/i);
+  });
+
   it("names Restricted policy refusal without recommending Bypass", () => {
     const spawnSyncFn = vi.fn(() => ({
       status: 1,
