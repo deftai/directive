@@ -238,11 +238,42 @@ describe("runWaitMergeable", () => {
         protectedFn: makeProtectedFn(0),
         heartbeatRefreshSeconds: 0.05,
         monitorFn: (..._args) => {
-          firstAt = (JSON.parse(readFileSync(hbPath, "utf8")) as { last_heartbeat_at: string })
-            .last_heartbeat_at;
-          sleepMs(200);
-          secondAt = (JSON.parse(readFileSync(hbPath, "utf8")) as { last_heartbeat_at: string })
-            .last_heartbeat_at;
+          const readHbAt = (): string => {
+            const deadline = Date.now() + 2_000;
+            while (Date.now() < deadline) {
+              try {
+                const raw = readFileSync(hbPath, "utf8");
+                if (raw.trim().length === 0) {
+                  sleepMs(20);
+                  continue;
+                }
+                const parsed = JSON.parse(raw) as { last_heartbeat_at?: string };
+                if (
+                  typeof parsed.last_heartbeat_at === "string" &&
+                  parsed.last_heartbeat_at.length > 0
+                ) {
+                  return parsed.last_heartbeat_at;
+                }
+              } catch {
+                // mid-write / empty JSON race under parallel ts:check-lane (#5020 flake)
+              }
+              sleepMs(20);
+            }
+            return "";
+          };
+          firstAt = readHbAt();
+          const advanceDeadline = Date.now() + 2_000;
+          while (Date.now() < advanceDeadline) {
+            sleepMs(50);
+            secondAt = readHbAt();
+            if (
+              firstAt.length > 0 &&
+              secondAt.length > 0 &&
+              Date.parse(secondAt) > Date.parse(firstAt)
+            ) {
+              break;
+            }
+          }
           expect(hasActivePollingHeartbeat(root, 5020)).toBe(true);
           return makeMonitorFn(0, cleanMonitorPayload(5020))();
         },
