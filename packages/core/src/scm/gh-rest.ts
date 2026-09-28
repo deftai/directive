@@ -1,11 +1,11 @@
-import { type SpawnSyncOptions, spawnSync } from "node:child_process";
+import type { SpawnSyncOptions } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assertNoDeftAllowEscape, CLAIMED_SET_REQUIRED } from "../one-pr-unit/close-via-app.js";
 import type { OriginRef } from "../one-pr-unit/types.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
-import { defaultWhich, type WhichFn } from "./binary.js";
+import { defaultWhich, spawnScmBinary, type WhichFn } from "./binary.js";
 import { classifyScmArgv, resolveBinaryForRole } from "./call-shape.js";
 import { pyRepr } from "./py-format.js";
 import {
@@ -98,7 +98,7 @@ function defaultGhSpawn(
   args: readonly string[],
   options: SpawnSyncOptions,
 ): GhSpawnResult {
-  return spawnSync(command, [...args], options);
+  return spawnScmBinary(command, args, options);
 }
 
 function finalizeGhApiResult(

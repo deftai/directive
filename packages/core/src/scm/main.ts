@@ -1,6 +1,6 @@
-import { spawnSync } from "node:child_process";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
 import { extractFlag, peekRepoFlag } from "./argv.js";
+import { spawnScmBinary } from "./binary.js";
 import { buildCommand } from "./build-command.js";
 import { REST_OPT_IN_VERBS } from "./constants.js";
 import { DESIGN_CRITIQUE_CHIP_VERB, runDesignCritiqueChip } from "./design-critique-chip.js";
@@ -159,7 +159,7 @@ export function main(argv: readonly string[], options: MainOptions = {}): number
     if (binary === undefined) {
       throw new ScmStubError("internal error: empty command argv");
     }
-    const proc = spawnSync(binary, cmd.slice(1), {
+    const proc = spawnScmBinary(binary, cmd.slice(1), {
       stdio: "inherit",
       env: process.env,
     });

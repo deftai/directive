@@ -1,6 +1,5 @@
-import { spawnSync } from "node:child_process";
 import { resolveCaptureFailureStderr, SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
-import { defaultWhich, type WhichFn } from "./binary.js";
+import { defaultWhich, spawnScmBinary, type WhichFn } from "./binary.js";
 import { classifyScmArgv, resolveBinaryForRole } from "./call-shape.js";
 import { SUPPORTED_CALL_SOURCES } from "./constants.js";
 import { pyRepr } from "./py-format.js";
@@ -61,7 +60,7 @@ export function call(
   const timeoutMs = options.timeout !== undefined ? Math.round(options.timeout * 1000) : undefined;
 
   const spawnOnce = (bin: string) =>
-    spawnSync(bin, [verb, ...extra], {
+    spawnScmBinary(bin, [verb, ...extra], {
       cwd: options.cwd,
       env: options.env ?? process.env,
       input: options.input,

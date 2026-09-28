@@ -21,7 +21,6 @@
  * `reconcile:issues` requests deep for the #3858 credential-class ban.
  */
 
-import { spawnSync } from "node:child_process";
 import {
   type ExpectedGithubWorkerPrincipal,
   FAILURE_MISSING_INJECTED_TOKEN,
@@ -55,7 +54,7 @@ import {
   readWorkerAuthAssignment,
   type WorkerAuthAssignment,
 } from "../swarm/worker-auth-assignment.js";
-import { defaultWhich, type WhichFn } from "./binary.js";
+import { defaultWhich, spawnScmBinary, type WhichFn } from "./binary.js";
 import { BINARY_PREFERENCE } from "./constants.js";
 import { ScmStubError } from "./errors.js";
 
@@ -267,7 +266,7 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
       ((args, environ) => {
         const ghPath = whichFn("gh") ?? binary ?? "gh";
         try {
-          const result = spawnSync(ghPath, [...args], {
+          const result = spawnScmBinary(ghPath, [...args], {
             env: environ,
             encoding: "utf8",
             timeout: 30_000,

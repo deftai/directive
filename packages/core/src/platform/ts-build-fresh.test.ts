@@ -11,9 +11,17 @@ function runFresh(
   root: string,
   env: NodeJS.ProcessEnv = {},
 ): { status: number | null; stderr: string } {
+  // Parent DEFT_SKIP_TS_BUILD / DEFT_FORCE_TS_BUILD must not leak into fail cases (#5081).
+  const childEnv: NodeJS.ProcessEnv = { ...process.env, ...env };
+  if (!Object.hasOwn(env, "DEFT_SKIP_TS_BUILD")) {
+    delete childEnv.DEFT_SKIP_TS_BUILD;
+  }
+  if (!Object.hasOwn(env, "DEFT_FORCE_TS_BUILD")) {
+    delete childEnv.DEFT_FORCE_TS_BUILD;
+  }
   const result = spawnSync(process.execPath, [helper, root], {
     encoding: "utf8",
-    env: { ...process.env, ...env },
+    env: childEnv,
     windowsHide: true,
   });
   return {
