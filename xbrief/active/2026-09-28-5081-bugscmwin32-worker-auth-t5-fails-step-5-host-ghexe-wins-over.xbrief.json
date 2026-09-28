@@ -92,7 +92,8 @@
         "github_issue_id": 5608062460,
         "origin": "deftai/directive#5081",
         "id": "github.issue.5608062460"
-      }
+      },
+      "productPullRequest": 5082
     },
     "acceptance": {
       "commands": [],
