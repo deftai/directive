@@ -11,7 +11,12 @@ import {
   stampProductPullRequestOntoPlan,
 } from "../orphan-active/running-briefs.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
-import { evaluateAgentMerge } from "../policy/require-human-merge.js";
+import { policyColonInvocation } from "../policy/policy-invocation.js";
+import {
+  ENV_ALLOW_BOT_MERGE,
+  evaluateAgentMerge,
+  resolveHumanMergePolicy,
+} from "../policy/require-human-merge.js";
 import { parseAllDeftStoryMarks } from "../pr-closing-keywords/main.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
@@ -809,13 +814,15 @@ export function finalizeClaimRef(
 export const DURABLE_FINALIZE_HEAD_PREFIX = "swarm/finalize/";
 
 /**
- * First-ship assumption (#3791 P1): surface-3 (branch protection / required reviewers)
- * does not require a human reviewer on `swarm/finalize/*` for leftover auto-land.
- * Hosts that do require reviewers need a BP/ruleset exception for this same class.
- * Claim-stale (`FINALIZE_CLAIM_STALE_MS`) is not PR-stale.
+ * First-ship assumption (#3791 P1): when the documented bot-merge override is on
+ * (`policy:allow-bot-merge` / `DEFT_ALLOW_BOT_MERGE` / requireHumanMerge effective false),
+ * surface-3 (branch protection / required reviewers) does not require a human reviewer
+ * on `swarm/finalize/*` for leftover auto-land. Hosts that do require reviewers need a
+ * BP/ruleset exception for this same class. Claim-stale (`FINALIZE_CLAIM_STALE_MS`) is
+ * not PR-stale. Branch prefix alone never bypasses requireHumanMerge.
  */
 export const FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION =
-  "first-ship assumption: surface-3 does not require a human reviewer on swarm/finalize/* (#3791)";
+  "first-ship assumption: when bot-merge override is on, surface-3 does not require a human reviewer on swarm/finalize/* (#3791)";
 
 /** Fail-closed: only heads under the durable finalize prefix admit the lifecycle carve-out. */
 export function isDurableFinalizeHeadRef(headRef: string | null | undefined): boolean {
@@ -830,9 +837,12 @@ export function isDurableFinalizeHeadRef(headRef: string | null | undefined): bo
 }
 
 /**
- * Documented lifecycle-only bot-merge override for leftover finalize (#3791 P1).
- * Consults fail-closed durable-class membership **and** the recorded first-ship
- * assumption — not a bare branch-prefix alone, and not a general bot-merge remint.
+ * Documented lifecycle-only leftover auto-merge gate (#3791 P1).
+ * Arms only when BOTH hold:
+ * 1. fail-closed durable finalize class (`swarm/finalize/*`)
+ * 2. documented bot-merge override via the #1193 helpers (`policy:allow-bot-merge` /
+ *    `DEFT_ALLOW_BOT_MERGE` / requireHumanMerge effective false from resolveHumanMergePolicy)
+ * Not a bare branch-prefix bypass of requireHumanMerge, and not a general bot-merge remint.
  */
 export interface FinalizeClassMergeCarveOut {
   readonly allowed: boolean;
@@ -842,6 +852,8 @@ export interface FinalizeClassMergeCarveOut {
 
 export function evaluateFinalizeClassMergeCarveOut(
   headRef: string | null | undefined,
+  projectRoot: string,
+  env: NodeJS.ProcessEnv = process.env,
 ): FinalizeClassMergeCarveOut {
   if (!isDurableFinalizeHeadRef(headRef)) {
     return {
@@ -850,10 +862,21 @@ export function evaluateFinalizeClassMergeCarveOut(
       reason: "head is not a durable swarm/finalize/* leftover",
     };
   }
+  const policy = resolveHumanMergePolicy(projectRoot, env);
+  if (policy.requireHumanMerge) {
+    return {
+      allowed: false,
+      assumption: null,
+      reason:
+        "finalize leftover needs bot-merge policy (" +
+        `${policyColonInvocation("allow-bot-merge", " -- --confirm")} / ${ENV_ALLOW_BOT_MERGE}=1) ` +
+        "or human merge (#1193 / #3791)",
+    };
+  }
   return {
     allowed: true,
     assumption: FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION,
-    reason: "lifecycle-only finalize-class carve-out (#3791)",
+    reason: "lifecycle-only finalize-class carve-out with bot-merge override (#3791)",
   };
 }
 
@@ -2014,31 +2037,46 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       }
       const lifecyclePr = prUrl === null ? null : lifecyclePrNumber(prUrl);
       if (errors.length === 0 && repo !== null && lifecyclePr !== null) {
-        // Arm GitHub auto-merge when agent merge is allowed (#4919 / #1193), or via the
-        // lifecycle-only finalize-class carve-out (#3791). Not a general bot-merge remint.
-        // Carve-out consults evaluateFinalizeClassMergeCarveOut (durable class + recorded
-        // first-ship assumption), not a bare branch-prefix alone.
-        // First-ship discharge of the original one-CI-run ask remains next-session
-        // finalize-owed + session-start blocking (#4919) with live-closer leftover-complete
-        // (#4937); residual windows (deferred / read-only / no soon session) stay explicit.
+        // Arm leftover auto-merge (#4919 / #1193 / #3791). Finalize heads require BOTH
+        // durable swarm/finalize/* membership and the documented bot-merge override
+        // (policy:allow-bot-merge / DEFT_ALLOW_BOT_MERGE / requireHumanMerge effective false).
+        // Branch prefix alone never bypasses requireHumanMerge. Non-finalize leftovers still
+        // follow evaluateAgentMerge. First-ship discharge of the original one-CI-run ask
+        // remains next-session finalize-owed + session-start blocking (#4919) with live-closer
+        // leftover-complete (#4937); residual windows stay explicit.
         const agentMerge = evaluateAgentMerge(projectRoot);
-        const finalizeCarveOut = evaluateFinalizeClassMergeCarveOut(branch);
-        if (agentMerge.allowed || finalizeCarveOut.allowed) {
+        const finalizeCarveOut = evaluateFinalizeClassMergeCarveOut(branch, projectRoot);
+        const isFinalizeHead = isDurableFinalizeHeadRef(branch);
+        if (isFinalizeHead) {
+          if (finalizeCarveOut.allowed) {
+            const autoMerge = enableLeftoverAutoMerge(repo, lifecyclePr, runGh);
+            if (!autoMerge.ok) {
+              warnings.push(
+                `lifecycle PR #${String(lifecyclePr)}: auto-merge not enabled (${autoMerge.detail})`,
+              );
+            } else {
+              warnings.push(
+                `lifecycle PR #${String(lifecyclePr)}: auto-merge via ${finalizeCarveOut.reason}; ` +
+                  (finalizeCarveOut.assumption ?? FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION),
+              );
+            }
+          } else {
+            warnings.push(
+              `lifecycle PR #${String(lifecyclePr)}: auto-merge skipped (${finalizeCarveOut.reason}; ` +
+                "hand-off without auto-merge)",
+            );
+          }
+        } else if (agentMerge.allowed) {
           const autoMerge = enableLeftoverAutoMerge(repo, lifecyclePr, runGh);
           if (!autoMerge.ok) {
             warnings.push(
               `lifecycle PR #${String(lifecyclePr)}: auto-merge not enabled (${autoMerge.detail})`,
             );
-          } else if (!agentMerge.allowed && finalizeCarveOut.allowed) {
-            warnings.push(
-              `lifecycle PR #${String(lifecyclePr)}: auto-merge via ${finalizeCarveOut.reason}; ` +
-                (finalizeCarveOut.assumption ?? FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION),
-            );
           }
         } else {
           warnings.push(
             `lifecycle PR #${String(lifecyclePr)}: auto-merge skipped (requireHumanMerge; ` +
-              `${finalizeCarveOut.reason}; hand-off without auto-merge)`,
+              "hand-off without auto-merge)",
           );
         }
         if (args.handOffLeftover === true) {

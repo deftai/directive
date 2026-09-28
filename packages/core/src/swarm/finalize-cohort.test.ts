@@ -1863,8 +1863,8 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
-  it("arms leftover auto-merge via finalize-class carve-out under requireHumanMerge (#3791)", () => {
-    const project = mkdtempSync(join(tmpdir(), "sw-finalize-human-merge-"));
+  it("does not arm finalize leftover auto-merge under requireHumanMerge without bot-merge override (#3791)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-human-merge-deny-"));
     const storyPath = writeActiveStory(project, "story-4919", 4919);
     writeFileSync(
       join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
@@ -1895,11 +1895,82 @@ describe("finalizeCohort", () => {
     try {
       expect(isDurableFinalizeHeadRef("swarm/finalize/story-4919")).toBe(true);
       expect(isDurableFinalizeHeadRef("feature/other")).toBe(false);
-      const carveOut = evaluateFinalizeClassMergeCarveOut("swarm/finalize/story-4919");
+      const denied = evaluateFinalizeClassMergeCarveOut("swarm/finalize/story-4919", project);
+      expect(denied.allowed).toBe(false);
+      expect(denied.reason).toMatch(/bot-merge policy|human merge/i);
+      expect(evaluateFinalizeClassMergeCarveOut("feature/other", project).allowed).toBe(false);
+      expect(evaluateFinalizeClassMergeCarveOut("swarm/finalize/", project).allowed).toBe(false);
+      const result = finalizeCohort({
+        projectRoot: project,
+        storyTokens: [storyPath],
+        prNumbers: [42],
+        label: "story-4919",
+        repo: "deftai/directive",
+        deliveryBranch: "master",
+        handOffLeftover: true,
+        landProbeLimit: 1,
+        sleep: () => {},
+        runGit: mockRunGit(),
+        runGh: (cmd) => {
+          ghCalls.push([...cmd]);
+          return runGh(cmd);
+        },
+      });
+      expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+      expect(result.result.pending?.kind).toBe("origin-close");
+      expect(ghCalls.some((cmd) => cmd.includes("merge") && cmd.includes("--auto"))).toBe(false);
+      expect(
+        result.result.warnings.some(
+          (w) =>
+            w.includes("auto-merge skipped") &&
+            w.includes("bot-merge policy") &&
+            w.includes("human merge"),
+        ),
+      ).toBe(true);
+    } finally {
+      if (prevBot === undefined) {
+        delete process.env.DEFT_ALLOW_BOT_MERGE;
+      } else {
+        process.env.DEFT_ALLOW_BOT_MERGE = prevBot;
+      }
+      rmSync(project, { recursive: true, force: true });
+    }
+  });
+
+  it("arms leftover auto-merge via finalize-class carve-out when bot-merge override is on (#3791)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-human-merge-allow-"));
+    const storyPath = writeActiveStory(project, "story-4919", 4919);
+    writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "Project",
+          status: "running",
+          policy: {
+            allowDirectCommitsToMaster: false,
+            wipCap: 10,
+            requireHumanMerge: true,
+            deliveryBranch: "master",
+          },
+        },
+      }),
+      "utf8",
+    );
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        42: { merged: true, closingIssues: [], baseRef: "master" },
+        9999: { merged: false, closingIssues: [], baseRef: "master" },
+      },
+      { 4919: "open" },
+    );
+    const prevBot = process.env.DEFT_ALLOW_BOT_MERGE;
+    process.env.DEFT_ALLOW_BOT_MERGE = "1";
+    try {
+      const carveOut = evaluateFinalizeClassMergeCarveOut("swarm/finalize/story-4919", project);
       expect(carveOut.allowed).toBe(true);
       expect(carveOut.assumption).toBe(FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION);
-      expect(evaluateFinalizeClassMergeCarveOut("feature/other").allowed).toBe(false);
-      expect(evaluateFinalizeClassMergeCarveOut("swarm/finalize/").allowed).toBe(false);
+      expect(evaluateFinalizeClassMergeCarveOut("feature/other", project).allowed).toBe(false);
       const result = finalizeCohort({
         projectRoot: project,
         storyTokens: [storyPath],
@@ -1928,7 +1999,7 @@ describe("finalizeCohort", () => {
       ).toBe(true);
       expect(
         result.result.warnings.some(
-          (w) => w.includes("auto-merge skipped") && w.includes("requireHumanMerge"),
+          (w) => w.includes("auto-merge skipped") && w.includes("bot-merge policy"),
         ),
       ).toBe(false);
     } finally {
