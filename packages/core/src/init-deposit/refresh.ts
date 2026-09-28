@@ -220,7 +220,7 @@ export interface RefreshDepositSeams {
    * #2822 / #5096: optional seam. Default runs org-force-on with
    * `projectDefinitionMutation: "skip"` so update never rewrites PROJECT-DEFINITION.
    */
-  runOrgForceOn?: (projectRoot: string) => OrgForceOnMigrationResult | void;
+  runOrgForceOn?: (projectRoot: string) => OrgForceOnMigrationResult | undefined;
   /** Post-deposit functional readiness gate (#3100). */
   evaluateAgentHookReadiness?: (projectRoot: string) => AgentHookReadinessResult;
   /** Injected three-state Git probe (#4158). Default {@link probeUpdateGit}. */
@@ -1240,6 +1240,12 @@ export async function runRefreshDeposit(
   const wroteBeforePin = snapshotMutationSummary().wrote;
   const pinLockRefreshError = reconstituteConsumerPinAndLock(projectDir, contentVersion, io, seams);
   if (pinLockRefreshError !== null) {
+    consumerProjections.push({
+      path: "package.json",
+      disposition: "refused",
+      write_class: "pin",
+      reason: "pin reconstitution / lockfile refresh failed (#4710)",
+    });
     return {
       projectDir,
       deftDir,
@@ -1299,7 +1305,7 @@ export async function runRefreshDeposit(
   // lifecycle content before migrate:xbrief can transactionally converge it.
   if (hasCanonicalXbriefLifecycle(projectDir)) {
     const wroteBeforeSchemas = snapshotMutationSummary().wrote;
-    syncConsumerXbriefSchemas(projectDir, payloadReadRoot);
+    const schemasChanged = syncConsumerXbriefSchemas(projectDir, payloadReadRoot);
     for (const path of wroteSince(wroteBeforeSchemas, snapshotMutationSummary().wrote)) {
       if (path === "xbrief/schemas" || path.startsWith("xbrief/schemas/")) {
         consumerProjections.push({
@@ -1307,6 +1313,20 @@ export async function runRefreshDeposit(
           disposition: "rewritten",
           write_class: "schema",
           reason: "installer-managed schema sync (#2595)",
+        });
+      }
+    }
+    // Removals (e.g. obsolete schema) may not appear in wrote[]; ledger when sync changed without wrote paths.
+    if (schemasChanged) {
+      const schemaWrote = wroteSince(wroteBeforeSchemas, snapshotMutationSummary().wrote).some(
+        (path) => path === "xbrief/schemas" || path.startsWith("xbrief/schemas/"),
+      );
+      if (!schemaWrote) {
+        consumerProjections.push({
+          path: "xbrief/schemas/",
+          disposition: "rewritten",
+          write_class: "schema",
+          reason: "installer-managed schema sync removal/cleanup (#2595)",
         });
       }
     }
@@ -1321,14 +1341,17 @@ export async function runRefreshDeposit(
     productSignalChanged: false,
   };
   try {
-    const seamResult =
-      seams.runOrgForceOn?.(projectDir) ??
-      runOrgForceOnMigration(projectDir, {
+    if (seams.runOrgForceOn !== undefined) {
+      // Injected seam fully replaces the default path (even when it returns undefined).
+      const seamResult = seams.runOrgForceOn(projectDir);
+      if (seamResult !== undefined) {
+        orgForceResult = seamResult;
+      }
+    } else {
+      orgForceResult = runOrgForceOnMigration(projectDir, {
         actor: "directive-update",
         projectDefinitionMutation: "skip",
       });
-    if (seamResult !== undefined) {
-      orgForceResult = seamResult;
     }
   } catch {
     // Policy migration is best-effort; never block framework refresh (#2822).
