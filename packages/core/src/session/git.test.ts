@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
+  CODEX_RITUAL_GIT_EPERM_TIP,
   defaultGitRunner,
   detectBranch,
   existingAncestorDir,
@@ -26,6 +27,13 @@ afterAll(() => {
 });
 
 describe("session git helpers", () => {
+  it("names Codex outside-sandbox tip on EPERM (#4664)", () => {
+    expect(CODEX_RITUAL_GIT_EPERM_TIP).toContain("EPERM");
+    expect(CODEX_RITUAL_GIT_EPERM_TIP).toContain("approve outside-sandbox for ritual git");
+    expect(CODEX_RITUAL_GIT_EPERM_TIP).toContain("/approvals");
+    expect(CODEX_RITUAL_GIT_EPERM_TIP).toContain("README Codex ritual git");
+  });
+
   it("gitHead returns error when git missing", () => {
     const result = gitHead("/tmp", () => ({ code: 127, stdout: "", stderr: "missing" }));
     expect(result.head).toBeNull();

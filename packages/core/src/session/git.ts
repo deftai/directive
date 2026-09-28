@@ -11,6 +11,10 @@ export interface GitRunResult {
 
 export type GitRunner = (projectRoot: string, args: readonly string[]) => GitRunResult;
 
+/** Recovery copy when spawnSync git fails with EPERM under a host sandbox (#4664). */
+export const CODEX_RITUAL_GIT_EPERM_TIP =
+  "git spawn EPERM (Codex sandbox?): approve outside-sandbox for ritual git once via Codex TUI /approvals; see README Codex ritual git";
+
 function coerceGitBytes(value: unknown): Buffer {
   if (Buffer.isBuffer(value)) return value;
   if (typeof value === "string") return Buffer.from(value, "utf8");
@@ -44,6 +48,14 @@ function execGit(projectRoot: string, args: readonly string[], timeoutMs?: numbe
     };
     if (e.code === "ENOENT") {
       return { code: 127, stdout: "", stderr: "git executable not found on PATH" };
+    }
+    // #4664: name Codex outside-sandbox tip on EPERM; docs own the durable path.
+    if (e.code === "EPERM") {
+      return {
+        code: typeof e.status === "number" ? e.status : 1,
+        stdout: gitStdoutString(coerceGitBytes(e.stdout), args),
+        stderr: CODEX_RITUAL_GIT_EPERM_TIP,
+      };
     }
     return {
       code: typeof e.status === "number" ? e.status : 2,

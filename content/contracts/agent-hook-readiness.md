@@ -25,6 +25,15 @@ Readiness reports these dimensions separately for each host:
 
 The live probe verifies the first two dimensions. It does not simulate a host tool call, so interception remains `not-directly-verified`. Codex project-hook trust cannot be read by Directive and is reported as `manual-review-required`; operators open `/hooks` and approve the exact project commands. Neither state is described as active or trusted merely because the registration and shim work.
 
+## Codex ritual-git recovery (#4664)
+
+Host sandbox ownership may remain, but Continuity requires a documented durable outside-sandbox approval path for ritual `git` under Codex (same operator-boundary pattern as Cursor sandbox full-access / trusted-path remediation, and as Codex hook trust remaining operator-reviewed).
+
+- ! README cold-start **Codex ritual git** and this contract MUST name that path: **what** to approve (outside-sandbox / `Environment: local` for ritual `git` spawned by `session:start` and peer ritual verbs), **once vs per session** (session-scoped approval or `/approvals` workspace trust — not repeated per-verb prompts), **where** in the Codex TUI (the command approval prompt; durable settings via `/approvals` when offered).
+- ! Keep ritual-git recovery distinct from Codex project-hook `/hooks` trust (`manual-review-required`) and from npm-prefix **Sandbox install**.
+- ⊗ Invent a second in-process git substitute for HEAD / worktree / repo detection.
+- ⊗ Treat repeated per-verb `Environment: local` prompts as discharge of Continuity (P2).
+
 ## Gate behavior
 
 - ! Structural inspection runs first. A missing or drifted enabled registration fails before any subprocess probe.

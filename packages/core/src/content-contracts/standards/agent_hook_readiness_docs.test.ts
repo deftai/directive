@@ -37,4 +37,25 @@ describe("agent-hook functional readiness docs (#3100)", () => {
     expect(text).toContain("does **not** run the live agent-hook probe");
     expect(text).toContain("contracts/agent-hook-readiness.md");
   });
+
+  it("locks Codex ritual-git recovery on README and this contract (#4664)", () => {
+    const contract = readText(CONTRACT);
+    const readme = readText("README.md");
+    for (const token of [
+      "Codex ritual git",
+      "outside-sandbox",
+      "Environment: local",
+      "/approvals",
+      "in-process git substitute",
+    ]) {
+      expect(contract, `contract missing ${token}`).toContain(token);
+      expect(readme, `README missing ${token}`).toContain(token);
+    }
+    expect(contract.toLowerCase()).toContain("to approve");
+    expect(readme.toLowerCase()).toContain("approve outside-sandbox");
+    expect(contract.toLowerCase()).toContain("repeated per-verb");
+    expect(readme.toLowerCase()).toContain("repeated per-verb");
+    expect(contract).toContain("Codex ritual-git recovery (#4664)");
+    expect(readme).toContain("spawnSync git EPERM");
+  });
 });
