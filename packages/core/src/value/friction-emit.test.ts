@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { clearRegistryCache, readEvents } from "../lifecycle/events.js";
+import { clearRegistryCache } from "../lifecycle/events.js";
 import {
   probeFrictionAtWorkBoundary,
   recordFrictionFromContradictoryGates,
