@@ -270,8 +270,13 @@ function closeKindFromPayload(payload: IssueStatePayload | null): IssueCloseKind
 }
 
 /**
- * Same cache/live trust order as `defaultResolveIssueState`, with state_reason
- * for the #5126 cancel refuse (shipped-closed vs abandon).
+ * Close-kind resolution for the #5126 cancel refuse.
+ *
+ * Cached shipped-closed is fail-closed evidence (safe to trust without live).
+ * Cached abandoned-closed (`not_planned`/`duplicate`) is NOT — a reopen then
+ * completed close must not skip the tip-twin refuse (#5126 Greptile P1). Prefer
+ * live REST whenever network is allowed; when live fails, do not green cancel
+ * on stale abandon cache (treat as unknown).
  */
 export function resolveIssueCloseKind(
   ref: IssueRef,
@@ -280,17 +285,25 @@ export function resolveIssueCloseKind(
   skipGh: boolean,
 ): IssueCloseKind {
   const cached = readCachedIssuePayload(projectRoot, ref);
-  if (cached?.state === "closed") {
-    return closeKindFromPayload(cached);
+  const cachedKind = closeKindFromPayload(cached);
+  // Trust cached shipped-closed without live (refuse stays fail-closed).
+  if (cachedKind === "shipped-closed") {
+    return "shipped-closed";
   }
   if (skipGh) {
-    return closeKindFromPayload(cached);
+    return cachedKind;
   }
+  // Prefer live for open / abandon / unknown cache. Stale abandon must not
+  // authorize cancel after reopen+completed.
   const live = fetchIssuePayloadLive(ref, runGh);
   if (live !== null) {
     return closeKindFromPayload(live);
   }
-  return "unknown";
+  // Live failed: do not trust cached abandon as permission to cancel.
+  if (cachedKind === "abandoned-closed") {
+    return "unknown";
+  }
+  return cachedKind;
 }
 
 function collectIssuesFromPlan(
@@ -531,11 +544,13 @@ function formatRefusal(
   projectRoot: string,
   tip: string,
 ): string {
+  const issueNums = missing.map((item) => item.issue.number).join(",");
   const lines = [
     `verify:completed-tracked: ${missing.length} closed scoped issue${
       missing.length === 1 ? "" : "s"
     } lack a tracked xbrief/completed/ or xbrief/cancelled/ artifact on delivery tip ${tip} (project_root=${projectRoot}).`,
-    "  Remediation: task swarm:finalize-cohort (or open a lifecycle PR that lands the completed/cancelled xBRIEFs).",
+    "  Remediation: task swarm:finalize-cohort -- --pr <n>[,<n>...] or --stories <ids|paths> (or open a lifecycle PR that lands the completed/cancelled xBRIEFs).",
+    `  Example: task swarm:finalize-cohort -- --stories ${issueNums}`,
     "  Missing:",
   ];
   for (const item of missing) {
@@ -818,6 +833,8 @@ export interface CancelShippedOriginRefuseOptions {
   readonly runGit?: GitRunner;
   readonly tip?: string | null;
   readonly repo?: string | null;
+  /** Active brief path being cancelled — printed into runnable remediation. */
+  readonly briefPath?: string | null;
   readonly resolveCloseKind?: (ref: IssueRef) => IssueCloseKind;
   readonly hasCompletedTwin?: (ref: IssueRef) => CompletedTipTwinResult;
 }
@@ -826,15 +843,30 @@ export type CancelShippedOriginRefuseResult =
   | { readonly refuse: false }
   | { readonly refuse: true; readonly message: string };
 
+function formatBriefRemediationPath(
+  projectRoot: string,
+  briefPath: string | null | undefined,
+): string {
+  if (briefPath === null || briefPath === undefined || briefPath.trim().length === 0) {
+    return "xbrief/active/<file>.xbrief.json";
+  }
+  const rel = relative(resolve(projectRoot), resolve(briefPath)).replace(/\\/g, "/");
+  if (rel.length === 0 || rel.startsWith("..")) {
+    return briefPath.replace(/\\/g, "/");
+  }
+  return rel;
+}
+
 function formatCancelShippedOriginRefuse(
   issue: IssueRef,
   tip: string | null,
   detail: string,
+  briefPath: string,
 ): string {
   const tipLabel = tip ?? "origin/<deliveryBranch>";
   return [
     `scope:cancel: refused for shipped-closed origin ${formatIssue(issue)} without a completed tip twin on ${tipLabel} (${detail}).`,
-    "  Remediation: leftover-complete via task scope:complete --merge-commit . --pr . or task swarm:finalize-cohort.",
+    `  Remediation: leftover-complete via task scope:complete -- ${briefPath} (optional --merge-commit <sha> --pr <n>), or task swarm:finalize-cohort -- --pr <n> / --stories ${issue.number}.`,
   ].join("\n");
 }
 
@@ -852,6 +884,7 @@ export function evaluateCancelShippedOriginRefuse(
   const runGh = options.runGh ?? defaultRunGh;
   const runGit = options.runGit ?? defaultGitRunner;
   const defaultRepo = resolveRepo(options.repo, root);
+  const briefPath = formatBriefRemediationPath(root, options.briefPath);
   const { issues } = collectGithubRefs(plan, defaultRepo);
   if (issues.length === 0) {
     return { refuse: false };
@@ -872,7 +905,12 @@ export function evaluateCancelShippedOriginRefuse(
     if (kind === "unknown") {
       return {
         refuse: true,
-        message: formatCancelShippedOriginRefuse(issue, null, "could not resolve closed state"),
+        message: formatCancelShippedOriginRefuse(
+          issue,
+          null,
+          "could not resolve closed state",
+          briefPath,
+        ),
       };
     }
     // shipped-closed
@@ -880,7 +918,7 @@ export function evaluateCancelShippedOriginRefuse(
     if (twin.error !== null) {
       return {
         refuse: true,
-        message: formatCancelShippedOriginRefuse(issue, twin.tip, twin.error),
+        message: formatCancelShippedOriginRefuse(issue, twin.tip, twin.error, briefPath),
       };
     }
     if (!twin.found) {
@@ -890,6 +928,7 @@ export function evaluateCancelShippedOriginRefuse(
           issue,
           twin.tip,
           "no xbrief/completed/ (or vbrief/completed/) citing the origin",
+          briefPath,
         ),
       };
     }

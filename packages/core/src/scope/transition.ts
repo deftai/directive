@@ -435,6 +435,7 @@ export function runTransition(
       runGit: options.runGit,
       tip: options.tip,
       repo: options.repo,
+      briefPath: resolvedPath,
       resolveCloseKind: options.resolveIssueCloseKind,
       hasCompletedTwin: options.hasCompletedTipTwin,
     });

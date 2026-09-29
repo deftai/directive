@@ -464,11 +464,11 @@ function formatRefusal(
       lines.push(`    task scope:complete -- ${orphan.path}`);
     }
     lines.push(
-      "    task scope:cancel -- xbrief/active/<file>.xbrief.json   # abandon-only (origin open or not shipped-closed); refused when shipped-closed without completed tip twin (#5126)",
-      "  On shipped-closed Tracking/Refs product merge, leftover-complete via scope:complete / swarm:finalize-cohort — cancel is not a ship exit (#5126).",
+      "    task scope:cancel -- xbrief/active/<file>.xbrief.json   # abandon-only; refused when shipped-closed without completed tip twin (#5126)",
+      "  Shipped-closed Tracking/Refs: leftover-complete via printed scope:complete / swarm:finalize-cohort -- --pr <n> — cancel is not a ship exit (#5126).",
       "  For stop-at:pr-open workers the orchestrator owns post-merge leftover-complete;",
       "  for drive-to:merge-ready workers scope:complete is part of the worker unit (#2321 / #3429).",
-      "  Or run task swarm:finalize-cohort / task swarm:complete-cohort after cohort merge.",
+      "  Or run task swarm:finalize-cohort -- --pr <n> / --stories <ids|paths> after cohort merge.",
     );
   }
   if (unresolvedOrphans.length > 0) {

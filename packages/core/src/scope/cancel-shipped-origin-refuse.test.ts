@@ -99,7 +99,9 @@ describe("scope:cancel shipped-origin refuse (#5126)", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toContain("scope:cancel: refused");
     expect(result.message).toContain("leftover-complete");
-    expect(result.message).toContain("swarm:finalize-cohort");
+    expect(result.message).toContain("task scope:complete -- xbrief/active/shipped.xbrief.json");
+    expect(result.message).toContain("swarm:finalize-cohort -- --pr <n> / --stories 51261");
+    expect(result.message).not.toContain("--merge-commit .");
     expect(result.message).toContain("51261");
     expect(readFileSync(active, "utf8")).toContain('"status":"running"');
   });
@@ -177,6 +179,50 @@ describe("scope:cancel shipped-origin refuse (#5126)", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.message).toContain("leftover-complete");
+  });
+
+  it("prefers live completed over stale cached not_planned (#5126 Greptile P1)", () => {
+    const root = makeRepo();
+    const active = writeBrief(
+      root,
+      "active",
+      "stale-abandon.xbrief.json",
+      originPlan(51267, "running"),
+    );
+    writeCachedIssue(root, "deftai/directive", 51267, "closed", "not_planned");
+    const result = runTransition("cancel", active, new Date(), {
+      tip: "HEAD",
+      repo: "deftai/directive",
+      runGh: () => ({
+        returncode: 0,
+        stdout: JSON.stringify({
+          number: 51267,
+          state: "closed",
+          state_reason: "completed",
+        }),
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("scope:cancel: refused");
+    expect(result.message).toContain("leftover-complete");
+    expect(result.message).toContain("task scope:complete -- xbrief/active/stale-abandon.xbrief.json");
+  });
+
+  it("skipGh still honors cached not_planned as abandon", () => {
+    const root = makeRepo();
+    const active = writeBrief(
+      root,
+      "active",
+      "skipgh-abandon.xbrief.json",
+      originPlan(51268, "running"),
+    );
+    writeCachedIssue(root, "deftai/directive", 51268, "closed", "not_planned");
+    const result = runTransition("cancel", active, new Date(), {
+      skipGh: true,
+      tip: "HEAD",
+      repo: "deftai/directive",
+    });
+    expect(result.ok).toBe(true);
   });
 
   it("verify:completed-tracked exits 1 until completed twin exists (#5126 fixture)", () => {
