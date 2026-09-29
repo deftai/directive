@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=ce77d3023489 refreshed=2026-09-29T03:15:50Z session=42fd891eb4b3 -->
+<!-- deft:managed-section v3 sha=35ccedbbe94e refreshed=2026-09-29T04:35:11Z session=6c936343cb35 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -333,6 +333,10 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ### Implementation Intent Gate (#810 / #1193)
 
 ! `deft xbrief:preflight -- <path>` on `xbrief/active/` before code-writing; action-verb (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810). Slash-command sessions inherit only that verb (`DEFT_SESSION_SLASH_VERB`); non-implement verbs (`/github-issue`, `/triage`, …) MUST NOT authorize implement/push/PR/merge/deploy (#1193) — `commands.md` / `contracts/intent-ceiling.md`.
+
+## Merge-gate enforcement readiness (#1517)
+
+! Forge required-status-check readiness is a distinct axis from local `allowDirectCommitsToMaster` / Phase 2 "branch-protection ON". At build/swarm strategy start when SCM is ready, run merge-gate enforcement detect+record (`evaluateMergeGateEnforcementAtStrategyStart`); durable `.deft/merge-gate-enforcement/` decisions: `configured` | `explicit-opt-out` | `cannot-configure` | `deferred-not-applicable`. Optional configure never empty-PUT / auto-promote harvest; does not grant bot-merge or change `requireHumanMerge`. Depth: `.deft/core/scm/github.md`.
 
 ## Human merge gate (#1193)
 
