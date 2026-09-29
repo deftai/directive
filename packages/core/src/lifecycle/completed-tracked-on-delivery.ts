@@ -878,8 +878,8 @@ function formatCancelShippedOriginRefuse(
  * x-tracking.decomposition_origin as a cancel gate — a closed related /
  * decomposition parent without a tip twin must not block abandoning an
  * open-origin brief (#5126 Greptile P1). Falls back to x-tracking.parent_issue
- * only when references named no origin. Bare numbers with no resolvable repo
- * set unresolvedBareOrigin.
+ * only when references named no origin. Bare numbers / unresolved repo set unresolvedBareOrigin (refuse even when
+ * other full-URL origins resolved). parent_issue may be a GitHub URL.
  */
 export function collectCancelOwnOriginIssues(
   plan: Record<string, unknown>,
@@ -906,15 +906,19 @@ export function collectCancelOwnOriginIssues(
     issues.push({ repo: resolved, number });
   };
 
-  const parseTrackingIssue = (value: unknown): number | null => {
+  const parseTrackingOrigin = (value: unknown): { repo: string | null; number: number | null } => {
     if (typeof value === "number" && Number.isInteger(value) && value > 0) {
-      return value;
+      return { repo: null, number: value };
     }
     if (typeof value !== "string") {
-      return null;
+      return { repo: null, number: null };
+    }
+    const [repoFromUri, numberFromUri] = parseGithubIssueUri(value);
+    if (numberFromUri !== null) {
+      return { repo: repoFromUri, number: numberFromUri };
     }
     const match = value.match(/#(\d+)/);
-    return match ? Number(match[1]) : null;
+    return match ? { repo: null, number: Number(match[1]) } : { repo: null, number: null };
   };
 
   const refs = plan.references;
@@ -933,25 +937,32 @@ export function collectCancelOwnOriginIssues(
     }
   }
 
-  let parentNumber: number | null = null;
-  let decompNumber: number | null = null;
+  let parentOrigin: { repo: string | null; number: number | null } = {
+    repo: null,
+    number: null,
+  };
+  let decompOrigin: { repo: string | null; number: number | null } = {
+    repo: null,
+    number: null,
+  };
   const metadata = plan.metadata;
   if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
     const tracking = (metadata as Record<string, unknown>)["x-tracking"];
     if (typeof tracking === "object" && tracking !== null && !Array.isArray(tracking)) {
       const t = tracking as Record<string, unknown>;
-      parentNumber = parseTrackingIssue(t.parent_issue);
-      decompNumber = parseTrackingIssue(t.decomposition_origin);
+      parentOrigin = parseTrackingOrigin(t.parent_issue);
+      decompOrigin = parseTrackingOrigin(t.decomposition_origin);
     }
   }
 
-  if (issues.length === 0 && parentNumber !== null) {
-    add(defaultRepo, parentNumber);
+  if (issues.length === 0 && parentOrigin.number !== null) {
+    add(parentOrigin.repo, parentOrigin.number);
   } else if (
     issues.length === 0 &&
-    parentNumber === null &&
-    decompNumber !== null &&
-    defaultRepo === null
+    parentOrigin.number === null &&
+    decompOrigin.number !== null &&
+    defaultRepo === null &&
+    decompOrigin.repo === null
   ) {
     unresolvedBareOrigin = true;
   }
@@ -975,7 +986,7 @@ export function evaluateCancelShippedOriginRefuse(
   const defaultRepo = resolveRepo(options.repo, root);
   const briefPath = formatBriefRemediationPath(root, options.briefPath);
   const { issues, unresolvedBareOrigin } = collectCancelOwnOriginIssues(plan, defaultRepo);
-  if (unresolvedBareOrigin && issues.length === 0) {
+  if (unresolvedBareOrigin) {
     return {
       refuse: true,
       message: [

@@ -360,4 +360,54 @@ describe("scope:cancel shipped-origin refuse (#5126)", () => {
     });
     expect(result.ok).toBe(true);
   });
+  it("refuses when bare origin unresolved even if a full-URL origin is open (#5126 P1)", () => {
+    const root = makeRepo();
+    const plan = {
+      status: "running",
+      title: "mixed",
+      items: [],
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/51274",
+          type: "x-xbrief/github-issue",
+        },
+        {
+          uri: "51275",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    };
+    const active = writeBrief(root, "active", "mixed-bare.xbrief.json", plan);
+    writeCachedIssue(root, "deftai/directive", 51274, "open", null);
+    const result = runTransition("cancel", active, new Date(), {
+      skipGh: true,
+      tip: "HEAD",
+      // no repo — bare 51275 cannot resolve
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("no resolvable GitHub repo");
+  });
+
+  it("accepts x-tracking.parent_issue GitHub URL as origin (#5126 P1)", () => {
+    const root = makeRepo();
+    const plan = {
+      status: "running",
+      title: "parent-url-origin",
+      items: [],
+      references: [],
+      metadata: {
+        "x-tracking": {
+          parent_issue: "https://github.com/deftai/directive/issues/51276",
+        },
+      },
+    };
+    const active = writeBrief(root, "active", "parent-url-origin.xbrief.json", plan);
+    writeCachedIssue(root, "deftai/directive", 51276, "closed", "completed");
+    const result = runTransition("cancel", active, new Date(), {
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("leftover-complete");
+  });
 });
