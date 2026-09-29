@@ -204,7 +204,7 @@ it("parses a real cold Task build followed by the source CLI report", { timeout:
     expect(child.stdout).toContain("cold build diagnostic");
     expect(existsSync(join(root, "packages/cli/dist/bin.js"))).toBe(true);
     expect(readFileSync(join(root, "packages/cli/dist/bin.js"), "utf8")).toBe(shim);
-    expect(parseCoverageReport(child.stdout, (child.status ?? 0))).toEqual({
+    expect(parseCoverageReport(child.stdout, child.status ?? 0)).toEqual({
       armed: false,
       coverage: [],
     });
