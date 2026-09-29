@@ -679,7 +679,6 @@ export function enforceGates(
   return null;
 }
 
-
 function safeSegment(text: string): string {
   let cleaned = "";
   for (const ch of text.trim()) {

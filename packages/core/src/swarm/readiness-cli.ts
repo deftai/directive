@@ -3,11 +3,15 @@ import { fileURLToPath } from "node:url";
 import {
   expandReadinessPaths,
   readinessReport,
-  scaffoldSwarmDraft,
   SWARM_BLOCK_REMEDIATION_HINT,
+  scaffoldSwarmDraft,
 } from "./readiness.js";
 
-function takeValue(argv: string[], i: number, arg: string): { value: string | null; next: number; error?: string } {
+function takeValue(
+  argv: string[],
+  i: number,
+  arg: string,
+): { value: string | null; next: number; error?: string } {
   const value = argv[i + 1];
   if (value === undefined || value.startsWith("--")) {
     return { value: null, next: i, error: `argument ${arg}: expected one argument` };
@@ -168,9 +172,7 @@ export function readinessMain(argv: string[] = process.argv.slice(2)): number {
       return 2;
     }
     if (size === undefined || fileScopeConfidence === undefined) {
-      process.stderr.write(
-        "scaffold requires explicit --size and --file-scope-confidence\n",
-      );
+      process.stderr.write("scaffold requires explicit --size and --file-scope-confidence\n");
       return 2;
     }
     const result = scaffoldSwarmDraft({

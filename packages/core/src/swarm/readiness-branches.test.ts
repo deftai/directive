@@ -1,16 +1,11 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  readinessReport,
-  scaffoldSwarmDraft,
-  SWARM_BLOCK_REMEDIATION_HINT,
-} from "./readiness.js";
-import { readinessMain } from "./readiness-cli.js";
 import { missingRequiredSwarmFields } from "../vbrief-validation/story-quality.js";
 import { enforceGates, type ResolvedStory } from "./launch.js";
-import { readFileSync } from "node:fs";
+import { readinessReport, SWARM_BLOCK_REMEDIATION_HINT, scaffoldSwarmDraft } from "./readiness.js";
+import { readinessMain } from "./readiness-cli.js";
 
 function writeStory(
   project: string,
@@ -32,7 +27,8 @@ function writeStory(
             "This story implements a focused workflow change in the named source path. It keeps the behavior narrow and records success and failure outcomes for verification.",
           ImplementationPlan:
             "1. Update packages/core/src/swarm/readiness.ts to apply the documented field mode.\n2. Add targeted vitest coverage under packages/core/src/swarm/readiness-branches.test.ts for success and failure.",
-          UserStory: "As a product user, I want focused readiness behavior, so that I can launch solo headless work.",
+          UserStory:
+            "As a product user, I want focused readiness behavior, so that I can launch solo headless work.",
           Traces: "FR-1",
         },
         items: [
@@ -182,7 +178,6 @@ describe("readiness branch coverage", () => {
   });
 });
 
-
 describe("swarm readiness #3718", () => {
   it("solo-headless relaxes ceremony fields but keeps file_scope/verify_commands", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-3718-solo-"));
@@ -240,9 +235,7 @@ describe("swarm readiness #3718", () => {
     const raw = JSON.parse(readFileSync(path, "utf8")) as {
       plan: { metadata: { swarm: Record<string, unknown> } };
     };
-    expect(raw.plan.metadata.swarm.file_scope).toEqual([
-      "packages/core/src/swarm/readiness.ts",
-    ]);
+    expect(raw.plan.metadata.swarm.file_scope).toEqual(["packages/core/src/swarm/readiness.ts"]);
     expect(raw.plan.metadata.swarm.depends_on).toEqual([]);
     expect(raw.plan.metadata.swarm).not.toHaveProperty("expected_outputs");
 
@@ -296,21 +289,31 @@ describe("swarm readiness #3718", () => {
       relpath: "xbrief/active/enf-a.xbrief.json",
     };
     const seen: Array<boolean | undefined> = [];
-    const fail = enforceGates([story, { ...story, story_id: "enf-b", token: "b" }], project, () => ({
-      exitCode: 0,
-      message: "ok",
-    }), (_p, _r, options) => {
-      seen.push(options?.soloHeadless);
-      return { exitCode: 1, report: "missing ceremony" };
-    });
+    const fail = enforceGates(
+      [story, { ...story, story_id: "enf-b", token: "b" }],
+      project,
+      () => ({
+        exitCode: 0,
+        message: "ok",
+      }),
+      (_p, _r, options) => {
+        seen.push(options?.soloHeadless);
+        return { exitCode: 1, report: "missing ceremony" };
+      },
+    );
     expect(fail).not.toBeNull();
     expect(seen[0]).toBe(false);
 
     seen.length = 0;
-    const ok = enforceGates([story], project, () => ({ exitCode: 0, message: "ok" }), (_p, _r, options) => {
-      seen.push(options?.soloHeadless);
-      return { exitCode: 0, report: "ready" };
-    });
+    const ok = enforceGates(
+      [story],
+      project,
+      () => ({ exitCode: 0, message: "ok" }),
+      (_p, _r, options) => {
+        seen.push(options?.soloHeadless);
+        return { exitCode: 0, report: "ready" };
+      },
+    );
     expect(ok).toBeNull();
     expect(seen[0]).toBe(true);
     rmSync(project, { recursive: true, force: true });

@@ -766,8 +766,7 @@ export function readinessReport(
   paths: readonly string[],
   options: ReadinessReportOptions = {},
 ): { exitCode: number; report: string } {
-  const fieldMode: SwarmFieldMode =
-    options.soloHeadless === true ? "solo-headless" : "concurrent";
+  const fieldMode: SwarmFieldMode = options.soloHeadless === true ? "solo-headless" : "concurrent";
   const candidates = paths
     .map((p) => candidateFromPath(p, projectRoot))
     .filter((c): c is Candidate => c !== null);
@@ -797,9 +796,7 @@ export function readinessReport(
     report = `${report}\n\n${SWARM_BLOCK_REMEDIATION_HINT}`;
   }
   const withSerialize =
-    failed && !report.includes("serialize N PRs")
-      ? `${report}\n\n${SERIALIZE_N_PRS}`
-      : report;
+    failed && !report.includes("serialize N PRs") ? `${report}\n\n${SERIALIZE_N_PRS}` : report;
   return { exitCode: failed ? 1 : 0, report: withSerialize };
 }
 
@@ -844,9 +841,7 @@ export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwar
       ? ({ ...(plan.metadata as Record<string, unknown>) } as Record<string, unknown>)
       : {};
   const existingSwarm =
-    typeof metadata.swarm === "object" &&
-    metadata.swarm !== null &&
-    !Array.isArray(metadata.swarm)
+    typeof metadata.swarm === "object" && metadata.swarm !== null && !Array.isArray(metadata.swarm)
       ? ({ ...(metadata.swarm as Record<string, unknown>) } as Record<string, unknown>)
       : {};
 
@@ -873,11 +868,11 @@ export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwar
     swarm.expected_outputs = [...input.expectedOutputs];
     writtenKeys.push("expected_outputs");
   }
-  if (input.conflictGroup !== undefined && input.conflictGroup.trim()) {
+  if (input.conflictGroup?.trim()) {
     swarm.conflict_group = input.conflictGroup.trim();
     writtenKeys.push("conflict_group");
   }
-  if (input.modelTier !== undefined && input.modelTier.trim()) {
+  if (input.modelTier?.trim()) {
     swarm.model_tier = input.modelTier.trim();
     writtenKeys.push("model_tier");
   }
