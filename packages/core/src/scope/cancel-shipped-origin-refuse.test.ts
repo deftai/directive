@@ -205,7 +205,9 @@ describe("scope:cancel shipped-origin refuse (#5126)", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toContain("scope:cancel: refused");
     expect(result.message).toContain("leftover-complete");
-    expect(result.message).toContain("task scope:complete -- xbrief/active/stale-abandon.xbrief.json");
+    expect(result.message).toContain(
+      "task scope:complete -- xbrief/active/stale-abandon.xbrief.json",
+    );
   });
 
   it("skipGh still honors cached not_planned as abandon", () => {
