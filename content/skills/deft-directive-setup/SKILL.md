@@ -530,14 +530,14 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
   > "Do you prefer branch-based workflow (create a feature branch for every change) or
   > trunk-based (commit directly to master)? Branch-based is the default and recommended
   > for teams; trunk-based is common for solo projects."
-  > 1. Branch-based ★ (recommended -- default; enforces feature branches via the deft branch-protection policy — **agent-commit policy only**; does not configure GitHub required status checks / merge-gate enforcement (#1517))
+  > 1. Branch-based ★ (recommended -- default; enforces feature branches via the deft branch-protection policy)
   > 2. Trunk-based (direct commits to master) -- see capability-cost disclosure below
   > 3. Discuss
   > 4. Back
 
   ! **Capability-cost disclosure (#746):** When the user picks option 2 (trunk-based), the agent MUST present the capability-cost disclosure verbatim BEFORE writing the typed flag, then re-prompt for explicit confirmation:
 
-  > "Capability-cost disclosure -- enabling direct commits to the default branch turns OFF the deft branch-protection policy (agent-commit / `allowDirectCommitsToMaster` only — distinct from forge required-status-check merge-gate enforcement readiness (#1517)). The pre-commit + pre-push hooks will no longer block default-branch commits, `deft verify:branch` / `task deft:verify:branch` will pass on the default branch, and the skill-level guards in deft-directive-{swarm,review-cycle,pre-pr,release} will not halt for default-branch work. The change is reversible (`task policy:enforce-branches`) and is recorded to meta/policy-changes.log for auditability. The CI sanity check (head_ref != base_ref) remains independent and will continue to flag master->master PRs. Are you sure?"
+  > "Capability-cost disclosure -- enabling direct commits to the default branch turns OFF the deft branch-protection policy. The pre-commit + pre-push hooks will no longer block default-branch commits, `deft verify:branch` / `task deft:verify:branch` will pass on the default branch, and the skill-level guards in deft-directive-{swarm,review-cycle,pre-pr,release} will not halt for default-branch work. The change is reversible (`task policy:enforce-branches`) and is recorded to meta/policy-changes.log for auditability. The CI sanity check (head_ref != base_ref) remains independent and will continue to flag master->master PRs. Are you sure?"
   > 1. Yes, opt out -- persist `allowDirectCommitsToMaster=true` through the policy writer
   > 2. No, keep branch-protection enforced -- persist `allowDirectCommitsToMaster=false` through the policy writer
   > 3. Discuss
@@ -547,7 +547,7 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
   ! Record the answer as the logical field `plan.policy.allowDirectCommitsToMaster`, but do not hand-write either policy block. The common Output Path gate below invokes the only writer and stores the boolean under `plan["x-directive/policy"].allowDirectCommitsToMaster`. Default `false` (enforce branches) when the user picks option 2 OR omits the question entirely. Agents MUST NOT write bare `plan.policy` or the legacy free-form `Allow direct commits to master:` narrative key.
 
-  ! **Re-running the interview detects the existing flag (#746 part G2):** After the Re-entry shadow guard passes, surface the resolved current value (e.g. "Current setting: `allowDirectCommitsToMaster=false` (branch-protection ON — **agent-commit policy only**; not forge required-status-check / merge-gate enforcement readiness (#1517))") and ask whether to keep it or change it before re-prompting. A keep choice still runs the selected writer so legacy-only storage is migrated; an already-namespaced match is a no-op with no audit append. On Track 2 or 3, preserve an existing resolved boolean by default without asking a new branching question. Never replace an existing `true` with the greenfield `false` default unless the operator explicitly chooses the Track 1 change flow.
+  ! **Re-running the interview detects the existing flag (#746 part G2):** After the Re-entry shadow guard passes, surface the resolved current value (e.g. "Current setting: `allowDirectCommitsToMaster=false` (branch-protection ON)") and ask whether to keep it or change it before re-prompting. A keep choice still runs the selected writer so legacy-only storage is migrated; an already-namespaced match is a no-op with no audit append. On Track 2 or 3, preserve an existing resolved boolean by default without asking a new branching question. Never replace an existing `true` with the greenfield `false` default unless the operator explicitly chooses the Track 1 change flow.
 
   ! **Consumer command alternatives (#746 part G2):** Once the project is set up, use the public CLI directly:
   - `deft policy:show --field=plan.policy.allowDirectCommitsToMaster --project-root <policy-project-root>` -- display the current resolved policy and source
@@ -555,8 +555,6 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
   - `deft policy:allow-direct-commits --confirm --actor agent:deft-directive-setup --project-root <policy-project-root>` -- set `allowDirectCommitsToMaster=true`
 
   Each transition is recorded to `meta/policy-changes.log` for auditability.
-
-  ! **Forge merge-gate enforcement readiness (#1517):** Distinct axis from this local branch-protection question. Strategy-start (build/swarm) fails closed via `evaluateMergeGateEnforcementAtStrategyStart` when SCM is ready and a GitHub remote is resolved until a durable `.deft/merge-gate-enforcement/` record exists (`configured` | `explicit-opt-out` | `cannot-configure` | `deferred-not-applicable`). Setup MAY surface the decision early as optional; configure is optional/separate (never empty PUT; never auto-promote harvested check names; preserve human-review requirements; does not change `requireHumanMerge`). Directive does not assume consumer CI workflows are already scaffolded — detect-and-configure may wait for a first default-branch run while decision-and-record can complete earlier.
 
 **Track 2 (middle ground) — 4 steps:**
 - Step 1: Ask project name (infer from build files or directory name, confirm)
