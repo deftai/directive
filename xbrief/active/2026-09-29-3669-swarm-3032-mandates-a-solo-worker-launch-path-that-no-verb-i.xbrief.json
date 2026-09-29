@@ -1,0 +1,414 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3669",
+    "updated": "2026-09-29T00:49:42Z"
+  },
+  "plan": {
+    "title": "swarm: #3032 mandates a 'solo-worker launch path' that no verb implements -- the supported interactive path is discoverable only from references/",
+    "status": "running",
+    "narratives": {
+      "Description": "swarm: #3032 mandates a 'solo-worker launch path' that no verb implements -- the supported interactive path is discoverable only from references/",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3669",
+      "Overview": "\n\n1. Name the mandated solo/sequential dispatch path on AGENTS.md #3032, `content/commands.md`, and `content/skills/deft-directive-swarm/SKILL.md` so a reader does not have to infer it from `references/`. State the interactive-default vs headless-`swarm:launch` split at those point-of-use surfaces, including that `swarm:readiness` exit 0 gates concurrent workers.\n2. Keep Direction 3 as first preference: equate \"#3032 solo-worker launch path\" to the existing interactive swarm-skill path (Phase 0 default without a pre-approved cohort; Mode B worktrees; `dispatch_kind: solo`). Do not invent a greenfield solo-worker CLI verb as the first ship. Qualify that `swarm:launch` already emits `dispatch_kind: solo` only after concurrent-ready gates pass.\n3. Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly one resolved story, or decline with the reason on the thread and CHANGELOG. If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope. If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.\n4. Do not treat closed #3666 as having discharged this discoverability debt. Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.\n5. CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:a3ce7b52b2c89e02f2682ca92e2514a7ae5abc4effa434015737a5ecb272ef68\n\n\n",
+      "Labels": "documentation, enhancement, swarm, adoption-blocker, agent-experience, process, source-of-truth, area:cli, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities, promise:swarm"
+    },
+    "items": [
+      {
+        "title": "Name the mandated solo/sequential dispatch path on AGENTS.md #3032, `content/commands.md`, and `content/skills/deft-directive-swarm/SKILL.md` so a reader does not have to infer it from `references/`. State the interactive-default vs headless-`swarm:launch` split at those point-of-use surfaces, including that `swarm:readiness` exit 0 gates concurrent workers.",
+        "status": "proposed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/5131 (Greptile 5/5 CLEAN; squash merge fd5ad6312b97f213c121db45880fec1eb90c0f72)",
+          "recorded_at": "2026-09-29T02:39:25.457Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Keep Direction 3 as first preference: equate \"#3032 solo-worker launch path\" to the existing interactive swarm-skill path (Phase 0 default without a pre-approved cohort; Mode B worktrees; `dispatch_kind: solo`). Do not invent a greenfield solo-worker CLI verb as the first ship. Qualify that `swarm:launch` already emits `dispatch_kind: solo` only after concurrent-ready gates pass.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/5131 (Greptile 5/5 CLEAN; squash merge fd5ad6312b97f213c121db45880fec1eb90c0f72)",
+          "recorded_at": "2026-09-29T02:39:25.457Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly one resolved story, or decline with the reason on the thread and CHANGELOG. If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope. If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.",
+        "status": "proposed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/5131 (Greptile 5/5 CLEAN; squash merge fd5ad6312b97f213c121db45880fec1eb90c0f72)",
+          "recorded_at": "2026-09-29T02:39:25.457Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Do not treat closed #3666 as having discharged this discoverability debt. Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.",
+        "status": "proposed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/5131 (Greptile 5/5 CLEAN; squash merge fd5ad6312b97f213c121db45880fec1eb90c0f72)",
+          "recorded_at": "2026-09-29T02:39:25.457Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.",
+        "status": "proposed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/5131 (Greptile 5/5 CLEAN; squash merge fd5ad6312b97f213c121db45880fec1eb90c0f72)",
+          "recorded_at": "2026-09-29T02:39:25.457Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "documentation",
+      "enhancement",
+      "swarm",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3669",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3669: swarm: #3032 mandates a 'solo-worker launch path' that no verb implements -- the supported interactive path is discoverable only from references/"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3666",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3666"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "swarm: #3032 mandates a 'solo-worker launch path' that no verb implements -- the supported interactive path is discoverable only from references/",
+        "Name the mandated solo/sequential dispatch path on AGENTS.md #3032, `content/commands.md`, and `content/skills/deft-directive-swarm/SKILL.md` so a reader does not have to infer it from `references/`.",
+        "State the interactive-default vs headless-`swarm:launch` split at those point-of-use surfaces, including that `swarm:readiness` exit 0 gates concurrent workers.",
+        "Keep Direction 3 as first preference: equate \"#3032 solo-worker launch path\" to the existing interactive swarm-skill path (Phase 0 default without a pre-approved cohort; Mode B worktrees; `dispatch_kind: solo`).",
+        "Do not invent a greenfield solo-worker CLI verb as the first ship.",
+        "Qualify that `swarm:launch` already emits `dispatch_kind: solo` only after concurrent-ready gates pass.",
+        "Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly one resolved story, or decline with the reason on the thread and CHANGELOG.",
+        "If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope.",
+        "If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.",
+        "Do not treat closed #3666 as having discharged this discoverability debt.",
+        "Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.",
+        "CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:a3ce7b52b2c89e02f2682ca92e2514a7ae5abc4effa434015737a5ecb272ef68"
+      ],
+      "admitted_source_sentences": [
+        "Name the mandated solo/sequential dispatch path on AGENTS.md #3032, `content/commands.md`, and `content/skills/deft-directive-swarm/SKILL.md` so a reader does not have to infer it from `references/`.",
+        "State the interactive-default vs headless-`swarm:launch` split at those point-of-use surfaces, including that `swarm:readiness` exit 0 gates concurrent workers.",
+        "Keep Direction 3 as first preference: equate \"#3032 solo-worker launch path\" to the existing interactive swarm-skill path (Phase 0 default without a pre-approved cohort; Mode B worktrees; `dispatch_kind: solo`).",
+        "Do not invent a greenfield solo-worker CLI verb as the first ship.",
+        "Qualify that `swarm:launch` already emits `dispatch_kind: solo` only after concurrent-ready gates pass.",
+        "Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly one resolved story, or decline with the reason on the thread and CHANGELOG.",
+        "If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope.",
+        "If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.",
+        "Do not treat closed #3666 as having discharged this discoverability debt.",
+        "Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.",
+        "CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:a3ce7b52b2c89e02f2682ca92e2514a7ae5abc4effa434015737a5ecb272ef68"
+      ],
+      "admitted_source_digest": "f17250259894081029d28a088765e2e19ab3ee41a2b1589e24ae750f66959a4c",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Name the mandated solo/sequential dispatch path on AGENTS.md #3032, `content/commands.md`, and `content/skills/deft-directive-swarm/SKILL.md` so a reader does not have to infer it from `references/`. State the interactive-default vs headless-`swarm:launch` split at those point-of-use surfaces, including that `swarm:readiness` exit 0 gates concurrent workers.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep Direction 3 as first preference: equate \"#3032 solo-worker launch path\" to the existing interactive swarm-skill path (Phase 0 default without a pre-approved cohort; Mode B worktrees; `dispatch_kind: solo`). Do not invent a greenfield solo-worker CLI verb as the first ship. Qualify that `swarm:launch` already emits `dispatch_kind: solo` only after concurrent-ready gates pass.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly one resolved story, or decline with the reason on the thread and CHANGELOG. If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope. If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not treat closed #3666 as having discharged this discoverability debt. Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Swarm: letting an agent, or several agents, carry a piece of work through to a finished pull request. A single person should still have a simple way to run one story.\n\nWhat a new person hits: The product says there is a way for one person and one agent to do the work. That way is not a command. The only clues are buried in reference docs.\n\nWhy that ruins the product for them: The simple path does not exist as something they can run. They either give up or fall into the heavy path.\n\nHow likely: High. A first-time user is exactly the person who wants the single-agent path.\n\n",
+          "id": 5780290231,
+          "html_url": "https://github.com/deftai/directive/issues/3669#issuecomment-5780290231",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:38:49Z",
+          "updated_at": "2026-09-22T16:38:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because AGENTS.md #3032 always-pins a swarm/solo-worker launch path for cohort size 1, while the only verb named launch is concurrency-gated swarm:launch and the documented interactive solo path still lives mainly in skill references — so naming, discoverability, and whether launch gains an N=1 sequential mode remain an unsettled product shape.\n\ncharter: refutation\nrefutation-target: The #3669 premise that no verb implements the mandated solo-worker launch path, and that the interactive skill path is discoverable only from references/, still holds after #3666 closed, so the first bindable remediation must either name that path in AGENTS.md/commands.md/SKILL.md or deliberately add an N=1 sequential swarm:launch mode rather than treat the closed Gate-A bug as having discharged the discoverability debt.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered n=1 after the missing-token ask and asked for a separate no-ingest yolo arc on #3669 (independent of #3718). Stage A evaluate on origin tip marked validity=needs-re-scope (completed #3666 xbrief on origin/master; this GitHub issue still open) with critique-recommend false. It is not a whole-motion babysit hang. N=1.\n\npain: P1, P2, P3\n\nP1. AGENTS.md #3032 and the swarm skill still require through-merge work via the swarm/solo-worker launch path even for cohort size 1, but no CLI verb is named solo-worker launch — task swarm:launch remains the concurrency/readiness-gated headless path.\nP2. The supported interactive solo path (Phase 0 default without a pre-approved cohort; Mode B worktrees; dispatch_kind: solo) is still primarily documented in content/skills/deft-directive-swarm/references/, so a dispatching agent that only reads AGENTS.md / SKILL.md / commands.md can still conclude no sanctioned solo path exists and hand-roll.\nP3. The open product question whether swarm:launch should gain an N=1 sequential mode (and what that does to fileOverlaps for multi-story sequential cohorts) was explicitly left undecided when #3666 shipped the Gate-A half — binding docs-only naming without recording that decision would leave the acceptance checklist half-open.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-3669-dc\norigin-ref: origin/HEAD\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\npin-kind: origin-default\ntarget-digest: sha256:a3ce7b52b2c89e02f2682ca92e2514a7ae5abc4effa434015737a5ecb272ef68\n\nPin reads use git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980. Neighbor #3718 is a separate arc. Closed #3666 is context, not this ceiling. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5837108413,
+          "html_url": "https://github.com/deftai/directive/issues/3669#issuecomment-5837108413",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:02:42Z",
+          "updated_at": "2026-09-25T18:02:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#3669\ncharter: refutation\nround: 1 critic\nfresh-critic: true\nid-ceiling: 5837108413\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\nseat: grok\nlauncher: grok\naudit-targets: none\n\nHEAD at cwd matches dispatch-sha (`git rev-parse HEAD` = `042eea8c31f5629b1fc0cfa2f75e4cb967af7980`). Reads pinned with `git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980:<path>`. Thread input honored through comment 5837108413.\n\n## Verdict on the refutation target\n\nThe Stop 1 refutation target survives. After closed #3666, the discoverability debt named on #3669 still holds at the always-pin / commands / SKILL surfaces, and a first bind must close naming there or record the N=1 sequential `swarm:launch` product decision. Treating Gate A's closed false-remediation fix as having discharged that debt would under-bind the acceptance checklist.\n\nThe later-arc framing (naming/discoverability plus a recorded decision on N=1 sequential launch) is bindable once the sharpenings below are carried into the lean wording.\n\n## #3666 closed Gate A, not the always-pin debt\nsharpens-framing\nEvidence: At the dispatch SHA, `packages/core/src/vbrief-validation/story-quality.ts` exports `READY_REQUIRES_PARALLEL_SAFE` stating a `parallel_safe: false` story is not eligible for concurrent `swarm:launch` and must use the interactive swarm-skill solo-worker path (exit 0 gates concurrent workers only; see #3669). `CHANGELOG.md` Fixed entry for #3666 matches that ship: Gate A remediation rewritten; Gate B unchanged; Closes #3666. `AGENTS.md` / `content/templates/agents-entry.md` `#3032` still mandate the **swarm/solo-worker launch path** for cohort size 1 without equating that name to the interactive skill default. `content/commands.md` has two `swarm:launch` mentions and zero hits for `solo-worker`, `interactive swarm-skill`, or `dispatch_kind: solo`. `content/skills/deft-directive-swarm/SKILL.md` indexes `references/core-phase-*.md` but does not itself define the mandated solo-worker path or contrast it with headless `swarm:launch`.\nFailure mode: A lean that treats #3666 as having cleared discoverability can stamp docs-complete while a dispatcher that only reads the always-pin + commands.md still reaches for the only verb named `launch`, hits readiness, and hand-rolls.\nDisposition: Keep the premise that #3666 did not discharge #3669. Qualify that #3666 did add an error-site pointer; the remaining bind surface is AGENTS.md / commands.md / SKILL.md naming (and the recorded N=1 decision), not a second Gate A rewrite.\n\n## \"No verb implements\" needs the concurrent-ready carve\nsharpens-framing\nEvidence: `packages/core/src/swarm/launch.ts` still runs `enforceGates` (preflight + `swarm:readiness`) before emit; only afterward does a single ungrouped story set `dispatch_kind: \"solo\"` (`ordered.length > 1 || group` -> `swarm-cohort`, else `solo`). `packages/core/src/swarm/readiness.ts` requires `readiness === ready` (\"ready for concurrent allocation\") and, via `storyQualityIssues` with `concurrentReady`, blocks `parallel_safe === false`. Interactive path remains documented in `references/core-phase-0.md` (interactive DEFAULT when no pre-approved cohort; concurrent-workers forbid scoped to readiness exit 0) and `references/core-phase-3.md` (`dispatch_kind: solo`; interactive path assembles params without `swarm:launch`).\nFailure mode: Binding a greenfield \"solo-worker\" CLI verb as the first ship, when the existing interactive skill path already implements solo dispatch and `swarm:launch` already emits `dispatch_kind: solo` for concurrent-ready N=1, invents surface area the Preferred direction said to avoid.\nDisposition: Keep \"no CLI verb is named / implements the always-pin's solo-worker label for non-concurrent work.\" Do not bind \"no code path can emit solo.\" First remediation may name the interactive skill path as that mandate (Direction 3) without requiring a new verb.\n\n## Recorded N=1 decision includes an explicit decline\nsharpens-framing\nEvidence: Issue Acceptance requires a deliberate recorded decision on whether `swarm:launch` gains an N=1 sequential mode — either implemented, or declined with the reason. Preferred direction is name-the-path before changing the verb. Stop 1 P3 and the refutation-target's \"or deliberately add\" wording read as if implementation is the only second arm. `readiness.ts` `fileOverlaps` inspects only `readyStories` and fails the report when `overlaps.size > 0`; `launch.ts` `orderCohort` sorts without conflict-group sequencing — the body's multi-story sequential constraint still holds at this SHA.\nFailure mode: A docs-only lean that names the interactive path but is silent on the N=1 product question leaves Acceptance half-open; a lean that must \"add\" N=1 sequential mode as co-equal first ship either overbuilds past Preferred direction or under-scopes `fileOverlaps` / conflict groups.\nDisposition: Bind P3 as implement **or** decline-with-reason on the thread/CHANGELOG. If decline, keep multi-story sequential / `fileOverlaps` sequencing explicitly out of first-ship scope. If implement, constrain to exactly one resolved story and leave multi-story sequential as separate scope.\n\n## Injection / swarm lens\nsharpens-framing\nEvidence: Always-pin text is authority for through-merge parents; `swarm:launch` + readiness are concurrency / worktree prep gates. Renaming without restating that readiness exit 0 gates **concurrent** workers (already in Gate A string and `core-phase-0.md`) can leave AGENTS readers treating a non-zero readiness as \"no sanctioned allocation.\" Widening launch to accept sequential without revisiting overlap failure modes reopens the contended-pair trap the body already isolated.\nFailure mode: Bound docs that alias \"solo-worker launch path\" to `swarm:launch` without the concurrent/interactive split recreate the original wrong-verb reach. Bound N=1 sequential launch without an overlap disposition recreates false readiness for contended pairs.\nDisposition: Any bind that names the path must state the interactive-default vs headless-`swarm:launch` split at AGENTS/commands/SKILL point-of-use. Any bind that changes launch eligibility must keep multi-story overlap sequencing in or out of scope in the same sentence.\n\n## Skill index vs always-pin readers\nfootnote\nEvidence: `SKILL.md` Host-adapter load path step 3 tells agents to load `references/core-phase-*.md`; Phase 0/3 depth already contains the interactive DEFAULT and `dispatch_kind: solo` rules. The expensive observed failure in the issue body is the always-pin -> `swarm:launch` hop, not a missing reference file.\nFailure mode: Over-claiming that the path is unknowable inside the skill tree understates what a Phase-0-following agent already sees.\nDisposition: No harvest change. Prefer \"not named at AGENTS.md / commands.md / SKILL.md mandate surfaces\" over \"exists nowhere outside references/,\" while still requiring those surfaces for bind.\n\n## Road not taken\n\nI considered rejecting the refutation target because Gate A now names the interactive path and SKILL.md indexes Phase 0. That would flip only if AGENTS `#3032` and `commands.md` already equated \"solo-worker launch path\" to the interactive default and Acceptance's N=1 decision were already recorded. At this SHA they are not, so the target stands with the sharpenings above.",
+          "id": 5838853014,
+          "html_url": "https://github.com/deftai/directive/issues/3669#issuecomment-5838853014",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T20:09:36Z",
+          "updated_at": "2026-09-25T20:09:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAGENTS.md #3032 still mandates a swarm/solo-worker launch path for cohort size 1, while the only verb named `launch` is concurrency-gated `swarm:launch` and the interactive solo path still lives mainly in skill references. Closed #3666 fixed Gate A's false remediation and pointed at that interactive path; it did not name the path on the always-pin / commands / SKILL surfaces or record the N=1 sequential product decision. Confirming this map means first ship is naming plus a recorded implement-or-decline decision. The same parent wrote the Stop 1 warrant and this map. Critic 5838853014 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the Stop 1 refutation target survives with the critic's sharpenings. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5837108413\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\n\n## Takes\n\n- 5838853014 #3666 closed Gate A, not the always-pin debt — accept-into-contract\n- 5838853014 \"No verb implements\" needs the concurrent-ready carve — accept-into-contract\n- 5838853014 Recorded N=1 decision includes an explicit decline — accept-into-contract\n- 5838853014 Injection / swarm lens — accept-into-contract\n\nFootnote, outside the take map: 5838853014 Skill index vs always-pin readers.\n\nSpec-path:\n\n## Bound remedy\n\n1. Name the mandated solo/sequential dispatch path on AGENTS.md #3032, `content/commands.md`, and `content/skills/deft-directive-swarm/SKILL.md` so a reader does not have to infer it from `references/`. State the interactive-default vs headless-`swarm:launch` split at those point-of-use surfaces, including that `swarm:readiness` exit 0 gates concurrent workers.\n2. Keep Direction 3 as first preference: equate \"#3032 solo-worker launch path\" to the existing interactive swarm-skill path (Phase 0 default without a pre-approved cohort; Mode B worktrees; `dispatch_kind: solo`). Do not invent a greenfield solo-worker CLI verb as the first ship. Qualify that `swarm:launch` already emits `dispatch_kind: solo` only after concurrent-ready gates pass.\n3. Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly one resolved story, or decline with the reason on the thread and CHANGELOG. If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope. If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.\n4. Do not treat closed #3666 as having discharged this discoverability debt. Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.\n5. CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:a3ce7b52b2c89e02f2682ca92e2514a7ae5abc4effa434015737a5ecb272ef68\n\n## Parent-side substantiation\n\nThe critic kept the refutation target and required the concurrent-ready carve, the implement-or-decline shape for P3, and the interactive-vs-headless split at point-of-use. Items 1–4 carry those sharpenings. The skill-index footnote stays census.\n\naudit:name-solo-path-surfaces sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5838853014 reading=asserted\naudit:n1-decision-implement-or-decline sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5838853014 reading=asserted",
+          "id": 5838894270,
+          "html_url": "https://github.com/deftai/directive/issues/3669#issuecomment-5838894270",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T20:12:43Z",
+          "updated_at": "2026-09-25T20:12:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#3669\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nfresh-critic: true\nid-ceiling: 5838894270\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\nseat: grok\nlauncher: grok\naudit-targets: pain-P1, pain-P2, pain-P3\n\nHEAD at cwd matches dispatch-sha (`git rev-parse HEAD` = `042eea8c31f5629b1fc0cfa2f75e4cb967af7980`). Reads pinned with `git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980:<path>`. Thread input honored through comment 5838894270 (Stop 1 `5837108413`, critic `5838853014`, successor lean `5838894270`).\n\n## Pain-audit verdict\n\nSuccessor lean 5838894270's Bound remedy items 1–5 cover Stop 1 pains P1–P3. The asserted `relieves` cites hold under re-verification at the pin. No harvest change required from this seat.\n\n## P1 — mandate without a named solo-worker CLI verb\nfootnote\nEvidence: At the pin, `AGENTS.md` / `content/templates/agents-entry.md` `#3032` still mandate the **swarm/solo-worker launch path** for cohort size 1. `tasks/swarm.yml` exposes `readiness`, `pre-dispatch`, `launch`, `routing-set`, … — the only `launch` verb is concurrency-gated. `packages/core/src/swarm/launch.ts` still runs `enforceGates` before emit; `dispatch_kind: \"solo\"` is set only after gates for a single ungrouped story. `packages/core/src/vbrief-validation/story-quality.ts` `READY_REQUIRES_PARALLEL_SAFE` points at the interactive swarm-skill path and states exit 0 gates concurrent workers only (#3666). Bound items 1–2 name that interactive path as the `#3032` referent, refuse a greenfield solo-worker CLI verb as first ship, and keep the concurrent-ready carve; item 4 keeps closed #3666 from discharging the debt.\nFailure mode: None for this cite — inventing a new verb would reopen Preferred-direction scope the lean correctly declined.\nDisposition: Asserted P1 coverage stands. No harvest change.\n\n## P2 — interactive solo path discoverable only from references/\nfootnote\nEvidence: `content/commands.md` has zero `solo-worker` hits and two `swarm:launch` hits at the pin. `content/skills/deft-directive-swarm/SKILL.md` indexes `references/core-phase-*.md` but does not itself equate `#3032` to the interactive default. Depth still lives in `references/core-phase-0.md` (interactive DEFAULT when no pre-approved cohort; concurrent-workers forbid scoped to readiness exit 0; Cohort size N=1 card) and `references/core-phase-3.md` (`dispatch_kind: solo`; interactive path assembles params without `swarm:launch`). Bound item 1 requires naming on AGENTS.md `#3032`, `commands.md`, and `SKILL.md` with the interactive-default vs headless-`swarm:launch` split and concurrent-only readiness scoping at those point-of-use surfaces; item 2 names Phase 0 default / Mode B / `dispatch_kind: solo`.\nFailure mode: None for this cite — leaving naming only in `references/` would recreate the hand-roll path the issue body observed.\nDisposition: Asserted P2 coverage stands. No harvest change. `#1309` agents-entry → `agents:refresh` remains ordinary maintainer landing for the AGENTS.md half of item 1.\n\n## P3 — recorded N=1 sequential decision (implement or decline)\nfootnote\nEvidence: Issue Acceptance still requires a deliberate recorded decision on whether `swarm:launch` gains an N=1 sequential mode — implemented or declined with reason — and, if implemented, `fileOverlaps` / multi-story sequential disposition. `packages/core/src/swarm/readiness.ts` still fails when `fileOverlaps` is non-empty over ready stories; `launch.ts` `orderCohort` does not add conflict-group sequencing. Bound item 3 binds implement-for-exactly-one-resolved-story **or** decline-with-reason on thread + CHANGELOG, and keeps multi-story sequential / `fileOverlaps` / conflict-group sequencing out of first-ship scope on decline (or as separate scope on implement). Item 5 requires the CHANGELOG line for naming plus that decision.\nFailure mode: None for this cite — docs-only naming without item 3 would leave Acceptance half-open exactly as Stop 1 P3 warned.\nDisposition: Asserted P3 coverage stands. No harvest change.\n\n## Critic 5838853014 vs Bound map\nfootnote\nEvidence: Lean Takes accept-into-contract the four sharpenings (Gate A ≠ always-pin debt; concurrent-ready carve on \"no verb\"; implement-or-decline for N=1; injection/swarm split at point-of-use). Bound items 1–4 carry those sentences. Skill-index footnote stays outside the take map, matching this audit's P2 residual (mandate surfaces, not missing Phase-0 files).\nFailure mode: None — round-1 sharpenings already harvested.\nDisposition: Census only.\n\n## Injection / swarm lens\nfootnote\nEvidence: Target changes always-pin authority and swarm launch / readiness / worktree dispatch semantics. Bound item 1 keeps readiness exit 0 as concurrent-only at AGENTS/commands/SKILL; item 3 keeps multi-story overlap sequencing in or out of scope in the same decision sentence.\nFailure mode: Aliasing solo-worker to `swarm:launch` without the split, or widening launch without an overlap disposition, would recreate the contended-pair / wrong-verb traps.\nDisposition: Already carried in Bound items 1 and 3. No extra harvest.\n\n## Road not taken\n\nI considered a `blocks-the-design` on P1 because after Direction 3 lands there is still no CLI verb literally named solo-worker launch. That would flip only if Acceptance required a new verb rather than Preferred-direction naming of the existing interactive path. At this pin Preferred direction and Bound item 2 choose naming, so the cite stands.\r\n\n",
+          "id": 5838948841,
+          "html_url": "https://github.com/deftai/directive/issues/3669#issuecomment-5838948841",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T20:16:21Z",
+          "updated_at": "2026-09-25T20:16:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Method |\n|---|---|---|\n| AGENTS.md #3032 still mandates swarm/solo-worker launch path for cohort size 1 without equating it to the interactive skill default on AGENTS/commands/SKILL surfaces | verified | Primary re-read of agents-entry #3032, commands.md (no solo-worker hits), SKILL.md vs references/core-phase-0/3 at 042eea8c31f5629b1fc0cfa2f75e4cb967af7980; matches critic 5838853014 |\n| Closed #3666 discharged Gate A false remediation, not this discoverability debt | verified | CHANGELOG/#3666 + READY_REQUIRES_PARALLEL_SAFE pointer; critic 5838853014 Gate A sharpening |\n| Bound remedy covers Stop 1 P1-P3 (name path; concurrent-ready carve; implement-or-decline N=1 decision) | verified | Pain-audit 5838948841 re-verification; footnote-only; no harvest change |\n| Preferred first ship is naming the existing interactive path, not inventing a greenfield solo-worker CLI verb | verified | Critic 5838853014 concurrent-ready carve + lean items 1-2 |",
+          "id": 5838977759,
+          "html_url": "https://github.com/deftai/directive/issues/3669#issuecomment-5838977759",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T20:18:08Z",
+          "updated_at": "2026-09-25T20:18:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAGENTS.md #3032 still mandates a swarm/solo-worker launch path for cohort size 1, while the only verb named `launch` is concurrency-gated and the interactive solo path still lives mainly in skill references. First bind is naming that path on AGENTS.md / commands.md / SKILL.md plus a recorded implement-or-decline decision on N=1 sequential `swarm:launch` — not treating closed #3666 as having cleared the debt, and not inventing a greenfield solo CLI verb as first ship. Pain-audit 5838948841 was footnote-only with no harvest change. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5838894270.",
+          "id": 5838978160,
+          "html_url": "https://github.com/deftai/directive/issues/3669#issuecomment-5838978160",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T20:18:09Z",
+          "updated_at": "2026-09-25T20:18:09Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Split from #3666 after a three-critic design-critique panel ([grok-4.6](https://github.com/deftai/directive/issues/3666#issuecomment-5390037871) · [gpt-5.6-sol](https://github.com/deftai/directive/issues/3666#issuecomment-5390027273) · [composer-2.5](https://github.com/deftai/directive/issues/3666#issuecomment-5390020104)). #3666 keeps the shippable bug; this issue carries the product and discoverability question the panel isolated.\n\n## Problem\n\nAGENTS.md `## Through-merge worker dispatch (#3032)` is an always-pin. It requires that through-merge story work be dispatched \"via the **swarm/solo-worker launch path** even if **cohort size is 1**.\"\n\n**No verb implements that name.** `tasks/swarm.yml` exposes `readiness`, `pre-dispatch`, `launch`, `routing-set`, `verify-review-clean`, `complete-cohort`, `finalize-cohort`. The only one called `launch` is `task swarm:launch`, and it is concurrency-only by contract — `content/vbrief/vbrief.md:216` defines `readiness=ready` as ready for *concurrent* allocation, `:231` forbids `ready` with `parallel_safe: false`, and `:236` says `sequential` and `needs_refinement` fail `swarm:readiness` by design.\n\nThe supported solo path is real but unnamed. It is the interactive swarm-skill route:\n\n- `references/core-phase-0.md:53` — the interactive queue-driven path \"remains the **DEFAULT** when no pre-approved cohort is supplied\"; the headless `swarm:launch` fast-path is \"the opt-in low-ceremony route.\"\n- `references/core-phase-0.md:194` — the hard forbid is scoped: \"⊗ Allocate **concurrent workers** unless … `task swarm:readiness` exits 0.\" Solo and sequential allocation are outside it.\n- `references/core-phase-3.md:10` — a solo dispatch sets `dispatch_kind: solo`; `allocation_plan_id` and `batching_rationale` MAY be null.\n- `references/core-phase-3.md:20` — \"On the interactive path (no `task swarm:launch`, no manifest), the monitor assembles each dispatch's parameters from the Phase 1 assignment plus the Step 0 token by hand.\"\n- Phase 2 Mode B — monitor-created worktrees under `.deft-scratch/worktrees/<story-id>`.\n\nSo the path exists, is the documented default, and is discoverable only by reading `content/skills/deft-directive-swarm/references/`. It is not mentioned in `SKILL.md`, not in `commands.md`, and not in the always-pin that mandates it.\n\n## Observed failure\n\nThis was found the expensive way. A parent dispatching two file-contended stories read the always-pin, reached for the only verb named `launch`, hit the `parallel_safe: false` rejection documented in #3666, concluded no sanctioned path existed, and hand-rolled a worktree — which turned out to be substantially the sanctioned interactive path it had failed to find. Two of three panel critics located the correct path from the same tree; the third concluded the interactive path was equally blocked, misreading `core-phase-0.md:194` as covering all allocation rather than concurrent workers only.\n\nWhen two independent readers reach opposite conclusions about whether a mandated path exists, the naming is the defect.\n\n## Open product question\n\n**Should `task swarm:launch` gain an N=1 sequential mode?** The panel did not converge, and this issue should not presume the answer.\n\n- `launch.ts:796-799` already sets `dispatch_kind: solo` for a single ungrouped story — but only after `enforceGates` has run, so the gate stack is what refuses.\n- Accepting `readiness=sequential` only when exactly one story resolves would preserve both field meanings and instrument solo prep.\n- **Constraint found by the panel:** simply letting Gate B accept `sequential` does not unblock a contended *pair*. `fileOverlaps` (`readiness.ts:570-603`) inspects only `readyStories`; once sequential stories become ready, two stories sharing `file_scope` fail the report at `:730-733` instead. Multi-story sequential cohorts need overlap or `conflict_group` sequencing as separate scope, and `orderCohort` (`launch.ts:640-661`) ignores conflict groups today.\n\n## Preferred direction\n\nName the path before changing the verb. In panel terms this is Direction 3: either a clearly named solo/sequential prep surface, or an explicit statement in the always-pin and `commands.md` that the interactive skill path is what \"solo-worker launch path\" means. Both leave `readiness`, `parallel_safe`, and the meaning of `swarm:launch` intact.\n\n## Acceptance\n\n- [ ] AGENTS.md `#3032` and `commands.md` name the solo/sequential dispatch path concretely enough that a reader does not have to infer it from `references/`\n- [ ] The distinction between the interactive default path and the `swarm:launch` headless fast-path is stated where a dispatching agent will encounter it, not only in `core-phase-0.md:53`\n- [ ] `core-phase-0.md:194`'s scoping (exit 0 required for *concurrent* workers, not all allocation) is unambiguous at the point of use\n- [ ] A deliberate, recorded decision on whether `swarm:launch` gains an N=1 sequential mode — either implemented, or declined with the reason\n- [ ] If implemented: `parallel_safe: false` with exactly one resolved story launches, and the `fileOverlaps` behaviour for multi-story sequential cohorts is either handled or explicitly out of scope\n- [ ] CHANGELOG `[Unreleased]` line\n\n## Refs\n\n#3666 (Gate A's false remediation — the shippable half), #3032 (through-merge dispatch), #1387 (headless launch gate-stack), #1378 (allocation context).\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5230521431,
+        "origin": "deftai/directive#3669",
+        "id": "github.issue.5230521431"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a3ce7b52b2c89e02f2682ca92e2514a7ae5abc4effa434015737a5ecb272ef68"
+      },
+      "swarm": {
+        "file_scope": [
+          "AGENTS.md",
+          "content/templates/agents-entry.md",
+          "content/commands.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "CHANGELOG.md",
+          "content/.agents/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-swarm/references"
+        ]
+      },
+      "productPullRequest": 5131
+    },
+    "id": "github.issue.5230521431",
+    "updated": "2026-09-29T00:49:42Z"
+  }
+}
