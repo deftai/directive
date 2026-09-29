@@ -1230,7 +1230,6 @@ describe("finalize-owed proposed historical cite refuse (#5143)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  
   it("marked productPullRequest under epic/tracker still owes (#5143 Class A)", () => {
     const root = mkdtempSync(join(tmpdir(), "finalize-owed-5143-marked-epic-"));
     const rel = "xbrief/active/marked-under-epic.xbrief.json";
