@@ -18,12 +18,6 @@
         "title": "Name the mandated solo/sequential dispatch path on AGENTS.md #3032, `content/commands.md`, and `content/skills/deft-directive-swarm/SKILL.md` so a reader does not have to infer it from `references/`. State the interactive-default vs headless-`swarm:launch` split at those point-of-use surfaces, including that `swarm:readiness` exit 0 gates concurrent workers.",
         "status": "proposed",
         "id": "clause.1",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5131 (merge fd5ad6312)",
-          "recorded_at": "2026-09-29T02:46:32.868Z",
-          "recorded_by": "MScottAdams"
-        },
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Docs naming story: clause verified by product PR #5131 review+merge; pathless derived clause cannot bind kind:test (#4986). Leftover-complete after Tracking squash.",
@@ -40,12 +34,6 @@
         "title": "Keep Direction 3 as first preference: equate \"#3032 solo-worker launch path\" to the existing interactive swarm-skill path (Phase 0 default without a pre-approved cohort; Mode B worktrees; `dispatch_kind: solo`). Do not invent a greenfield solo-worker CLI verb as the first ship. Qualify that `swarm:launch` already emits `dispatch_kind: solo` only after concurrent-ready gates pass.",
         "status": "proposed",
         "id": "clause.2",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5131 (merge fd5ad6312)",
-          "recorded_at": "2026-09-29T02:46:32.868Z",
-          "recorded_by": "MScottAdams"
-        },
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Docs naming story: clause verified by product PR #5131 review+merge; pathless derived clause cannot bind kind:test (#4986). Leftover-complete after Tracking squash.",
@@ -62,12 +50,6 @@
         "title": "Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly one resolved story, or decline with the reason on the thread and CHANGELOG. If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope. If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.",
         "status": "proposed",
         "id": "clause.3",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5131 (merge fd5ad6312)",
-          "recorded_at": "2026-09-29T02:46:32.868Z",
-          "recorded_by": "MScottAdams"
-        },
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Docs naming story: clause verified by product PR #5131 review+merge; pathless derived clause cannot bind kind:test (#4986). Leftover-complete after Tracking squash.",
@@ -84,12 +66,6 @@
         "title": "Do not treat closed #3666 as having discharged this discoverability debt. Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.",
         "status": "proposed",
         "id": "clause.4",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5131 (merge fd5ad6312)",
-          "recorded_at": "2026-09-29T02:46:32.868Z",
-          "recorded_by": "MScottAdams"
-        },
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Docs naming story: clause verified by product PR #5131 review+merge; pathless derived clause cannot bind kind:test (#4986). Leftover-complete after Tracking squash.",
@@ -106,12 +82,6 @@
         "title": "CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.",
         "status": "proposed",
         "id": "clause.5",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5131 (merge fd5ad6312)",
-          "recorded_at": "2026-09-29T02:46:32.868Z",
-          "recorded_by": "MScottAdams"
-        },
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Docs naming story: clause verified by product PR #5131 review+merge; pathless derived clause cannot bind kind:test (#4986). Leftover-complete after Tracking squash.",
