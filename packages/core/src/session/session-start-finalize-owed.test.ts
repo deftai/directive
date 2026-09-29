@@ -212,6 +212,7 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     const dest = mkdtempSync(join(tmpdir(), "pd-dest-"));
     try {
       mkdirSync(join(primary, ".deft"), { recursive: true });
+      const nowIso = new Date().toISOString();
       writeFileSync(
         join(primary, ".deft", "ritual-state.json"),
         JSON.stringify({
@@ -220,12 +221,12 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
           session_id: "host:test:primary",
           git_head: "abc",
           worktree_path: primary,
-          started_at: "2026-09-29T00:00:00Z",
+          started_at: nowIso,
           quick_steps: {},
           gated_steps: {},
           finalize_owed: {
             ok: true,
-            ts: "2026-09-29T00:00:00Z",
+            ts: nowIso,
             deferred_reason: "cohort-add",
             message: "finalize owed deferred: cohort-add",
           },
@@ -237,7 +238,10 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
         isLinkedWorktree: () => true,
         runGit: (_cwd, args) => {
           if (args.includes("--git-common-dir")) {
-            return { code: 0, stdout: join(primary, ".git") + "\n", stderr: "" };
+            return { code: 0, stdout: `${join(primary, ".git")}\n`, stderr: "" };
+          }
+          if (args[0] === "rev-parse" && args.includes("HEAD")) {
+            return { code: 0, stdout: "abc\n", stderr: "" };
           }
           fetchCalls += 1;
           return { code: 0, stdout: "TIP\n", stderr: "" };
@@ -248,6 +252,59 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
       expect(result.deferred).toBe(true);
       expect(result.deferReason).toBe("primary:cohort-add");
       expect(fetchCalls).toBe(0);
+    } finally {
+      rmSync(primary, { recursive: true, force: true });
+      rmSync(dest, { recursive: true, force: true });
+    }
+  });
+
+  it("linked worktree refuses stale primary finalize_owed inherit", () => {
+    const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = require("node:fs");
+    const { join } = require("node:path");
+    const { tmpdir } = require("node:os");
+    const primary = mkdtempSync(join(tmpdir(), "pd-stale-"));
+    const dest = mkdtempSync(join(tmpdir(), "pd-dest-stale-"));
+    try {
+      mkdirSync(join(primary, ".deft"), { recursive: true });
+      writeFileSync(
+        join(primary, ".deft", "ritual-state.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          contract: "session-ritual-state",
+          session_id: "host:test:primary",
+          git_head: "old",
+          worktree_path: primary,
+          started_at: "2020-01-01T00:00:00Z",
+          quick_steps: {},
+          gated_steps: {},
+          finalize_owed: {
+            ok: true,
+            ts: "2020-01-01T00:00:00Z",
+            deferred_reason: "cohort-add",
+            message: "finalize owed deferred: cohort-add",
+          },
+        }),
+        "utf8",
+      );
+      const result = evaluateFinalizeOwedSessionGate(dest, {
+        isLinkedWorktree: () => true,
+        runGit: (_cwd, args) => {
+          if (args.includes("--git-common-dir")) {
+            return { code: 0, stdout: `${join(primary, ".git")}\n`, stderr: "" };
+          }
+          if (args[0] === "rev-parse" && args.includes("HEAD")) {
+            return { code: 0, stdout: "new\n", stderr: "" };
+          }
+          return { code: 0, stdout: "", stderr: "" };
+        },
+        probeFinalizeOwed: () => ({
+          lines: ["finalize owed inventory:", "  #4919 owed [blocks]"],
+          blocks: true,
+          unknown: false,
+        }),
+      });
+      expect(result.blocks).toBe(true);
+      expect(result.deferred).toBe(false);
     } finally {
       rmSync(primary, { recursive: true, force: true });
       rmSync(dest, { recursive: true, force: true });

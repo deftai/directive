@@ -136,6 +136,7 @@ import {
   ritualStep,
   writeRitualState,
 } from "./ritual-sentinel.js";
+import { resolveSessionRitualStalenessHours } from "./staleness.js";
 import { timestampIso } from "./time.js";
 import {
   runToolchainPreflight,
@@ -588,6 +589,18 @@ function inheritDeferOwedFromPrimary(
   }
   const [state] = readRitualState(primary);
   if (state === null) {
+    return null;
+  }
+  // Refuse stale primary ritual: HEAD drift or age beyond sessionRitualStalenessHours.
+  const runGit = options.runGit ?? defaultGitRunner;
+  const headResult = gitHead(primary, runGit);
+  const primaryHead = (headResult.head ?? "").trim();
+  if (primaryHead.length === 0 || state.gitHead !== primaryHead) {
+    return null;
+  }
+  const { hours } = resolveSessionRitualStalenessHours(primary);
+  const ageMs = Date.now() - state.startedAt.getTime();
+  if (!Number.isFinite(ageMs) || ageMs < 0 || ageMs > hours * 60 * 60 * 1000) {
     return null;
   }
   // session:start writes finalize_owed at ritual-state top level (not gated_steps).
