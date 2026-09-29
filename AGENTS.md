@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=35ccedbbe94e refreshed=2026-09-29T04:35:11Z session=6c936343cb35 -->
+<!-- deft:managed-section v3 sha=52b290aadd40 refreshed=2026-09-29T04:42:09Z session=bfd5a75ae16f -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -334,11 +334,9 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! `deft xbrief:preflight -- <path>` on `xbrief/active/` before code-writing; action-verb (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810). Slash-command sessions inherit only that verb (`DEFT_SESSION_SLASH_VERB`); non-implement verbs (`/github-issue`, `/triage`, …) MUST NOT authorize implement/push/PR/merge/deploy (#1193) — `commands.md` / `contracts/intent-ceiling.md`.
 
-## Merge-gate enforcement readiness (#1517)
-
-! Forge required-status-check readiness is a distinct axis from local `allowDirectCommitsToMaster` / Phase 2 "branch-protection ON". At build/swarm strategy start when SCM is ready, run merge-gate enforcement detect+record (`evaluateMergeGateEnforcementAtStrategyStart`); durable `.deft/merge-gate-enforcement/` decisions: `configured` | `explicit-opt-out` | `cannot-configure` | `deferred-not-applicable`. Optional configure never empty-PUT / auto-promote harvest; does not grant bot-merge or change `requireHumanMerge`. Depth: `.deft/core/scm/github.md`.
-
 ## Human merge gate (#1193)
+
+! Merge-gate enforcement readiness (#1517): forge required-status-check detect+record at strategy start (`evaluateMergeGateEnforcementAtStrategyStart`); durable `.deft/merge-gate-enforcement/`; optional configure never empty-PUT/auto-promote; does not grant bot-merge. Depth: `.deft/core/scm/github.md`.
 
 ! When `plan.policy.requireHumanMerge` is true (default if `autoDeployOnMerge`), agents may open PRs, may not merge. Override: `deft policy:allow-bot-merge -- --confirm` or `DEFT_ALLOW_BOT_MERGE=1` — `commands.md` / `contracts/intent-ceiling.md`.
 
