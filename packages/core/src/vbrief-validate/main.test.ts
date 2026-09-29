@@ -2,8 +2,8 @@ import { execSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { scanVbrief } from "./conformance.js";
+import { afterEach, describe, expect, it } from "vitest";
+import { evaluateConformance, scanVbrief } from "./conformance.js";
 import { matchesFilenameConvention } from "./filename.js";
 import * as vbriefValidate from "./index.js";
 import { cmdVbriefValidate, runConformance, runValidate } from "./main.js";
@@ -159,5 +159,112 @@ describe("CLI", () => {
     execSync("git init", { cwd: root, stdio: "ignore" });
     expect(cmdVbriefValidate(["--staged", "--project-root", root, "--quiet"])).toBe(0);
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("conformance PROJECT-DEFINITION on-disk injection (#4876)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const root of roots.splice(0)) {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  function tempRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    roots.push(root);
+    return root;
+  }
+
+  function initGit(root: string): void {
+    execSync("git init", { cwd: root, stdio: "ignore" });
+    execSync("git config user.email test@example.com", { cwd: root, stdio: "ignore" });
+    execSync("git config user.name test", { cwd: root, stdio: "ignore" });
+  }
+
+  it("counts untracked canonical PROJECT-DEFINITION instead of clean-zero", () => {
+    const root = tempRoot("vb-4876-clean-pd-");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    initGit(root);
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "PD",
+          status: "running",
+          narratives: { Overview: "O", TechStack: "T" },
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+
+    const result = evaluateConformance(root);
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain("1 vBRIEF file(s) clean");
+    expect(result.message).not.toContain("0 vBRIEF file(s) clean");
+  });
+
+  it("fails closed on bare plan.policy in untracked PROJECT-DEFINITION", () => {
+    const root = tempRoot("vb-4876-bare-policy-");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    initGit(root);
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "PD",
+          status: "running",
+          narratives: { Overview: "O", TechStack: "T" },
+          items: [],
+          policy: { allowDirectCommitsToMaster: false },
+        },
+      }),
+      "utf8",
+    );
+
+    const result = evaluateConformance(root);
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.key === "policy")).toBe(true);
+    expect(result.message).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+  });
+
+  it("still allows clean-zero when PROJECT-DEFINITION is absent", () => {
+    const root = tempRoot("vb-4876-absent-pd-");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    initGit(root);
+
+    const result = evaluateConformance(root);
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain("0 vBRIEF file(s) clean");
+  });
+
+  it("keeps DEFT_PROJECT_PATH / projectDefinitionPath injection for noncanonical paths", () => {
+    const root = tempRoot("vb-4876-configured-");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    mkdirSync(join(root, "config"), { recursive: true });
+    initGit(root);
+    const configured = join(root, "config", "custom-project.xbrief.json");
+    writeFileSync(
+      configured,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "Custom",
+          status: "running",
+          narratives: { Overview: "O", TechStack: "T" },
+          items: [],
+          policy: { allowDirectCommitsToMaster: true },
+        },
+      }),
+      "utf8",
+    );
+
+    const result = evaluateConformance(root, { projectDefinitionPath: configured });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.key === "policy")).toBe(true);
+    expect(result.message).toContain("<configured PROJECT-DEFINITION>");
   });
 });

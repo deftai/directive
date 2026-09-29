@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **fix(vbrief): verify:vbrief-conformance counts on-disk PROJECT-DEFINITION (#4876).** `evaluateConformance` forces canonical `xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy vbrief twin) into the candidate set when present, including untracked Setup Phase 2 trees, so exit 0 with a clean-zero count is no longer a false certificate that PROJECT-DEFINITION was scanned for #1620 bare keys. Keeps the `DEFT_PROJECT_PATH` / `projectDefinitionPath` injection seam for noncanonical paths; does not invent a second Setup-only scanner. Tracking #4876.
+
 ### Removed
 
 ## [0.119.11] - 2026-09-29

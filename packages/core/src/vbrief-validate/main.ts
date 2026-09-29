@@ -145,6 +145,8 @@ export function runConformance(argv: string[]): number {
   }
 
   const allowListPath = allowList !== null ? resolve(allowList) : null;
+  // DEFT_PROJECT_PATH keeps the configured injection seam; evaluateConformance
+  // also forces on-disk canonical PROJECT-DEFINITION into candidates (#4876).
   const { exitCode, message } = evaluateConformance(resolve(projectRoot), {
     mode,
     allowListPath,
