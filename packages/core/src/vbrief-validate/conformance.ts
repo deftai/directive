@@ -492,8 +492,8 @@ export function evaluateConformance(
           candidateReal = resolve(candidate.fullPath);
         }
         if (candidateReal === canonicalReal) {
+          // Keep staged displayPath so D7 filename validation still runs (#4876).
           candidate.required = true;
-          candidate.displayPath = canonical.displayPath;
         }
       }
     }
