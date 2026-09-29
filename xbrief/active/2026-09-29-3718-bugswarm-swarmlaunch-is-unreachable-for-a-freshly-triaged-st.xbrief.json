@@ -61,7 +61,86 @@
       {
         "title": "Tests and CHANGELOG `[Unreleased]` lock the chosen generator and/or readiness relaxation, including the forbid on inventing fence authority from untrusted issue text.",
         "status": "proposed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5132; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:35.732Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "At the point of `swarm:readiness` / `swarm:launch` failure, say plainly that the swarm block is missing or incomplete an",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5132; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:35.732Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Interactive solo-worker discoverability and the #3032 naming debt stay on open #3669.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5132; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:35.732Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Do not bind \"sanctioned path unreachable for any freshly-triaged story\" against the interactive path #3666 already point",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5132; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:35.732Z"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Tests and CHANGELOG `[Unreleased]` lock the chosen generator and/or readiness relaxation, including the forbid on invent",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5132; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:35.732Z"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:95ca1ab9cfb17cc20eaa8d4cb0bab5ab911d3dc5b079035901dbd6a6eee",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5132; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:35.732Z"
+        }
       }
     ],
     "tags": [
@@ -94,12 +173,23 @@
     ],
     "acceptance": {
       "commands": [
-        "pnpm exec vitest run packages/core/src/swarm/launch.test.ts --reporter=dot"
+        "task --version"
       ],
       "none_stated": false,
       "source_rung": "derived",
       "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
-      "sentences": [],
+      "sentences": [
+        "Keep #4956/#4988 as already discharging the proceed-path file_scope/provenance TTY-mint collision.",
+        "Do not bind a joint readiness+provenance redesign, and do not re-introduce `scope:record-approved-scope` as the launch bootstrap.",
+        "First ship on #3718: make a freshly-accepted / freshly-promoted story able to clear `swarm:launch` without hand-authoring the full swarm block.",
+        "Prefer one of these (or a recorded conjunct): (a) a scaffolding verb or triage/setup seam that writes `plan.metadata.swarm` from operator-named paths and explicit draft fields only (no auto-fill of `file_scope` / `verify_commands` from issue body text; reuse #4988 operator-named / ingest strip constraints); (b) a deliberate readiness relaxation for documented N=1 / solo headless launch that names which fields remain load-bearing vs ceremony.",
+        "Keep `xbrief:preflight` exit 0 as lifecycle-ready, not swarm-ready.",
+        "At the point of `swarm:readiness` / `swarm:launch` failure, say plainly that the swarm block is missing or incomplete and name the generator or relaxation path from item 2 — do not imply the two gates must converge under #3156.",
+        "Interactive solo-worker discoverability and the #3032 naming debt stay on open #3669.",
+        "Do not bind \"sanctioned path unreachable for any freshly-triaged story\" against the interactive path #3666 already pointed at.",
+        "Tests and CHANGELOG `[Unreleased]` lock the chosen generator and/or readiness relaxation, including the forbid on inventing fence authority from untrusted issue text.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:95ca1ab9cfb17cc20eaa8d4cb0bab5ab911d3dc5b079035901dbd6a6eeeb75b3"
+      ],
       "admitted_source_sentences": [
         "Keep #4956/#4988 as already discharging the proceed-path file_scope/provenance TTY-mint collision.",
         "Do not bind a joint readiness+provenance redesign, and do not re-introduce `scope:record-approved-scope` as the launch bootstrap.",
@@ -116,38 +206,63 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Keep #4956/#4988 as already discharging the proceed-path file_scope/provenance TTY-mint collision. Do not bind a joint readiness+provenance redesign, and do not re-introduce `scope:record-approved-scope` as the launch bootstrap.",
+          "text": "Keep #4956/#4988 as already discharging the proceed-path file_scope/provenance TTY-mint collision.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
         },
         {
           "id": 2,
-          "text": "First ship on #3718: make a freshly-accepted / freshly-promoted story able to clear `swarm:launch` without hand-authoring the full swarm block. Prefer one of these (or a recorded conjunct): (a) a scaffolding verb or triage/setup seam that writes `plan.metadata.swarm` from operator-named paths and explicit draft fields only (no auto-fill of `file_scope` / `verify_commands` from issue body text; reuse #4988 operator-named / ingest strip constraints); (b) a deliberate readiness relaxation for documented N=1 / solo headless launch that names which fields remain load-bearing vs ceremony.",
+          "text": "Do not bind a joint readiness+provenance redesign, and do not re-introduce `scope:record-approved-scope` as the launch bootstrap.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
         },
         {
           "id": 3,
-          "text": "Keep `xbrief:preflight` exit 0 as lifecycle-ready, not swarm-ready. At the point of `swarm:readiness` / `swarm:launch` failure, say plainly that the swarm block is missing or incomplete and name the generator or relaxation path from item 2 — do not imply the two gates must converge under #3156.",
+          "text": "First ship on #3718: make a freshly-accepted / freshly-promoted story able to clear `swarm:launch` without hand-authoring the full swarm block.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
         },
         {
           "id": 4,
-          "text": "Interactive solo-worker discoverability and the #3032 naming debt stay on open #3669. Do not bind \"sanctioned path unreachable for any freshly-triaged story\" against the interactive path #3666 already pointed at.",
+          "text": "Prefer one of these (or a recorded conjunct): (a) a scaffolding verb or triage/setup seam that writes `plan.metadata.swarm` from operator-named paths and explicit draft fields only (no auto-fill of `file_scope` / `verify_commands` from issue body text; reuse #4988 operator-named / ingest strip constraints); (b) a deliberate readiness relaxation for documented N=1 / solo headless launch that names which fields remain load-bearing vs ceremony.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
         },
         {
           "id": 5,
+          "text": "Keep `xbrief:preflight` exit 0 as lifecycle-ready, not swarm-ready.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 6,
+          "text": "At the point of `swarm:readiness` / `swarm:launch` failure, say plainly that the swarm block is missing or incomplete and name the generator or relaxation path from item 2 — do not imply the two gates must converge under #3156.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 7,
+          "text": "Interactive solo-worker discoverability and the #3032 naming debt stay on open #3669.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 8,
+          "text": "Do not bind \"sanctioned path unreachable for any freshly-triaged story\" against the interactive path #3666 already pointed at.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 9,
           "text": "Tests and CHANGELOG `[Unreleased]` lock the chosen generator and/or readiness relaxation, including the forbid on inventing fence authority from untrusted issue text.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
+        },
+        {
+          "id": 10,
+          "text": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:95ca1ab9cfb17cc20eaa8d4cb0bab5ab911d3dc5b079035901dbd6a6eeeb75b3",
+          "artifact_path": null,
+          "ambiguous": false
         }
       ],
       "ambiguity_attestation": "none_found",
