@@ -479,8 +479,7 @@ export function evaluateConformance(
     for (const candidate of candidates) {
       const base = candidate.displayPath.split("/").pop() ?? "";
       if (
-        (base === "PROJECT-DEFINITION.xbrief.json" ||
-          base === "PROJECT-DEFINITION.vbrief.json") &&
+        (base === "PROJECT-DEFINITION.xbrief.json" || base === "PROJECT-DEFINITION.vbrief.json") &&
         !isAllowListed(candidate.displayPath, customGlobs)
       ) {
         candidate.required = true;
