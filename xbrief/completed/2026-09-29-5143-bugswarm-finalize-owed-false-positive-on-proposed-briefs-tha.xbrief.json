@@ -1,0 +1,470 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5143",
+    "updated": "2026-09-29T20:50:01Z"
+  },
+  "plan": {
+    "title": "bug(swarm): finalize-owed false-positive on proposed briefs that cite a merged trim PR",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(swarm): finalize-owed false-positive on proposed briefs that cite a merged trim PR",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5143",
+      "Overview": "\n\n1. **Refuse unmarked admit for proposed/historical cites (primary).** In `deriveUnmarkedFinalizeAdmit` / owed discovery: when the tip brief is `proposed` (tip folder and/or `plan.status == proposed`, and maybe `draft`) and the only merged `github-pr` / `prRefs` evidence is historical context without `plan.metadata.productPullRequest`, do **not** admit as owed/blocks. Keep true unmarked `active`/`pending` Tracking leftovers with merged product evidence + open non-protected origin blocking.\n\n2. **Align protected skip with finalize-cohort staying-open.** Compose or share existing `PROTECTED_STAYING_OPEN_LABELS` / `isProtectedStayingOpenUmbrella` (`epic`, `meta`, `tracker`, `type:tracker`, `status:tracker`, `umbrella`, `type:umbrella`, plus umbrella substring) for owed discovery skip instead of the narrower `protectedUmbrella` predicate in `finalize-owed.ts` `fetchIssueState`. Do not invent a second label vocabulary. Pair with item 1 rather than treating epic/tracker widen as a substitute for the proposed unmarked refuse.\n\n3. **Regression test.** Fixture matching the #635/#401 shape (tip proposed brief citing merged PR + open epic/`status:tracker` origin, no `metadata.productPullRequest`) must report zero blocking owed stories; session-start must not block solely on that shape without `--defer-owed`. True unmarked Tracking leftovers still block.\n\n4. **Non-goals.** Tip hygiene for April #635 proposed briefs (#5142 / PR #5144). Ceremony cost under `--defer-owed` (#5145). Changing leftover-complete semantics for true Tracking orphans.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:51db8c9316a35d4c8344102e5495af5c791bb7ecb901e710390dfeea29ff571c\n\n\n",
+      "Labels": "bug, swarm, determinism, agent-experience, process, source-of-truth, area:cli, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:swarm"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "When a tip proposed brief (tip folder and/or plan.status proposed, maybe draft) only has historical merged github-pr/prRefs evidence without plan.metadata.productPullRequest, deriveUnmarkedFinalizeAdmit / owed discovery does not admit it as owed/blocks.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-owed.ts",
+          "recorded_at": "2026-09-29T20:49:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "True unmarked active/pending Tracking leftovers with merged product evidence and open non-protected origin still block.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-owed.ts",
+          "recorded_at": "2026-09-29T20:49:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Owed discovery protected skip composes or shares PROTECTED_STAYING_OPEN_LABELS / isProtectedStayingOpenUmbrella (epic/meta/tracker/type:tracker/status:tracker/umbrella/type:umbrella plus umbrella substring) instead of a narrower protectedUmbrella-only predicate.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-owed.ts",
+          "recorded_at": "2026-09-29T20:49:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Regression fixture matching #635/#401 shape (tip proposed citing merged PR + open epic/status:tracker origin, no metadata.productPullRequest) reports zero blocking owed stories; session-start does not block solely on that shape without --defer-owed.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-owed.test.ts",
+          "recorded_at": "2026-09-29T20:49:22Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Non-goals: tip hygiene (#5142/#5144), --defer-owed ceremony cost (#5145), leftover-complete semantics for true Tracking orphans.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound non-goals (tip hygiene / Prefer-A ceremony / leftover-complete) are out of product scope for #5143",
+          "recorded_at": "2026-09-29T20:49:59.818Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T20:49:59.819Z",
+            "mintedVia": "leftover-complete"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "determinism",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5143",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5143: bug(swarm): finalize-owed false-positive on proposed briefs that cite a merged trim PR"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4919",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4919"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "When a tip proposed brief (tip folder and/or plan.status proposed, maybe draft) only has historical merged github-pr/prRefs evidence without plan.metadata.productPullRequest, deriveUnmarkedFinalizeAdmit / owed discovery does not admit it as owed/blocks.",
+        "True unmarked active/pending Tracking leftovers with merged product evidence and open non-protected origin still block.",
+        "Owed discovery protected skip composes or shares PROTECTED_STAYING_OPEN_LABELS / isProtectedStayingOpenUmbrella (epic/meta/tracker/type:tracker/status:tracker/umbrella/type:umbrella plus umbrella substring) instead of a narrower protectedUmbrella-only predicate.",
+        "Regression fixture matching #635/#401 shape (tip proposed citing merged PR + open epic/status:tracker origin, no metadata.productPullRequest) reports zero blocking owed stories; session-start does not block solely on that shape without --defer-owed.",
+        "Non-goals: tip hygiene (#5142/#5144), --defer-owed ceremony cost (#5145), leftover-complete semantics for true Tracking orphans.",
+        "[Bound] Refuse unmarked proposed historical cites; share protected staying-open (#5143)"
+      ],
+      "admitted_source_sentences": [
+        "When a tip proposed brief (tip folder and/or plan.status proposed, maybe draft) only has historical merged github-pr/prRefs evidence without plan.metadata.productPullRequest, deriveUnmarkedFinalizeAdmit / owed discovery does not admit it as owed/blocks.",
+        "True unmarked active/pending Tracking leftovers with merged product evidence and open non-protected origin still block.",
+        "Owed discovery protected skip composes or shares PROTECTED_STAYING_OPEN_LABELS / isProtectedStayingOpenUmbrella (epic/meta/tracker/type:tracker/status:tracker/umbrella/type:umbrella plus umbrella substring) instead of a narrower protectedUmbrella-only predicate.",
+        "Regression fixture matching #635/#401 shape (tip proposed citing merged PR + open epic/status:tracker origin, no metadata.productPullRequest) reports zero blocking owed stories; session-start does not block solely on that shape without --defer-owed.",
+        "Non-goals: tip hygiene (#5142/#5144), --defer-owed ceremony cost (#5145), leftover-complete semantics for true Tracking orphans."
+      ],
+      "admitted_source_digest": "bb11606f705a4380f55928125f6bfc2c2bb7969af4c9b954340b3cdf6849676e",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When a tip proposed brief (tip folder and/or plan.status proposed, maybe draft) only has historical merged github-pr/prRefs evidence without plan.metadata.productPullRequest, deriveUnmarkedFinalizeAdmit / owed discovery does not admit it as owed/blocks.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "True unmarked active/pending Tracking leftovers with merged product evidence and open non-protected origin still block.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Owed discovery protected skip composes or shares PROTECTED_STAYING_OPEN_LABELS / isProtectedStayingOpenUmbrella (epic/meta/tracker/type:tracker/status:tracker/umbrella/type:umbrella plus umbrella substring) instead of a narrower protectedUmbrella-only predicate.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Regression fixture matching #635/#401 shape (tip proposed citing merged PR + open epic/status:tracker origin, no metadata.productPullRequest) reports zero blocking owed stories; session-start does not block solely on that shape without --defer-owed.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Non-goals: tip hygiene (#5142/#5144), --defer-owed ceremony cost (#5145), leftover-complete semantics for true Tracking orphans.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[Bound] Refuse unmarked proposed historical cites; share protected staying-open (#5143)"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Tip inventory hygiene (separate from this gate fix) is in flight as #5142 / PR #5144. This issue remains the durable finalize-owed false-positive remedy.",
+          "id": 5893989679,
+          "html_url": "https://github.com/deftai/directive/issues/5143#issuecomment-5893989679",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:07:06Z",
+          "updated_at": "2026-09-29T16:07:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Current known state (2026-09-29 Stage A)\n\nStage A `task triage:evaluate -- 5143` on origin/master `1890550a2afa`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/1890550a2afa/061bf53b-43f0-49c6-b1eb-a92d2747cfec`\n\n### Live gap\n\n`discoverFinalizeOwed` / unmarked compose admits tip `proposed` briefs that historically cite a merged trim PR (`x-xbrief/github-pr`) as owed leftover. Concrete shape: tip `*635*` proposed + open `#635` (`epic` + `status:tracker`) + merged PR `#401` → session-start blocks `#635 owed [blocks] pr=#401`. `protectedUmbrella` only matches umbrella/protected label substrings. Tip hygiene for those briefs is separate (#5142 / PR #5144). Related: closed `#4919`; ceremony cost under defer is `#5145`.\n\n### Spend recommendation\n\nConcrete closed-AC false-positive admit adjacent to landed `#4919`. Recommended Dual-stop **N=1**. Bare `label and arc 5143` applies `#5111` defaults: no-ingest, yolo-standing, spend from this recommend.\n\nTarget-digest sha256:51db8c9316a35d4c8344102e5495af5c791bb7ecb901e710390dfeea29ff571c\r\n\n",
+          "id": 5894639325,
+          "html_url": "https://github.com/deftai/directive/issues/5143#issuecomment-5894639325",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:47:09Z",
+          "updated_at": "2026-09-29T16:47:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because tip proposed briefs that cite a merged historical github-pr with an open epic/status:tracker origin enter finalize-owed blocks inventory, false-positive blocking session-start on leftover lifecycle debt.\n\ncharter: refutation\nrefutation-target: Tip proposed briefs that cite a merged historical github-pr, with an open epic or status:tracker origin and no metadata.productPullRequest, are correctly owed [blocks] for discoverFinalizeOwed / session-start.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\npain: P1, P2, P3\n\nOperator directed label+arc 5143 using #5111 defaults. Concrete closed-AC unmarked-admit false-positive; recommended Dual-stop N=1 applied without a spend ask. Tip hygiene #5142/#5144 stays out of first-ship.\n\nTarget-digest sha256:51db8c9316a35d4c8344102e5495af5c791bb7ecb901e710390dfeea29ff571c\ndispatch-sha: 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5143-dc\npin-kind: origin-default\r\n\n",
+          "id": 5894639813,
+          "html_url": "https://github.com/deftai/directive/issues/5143#issuecomment-5894639813",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:47:11Z",
+          "updated_at": "2026-09-29T16:47:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5143\nCharter: refutation. Spend on the Stop 1 write-back is N=1. Sole seat.\nRound: 1 critic. Fresh critic.\nId ceiling (inclusive): 5894639813\nSHA at dispatch: 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/5143\naudit-targets: none\nSeat: grok. Launcher: grok.\n\nHEAD at dest equals `1890550a2afa7a6aa46e2cd3e27813a1dee36a9a`. Reads pinned with `git show` at that SHA. In-ceiling thread: body, operator note 5893989679, current-state 5894639325, Stop 1 5894639813.\n\nRefutation target (Stop 1): Tip proposed briefs that cite a merged historical github-pr, with an open epic or status:tracker origin and no metadata.productPullRequest, are correctly owed [blocks] for discoverFinalizeOwed / session-start.\n\n**Refutation target does not survive.**\n\n## Unmarked compose is not a durable delivery mark\nsharpens-framing\nEvidence: At `1890550a2afa`, `productPullRequestFromPlan` (`packages/core/src/orphan-active/running-briefs.ts`) reads only `plan.metadata.productPullRequest`. `discoverFinalizeOwed` uses that mark first; only when null does it call `deriveUnmarkedFinalizeAdmit` (`orphan-active/evaluate.ts`), which admits on any same-repo confirmed-merged `prRefs` github-pr plus same-repo origin issue, with no `plan.status` check and no proposed/draft refuse. Unmarked unit coverage in `finalize-cohort.test.ts` uses `status: \"running\"` and `xbrief/active/` stuck-brief fixtures (#3791 P3). `TIP_NONTERMINAL_FOLDERS` still includes `proposed`, and `finalize-owed.ts` never reads `plan.status`.\nFailure mode: Binding the target as true collapses historical `x-xbrief/github-pr` provenance on tip `proposed/` into full-story delivery debt. Session-start then blocks mutation on lifecycle paper that #4919/#3791 unmarked compose was not written to own.\nDisposition: Bound remedy must treat proposed (tip-folder and/or status) unmarked github-pr cites without `metadata.productPullRequest` as non-admit for owed/blocks. Keep true unmarked `active`/`pending` Tracking leftovers with merged product evidence + open non-protected origin blocking.\n\n## Protected skip already exists wider on finalize-cohort\nsharpens-framing\nEvidence: `finalize-cohort.ts` `PROTECTED_STAYING_OPEN_LABELS` is the closed set `epic`, `meta`, `tracker`, `type:tracker`, `status:tracker`, `umbrella`, `type:umbrella`, plus `lower.includes(\"umbrella\")`, used by `isProtectedStayingOpenUmbrella` to skip origin-close. `finalize-owed.ts` `fetchIssueState` sets `protectedUmbrella` only when `lower.includes(\"umbrella\")` or `lower === \"status:protected\"` or `lower === \"protected\"` — no epic/tracker. After unmarked admit + snapshot accept + no twin, open non-`protectedUmbrella` origins become `state: \"owed\"` with `blocks: true`, which `evaluateFinalizeOwedSessionGate` turns into mutation block unless `--defer-owed`.\nFailure mode: Preferring a brand-new protected-tracker allowlist (or leaving owed discovery on the narrow predicate) drifts from the cohort staying-open set and leaves the #635 epic+`status:tracker` shape permanently blocking while cohort already knows those origins stay open by design.\nDisposition: Compose or share the existing `PROTECTED_STAYING_OPEN_LABELS` / `isProtectedStayingOpenUmbrella` predicate for owed discovery skip. Do not invent a second label vocabulary. Epic/tracker widen alone is still incomplete for proposed+historical-pr under ordinary open story origins; pair it with the proposed unmarked refuse above rather than OR-equating the two levers.\n\n## Tip hygiene and defer cost stay adjacent\nfootnote\nEvidence: Operator note 5893989679 and Stop 1 / current-state name tip hygiene #5142 / PR #5144 and ceremony cost #5145 as out of this first-ship. Inventory confirms those are separate surfaces from the unmarked-admit / protected-skip predicates above.\nFailure mode: None for binding this gate fix if those stay non-goals.\nDisposition: Keep them out of first-ship; no change required for this refutation.\n\n",
+          "id": 5894745494,
+          "html_url": "https://github.com/deftai/directive/issues/5143#issuecomment-5894745494",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:53:52Z",
+          "updated_at": "2026-09-29T16:53:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nTip `proposed` briefs that only historically cite a merged github-pr are not owed leftover. First ship refuses that unmarked admit and aligns owed protected-skip with the existing finalize-cohort staying-open labels (epic/tracker/umbrella). Tip hygiene and defer ceremony cost stay on #5142/#5145. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5894639813. Critic 5894745494 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5894639813\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a\n\n## Takes\n\n- 5894745494 Unmarked compose is not a durable delivery mark — accept-into-contract\n- 5894745494 Protected skip already exists wider on finalize-cohort — accept-into-contract\n- 5894745494 Tip hygiene and defer cost stay adjacent — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. **Refuse unmarked admit for proposed/historical cites (primary).** In `deriveUnmarkedFinalizeAdmit` / owed discovery: when the tip brief is `proposed` (tip folder and/or `plan.status == proposed`, and maybe `draft`) and the only merged `github-pr` / `prRefs` evidence is historical context without `plan.metadata.productPullRequest`, do **not** admit as owed/blocks. Keep true unmarked `active`/`pending` Tracking leftovers with merged product evidence + open non-protected origin blocking.\n\n2. **Align protected skip with finalize-cohort staying-open.** Compose or share existing `PROTECTED_STAYING_OPEN_LABELS` / `isProtectedStayingOpenUmbrella` (`epic`, `meta`, `tracker`, `type:tracker`, `status:tracker`, `umbrella`, `type:umbrella`, plus umbrella substring) for owed discovery skip instead of the narrower `protectedUmbrella` predicate in `finalize-owed.ts` `fetchIssueState`. Do not invent a second label vocabulary. Pair with item 1 rather than treating epic/tracker widen as a substitute for the proposed unmarked refuse.\n\n3. **Regression test.** Fixture matching the #635/#401 shape (tip proposed brief citing merged PR + open epic/`status:tracker` origin, no `metadata.productPullRequest`) must report zero blocking owed stories; session-start must not block solely on that shape without `--defer-owed`. True unmarked Tracking leftovers still block.\n\n4. **Non-goals.** Tip hygiene for April #635 proposed briefs (#5142 / PR #5144). Ceremony cost under `--defer-owed` (#5145). Changing leftover-complete semantics for true Tracking orphans.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:51db8c9316a35d4c8344102e5495af5c791bb7ecb901e710390dfeea29ff571c\n\n## Parent-side substantiation\n\nCritic showed unmarked admit has no plan.status gate and protectedUmbrella is narrower than cohort staying-open. Prefer proposed refuse + shared protected predicate. Tip hygiene / #5145 stay footnotes.\n\naudit:refuse-proposed-unmarked sha=1890550a2afa7a6aa46e2cd3e27813a1dee36a9a pointer=comment:5894745494 reading=asserted\naudit:share-protected-staying-open sha=1890550a2afa7a6aa46e2cd3e27813a1dee36a9a pointer=comment:5894745494 reading=asserted\naudit:regression-635-401-shape sha=1890550a2afa7a6aa46e2cd3e27813a1dee36a9a pointer=comment:5894745494 reading=asserted\r\n\n",
+          "id": 5894763184,
+          "html_url": "https://github.com/deftai/directive/issues/5143#issuecomment-5894763184",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:54:59Z",
+          "updated_at": "2026-09-29T16:54:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5143\nCharter: refutation. Spend N=1. Sole seat.\nRound: 4 Pass-4 audit. Fresh critic.\nId ceiling (inclusive): 5894763184\nSHA at dispatch: 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/5143\naudit-targets: pain-P1,pain-P2,pain-P3\nSeat: grok. Launcher: grok.\n\nHEAD at dest equals `1890550a2afa7a6aa46e2cd3e27813a1dee36a9a` (`git rev-parse HEAD`). Reads pinned with `git show` at that SHA. In-ceiling thread used: Stop 1 5894639813, critic 5894745494, Bound lean 5894763184. No fetch/checkout.\n\nPain-audit of Bound lean 5894763184 against named pains P1–P3.\n\n## P1 unmarked proposed admit — relieve holds\nfootnote\nEvidence: At pin, `discoverFinalizeOwed` scans `TIP_NONTERMINAL_FOLDERS` including `proposed`, calls `deriveUnmarkedFinalizeAdmit` when `productPullRequestFromPlan` is null, and that derive admits on same-repo confirmed-merged `prRefs` with no `plan.status` / proposed refuse (`orphan-active/evaluate.ts`). Bound item 1 refuses that unmarked admit for tip `proposed` (folder and/or `plan.status`) when the only merged github-pr evidence lacks `metadata.productPullRequest`, and keeps true unmarked `active`/`pending` Tracking leftovers blocking. Item 3 locks the #635/#401 regression shape to zero blocking owed without `--defer-owed`.\nFailure mode: None for the named P1 shape under this Bound list.\nDisposition: Cited relieve for P1 holds. Soft “and maybe draft” is optional implement detail outside the critic disposition’s proposed gate; it does not falsify P1 coverage.\n\n## P2 protected skip align — relieve holds\nfootnote\nEvidence: At pin, `finalize-owed.ts` `fetchIssueState` sets `protectedUmbrella` only for `umbrella` substring / `status:protected` / `protected`. `finalize-cohort.ts` `PROTECTED_STAYING_OPEN_LABELS` / `isProtectedStayingOpenUmbrella` already covers `epic`, `meta`, `tracker`, `type:tracker`, `status:tracker`, `umbrella`, `type:umbrella`, plus umbrella substring. Bound item 2 requires compose/share of that existing predicate for owed skip, pairs it with item 1, and forbids a second label vocabulary — matching critic 5894745494.\nFailure mode: None for the named epic/`status:tracker` block under this Bound list.\nDisposition: Cited relieve for P2 holds. Item 1 alone would miss unmarked `active`/`pending` on protected origins; the lean keeps both levers.\n\n## P3 adjacent non-goals — relieve holds\nfootnote\nEvidence: Operator note 5893989679, Stop 1, and critic footnote already park tip hygiene (#5142 / PR #5144) and `--defer-owed` ceremony cost (#5145) outside first-ship. Bound item 4 lists those same surfaces as non-goals and leaves true Tracking orphan leftover-complete semantics untouched.\nFailure mode: None if implement stays inside items 1–3.\nDisposition: Cited relieve for P3 holds. P3’s warrant is the adjacency fence itself; the Bound non-goals list is that fence.\n\nCensus: footnote-only. No `blocks-the-design`. No `sharpens-framing` that changes the harvested Bound remedy. All three cited relieves hold.\r\n\n",
+          "id": 5894812623,
+          "html_url": "https://github.com/deftai/directive/issues/5143#issuecomment-5894812623",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:58:14Z",
+          "updated_at": "2026-09-29T16:58:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| Refuse unmarked admit for tip proposed without metadata.productPullRequest | verified | critic 5894745494; lean 5894763184 item 1; pain 5894812623 P1 holds |\n| Share PROTECTED_STAYING_OPEN_LABELS for owed skip | verified | critic 5894745494; lean item 2; pain P2 holds |\n| Regression on #635/#401 shape; true Tracking leftovers still block | verified | lean item 3; pain P1 holds |\n| Tip hygiene #5142/#5144 and defer cost #5145 out of first-ship | verified | critic footnote; lean item 4; pain P3 holds |\n\ndisagreement-set: (empty — agents agreed)\r\n\n",
+          "id": 5894823089,
+          "html_url": "https://github.com/deftai/directive/issues/5143#issuecomment-5894823089",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:58:56Z",
+          "updated_at": "2026-09-29T16:58:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\n\nTip proposed briefs that only historically cite a merged PR are not owed leftover. First ship refuses that unmarked admit and aligns owed protected-skip with finalize-cohort staying-open labels. Tip hygiene and defer ceremony stay adjacent. Nothing was ingested in this arc.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5894763184\n\nsuccessor lean 5894763184\n\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a\npain-audit: 5894812623 footnote-only\nverified-claims: preceding comment\r\n\n",
+          "id": 5894823638,
+          "html_url": "https://github.com/deftai/directive/issues/5143#issuecomment-5894823638",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:58:58Z",
+          "updated_at": "2026-09-29T16:58:58Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n`discoverFinalizeOwed` / session-start finalize-owed treats tip nonterminal briefs that historically cite a merged trim PR as owed leftover, even when those briefs were deferred follow-ons that later shipped under different PRs (or were abandoned).\n\nConcrete false-positive shape (April #635 / PR #401 arc):\n- Tip `xbrief/proposed/*635*` briefs still reference merged PR #401 via `x-xbrief/github-pr`\n- Unmarked compose (`deriveUnmarkedFinalizeAdmit`) admits them as `productPr=#401` with origin `#635`\n- `#635` is open with labels `epic` + `status:tracker`, but `protectedUmbrella` only matches labels containing `umbrella` / `protected`\n- Session-start therefore blocks: `#635 owed [blocks] pr=#401`\n\nProduct for those children already landed (#705 rule-ownership, #707/#706 events). The tip proposed copies were leftover lifecycle debt, not unfinished delivery of #401.\n\n## Bound remedy (recommended)\n\n1. Widen finalize-owed protected skip to include `epic` and/or `status:tracker` (same skip path as umbrella/protected), **or** an explicit protected-tracker allowlist.\n2. Refuse unmarked admit for `plan.status == proposed` (and maybe `draft`) when the only merged `github-pr` ref is historical context without `metadata.productPullRequest`.\n3. Regression test: proposed tip brief citing merged PR + open epic/tracker origin must **not** enter owed/blocks inventory.\n\n## Out of scope\n\n- Tip hygiene for the four April #635 proposed briefs (separate chore; clears inventory without waiting on this gate fix).\n- Changing leftover-complete semantics for true Tracking orphans.\n\n## Acceptance\n\n- `discoverFinalizeOwed` dry-run against a fixture matching the #635/#401 shape reports zero blocking owed stories for that brief.\n- Session-start no longer blocks solely on that shape (without `--defer-owed`).\n- True unmarked Tracking leftovers (active/pending with merged product PR + open origin) still block.\n\nRefs #4919 #635 #642 #401\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5633397745,
+        "origin": "deftai/directive#5143",
+        "id": "github.issue.5633397745"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "51db8c9316a35d4c8344102e5495af5c791bb7ecb901e710390dfeea29ff571c"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/swarm/finalize-owed.test.ts",
+          "packages/core/src/session/session-start-finalize-owed.test.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "bound-remedy",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/swarm/finalize-owed.test.ts packages/core/src/session/session-start-finalize-owed.test.ts"
+        ],
+        "expected_outputs": [
+          "proposed historical cite not owed",
+          "shared protected staying-open skip"
+        ],
+        "depends_on": [],
+        "conflict_group": "finalize-owed-fp",
+        "size": "M",
+        "model_tier": "default"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5152,
+        "prBase": null,
+        "mergeCommit": "af56628d0ffb3e2baa9e3c3fbaf6f325f4cdc15c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2eb3d1165785d505752651c152aa3a89edd564bd",
+        "verifiedAt": "2026-09-29T20:50:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGVlNDMtNzE5MS03NDgzLThjYzUtMTcwMWNkNWQ0ZjUx"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-29T20:50:01Z",
+      "completedSessionId": "host:grok:v1:MDFhMGVlNDMtNzE5MS03NDgzLThjYzUtMTcwMWNkNWQ0ZjUx",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-29T20:50:01Z"
+      }
+    },
+    "id": "github.issue.5633397745",
+    "updated": "2026-09-29T20:50:01Z"
+  }
+}
