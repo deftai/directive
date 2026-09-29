@@ -68,6 +68,104 @@
           "recorded_at": "2026-09-29T02:52:44.502Z",
           "recorded_by": "MScottAdams"
         }
+      },
+      {
+        "id": "clause.6",
+        "title": "Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly on",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:17.207Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:17.207Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:17.207Z"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Do not treat closed #3666 as having discharged this discoverability debt.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:17.207Z"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:17.207Z"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:17.207Z"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:a3ce7b52b2c89e02f2682ca92e2514a7ae5abc4effa434015737a5ecb27",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:17.207Z"
+        }
       }
     ],
     "tags": [
@@ -99,12 +197,25 @@
     ],
     "acceptance": {
       "commands": [
-        "pnpm --version"
+        "task --version"
       ],
       "none_stated": false,
       "source_rung": "derived",
       "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
-      "sentences": [],
+      "sentences": [
+        "Name the mandated solo/sequential dispatch path on AGENTS.md #3032, `content/commands.md`, and `content/skills/deft-directive-swarm/SKILL.md` so a reader does not have to infer it from `references/`.",
+        "State the interactive-default vs headless-`swarm:launch` split at those point-of-use surfaces, including that `swarm:readiness` exit 0 gates concurrent workers.",
+        "Keep Direction 3 as first preference: equate \"#3032 solo-worker launch path\" to the existing interactive swarm-skill path (Phase 0 default without a pre-approved cohort; Mode B worktrees; `dispatch_kind: solo`).",
+        "Do not invent a greenfield solo-worker CLI verb as the first ship.",
+        "Qualify that `swarm:launch` already emits `dispatch_kind: solo` only after concurrent-ready gates pass.",
+        "Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly one resolved story, or decline with the reason on the thread and CHANGELOG.",
+        "If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope.",
+        "If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.",
+        "Do not treat closed #3666 as having discharged this discoverability debt.",
+        "Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.",
+        "CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:a3ce7b52b2c89e02f2682ca92e2514a7ae5abc4effa434015737a5ecb272ef68"
+      ],
       "admitted_source_sentences": [
         "Name the mandated solo/sequential dispatch path on AGENTS.md #3032, `content/commands.md`, and `content/skills/deft-directive-swarm/SKILL.md` so a reader does not have to infer it from `references/`.",
         "State the interactive-default vs headless-`swarm:launch` split at those point-of-use surfaces, including that `swarm:readiness` exit 0 gates concurrent workers.",
@@ -123,73 +234,75 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Name #3032 solo-worker launch path on AGENTS.md",
+          "text": "Name the mandated solo/sequential dispatch path on AGENTS.md #3032, `content/commands.md`, and `content/skills/deft-directive-swarm/SKILL.md` so a reader does not have to infer it from `references/`.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Name #3032 solo-worker launch path on AGENTS.md",
-          "x-directive/evidence": {
-            "kind": "review",
-            "pointer": "https://github.com/deftai/directive/pull/5131",
-            "recorded_at": "2026-09-29T02:52:44.502Z",
-            "recorded_by": "MScottAdams"
-          }
+          "ambiguous": false
         },
         {
           "id": 2,
-          "text": "solo-worker launch path dispatch_kind: solo",
+          "text": "State the interactive-default vs headless-`swarm:launch` split at those point-of-use surfaces, including that `swarm:readiness` exit 0 gates concurrent workers.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "solo-worker launch path dispatch_kind: solo",
-          "x-directive/evidence": {
-            "kind": "review",
-            "pointer": "https://github.com/deftai/directive/pull/5131",
-            "recorded_at": "2026-09-29T02:52:44.502Z",
-            "recorded_by": "MScottAdams"
-          }
+          "ambiguous": false
         },
         {
           "id": 3,
-          "text": "Name #3032 solo-worker launch path",
+          "text": "Keep Direction 3 as first preference: equate \"#3032 solo-worker launch path\" to the existing interactive swarm-skill path (Phase 0 default without a pre-approved cohort; Mode B worktrees; `dispatch_kind: solo`).",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Name #3032 solo-worker launch path",
-          "x-directive/evidence": {
-            "kind": "review",
-            "pointer": "https://github.com/deftai/directive/pull/5131",
-            "recorded_at": "2026-09-29T02:52:44.502Z",
-            "recorded_by": "MScottAdams"
-          }
+          "ambiguous": false
         },
         {
           "id": 4,
-          "text": "#3032 solo-worker launch path (#3669)",
+          "text": "Do not invent a greenfield solo-worker CLI verb as the first ship.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "#3032 solo-worker launch path (#3669)",
-          "x-directive/evidence": {
-            "kind": "review",
-            "pointer": "https://github.com/deftai/directive/pull/5131",
-            "recorded_at": "2026-09-29T02:52:44.502Z",
-            "recorded_by": "MScottAdams"
-          }
+          "ambiguous": false
         },
         {
           "id": 5,
-          "text": "Name #3032 solo-worker launch path (#3669)",
+          "text": "Qualify that `swarm:launch` already emits `dispatch_kind: solo` only after concurrent-ready gates pass.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Name #3032 solo-worker launch path (#3669)",
-          "x-directive/evidence": {
-            "kind": "review",
-            "pointer": "https://github.com/deftai/directive/pull/5131",
-            "recorded_at": "2026-09-29T02:52:44.502Z",
-            "recorded_by": "MScottAdams"
-          }
+          "ambiguous": false
+        },
+        {
+          "id": 6,
+          "text": "Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly one resolved story, or decline with the reason on the thread and CHANGELOG.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 7,
+          "text": "If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 8,
+          "text": "If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 9,
+          "text": "Do not treat closed #3666 as having discharged this discoverability debt.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 10,
+          "text": "Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 11,
+          "text": "CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 12,
+          "text": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:a3ce7b52b2c89e02f2682ca92e2514a7ae5abc4effa434015737a5ecb272ef68",
+          "artifact_path": null,
+          "ambiguous": false
         }
       ],
       "ambiguity_attestation": "none_found",
