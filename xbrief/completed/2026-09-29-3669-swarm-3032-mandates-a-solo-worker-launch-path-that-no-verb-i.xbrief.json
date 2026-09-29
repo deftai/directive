@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3669",
-    "updated": "2026-09-29T00:49:42Z"
+    "updated": "2026-09-29T05:11:55Z"
   },
   "plan": {
     "title": "swarm: #3032 mandates a 'solo-worker launch path' that no verb implements -- the supported interactive path is discoverable only from references/",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "swarm: #3032 mandates a 'solo-worker launch path' that no verb implements -- the supported interactive path is discoverable only from references/",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3669",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Name the mandated solo/sequential dispatch path on AGENTS.md #3032, `content/commands.md`, and `content/skills/deft-directive-swarm/SKILL.md` so a reader does not have to infer it from `references/`. State the interactive-default vs headless-`swarm:launch` split at those point-of-use surfaces, including that `swarm:readiness` exit 0 gates concurrent workers.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/evidence": {
           "kind": "review",
@@ -27,7 +27,7 @@
       },
       {
         "title": "Keep Direction 3 as first preference: equate \"#3032 solo-worker launch path\" to the existing interactive swarm-skill path (Phase 0 default without a pre-approved cohort; Mode B worktrees; `dispatch_kind: solo`). Do not invent a greenfield solo-worker CLI verb as the first ship. Qualify that `swarm:launch` already emits `dispatch_kind: solo` only after concurrent-ready gates pass.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/evidence": {
           "kind": "review",
@@ -38,7 +38,7 @@
       },
       {
         "title": "Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly one resolved story, or decline with the reason on the thread and CHANGELOG. If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope. If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/evidence": {
           "kind": "review",
@@ -49,7 +49,7 @@
       },
       {
         "title": "Do not treat closed #3666 as having discharged this discoverability debt. Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/evidence": {
           "kind": "review",
@@ -60,7 +60,7 @@
       },
       {
         "title": "CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/evidence": {
           "kind": "review",
@@ -72,7 +72,7 @@
       {
         "id": "clause.6",
         "title": "Record a deliberate decision on whether `swarm:launch` gains an N=1 sequential mode — either implement it for exactly on",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -86,7 +86,7 @@
       {
         "id": "clause.7",
         "title": "If decline, keep multi-story sequential / `fileOverlaps` / conflict-group sequencing explicitly out of first-ship scope.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -100,7 +100,7 @@
       {
         "id": "clause.8",
         "title": "If implement, leave multi-story sequential overlap sequencing as separate scope in the same sentence.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -114,7 +114,7 @@
       {
         "id": "clause.9",
         "title": "Do not treat closed #3666 as having discharged this discoverability debt.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -128,7 +128,7 @@
       {
         "id": "clause.10",
         "title": "Gate A's error-site pointer may remain; the bind surface is the always-pin / commands / SKILL naming plus item 3.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -142,7 +142,7 @@
       {
         "id": "clause.11",
         "title": "CHANGELOG `[Unreleased]` line for the naming land and the recorded N=1 decision.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -156,7 +156,7 @@
       {
         "id": "clause.12",
         "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:a3ce7b52b2c89e02f2682ca92e2514a7ae5abc4effa434015737a5ecb27",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5131; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -541,9 +541,32 @@
           "CHANGELOG.md"
         ]
       },
-      "productPullRequest": 5131
+      "productPullRequest": 5131,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5131,
+        "prBase": null,
+        "mergeCommit": "fd5ad6312b97f213c121db45880fec1eb90c0f72",
+        "deliveryBranch": "master",
+        "deliveryCommit": "25102e62a4f146ee9a1171ecc34e51118c9bc73e",
+        "verifiedAt": "2026-09-29T05:11:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-29T05:11:55Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-29T05:11:55Z"
+      }
     },
     "id": "github.issue.5230521431",
-    "updated": "2026-09-29T00:49:42Z"
+    "updated": "2026-09-29T05:11:55Z"
   }
 }
