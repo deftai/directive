@@ -143,7 +143,7 @@ Common commands:
 - `task scope:complete -- xbrief/active/<file>.xbrief.json` -- move running work to `completed/` and set status to `completed`.
   - **Per-criterion acceptance evidence (#3240 / #3305):** each non-terminal `plan.items[]` entry needs either namespaced typed evidence or a human-origin disposition before complete may advance it:
     - `plan.items[].x-directive/evidence` — `{ kind: test|review|merge|deploy|smoke|uat|observed_behavior, pointer, recorded_at, recorded_by }`
-    - `plan.items[].x-directive/disposition` — `{ disposition: waived|deferred|not_applicable, reason, provenance (human-origin), recorded_at }`
+    - `plan.items[].x-directive/disposition` — `{ disposition: waived|deferred|not_applicable, reason, provenance {kind: operator-cli|operator-session|human-event, actor: <non-agent, e.g. operator@example.com>}, recorded_at }`
   - Bare `evidence` / `disposition` keys are **not** valid (#1620 / Option B #3305). They fail `verify:vbrief-conformance` and are treated as missing by `scope:complete` (no dual-read). Migrate bare keys or narrative-only `Result`/`Verification` workarounds to the namespaced fields above while items are still non-terminal.
   - Already-terminal items (`completed`/`failed`/`cancelled`/…) are not re-checked for typed evidence; pre-marking items complete to skip the gate is unsupported for the typed path.
   - `merge`/`review` alone cannot satisfy smoke/UAT/deploy/observed_behavior criteria (title/Acceptance text or explicit axis).

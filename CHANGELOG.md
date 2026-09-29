@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(swarm): refuse finalize-owed FP on proposed historical cites (#5143).** Tip `proposed`/`draft` unmarked briefs that only cite a merged github-pr/prRefs without `metadata.productPullRequest` are not admitted as owed/blocks; owed protected skip shares finalize-cohort `PROTECTED_STAYING_OPEN_LABELS` / `isProtectedStayingOpenUmbrella` (epic/meta/tracker/status:tracker/umbrella). True unmarked active/pending Tracking leftovers with open non-protected origin still block. Refs #4919 #635 #401.
 
 - **fix(vbrief): verify:vbrief-conformance counts on-disk PROJECT-DEFINITION (#4876).** `evaluateConformance` forces canonical `xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy vbrief twin) into the candidate set when present, including untracked Setup Phase 2 trees, so exit 0 with a clean-zero count is no longer a false certificate that PROJECT-DEFINITION was scanned for #1620 bare keys. Keeps the `DEFT_PROJECT_PATH` / `projectDefinitionPath` injection seam for noncanonical paths; does not invent a second Setup-only scanner. Tracking #4876.
+- **fix(scope): scope:complete missing provenance discloses a recordable GrantOrigin shape (#4877).** Missing-path refusal and field-spec / `commands.md` help emit `{kind: operator-cli|operator-session|human-event, actor: <non-agent, e.g. operator@example.com>}` instead of inviting a bare `human-origin` string. Invalid-object kind-list message and `isHumanOrigin` gate unchanged; bare strings still fail closed. Tracking #4877.
 
 ### Removed
 

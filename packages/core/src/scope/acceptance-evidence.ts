@@ -17,7 +17,7 @@
  */
 
 import { isHumanOrigin } from "../authz/origin.js";
-import type { GrantOrigin } from "../authz/types.js";
+import { HUMAN_ORIGIN_KINDS, type GrantOrigin } from "../authz/types.js";
 import {
   SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE,
   scopeCompleteRejectsZeroVerifiedWalk,
@@ -41,6 +41,14 @@ import {
 } from "../verify-ac/clauses.js";
 import { verifyDeliveryAncestry } from "./delivery-evidence.js";
 import { utcNowIso } from "./vbrief-json.js";
+
+/**
+ * Recordable GrantOrigin shape for missing-path / field-spec disclosure (#4877).
+ * Matches isHumanOrigin + fixtures (kind closed set + non-agent actor example).
+ * Bare "human-origin" strings remain rejected; this is guidance only.
+ */
+const DISPOSITION_PROVENANCE_SHAPE =
+  `{kind: ${HUMAN_ORIGIN_KINDS.join("|")}, actor: <non-agent, e.g. operator@example.com>}`;
 
 /** Canonical namespaced key for typed acceptance evidence (#3305 / #1620). */
 export const ACCEPTANCE_EVIDENCE_KEY = "x-directive/evidence" as const;
@@ -483,7 +491,10 @@ function parseDisposition(raw: unknown):
   }
   const provenance = asRecord(obj.provenance);
   if (provenance === null) {
-    return { ok: false, message: "disposition.provenance is required (human-origin)" };
+    return {
+      ok: false,
+      message: `disposition.provenance is required (${DISPOSITION_PROVENANCE_SHAPE})`,
+    };
   }
   // Reuse authz human-origin gate (#2944) so agent-self stamps cannot waive criteria.
   const originForCheck: GrantOrigin = {
@@ -1536,7 +1547,7 @@ export function evaluateAcceptanceEvidenceGate(
       `${lines.join("\n")}\n` +
       `Each non-terminal plan item needs ${ACCEPTANCE_EVIDENCE_KEY} ` +
       `{kind: test|review|merge|deploy|smoke|uat|observed_behavior, pointer, recorded_at, recorded_by} ` +
-      `or ${ACCEPTANCE_DISPOSITION_KEY} {disposition: waived|deferred|not_applicable, reason, provenance (human-origin), recorded_at}. ` +
+      `or ${ACCEPTANCE_DISPOSITION_KEY} {disposition: waived|deferred|not_applicable, reason, provenance ${DISPOSITION_PROVENANCE_SHAPE}, recorded_at}. ` +
       `Bare evidence/disposition keys are not valid (#1620 / #3305). ` +
       `merge/review alone cannot satisfy smoke|uat|deploy|observed_behavior criteria.`,
     reports,

@@ -450,6 +450,59 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
     const result = runTransition("complete", file);
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/human-origin/);
+    // Invalid-object path keeps the kind list disclosure (#4877 clause 2).
+    expect(result.message).toMatch(
+      /must be human-origin \(kind operator-cli\|operator-session\|human-event \+ non-agent actor\)/,
+    );
+  });
+
+  it("missing provenance discloses a recordable GrantOrigin shape (#4877)", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        {
+          title: "needs disposition",
+          status: "pending",
+          [ACCEPTANCE_DISPOSITION_KEY]: {
+            disposition: "waived",
+            reason: "operator waived",
+            recorded_at: "2026-08-10T12:00:00Z",
+            // provenance missing → missing-path refusal
+          },
+        },
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.detail).toMatch(
+      /disposition\.provenance is required \(\{kind: operator-cli\|operator-session\|human-event, actor: <non-agent, e\.g\. operator@example\.com>\}\)/,
+    );
+    // Must not invite the bare self-asserted string.
+    expect(gate.reports[0]?.detail).not.toMatch(/required \(human-origin\)/);
+    expect(gate.message).toMatch(
+      /provenance \{kind: operator-cli\|operator-session\|human-event, actor: <non-agent, e\.g\. operator@example\.com>\}/,
+    );
+    expect(gate.message).not.toMatch(/provenance \(human-origin\)/);
+  });
+
+  it("bare human-origin string provenance still fails closed (#4877)", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        {
+          title: "bare string",
+          status: "pending",
+          [ACCEPTANCE_DISPOSITION_KEY]: {
+            disposition: "waived",
+            reason: "operator waived",
+            provenance: "human-origin",
+            recorded_at: "2026-08-10T12:00:00Z",
+          },
+        },
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    // Non-object re-enters missing-path (asRecord null), now with GrantOrigin shape.
+    expect(gate.reports[0]?.detail).toMatch(
+      /disposition\.provenance is required \(\{kind: operator-cli\|operator-session\|human-event, actor: <non-agent, e\.g\. operator@example\.com>\}\)/,
+    );
   });
 
   it("accepts suitable smoke evidence and lists criteria on success", () => {
