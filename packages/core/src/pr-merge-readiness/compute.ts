@@ -29,6 +29,7 @@ import {
   normalizeRequiredContexts,
   readMergeGateEnforcementRecord,
   type RequiredStatusContext,
+  type RequiredStatusContextsResult,
   requiredContextLabel,
   resolveRepo,
   writeMergeGateEnforcementRecord,
@@ -806,7 +807,14 @@ export function evaluateMergeGateEnforcementAtStrategyStart(
 
   // cannot-configure stays re-checkable: fall through to detect again (#1517).
   const fetchFn = options.fetchRequiredContextsFn ?? fetchRequiredStatusContexts;
-  const inventory = fetchFn(repo, options.branch, options.runGh);
+  const raw = fetchFn(repo, options.branch, options.runGh);
+  // Injectors may omit resolutionFailed; normalize to required boolean (fail-closed when true).
+  const inventory: RequiredStatusContextsResult = {
+    contexts: raw.contexts,
+    sources: raw.sources,
+    error: raw.error,
+    resolutionFailed: raw.resolutionFailed === true,
+  };
   const detection = classifyMergeGateEnforcement(inventory);
 
   if (detection === "unknown") {
