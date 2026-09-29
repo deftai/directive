@@ -102,6 +102,14 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 ## Hard gates (all hosts)
 
+### Solo-worker launch path (#3032 / #3669)
+
+! **#3032 solo-worker launch path** = this skill's interactive path: Phase 0 default when no pre-approved cohort; Mode B worktrees (`.deft-scratch/worktrees/<story-id>`); envelope `dispatch_kind: solo`. Through-merge / N=1 still uses this path — not parent-as-leaf. Depth: [`references/core-phase-0.md`](references/core-phase-0.md), [`references/core-phase-1-2.md`](references/core-phase-1-2.md), [`references/core-phase-3.md`](references/core-phase-3.md).
+! Headless `task swarm:launch` is the opt-in concurrent fast-path. `task swarm:readiness` exit 0 gates **concurrent** workers only. `swarm:launch` may emit `dispatch_kind: solo` for a single ungrouped story only after concurrent-ready gates pass.
+! N=1 sequential `swarm:launch` mode is declined for first ship (#3669); multi-story sequential / `fileOverlaps` / conflict-group sequencing stays out of scope.
+⊗ Treat closed #3666 as having discharged this discoverability debt (Gate A pointer ≠ AGENTS/commands/SKILL naming).
+⊗ Invent a greenfield solo-worker CLI verb as the first remedy; ⊗ conclude no sanctioned solo path exists when `swarm:launch` / readiness refuses.
+
 ### Proceed — no scope ceremony (#4956)
 
 ! After operator proceed on a cohort, do not schedule `scope:record-approved-scope` / mint stops. Fence is merge-base brief `file_scope`; depth: [`references/core-phase-0.md`](references/core-phase-0.md) § Proceed and scope ceremony, `docs/scope-provenance.md`.
