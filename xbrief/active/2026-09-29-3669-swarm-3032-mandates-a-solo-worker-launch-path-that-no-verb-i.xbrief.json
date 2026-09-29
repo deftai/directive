@@ -98,10 +98,7 @@
       }
     ],
     "acceptance": {
-      "commands": [
-        "task",
-        "verify:branch"
-      ],
+      "commands": [],
       "none_stated": true,
       "source_rung": "derived",
       "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
