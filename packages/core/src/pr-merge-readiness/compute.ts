@@ -902,16 +902,7 @@ export function evaluateMergeGateEnforcementAtStrategyStart(
         remediation: "",
       };
     }
-    if (existing.record?.decision === "configured") {
-      return {
-        ok: true,
-        decision: "configured",
-        detection,
-        record: existing.record,
-        message: "Forge merge-gate enforcement ready (required contexts present)",
-        remediation: "",
-      };
-    }
+    // Existing decision==="configured" already returned above (live protected -> ok).
     return {
       ok: false,
       decision: null,
