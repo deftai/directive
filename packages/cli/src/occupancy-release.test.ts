@@ -1,6 +1,7 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   applyWorktreeOccupancy,
   canonicalHostSessionId,
@@ -8,7 +9,12 @@ import {
   readOccupancy,
 } from "@deftai/directive-core/session";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { parseArgs, run } from "./occupancy-release.js";
+import {
+  ABANDONED_OCCUPANCY_LEASE_RECOVERY,
+  formatOccupancyReleaseHelp,
+  parseArgs,
+  run,
+} from "./occupancy-release.js";
 
 const sharedTemps: string[] = [];
 let sharedRoot: string | null = null;
@@ -151,5 +157,29 @@ describe("occupancy-release CLI (#3604)", () => {
   it("rejects unrecognized arguments", () => {
     expect(parseArgs(["--nope"]).error).toContain("unrecognized");
     expect(run(["--nope"])).toBe(2);
+  });
+
+  it("names abandoned-lease recovery on --help (#4667)", () => {
+    expect(parseArgs(["--help"])).toEqual({ projectRoot: ".", help: true });
+    expect(parseArgs(["-h"]).help).toBe(true);
+    const help = formatOccupancyReleaseHelp();
+    expect(help).toContain("occupancy:release --session-id=<id from .deft/occupancy.json>");
+    expect(help).toContain("presented");
+    expect(help).toContain("TTL");
+    expect(help).toContain("host:none");
+    expect(ABANDONED_OCCUPANCY_LEASE_RECOVERY).toContain(
+      "occupancy:release --session-id=<id from .deft/occupancy.json>",
+    );
+    expect(run(["--help"])).toBe(0);
+  });
+
+  it("locks README cold-start abandoned-lease recovery (#4667)", () => {
+    const readmePath = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "README.md");
+    const readme = readFileSync(readmePath, "utf8");
+    expect(readme).toContain("Abandoned occupancy lease");
+    expect(readme).toContain("occupancy:release --session-id=<id from .deft/occupancy.json>");
+    expect(readme).toContain("presented no session identity");
+    expect(readme).toContain("host:none");
+    expect(readme).toContain("TTL");
   });
 });

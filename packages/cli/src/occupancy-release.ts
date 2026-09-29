@@ -3,15 +3,45 @@ import { resolve } from "node:path";
 import { releaseOccupancy } from "@deftai/directive-core/session";
 import { occupancyUnrecognizedArgument } from "./occupancy-unrecognized.js";
 
+/**
+ * First-class abandoned-lease recovery (#4667). Live actor is session_id in
+ * .deft/occupancy.json; bare session:end with empty identity refuses; TTL
+ * claim-over and deny-embedded copy-paste remain. host:none / address:none
+ * are unset metadata, not the lock cause. Does not reopen anonymous live
+ * auto-release (#3954).
+ */
+export const ABANDONED_OCCUPANCY_LEASE_RECOVERY =
+  "Abandoned live occupancy lease: bare session:end / occupancy:release without a presented " +
+  "session identity refuses while the lease is live. Immediate recovery: " +
+  "occupancy:release --session-id=<id from .deft/occupancy.json> " +
+  "(read session_id from that file). Or wait for TTL claim-over. " +
+  "host:none / address:none are ordinary unset metadata, not the lock cause.";
+
+export function formatOccupancyReleaseHelp(): string {
+  return [
+    "Usage: deft occupancy:release [--project-root <path>] [--session-id <id>]",
+    "",
+    "Release this worktree occupancy lease (owner live, or expired residue).",
+    "",
+    ABANDONED_OCCUPANCY_LEASE_RECOVERY,
+    "",
+  ].join("\n");
+}
+
 export function parseArgs(argv: readonly string[]): {
   projectRoot: string;
   sessionId?: string;
+  help?: boolean;
   error?: string;
 } {
-  const parsed: { projectRoot: string; sessionId?: string } = { projectRoot: "." };
+  const parsed: { projectRoot: string; sessionId?: string; help?: boolean } = {
+    projectRoot: ".",
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--project-root") {
+    if (arg === "--help" || arg === "-h") {
+      parsed.help = true;
+    } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined || value.startsWith("--")) {
         return { ...parsed, error: "argument --project-root: expected one argument" };
@@ -53,6 +83,10 @@ export function run(argv: readonly string[]): number {
   if (args.error !== undefined) {
     process.stderr.write(`occupancy:release: ${args.error}\n`);
     return 2;
+  }
+  if (args.help === true) {
+    process.stdout.write(formatOccupancyReleaseHelp());
+    return 0;
   }
   const result = releaseOccupancy(resolve(args.projectRoot), {
     sessionId: args.sessionId,

@@ -134,6 +134,20 @@ import {
 import type { DoctorSeams, Finding, ResolutionSummary } from "./types.js";
 import { defaultWhich } from "./which.js";
 
+/**
+ * Cold-start recovery copy for abandoned live occupancy (#4667).
+ * Mirrors README cold-start; live actor is session_id. Bare session:end with
+ * empty identity refuses; TTL claim-over and deny-embedded recipe remain.
+ * host:none / address:none are unset metadata. Does not reopen anonymous
+ * live auto-release (#3954).
+ */
+export const ABANDONED_OCCUPANCY_LEASE_RECOVERY =
+  "Abandoned live occupancy lease: bare session:end / occupancy:release without a presented " +
+  "session identity refuses while the lease is live. Immediate recovery: " +
+  "occupancy:release --session-id=<id from .deft/occupancy.json> " +
+  "(read session_id from that file). Or wait for TTL claim-over. " +
+  "host:none / address:none are ordinary unset metadata, not the lock cause.";
+
 const DEFAULT_RESOLUTION_PLATFORMS = ["linux", "darwin", "win32"] as const;
 
 export type ProjectLifecycleState =
@@ -350,6 +364,8 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
 
   if (flags.help) {
     process.stdout.write(formatDoctorHelp());
+    // Cold-start recovery copy (#4667): keep discoverable beside doctor --help.
+    process.stdout.write(`${ABANDONED_OCCUPANCY_LEASE_RECOVERY}\n`);
     return 0;
   }
 
@@ -363,6 +379,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   const consumerContext = resolve(projectRoot) !== resolve(frameworkRoot);
   const whichFn = seams.whichFn ?? defaultWhich;
   const nowFn = seams.now ?? (() => new Date());
+  const occupancyLeasePresent = existsSync(join(projectRoot, ".deft", "occupancy.json"));
 
   // #3039: temporary test kill-switch. Active (untracked) → disabled short-circuit.
   // Tracked/committed flag → warn only and continue normal doctor (no enforcement bypass).
@@ -835,6 +852,10 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   }
 
   sink.blank();
+  // #4667: when a lease file is present, name the abandoned-lease recovery once.
+  if (occupancyLeasePresent && !quietMode) {
+    sink.info(ABANDONED_OCCUPANCY_LEASE_RECOVERY);
+  }
   if (errorCount === 0 && warningCount === 0) {
     sink.finalSuccess("System check passed!");
     emitSessionCodaAfterFinalSuccess({
