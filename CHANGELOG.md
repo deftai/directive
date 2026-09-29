@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(vbrief): verify:vbrief-conformance counts on-disk PROJECT-DEFINITION (#4876).** `evaluateConformance` forces canonical `xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy vbrief twin) into the candidate set when present, including untracked Setup Phase 2 trees, so exit 0 with a clean-zero count is no longer a false certificate that PROJECT-DEFINITION was scanned for #1620 bare keys. Keeps the `DEFT_PROJECT_PATH` / `projectDefinitionPath` injection seam for noncanonical paths; does not invent a second Setup-only scanner. Tracking #4876.
 - **Scope completion now explains how to record human provenance (#4877).** When a disposition has no provenance, the refusal and help text show the information needed to record it. Bare strings remain invalid. Tracking #4877.
 
-- **Abandoned occupancy lease recovery is discoverable from README and doctor (#4667).** Cold-start and doctor name how to clear an abandoned live lease without inventing a new unlock verb. Tracking #4667.
+- **Abandoned occupancy lease recovery is discoverable (#4667).** Tracking #4667.
 
 ### Removed
 

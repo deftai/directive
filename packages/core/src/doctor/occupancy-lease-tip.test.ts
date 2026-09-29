@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { ABANDONED_OCCUPANCY_LEASE_RECOVERY, occupancyLeaseDoctorTip } from "./main.js";
+import { ABANDONED_OCCUPANCY_LEASE_RECOVERY, cmdDoctor, occupancyLeaseDoctorTip } from "./main.js";
 
 describe("occupancyLeaseDoctorTip (#4667)", () => {
   const roots: string[] = [];
@@ -88,5 +88,69 @@ describe("occupancyLeaseDoctorTip (#4667)", () => {
     expect(ABANDONED_OCCUPANCY_LEASE_RECOVERY).toContain(
       "occupancy:release --session-id=<id from .deft/occupancy.json>",
     );
+  });
+
+  it("doctor --help prints abandoned-lease recovery (#4667)", () => {
+    const lines: string[] = [];
+    const orig = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      lines.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(cmdDoctor(["--help"])).toBe(0);
+      expect(lines.join("")).toContain(ABANDONED_OCCUPANCY_LEASE_RECOVERY.slice(0, 40));
+    } finally {
+      process.stdout.write = orig;
+    }
+  });
+
+  it("throttle-skipped doctor still prints lease tip when file present (#4667)", () => {
+    const root = mkdtempSync(join(tmpdir(), "doctor-lease-tip-"));
+    roots.push(root);
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    const now = new Date("2026-09-29T17:00:00Z");
+    writeFileSync(
+      join(root, ".deft", "occupancy.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        session_id: "host:test:stale",
+        intent: "mutation",
+        claimed_at: "2026-09-29T15:00:00Z",
+        heartbeat_at: "2026-09-29T15:30:00Z",
+        worktree_path: root,
+        host: "none",
+        address: "none",
+        identity_provenance: "explicit",
+        join_protocol: "none",
+        retain_capable: false,
+      }),
+      "utf8",
+    );
+    const lines: string[] = [];
+    const orig = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      lines.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(
+        cmdDoctor(["--project-root", root], {
+          readState: () => ({
+            lastRunAt: now,
+            lastExitCode: 0,
+            lastFindingCount: 0,
+            lastErrorCount: 0,
+            lastHasDeftCore: true,
+          }),
+          now: () => now,
+        }),
+      ).toBe(0);
+      const output = lines.join("");
+      expect(output).toMatch(/Abandoned or expired|Occupancy lease/);
+      expect(output).toContain("occupancy:release --session-id=");
+    } finally {
+      process.stdout.write = orig;
+    }
   });
 });
