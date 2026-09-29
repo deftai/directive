@@ -17,6 +17,13 @@ import { evaluateIssuePlanIdAdmission, withPlanIdIdentityLock } from "../intake/
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
+import {
+  evaluateCancelShippedOriginRefuse,
+  type IssueCloseKind,
+  type CompletedTipTwinResult,
+} from "../lifecycle/completed-tracked-on-delivery.js";
+import type { IssueRef } from "../orphan-active/refs.js";
+import type { RunGhFn } from "../pr-protected-issues/types.js";
 import type { LiteralAcceptanceRunner } from "../literal-acceptance/index.js";
 import type { GitRunner } from "../session/git.js";
 import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
@@ -88,6 +95,20 @@ export interface TransitionOptions {
   readonly skipAcceptanceEvidenceGate?: boolean;
   /** Test-only runner for the complete acceptance walk (#4060). Production leaves this unset. */
   readonly acceptanceRunner?: LiteralAcceptanceRunner;
+  /** Optional gh runner for the #5126 cancel shipped-origin refuse. */
+  readonly runGh?: RunGhFn;
+  /** Offline / fixture: skip live gh for the #5126 cancel refuse. */
+  readonly skipGh?: boolean;
+  /** Optional delivery tip override for the #5126 cancel refuse. */
+  readonly tip?: string | null;
+  /** Optional repo override for origin collection on cancel refuse. */
+  readonly repo?: string | null;
+  /** Test seam: skip the #5126 shipped-origin cancel refuse. */
+  readonly skipCancelShippedOriginRefuse?: boolean;
+  /** Test seam: override close-kind resolution for cancel refuse. */
+  readonly resolveIssueCloseKind?: (ref: IssueRef) => IssueCloseKind;
+  /** Test seam: override completed tip-twin probe for cancel refuse. */
+  readonly hasCompletedTipTwin?: (ref: IssueRef) => CompletedTipTwinResult;
 }
 
 /** Item statuses that still represent unfinished work and should advance on terminal transitions (#2862). */
@@ -403,6 +424,22 @@ export function runTransition(
     if (acWalk.message.length > 0) {
       acceptanceListing =
         acceptanceListing.length > 0 ? `${acceptanceListing}\n${acWalk.message}` : acWalk.message;
+    }
+  }
+
+  // #5126: refuse cancel on shipped-closed origin without completed tip twin.
+  if (act === "cancel" && options.skipCancelShippedOriginRefuse !== true) {
+    const refuse = evaluateCancelShippedOriginRefuse(projectRoot, planObj, {
+      runGh: options.runGh,
+      skipGh: options.skipGh,
+      runGit: options.runGit,
+      tip: options.tip,
+      repo: options.repo,
+      resolveCloseKind: options.resolveIssueCloseKind,
+      hasCompletedTwin: options.hasCompletedTipTwin,
+    });
+    if (refuse.refuse) {
+      return { ok: false, message: refuse.message };
     }
   }
 

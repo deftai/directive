@@ -159,7 +159,30 @@ function relPath(path: string, projectRoot: string): string {
   }
 }
 
-function readCachedIssueState(projectRoot: string, ref: IssueRef): "open" | "closed" | null {
+interface IssueStatePayload {
+  readonly state: "open" | "closed";
+  readonly stateReason: string | null;
+}
+
+function normalizeStateReason(raw: unknown): string | null {
+  if (typeof raw !== "string" || raw.trim().length === 0) {
+    return null;
+  }
+  return raw.trim().toLowerCase();
+}
+
+function payloadFromRaw(raw: Record<string, unknown>): IssueStatePayload | null {
+  const state = typeof raw.state === "string" ? raw.state.toLowerCase() : "";
+  if (state !== "closed" && state !== "open") {
+    return null;
+  }
+  return { state, stateReason: normalizeStateReason(raw.state_reason) };
+}
+
+function readCachedIssuePayload(
+  projectRoot: string,
+  ref: IssueRef,
+): IssueStatePayload | null {
   const [owner, name] = ref.repo.split("/", 2);
   if (!owner || !name) {
     return null;
@@ -180,29 +203,21 @@ function readCachedIssueState(projectRoot: string, ref: IssueRef): "open" | "clo
   if (raw === null) {
     return null;
   }
-  const state = typeof raw.state === "string" ? raw.state.toLowerCase() : "";
-  if (state === "closed" || state === "open") {
-    return state;
-  }
-  return null;
+  return payloadFromRaw(raw);
 }
 
-function fetchIssueStateLive(ref: IssueRef, runGh: RunGhFn): "open" | "closed" | null {
+function fetchIssuePayloadLive(ref: IssueRef, runGh: RunGhFn): IssueStatePayload | null {
   const path = `repos/${ref.repo}/issues/${ref.number}`;
   const result = runGh(["gh", "api", path]);
   if (result.returncode !== 0) {
     return null;
   }
   try {
-    const payload = JSON.parse(result.stdout) as unknown;
-    if (payload === null || typeof payload !== "object") {
+    const parsed = JSON.parse(result.stdout) as unknown;
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
       return null;
     }
-    const state = (payload as Record<string, unknown>).state;
-    if (state === "closed" || state === "open") {
-      return state;
-    }
-    return null;
+    return payloadFromRaw(parsed as Record<string, unknown>);
   } catch {
     return null;
   }
@@ -214,24 +229,71 @@ function defaultResolveIssueState(
   runGh: RunGhFn,
   skipGh: boolean,
 ): "open" | "closed" | null {
-  const cached = readCachedIssueState(projectRoot, ref);
+  const cached = readCachedIssuePayload(projectRoot, ref);
   // Closed cache is fail-closed evidence (safe to trust without live).
-  if (cached === "closed") {
+  if (cached?.state === "closed") {
     return "closed";
   }
   if (skipGh) {
     // Offline / fixture mode: honor cache open|null as-is.
-    return cached;
+    return cached?.state ?? null;
   }
   // Prefer live when network is allowed. Stale open cache must not suppress a
   // later close when live succeeds (#3264 Greptile P1). When live fails, do
   // NOT fall back to cached open — treat as unknown so we fail closed only on
   // positive closed evidence (cached closed above, or live closed).
-  const live = fetchIssueStateLive(ref, runGh);
+  const live = fetchIssuePayloadLive(ref, runGh);
   if (live !== null) {
-    return live;
+    return live.state;
   }
   return null;
+}
+
+/**
+ * Closed reasons that are abandon/supersede, not shipped Tracking close (#5126).
+ * Matches reconcile cancelled destinations (NOT_PLANNED / DUPLICATE).
+ */
+export const ABANDON_CLOSE_REASONS = new Set(["not_planned", "duplicate"]);
+
+/** Close kind for the shipped-origin cancel refuse (#5126). */
+export type IssueCloseKind = "open" | "shipped-closed" | "abandoned-closed" | "unknown";
+
+function closeKindFromPayload(payload: IssueStatePayload | null): IssueCloseKind {
+  if (payload === null) {
+    return "unknown";
+  }
+  if (payload.state === "open") {
+    return "open";
+  }
+  if (payload.stateReason !== null && ABANDON_CLOSE_REASONS.has(payload.stateReason)) {
+    return "abandoned-closed";
+  }
+  // completed, null, or other non-abandon reason → shipped-closed equivalent.
+  return "shipped-closed";
+}
+
+/**
+ * Same cache/live trust order as `defaultResolveIssueState`, with state_reason
+ * for the #5126 cancel refuse (shipped-closed vs abandon).
+ */
+export function resolveIssueCloseKind(
+  ref: IssueRef,
+  projectRoot: string,
+  runGh: RunGhFn,
+  skipGh: boolean,
+): IssueCloseKind {
+  const cached = readCachedIssuePayload(projectRoot, ref);
+  if (cached?.state === "closed") {
+    return closeKindFromPayload(cached);
+  }
+  if (skipGh) {
+    return closeKindFromPayload(cached);
+  }
+  const live = fetchIssuePayloadLive(ref, runGh);
+  if (live !== null) {
+    return closeKindFromPayload(live);
+  }
+  return "unknown";
 }
 
 function collectIssuesFromPlan(
@@ -366,6 +428,15 @@ function terminalPrefixes(): string[] {
     for (const folder of TIP_TERMINAL_FOLDERS) {
       out.push(`${root}/${folder}`);
     }
+  }
+  return out;
+}
+
+/** Completed-only tip prefixes for Tracking ship-path twin (#5126). */
+function completedOnlyPrefixes(): string[] {
+  const out: string[] = [];
+  for (const root of [MIGRATED_ARTIFACT_DIR, LEGACY_ARTIFACT_DIR]) {
+    out.push(`${root}/completed`);
   }
   return out;
 }
@@ -707,4 +778,133 @@ export function evaluateCompletedTracked(
     briefsScanned: localScan.briefsScanned,
     originsResolved: originMap.size,
   };
+}
+
+export interface CompletedTipTwinResult {
+  readonly found: boolean;
+  readonly tip: string | null;
+  readonly error: string | null;
+}
+
+/**
+ * Delivery-tip scan for a completed/ twin citing the issue (#5126).
+ * Completed-only — cancelled tip twins do not satisfy the ship-path refuse.
+ */
+export function hasCompletedTipTwinForIssue(
+  projectRoot: string,
+  issue: IssueRef,
+  options: {
+    readonly tip?: string | null;
+    readonly runGit?: GitRunner;
+  } = {},
+): CompletedTipTwinResult {
+  const root = resolve(projectRoot);
+  const runGit = options.runGit ?? defaultGitRunner;
+  const { tip, error } = resolveDeliveryTip(root, options.tip, runGit);
+  if (tip === null) {
+    return { found: false, tip: null, error: error ?? "could not resolve delivery tip" };
+  }
+  const paths = listTreePaths(root, tip, completedOnlyPrefixes(), runGit);
+  if (paths.length === 0) {
+    return { found: false, tip, error: null };
+  }
+  const bodies = showBlobsBatch(root, tip, paths, runGit);
+  const hits = issuesFromBlobBodies(paths, bodies, issue.repo, `tip:${tip}`);
+  const key = issueKey(issue);
+  const found = hits.some((hit) => issueKey(hit.issue) === key);
+  return { found, tip, error: null };
+}
+
+export interface CancelShippedOriginRefuseOptions {
+  readonly runGh?: RunGhFn;
+  readonly skipGh?: boolean;
+  readonly runGit?: GitRunner;
+  readonly tip?: string | null;
+  readonly repo?: string | null;
+  readonly resolveCloseKind?: (ref: IssueRef) => IssueCloseKind;
+  readonly hasCompletedTwin?: (ref: IssueRef) => CompletedTipTwinResult;
+}
+
+export type CancelShippedOriginRefuseResult =
+  | { readonly refuse: false }
+  | { readonly refuse: true; readonly message: string };
+
+function formatCancelShippedOriginRefuse(
+  issue: IssueRef,
+  tip: string | null,
+  detail: string,
+): string {
+  const tipLabel = tip ?? "origin/<deliveryBranch>";
+  return [
+    `scope:cancel: refused for shipped-closed origin ${formatIssue(issue)} without a completed tip twin on ${tipLabel} (${detail}).`,
+    "  Remediation: leftover-complete via task scope:complete --merge-commit . --pr . or task swarm:finalize-cohort.",
+  ].join("\n");
+}
+
+/**
+ * Fail-closed cancel refuse for shipped Tracking/Refs close without completed
+ * tip twin (#5126). True abandon stays open when origin is open or abandoned-closed.
+ */
+export function evaluateCancelShippedOriginRefuse(
+  projectRoot: string,
+  plan: Record<string, unknown>,
+  options: CancelShippedOriginRefuseOptions = {},
+): CancelShippedOriginRefuseResult {
+  const root = resolve(projectRoot);
+  const skipGh = options.skipGh ?? false;
+  const runGh = options.runGh ?? defaultRunGh;
+  const runGit = options.runGit ?? defaultGitRunner;
+  const defaultRepo = resolveRepo(options.repo, root);
+  const { issues } = collectGithubRefs(plan, defaultRepo);
+  if (issues.length === 0) {
+    return { refuse: false };
+  }
+
+  const resolveKind =
+    options.resolveCloseKind ??
+    ((ref: IssueRef) => resolveIssueCloseKind(ref, root, runGh, skipGh));
+  const twinOf =
+    options.hasCompletedTwin ??
+    ((ref: IssueRef) =>
+      hasCompletedTipTwinForIssue(root, ref, { tip: options.tip, runGit }));
+
+  for (const issue of issues) {
+    const kind = resolveKind(issue);
+    if (kind === "open" || kind === "abandoned-closed") {
+      continue;
+    }
+    if (kind === "unknown") {
+      return {
+        refuse: true,
+        message: formatCancelShippedOriginRefuse(
+          issue,
+          null,
+          "could not resolve closed state",
+        ),
+      };
+    }
+    // shipped-closed
+    const twin = twinOf(issue);
+    if (twin.error !== null) {
+      return {
+        refuse: true,
+        message: formatCancelShippedOriginRefuse(
+          issue,
+          twin.tip,
+          twin.error,
+        ),
+      };
+    }
+    if (!twin.found) {
+      return {
+        refuse: true,
+        message: formatCancelShippedOriginRefuse(
+          issue,
+          twin.tip,
+          "no xbrief/completed/ (or vbrief/completed/) citing the origin",
+        ),
+      };
+    }
+  }
+  return { refuse: false };
 }

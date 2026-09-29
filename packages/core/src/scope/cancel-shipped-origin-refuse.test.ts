@@ -1,0 +1,218 @@
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, describe, expect, it } from "vitest";
+import { evaluateCompletedTracked } from "../lifecycle/completed-tracked-on-delivery.js";
+import { runTransition } from "./transition.js";
+
+const temps: string[] = [];
+afterAll(() => {
+  for (const t of temps) {
+    rmSync(t, { recursive: true, force: true });
+  }
+});
+
+function git(root: string, args: string[]): void {
+  execFileSync("git", args, {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+function makeRepo(): string {
+  const root = mkdtempSync(join(tmpdir(), "deft-cancel-refuse-"));
+  temps.push(root);
+  git(root, ["init", "-q"]);
+  git(root, ["config", "user.email", "t@t.dev"]);
+  git(root, ["config", "user.name", "t"]);
+  git(root, ["checkout", "-q", "-b", "master"]);
+  writeFileSync(join(root, "README.md"), "fixture\n", "utf8");
+  git(root, ["add", "README.md"]);
+  git(root, ["commit", "-q", "-m", "init"]);
+  return root;
+}
+
+function writeBrief(
+  root: string,
+  folder: string,
+  name: string,
+  plan: Record<string, unknown>,
+): string {
+  const dir = join(root, "xbrief", folder);
+  mkdirSync(dir, { recursive: true });
+  const path = join(dir, name);
+  writeFileSync(
+    path,
+    JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan,
+    }),
+    "utf8",
+  );
+  return path;
+}
+
+function writeCachedIssue(
+  root: string,
+  repo: string,
+  number: number,
+  state: "open" | "closed",
+  stateReason?: string | null,
+): void {
+  const [owner, name] = repo.split("/", 2);
+  if (!owner || !name) {
+    throw new Error(`invalid repo slug: ${repo}`);
+  }
+  const dir = join(root, ".deft-cache", "github-issue", owner, name, String(number));
+  mkdirSync(dir, { recursive: true });
+  const payload: Record<string, unknown> = { number, state };
+  if (stateReason !== undefined) {
+    payload.state_reason = stateReason;
+  }
+  writeFileSync(join(dir, "raw.json"), JSON.stringify(payload), "utf8");
+}
+
+const originPlan = (
+  number: number,
+  status: string,
+): Record<string, unknown> => ({
+  status,
+  title: `story ${number}`,
+  items: [],
+  references: [
+    {
+      uri: `https://github.com/deftai/directive/issues/${number}`,
+      type: "x-xbrief/github-issue",
+    },
+  ],
+});
+
+describe("scope:cancel shipped-origin refuse (#5126)", () => {
+  it("refuses cancel when origin is shipped-closed without completed tip twin", () => {
+    const root = makeRepo();
+    const active = writeBrief(
+      root,
+      "active",
+      "shipped.xbrief.json",
+      originPlan(51261, "running"),
+    );
+    writeCachedIssue(root, "deftai/directive", 51261, "closed", "completed");
+    const result = runTransition("cancel", active, new Date(), {
+      skipGh: true,
+      tip: "HEAD",
+      repo: "deftai/directive",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("scope:cancel: refused");
+    expect(result.message).toContain("leftover-complete");
+    expect(result.message).toContain("swarm:finalize-cohort");
+    expect(result.message).toContain("51261");
+    expect(readFileSync(active, "utf8")).toContain('"status":"running"');
+  });
+
+  it("allows cancel when origin is open (true abandon)", () => {
+    const root = makeRepo();
+    const active = writeBrief(
+      root,
+      "active",
+      "open-abandon.xbrief.json",
+      originPlan(51262, "running"),
+    );
+    writeCachedIssue(root, "deftai/directive", 51262, "open", null);
+    const result = runTransition("cancel", active, new Date(), {
+      skipGh: true,
+      tip: "HEAD",
+      repo: "deftai/directive",
+    });
+    expect(result.ok).toBe(true);
+    expect(
+      readFileSync(join(root, "xbrief", "cancelled", "open-abandon.xbrief.json"), "utf8"),
+    ).toContain('"status": "cancelled"');
+  });
+
+  it("allows cancel when origin is abandoned-closed (not_planned)", () => {
+    const root = makeRepo();
+    const active = writeBrief(
+      root,
+      "active",
+      "not-planned.xbrief.json",
+      originPlan(51263, "running"),
+    );
+    writeCachedIssue(root, "deftai/directive", 51263, "closed", "not_planned");
+    const result = runTransition("cancel", active, new Date(), {
+      skipGh: true,
+      tip: "HEAD",
+      repo: "deftai/directive",
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("allows cancel when shipped-closed and completed tip twin exists", () => {
+    const root = makeRepo();
+    const active = writeBrief(
+      root,
+      "active",
+      "twinned.xbrief.json",
+      originPlan(51264, "running"),
+    );
+    writeBrief(root, "completed", "landed.xbrief.json", originPlan(51264, "completed"));
+    writeCachedIssue(root, "deftai/directive", 51264, "closed", "completed");
+    git(root, ["add", "xbrief/completed/landed.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "land completed twin"]);
+    const result = runTransition("cancel", active, new Date(), {
+      skipGh: true,
+      tip: "HEAD",
+      repo: "deftai/directive",
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("does not green cancel refuse on cancelled-only tip twin", () => {
+    const root = makeRepo();
+    const active = writeBrief(
+      root,
+      "active",
+      "cancelled-only.xbrief.json",
+      originPlan(51265, "running"),
+    );
+    writeBrief(root, "cancelled", "landed-cancel.xbrief.json", {
+      ...originPlan(51265, "cancelled"),
+    });
+    writeCachedIssue(root, "deftai/directive", 51265, "closed", "completed");
+    git(root, ["add", "xbrief/cancelled/landed-cancel.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "land cancelled only"]);
+    const result = runTransition("cancel", active, new Date(), {
+      skipGh: true,
+      tip: "HEAD",
+      repo: "deftai/directive",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("leftover-complete");
+  });
+
+  it("verify:completed-tracked exits 1 until completed twin exists (#5126 fixture)", () => {
+    const root = makeRepo();
+    writeBrief(root, "active", "tracking.xbrief.json", originPlan(51266, "running"));
+    writeCachedIssue(root, "deftai/directive", 51266, "closed", "completed");
+    const before = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      issue: 51266,
+    });
+    expect(before.code).toBe(1);
+
+    writeBrief(root, "completed", "tracking.xbrief.json", originPlan(51266, "completed"));
+    git(root, ["add", "xbrief/completed/tracking.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "leftover-complete"]);
+    const after = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      issue: 51266,
+    });
+    expect(after.code).toBe(0);
+  });
+});
