@@ -315,9 +315,17 @@ export function run(argv: string[]): number {
     if (found.kind === "one") {
       paths = [found.path];
     } else if (found.kind === "many") {
-      // #4285: soft-missing selects via DEFT_ACTIVE_SCOPE / inspectActiveScope
+      // #4285: soft-missing selects via DEFT_ACTIVE_SCOPE / explicit path
       // (or fail closed). ALL-paths soft-missing is not the #3284 product bar.
-      if (args.softMissingXbrief) {
+      // --capture-only still lists every active artifact (inventory, not run).
+      if (args.captureOnly) {
+        paths = [...found.paths];
+        if (!args.quiet) {
+          process.stdout.write(
+            `verify:ac capture-only multi-active: listing ${paths.length} scopes in ${found.dir}\n`,
+          );
+        }
+      } else if (args.softMissingXbrief) {
         const selected = resolveSoftMissingAcTargets(projectRoot, {
           env: process.env,
           scannedPaths: found.paths,
@@ -342,13 +350,6 @@ export function run(argv: string[]): number {
             outcome: "config-error",
           });
           return 1;
-        }
-      } else if (args.captureOnly) {
-        paths = [...found.paths];
-        if (!args.quiet) {
-          process.stdout.write(
-            `verify:ac capture-only multi-active: listing ${paths.length} scopes in ${found.dir}\n`,
-          );
         }
       } else {
         process.stderr.write(

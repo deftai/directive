@@ -153,6 +153,40 @@ describe("verify:ac run (#3284)", () => {
     expect(run(["--project-root", root])).toBe(1);
   });
 
+  it("capture-only + soft-missing multi-active lists every artifact (#4285)", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-capture-multi-"));
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const body = JSON.stringify({
+      plan: {
+        status: "running",
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+        items: [],
+        metadata: {
+          intended_placement: {
+            schema: "deft.scope.intended_placement.v1",
+            files: ["src/a.ts"],
+            module_boundary: "a",
+          },
+        },
+      },
+    });
+    writeFileSync(join(active, "a.xbrief.json"), body, "utf8");
+    writeFileSync(join(active, "b.xbrief.json"), body, "utf8");
+    const chunks: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      chunks.push(String(c));
+      return true;
+    });
+    expect(
+      run(["--project-root", root, "--soft-missing-xbrief", "--capture-only"]),
+    ).toBe(0);
+    const out = chunks.join("");
+    expect(out).toMatch(/capture-only multi-active: listing 2 scopes/);
+    expect(out).toMatch(/a\.xbrief\.json/);
+    expect(out).toMatch(/b\.xbrief\.json/);
+  });
+
   it("soft-missing multi-active runs only the pinned story (#4285)", () => {
     const root = mkdtempSync(join(tmpdir(), "verify-ac-pin-"));
     const active = join(root, "xbrief", "active");

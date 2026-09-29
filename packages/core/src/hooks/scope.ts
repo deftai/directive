@@ -309,9 +309,12 @@ export interface ResolveSoftMissingAcTargetsOptions extends InspectActiveScopeOp
  * Select the soft-missing / check-composition AC target (#4285).
  *
  * One scanned artifact → that path (single-scope unchanged).
- * Many artifacts → reuse {@link inspectActiveScope} / {@link ACTIVE_SCOPE_PIN_ENV}
- * or fail closed asking for the pin / explicit path. Never evaluates every
- * active leftover under soft-missing.
+ * Many artifacts → require an explicit pin / {@link ACTIVE_SCOPE_PIN_ENV} /
+ * `boundPath` (or fail closed). Do not reuse {@link inspectActiveScope}
+ * readiness: one preflight-eligible leftover must not win without a pin, and a
+ * pinned blocked / preflight-ineligible story must still run acceptance (AC
+ * does not require implementation-preflight). Never evaluates every active
+ * leftover under soft-missing.
  */
 export function resolveSoftMissingAcTargets(
   projectRoot: string,
@@ -331,17 +334,31 @@ export function resolveSoftMissingAcTargets(
     }
     return { kind: "one", path: only };
   }
-  const scope = inspectActiveScope(projectRoot, {
-    env: options?.env,
-    boundPath: options?.boundPath,
-  });
-  if (scope.ready && scope.path !== null) {
-    return { kind: "one", path: scope.path };
+  const pin = pinFrom(options);
+  if (pin.length > 0) {
+    // Match against scanned actives only — not preflight-eligible subset.
+    const matched = matchPinnedActiveScope(projectRoot, pin, scanned, scanned);
+    if (matched !== null) {
+      return { kind: "one", path: matched };
+    }
+    return {
+      kind: "need-pin",
+      message: formatSoftMissingNeedPinMessage(
+        scanned.length,
+        `${ACTIVE_SCOPE_PIN_ENV} does not name an active lifecycle artifact under ` +
+          `xbrief/active/ (got ${pin}).`,
+      ),
+      denyKind: "pin-miss",
+      scannedCount: scanned.length,
+    };
   }
   return {
     kind: "need-pin",
-    message: formatSoftMissingNeedPinMessage(scanned.length, scope.message),
-    denyKind: scope.denyKind,
+    message: formatSoftMissingNeedPinMessage(
+      scanned.length,
+      "No pin or boundPath; refuse unpinned multi-active soft-missing selection.",
+    ),
+    denyKind: "multiple-eligible",
     scannedCount: scanned.length,
   };
 }

@@ -332,4 +332,42 @@ describe("soft-missing AC target selection (#4285)", () => {
     const byBound = resolveSoftMissingAcTargets(project, { boundPath: storyB, env: {} });
     expect(byBound).toEqual({ kind: "one", path: storyB });
   });
+
+  it("refuses unpinned multi-active when only one artifact passes preflight", () => {
+    const project = root();
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(active, "blocked-dispatched.xbrief.json"),
+      JSON.stringify({ plan: { status: "blocked" } }),
+      "utf8",
+    );
+    writeRunning(project, "foreign-leftover.xbrief.json", ["packages/foreign/**"]);
+    // inspectActiveScope would select the sole eligible leftover; soft-missing must not.
+    expect(inspectActiveScope(project, { env: {} })).toMatchObject({
+      ready: true,
+      path: join(active, "foreign-leftover.xbrief.json"),
+    });
+    const result = resolveSoftMissingAcTargets(project, { env: {} });
+    expect(result.kind).toBe("need-pin");
+    if (result.kind !== "need-pin") return;
+    expect(result.scannedCount).toBe(2);
+    expect(result.denyKind).toBe("multiple-eligible");
+    expect(result.message).toContain(ACTIVE_SCOPE_PIN_ENV);
+  });
+
+  it("selects a pinned blocked story for soft-missing acceptance", () => {
+    const project = root();
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const blocked = join(active, "blocked-dispatched.xbrief.json");
+    writeFileSync(blocked, JSON.stringify({ plan: { status: "blocked" } }), "utf8");
+    writeRunning(project, "foreign-leftover.xbrief.json", ["packages/foreign/**"]);
+    const byPin = resolveSoftMissingAcTargets(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/blocked-dispatched.xbrief.json" },
+    });
+    expect(byPin).toEqual({ kind: "one", path: blocked });
+    const byBound = resolveSoftMissingAcTargets(project, { boundPath: blocked, env: {} });
+    expect(byBound).toEqual({ kind: "one", path: blocked });
+  });
 });
