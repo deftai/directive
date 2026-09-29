@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { defaultWhich } from "../scm/binary.js";
 import { classifyScmArgv, resolveBinaryForArgv } from "../scm/call-shape.js";
@@ -769,8 +770,12 @@ export interface MergeGateEnforcementRecordResult {
   readonly error: string;
 }
 
-function sanitizeMergeGateScopePart(raw: string): string {
-  return raw.replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^_+|_+$/g, "") || "_";
+/**
+ * Unique filename segment for repo/branch scope (#1517).
+ * Base64url keeps `release/a` distinct from `release_a` (slash→underscore collapsed).
+ */
+export function encodeMergeGateScopePart(raw: string): string {
+  return Buffer.from(raw, "utf8").toString("base64url") || "_";
 }
 
 /** Repo/branch-scoped path under projectRoot for the durable readiness record (#1517). */
@@ -779,7 +784,7 @@ export function mergeGateEnforcementRecordPath(
   repo: string,
   branch: string,
 ): string {
-  const file = `${sanitizeMergeGateScopePart(repo)}--${sanitizeMergeGateScopePart(branch)}.json`;
+  const file = `${encodeMergeGateScopePart(repo)}--${encodeMergeGateScopePart(branch)}.json`;
   return join(projectRoot, MERGE_GATE_ENFORCEMENT_DIR, file);
 }
 
@@ -822,7 +827,11 @@ export function readMergeGateEnforcementRecord(
       return { ok: false, record: null, error: "merge-gate enforcement record missing branch" };
     }
     if (!isMergeGateDecision(o.decision)) {
-      return { ok: false, record: null, error: "merge-gate enforcement record has invalid decision" };
+      return {
+        ok: false,
+        record: null,
+        error: "merge-gate enforcement record has invalid decision",
+      };
     }
     if (typeof o.recordedAt !== "string" || o.recordedAt.length === 0) {
       return { ok: false, record: null, error: "merge-gate enforcement record missing recordedAt" };
@@ -846,6 +855,15 @@ export function readMergeGateEnforcementRecord(
     const contexts = Array.isArray(o.contexts)
       ? normalizeRequiredContexts(o.contexts as readonly (string | RequiredStatusContext)[])
       : undefined;
+    if (o.repo !== repo || o.branch !== branch) {
+      return {
+        ok: false,
+        record: null,
+        error:
+          "merge-gate enforcement record repo/branch mismatch " +
+          `(stored ${o.repo}@${o.branch}, requested ${repo}@${branch})`,
+      };
+    }
     const record: MergeGateEnforcementRecord = {
       schema: MERGE_GATE_ENFORCEMENT_SCHEMA,
       repo: o.repo,
@@ -925,11 +943,150 @@ export interface MergeGateConfigurePayloadResult {
   readonly error: string;
 }
 
+/** Extract boolean from GET-shaped `{ enabled }` or bare boolean (#1517). */
+function enabledFlag(value: unknown, fallback = false): boolean {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    const enabled = (value as Record<string, unknown>).enabled;
+    if (typeof enabled === "boolean") {
+      return enabled;
+    }
+  }
+  return fallback;
+}
+
+function mapLoginList(list: unknown): string[] {
+  if (!Array.isArray(list)) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const item of list) {
+    if (typeof item === "string" && item.length > 0) {
+      out.push(item);
+      continue;
+    }
+    if (item !== null && typeof item === "object" && !Array.isArray(item)) {
+      const login = (item as Record<string, unknown>).login;
+      if (typeof login === "string" && login.length > 0) {
+        out.push(login);
+      }
+    }
+  }
+  return out;
+}
+
+function mapSlugList(list: unknown, preferLoginFallback = false): string[] {
+  if (!Array.isArray(list)) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const item of list) {
+    if (typeof item === "string" && item.length > 0) {
+      out.push(item);
+      continue;
+    }
+    if (item !== null && typeof item === "object" && !Array.isArray(item)) {
+      const o = item as Record<string, unknown>;
+      const slug = typeof o.slug === "string" ? o.slug : null;
+      const login = typeof o.login === "string" ? o.login : null;
+      const pick = slug ?? (preferLoginFallback ? login : null);
+      if (pick !== null && pick.length > 0) {
+        out.push(pick);
+      }
+    }
+  }
+  return out;
+}
+
+function mapRequiredPullRequestReviews(raw: unknown): Record<string, unknown> | null {
+  if (raw === null || raw === undefined) {
+    return null;
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+  const o = raw as Record<string, unknown>;
+  const mapped: Record<string, unknown> = {};
+  if (typeof o.dismiss_stale_reviews === "boolean") {
+    mapped.dismiss_stale_reviews = o.dismiss_stale_reviews;
+  }
+  if (typeof o.require_code_owner_reviews === "boolean") {
+    mapped.require_code_owner_reviews = o.require_code_owner_reviews;
+  }
+  if (typeof o.required_approving_review_count === "number") {
+    mapped.required_approving_review_count = o.required_approving_review_count;
+  }
+  if (typeof o.require_last_push_approval === "boolean") {
+    mapped.require_last_push_approval = o.require_last_push_approval;
+  }
+  if (o.dismissal_restrictions !== null && typeof o.dismissal_restrictions === "object") {
+    const dr = o.dismissal_restrictions as Record<string, unknown>;
+    mapped.dismissal_restrictions = {
+      users: mapLoginList(dr.users),
+      teams: mapSlugList(dr.teams),
+      apps: mapSlugList(dr.apps, true),
+    };
+  }
+  if (
+    o.bypass_pull_request_allowances !== null &&
+    typeof o.bypass_pull_request_allowances === "object"
+  ) {
+    const ba = o.bypass_pull_request_allowances as Record<string, unknown>;
+    mapped.bypass_pull_request_allowances = {
+      users: mapLoginList(ba.users),
+      teams: mapSlugList(ba.teams),
+      apps: mapSlugList(ba.apps, true),
+    };
+  }
+  return mapped;
+}
+
+function mapRestrictions(raw: unknown): Record<string, unknown> | null {
+  if (raw === null || raw === undefined) {
+    return null;
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+  const o = raw as Record<string, unknown>;
+  return {
+    users: mapLoginList(o.users),
+    teams: mapSlugList(o.teams),
+    apps: mapSlugList(o.apps, true),
+  };
+}
+
+/**
+ * Map classic GET protection objects into PUT-safe booleans / string lists (#1517).
+ * Strips URL / nested GET-only fields that invalidate the Update branch protection body.
+ */
+export function mapBranchProtectionGetToPutBody(
+  existingProtection: Record<string, unknown> | null,
+  requiredStatusChecks: Record<string, unknown>,
+): Record<string, unknown> {
+  const src = existingProtection ?? {};
+  return {
+    required_status_checks: requiredStatusChecks,
+    enforce_admins: enabledFlag(src.enforce_admins, false),
+    required_pull_request_reviews: mapRequiredPullRequestReviews(src.required_pull_request_reviews),
+    restrictions: mapRestrictions(src.restrictions),
+    required_linear_history: enabledFlag(src.required_linear_history, false),
+    allow_force_pushes: enabledFlag(src.allow_force_pushes, false),
+    allow_deletions: enabledFlag(src.allow_deletions, false),
+    block_creations: enabledFlag(src.block_creations, false),
+    required_conversation_resolution: enabledFlag(src.required_conversation_resolution, false),
+    lock_branch: enabledFlag(src.lock_branch, false),
+    allow_fork_syncing: enabledFlag(src.allow_fork_syncing, false),
+  };
+}
+
 /**
  * Build a check-only classic protection body for required contexts (#1517).
  * Refuses empty context sets. Does not encode GitHub review-count as the
  * human-merge gate. Preserves existing required_pull_request_reviews when
- * cloning unrelated fields from existingProtection.
+ * mapping unrelated fields from existingProtection into PUT-safe shapes.
  */
 export function buildMergeGateConfigurePayload(
   proposal: MergeGateConfigureProposal,
@@ -956,25 +1113,8 @@ export function buildMergeGateConfigurePayload(
     contexts: selected.map((c) => c.name),
     checks,
   };
-  const base: Record<string, unknown> =
-    existingProtection !== null ? { ...existingProtection } : {};
-  delete base.url;
-  delete base.html_url;
-  delete base.contexts_url;
-  base.required_status_checks = required_status_checks;
-  if (base.enforce_admins === undefined) {
-    base.enforce_admins = false;
-  }
-  if (base.required_linear_history === undefined) {
-    base.required_linear_history = false;
-  }
-  if (base.allow_force_pushes === undefined) {
-    base.allow_force_pushes = false;
-  }
-  if (base.allow_deletions === undefined) {
-    base.allow_deletions = false;
-  }
-  return { ok: true, payload: base, error: "" };
+  const payload = mapBranchProtectionGetToPutBody(existingProtection, required_status_checks);
+  return { ok: true, payload, error: "" };
 }
 
 export interface ApplyMergeGateConfigureInput {
@@ -1018,11 +1158,7 @@ export function applyMergeGateConfigure(
   let existing: Record<string, unknown> | null = null;
   if (input.preserveExisting !== false) {
     const encoded = encodeURIComponent(input.branch);
-    const getRc = input.runGh([
-      "gh",
-      "api",
-      `repos/${input.repo}/branches/${encoded}/protection`,
-    ]);
+    const getRc = input.runGh(["gh", "api", `repos/${input.repo}/branches/${encoded}/protection`]);
     if (getRc.returncode === 0 && getRc.stdout.trim()) {
       try {
         const parsed = JSON.parse(getRc.stdout) as unknown;
@@ -1039,19 +1175,25 @@ export function applyMergeGateConfigure(
     return { ok: false, outcome: "refused", error: built.error, reRead: null };
   }
   const encoded = encodeURIComponent(input.branch);
-  // Body is not piped through defaultRunGh; injectable runGh fixtures assert the
-  // PUT argv and may ignore stdin. Production callers should supply a runGh that
-  // posts built.payload (or use a higher-level writer). Non-zero PUT / missing
-  // admin is cannot-configure, never opt-out (#1517).
-  const putRc = input.runGh([
-    "gh",
-    "api",
-    "-X",
-    "PUT",
-    `repos/${input.repo}/branches/${encoded}/protection`,
-    "--input",
-    "-",
-  ]);
+  // defaultRunGh closes stdin; write JSON to a temp file and pass --input <path>
+  // so PUT bodies reach GitHub (#1517 Greptile P1).
+  const bodyDir = mkdtempSync(join(tmpdir(), "mge-put-"));
+  const bodyPath = join(bodyDir, "protection.json");
+  let putRc: RunGhResult;
+  try {
+    writeFileSync(bodyPath, `${JSON.stringify(built.payload)}\n`, "utf8");
+    putRc = input.runGh([
+      "gh",
+      "api",
+      "-X",
+      "PUT",
+      `repos/${input.repo}/branches/${encoded}/protection`,
+      "--input",
+      bodyPath,
+    ]);
+  } finally {
+    rmSync(bodyDir, { recursive: true, force: true });
+  }
   if (putRc.returncode !== 0) {
     const err = putRc.stderr.trim() || `exit ${putRc.returncode}`;
     return {

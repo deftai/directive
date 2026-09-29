@@ -27,9 +27,9 @@ import {
   type MergeGateEnforcementDetection,
   type MergeGateEnforcementRecord,
   normalizeRequiredContexts,
-  readMergeGateEnforcementRecord,
   type RequiredStatusContext,
   type RequiredStatusContextsResult,
+  readMergeGateEnforcementRecord,
   requiredContextLabel,
   resolveRepo,
   writeMergeGateEnforcementRecord,
@@ -790,7 +790,7 @@ export function evaluateMergeGateEnforcementAtStrategyStart(
     };
   }
 
-  if (existing.record?.decision === "configured" || existing.record?.decision === "explicit-opt-out") {
+  if (existing.record?.decision === "explicit-opt-out") {
     return {
       ok: true,
       decision: existing.record.decision,
@@ -805,7 +805,7 @@ export function evaluateMergeGateEnforcementAtStrategyStart(
     // Prior local-only deferral; re-evaluate now that SCM+repo are ready.
   }
 
-  // cannot-configure stays re-checkable: fall through to detect again (#1517).
+  // cannot-configure stays re-checkable; configured re-detects live inventory (#1517).
   const fetchFn = options.fetchRequiredContextsFn ?? fetchRequiredStatusContexts;
   const raw = fetchFn(repo, options.branch, options.runGh);
   // Injectors may omit resolutionFailed; normalize to required boolean (fail-closed when true).
@@ -816,6 +816,43 @@ export function evaluateMergeGateEnforcementAtStrategyStart(
     resolutionFailed: raw.resolutionFailed === true,
   };
   const detection = classifyMergeGateEnforcement(inventory);
+
+  if (existing.record?.decision === "configured") {
+    if (detection === "protected") {
+      return {
+        ok: true,
+        decision: "configured",
+        detection,
+        record: existing.record,
+        message:
+          "Merge-gate enforcement decision present: configured (live inventory still protected)",
+        remediation: "",
+      };
+    }
+    if (detection === "unknown") {
+      return {
+        ok: false,
+        decision: "configured",
+        detection,
+        record: existing.record,
+        message:
+          "Durable configured record exists but live forge inventory is unknown; fail closed (#1517). " +
+          (inventory.error || "resolutionFailed"),
+        remediation:
+          "Fix GitHub auth/permissions and re-run. Do not treat a stale configured record as live readiness.",
+      };
+    }
+    return {
+      ok: false,
+      decision: "configured",
+      detection,
+      record: existing.record,
+      message:
+        "Durable configured record is stale: live forge required-status-check inventory is absent (#1517).",
+      remediation:
+        "Re-configure required contexts, remove the stale .deft/merge-gate-enforcement record, or record explicit-opt-out.",
+    };
+  }
 
   if (detection === "unknown") {
     return {
@@ -833,7 +870,6 @@ export function evaluateMergeGateEnforcementAtStrategyStart(
 
   if (detection === "protected") {
     const contexts = normalizeRequiredContexts(inventory.contexts);
-    let record = existing.record;
     if (options.autoRecordConfigured !== false) {
       const written = writeMergeGateEnforcementRecord({
         projectRoot: options.projectRoot,
@@ -844,15 +880,47 @@ export function evaluateMergeGateEnforcementAtStrategyStart(
         detection,
         contexts,
       });
-      record = written.record;
+      if (!written.ok || written.record === null) {
+        return {
+          ok: false,
+          decision: null,
+          detection,
+          record: null,
+          message:
+            "Forge required contexts are present but durable configured record write failed; fail closed (#1517). " +
+            written.error,
+          remediation:
+            "Ensure projectRoot is writable for .deft/merge-gate-enforcement/, then re-run strategy start.",
+        };
+      }
+      return {
+        ok: true,
+        decision: "configured",
+        detection,
+        record: written.record,
+        message: "Forge merge-gate enforcement ready (required contexts present)",
+        remediation: "",
+      };
+    }
+    if (existing.record?.decision === "configured") {
+      return {
+        ok: true,
+        decision: "configured",
+        detection,
+        record: existing.record,
+        message: "Forge merge-gate enforcement ready (required contexts present)",
+        remediation: "",
+      };
     }
     return {
-      ok: true,
-      decision: "configured",
+      ok: false,
+      decision: null,
       detection,
-      record,
-      message: "Forge merge-gate enforcement ready (required contexts present)",
-      remediation: "",
+      record: existing.record,
+      message:
+        "Forge required contexts are present but no durable configured record exists (autoRecordConfigured=false); fail closed (#1517).",
+      remediation:
+        "Write writeMergeGateEnforcementRecord({ decision: 'configured' }) or enable autoRecordConfigured.",
     };
   }
 

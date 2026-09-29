@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { describe, expect, it, vi } from "vitest";
+import { evaluateMergeGateEnforcementAtStrategyStart } from "./compute.js";
 import {
   applyMergeGateConfigure,
   buildMergeGateConfigurePayload,
@@ -9,16 +10,17 @@ import {
   contextsFromBranchProtection,
   contextsFromBranchRules,
   defaultRunGh,
+  encodeMergeGateScopePart,
   fetchCheckRunsRest,
   fetchGreptileBodyRest,
   fetchPrBaseRef,
   fetchPrHeadShaRest,
   fetchRequiredStatusContexts,
+  mergeGateEnforcementRecordPath,
   readMergeGateEnforcementRecord,
   resolveRepo,
   writeMergeGateEnforcementRecord,
 } from "./gh.js";
-import { evaluateMergeGateEnforcementAtStrategyStart } from "./compute.js";
 import type { RunGhFn } from "./types.js";
 
 describe("defaultRunGh", () => {
@@ -332,7 +334,6 @@ describe("resolveRepo", () => {
   });
 });
 
-
 describe("merge-gate enforcement readiness (#1517)", () => {
   it("classifies protected / absent / unknown from #3234 inventory", () => {
     expect(
@@ -409,6 +410,67 @@ describe("merge-gate enforcement readiness (#1517)", () => {
     ]);
   });
 
+  it("maps GET-shaped protection objects into PUT-safe booleans and actor lists", () => {
+    const built = buildMergeGateConfigurePayload(
+      { contexts: [{ name: "quality" }], pinAppIds: false },
+      {
+        url: "https://api.github.com/repos/o/r/branches/master/protection",
+        enforce_admins: { url: "https://example/enforce_admins", enabled: true },
+        required_linear_history: { enabled: true },
+        allow_force_pushes: { enabled: false },
+        allow_deletions: { enabled: false },
+        required_pull_request_reviews: {
+          url: "https://example/reviews",
+          required_approving_review_count: 2,
+          dismiss_stale_reviews: true,
+          dismissal_restrictions: {
+            users: [{ login: "octocat" }],
+            teams: [{ slug: "justice-league" }],
+            apps: [{ slug: "octoapp" }],
+          },
+        },
+        restrictions: {
+          users: [{ login: "octocat" }],
+          teams: [{ slug: "justice-league" }],
+          apps: [{ slug: "super-ci" }],
+        },
+        required_signatures: { url: "https://example/sigs", enabled: true },
+      },
+    );
+    expect(built.ok).toBe(true);
+    expect(built.payload?.enforce_admins).toBe(true);
+    expect(built.payload?.required_linear_history).toBe(true);
+    expect(built.payload?.allow_force_pushes).toBe(false);
+    expect(built.payload?.url).toBeUndefined();
+    expect(built.payload?.required_signatures).toBeUndefined();
+    expect(built.payload?.required_pull_request_reviews).toEqual({
+      required_approving_review_count: 2,
+      dismiss_stale_reviews: true,
+      dismissal_restrictions: {
+        users: ["octocat"],
+        teams: ["justice-league"],
+        apps: ["octoapp"],
+      },
+    });
+    expect(built.payload?.restrictions).toEqual({
+      users: ["octocat"],
+      teams: ["justice-league"],
+      apps: ["super-ci"],
+    });
+  });
+
+  it("keeps distinct record paths for release/a vs release_a", () => {
+    const rootDir = mkdtempSync(join(tmpdir(), "mge-path-"));
+    try {
+      const slash = mergeGateEnforcementRecordPath(rootDir, "o/r", "release/a");
+      const under = mergeGateEnforcementRecordPath(rootDir, "o/r", "release_a");
+      expect(slash).not.toBe(under);
+      expect(encodeMergeGateScopePart("release/a")).not.toBe(encodeMergeGateScopePart("release_a"));
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
   it("refuses auto-promoting candidateContexts and maps write failure to cannot-configure", () => {
     const refused = applyMergeGateConfigure({
       repo: "o/r",
@@ -423,6 +485,7 @@ describe("merge-gate enforcement readiness (#1517)", () => {
     expect(refused.outcome).toBe("refused");
     expect(refused.error).toMatch(/candidates only/i);
 
+    let putInputPath: string | undefined;
     const failed = applyMergeGateConfigure({
       repo: "o/r",
       branch: "master",
@@ -430,6 +493,8 @@ describe("merge-gate enforcement readiness (#1517)", () => {
       preserveExisting: false,
       runGh: (cmd) => {
         if (cmd.includes("PUT")) {
+          const inputIdx = cmd.indexOf("--input");
+          putInputPath = inputIdx >= 0 ? String(cmd[inputIdx + 1]) : undefined;
           return { returncode: 1, stdout: "", stderr: "Resource not accessible by integration" };
         }
         return { returncode: 1, stdout: "", stderr: "unexpected" };
@@ -437,9 +502,47 @@ describe("merge-gate enforcement readiness (#1517)", () => {
     });
     expect(failed.outcome).toBe("cannot-configure");
     expect(failed.error).toMatch(/cannot-configure/);
+    expect(putInputPath).toBeDefined();
+    expect(putInputPath).not.toBe("-");
+  });
+
+  it("sends configure JSON body via --input tempfile (not empty stdin dash)", () => {
+    let capturedBody = "";
+    let inputArg = "";
+    const applied = applyMergeGateConfigure({
+      repo: "o/r",
+      branch: "master",
+      proposal: { contexts: [{ name: "quality", appId: 7 }], pinAppIds: true },
+      preserveExisting: false,
+      runGh: (cmd) => {
+        if (cmd.includes("PUT")) {
+          const inputIdx = cmd.indexOf("--input");
+          inputArg = inputIdx >= 0 ? String(cmd[inputIdx + 1]) : "";
+          if (inputArg && inputArg !== "-" && existsSync(inputArg)) {
+            capturedBody = readFileSync(inputArg, "utf8");
+          }
+          return { returncode: 0, stdout: "{}", stderr: "" };
+        }
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            required_status_checks: {
+              contexts: ["quality"],
+              checks: [{ context: "quality", app_id: 7 }],
+            },
+          }),
+          stderr: "",
+        };
+      },
+    });
+    expect(applied.outcome).toBe("configured");
+    expect(inputArg).not.toBe("-");
+    expect(capturedBody).toMatch(/"quality"/);
+    expect(JSON.parse(capturedBody).required_status_checks.checks).toEqual([
+      { context: "quality", app_id: 7 },
+    ]);
   });
 });
-
 
 describe("merge-gate enforcement strategy-start gate (#1517)", () => {
   it("defers when SCM is not ready or repo is unresolved", () => {
@@ -556,6 +659,65 @@ describe("merge-gate enforcement strategy-start gate (#1517)", () => {
       } finally {
         rmSync(unknownRoot, { recursive: true, force: true });
       }
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when durable configured record is stale vs absent live inventory", () => {
+    const rootDir = mkdtempSync(join(tmpdir(), "mge-stale-"));
+    try {
+      writeMergeGateEnforcementRecord({
+        projectRoot: rootDir,
+        repo: "o/r",
+        branch: "master",
+        decision: "configured",
+        reason: "was protected",
+        detection: "protected",
+        contexts: [{ name: "quality" }],
+      });
+      const stale = evaluateMergeGateEnforcementAtStrategyStart({
+        projectRoot: rootDir,
+        scmReady: true,
+        repo: "o/r",
+        branch: "master",
+        runGh: () => ({ returncode: 1, stdout: "", stderr: "unused" }),
+        fetchRequiredContextsFn: () => ({
+          contexts: [],
+          sources: ["branch_protection"],
+          error: "",
+          resolutionFailed: false,
+        }),
+      });
+      expect(stale.ok).toBe(false);
+      expect(stale.decision).toBe("configured");
+      expect(stale.detection).toBe("absent");
+      expect(stale.message).toMatch(/stale/i);
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when autoRecordConfigured is false and no durable configured record exists", () => {
+    const rootDir = mkdtempSync(join(tmpdir(), "mge-norec-"));
+    try {
+      const result = evaluateMergeGateEnforcementAtStrategyStart({
+        projectRoot: rootDir,
+        scmReady: true,
+        repo: "o/r",
+        branch: "master",
+        autoRecordConfigured: false,
+        runGh: () => ({ returncode: 1, stdout: "", stderr: "unused" }),
+        fetchRequiredContextsFn: () => ({
+          contexts: [{ name: "quality" }],
+          sources: ["rulesets"],
+          error: "",
+          resolutionFailed: false,
+        }),
+      });
+      expect(result.ok).toBe(false);
+      expect(result.detection).toBe("protected");
+      expect(result.message).toMatch(/no durable configured record/i);
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }
