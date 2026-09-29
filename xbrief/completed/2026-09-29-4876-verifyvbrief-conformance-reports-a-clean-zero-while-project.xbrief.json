@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4876",
-    "updated": "2026-09-29T15:22:11Z"
+    "updated": "2026-09-29T19:25:01Z"
   },
   "plan": {
     "title": "verify:vbrief-conformance reports a clean zero while PROJECT-DEFINITION is on disk",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "verify:vbrief-conformance reports a clean zero while PROJECT-DEFINITION is on disk",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4876",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "On every Setup Phase 2 / policy-postcondition `verify:vbrief-conformance` invocation, force the resolved PROJECT-DEFINITION into the candidate set (canonical `xbrief/PROJECT-DEFINITION.xbrief.json` and/or `DEFT_PROJECT_PATH` / `projectDefinitionPath`), or fail closed when that artifact exists on disk and was not counted.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/evidence": {
           "kind": "test",
@@ -27,7 +27,7 @@
       },
       {
         "title": "Reject any reading that treats exit 0 with a clean-zero candidate count as proof PROJECT-DEFINITION was inspected for #1620 bare keys.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/evidence": {
           "kind": "test",
@@ -38,7 +38,7 @@
       },
       {
         "title": "Keep the existing Setup Phase 2 agent re-read of the two policy keys; do not bind a Setup-prose-only restatement of that re-read as the product remedy.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/evidence": {
           "kind": "test",
@@ -49,7 +49,7 @@
       },
       {
         "title": "Narrow P2 to: conformance green is still consumed as the bare-key certificate and can green without scanning PD.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/evidence": {
           "kind": "test",
@@ -60,7 +60,7 @@
       },
       {
         "title": "Prefer the existing `evaluateConformance` + `projectDefinitionPath` / `DEFT_PROJECT_PATH` injection seam over inventing a second Setup-only scanner.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/evidence": {
           "kind": "test",
@@ -71,7 +71,7 @@
       },
       {
         "title": "Scope the hole to untracked / non-injected configured paths; once tracked, canonical PD already matches `isLifecycleArtifactPath`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "x-directive/evidence": {
           "kind": "test",
@@ -82,7 +82,7 @@
       },
       {
         "title": "Spec-path: harvest Bound remedy from this lean for issue:ingest later.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "x-directive/evidence": {
           "kind": "test",
@@ -93,7 +93,7 @@
       },
       {
         "title": "Target-digest: sha256:f97fe0dbfb52b3fbefd35d76e1599bc5d87280b9fc863de9167434ef5545eab7 supersedes: Stop 1 write-back 5837066832 round-1 siblings: 1 sibling: 5837154310 dispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 arc-mode: no-ingest yolo-standing: yes spend: N=1",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "x-directive/evidence": {
           "kind": "test",
@@ -377,6 +377,31 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "f97fe0dbfb52b3fbefd35d76e1599bc5d87280b9fc863de9167434ef5545eab7"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5149,
+        "prBase": null,
+        "mergeCommit": "e430505795b6643890c888f50cf184850bf67dfe",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e430505795b6643890c888f50cf184850bf67dfe",
+        "verifiedAt": "2026-09-29T19:25:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGVkZGUtYmU4Zi03MDgyLTg0YzMtODk0ZjcyNzI0MDhl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-29T19:25:01Z",
+      "completedSessionId": "host:grok:v1:MDFhMGVkZGUtYmU4Zi03MDgyLTg0YzMtODk0ZjcyNzI0MDhl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-29T19:25:01Z"
       }
     },
     "acceptance": {
@@ -469,6 +494,6 @@
       "confessions": []
     },
     "id": "github.issue.5540569526",
-    "updated": "2026-09-29T15:22:11Z"
+    "updated": "2026-09-29T19:25:01Z"
   }
 }
