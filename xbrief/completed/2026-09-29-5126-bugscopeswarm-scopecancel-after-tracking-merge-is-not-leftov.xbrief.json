@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5126",
-    "updated": "2026-09-29T01:29:12Z"
+    "updated": "2026-09-29T05:11:45Z"
   },
   "plan": {
     "title": "bug(scope,swarm): scope:cancel after Tracking merge is not leftover-complete",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(scope,swarm): scope:cancel after Tracking merge is not leftover-complete",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5126",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "**Fail-closed cancel refuse (primary A).** On `scope:cancel`, before the move/stamp: if the brief origin issue `#N` is shipped-closed (`state_reason=completed` or equivalent) AND `origin/<deliveryBranch>` has no `xbrief/completed/*` (or legacy `vbrief/completed/*`) whose origin cites `#N`, refuse non-zero. Print one remediation line naming leftover-complete / `scope:complete --merge-commit … --pr …` or `swarm:finalize-cohort`. Do not invent approve/skip phrases. True abandon/supersede still works when the origin is open or not shipped-closed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/evidence": {
           "kind": "test",
@@ -27,7 +27,7 @@
       },
       {
         "title": "**Tip-twin predicate = completed-only for this ship path.** The refuse and Tracking/Refs leftover-complete expect a **completed** tip twin, not a cancelled tip twin. `#3476` `verify:completed-tracked` may still treat completed|cancelled as tip-terminal for its own DONE scan; this cancel refuse does not green on cancelled-only land for a shipped Tracking close. Cancelled tip twins remain for true abandon land only.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/evidence": {
           "kind": "test",
@@ -38,7 +38,7 @@
       },
       {
         "title": "**Compose existing inventory.** Implement the refuse by composing the same issue-state + tip-twin resolvers already used by `completed-tracked-on-delivery` / orphan-active shipped-origin detection. Fail closed when shipped-looking cancel cannot prove tip twin or cannot resolve closed state under those verbs' rules (including `--skip-gh` / cache / reopen races). ⊗ New ad-hoc gh/state path that can disagree with `#3476`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/evidence": {
           "kind": "test",
@@ -49,7 +49,7 @@
       },
       {
         "title": "**Always-pin / orphan-active prose recut.** On the shipped-closed Tracking/Refs product-merge path, preamble post-merge lifecycle and orphan-active remediation treat cancel as **abandon-only**, not an alternate ship exit beside complete. Grok through-merge closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`. Keep cancel available for true abandon when origin is open or not shipped-closed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/evidence": {
           "kind": "test",
@@ -60,7 +60,7 @@
       },
       {
         "title": "**DONE probe (B) — first-ship MUST.** On the Tracking/Refs parent-retained closer path after product merge closeout, before parent `DONE`, run existing `verify:completed-tracked -- --issue N` against `origin/<deliveryBranch>`. Exit 1 = not DONE. Reuse `evaluateCompletedTracked` / delivery-tip resolvers (same inventory as item 3). ⊗ Parallel DONE gh probe. Not a new mechanism — habit enforcement made mandatory for this closer path.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/evidence": {
           "kind": "test",
@@ -71,7 +71,7 @@
       },
       {
         "title": "**Tests.** Unit/integration: cancel on shipped closed-origin brief without completed twin → non-zero + remediation naming leftover-complete. Cancel still works for true supersede/abandon when issue is open or not shipped-closed. Tracking merge fixture: `verify:completed-tracked --issue N` exit 1 until completed twin exists; exit 0 after leftover-complete.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "x-directive/evidence": {
           "kind": "test",
@@ -82,7 +82,7 @@
       },
       {
         "title": "**Non-goals.** Do not auto-attest acceptance from GitHub merge alone (#3240). Do not teach cancel to mint completed/. Do not broad-reconcile rewrite. Do not collapse #3476 tip-terminal set globally to completed-only outside this ship-path refuse.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "x-directive/evidence": {
           "kind": "test",
@@ -94,7 +94,7 @@
       {
         "id": "clause.8",
         "title": "Compose existing inventory. Implement the refuse by composing the same issue-state + tip-twin resolvers already used by ",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -108,7 +108,7 @@
       {
         "id": "clause.9",
         "title": "Fail closed when shipped-looking cancel cannot prove tip twin or cannot resolve closed state under those verbs' rules (i",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -122,7 +122,7 @@
       {
         "id": "clause.10",
         "title": "⊗ New ad-hoc gh/state path that can disagree with `#3476`.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -136,7 +136,7 @@
       {
         "id": "clause.11",
         "title": "Always-pin / orphan-active prose recut. On the shipped-closed Tracking/Refs product-merge path, preamble post-merge life",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -150,7 +150,7 @@
       {
         "id": "clause.12",
         "title": "Grok through-merge closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -164,7 +164,7 @@
       {
         "id": "clause.13",
         "title": "Keep cancel available for true abandon when origin is open or not shipped-closed.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -178,7 +178,7 @@
       {
         "id": "clause.14",
         "title": "DONE probe (B) — first-ship MUST. On the Tracking/Refs parent-retained closer path after product merge closeout, before ",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -192,7 +192,7 @@
       {
         "id": "clause.15",
         "title": "Exit 1 = not DONE.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -206,7 +206,7 @@
       {
         "id": "clause.16",
         "title": "Reuse `evaluateCompletedTracked` / delivery-tip resolvers (same inventory as item 3).",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -220,7 +220,7 @@
       {
         "id": "clause.17",
         "title": "⊗ Parallel DONE gh probe.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -234,7 +234,7 @@
       {
         "id": "clause.18",
         "title": "Not a new mechanism — habit enforcement made mandatory for this closer path.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -248,7 +248,7 @@
       {
         "id": "clause.19",
         "title": "Tests. Unit/integration: cancel on shipped closed-origin brief without completed twin → non-zero + remediation naming le",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -262,7 +262,7 @@
       {
         "id": "clause.20",
         "title": "Cancel still works for true supersede/abandon when issue is open or not shipped-closed.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -276,7 +276,7 @@
       {
         "id": "clause.21",
         "title": "Tracking merge fixture: `verify:completed-tracked --issue N` exit 1 until completed twin exists; exit 0 after leftover-c",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -290,7 +290,7 @@
       {
         "id": "clause.22",
         "title": "Non-goals. Do not auto-attest acceptance from GitHub merge alone (#3240).",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -304,7 +304,7 @@
       {
         "id": "clause.23",
         "title": "Do not teach cancel to mint completed/.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -318,7 +318,7 @@
       {
         "id": "clause.24",
         "title": "Do not broad-reconcile rewrite.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -332,7 +332,7 @@
       {
         "id": "clause.25",
         "title": "Do not collapse #3476 tip-terminal set globally to completed-only outside this ship-path refuse.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -346,7 +346,7 @@
       {
         "id": "clause.26",
         "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:3a6c365882b6175870073129be3f8e09b2235226f8bb039bb4a7c8b22fc",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5134; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -685,6 +685,29 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "3a6c365882b6175870073129be3f8e09b2235226f8bb039bb4a7c8b22fc11125"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5134,
+        "prBase": null,
+        "mergeCommit": "e76f80fc1bce3a6c714efed9ac55ba98687a9dac",
+        "deliveryBranch": "master",
+        "deliveryCommit": "25102e62a4f146ee9a1171ecc34e51118c9bc73e",
+        "verifiedAt": "2026-09-29T05:11:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-29T05:11:45Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-29T05:11:45Z"
       }
     },
     "acceptance": {
@@ -913,6 +936,6 @@
       "confessions": []
     },
     "id": "github.issue.5622631751",
-    "updated": "2026-09-29T01:29:12Z"
+    "updated": "2026-09-29T05:11:45Z"
   }
 }
