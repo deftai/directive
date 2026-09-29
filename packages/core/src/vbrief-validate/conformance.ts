@@ -453,7 +453,9 @@ export function evaluateConformance(
     if (injected !== null) {
       return injected;
     }
-  } else {
+  } else if (mode === "all") {
+    // #4876 / Greptile: force on-disk PD for --all only. --staged must not pull
+    // an unstaged/untracked PROJECT-DEFINITION into the candidate set.
     const canonical = canonicalProjectDefinitionOnDisk(root);
     if (canonical !== null) {
       const injected = injectProjectDefinitionCandidate(candidates, {
