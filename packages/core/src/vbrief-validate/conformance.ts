@@ -457,7 +457,7 @@ export function evaluateConformance(
     // #4876 / Greptile: force on-disk PD for --all only. --staged must not pull
     // an unstaged/untracked PROJECT-DEFINITION into the candidate set.
     const canonical = canonicalProjectDefinitionOnDisk(root);
-    if (canonical !== null) {
+    if (canonical !== null && !isAllowListed(canonical.displayPath, customGlobs)) {
       const injected = injectProjectDefinitionCandidate(candidates, {
         lexicalPath: canonical.fullPath,
         displayPath: canonical.displayPath,
@@ -471,6 +471,30 @@ export function evaluateConformance(
       });
       if (injected !== null) {
         return injected;
+      }
+    }
+  } else if (mode === "staged") {
+    // #4876: staged canonical PD stays in the git candidate set (no on-disk
+    // inject), but must be required so invalid JSON cannot clean-pass.
+    const canonical = canonicalProjectDefinitionOnDisk(root);
+    if (canonical !== null && !isAllowListed(canonical.displayPath, customGlobs)) {
+      let canonicalReal: string | null = null;
+      try {
+        canonicalReal = realpathSync(canonical.fullPath);
+      } catch {
+        canonicalReal = resolve(canonical.fullPath);
+      }
+      for (const candidate of candidates) {
+        let candidateReal: string;
+        try {
+          candidateReal = realpathSync(candidate.fullPath);
+        } catch {
+          candidateReal = resolve(candidate.fullPath);
+        }
+        if (candidateReal === canonicalReal) {
+          candidate.required = true;
+          candidate.displayPath = canonical.displayPath;
+        }
       }
     }
   }

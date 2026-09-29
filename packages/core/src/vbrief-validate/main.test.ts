@@ -267,4 +267,46 @@ describe("conformance PROJECT-DEFINITION on-disk injection (#4876)", () => {
     expect(result.findings.some((f) => f.key === "policy")).toBe(true);
     expect(result.message).toContain("<configured PROJECT-DEFINITION>");
   });
+
+  it("fails closed when staged PROJECT-DEFINITION is invalid JSON", () => {
+    const root = tempRoot("vb-4876-staged-bad-json-");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    initGit(root);
+    const pd = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    writeFileSync(pd, "{not-json", "utf8");
+    execSync("git add xbrief/PROJECT-DEFINITION.xbrief.json", {
+      cwd: root,
+      stdio: "ignore",
+    });
+
+    const result = evaluateConformance(root, { mode: "staged" });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("not valid JSON");
+  });
+
+  it("honors --allow-list for on-disk PROJECT-DEFINITION injection", () => {
+    const root = tempRoot("vb-4876-allow-pd-");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    initGit(root);
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "PD",
+          status: "running",
+          narratives: { Overview: "O", TechStack: "T" },
+          items: [],
+          policy: { allowDirectCommitsToMaster: false },
+        },
+      }),
+      "utf8",
+    );
+    const allowList = join(root, "allow.txt");
+    writeFileSync(allowList, "xbrief/PROJECT-DEFINITION.xbrief.json\n", "utf8");
+
+    const result = evaluateConformance(root, { allowListPath: allowList });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain("0 vBRIEF file(s) clean");
+  });
 });
