@@ -526,7 +526,7 @@ export function dispatchCachedTaskCheck(
       });
       return finish(2, true);
     }
-    if (coverageReport !== undefined && coverageReport.armed) {
+    if (coverageReport?.armed) {
       presentationArmed = true;
       // A second successful evaluation cannot erase an actual earlier refusal,
       // including an advisory pressure-mode result or an unrun required gate.
