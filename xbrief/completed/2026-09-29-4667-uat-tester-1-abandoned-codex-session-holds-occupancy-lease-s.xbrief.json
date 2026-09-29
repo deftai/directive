@@ -1,0 +1,678 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4667",
+    "updated": "2026-09-29T23:16:06Z"
+  },
+  "plan": {
+    "title": "[UAT Tester 1] Abandoned Codex session holds occupancy lease; session:end from CLI cannot release it",
+    "status": "completed",
+    "narratives": {
+      "Description": "[UAT Tester 1] Abandoned Codex session holds occupancy lease; session:end from CLI cannot release it",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4667",
+      "Overview": "\n\n1. Make first-class operator discovery of the existing explicit recovery: README and/or doctor cold-start recovery copy must name occupancy:release --session-id=<id from occupancy.json> (and that bare session:end without a presented identity refuses while the lease is live).\n2. Keep TTL claim-over and the deny-embedded copy-paste recipe as existing mechanisms. Do not invent a new unlock verb whose sole job is to clear abandoned leases.\n3. Reframe the defect around abandoned live sessionId plus normal-shell empty identity. Treat host:none / address:none as ordinary unset metadata, not the lock cause.\n4. Do not reopen anonymous live auto-release. Path possession must not become authority to delete a live lease (#3954). Any change that reverses that doctrine must be stated as an explicit #3954 doctrine change on a separate lean, not as silent first-ship on this issue.\n5. Optional adjacent: Codex leave/cleanup that presents the host owner so session:end can clear when the host still publishes identity. That is complementary to README/doctor discovery, not a substitute for it.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:9b0ff1c7c264dc2c1ee0daefedebbcf09556c78490c5f05d1c0c6b59adaa7db0\n\n\n",
+      "Labels": "bug, swarm, adoption-blocker, agent-experience, process, harness, source-of-truth, area:cli, platform:windows, design-critique:ingest-ready, focused-test-pass-1, framework-gap, core-capabilities, promise:swarm"
+    },
+    "items": [
+      {
+        "title": "Make first-class operator discovery of the existing explicit recovery: README and/or doctor cold-start recovery copy must name occupancy:release --session-id=<id from occupancy.json> (and that bare session:end without a presented identity refuses while the lease is live).",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "README.md",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Keep TTL claim-over and the deny-embedded copy-paste recipe as existing mechanisms.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Do not invent a new unlock verb whose sole job is to clear abandoned leases.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/main.ts",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Reframe the defect around abandoned live sessionId plus normal-shell empty identity.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Treat host:none / address:none as ordinary unset metadata, not the lock cause.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Greptile Class A residual shortened README cold-start; discovery retained via occupancy:release --session-id line + doctor tip/help. Tokens removed intentionally to avoid live-lease steal wording (#5147).",
+          "recorded_at": "2026-09-29T23:15:29.353Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T23:15:29.353Z",
+            "mintedVia": "leftover-complete"
+          }
+        }
+      },
+      {
+        "title": "Do not reopen anonymous live auto-release.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Path possession must not become authority to delete a live lease (#3954).",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Any change that reverses that doctrine must be stated as an explicit #3954 doctrine change on a separate lean, not as silent first-ship on this issue.",
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship product scope for #4667 leftover; covered by shipped README/doctor discovery + retained #3954 doctrine",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T23:14:57.179Z",
+            "mintedVia": "leftover-complete"
+          }
+        }
+      },
+      {
+        "title": "Optional adjacent: Codex leave/cleanup that presents the host owner so session:end can clear when the host still publishes identity.",
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship product scope for #4667 leftover; covered by shipped README/doctor discovery + retained #3954 doctrine",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T23:14:57.179Z",
+            "mintedVia": "leftover-complete"
+          }
+        }
+      },
+      {
+        "title": "That is complementary to README/doctor discovery, not a substitute for it.",
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship product scope for #4667 leftover; covered by shipped README/doctor discovery + retained #3954 doctrine",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T23:14:57.179Z",
+            "mintedVia": "leftover-complete"
+          }
+        }
+      },
+      {
+        "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:9b0ff1c7c264dc2c1ee0daefedebbcf09556c78490c5f05d1c0c6b59adaa7db0",
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Out of first-ship product scope for #4667 leftover; covered by shipped README/doctor discovery + retained #3954 doctrine",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T23:14:57.179Z",
+            "mintedVia": "leftover-complete"
+          }
+        }
+      },
+      {
+        "title": "README.md cold-start names occupancy:release --session-id=<id from .deft/occupancy.json> for abandoned leases.",
+        "status": "completed",
+        "id": "clause.101",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "README.md",
+          "recorded_at": "2026-09-29T23:16:04.828Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "README.md keeps \"TTL\" claim-over and does not invent a new unlock verb.",
+        "status": "completed",
+        "id": "clause.102",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "README.md",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "doctor recovery copy reframes host:none / address:none as ordinary unset metadata, not the lock cause.",
+        "status": "completed",
+        "id": "clause.103",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "recorded_at": "2026-09-29T23:16:04.828Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "README.md keeps path possession from clearing a live lease and does not reopen anonymous live auto-release (\"#3954\" doctrine retained).",
+        "status": "completed",
+        "id": "clause.104",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "README.md",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "doctor/main.ts cold-start recovery names \"occupancy:release --session-id=<id from .deft/occupancy.json>\".",
+        "status": "completed",
+        "id": "clause.105",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "harness",
+      "source-of-truth",
+      "area:cli",
+      "platform:windows",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "framework-gap",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4667",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4667: [UAT Tester 1] Abandoned Codex session holds occupancy lease; session:end from CLI cannot release it"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Make first-class operator discovery of the existing explicit recovery: README and/or doctor cold-start recovery copy must name occupancy:release --session-id=<id from occupancy.json> (and that bare session:end without a presented identity refuses while the lease is live).",
+        "Keep TTL claim-over and the deny-embedded copy-paste recipe as existing mechanisms.",
+        "Do not invent a new unlock verb whose sole job is to clear abandoned leases.",
+        "Reframe the defect around abandoned live sessionId plus normal-shell empty identity.",
+        "Treat host:none / address:none as ordinary unset metadata, not the lock cause.",
+        "Do not reopen anonymous live auto-release.",
+        "Path possession must not become authority to delete a live lease (#3954).",
+        "Any change that reverses that doctrine must be stated as an explicit #3954 doctrine change on a separate lean, not as silent first-ship on this issue.",
+        "Optional adjacent: Codex leave/cleanup that presents the host owner so session:end can clear when the host still publishes identity.",
+        "That is complementary to README/doctor discovery, not a substitute for it.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:9b0ff1c7c264dc2c1ee0daefedebbcf09556c78490c5f05d1c0c6b59adaa7db0",
+        "README.md cold-start names occupancy:release --session-id=<id from .deft/occupancy.json> for abandoned leases.",
+        "README.md keeps \"TTL\" claim-over and does not invent a new unlock verb.",
+        "doctor recovery copy reframes host:none / address:none as ordinary unset metadata, not the lock cause.",
+        "README.md keeps path possession from clearing a live lease and does not reopen anonymous live auto-release (\"#3954\" doctrine retained).",
+        "doctor/main.ts cold-start recovery names \"occupancy:release --session-id=<id from .deft/occupancy.json>\"."
+      ],
+      "admitted_source_sentences": [
+        "Make first-class operator discovery of the existing explicit recovery: README and/or doctor cold-start recovery copy must name occupancy:release --session-id=<id from occupancy.json> (and that bare session:end without a presented identity refuses while the lease is live).",
+        "Keep TTL claim-over and the deny-embedded copy-paste recipe as existing mechanisms.",
+        "Do not invent a new unlock verb whose sole job is to clear abandoned leases.",
+        "Reframe the defect around abandoned live sessionId plus normal-shell empty identity.",
+        "Treat host:none / address:none as ordinary unset metadata, not the lock cause.",
+        "Do not reopen anonymous live auto-release.",
+        "Path possession must not become authority to delete a live lease (#3954).",
+        "Any change that reverses that doctrine must be stated as an explicit #3954 doctrine change on a separate lean, not as silent first-ship on this issue.",
+        "Optional adjacent: Codex leave/cleanup that presents the host owner so session:end can clear when the host still publishes identity.",
+        "That is complementary to README/doctor discovery, not a substitute for it.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:9b0ff1c7c264dc2c1ee0daefedebbcf09556c78490c5f05d1c0c6b59adaa7db0",
+        "README.md cold-start names occupancy:release --session-id=<id from .deft/occupancy.json> for abandoned leases.",
+        "README.md keeps \"TTL\" claim-over and does not invent a new unlock verb.",
+        "doctor recovery copy reframes host:none / address:none as ordinary unset metadata, not the lock cause.",
+        "README.md keeps path possession from clearing a live lease and does not reopen anonymous live auto-release (\"#3954\" doctrine retained).",
+        "doctor/main.ts cold-start recovery names \"occupancy:release --session-id=<id from .deft/occupancy.json>\"."
+      ],
+      "admitted_source_digest": "81806d8d7623ce88077ab6870b54c55ea2ec497434fe0b78ccd19440159272fe",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Make first-class operator discovery of the existing explicit recovery: README and/or doctor cold-start recovery copy must name occupancy:release --session-id=<id from occupancy.json> (and that bare session:end without a presented identity refuses while the lease is live).",
+          "artifact_path": "README.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep TTL claim-over and the deny-embedded copy-paste recipe as existing mechanisms.",
+          "artifact_path": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not invent a new unlock verb whose sole job is to clear abandoned leases.",
+          "artifact_path": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Reframe the defect around abandoned live sessionId plus normal-shell empty identity.",
+          "artifact_path": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Treat host:none / address:none as ordinary unset metadata, not the lock cause.",
+          "artifact_path": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Do not reopen anonymous live auto-release.",
+          "artifact_path": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Path possession must not become authority to delete a live lease (#3954).",
+          "artifact_path": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Any change that reverses that doctrine must be stated as an explicit #3954 doctrine change on a separate lean, not as silent first-ship on this issue.",
+          "artifact_path": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Optional adjacent: Codex leave/cleanup that presents the host owner so session:end can clear when the host still publishes identity.",
+          "artifact_path": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "That is complementary to README/doctor discovery, not a substitute for it.",
+          "artifact_path": "README.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:9b0ff1c7c264dc2c1ee0daefedebbcf09556c78490c5f05d1c0c6b59adaa7db0",
+          "artifact_path": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 101,
+          "text": "README.md cold-start names occupancy:release --session-id=<id from .deft/occupancy.json> for abandoned leases.",
+          "artifact_path": "README.md",
+          "ambiguous": false,
+          "provenance": "derived"
+        },
+        {
+          "id": 102,
+          "text": "README.md keeps \"TTL\" claim-over and does not invent a new unlock verb.",
+          "artifact_path": "README.md",
+          "ambiguous": false,
+          "provenance": "derived"
+        },
+        {
+          "id": 103,
+          "text": "doctor recovery copy reframes host:none / address:none as ordinary unset metadata, not the lock cause.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "derived"
+        },
+        {
+          "id": 104,
+          "text": "README.md keeps path possession from clearing a live lease and does not reopen anonymous live auto-release (\"#3954\" doctrine retained).",
+          "artifact_path": "README.md",
+          "ambiguous": false,
+          "provenance": "derived"
+        },
+        {
+          "id": 105,
+          "text": "doctor/main.ts cold-start recovery names \"occupancy:release --session-id=<id from .deft/occupancy.json>\".",
+          "artifact_path": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "ambiguous": false,
+          "provenance": "derived"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[UAT Tester 1] Abandoned Codex session holds occupancy lease; session:end from CLI cannot release it"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "UAT: **focused-test-pass-1**\n\n`nheroux-bit` cannot apply labels on this repo (`AddLabelsToLabelable` denied). Please add the `focused-test-pass-1` label to this issue.",
+          "id": 5705169958,
+          "html_url": "https://github.com/deftai/directive/issues/4667#issuecomment-5705169958",
+          "user": {
+            "login": "nheroux-bit",
+            "id": 278998440,
+            "node_id": "U_kgDOEKEtqA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/278998440?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/nheroux-bit",
+            "html_url": "https://github.com/nheroux-bit",
+            "followers_url": "https://api.github.com/users/nheroux-bit/followers",
+            "following_url": "https://api.github.com/users/nheroux-bit/following{/other_user}",
+            "gists_url": "https://api.github.com/users/nheroux-bit/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/nheroux-bit/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/nheroux-bit/subscriptions",
+            "organizations_url": "https://api.github.com/users/nheroux-bit/orgs",
+            "repos_url": "https://api.github.com/users/nheroux-bit/repos",
+            "events_url": "https://api.github.com/users/nheroux-bit/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/nheroux-bit/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T21:58:56Z",
+          "updated_at": "2026-09-16T21:58:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Swarm: letting an agent, or several agents, carry a piece of work through to a finished pull request. A single person should still have a simple way to run one story.\n\nWhat a new person hits: A Codex session that was abandoned still holds the \"this folder is in use\" lock. Ending the session from the command line cannot release it.\n\nWhy that ruins the product for them: The project is stuck busy, and the unlock command does not work. They did not do anything wrong. They closed a window.\n\nHow likely: Medium-high for Codex users. It happens the moment a session is abandoned, which is normal while poking at a new tool.\n\n",
+          "id": 5780294522,
+          "html_url": "https://github.com/deftai/directive/issues/4667#issuecomment-5780294522",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:39:06Z",
+          "updated_at": "2026-09-22T16:39:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because an abandoned Codex session can leave occupancy with host:none / address:none and a normal-shell session:end refuses for missing identity, so the worktree stays locked while the only working recovery (occupancy:release --session-id from occupancy.json) is out-of-band and not first-class in README recovery copy.\n\ncharter: refutation\nrefutation-target: An abandoned Codex session that leaves occupancy with host:none / address:none may keep the worktree locked from a normal shell, because session:end requires a presented session identity and the only recovery is copying occupancy:release --session-id=<id from occupancy.json> as an undocumented out-of-band path.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered with recommended N per issue after the missing-token ask. This is a concrete UAT/occupancy recovery defect on abandoned Codex leases, not a whole-motion babysit hang. Recommended spend N=1.\n\npain: P1, P2, P3\n\nP1. Abandoned Codex (Ctrl+C leave) can leave occupancy with host:none / address:none, heartbeat == claimed_at, and no recorded write, so the worktree stays locked after the session is gone.\nP2. deft session:end from a normal PowerShell with no presented session identity refuses (\"This process presented no session identity\") and does not clear that lease.\nP3. The working recovery is occupancy:release --session-id=<id from occupancy.json>, which is not first-class in README / cold-start recovery copy, so operators rediscover it after setup and after ingest.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4667-dc\norigin-ref: origin/HEAD\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\npin-kind: origin-default\ntarget-digest: sha256:9b0ff1c7c264dc2c1ee0daefedebbcf09556c78490c5f05d1c0c6b59adaa7db0\n\nPin reads use git show 650ab1a614cd6049b4c70c2b48fa181ffef5455e. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\r\n\n",
+          "id": 5857510383,
+          "html_url": "https://github.com/deftai/directive/issues/4667#issuecomment-5857510383",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:06:27Z",
+          "updated_at": "2026-09-27T16:06:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nround: 1\nseat: grok\nlauncher: grok\ncharter: refutation\nid-ceiling: 5857510383\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\narc-mode: no-ingest\naudit-targets: none\n\nFresh round-1 critic against Stop 1 write-back 5857510383. HEAD at dispatch equals `650ab1a614cd6049b4c70c2b48fa181ffef5455e`. Pin reads via `git show` that SHA. Thread inputs honored at the inclusive ceiling.\n\n## Overstated \"only\" and \"undocumented\" recovery\nsharpens-framing\nEvidence: At the pin, `releaseOccupancy` clears an expired lease without ownership (`occupancy.test.ts` \"clears expired residue without ownership (#3604)\"); `OCCUPANCY_TTL_MS` is 20 minutes and `liveOccupancyOnTree` treats heartbeat-stale as free for claim-over. Empty-presenter deny text from `formatOccupancyRemediation` already embeds `occupancy:release --session-id=<reported-session-id>` (or the inlined shell-safe id). `content/commands.md` already records the shared identity chain (#3954) and that anonymous release of the occupant recorded in the lease file stays refused. `README.md` at this SHA has no occupancy / `session:end` recovery recipe.\nFailure mode: Binding the Stop 1 premise as written steers harvest toward inventing a new unlock verb or reversing anonymous live-release refusal, while operators already have TTL expiry, deny-embedded copy-paste release, and confirmed steal for intentional owner transition.\nDisposition: Keep the README / cold-start discoverability gap; drop \"only\" and \"undocumented out-of-band\" as absolute claims. Name TTL claim-over and the deny-printed recipe as existing mechanisms before any new surface.\n\n## host:none / address:none are metadata, not the actor\nsharpens-framing\nEvidence: `occupancyHost` / `occupancyAddress` default to the string `\"none\"` when env is empty (`occupancy.ts`). The live actor is `record.sessionId`. Empty presentation is `resolvePresentedIdentity` source `\"none\"` with `sessionId: \"\"`, which is distinct from those host/address fields. UAT body and Stop 1 lead with host/address none as if that were the lock cause.\nFailure mode: A lean scoped to fixing host/address metadata misses the real gate (live `sessionId` plus empty presenter outside a host hook) and can ship cosmetic metadata work while the abandoned-lease UX stays.\nDisposition: Reframe the target around abandoned live `sessionId` + normal-shell empty identity; treat host/address none as ordinary unset metadata.\n\n## Anonymous live release is answered-against doctrine\nsharpens-framing\nEvidence: `occupancy.test.ts` \"refuses an anonymous caller the occupant recorded in the lease (#3954)\" states the open question was answered against: reading the occupant out of the file and releasing would make path possession into authority to delete a live lease. `commands.md` repeats that anonymous release stays refused. Bare `session:end` / `occupancy:release` with no `--session-id` / `DEFT_SESSION_ID` / host owner against a live lease returns the measured \"presented no session identity\" denial. Codex-in-host lifecycle rewrite can inject `--session-id` on exact verbs; a normal PowerShell has no host publisher, so empty presentation is expected.\nFailure mode: Taking the issue Expected line (\"`deft session:end` from a normal shell can clear a stale lease\") as the Bound remedy without reconciling #3954 reopens anonymous live release and weakens the cooperative bearer-id boundary under the injection / swarm lens on shared occupancy authority.\nDisposition: Scope harvest to first-class operator discovery of the existing explicit `--session-id=<id>` recipe (README / doctor), Codex leave/cleanup that presents the host owner, and honest \"wait TTL / claim-over\" copy. Reopening anonymous live auto-release needs an explicit #3954 doctrine change, stated as such on the lean.\n\n## Refutation target survival\n\nThe target survives in sharpened form: an abandoned Codex conversation can leave a live occupancy lease; a normal-shell bare `session:end` refuses while that lease is live; operators then need an explicit session id; README cold-start does not teach that path. Absolute \"only / undocumented out-of-band\" recovery claims, and causal host:none / address:none framing, are the sharpening findings above.\n\n",
+          "id": 5857545972,
+          "html_url": "https://github.com/deftai/directive/issues/4667#issuecomment-5857545972",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:11:26Z",
+          "updated_at": "2026-09-27T16:11:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn abandoned Codex session can leave a live occupancy lease. A normal PowerShell with no session identity cannot clear that lease with bare session:end, and README cold-start does not teach the working occupancy:release --session-id=<id> recipe. Absolute \"only / undocumented\" recovery claims overstate the hole: TTL claim-over and deny-printed copy-paste release already exist, and anonymous live release was answered against under #3954. Confirming this map means the Bound remedy list is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5857545972 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target survives in sharpened form. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5857510383\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\n\n## Takes\n\n- 5857545972 Overstated \"only\" and \"undocumented\" recovery - accept-into-contract\n- 5857545972 host:none / address:none are metadata, not the actor - accept-into-contract\n- 5857545972 Anonymous live release is answered-against doctrine - accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Make first-class operator discovery of the existing explicit recovery: README and/or doctor cold-start recovery copy must name occupancy:release --session-id=<id from occupancy.json> (and that bare session:end without a presented identity refuses while the lease is live).\n2. Keep TTL claim-over and the deny-embedded copy-paste recipe as existing mechanisms. Do not invent a new unlock verb whose sole job is to clear abandoned leases.\n3. Reframe the defect around abandoned live sessionId plus normal-shell empty identity. Treat host:none / address:none as ordinary unset metadata, not the lock cause.\n4. Do not reopen anonymous live auto-release. Path possession must not become authority to delete a live lease (#3954). Any change that reverses that doctrine must be stated as an explicit #3954 doctrine change on a separate lean, not as silent first-ship on this issue.\n5. Optional adjacent: Codex leave/cleanup that presents the host owner so session:end can clear when the host still publishes identity. That is complementary to README/doctor discovery, not a substitute for it.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:9b0ff1c7c264dc2c1ee0daefedebbcf09556c78490c5f05d1c0c6b59adaa7db0\n\n## Parent-side substantiation\n\nThe critic kept the abandoned-lease UX hole and sharpened absolute recovery claims, host/address framing, and #3954 anonymous-release doctrine. Items 1 and 5 discharge discoverability / host-cleanup. Items 2-4 accept the sharpenings so harvest stays on first-class discovery without inventing unlock verbs or reopening anonymous live release.\n\naudit:readme-doctor-release-recipe sha=650ab1a614cd6049b4c70c2b48fa181ffef5455e pointer=comment:5857545972 reading=asserted\naudit:keep-3954-anonymous-refuse sha=650ab1a614cd6049b4c70c2b48fa181ffef5455e pointer=comment:5857545972 reading=asserted\r\n\n",
+          "id": 5857553266,
+          "html_url": "https://github.com/deftai/directive/issues/4667#issuecomment-5857553266",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:12:26Z",
+          "updated_at": "2026-09-27T16:12:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\ncharter: refutation\nid-ceiling: 5857553266\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\narc-mode: no-ingest\n\nFresh Pass-4 pain-audit of successor lean 5857553266 asserted coverage of Stop 1 pains P1-P3. HEAD equals `650ab1a614cd6049b4c70c2b48fa181ffef5455e`. Pin reads via `git show` that SHA. Thread inputs honored at the inclusive ceiling (Stop 1 5857510383, critic 5857545972, lean 5857553266). Round-1 critic findings stay in envelope as accepted Takes on the lean.\n\n## P3 README / cold-start discoverability\nfootnote\nEvidence: At the pin, `README.md` has no `occupancy` / `session:end` / `occupancy:release` recovery recipe. `formatOccupancyRemediation` already embeds `occupancy:release --session-id=<reported-session-id>` on the empty-presenter deny path. Bound remedy item 1 requires README and/or doctor cold-start copy to name that explicit recipe and that bare `session:end` without a presented identity refuses while the lease is live.\nFailure mode: Leaving P3 as rediscovery-after-setup/ingest while item 1 ships would be a harvest miss; the lean names the missing first-class surface directly.\nDisposition: Item 1 covers P3. Prefer a cold-start-visible surface operators actually open after setup/ingest (README is the measured miss); doctor may supplement.\n\n## P2 bare session:end refuse under empty identity\nfootnote\nEvidence: `occupancy.test.ts` \"refuses an anonymous caller the occupant recorded in the lease (#3954)\" still denies empty presentation with \"presented no session identity\" and leaves the live lease. `commands.md` keeps anonymous release of the occupant recorded in the lease file refused. Bound remedy items 1 and 4 keep that refuse, teach the explicit `--session-id=<id from occupancy.json>` owner path, and forbid silent reopen of anonymous live auto-release.\nFailure mode: Reading the issue Expected line (\"`deft session:end` from a normal shell can clear a stale lease\") as first-ship would reopen #3954; the lean rejects that reading.\nDisposition: Items 1+4 cover P2 as unblockability via documented explicit release, with bare empty-presenter refuse retained. No new unlock verb.\n\n## P1 abandoned live lease after Codex leave\nfootnote\nEvidence: `occupancyHost` / `occupancyAddress` default to the string `\"none\"` when env is empty; the live actor is `record.sessionId`. `OCCUPANCY_TTL_MS` is 20 minutes; `clears expired residue without ownership (#3604)` remains. Bound remedy items 1-3 reframe the defect onto abandoned live `sessionId` plus normal-shell empty identity, keep TTL claim-over, and make the immediate explicit-release path first-class. Item 5 (Codex leave/cleanup that presents the host owner) is optional complementary, not load-bearing for the cite. Item 2 forbids inventing a new unlock verb whose sole job is abandoned-lease clear.\nFailure mode: Treating host/address none as the lock cause, or treating optional item 5 as required first-ship, would mis-scope harvest while the lean already scopes P1 onto discoverable explicit release plus existing TTL.\nDisposition: Items 1+2 cover P1 under the accepted round-1 sharpening. Abandoned leases may still form and stay live inside TTL; the relieved pain is operator unlock without rediscovery or anonymous auto-release. Item 5 may reduce abandon formation later; it is not required for this cite.\n\n## Injection / swarm lens (shared occupancy authority)\n\nThe target changes cooperative bearer-id release on shared worktree state. Bound remedy item 4 keeps path possession from becoming authority to delete a live lease (#3954). Explicit `--session-id=<id>` is presented identity, distinct from anonymous file-read release. Item 2 keeps TTL / deny-embedded recipe and refuses a greenfield unlock verb. No finding reopens that doctrine.\n\n## Coverage verdict\n\nUnder the lean's accepted Takes, Bound remedy items 1-4 cover pain-P1, pain-P2, and pain-P3 without reopening #3954 anonymous live release and without inventing a new unlock verb. Item 5 stays optional adjacent. Footnote-only audit; bind map stays bindable on these cites.\r\n\n",
+          "id": 5857582335,
+          "html_url": "https://github.com/deftai/directive/issues/4667#issuecomment-5857582335",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:16:24Z",
+          "updated_at": "2026-09-27T16:16:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn abandoned Codex session can leave a live occupancy lease that a normal shell cannot clear with bare session:end, and README cold-start does not teach the working occupancy:release --session-id recipe. Bound remedy makes that explicit recovery first-class in README/doctor, keeps TTL claim-over and #3954 anonymous-release refusal, reframes host:none / address:none as metadata, and leaves optional Codex host-owner cleanup as adjacent. Pain-audit 5857582335 of relieves P1-P3 was footnote-only. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5857553266.\r\n\n",
+          "id": 5857586771,
+          "html_url": "https://github.com/deftai/directive/issues/4667#issuecomment-5857586771",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:17:02Z",
+          "updated_at": "2026-09-27T16:17:02Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C5, C6; blocked B until released\n**Defect:** 14\n\n### Expected\nDead/abandoned sessions do not lock the worktree. `deft session:end` from a normal shell can clear a stale lease.\n\n### What happened\nOccupancy JSON: `host: none`, `address: none`, heartbeat == claimed_at, no recorded write. `deft.cmd session:end` from PowerShell: \"This process presented no session identity\". Recovery: `occupancy:release --session-id=<id from json>` â€" not in README. Recurred after setup and after ingest.\n\n### Evidence\n`.deft/occupancy.json`; CLI `session:end` / `occupancy:release` output.\n\n### Environment\nDirective 0.119.1. Codex TUI (Ctrl+C leave).\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5480359378,
+        "origin": "deftai/directive#4667",
+        "id": "github.issue.5480359378"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "9b0ff1c7c264dc2c1ee0daefedebbcf09556c78490c5f05d1c0c6b59adaa7db0"
+      },
+      "swarm": {
+        "file_scope": [
+          "README.md",
+          "CHANGELOG.md",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "packages/cli/src/occupancy-release.test.ts"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor/occupancy-lease-tip.test.ts packages/cli/src/occupancy-release.test.ts"
+        ],
+        "expected_outputs": [
+          "open Tracking PR"
+        ],
+        "depends_on": [],
+        "conflict_group": "through-merge-4667",
+        "size": "M",
+        "model_tier": "default",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5147,
+        "prBase": null,
+        "mergeCommit": "c082963d832360d46d2f2c1a4a2628aa1d28208d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c082963d832360d46d2f2c1a4a2628aa1d28208d",
+        "verifiedAt": "2026-09-29T23:16:06Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGVkZGYtOWUwMi03MDkzLWE3MDktODE1NDdhNDI0ZDI3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-29T23:16:06Z",
+      "completedSessionId": "host:grok:v1:MDFhMGVkZGYtOWUwMi03MDkzLWE3MDktODE1NDdhNDI0ZDI3",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-29T23:16:06Z"
+      }
+    },
+    "id": "github.issue.5480359378",
+    "updated": "2026-09-29T23:16:06Z"
+  }
+}
