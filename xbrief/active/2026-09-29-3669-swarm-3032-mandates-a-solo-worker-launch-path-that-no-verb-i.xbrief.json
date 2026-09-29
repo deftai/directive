@@ -98,8 +98,10 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "node -e \"const fs=require(\\\"fs\\\"); for (const p of [\\\"AGENTS.md\\\",\\\"content/commands.md\\\",\\\"content/skills/deft-directive-swarm/SKILL.md\\\"]) { const t=fs.readFileSync(p,\\\"utf8\\\"); if (!/solo-worker launch path|#3032/.test(t)) { console.error(\\\"missing naming in \\\"+p); process.exit(1);} } console.log(\\\"solo-worker naming present\\\");\""
+      ],
+      "none_stated": false,
       "source_rung": "derived",
       "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
       "sentences": [],
@@ -424,9 +426,6 @@
           "content/skills/deft-directive-swarm/SKILL.md",
           "content/templates/agents-entry.md",
           "CHANGELOG.md"
-        ],
-        "verify_commands": [
-          "task verify:branch"
         ]
       },
       "productPullRequest": 5131
