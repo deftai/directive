@@ -179,10 +179,7 @@ function payloadFromRaw(raw: Record<string, unknown>): IssueStatePayload | null 
   return { state, stateReason: normalizeStateReason(raw.state_reason) };
 }
 
-function readCachedIssuePayload(
-  projectRoot: string,
-  ref: IssueRef,
-): IssueStatePayload | null {
+function readCachedIssuePayload(projectRoot: string, ref: IssueRef): IssueStatePayload | null {
   const [owner, name] = ref.repo.split("/", 2);
   if (!owner || !name) {
     return null;
@@ -865,8 +862,7 @@ export function evaluateCancelShippedOriginRefuse(
     ((ref: IssueRef) => resolveIssueCloseKind(ref, root, runGh, skipGh));
   const twinOf =
     options.hasCompletedTwin ??
-    ((ref: IssueRef) =>
-      hasCompletedTipTwinForIssue(root, ref, { tip: options.tip, runGit }));
+    ((ref: IssueRef) => hasCompletedTipTwinForIssue(root, ref, { tip: options.tip, runGit }));
 
   for (const issue of issues) {
     const kind = resolveKind(issue);
@@ -876,11 +872,7 @@ export function evaluateCancelShippedOriginRefuse(
     if (kind === "unknown") {
       return {
         refuse: true,
-        message: formatCancelShippedOriginRefuse(
-          issue,
-          null,
-          "could not resolve closed state",
-        ),
+        message: formatCancelShippedOriginRefuse(issue, null, "could not resolve closed state"),
       };
     }
     // shipped-closed
@@ -888,11 +880,7 @@ export function evaluateCancelShippedOriginRefuse(
     if (twin.error !== null) {
       return {
         refuse: true,
-        message: formatCancelShippedOriginRefuse(
-          issue,
-          twin.tip,
-          twin.error,
-        ),
+        message: formatCancelShippedOriginRefuse(issue, twin.tip, twin.error),
       };
     }
     if (!twin.found) {

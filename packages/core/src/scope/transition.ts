@@ -18,13 +18,13 @@ import { hasArtifactSuffix } from "../layout/resolve.js";
 import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
 import {
+  type CompletedTipTwinResult,
   evaluateCancelShippedOriginRefuse,
   type IssueCloseKind,
-  type CompletedTipTwinResult,
 } from "../lifecycle/completed-tracked-on-delivery.js";
+import type { LiteralAcceptanceRunner } from "../literal-acceptance/index.js";
 import type { IssueRef } from "../orphan-active/refs.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
-import type { LiteralAcceptanceRunner } from "../literal-acceptance/index.js";
 import type { GitRunner } from "../session/git.js";
 import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
 import { validateFilename } from "../vbrief-validate/filename.js";

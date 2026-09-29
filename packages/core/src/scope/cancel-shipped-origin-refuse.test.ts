@@ -74,10 +74,7 @@ function writeCachedIssue(
   writeFileSync(join(dir, "raw.json"), JSON.stringify(payload), "utf8");
 }
 
-const originPlan = (
-  number: number,
-  status: string,
-): Record<string, unknown> => ({
+const originPlan = (number: number, status: string): Record<string, unknown> => ({
   status,
   title: `story ${number}`,
   items: [],
@@ -92,12 +89,7 @@ const originPlan = (
 describe("scope:cancel shipped-origin refuse (#5126)", () => {
   it("refuses cancel when origin is shipped-closed without completed tip twin", () => {
     const root = makeRepo();
-    const active = writeBrief(
-      root,
-      "active",
-      "shipped.xbrief.json",
-      originPlan(51261, "running"),
-    );
+    const active = writeBrief(root, "active", "shipped.xbrief.json", originPlan(51261, "running"));
     writeCachedIssue(root, "deftai/directive", 51261, "closed", "completed");
     const result = runTransition("cancel", active, new Date(), {
       skipGh: true,
@@ -151,12 +143,7 @@ describe("scope:cancel shipped-origin refuse (#5126)", () => {
 
   it("allows cancel when shipped-closed and completed tip twin exists", () => {
     const root = makeRepo();
-    const active = writeBrief(
-      root,
-      "active",
-      "twinned.xbrief.json",
-      originPlan(51264, "running"),
-    );
+    const active = writeBrief(root, "active", "twinned.xbrief.json", originPlan(51264, "running"));
     writeBrief(root, "completed", "landed.xbrief.json", originPlan(51264, "completed"));
     writeCachedIssue(root, "deftai/directive", 51264, "closed", "completed");
     git(root, ["add", "xbrief/completed/landed.xbrief.json"]);
