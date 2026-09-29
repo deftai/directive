@@ -163,9 +163,7 @@ export function occupancyLeaseDoctorTip(
   if (record === null) {
     return (
       "Occupancy lease file present but unreadable or invalid. " +
-      "Delete or rewrite `.deft/occupancy.json` (occupancy:release cannot clear a corrupt file). " +
-      "For a valid abandoned lease instead: " +
-      ABANDONED_OCCUPANCY_LEASE_RECOVERY
+      "Delete or rewrite `.deft/occupancy.json` — occupancy:release cannot clear a corrupt file."
     );
   }
   const liveness = occupancyLiveness(record, now);
