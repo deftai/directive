@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { resolveFrameworkRootForProject, runningInsideDeftRepo } from "../doctor/paths.js";
 import { emitSessionEvalReadback } from "../eval/readback.js";
 import { bindSessionGeneration } from "../freshness/bind.js";
@@ -101,7 +102,7 @@ import {
 } from "./effort-budget.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
-import { isLinkedWorktreePath } from "./main-worktree.js";
+import { isLinkedWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
 import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
@@ -563,22 +564,56 @@ function resolveFinalizeOwedRepo(
   return parseGitHubRemoteRepo(remote.stdout.trim()) ?? "";
 }
 
-/** #5145: dest linked-worktree Prefer-A reason when CLI omits `--defer-owed`. */
-export const LINKED_WORKTREE_DEFER_OWED_REASON = "linked-worktree";
+/** #5145: Prefer-A reason when dest inherits a primary finalize-owed record. */
+export const PRIMARY_INHERITED_DEFER_OWED_REASON = "primary-finalize-owed";
+
+function inheritDeferOwedFromPrimary(
+  projectRoot: string,
+  options: Pick<SessionStartOptions, "runGit" | "isLinkedWorktree">,
+): string | null {
+  const linkedProbe = options.isLinkedWorktree ?? isLinkedWorktreePath;
+  if (!linkedProbe(projectRoot)) {
+    return null;
+  }
+  const primary = mainWorktreeRoot(projectRoot, options.runGit ?? undefined);
+  if (primary === null) {
+    return null;
+  }
+  try {
+    if (resolve(primary) === resolve(projectRoot)) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  const [state] = readRitualState(primary);
+  if (state === null) {
+    return null;
+  }
+  const step = state.gatedSteps.finalize_owed;
+  if (step === undefined || step === null || typeof step !== "object") {
+    return null;
+  }
+  const deferred = step.deferred_reason;
+  if (typeof deferred === "string" && deferred.trim().length > 0) {
+    return `primary:${deferred.trim()}`;
+  }
+  if (step.ok === true) {
+    return PRIMARY_INHERITED_DEFER_OWED_REASON;
+  }
+  return null;
+}
 
 function resolveEffectiveDeferOwedReason(
   projectRoot: string,
-  options: Pick<SessionStartOptions, "deferOwedReason" | "isLinkedWorktree">,
+  options: Pick<SessionStartOptions, "deferOwedReason" | "isLinkedWorktree" | "runGit">,
 ): string | null {
   if (typeof options.deferOwedReason === "string" && options.deferOwedReason.trim().length > 0) {
     return options.deferOwedReason.trim();
   }
-  // Dest leaves: primary/head already owns tip inventory; do not re-pay N cold scans.
-  const linkedProbe = options.isLinkedWorktree ?? isLinkedWorktreePath;
-  if (linkedProbe(projectRoot)) {
-    return LINKED_WORKTREE_DEFER_OWED_REASON;
-  }
-  return null;
+  // Dest leaves Prefer-A only when primary already recorded finalize_owed (deferred or ok).
+  // Standalone linked worktrees without a primary record still scan (#5145 Class A).
+  return inheritDeferOwedFromPrimary(projectRoot, options);
 }
 
 export function evaluateFinalizeOwedSessionGate(
@@ -598,8 +633,7 @@ export function evaluateFinalizeOwedSessionGate(
   const deferred = deferReason !== null;
   // #5145 Prefer-A: defer skips tip inventory entirely (match doctor/cache_fresh defer skip).
   // Soft-pass alone still paid discoverFinalizeOwed / fetchDeliveryTipPrivate before this cut.
-  // Linked dest worktrees Prefer-A by default (reason linked-worktree) so agents cannot omit
-  // `--defer-owed` and re-pay the primary tip inventory.
+  // Linked dest Prefer-A when primary ritual already recorded finalize_owed (deferred/ok).
   if (deferred && deferReason !== null && options.probeFinalizeOwed === undefined) {
     return {
       lines: [`finalize owed deferred: ${deferReason}`],

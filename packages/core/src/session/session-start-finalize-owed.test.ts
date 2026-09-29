@@ -186,8 +186,8 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     expect(result.lines.join("\n")).toContain("blocks mutation");
   });
   it("skips tip fetch and discover when --defer-owed is set (#5145 Prefer-A)", () => {
+  it("skips tip fetch when --defer-owed is set (#5145 Prefer-A)", () => {
     let fetchCalls = 0;
-    let discoverCalls = 0;
     const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
       deferOwedReason: "cohort-add",
       runGit: () => {
@@ -202,30 +202,64 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     expect(result.lines.join("\n")).toContain("deferred");
     // Live path must not thrash tip/network under defer (spy via runGit never called).
     expect(fetchCalls).toBe(0);
-    expect(discoverCalls).toBe(0);
   });
 
 
-  it("Prefer-A by default on linked worktrees without --defer-owed (#5145 dest-default)", () => {
-    let fetchCalls = 0;
-    const result = evaluateFinalizeOwedSessionGate("/tmp/dest", {
+  it("linked worktree Prefer-A when primary already deferred (#5145 dest-default)", () => {
+    const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = require("node:fs");
+    const { join } = require("node:path");
+    const { tmpdir } = require("node:os");
+    const primary = mkdtempSync(join(tmpdir(), "pd-primary-"));
+    const dest = mkdtempSync(join(tmpdir(), "pd-dest-"));
+    try {
+      mkdirSync(join(primary, ".deft"), { recursive: true });
+      writeFileSync(
+        join(primary, ".deft", "ritual-state.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          contract: "session-ritual-state",
+          session_id: "host:test:primary",
+          git_head: "abc",
+          worktree_path: primary,
+          started_at: "2026-09-29T00:00:00Z",
+          quick_steps: {},
+          gated_steps: {
+            finalize_owed: {
+              ok: true,
+              ts: "2026-09-29T00:00:00Z",
+              deferred_reason: "cohort-add",
+              message: "finalize owed deferred: cohort-add",
+            },
+          },
+        }),
+        "utf8",
+      );
+      let fetchCalls = 0;
+      const result = evaluateFinalizeOwedSessionGate(dest, {
+        isLinkedWorktree: () => true,
+        runGit: (_cwd, args) => {
+          if (args.includes("--git-common-dir")) {
+            return { code: 0, stdout: join(primary, ".git") + "\n", stderr: "" };
+          }
+          fetchCalls += 1;
+          return { code: 0, stdout: "TIP\n", stderr: "" };
+        },
+        env: { GH_REPO: "deftai/directive" },
+      });
+      expect(result.blocks).toBe(false);
+      expect(result.deferred).toBe(true);
+      expect(result.deferReason).toBe("primary:cohort-add");
+      expect(fetchCalls).toBe(0);
+    } finally {
+      rmSync(primary, { recursive: true, force: true });
+      rmSync(dest, { recursive: true, force: true });
+    }
+  });
+
+  it("linked worktree without primary finalize_owed still probes", () => {
+    const result = evaluateFinalizeOwedSessionGate("/tmp/dest-alone", {
       isLinkedWorktree: () => true,
-      runGit: () => {
-        fetchCalls += 1;
-        return { code: 0, stdout: "TIP\n", stderr: "" };
-      },
-      env: { GH_REPO: "deftai/directive" },
-    });
-    expect(result.blocks).toBe(false);
-    expect(result.deferred).toBe(true);
-    expect(result.deferReason).toBe("linked-worktree");
-    expect(result.lines.join("\n")).toContain("deferred");
-    expect(fetchCalls).toBe(0);
-  });
-
-  it("main worktree without --defer-owed still probes (no dest-default)", () => {
-    const result = evaluateFinalizeOwedSessionGate("/tmp/main", {
-      isLinkedWorktree: () => false,
+      runGit: () => ({ code: 1, stdout: "", stderr: "no common" }),
       probeFinalizeOwed: () => ({
         lines: ["finalize owed inventory:", "  #4919 owed [blocks]"],
         blocks: true,
