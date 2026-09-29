@@ -45,11 +45,7 @@ import {
   gatesForCheckTarget,
   isSuiteCheckGate,
 } from "./gate-lists.js";
-import {
-  formatDegradedSkipReport,
-  formatNamedCauseFailure,
-  remedyForGate,
-} from "./named-cause.js";
+import { formatDegradedSkipReport, formatNamedCauseFailure, remedyForGate } from "./named-cause.js";
 import {
   projectHasLifecycleBrief,
   RAPID_SOFT_MISSING_NO_BRIEF_NOTICE,

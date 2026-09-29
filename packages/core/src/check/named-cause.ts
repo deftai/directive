@@ -33,8 +33,7 @@ export const OPAQUE_OR_GENERIC_NOTE =
 
 /** Per-gate remedy hints (static; no env interpolation). */
 const GATE_REMEDIES: Readonly<Record<string, string>> = {
-  "verify:ac":
-    `Fix the failing acceptance clause or command; empty floor: ${EMPTY_AC_REMEDY}`,
+  "verify:ac": `Fix the failing acceptance clause or command; empty floor: ${EMPTY_AC_REMEDY}`,
   "verify:branch":
     "Create a feature branch (`git switch -c feat/<name>`) or set plan.policy.allowDirectCommitsToMaster with confirmation",
   "verify:encoding":
@@ -72,14 +71,11 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Remove or allowlist the skill external-fetch flagged by the gate",
   "verify:semantic-single-source":
     "Make shipped authoring surfaces name exactly one current xBRIEF write version (0.8)",
-  "verify:cursor-tier1":
-    "Repair Cursor tier-1 host surface drift named by the gate",
-  "verify:openclaw-tier1":
-    "Repair OpenClaw tier-1 host surface drift named by the gate",
+  "verify:cursor-tier1": "Repair Cursor tier-1 host surface drift named by the gate",
+  "verify:openclaw-tier1": "Repair OpenClaw tier-1 host surface drift named by the gate",
   "verify:go-freeze":
     "Do not edit frozen Go surfaces; revert or land the change through the allowed thaw path",
-  "verify:bridge-drift":
-    "Regenerate bridge artifacts so they match the TypeScript source of truth",
+  "verify:bridge-drift": "Regenerate bridge artifacts so they match the TypeScript source of truth",
   "ts:check-lane": "Fix lint/type/test failures; re-run task ts:check-lane",
   "verify:forward-coverage":
     "Add tests for new source files and uncovered changed branches (task verify:forward-coverage)",
@@ -107,8 +103,7 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Convert legacy vBRIEF envelopes on *.xbrief.json paths, or move them onto the BUILTIN_ALLOW_LIST",
   "verify:no-task-runtime":
     "Remove runtime `task`/`go-task` invocations from product paths; use the Directive CLI instead",
-  "verify:pack-drift":
-    "Regenerate or restore pack files so they match the declared pack sources",
+  "verify:pack-drift": "Regenerate or restore pack files so they match the declared pack sources",
   "verify:agents-md-budget":
     "Trim AGENTS.md managed section or raise plan.policy.agentsMdBudget deliberately",
   "verify:eval-health-relocation":
@@ -124,8 +119,7 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Re-render SPECIFICATION.md / PRD.md (task spec:render / prd:render) so committed files match",
   "docs:rule-map:check":
     "Regenerate docs/RULE-MAP.md from the renderer so the committed file is byte-identical",
-  "docs:capability-map:check":
-    "Regenerate the capability index so it matches overlay + registries",
+  "docs:capability-map:check": "Regenerate the capability index so it matches overlay + registries",
   "verify-strategy-output":
     "Re-run strategy output or fix non-conformant scope filenames / PROJECT-DEFINITION",
   "verify:consumer-test-lane":

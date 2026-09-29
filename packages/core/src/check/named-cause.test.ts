@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  CONSUMER_CHECK_GATES,
-  FRAMEWORK_CHECK_GATES,
-  checkGateId,
-} from "./gate-lists.js";
+import { CONSUMER_CHECK_GATES, checkGateId, FRAMEWORK_CHECK_GATES } from "./gate-lists.js";
 import {
   extractGateCause,
   formatDegradedSkipReport,
