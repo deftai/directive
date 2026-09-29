@@ -21,7 +21,12 @@ import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { defaultGitRunner, type GitRunner, timedGitRunner } from "../session/git.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
-import { type FinalizeCohortResult, finalizeClaimRef, finalizeCohort } from "./finalize-cohort.js";
+import {
+  type FinalizeCohortResult,
+  finalizeClaimRef,
+  finalizeCohort,
+  isProtectedStayingOpenUmbrella,
+} from "./finalize-cohort.js";
 
 export const FINALIZE_OWED_LABEL = "finalize-owed";
 
@@ -174,6 +179,22 @@ function issueFromPlan(plan: Record<string, unknown>, expectedRepo: string | nul
   return number;
 }
 
+/**
+ * Tip proposed/draft without productPullRequest: historical cites are not owed (#5143).
+ * Folder `proposed/` and/or plan.status proposed|draft.
+ */
+export function isProposedTipForUnmarkedRefuse(
+  relPath: string,
+  plan: Record<string, unknown>,
+): boolean {
+  const norm = relPath.replace(/\\/g, "/");
+  if (/(^|\/)(?:xbrief|vbrief)\/proposed\//.test(norm)) {
+    return true;
+  }
+  const status = typeof plan.status === "string" ? plan.status.trim().toLowerCase() : "";
+  return status === "proposed" || status === "draft";
+}
+
 function tipHasTwin(
   projectRoot: string,
   tip: string,
@@ -237,22 +258,8 @@ function fetchIssueState(
     const rec = payload as Record<string, unknown>;
     const stateRaw = String(rec.state ?? "").toLowerCase();
     const state = stateRaw === "open" || stateRaw === "closed" ? stateRaw : null;
-    let protectedUmbrella = false;
-    const labels = rec.labels;
-    if (Array.isArray(labels)) {
-      for (const label of labels) {
-        const name =
-          typeof label === "string"
-            ? label
-            : typeof label === "object" && label !== null
-              ? String((label as Record<string, unknown>).name ?? "")
-              : "";
-        const lower = name.toLowerCase();
-        if (lower.includes("umbrella") || lower === "status:protected" || lower === "protected") {
-          protectedUmbrella = true;
-        }
-      }
-    }
+    // Share finalize-cohort staying-open vocabulary (epic/tracker/umbrella) (#5143).
+    const protectedUmbrella = isProtectedStayingOpenUmbrella(rec);
     return { state, protectedUmbrella, error: null };
   } catch (err: unknown) {
     return {
@@ -486,6 +493,10 @@ export function discoverFinalizeOwed(
     let issue = issueFromPlan(plan, options.repo);
     let unmarkedDetail: string | null = null;
     if (productPr === null) {
+      // Proposed/draft tip + historical github-pr/prRefs only → not owed (#5143).
+      if (isProposedTipForUnmarkedRefuse(relPath, plan)) {
+        continue;
+      }
       // Unmarked: compose orphan-active signature when shipped + merged prRefs (#3791 P3).
       // Empty-prRefs closed-origin-only stays out of first ship.
       const admit = deriveUnmarkedFinalizeAdmit(plan, options.repo, runGh);

@@ -288,7 +288,8 @@ function fetchIssueClosed(issue: number, repo: string | null, runGh: RunGhFn): b
   }
 }
 
-const PROTECTED_STAYING_OPEN_LABELS = new Set([
+/** Shared with finalize-owed protected skip (#5143 / #4919). */
+export const PROTECTED_STAYING_OPEN_LABELS = new Set([
   "epic",
   "meta",
   "tracker",
@@ -635,7 +636,8 @@ function labelNamesFromIssuePayload(payload: Record<string, unknown>): string[] 
   return names;
 }
 
-function isProtectedStayingOpenUmbrella(payload: Record<string, unknown>): boolean {
+/** True when origin labels mean the issue stays open (epic/tracker/umbrella) (#5143). */
+export function isProtectedStayingOpenUmbrella(payload: Record<string, unknown>): boolean {
   for (const name of labelNamesFromIssuePayload(payload)) {
     const lower = name.toLowerCase();
     if (PROTECTED_STAYING_OPEN_LABELS.has(lower) || lower.includes("umbrella")) {
