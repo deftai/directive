@@ -6,8 +6,9 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describe, expect, it } from "vitest";
-import { checkGateId, FRAMEWORK_CHECK_GATES } from "../check/gate-lists.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { checkGateId, FRAMEWORK_CHECK_GATES, PRODUCT_FIRST_AC_GATE } from "../check/gate-lists.js";
+import { ACTIVE_SCOPE_PIN_ENV } from "../hooks/scope.js";
 import { findTrackedActiveTwins, sweepCohort } from "../swarm/complete-cohort.js";
 import {
   attachPlanAcceptance,
@@ -16,6 +17,7 @@ import {
   stampAcceptanceFromLiteralCapture,
   validatePlanAcceptance,
 } from "./acceptance.js";
+import { resolveSoftMissingAcTargets } from "./acceptance-resolver.js";
 import {
   applyProductFirstGateMode,
   isCeilingCompositorGate,
@@ -36,6 +38,16 @@ import {
   ENV_HYGIENE_ADVISORY,
   PRODUCT_AC_GATE_ID,
 } from "./types.js";
+
+const originFreshness = vi.hoisted(() => ({
+  evaluate: vi.fn((_payload: unknown, _options?: { readonly skip?: boolean }) => ({
+    ok: true,
+    message: "origin freshness skipped",
+  })),
+}));
+vi.mock("../vbrief-reconcile/origin-freshness.js", () => ({
+  evaluateOriginFreshness: originFreshness.evaluate,
+}));
 
 describe("plan.acceptance schema (#3284)", () => {
   it("rejects empty commands without none_stated", () => {
@@ -156,6 +168,75 @@ describe("verify:ac evaluation (#3284)", () => {
     });
     expect(result.ok).toBe(true);
     expect(result.code).toBe(0);
+  });
+
+  describe("soft-missing multi-active pin selection (#4285)", () => {
+    beforeEach(() => {
+      originFreshness.evaluate.mockClear();
+    });
+    afterEach(() => {
+      for (const [, options] of originFreshness.evaluate.mock.calls) {
+        expect(options).toMatchObject({ skip: true });
+      }
+    });
+
+    const runningPlacement = {
+      status: "running",
+      metadata: {
+        intended_placement: {
+          schema: "deft.scope.intended_placement.v1",
+          files: ["src/new-module.ts"],
+          module_boundary: "new focused module",
+        },
+      },
+    };
+
+    function writeRunning(project: string, name: string, fileScope: readonly string[]): string {
+      const active = join(project, "xbrief", "active");
+      mkdirSync(active, { recursive: true });
+      const path = join(active, name);
+      writeFileSync(
+        path,
+        JSON.stringify({
+          plan: {
+            ...runningPlacement,
+            metadata: {
+              ...runningPlacement.metadata,
+              swarm: { file_scope: [...fileScope] },
+            },
+          },
+        }),
+        "utf8",
+      );
+      return path;
+    }
+
+    it("keeps PRODUCT_FIRST_AC_GATE on soft-missing without dropping the AC-first slot", () => {
+      expect(checkGateId(PRODUCT_FIRST_AC_GATE)).toBe(PRODUCT_AC_GATE_ID);
+      expect(PRODUCT_FIRST_AC_GATE).toEqual({
+        task: PRODUCT_AC_GATE_ID,
+        args: ["--soft-missing-xbrief"],
+      });
+    });
+
+    it("runs only the pinned brief under two-active soft-missing composition", () => {
+      const project = mkdtempSync(join(tmpdir(), "ac-soft-pin-"));
+      writeRunning(project, "foreign-leftover.xbrief.json", ["packages/foreign/**"]);
+      const dispatched = writeRunning(project, "dispatched-story.xbrief.json", [
+        "packages/core/src/product-first-done-gate/**",
+      ]);
+      const unpinned = resolveSoftMissingAcTargets(project, { env: {} });
+      expect(unpinned.kind).toBe("need-pin");
+      const pinned = resolveSoftMissingAcTargets(project, {
+        env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/dispatched-story.xbrief.json" },
+      });
+      expect(pinned).toEqual({ kind: "one", path: dispatched });
+      const explicit = resolveSoftMissingAcTargets(project, {
+        boundPath: dispatched,
+        env: {},
+      });
+      expect(explicit).toEqual({ kind: "one", path: dispatched });
+    });
   });
 
   it("reads acceptance from xBRIEF path", () => {

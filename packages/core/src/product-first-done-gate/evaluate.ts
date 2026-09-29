@@ -120,7 +120,9 @@ export interface VerifyAcResult extends LiteralAcceptanceGateResult {
 export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOptions {
   /**
    * When true, missing xBRIEF / no active scope is exit 0 (check composition).
-   * Default false for standalone done-gate use.
+   * Default false for standalone done-gate use. Multi-active path selection for
+   * check composition lives in resolveSoftMissingAcTargets (#4285); this flag
+   * does not soft-green past stated AC for the selected story (#3284).
    */
   readonly softMissingXbrief?: boolean;
   /**
@@ -129,6 +131,7 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
    *   (promotion remains a done-gate / scope:complete concern via verify:ac standalone).
    * - Executable command failures still fail closed (product-first).
    * - Safety-rejected ledger still fails closed.
+   * - Multi-active composition selects one story via DEFT_ACTIVE_SCOPE / path (#4285).
    */
   readonly checkIntegrated?: boolean;
   /** Allow task_statement sources to execute (tests / explicit promote). */

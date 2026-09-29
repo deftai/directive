@@ -28,10 +28,14 @@ export {
   clauseWalkBlocks,
   formatAcceptanceVerdict,
   formatPassLeadClauseCounts,
+  listActiveLifecycleArtifacts,
+  type ResolveSoftMissingAcTargetsOptions,
   relabelVerifyAcPassLead,
   resolveAcceptanceGateProfile,
   resolveAcceptanceVerdict,
   resolvedAcceptanceCommandCount,
+  resolveSoftMissingAcTargets,
+  type SoftMissingAcTargetResolution,
 } from "./acceptance-resolver.js";
 export {
   applyProductFirstGateMode,

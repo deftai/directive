@@ -22,6 +22,7 @@ import {
   readAdmittedSourceSentences,
   readPlanAcceptance,
   resolveAcceptanceGateProfile,
+  resolveSoftMissingAcTargets,
 } from "@deftai/directive-core/product-first-done-gate";
 
 interface ParsedArgs {
@@ -314,20 +315,47 @@ export function run(argv: string[]): number {
     if (found.kind === "one") {
       paths = [found.path];
     } else if (found.kind === "many") {
-      // Greptile #3284: multi-active must verify EVERY active scope, not skip.
-      if (args.softMissingXbrief || args.captureOnly) {
+      // #4285: soft-missing selects via DEFT_ACTIVE_SCOPE / inspectActiveScope
+      // (or fail closed). ALL-paths soft-missing is not the #3284 product bar.
+      if (args.softMissingXbrief) {
+        const selected = resolveSoftMissingAcTargets(projectRoot, {
+          env: process.env,
+          scannedPaths: found.paths,
+        });
+        if (selected.kind === "one") {
+          paths = [selected.path];
+          if (!args.quiet) {
+            process.stdout.write(
+              `verify:ac soft-missing multi-active (#4285): selected ${selected.path}\n`,
+            );
+          }
+        } else {
+          process.stderr.write(
+            `${selected.kind === "need-pin" ? selected.message : "verify_ac: multi-active soft-missing needs a pin"}\n` +
+              "  Usage: task verify:ac -- <path-to-active.xbrief.json>\n" +
+              `  Or set DEFT_ACTIVE_SCOPE to the dispatched story under ${found.dir}\n` +
+              "  Refs #4285 / #3284 product-first done-gate\n",
+          );
+          emitVerifyAcTerminalOutcome({
+            projectRoot,
+            env: process.env,
+            outcome: "config-error",
+          });
+          return 1;
+        }
+      } else if (args.captureOnly) {
         paths = [...found.paths];
         if (!args.quiet) {
           process.stdout.write(
-            `verify:ac multi-active (#3284): evaluating ${paths.length} scopes in ${found.dir}\n`,
+            `verify:ac capture-only multi-active: listing ${paths.length} scopes in ${found.dir}\n`,
           );
         }
       } else {
         process.stderr.write(
           `verify_ac: ${found.paths.length} active scopes in ${found.dir}.\n` +
-            "  Pass an explicit path, or use check composition (--soft-missing-xbrief) to evaluate all.\n" +
+            "  Pass an explicit path, or set DEFT_ACTIVE_SCOPE with check composition (--soft-missing-xbrief).\n" +
             "  Usage: task verify:ac -- <path-to-active.xbrief.json>\n" +
-            "  Refs #3284 product-first done-gate\n",
+            "  Refs #4285 / #3284 product-first done-gate\n",
         );
         emitVerifyAcTerminalOutcome({
           projectRoot,

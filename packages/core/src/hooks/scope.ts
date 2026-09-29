@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { evaluate } from "../preflight/evaluate.js";
@@ -20,6 +20,20 @@ export interface ActiveScopeInspection {
   readonly message: string;
   readonly denyKind?: ActiveScopeDenyKind;
 }
+
+/**
+ * Soft-missing / check-composition target when active/ has more than one
+ * lifecycle artifact (#4285). Pin or explicit path; never ALL-paths.
+ */
+export type SoftMissingAcTargetResolution =
+  | { readonly kind: "one"; readonly path: string }
+  | { readonly kind: "none" }
+  | {
+      readonly kind: "need-pin";
+      readonly message: string;
+      readonly denyKind?: ActiveScopeDenyKind;
+      readonly scannedCount: number;
+    };
 
 /** Evidence-only lifecycle verb named on the multiple-eligible deny (#4840). */
 export const STAMP_EVIDENCE_VERB = "scope:stamp-evidence";
@@ -247,5 +261,87 @@ export function inspectActiveScope(
       "No active xBRIEF artifact was found under xbrief/active/ " +
       "(or the legacy vbrief/active/ compatibility path).",
     denyKind: "zero-eligible",
+  };
+}
+
+/** Scan xbrief/active + vbrief/active for lifecycle artifact files (#4285). */
+export function listActiveLifecycleArtifacts(projectRoot: string): {
+  readonly paths: readonly string[];
+  readonly dirs: readonly string[];
+} {
+  const paths: string[] = [];
+  const dirs: string[] = [];
+  for (const dirName of ["xbrief", "vbrief"]) {
+    const active = join(projectRoot, dirName, "active");
+    if (!existsSync(active)) continue;
+    let names: string[] = [];
+    try {
+      names = readdirSync(active)
+        .filter((name) => hasArtifactSuffix(name))
+        .sort();
+    } catch {
+      continue;
+    }
+    if (names.length === 0) continue;
+    dirs.push(active);
+    for (const name of names) {
+      paths.push(join(active, name));
+    }
+  }
+  return { paths, dirs };
+}
+
+function formatSoftMissingNeedPinMessage(count: number, inspectMessage: string): string {
+  return (
+    `verify:ac soft-missing: ${count} active lifecycle artifacts; ` +
+    `select the dispatched story via ${ACTIVE_SCOPE_PIN_ENV} or pass an explicit -- <path> ` +
+    `(#4285). Do not silently skip AC. Do not run foreign leftover acceptance commands. ` +
+    inspectMessage
+  );
+}
+
+export interface ResolveSoftMissingAcTargetsOptions extends InspectActiveScopeOptions {
+  /** Pre-scanned active artifact paths; when omitted, rescans active roots. */
+  readonly scannedPaths?: readonly string[];
+}
+
+/**
+ * Select the soft-missing / check-composition AC target (#4285).
+ *
+ * One scanned artifact → that path (single-scope unchanged).
+ * Many artifacts → reuse {@link inspectActiveScope} / {@link ACTIVE_SCOPE_PIN_ENV}
+ * or fail closed asking for the pin / explicit path. Never evaluates every
+ * active leftover under soft-missing.
+ */
+export function resolveSoftMissingAcTargets(
+  projectRoot: string,
+  options?: ResolveSoftMissingAcTargetsOptions,
+): SoftMissingAcTargetResolution {
+  const scanned =
+    options?.scannedPaths !== undefined
+      ? [...options.scannedPaths]
+      : [...listActiveLifecycleArtifacts(projectRoot).paths];
+  if (scanned.length === 0) {
+    return { kind: "none" };
+  }
+  if (scanned.length === 1) {
+    const only = scanned[0];
+    if (only === undefined) {
+      return { kind: "none" };
+    }
+    return { kind: "one", path: only };
+  }
+  const scope = inspectActiveScope(projectRoot, {
+    env: options?.env,
+    boundPath: options?.boundPath,
+  });
+  if (scope.ready && scope.path !== null) {
+    return { kind: "one", path: scope.path };
+  }
+  return {
+    kind: "need-pin",
+    message: formatSoftMissingNeedPinMessage(scanned.length, scope.message),
+    denyKind: scope.denyKind,
+    scannedCount: scanned.length,
   };
 }

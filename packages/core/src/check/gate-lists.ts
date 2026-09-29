@@ -18,7 +18,9 @@ export type CheckGateSpec =
 /**
  * Product-first AC gate (#3284): always first; `--soft-missing-xbrief` skips
  * only when no story was active this session. A same-session complete targets
- * xbrief/completed instead of skipping (#3357).
+ * xbrief/completed instead of skipping (#3357). Multi-active soft-missing
+ * selects via DEFT_ACTIVE_SCOPE / explicit path (#4285); never soft-greens past
+ * stated AC for the selected story.
  */
 export const PRODUCT_FIRST_AC_GATE: CheckGateSpec = {
   task: PRODUCT_AC_GATE_ID,

@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Scope completion now explains how to record human provenance (#4877).** When a disposition has no provenance, the refusal and help text show the information needed to record it. Bare strings remain invalid. Tracking #4877.
 
 - **Abandoned occupancy lease recovery is discoverable (#4667).** Tracking #4667.
+- **fix(check): soft-missing multi-active needs an explicit pin or path (#4285).** verify:ac --soft-missing-xbrief no longer runs leftover acceptance against every active story; pin one, pass a path, or fail closed. Tracking #4285.
 
 ### Removed
 

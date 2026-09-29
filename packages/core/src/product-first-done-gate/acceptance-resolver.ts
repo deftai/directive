@@ -404,6 +404,17 @@ export type AcceptanceReaderProfile =
   /** `scope:complete` hard precondition walk (#3357). */
   | "complete";
 
+/**
+ * Check-composition multi-active selection (#4285).
+ * Re-export so AC readers resolve soft-missing targets without importing hooks.
+ */
+export {
+  listActiveLifecycleArtifacts,
+  type ResolveSoftMissingAcTargetsOptions,
+  resolveSoftMissingAcTargets,
+  type SoftMissingAcTargetResolution,
+} from "../hooks/scope.js";
+
 export interface AcceptanceGateProfileOptions {
   readonly captureFromNarratives: boolean | undefined;
   readonly checkIntegrated: boolean;
