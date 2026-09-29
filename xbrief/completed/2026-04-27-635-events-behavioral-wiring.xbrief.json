@@ -8,7 +8,7 @@
   "plan": {
     "id": "635-events-behavioral",
     "title": "Events: behavioral wiring (3 items: session interrupt/resume pair, plan:approved, legacy:detected)",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Problem": "PR #401's original DDD section also proposed behavioral events that capture agent and user actions in real time -- not just things deft can statically detect. Three of those have no existing detector and require new instrumentation: a paired session-lifecycle event (interrupted/resumed) for context-window shifts, a plan-approval event for the Phase 5->6 merge gate, and a legacy-detected event for legacy artifact captures during migration. Without structural emission these stay prose-only and decay under agent pressure (canonical #642 workflow comment, locked decisions).",
       "Overview": "Define and emit 3 behavioral events as structural artifacts. (1) `session:interrupted` + `session:resumed` (paired -- always emitted together; resumed references the interrupted record's id) for context-window shift detection per AGENTS.md Deft Alignment Confirmation. (2) `plan:approved` emitted when the user types `yes`/`confirmed`/`approve` in a PR thread per the Phase 5->6 gate in the canonical workflow comment + skills/deft-directive-review-cycle. (3) `legacy:detected` emitted by scripts/_vbrief_legacy.py when a non-canonical SPECIFICATION.md/PROJECT.md section is captured to xbrief/legacy/ (currently emits to xbrief/migration/LEGACY-REPORT.md as text only).",
@@ -23,26 +23,29 @@
       {
         "id": "events-behavioral-session-pair",
         "title": "session:interrupted + session:resumed (paired) -- emit on context-window shift detection per AGENTS.md Deft Alignment Confirmation",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Add emission points to the alignment confirmation flow. Pairing enforced via session_id correlation."
-        }
+        },
+        "completed": "2026-09-29T16:04:18Z"
       },
       {
         "id": "events-behavioral-plan-approved",
         "title": "plan:approved -- emit when user types yes/confirmed/approve on a Phase 5->6 merge gate (per skills/deft-directive-review-cycle and canonical #642 workflow comment ready-to-merge templates)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Decide between agent-side emission (simpler -- skill detects affirmative reply and emits) vs. bot-side detection (complex). Recommend agent-side."
-        }
+        },
+        "completed": "2026-09-29T16:04:18Z"
       },
       {
         "id": "events-behavioral-legacy-detected",
         "title": "legacy:detected -- emit when scripts/_vbrief_legacy.py captures a non-canonical section to xbrief/legacy/ (alongside the existing xbrief/migration/LEGACY-REPORT.md write)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Add emission call inside scripts/_vbrief_legacy.py.LegacyArtifactsCapture; existing report behavior preserved."
-        }
+        },
+        "completed": "2026-09-29T16:04:18Z"
       }
     ],
     "metadata": {
@@ -55,8 +58,15 @@
         "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
         "swarm_ready": true,
         "blocks": null,
-        "blocked_by": "PR #401 trim merge: CLEARED 2026-04-28. Soft preference (not strict): land the sibling detection-bound events vBRIEF first so the shared scripts/_events.py helper exists before this brief consumes it."
-      }
+        "blocked_by": null,
+        "hygiene": "completed-as-already-shipped"
+      },
+      "productPullRequest": 706,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-29T16:04:18Z"
+      },
+      "completedAt": "2026-09-29T16:04:18Z"
     },
     "references": [
       {
@@ -80,6 +90,7 @@
         "title": "Sibling vBRIEF: events detection-bound wiring (lands shared scripts/_events.py helper) -- related-plan, not parent/child, so no D4 back-link required"
       }
     ],
-    "updated": "2026-05-20T12:38:34Z"
+    "updated": "2026-09-29T16:04:18Z",
+    "x-directive/completedNote": "Product already shipped via PR #706 (2026-04-28): behavioral events unified into content/events/registry.json. Tip proposed copy was leftover lifecycle debt; completing clears finalize-owed unmarked compose against historical PR #401. Epic #635 stays open."
   }
 }

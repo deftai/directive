@@ -8,7 +8,7 @@
   "plan": {
     "id": "635-rule-ownership-map",
     "title": "Rule Ownership Map: data file + lint enforcement (replaces REFERENCES.md prose section)",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Problem": "PR #401 originally proposed a Rule Ownership Map as a descriptive prose section inside REFERENCES.md, mapping each framework rule (in main.md, AGENTS.md, SKILL.md prose) to its owning file and authority. Per canonical #642 workflow comment locked decisions, that prose section is being removed by Unit B during the trim because descriptive prose mapping decays under agent pressure -- agents move rules without updating the map, and there's no enforcement mechanism. The replacement: a structural data file consumed by a lint check that fails CI when a rule moves without a corresponding map update.",
       "Overview": "Land a rule-ownership-map data file (e.g. conventions/rule-ownership.yaml or rule-ownership.json) listing each framework rule with `id`, `text`, `owner_file`, `owner_section`, `authority` (RFC2119 marker), and `last_verified`. Land a lint check (e.g. scripts/rule_ownership_lint.py) that wires into `task check` via tasks/verify.yml or a new tasks/rule-ownership.yml -- it scans owner files for rule presence and fails when a rule listed in the map has been moved or deleted without a map update. Migration: capture the descriptive section being removed by Unit B and translate each entry into the data file before lint goes mandatory.",
@@ -23,26 +23,29 @@
       {
         "id": "rule-ownership-map-data-file",
         "title": "Author conventions/rule-ownership.yaml (or .json) capturing every rule from the descriptive section Unit B removes from REFERENCES.md",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Pull the descriptive Rule Ownership Map prose from PR #401's pre-trim head; translate each entry into a structural row with id/text/owner_file/owner_section/authority/last_verified."
-        }
+        },
+        "completed": "2026-09-29T16:04:18Z"
       },
       {
         "id": "rule-ownership-map-lint",
         "title": "Add scripts/rule_ownership_lint.py + tasks/verify.yml entry; fail CI on drift (rule moved/deleted without map update, or text mismatch)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Lint reads the data file, opens each owner_file, asserts owner_section contains a substring match for the rule text. Fail with actionable diagnostics."
-        }
+        },
+        "completed": "2026-09-29T16:04:18Z"
       },
       {
         "id": "rule-ownership-map-wire-into-task-check",
         "title": "Wire rule_ownership_lint into `task check` so the structural enforcement is mandatory before merge",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Add to Taskfile.yml `check` deps or to tasks/verify.yml as a new sibling; update CHANGELOG; document in main.md or conventions/."
-        }
+        },
+        "completed": "2026-09-29T16:04:18Z"
       }
     ],
     "metadata": {
@@ -55,8 +58,15 @@
         "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
         "swarm_ready": true,
         "blocks": null,
-        "blocked_by": "PR #401 trim merge: CLEARED 2026-04-28 (descriptive Rule Ownership Map prose removed from REFERENCES.md). Independent of the events siblings (different file surface)."
-      }
+        "blocked_by": null,
+        "hygiene": "completed-as-already-shipped"
+      },
+      "productPullRequest": 705,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-29T16:04:18Z"
+      },
+      "completedAt": "2026-09-29T16:04:18Z"
     },
     "references": [
       {
@@ -80,6 +90,7 @@
         "title": "Issue #634: determinism-tier ladder (this vBRIEF's lint deliverable sits at T5/T6 -- structural enforcement)"
       }
     ],
-    "updated": "2026-05-20T12:38:34Z"
+    "updated": "2026-09-29T16:04:18Z",
+    "x-directive/completedNote": "Product already shipped via PR #705 (2026-04-28): content/conventions/rule-ownership.json + verify:rule-ownership. This tip proposed copy was leftover lifecycle debt after the land; completing clears finalize-owed unmarked compose against historical PR #401. Epic #635 stays open for remaining members."
   }
 }

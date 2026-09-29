@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **chore(xbrief): clear stale #635 proposed split briefs** -- complete three April tip copies whose product already shipped (#705 rule-ownership, #707/#706 events) and cancel the abandoned phase-0 RFC; removes finalize-owed false positives that cited historical PR #401 against open epic #635. Refs #5142 #635 #642.
 
 ### Changed
 

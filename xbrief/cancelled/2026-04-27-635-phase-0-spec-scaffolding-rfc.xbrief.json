@@ -8,7 +8,7 @@
   "plan": {
     "id": "635-phase-0-spec-scaffolding-rfc",
     "title": "RFC: Phase 0 spec scaffolding -- generated per-phase task gates (needs-discussion)",
-    "status": "proposed",
+    "status": "cancelled",
     "narratives": {
       "Problem": "The original #233 More Determinism initiative proposed `task spec:phase0` and `task spec:pipeline` as generated per-phase task gates -- one of the largest design questions in the determinism arc, with cross-cutting impact on speckit / interview / build skills, the spec validator, and the migrator. Per canonical #642 workflow comment locked decisions, this is too multi-phased and design-question-heavy to compress into a leaf plan.item under #233; it gets its own RFC vBRIEF that runs discussion before swarm assignment. The #233 vBRIEF references this RFC as the gate item for `task ci:local` and `task release` (which depend on the Phase 0 design outcome).",
       "Overview": "Author and run a Phase 0 spec scaffolding RFC. The RFC asks: how should per-phase gates (Phase 1 -> 2 spec approval, Phase 3 -> 4 spec render, Phase 4 implementation phase boundaries) be generated as runnable tasks rather than enforced by skill prose? Open design questions (non-exhaustive): (1) one task per spec or one task per phase? (2) where does the generated task live -- tasks/spec.yml, a generated tasks/spec-<project>.yml, or inline in xbrief/specification.xbrief.json metadata? (3) how do the gates interact with skills/deft-directive-build/SKILL.md and skills/deft-directive-interview/SKILL.md? (4) backwards compat with existing speckit Phase 4 emission? The RFC reaches discussion exit when the design question is settled enough to scaffold leaf items; those leaves can then be harvested by the swarm.",
@@ -24,7 +24,7 @@
       {
         "id": "phase-0-rfc-discussion",
         "title": "Run discussion phase on the 4 open design questions (one-task-per-spec vs per-phase, task location, skill interaction, speckit backwards-compat)",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Action": "Use skills/deft-directive-discuss/SKILL.md or an equivalent Feynman-style alignment loop. Append decisions to plan.narratives.Discussion."
         }
@@ -32,7 +32,7 @@
       {
         "id": "phase-0-rfc-rewrite-as-leaves",
         "title": "Post-discussion: rewrite plan.items[] as concrete swarm-ready leaves with no remaining open design questions",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Action": "Each leaf must be a single PR's worth of work; no leaf may carry an open design question."
         }
@@ -40,7 +40,7 @@
       {
         "id": "phase-0-rfc-promote-to-pending",
         "title": "Promote this vBRIEF from proposed/ to pending/ via `task scope:promote` once leaves are concrete",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Action": "Lifecycle move signals readiness for swarm harvest."
         }
@@ -61,8 +61,15 @@
           "xbrief/pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.xbrief.json::task-ci-local (SOFT)",
           "xbrief/pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.xbrief.json::task-release (SOFT)"
         ],
-        "blocked_by": "PR #401 trim merge: CLEARED 2026-04-28 (determinism design surface freed). RFC stays in proposed/ per its own self-gate -- promotion to pending/ is gated on discussion phase concluding the 4 open design questions, NOT on any external dependency."
-      }
+        "blocked_by": "PR #401 trim merge: CLEARED 2026-04-28 (determinism design surface freed). RFC stays in proposed/ per its own self-gate -- promotion to pending/ is gated on discussion phase concluding the 4 open design questions, NOT on any external dependency.",
+        "hygiene": "cancelled-abandoned-rfc"
+      },
+      "lifecycleWrite": {
+        "action": "cancel",
+        "writtenAt": "2026-09-29T16:04:18Z"
+      },
+      "cancelledAt": "2026-09-29T16:04:18Z",
+      "cancelReason": "Abandoned/superseded: parent #233 More Determinism closed 2026-08-03 with phase-0-generated-per-phase-gates marked completed; RFC never left proposed/needs_discussion and no spec:phase0 surface landed. Cancelling clears tip inventory."
     },
     "references": [
       {
@@ -85,6 +92,8 @@
         "type": "x-xbrief/related-plan",
         "title": "#233 (remaining 6) -- the phase-0-generated-per-phase-gates item references this RFC as its design gate (related-plan, not parent/child, so no D4 back-link required)"
       }
-    ]
+    ],
+    "updated": "2026-09-29T16:04:18Z",
+    "x-directive/cancelledNote": "Abandoned/superseded: parent #233 More Determinism closed 2026-08-03 with phase-0-generated-per-phase-gates marked completed; RFC never left proposed/needs_discussion and no spec:phase0 surface landed. Cancelling clears tip inventory."
   }
 }
