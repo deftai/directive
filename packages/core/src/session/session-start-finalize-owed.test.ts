@@ -205,4 +205,35 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     expect(discoverCalls).toBe(0);
   });
 
+
+  it("Prefer-A by default on linked worktrees without --defer-owed (#5145 dest-default)", () => {
+    let fetchCalls = 0;
+    const result = evaluateFinalizeOwedSessionGate("/tmp/dest", {
+      isLinkedWorktree: () => true,
+      runGit: () => {
+        fetchCalls += 1;
+        return { code: 0, stdout: "TIP\n", stderr: "" };
+      },
+      env: { GH_REPO: "deftai/directive" },
+    });
+    expect(result.blocks).toBe(false);
+    expect(result.deferred).toBe(true);
+    expect(result.deferReason).toBe("linked-worktree");
+    expect(result.lines.join("\n")).toContain("deferred");
+    expect(fetchCalls).toBe(0);
+  });
+
+  it("main worktree without --defer-owed still probes (no dest-default)", () => {
+    const result = evaluateFinalizeOwedSessionGate("/tmp/main", {
+      isLinkedWorktree: () => false,
+      probeFinalizeOwed: () => ({
+        lines: ["finalize owed inventory:", "  #4919 owed [blocks]"],
+        blocks: true,
+        unknown: false,
+      }),
+    });
+    expect(result.blocks).toBe(true);
+    expect(result.deferred).toBe(false);
+  });
+
 });

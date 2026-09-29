@@ -101,6 +101,7 @@ import {
 } from "./effort-budget.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
+import { isLinkedWorktreePath } from "./main-worktree.js";
 import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
@@ -343,6 +344,11 @@ export interface SessionStartOptions {
    */
   readonly deferOwedReason?: string | null;
   /**
+   * #5145: test seam for linked-worktree dest-default defer. Production uses
+   * `isLinkedWorktreePath`; linked dest leaves Prefer-A without a CLI flag.
+   */
+  readonly isLinkedWorktree?: (projectRoot: string) => boolean;
+  /**
    * #4919: test/prod seam for owed inventory. Default runs private tip fetch + discover.
    * Read-only / requirements postures never call this.
    */
@@ -557,9 +563,30 @@ function resolveFinalizeOwedRepo(
   return parseGitHubRemoteRepo(remote.stdout.trim()) ?? "";
 }
 
+/** #5145: dest linked-worktree Prefer-A reason when CLI omits `--defer-owed`. */
+export const LINKED_WORKTREE_DEFER_OWED_REASON = "linked-worktree";
+
+function resolveEffectiveDeferOwedReason(
+  projectRoot: string,
+  options: Pick<SessionStartOptions, "deferOwedReason" | "isLinkedWorktree">,
+): string | null {
+  if (typeof options.deferOwedReason === "string" && options.deferOwedReason.trim().length > 0) {
+    return options.deferOwedReason.trim();
+  }
+  // Dest leaves: primary/head already owns tip inventory; do not re-pay N cold scans.
+  const linkedProbe = options.isLinkedWorktree ?? isLinkedWorktreePath;
+  if (linkedProbe(projectRoot)) {
+    return LINKED_WORKTREE_DEFER_OWED_REASON;
+  }
+  return null;
+}
+
 export function evaluateFinalizeOwedSessionGate(
   projectRoot: string,
-  options: Pick<SessionStartOptions, "probeFinalizeOwed" | "runGit" | "env" | "deferOwedReason">,
+  options: Pick<
+    SessionStartOptions,
+    "probeFinalizeOwed" | "runGit" | "env" | "deferOwedReason" | "isLinkedWorktree"
+  >,
 ): {
   lines: string[];
   blocks: boolean;
@@ -567,13 +594,12 @@ export function evaluateFinalizeOwedSessionGate(
   deferred: boolean;
   deferReason: string | null;
 } {
-  const deferReason =
-    typeof options.deferOwedReason === "string" && options.deferOwedReason.trim().length > 0
-      ? options.deferOwedReason.trim()
-      : null;
+  const deferReason = resolveEffectiveDeferOwedReason(projectRoot, options);
   const deferred = deferReason !== null;
   // #5145 Prefer-A: defer skips tip inventory entirely (match doctor/cache_fresh defer skip).
   // Soft-pass alone still paid discoverFinalizeOwed / fetchDeliveryTipPrivate before this cut.
+  // Linked dest worktrees Prefer-A by default (reason linked-worktree) so agents cannot omit
+  // `--defer-owed` and re-pay the primary tip inventory.
   if (deferred && deferReason !== null && options.probeFinalizeOwed === undefined) {
     return {
       lines: [`finalize owed deferred: ${deferReason}`],
