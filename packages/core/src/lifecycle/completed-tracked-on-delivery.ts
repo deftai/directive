@@ -273,10 +273,11 @@ function closeKindFromPayload(payload: IssueStatePayload | null): IssueCloseKind
  * Close-kind resolution for the #5126 cancel refuse.
  *
  * Cached shipped-closed is fail-closed evidence (safe to trust without live).
- * Cached abandoned-closed (`not_planned`/`duplicate`) is NOT — a reopen then
- * completed close must not skip the tip-twin refuse (#5126 Greptile P1). Prefer
- * live REST whenever network is allowed; when live fails, do not green cancel
- * on stale abandon cache (treat as unknown).
+ * Cached abandoned-closed (`not_planned`/`duplicate`) and cached open are NOT —
+ * a reopen then completed close (or open→completed with stale open cache) must
+ * not skip the tip-twin refuse (#5126 Greptile P1). Prefer live REST whenever
+ * network is allowed; when live fails, do not green cancel on stale open or
+ * abandon cache (treat as unknown).
  */
 export function resolveIssueCloseKind(
   ref: IssueRef,
@@ -293,17 +294,15 @@ export function resolveIssueCloseKind(
   if (skipGh) {
     return cachedKind;
   }
-  // Prefer live for open / abandon / unknown cache. Stale abandon must not
-  // authorize cancel after reopen+completed.
+  // Prefer live for open / abandon / unknown cache. Stale open or abandon must
+  // not authorize cancel after a later completed close.
   const live = fetchIssuePayloadLive(ref, runGh);
   if (live !== null) {
     return closeKindFromPayload(live);
   }
-  // Live failed: do not trust cached abandon as permission to cancel.
-  if (cachedKind === "abandoned-closed") {
-    return "unknown";
-  }
-  return cachedKind;
+  // Live failed: only shipped-closed was early-trusted above. Do not trust
+  // cached open or abandon as permission to cancel.
+  return "unknown";
 }
 
 function collectIssuesFromPlan(

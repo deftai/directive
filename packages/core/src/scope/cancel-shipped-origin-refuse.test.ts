@@ -225,6 +225,53 @@ describe("scope:cancel shipped-origin refuse (#5126)", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("refuses cancel on live lookup failure with stale cached open (#5126 Greptile P1)", () => {
+    const root = makeRepo();
+    const active = writeBrief(
+      root,
+      "active",
+      "stale-open-live-fail.xbrief.json",
+      originPlan(51269, "running"),
+    );
+    writeCachedIssue(root, "deftai/directive", 51269, "open", null);
+    const result = runTransition("cancel", active, new Date(), {
+      tip: "HEAD",
+      repo: "deftai/directive",
+      runGh: () => ({
+        returncode: 1,
+        stdout: "",
+        stderr: "API rate limit exceeded",
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("scope:cancel: refused");
+    expect(result.message).toContain("could not resolve closed state");
+    expect(readFileSync(active, "utf8")).toContain('"status":"running"');
+  });
+
+  it("refuses cancel on live lookup failure with stale cached abandon (#5126)", () => {
+    const root = makeRepo();
+    const active = writeBrief(
+      root,
+      "active",
+      "stale-abandon-live-fail.xbrief.json",
+      originPlan(51270, "running"),
+    );
+    writeCachedIssue(root, "deftai/directive", 51270, "closed", "not_planned");
+    const result = runTransition("cancel", active, new Date(), {
+      tip: "HEAD",
+      repo: "deftai/directive",
+      runGh: () => ({
+        returncode: 1,
+        stdout: "",
+        stderr: "API rate limit exceeded",
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("scope:cancel: refused");
+    expect(result.message).toContain("could not resolve closed state");
+  });
+
   it("verify:completed-tracked exits 1 until completed twin exists (#5126 fixture)", () => {
     const root = makeRepo();
     writeBrief(root, "active", "tracking.xbrief.json", originPlan(51266, "running"));
