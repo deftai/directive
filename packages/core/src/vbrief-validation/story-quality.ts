@@ -29,8 +29,8 @@ export const VERIFY_EVIDENCE_TERMS = [
   "fixture",
   "report",
   "spec",
+  // "test" covers plural evidence phrasing; omit slash form (class 2).
   "test",
-  "tests/",
   "verify",
 ] as const;
 

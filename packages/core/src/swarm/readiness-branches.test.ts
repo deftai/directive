@@ -478,6 +478,38 @@ describe("swarm readiness #3718", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("solo-headless refuses when a requested sibling path is unloadable", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-3718-missing-"));
+    const good = writeStory(project, "solo-ok", {
+      readiness: "ready",
+      parallel_safe: true,
+      file_scope: ["src/ok.ts"],
+      verify_commands: ["npm test"],
+      depends_on: [],
+      size: "small",
+      file_scope_confidence: "high",
+    });
+    const missing = join(project, "xbrief", "active", "solo-missing.xbrief.json");
+    const mixed = readinessReport(project, [good, missing], { soloHeadless: true });
+    expect(mixed.exitCode).toBe(2);
+    expect(mixed.report).toMatch(/solo-headless refuses/);
+    const junk = join(project, "xbrief", "active", "solo-junk.xbrief.json");
+    writeFileSync(junk, "{not-json", "utf8");
+    const badJson = readinessReport(project, [good, junk], { soloHeadless: true });
+    expect(badJson.exitCode).toBe(2);
+    expect(badJson.report).toMatch(/solo-headless refuses/);
+    expect(
+      readinessMain([
+        "--project-root",
+        project,
+        "--solo-headless",
+        "xbrief/active/solo-ok.xbrief.json",
+        "xbrief/active/solo-missing.xbrief.json",
+      ]),
+    ).toBe(2);
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("scaffold rejects invalid --size values", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-3718-size-"));
     const path = writeStory(project, "size-a", {});

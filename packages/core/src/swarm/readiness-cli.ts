@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   expandReadinessPaths,
@@ -199,7 +200,21 @@ export function readinessMain(argv: string[] = process.argv.slice(2)): number {
     return 0;
   }
 
-  const expanded = expandReadinessPaths(projectRoot, paths);
+  // solo-headless: require exactly one requested path and do not drop missing
+  // targets in expandPaths (existsSync filter) before the N=1 guard (#3718).
+  let expanded: string[];
+  if (soloHeadless) {
+    if (paths.length !== 1) {
+      process.stdout.write(
+        "solo-headless refuses when more than one story is targeted; use concurrent readiness for multi-story cohorts (#3718)\n",
+      );
+      return 2;
+    }
+    const only = paths[0] ?? "";
+    expanded = [isAbsolute(only) ? resolve(only) : resolve(projectRoot, only)];
+  } else {
+    expanded = expandReadinessPaths(projectRoot, paths);
+  }
   const { exitCode, report } = readinessReport(projectRoot, expanded, {
     soloHeadless,
   });

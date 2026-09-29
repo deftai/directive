@@ -1,6 +1,7 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
+import { containedWrite } from "../fs/contained-write.js";
 import {
   ARTIFACT_SUFFIXES,
   hasArtifactSuffix,
@@ -770,18 +771,29 @@ export function readinessReport(
   options: ReadinessReportOptions = {},
 ): { exitCode: number; report: string } {
   const fieldMode: SwarmFieldMode = options.soloHeadless === true ? "solo-headless" : "concurrent";
-  const candidates = paths
-    .map((p) => candidateFromPath(p, projectRoot))
-    .filter((c): c is Candidate => c !== null);
-  if (candidates.length === 0) {
-    return { exitCode: 1, report: "Swarm readiness report\n\nNo candidate vBRIEFs found." };
-  }
-  if (fieldMode === "solo-headless" && candidates.length !== 1) {
+  // Count requested targets before dropping unloadable paths so solo-headless
+  // cannot silently relax when a sibling path is missing/invalid (#3718).
+  if (fieldMode === "solo-headless" && paths.length !== 1) {
     return {
       exitCode: 2,
       report:
         "solo-headless refuses when more than one story is targeted; use concurrent readiness for multi-story cohorts (#3718)",
     };
+  }
+  const loaded = paths.map((p) => ({ path: p, candidate: candidateFromPath(p, projectRoot) }));
+  const candidates = loaded.map((row) => row.candidate).filter((c): c is Candidate => c !== null);
+  if (
+    fieldMode === "solo-headless" &&
+    (candidates.length !== 1 || loaded.some((row) => row.candidate === null))
+  ) {
+    return {
+      exitCode: 2,
+      report:
+        "solo-headless refuses when the targeted story path is missing or not valid story JSON (#3718)",
+    };
+  }
+  if (candidates.length === 0) {
+    return { exitCode: 1, report: "Swarm readiness report\n\nNo candidate vBRIEFs found." };
   }
   const knownIds = allScopeIds(projectRoot);
   for (const c of candidates) {
@@ -941,7 +953,12 @@ export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwar
   plan.metadata = metadata;
   data.plan = plan;
   try {
-    writeFileSync(absPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+    containedWrite({
+      root: resolve(input.projectRoot),
+      target: absPath,
+      data: `${JSON.stringify(data, null, 2)}\n`,
+      mode: "replace",
+    });
   } catch (err) {
     return {
       ok: false,
