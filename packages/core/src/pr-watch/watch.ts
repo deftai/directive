@@ -4,6 +4,7 @@ import {
   DEFAULT_MAX_WAIT_MINUTES,
   DEFAULT_POLL_SECONDS,
   DEFAULT_STALL_THRESHOLD,
+  DEFAULT_STICKY_SHA_STALL_SECONDS,
   EXIT_CLEAN,
   EXIT_NEW_P0_P1,
   EXIT_TERMINAL_ERROR,
@@ -13,6 +14,7 @@ import {
   VERDICT_CLEAN,
   VERDICT_CONFIG,
   VERDICT_ERRORED,
+  VERDICT_GREPTILE_SHA_STALL,
   VERDICT_NEW_P0_P1,
   VERDICT_NO_REVIEWER_INSTALLED,
   VERDICT_PENDING,
@@ -20,6 +22,7 @@ import {
   VERDICT_STALL,
   VERDICT_TIMEOUT,
 } from "./constants.js";
+import { evaluateGreptileShaStallRemedy, isStickyShaTipRot } from "./greptile-sha-stall.js";
 import { probeOnce } from "./probe.js";
 import type { MonotonicClock, WatchOptions, WatchProbe, WatchResult } from "./types.js";
 
@@ -79,6 +82,8 @@ export function watch(
   const pollSeconds = Math.max(1, options.pollSeconds ?? DEFAULT_POLL_SECONDS);
   const oneShot = options.oneShot ?? false;
   const stallThreshold = options.stallThreshold ?? DEFAULT_STALL_THRESHOLD;
+  const stickyShaStallSeconds =
+    options.stickyShaStallSeconds ?? DEFAULT_STICKY_SHA_STALL_SECONDS;
   const runGh = options.runGh ?? defaultRunGh;
   const clockFn = options.clockFn ?? systemMonotonicClock;
   const sleepFn = options.sleepFn ?? defaultSleep;
@@ -94,6 +99,7 @@ export function watch(
   let lastProbe: WatchProbe | null = null;
   let stallStreak = 0;
   let ciBlockedStreak = 0;
+  let stickyShaStartedAt: number | null = null;
 
   const build = (
     verdict: string,
@@ -170,10 +176,33 @@ export function watch(
       return build(VERDICT_CI_BLOCKED, EXIT_TERMINAL_ERROR, probe, poll);
     }
 
+    // #5162 Prefer-A Recut: sticky tip-rot sha_match + no in-flight Greptile
+    // Review on HEAD arms a sticky-sha clock (elapsed since first sticky
+    // observation; borrow ~10 min). Do not use Stall Rubric IN_PROGRESS
+    // startedAt. Bare one-shot stays PENDING (#2313 keep-wait).
+    if (isStickyShaTipRot(probe)) {
+      if (stickyShaStartedAt === null) {
+        stickyShaStartedAt = clockFn.now();
+      }
+      const stickyElapsed = Math.round(clockFn.now() - stickyShaStartedAt);
+      const remedy = evaluateGreptileShaStallRemedy({
+        probe,
+        stickyElapsedSeconds: stickyElapsed,
+        stickyShaStallSeconds,
+        oneShot,
+      });
+      if (remedy !== null) {
+        return build(VERDICT_GREPTILE_SHA_STALL, EXIT_TERMINAL_ERROR, probe, poll);
+      }
+    } else {
+      stickyShaStartedAt = null;
+    }
+
     // STALL (#1039): wedged CLEAN-gate on HEAD — !has_blocking && !is_clean for N
     // consecutive polls with a holdout OTHER than sha_match. Stale-SHA reads
     // (clean_gate_holdout=sha_match) are INCOMPLETE for HEAD per #1259 / #2313 —
-    // keep polling until cap, not early STALL while re-review is in flight.
+    // keep polling until cap / greptile-sha-stall, not early STALL while
+    // re-review is in flight.
     if (!probe.hasBlocking && !probe.isClean && probe.cleanGateHoldout !== "sha_match") {
       stallStreak += 1;
     } else {

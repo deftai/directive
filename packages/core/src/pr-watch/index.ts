@@ -16,6 +16,11 @@ export {
   watchResultToJson,
 } from "./main.js";
 // parsePrWatchJsonStdoutLineSplit stays test-local in ./main.js (#5015) — not a public API.
+export {
+  evaluateGreptileShaStallRemedy,
+  isGreptileReviewInFlight,
+  isStickyShaTipRot,
+} from "./greptile-sha-stall.js";
 export { probeOnce } from "./probe.js";
 export * from "./types.js";
 export { formatWatchStatus, watch } from "./watch.js";

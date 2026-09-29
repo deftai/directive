@@ -9,6 +9,7 @@ import {
   VERDICT_CLEAN,
   VERDICT_CONFIG,
   VERDICT_ERRORED,
+  VERDICT_GREPTILE_SHA_STALL,
   VERDICT_NEW_P0_P1,
   VERDICT_NO_REVIEWER_INSTALLED,
   VERDICT_PENDING,
@@ -339,6 +340,60 @@ describe("watch blocking loop (injected clock + sleep)", () => {
     expect(r.verdict).toBe(VERDICT_TIMEOUT);
     expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
     expect(r.pollCount).toBeGreaterThan(3);
+  });
+
+  it("GREPTILE_SHA_STALL after sticky tip-rot clock with no in-flight Greptile (#5162)", () => {
+    const clock = new FakeClock();
+    const sleep = vi.fn(makeSleep(clock));
+    const tipRot = makeProbe({
+      lastReviewedSha: STALE,
+      shaMatch: false,
+      hasBlocking: false,
+      isClean: false,
+      cleanGateHoldout: "sha_match",
+      confidence: 4,
+      greptileReviewInFlight: false,
+    });
+    const { fn } = makeProbeSeq(tipRot);
+
+    const r = watch(5162, "deftai/directive", {
+      pollSeconds: 1,
+      maxWaitMinutes: 30,
+      stickyShaStallSeconds: 2,
+      probeFn: fn,
+      clockFn: clock,
+      sleepFn: sleep,
+    });
+
+    expect(r.verdict).toBe(VERDICT_GREPTILE_SHA_STALL);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+  });
+
+  it("keeps waiting on sha_match while Greptile Review is in flight (#5162 / #2313)", () => {
+    const clock = new FakeClock();
+    const sleep = vi.fn(makeSleep(clock));
+    const inFlight = makeProbe({
+      lastReviewedSha: STALE,
+      shaMatch: false,
+      hasBlocking: false,
+      isClean: false,
+      cleanGateHoldout: "sha_match",
+      confidence: 4,
+      greptileReviewInFlight: true,
+    });
+    const { fn } = makeProbeSeq(inFlight);
+
+    const r = watch(5162, "deftai/directive", {
+      pollSeconds: 1,
+      maxWaitMinutes: 0.1,
+      stickyShaStallSeconds: 1,
+      probeFn: fn,
+      clockFn: clock,
+      sleepFn: sleep,
+    });
+
+    expect(r.verdict).toBe(VERDICT_TIMEOUT);
+    expect(r.verdict).not.toBe(VERDICT_GREPTILE_SHA_STALL);
   });
 
   it("STALL after stallThreshold wedged HEAD holdouts (#1039)", () => {

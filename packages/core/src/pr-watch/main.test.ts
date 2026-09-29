@@ -210,6 +210,27 @@ describe("watchResultToJson (AC-4 shape)", () => {
     expect(human).toContain("Probe status pages before workflow edits (#3180)");
   });
 
+  it("includes greptile-sha-stall remedy on GREPTILE_SHA_STALL (#5162)", () => {
+    const stalled: WatchResult = {
+      ...result,
+      verdict: "GREPTILE_SHA_STALL",
+      exitCode: EXIT_TERMINAL_ERROR,
+      probe: makeProbe({
+        isClean: false,
+        shaMatch: false,
+        lastReviewedSha: "0000000000000000000000000000000000000000",
+        cleanGateHoldout: "sha_match",
+        greptileReviewInFlight: false,
+      }),
+    };
+    const json = watchResultToJson(stalled) as Record<string, unknown>;
+    expect(json.verdict).toBe("GREPTILE_SHA_STALL");
+    expect(json.remedy).toBe("BLOCKED: greptile-sha-stall");
+    expect(json.clean_gate_holdout).toBe("sha_match");
+    const human = printWatchHuman(stalled);
+    expect(human).toContain("BLOCKED: greptile-sha-stall");
+  });
+
   it("emits ASCII-escaped JSON with a trailing newline", () => {
     const out = emitWatchJson(result);
     expect(out.endsWith("\n")).toBe(true);

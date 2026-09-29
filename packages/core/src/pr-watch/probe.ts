@@ -30,6 +30,7 @@ import {
   reviewerConfigPresent,
 } from "../pr-merge-readiness/reviewer-presence.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import { isGreptileReviewInFlight } from "./greptile-sha-stall.js";
 import type { WatchProbe } from "./types.js";
 
 function errorProbe(headSha: string | null, message: string): WatchProbe {
@@ -120,6 +121,7 @@ export function probeOnce(
   let ciCapacityStalledChecks: readonly string[] = [];
   let terminalCheckRun = true;
   let greptileReviewTerminal = false;
+  let greptileReviewInFlight = false;
   let commentsAdded: number | null = null;
   let checkRunsUnknown = true;
   let botCheckPresent = false;
@@ -139,6 +141,7 @@ export function probeOnce(
         greptileRun?.status,
         greptileRun?.conclusion,
       );
+      greptileReviewInFlight = isGreptileReviewInFlight(greptileRun?.status);
       commentsAdded = parseCommentsAdded(greptileRun?.summary);
     }
   }
@@ -222,6 +225,7 @@ export function probeOnce(
     ciCapacityStalledChecks,
     terminalCheckRun,
     greptileReviewTerminal,
+    greptileReviewInFlight,
     isClean,
     cleanGateHoldout,
     reviewerReadyState: expectation.state,

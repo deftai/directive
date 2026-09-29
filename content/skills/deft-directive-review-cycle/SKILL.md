@@ -429,7 +429,7 @@ Review-cycle babysit wait is `pr:watch` (blocking to CLEAN, or `--one-shot` grou
 
 | Holdout | Action |
 |---------|--------|
-| `sha_match` | Blocking `pr:watch` until SHA match or cap. A leftover on a stale Last-reviewed SHA is not the current leftover. |
+| `sha_match` | Keep-wait in native `pr:watch` while Greptile Review is in flight on HEAD (#2313). Sticky tip-rot (non-HEAD Last-reviewed + no in-flight Greptile on HEAD) past the sticky-sha clock (~10 min elapsed since first sticky observation) → `GREPTILE_SHA_STALL` / `BLOCKED: greptile-sha-stall` — see § Sticky tip-rot sha_match (#5162). A leftover on a stale Last-reviewed SHA is not the current leftover. |
 | SHA-matched `confidence` + **class A** leftover (already-touched files, owned review-cycle) | Dest residual, **one-batch**. MUST NOT idle-poll or start wait-merge. Class B parks. After Dual-stop halt, wait for a #3273 phrase before another residual. |
 | SHA-matched `confidence` + 0 P0/P1 + no named leftover | Class C halt. Not cap-wait and not dest residual. |
 | Greptile CLEAN + SLizard/CI red | #4820. Do not merge that hang into this recut. |
@@ -545,6 +545,22 @@ When GitHub Actions is in a **documented major outage** (or multi-hour `ci_never
 ⊗ Replace branch protection with Greptile-only merge on normal days.
 
 Workflow failover arming (Blacksmith cancelled → GH-hosted lane) is sibling issue **#3168** — this skill owns agent thrash caps and reason codes only.
+
+### Sticky tip-rot sha_match → @greptileai review (#5162 Prefer-A Recut)
+
+! Escalate only on the narrowed sticky tip-rot signature: `clean_gate_holdout=sha_match` AND sticky Greptile summary still names a non-HEAD commit AND there is no in-flight Greptile Review check-run on current HEAD (no queued/in_progress/pending). Do **not** escalate on bare one-shot / one-poll `sha_match` during intentional keep-wait (#2313).
+
+! **Sticky-sha clock:** Prefer-A arms on elapsed time since the first sticky tip-rot observation on the current HEAD while the no-in-flight conjunct holds (default `DEFAULT_STICKY_SHA_STALL_SECONDS` ≈ 10 minutes, borrowed as a duration constant only). Do **not** wire fail-loud to Stall Detection Rubric (#564) IN_PROGRESS `startedAt` on `commit.oid` — that clock does not arm when Greptile is not in flight on HEAD.
+
+! When the narrowed trigger + sticky-sha clock fire, `pr:watch` exits `GREPTILE_SHA_STALL` (exit 2) with remedy `BLOCKED: greptile-sha-stall` (also in `--json` as `remedy`). Fail loud once — do not invent a third freestyle CLEAN/sleep poller; do not treat `sha_match` as dest residual (#4822).
+
+! **Ask-first post (keep #564):** Do **not** silent-auto-post `@greptileai review`. Surface Stall Detection Rubric (#564) escalation menu option 2 / ask the operator once; after approval (or recorded operator standing for that PR), post `@greptileai review`, then **re-enter native `pr:watch`**. Deliberate #564 recut that authorizes unsolicited agent auto-post is out of Prefer-A first-ship.
+
+⊗ Escalate bare one-poll / `--one-shot` `sha_match` as `greptile-sha-stall`.
+⊗ Wire greptile-sha-stall to Stall Rubric IN_PROGRESS `startedAt`.
+⊗ Silent-auto-post `@greptileai review` without ask / menu option 2 / recorded standing.
+⊗ Invent a freestyle CLEAN/sleep monitor after `BLOCKED: greptile-sha-stall`.
+⊗ Treat sticky `sha_match` as dest residual.
 
 ### Stall Detection Rubric (#564)
 

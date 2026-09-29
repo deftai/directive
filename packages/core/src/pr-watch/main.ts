@@ -11,6 +11,8 @@ import {
   DEFAULT_POLL_SECONDS,
   EXIT_CLEAN,
   EXIT_TERMINAL_ERROR,
+  GREPTILE_SHA_STALL_REMEDY,
+  VERDICT_GREPTILE_SHA_STALL,
   WATCH_HELP,
 } from "./constants.js";
 import type { SleepFn, WatchOptions, WatchResult } from "./types.js";
@@ -214,6 +216,10 @@ export function watchResultToJson(result: WatchResult): Record<string, unknown> 
   if (statusUrls !== null) {
     payload.platform_status_github = statusUrls.platform_status_github;
     payload.platform_status_blacksmith = statusUrls.platform_status_blacksmith;
+  }
+  // #5162: fail-loud remedy for sticky tip-rot sha_match.
+  if (result.verdict === VERDICT_GREPTILE_SHA_STALL) {
+    payload.remedy = GREPTILE_SHA_STALL_REMEDY;
   }
   return payload;
 }
@@ -651,6 +657,9 @@ export function printWatchHuman(result: WatchResult): string {
   }
   if (p.reviewCycleHandback !== null) {
     lines.push(`  Review-cycle:       ${p.reviewCycleHandback}`);
+  }
+  if (result.verdict === VERDICT_GREPTILE_SHA_STALL) {
+    lines.push(`  Remedy:             ${GREPTILE_SHA_STALL_REMEDY}`);
   }
   if (p.error !== null) {
     lines.push(`  Error:              ${p.error}`);

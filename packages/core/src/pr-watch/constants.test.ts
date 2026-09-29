@@ -3,11 +3,14 @@ import {
   DEFAULT_MAX_WAIT_MINUTES,
   DEFAULT_POLL_SECONDS,
   DEFAULT_STALL_THRESHOLD,
+  DEFAULT_STICKY_SHA_STALL_SECONDS,
   EXIT_CLEAN,
   EXIT_NEW_P0_P1,
   EXIT_TERMINAL_ERROR,
   VERDICT_CI_BLOCKED,
   VERDICT_CLEAN,
+  GREPTILE_SHA_STALL_REMEDY,
+  VERDICT_GREPTILE_SHA_STALL,
   VERDICT_CONFIG,
   VERDICT_ERRORED,
   VERDICT_NEW_P0_P1,
@@ -36,6 +39,7 @@ describe("pr-watch constants", () => {
       VERDICT_CONFIG,
       VERDICT_PENDING,
       VERDICT_NO_REVIEWER_INSTALLED,
+      VERDICT_GREPTILE_SHA_STALL,
     ]) {
       expect(typeof verdict).toBe("string");
       expect(verdict.length).toBeGreaterThan(0);
@@ -48,6 +52,8 @@ describe("pr-watch constants", () => {
     expect(DEFAULT_MAX_WAIT_MINUTES).toBe(30);
     expect(DEFAULT_POLL_SECONDS).toBe(90);
     expect(DEFAULT_STALL_THRESHOLD).toBe(3);
+    expect(DEFAULT_STICKY_SHA_STALL_SECONDS).toBe(600);
+    expect(GREPTILE_SHA_STALL_REMEDY).toBe("BLOCKED: greptile-sha-stall");
   });
 
   it("documents NO_REVIEWER_INSTALLED on the exit-2 help line (#3630)", () => {
@@ -59,5 +65,12 @@ describe("pr-watch constants", () => {
     expect(WATCH_HELP).toContain("pretty-printed multi-line JSON");
     expect(WATCH_HELP).toContain("parsePrWatchJsonStdout");
     expect(WATCH_HELP).toContain("#4882");
+  });
+
+  it("documents sticky tip-rot sha_match → greptile-sha-stall (#5162)", () => {
+    expect(WATCH_HELP).toContain("GREPTILE_SHA_STALL");
+    expect(WATCH_HELP).toContain("BLOCKED: greptile-sha-stall");
+    expect(WATCH_HELP).toContain("@greptileai review");
+    expect(VERDICT_GREPTILE_SHA_STALL).toBe("GREPTILE_SHA_STALL");
   });
 });

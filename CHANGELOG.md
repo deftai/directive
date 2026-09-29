@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **process(review-cycle): sticky tip-rot sha_match escalates to greptile-sha-stall (#5162).** After sticky `sha_match` + non-HEAD Last-reviewed + no in-flight Greptile Review on HEAD past the sticky-sha clock (~10 min), `pr:watch` fails loud with `BLOCKED: greptile-sha-stall`; ask once (#564) before `@greptileai review`, then re-enter native `pr:watch`. Tracking #5162.
 - **fix(swarm): refuse finalize-owed FP on proposed historical cites (#5143).** Tip `proposed`/`draft` unmarked briefs that only cite a merged github-pr/prRefs without `metadata.productPullRequest` are not admitted as owed/blocks; owed protected skip shares finalize-cohort `PROTECTED_STAYING_OPEN_LABELS` / `isProtectedStayingOpenUmbrella` (epic/meta/tracker/status:tracker/umbrella). True unmarked active/pending Tracking leftovers with open non-protected origin still block. Refs #4919 #635 #401.
 
 - **fix(vbrief): verify:vbrief-conformance counts on-disk PROJECT-DEFINITION (#4876).** `evaluateConformance` forces canonical `xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy vbrief twin) into the candidate set when present, including untracked Setup Phase 2 trees, so exit 0 with a clean-zero count is no longer a false certificate that PROJECT-DEFINITION was scanned for #1620 bare keys. Keeps the `DEFT_PROJECT_PATH` / `projectDefinitionPath` injection seam for noncanonical paths; does not invent a second Setup-only scanner. Tracking #4876.

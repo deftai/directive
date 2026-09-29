@@ -28,6 +28,8 @@ export interface WatchProbe {
   readonly terminalCheckRun: boolean;
   /** Greptile Review check-run on current HEAD is completed+{success,neutral} (#4289). */
   readonly greptileReviewTerminal?: boolean;
+  /** Greptile Review on HEAD is queued/in_progress/pending (#5162 tip-rot conjunct). */
+  readonly greptileReviewInFlight?: boolean;
   readonly isClean: boolean;
   /** First unmet clean-gate condition (evaluateCleanGate holdout), or null when clean. */
   readonly cleanGateHoldout: string | null;
@@ -60,6 +62,8 @@ export interface WatchOptions {
   readonly pollSeconds?: number;
   readonly oneShot?: boolean;
   readonly stallThreshold?: number;
+  /** Prefer-A sticky-sha clock override (seconds); default DEFAULT_STICKY_SHA_STALL_SECONDS. */
+  readonly stickyShaStallSeconds?: number;
   readonly runGh?: RunGhFn;
   readonly sleepFn?: SleepFn;
   readonly clockFn?: MonotonicClock;
