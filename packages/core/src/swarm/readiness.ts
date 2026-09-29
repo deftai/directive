@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import {
   ARTIFACT_SUFFIXES,
@@ -59,6 +59,9 @@ export interface ScaffoldSwarmDraftInput {
 export type ScaffoldSwarmDraftResult =
   | { ok: true; path: string; writtenKeys: string[] }
   | { ok: false; error: string };
+
+/** Documented swarm size enum for scaffold (#3718 Greptile P1). */
+export const SWARM_DRAFT_SIZES = ["small", "medium", "large"] as const;
 
 export interface Candidate {
   path: string;
@@ -773,6 +776,13 @@ export function readinessReport(
   if (candidates.length === 0) {
     return { exitCode: 1, report: "Swarm readiness report\n\nNo candidate vBRIEFs found." };
   }
+  if (fieldMode === "solo-headless" && candidates.length !== 1) {
+    return {
+      exitCode: 2,
+      report:
+        "solo-headless refuses when more than one story is targeted; use concurrent readiness for multi-story cohorts (#3718)",
+    };
+  }
   const knownIds = allScopeIds(projectRoot);
   for (const c of candidates) {
     knownIds.set(c.story_id, [c.path, c.status]);
@@ -798,6 +808,22 @@ export function readinessReport(
   const withSerialize =
     failed && !report.includes("serialize N PRs") ? `${report}\n\n${SERIALIZE_N_PRS}` : report;
   return { exitCode: failed ? 1 : 0, report: withSerialize };
+}
+
+function resolveScaffoldTarget(
+  projectRoot: string,
+  vbriefPath: string,
+): { ok: true; absPath: string } | { ok: false; error: string } {
+  const root = resolve(projectRoot);
+  const absPath = isAbsolute(vbriefPath) ? resolve(vbriefPath) : resolve(root, vbriefPath);
+  const rel = relative(root, absPath);
+  if (rel.startsWith("..") || rel === ".." || isAbsolute(rel)) {
+    return {
+      ok: false,
+      error: "scaffold refuses absolute or ../ paths outside the project boundary (#3718)",
+    };
+  }
+  return { ok: true, absPath };
 }
 
 /**
@@ -830,16 +856,45 @@ export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwar
       error: "scaffold requires explicit --size, --file-scope-confidence, and --readiness",
     };
   }
-  const absPath = resolve(input.projectRoot, input.vbriefPath);
+  if (!(SWARM_DRAFT_SIZES as readonly string[]).includes(size)) {
+    return {
+      ok: false,
+      error: `scaffold --size must be one of ${SWARM_DRAFT_SIZES.join("|")}; got ${JSON.stringify(size)}`,
+    };
+  }
+  const target = resolveScaffoldTarget(input.projectRoot, input.vbriefPath);
+  if (!target.ok) {
+    return target;
+  }
+  const { absPath } = target;
   const data = loadJson(absPath);
   if (data === null) {
     return { ok: false, error: `scaffold could not read xBRIEF JSON at ${input.vbriefPath}` };
+  }
+  if (
+    !("plan" in data) ||
+    typeof data.plan !== "object" ||
+    data.plan === null ||
+    Array.isArray(data.plan)
+  ) {
+    return {
+      ok: false,
+      error:
+        "scaffold refuses non-story JSON (missing plan object); do not rewrite unrelated files (#3718)",
+    };
   }
   const plan = planOf(data);
   const metadata =
     typeof plan.metadata === "object" && plan.metadata !== null && !Array.isArray(plan.metadata)
       ? ({ ...(plan.metadata as Record<string, unknown>) } as Record<string, unknown>)
       : {};
+  if (metadata.kind !== "story") {
+    return {
+      ok: false,
+      error:
+        "scaffold refuses non-story JSON (plan.metadata.kind must be story); do not rewrite unrelated files (#3718)",
+    };
+  }
   const existingSwarm =
     typeof metadata.swarm === "object" && metadata.swarm !== null && !Array.isArray(metadata.swarm)
       ? ({ ...(metadata.swarm as Record<string, unknown>) } as Record<string, unknown>)
@@ -851,7 +906,6 @@ export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwar
     parallel_safe: input.parallelSafe,
     file_scope: fileScope,
     verify_commands: verifyCommands,
-    depends_on: input.dependsOn !== undefined ? [...input.dependsOn] : [],
     size,
     file_scope_confidence: confidence,
   };
@@ -860,10 +914,17 @@ export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwar
     "parallel_safe",
     "file_scope",
     "verify_commands",
-    "depends_on",
     "size",
     "file_scope_confidence",
   ];
+  // Preserve prior depends_on when --depends-on is omitted (#3718 Greptile P1).
+  if (input.dependsOn !== undefined) {
+    swarm.depends_on = [...input.dependsOn];
+    writtenKeys.push("depends_on");
+  } else if (!("depends_on" in existingSwarm)) {
+    swarm.depends_on = [];
+    writtenKeys.push("depends_on");
+  }
   if (input.expectedOutputs !== undefined) {
     swarm.expected_outputs = [...input.expectedOutputs];
     writtenKeys.push("expected_outputs");

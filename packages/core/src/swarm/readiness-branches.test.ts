@@ -319,6 +319,204 @@ describe("swarm readiness #3718", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("re-scaffold without depends-on preserves prior dependencies", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-3718-dep-"));
+    const path = writeStory(project, "dep-a", {
+      readiness: "ready",
+      parallel_safe: true,
+      file_scope: ["src/old.ts"],
+      verify_commands: ["npm test"],
+      depends_on: ["prior-blocker"],
+      size: "small",
+      file_scope_confidence: "high",
+    });
+    const ok = scaffoldSwarmDraft({
+      projectRoot: project,
+      vbriefPath: path,
+      fileScope: ["src/new.ts"],
+      verifyCommands: ["pnpm exec vitest run packages/core/src/swarm/readiness-branches.test.ts"],
+      size: "small",
+      fileScopeConfidence: "high",
+      readiness: "ready",
+      parallelSafe: true,
+    });
+    expect(ok.ok).toBe(true);
+    const raw = JSON.parse(readFileSync(path, "utf8")) as {
+      plan: { metadata: { swarm: Record<string, unknown> } };
+    };
+    expect(raw.plan.metadata.swarm.depends_on).toEqual(["prior-blocker"]);
+    expect(raw.plan.metadata.swarm.file_scope).toEqual(["src/new.ts"]);
+    if (ok.ok) {
+      expect(ok.writtenKeys).not.toContain("depends_on");
+    }
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("scaffold refuses out-of-project absolute and ../ paths", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-3718-bound-"));
+    const path = writeStory(project, "bound-a", {});
+    const outside = join(tmpdir(), `sw-3718-outside-${Date.now()}.json`);
+    writeFileSync(outside, JSON.stringify({ plan: { metadata: { kind: "story" } } }), "utf8");
+    const absRefuse = scaffoldSwarmDraft({
+      projectRoot: project,
+      vbriefPath: outside,
+      fileScope: ["src/a.ts"],
+      verifyCommands: ["npm test"],
+      size: "small",
+      fileScopeConfidence: "high",
+      readiness: "ready",
+      parallelSafe: true,
+    });
+    expect(absRefuse.ok).toBe(false);
+    if (!absRefuse.ok) {
+      expect(absRefuse.error).toMatch(/outside the project boundary/);
+    }
+    const escapeRefuse = scaffoldSwarmDraft({
+      projectRoot: project,
+      vbriefPath: "../escape.xbrief.json",
+      fileScope: ["src/a.ts"],
+      verifyCommands: ["npm test"],
+      size: "small",
+      fileScopeConfidence: "high",
+      readiness: "ready",
+      parallelSafe: true,
+    });
+    expect(escapeRefuse.ok).toBe(false);
+    if (!escapeRefuse.ok) {
+      expect(escapeRefuse.error).toMatch(/outside the project boundary/);
+    }
+    const inProject = scaffoldSwarmDraft({
+      projectRoot: project,
+      vbriefPath: path,
+      fileScope: ["src/a.ts"],
+      verifyCommands: ["npm test"],
+      size: "small",
+      fileScopeConfidence: "high",
+      readiness: "ready",
+      parallelSafe: true,
+    });
+    expect(inProject.ok).toBe(true);
+    rmSync(outside, { force: true });
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("scaffold refuses non-story JSON", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-3718-nonstory-"));
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    const junk = join(project, "xbrief", "active", "junk.xbrief.json");
+    writeFileSync(junk, JSON.stringify({ not: "a-plan" }), "utf8");
+    const noPlan = scaffoldSwarmDraft({
+      projectRoot: project,
+      vbriefPath: junk,
+      fileScope: ["src/a.ts"],
+      verifyCommands: ["npm test"],
+      size: "small",
+      fileScopeConfidence: "high",
+      readiness: "ready",
+      parallelSafe: true,
+    });
+    expect(noPlan.ok).toBe(false);
+    if (!noPlan.ok) {
+      expect(noPlan.error).toMatch(/non-story JSON/);
+    }
+    const epic = join(project, "xbrief", "active", "epic.xbrief.json");
+    writeFileSync(
+      epic,
+      JSON.stringify({ plan: { id: "epic-a", metadata: { kind: "epic" } } }),
+      "utf8",
+    );
+    const epicRefuse = scaffoldSwarmDraft({
+      projectRoot: project,
+      vbriefPath: epic,
+      fileScope: ["src/a.ts"],
+      verifyCommands: ["npm test"],
+      size: "small",
+      fileScopeConfidence: "high",
+      readiness: "ready",
+      parallelSafe: true,
+    });
+    expect(epicRefuse.ok).toBe(false);
+    if (!epicRefuse.ok) {
+      expect(epicRefuse.error).toMatch(/kind must be story/);
+    }
+    expect(JSON.parse(readFileSync(junk, "utf8"))).toEqual({ not: "a-plan" });
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("solo-headless refuses more than one targeted story", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-3718-multi-"));
+    const a = writeStory(project, "solo-a", {
+      readiness: "ready",
+      parallel_safe: true,
+      file_scope: ["src/a.ts"],
+      verify_commands: ["npm test"],
+      depends_on: [],
+      size: "small",
+      file_scope_confidence: "high",
+    });
+    const b = writeStory(project, "solo-b", {
+      readiness: "ready",
+      parallel_safe: true,
+      file_scope: ["src/b.ts"],
+      verify_commands: ["npm test"],
+      depends_on: [],
+      size: "small",
+      file_scope_confidence: "high",
+    });
+    const multi = readinessReport(project, [a, b], { soloHeadless: true });
+    expect(multi.exitCode).toBe(2);
+    expect(multi.report).toMatch(/solo-headless refuses/);
+    expect(
+      readinessMain([
+        "--project-root",
+        project,
+        "--solo-headless",
+        "xbrief/active/solo-a.xbrief.json",
+        "xbrief/active/solo-b.xbrief.json",
+      ]),
+    ).toBe(2);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("scaffold rejects invalid --size values", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-3718-size-"));
+    const path = writeStory(project, "size-a", {});
+    const huge = scaffoldSwarmDraft({
+      projectRoot: project,
+      vbriefPath: path,
+      fileScope: ["src/a.ts"],
+      verifyCommands: ["npm test"],
+      size: "huge",
+      fileScopeConfidence: "high",
+      readiness: "ready",
+      parallelSafe: true,
+    });
+    expect(huge.ok).toBe(false);
+    if (!huge.ok) {
+      expect(huge.error).toMatch(/small|medium|large/);
+      expect(huge.error).toMatch(/huge/);
+    }
+    expect(
+      readinessMain([
+        "--project-root",
+        project,
+        "--scaffold",
+        path,
+        "--file-scope",
+        "src/a.ts",
+        "--verify-command",
+        "npm test",
+        "--size",
+        "huge",
+        "--file-scope-confidence",
+        "high",
+        "--parallel-safe",
+        "true",
+      ]),
+    ).toBe(1);
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("missingRequiredSwarmFields mode locks ceremony vs load-bearing split", () => {
     expect(missingRequiredSwarmFields({}, "solo-headless")).toEqual(
       expect.arrayContaining([
