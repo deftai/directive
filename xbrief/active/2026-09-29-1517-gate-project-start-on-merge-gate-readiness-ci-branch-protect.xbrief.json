@@ -1,0 +1,527 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1517",
+    "updated": "2026-09-29T00:49:46Z"
+  },
+  "plan": {
+    "title": "Gate project start on merge-gate readiness (CI + branch protection) or an explicit opt-out, before strategies run",
+    "status": "running",
+    "narratives": {
+      "Description": "Gate project start on merge-gate readiness (CI + branch protection) or an explicit opt-out, before strategies run",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1517",
+      "Overview": "\n\n1. Name the axis forge required-status-check / merge-gate enforcement readiness, distinct from local deft branch-protection / allowDirectCommitsToMaster. Update Phase 2 disclosure so \"branch-protection ON\" is stated as agent-commit policy only.\n2. Detect with existing fetchRequiredStatusContexts (#3234): rulesets + classic, resolutionFailed fail-closed, outcomes protected (non-empty contexts) / absent / unknown. Forbid a second classic-404-only inventory.\n3. Decision gate is fail-closed at build/swarm strategy start when SCM is ready and a GitHub remote is resolved (setup may be an early optional surface). Persist a durable repo/branch-scoped record: configured | explicit-opt-out | cannot-configure (not an opt-out) | deferred-not-applicable for no-SCM / local-only.\n4. Configure is optional and separate from the decision. Never PUT an empty required-context set. Never auto-promote observed check-run names into required policy. Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from default-branch runs if harvesting at all. Prefer every-PR unconditional contexts over neutral-exclusion heuristics.\n5. Preserve existing human approving-review requirements and unrelated protection settings. Readiness acceptance does not grant bot-merge or change requireHumanMerge; keep policy:allow-bot-merge as the separate agent-merge axis. Check-only configure must not encode GitHub review-count as the human-merge gate.\n6. Admin/plan inability to configure is cannot-configure and stays re-checkable; do not record a failed write as opt-out.\n7. Drop or demote the premise that Directive already scaffolds consumer CI workflows at this SHA; detect-and-configure may wait for first-green / first default-branch run while the decision-and-record half can still complete earlier.\n\nSpec-path: harvest Bound remedy from this lean for issue:ingest later.\n\nTarget-digest: sha256:15820a6d734f39afd200811108dd4be64927c1dbc242f4fd38c6abe5814bb97a\n\nsupersedes: Stop 1 write-back 5837066277\nround-1 siblings: 3\nsibling: 5837362769\nsibling: 5837370145\nsibling: 5837440299\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\nyolo-standing: yes\nspend: N>=3\npanel-deposit: 5837303141",
+      "Labels": "bug, enhancement, design, ci-cd, adoption-blocker, agent-experience, process, scm, area:installer, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "Name the axis forge required-status-check / merge-gate enforcement readiness, distinct from local deft branch-protection / allowDirectCommitsToMaster. Update Phase 2 disclosure so \"branch-protection ON\" is stated as agent-commit policy only.",
+        "status": "proposed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-setup/SKILL.md",
+          "recorded_at": "2026-09-29T05:06:32Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Detect with existing fetchRequiredStatusContexts (#3234): rulesets + classic, resolutionFailed fail-closed, outcomes protected (non-empty contexts) / absent / unknown. Forbid a second classic-404-only inventory.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-merge-readiness/gh.ts",
+          "recorded_at": "2026-09-29T05:06:32Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Decision gate is fail-closed at build/swarm strategy start when SCM is ready and a GitHub remote is resolved (setup may be an early optional surface). Persist a durable repo/branch-scoped record: configured | explicit-opt-out | cannot-configure (not an opt-out) | deferred-not-applicable for no-SCM / local-only.",
+        "status": "proposed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-merge-readiness/compute.ts",
+          "recorded_at": "2026-09-29T05:06:32Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Configure is optional and separate from the decision. Never PUT an empty required-context set. Never auto-promote observed check-run names into required policy. Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from default-branch runs if harvesting at all. Prefer every-PR unconditional contexts over neutral-exclusion heuristics.",
+        "status": "proposed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-merge-readiness/gh.ts",
+          "recorded_at": "2026-09-29T05:06:32Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Preserve existing human approving-review requirements and unrelated protection settings. Readiness acceptance does not grant bot-merge or change requireHumanMerge; keep policy:allow-bot-merge as the separate agent-merge axis. Check-only configure must not encode GitHub review-count as the human-merge gate.",
+        "status": "proposed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-merge-readiness/index.ts",
+          "recorded_at": "2026-09-29T05:06:32Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Admin/plan inability to configure is cannot-configure and stays re-checkable; do not record a failed write as opt-out.",
+        "status": "proposed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-merge-readiness/gh.ts",
+          "recorded_at": "2026-09-29T05:06:32Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Drop or demote the premise that Directive already scaffolds consumer CI workflows at this SHA; detect-and-configure may wait for first-green / first default-branch run while the decision-and-record half can still complete earlier.",
+        "status": "proposed",
+        "id": "clause.7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-29T05:06:32Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "design",
+      "ci-cd",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "scm",
+      "area:installer",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1517",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1517: Gate project start on merge-gate readiness (CI + branch protection) or an explicit opt-out, before strategies run"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/pr-merge-readiness/gh.test.ts --reporter=dot"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [],
+      "admitted_source_sentences": [
+        "Name the axis forge required-status-check / merge-gate enforcement readiness, distinct from local deft branch-protection / allowDirectCommitsToMaster.",
+        "Update Phase 2 disclosure so \"branch-protection ON\" is stated as agent-commit policy only.",
+        "Detect with existing fetchRequiredStatusContexts (#3234): rulesets + classic, resolutionFailed fail-closed, outcomes protected (non-empty contexts) / absent / unknown.",
+        "Forbid a second classic-404-only inventory.",
+        "Decision gate is fail-closed at build/swarm strategy start when SCM is ready and a GitHub remote is resolved (setup may be an early optional surface).",
+        "Persist a durable repo/branch-scoped record: configured | explicit-opt-out | cannot-configure (not an opt-out) | deferred-not-applicable for no-SCM / local-only.",
+        "Configure is optional and separate from the decision.",
+        "Never PUT an empty required-context set.",
+        "Never auto-promote observed check-run names into required policy.",
+        "Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from default-branch runs if harvesting at all.",
+        "Prefer every-PR unconditional contexts over neutral-exclusion heuristics.",
+        "Preserve existing human approving-review requirements and unrelated protection settings.",
+        "Readiness acceptance does not grant bot-merge or change requireHumanMerge; keep policy:allow-bot-merge as the separate agent-merge axis.",
+        "Check-only configure must not encode GitHub review-count as the human-merge gate.",
+        "Admin/plan inability to configure is cannot-configure and stays re-checkable; do not record a failed write as opt-out.",
+        "Drop or demote the premise that Directive already scaffolds consumer CI workflows at this SHA; detect-and-configure may wait for first-green / first default-branch run while the decision-and-record half can still complete earlier.",
+        "Spec-path: harvest Bound remedy from this lean for issue:ingest later.",
+        "Target-digest: sha256:15820a6d734f39afd200811108dd4be64927c1dbc242f4fd38c6abe5814bb97a supersedes: Stop 1 write-back 5837066277 round-1 siblings: 3 sibling: 5837362769 sibling: 5837370145 sibling: 5837440299 dispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 arc-mode: no-ingest yolo-standing: yes spend: N>=3 panel-deposit: 5837303141"
+      ],
+      "admitted_source_digest": "32beed897f096457ef2004df3c5f6a283cf474bccd420bbdfb395ec697b72f11",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Name the axis forge required-status-check / merge-gate enforcement readiness, distinct from local deft branch-protection / allowDirectCommitsToMaster. Update Phase 2 disclosure so \"branch-protection ON\" is stated as agent-commit policy only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Detect with existing fetchRequiredStatusContexts (#3234): rulesets + classic, resolutionFailed fail-closed, outcomes protected (non-empty contexts) / absent / unknown. Forbid a second classic-404-only inventory.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Decision gate is fail-closed at build/swarm strategy start when SCM is ready and a GitHub remote is resolved (setup may be an early optional surface). Persist a durable repo/branch-scoped record: configured | explicit-opt-out | cannot-configure (not an opt-out) | deferred-not-applicable for no-SCM / local-only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Configure is optional and separate from the decision. Never PUT an empty required-context set. Never auto-promote observed check-run names into required policy. Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from default-branch runs if harvesting at all. Prefer every-PR unconditional contexts over neutral-exclusion heuristics.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Preserve existing human approving-review requirements and unrelated protection settings. Readiness acceptance does not grant bot-merge or change requireHumanMerge; keep policy:allow-bot-merge as the separate agent-merge axis. Check-only configure must not encode GitHub review-count as the human-merge gate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Admin/plan inability to configure is cannot-configure and stays re-checkable; do not record a failed write as opt-out.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Drop or demote the premise that Directive already scaffolds consumer CI workflows at this SHA; detect-and-configure may wait for first-green / first default-branch run while the decision-and-record half can still complete earlier.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": []
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Gates: the check that stands in the doorway before work is called good. A green result should mean Directive actually looked. A red result should say what to do next.\n\nWhat a new person hits: Starting project work is blocked until GitHub has branch protection and continuous integration set up.\n\nWhy that ruins the product for them: A local experiment cannot begin until repository ceremony exists. They wanted to try a small change, not configure a release process.\n\nHow likely: Medium-high. Anyone who follows the documented start hits this before they have written code.\n\n",
+          "id": 5780291064,
+          "html_url": "https://github.com/deftai/directive/issues/1517#issuecomment-5780291064",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:38:52Z",
+          "updated_at": "2026-09-22T16:38:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Directive scaffolds CI and links review apps but still starts build/swarm strategies with no project-level decision that required-status-check branch protection is on (or explicitly opted out), so merge gates stay advisory until someone notices mid-run.\n\ncharter: open critique\narc-mode: no-ingest\nyolo-standing: yes\nspend: N>=3\nspend-ask: asked\n\nThe operator asked for the recommended Dual-stop spend per issue. This is a new project-start readiness decision gate with open placement/shape choices (detect vs configure vs opt-out recording; which check contexts; human-review vs check-only) and high blast across every build/swarm start. Panel permission applies. N>=3.\n\npain: P1, P2, P3\n\nP1. A directive-scaffolded consumer can run multi-PR build/swarm with CI workflows and linked check apps posting, while the default branch has no required-status-check protection, so merges are gated only by agent discipline.\nP2. There is no project-level readiness decision before implementation strategies that forces set-up-or-explicit-opt-out of required checks, so the gap is discovered mid-run rather than at project-definition / project-readiness time.\nP3. Any remedy must stay compatible with unattended swarm/auto-merge (require CI/review-bot check runs without requiring a human approving review an agent cannot self-provide) and must record opt-out so the question is not re-asked forever.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-1517-dc\norigin-ref: origin/HEAD\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\npin-kind: origin-default\ntarget-digest: sha256:15820a6d734f39afd200811108dd4be64927c1dbc242f4fd38c6abe5814bb97a\n\nPin reads use git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980. Companion hygiene to #1509/#1510; this issue owns merge-gate enforcement readiness. Existing local verify:branch / hooks protect the agent commit path; they do not configure GitHub required checks. Panel seats: grok + claude + codex after launch probe.",
+          "id": 5837066277,
+          "html_url": "https://github.com/deftai/directive/issues/1517#issuecomment-5837066277",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:00:12Z",
+          "updated_at": "2026-09-25T18:00:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5837303141\nfamilies: grok, claude, codex\n\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\n\nLaunch probes at dest issue-1517-dc (critic argv class): claude pong rc0; codex pong rc0 (gpt-6-astra); grok pong rc0. Spend N>=3 after operator ask-answer (recommended). Stop 1 write-back 5837066277. dispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980. arc-mode: no-ingest. yolo-standing: yes.\n\nDeposit self-id recorded as input-ceiling after POST: 5837303141\n\n",
+          "id": 5837303141,
+          "html_url": "https://github.com/deftai/directive/issues/1517#issuecomment-5837303141",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:16:34Z",
+          "updated_at": "2026-09-25T18:16:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1 open critique. Reviewed at `042eea8c31f5629b1fc0cfa2f75e4cb967af7980`; HEAD matched. Thread input ceiling: 5837303141. No sibling posts read.\n\n## Readiness must preserve existing merge authority\nblocks-the-design\nEvidence: P3 and the issue propose configuring required checks without human approving reviews. At the pinned SHA, `packages/core/src/policy/require-human-merge.ts` resolves explicit human-merge policy, defaults to human merge when auto-deploy is enabled, and provides a separate audited allow-bot-merge transition. `branch/evaluate.ts` only gates local branch operations and surfaces that separate policy. Setup Phase 2 already preserves unrelated policy through its public writers.\nFailure mode: An implementation interpreting “do NOT require a human approving review” as desired repository configuration could remove an existing review requirement while satisfying the new readiness gate. Conversely, check-only protection does not authorize unattended merge when Directive's human-merge policy remains true. Accepting a readiness prompt is not sufficient evidence of consent to change either authority.\nDisposition: Before bind, define configuration as preserving existing human-review requirements and unrelated protection settings. Readiness acceptance and opt-out must not grant bot-merge authority or change `requireHumanMerge`. An incompatible unattended plan should report the conflict and use the existing separate authorization path, not normalize it away.\n\n## Observed check names are candidates, not the required-check policy\nblocks-the-design\nEvidence: The proposal derives required CI/app checks from a recent run and excludes advisory neutral checks. The pinned `pr-merge-readiness/gh.ts` preserves both context name and optional app identity (`integration_id` / `app_id`), and resolves required policy from platform rules independently of observed runs. I executed the pinned resolver functions in isolated Node fixtures; a ruleset-only check retained app id 123 despite classic protection returning 404.\nFailure mode: A recent run need not contain every conditional CI job; a single neutral conclusion does not establish that a check is advisory by design. Automatically promoting observed contexts can therefore omit a required gate or require a context that will not appear on ordinary PRs. Discarding app identity also broadens which producer can satisfy a same-named check. This is the trust boundary where externally observed check data becomes merge authority.\nDisposition: Before bind, specify that discovery proposes a concrete context-plus-producer set for authorized selection; it cannot infer advisory intent from one conclusion or treat missing run history as an empty approved set. Preserve existing requirements and confirm the intended set after configuration. The strongest argument for automatic selection is low-friction setup, but evidence of a stable, project-declared check contract would be needed to make that safe without per-candidate judgment.\n\n## Reuse the ruleset-aware inventory, but distinguish unknown from absent\nsharpens-framing\nEvidence: `fetchRequiredStatusContexts` in pinned `packages/core/src/pr-merge-readiness/gh.ts` already unions effective branch rules and classic protection. Isolated execution of the pinned functions passed three fixtures: ruleset-only protection with classic 404; successful ruleset read plus classic 403 returning `resolutionFailed: true`; and both 404 returning an empty inventory. These were targeted function checks, not the full test suite; local Vitest dependencies were absent.\nFailure mode: A new classic-protection-only probe calls a ruleset-protected project unprotected and offers redundant configuration. Converting permission/network failure into “not configured” can prompt an unnecessary write or persist an opt-out for an observation failure. A nonempty context inventory alone also does not establish that the actual merge actor cannot bypass enforcement.\nDisposition: The project-level decision can bind, with its detector scoped around the existing resolver and explicit protected / absent / unknown outcomes. Keep uncertainty visible, distinguish context inventory from actor-effective enforcement, and verify the configured result before claiming readiness. Do not describe today's merge-time required-context resolution as missing; the missing piece is the earlier project decision.\n\n## Local bootstrap needs a durable but repository-scoped decision\nsharpens-framing\nEvidence: The pre-ceiling adoption comment identifies local experimentation as a counterexample. P2 requires a decision before build/swarm; the body requires recent CI runs to configure it. Pinned build Step 0 already covers first scaffolding and seeded/offline engagements; setup Phase 2 also has process-only exits. Thus configuration discovery can precede the existence of the workflows or remote it needs.\nFailure mode: An opt-in greenfield project can be unable to generate the first workflow because readiness requires that workflow's observed check names first. Conversely, an unqualified permanent project opt-out made for a local experiment can silently carry into later GitHub unattended delivery or a different remote.\nDisposition: Keep the decision gate, but state the bootstrap path and bind opt-out to the repository/branch and delivery scope it authorizes. Local work must be possible through an explicit decision without inventing check names. A later transition to remote unattended delivery must not interpret an unrelated local decision as authorization. An unchanged explicit opt-out should remain quiet, satisfying the no-repeat requirement.",
+          "id": 5837362769,
+          "html_url": "https://github.com/deftai/directive/issues/1517#issuecomment-5837362769",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:20:42Z",
+          "updated_at": "2026-09-25T18:20:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#1517\nCharter: open critique\nRound: 1 critic\nId ceiling: 5837303141\nSHA at dispatch: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\naudit-targets: none\nSeat: grok\nLauncher: grok\n\nOpen critique of Stop 1 (5837066277) Bound-remedy shape for pains P1–P3 (project-start merge-gate readiness: set required checks or explicit opt-out before build/swarm). Inventory at dispatch SHA before proposing.\n\n## Local branch-protection is a different axis from forge required checks\nsharpens-framing\nEvidence: `git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980:packages/core/src/branch/evaluate.ts` gates default-branch commits via local `allowDirectCommitsToMaster` / `verify:branch`. Setup Phase 2 Step 9 (`content/skills/deft-directive-setup/SKILL.md`) asks branch-based vs trunk-based under the same “branch-protection” wording and persists that flag only. Stop 1 already notes those local hooks do not configure GitHub required checks. Schema policy keys at this SHA include `allowDirectCommitsToMaster` / `requireHumanMerge` / `autoDeployOnMerge` and no forge required-check opt-out field.\nFailure mode: A Bound remedy that reuses “branch-protection readiness” without a distinct forge/required-status-check name will be treated as already satisfied by a green `verify:branch` or a completed Phase 2 branching answer, so P1’s advisory-only merge path remains after the “decision” appears done.\nDisposition: Bind forge required-status-check readiness (and its durable opt-out) as a named axis separate from local deft branch-protection / `allowDirectCommitsToMaster`.\n\n## Detect must reuse #3234; configure is separate admin mutation\nsharpens-framing\nEvidence: `fetchRequiredStatusContexts` in `packages/core/src/pr-merge-readiness/gh.ts` already GETs `rules/branches/{branch}` and `branches/{branch}/protection`, soft-skips 404 / “Branch not protected”, and returns empty contexts with trusted sources — the dogfood signal — but only as a PR merge-readiness reader (#3234). No project-start writer or PUT/PATCH protection helper appears in that inventory. Swarm/build start paths call local `verify:branch` / `xbrief:preflight` / `swarm:readiness`, not this forge inventory.\nFailure mode: Binding “detect + offer to configure” as one atomic readiness step lets a failed or unauthorized configure count as the decision while required contexts stay empty; inventing a second classic-BP-only detector also misses ruleset-required repos already handled by #3234.\nDisposition: Split the decision gate (empty required contexts → set-up or durable opt-out, verified by re-read) from an optional configure helper. Detection must call the existing `fetchRequiredStatusContexts` surface (rulesets + classic). Configure success is a separate admin-permission mutation with a post-write re-read; absence of admin must still leave opt-out as a completable decision.\n\n## Strategy-start fail-closed, not setup-interview-only\nsharpens-framing\nEvidence: Issue acceptance names build/swarm strategy start; Stop 1 P2 names project-definition / project-readiness. Setup Track 2/3 skip the branching question. Build Step 0 (`deft-directive-build`) and swarm Phase 0 (`swarm:readiness`) have no forge required-context probe. The statusreport dogfood case is an already-scaffolded consumer past greenfield Phase 2.\nFailure mode: A remedy that only adds a Phase 2 interview prompt never fires for Track 2/3, returning projects, or headless `swarm:launch`, so P2’s mid-run discovery class remains for the exact dogfood path.\nDisposition: Bind the decision as a fail-closed probe at build/swarm strategy start (including headless launch), with setup as an optional early surface. The probe must read a durable project-level decision record, not rely on interview memory alone.\n\n## Check-only forge recipe vs requireHumanMerge surface (3)\nsharpens-framing\nEvidence: P3 requires CI/review-bot check runs without a human approving review an agent cannot self-provide. `packages/core/src/policy/require-human-merge.ts` and `content/commands.md` Human merge gate (#1193) already document surface (3) as “branch-protection / setup requiring ≥1 human reviewer,” while surfaces (1)–(2) refuse agent merge via Directive policy / `allow-bot-merge`.\nFailure mode: A configure recipe that turns on required approving reviews stalls unattended swarm/auto-merge (P3). A recipe that silently drops GitHub review requirements without stating the split also collides with documented surface (3) and leaves operators unsure whether `requireHumanMerge` was cleared.\nDisposition: Bound configure must set required status checks without required approving reviews for the unattended path, and must keep Directive `requireHumanMerge` / `policy:allow-bot-merge` as a separate agent-merge authority axis — do not encode GitHub review-count as the human-merge gate.\n\n## Context discovery that requires a prior check run deadlocks greenfield\nsharpens-framing\nEvidence: Issue body proposes pulling required context names from a recent run and excluding advisory `neutral` checks. At this SHA, `fetchRequiredStatusContexts` only inventories what protection/rulesets already require; it does not derive names from workflow YAML or check-run history. A greenfield consumer can have deposited workflows and zero successful runs before the first PR.\nFailure mode: A Bound gate that refuses to decide until observed context names exist blocks the first build/swarm that would produce those runs, recreating P2 as a permanent start hang rather than a mid-run surprise.\nDisposition: Allow a complete decision with empty observed contexts (durable opt-out, deferred configure-after-first-observed-checks, or scaffold-known aggregator names from deposited workflow contracts). Do not make a prior successful check run the sole discovery path for the start gate.\n\n## Adoption-blocker local-experiment pressure\nfootnote\nEvidence: In-envelope comment 5780291064 (polfer) flags adoption risk when project start is blocked until GitHub protection and CI ceremony exist; issue/P1–P3 focus on unattended swarm / platform-enforced merge.\nFailure mode: Over-scoping the same fail-closed prompt to every local no-PR experiment collapses the product for operators who are not yet on a forge merge path.\nDisposition: When binding, keep gate authority on forge-enforced merge / unattended swarm start; record how local-only or no-remote sessions complete or skip the decision without silent advisory merges.\n\n## Road not taken\nChose sharpening the Bound shape around existing #3234 read + strategy-start fail-closed over proposing a new parallel protection client or a setup-only interview. Steelman for setup-only: one early decision is cheaper UX; what flips the verdict is the statusreport-class returning consumer and Track 2/3 / headless launch paths that never re-enter that interview.\n\n",
+          "id": 5837370145,
+          "html_url": "https://github.com/deftai/directive/issues/1517#issuecomment-5837370145",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:21:11Z",
+          "updated_at": "2026-09-25T18:21:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nOpen critique of the Stop 1 Bound-remedy shape on #1517 (project-start merge-gate readiness decision before build/swarm). Reads pinned with git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980; git rev-parse HEAD at the dest confirms that SHA. Input ceiling 5837303141 honored.\n\nInventory first, because it moves three of the findings below. Directive already resolves required-status-check inventory from **both** GitHub surfaces: `fetchRequiredStatusContexts` in `packages/core/src/pr-merge-readiness/gh.ts` queries `repos/{repo}/rules/branches/{b}` and `repos/{repo}/branches/{b}/protection`, dedupes on name + `app_id`, reports `sources` (`rulesets` / `branch_protection`), and sets `resolutionFailed` so callers fail closed (#3234). A project-start readiness surface also already exists, with a settled stance: the `content/contracts/scm-readiness.md` probe table marks every probe depth \"Blocks session? no\". Neither is named in the Stop 1 write-back or the issue body.\n\n## Detection predicate forks the inventory directive already owns\nblocks-the-design\nEvidence: the issue body's detector is a single `GET .../branches/master/protection` returning 404. At the dispatch SHA `fetchRequiredStatusContexts` reads rulesets first, then classic protection, and treats a 404 on either as a soft-empty contribution rather than a verdict; `packages/core/src/pr-merge-readiness/gh.test.ts:214` asserts `result.sources` equals `[\"rulesets\", \"branch_protection\"]`. `contextsFromBranchRules` parses rule params of type `required_status_checks`.\nFailure mode: on a repo protected by an organization ruleset and no classic protection, the classic endpoint 404s. The gate as written reports \"not protected\", prompts, and on opt-in writes classic protection onto a repo whose required checks are already enforced. GitHub applies both controls as a union, so the newly added contexts stack on the ruleset's and can permanently block PRs the ruleset alone would have merged. The inverse is as bad: the gate and `pr-wait-mergeable` now disagree about the same repo because two different inventories compute it.\nDisposition: before bind, the acceptance criterion must name reuse of `fetchRequiredStatusContexts` (including its `resolutionFailed` fail-closed contract) as the detector, and the readiness question must be \"are required contexts non-empty from either surface\", not \"does classic protection exist\". Forbid a second inventory implementation explicitly rather than leaving it to implementer judgment.\n\n## Auto-requiring harvested contexts stalls the unattended swarm it is meant to protect\nblocks-the-design\nEvidence: `packages/core/src/pr-merge-readiness/ci-gate.ts` carries a terminal blocking state `ci_absent_required`, reached at four points in the classifier including as the sole condition, with the message \"Ruleset/branch-protection contexts with no check-run (path-filtered workflows) fail closed (#3234)\". Non-empty `failures` is not-ready for `pr:watch` / `pr:wait-mergeable`. The proposal's configure step is \"required checks = the repo's actual CI check contexts plus any linked review/security app checks\".\nFailure mode: the named dogfood contexts include a three-OS quality matrix and linked Greptile / SLizard / Socket apps. Those apps do not post a check run on every PR (Socket is dependency-conditional; review apps skip by configuration and on drafts), and matrix legs or path-filtered jobs do not schedule on every PR. The moment those names are required on the default branch, every subsequent swarm PR that does not trip them resolves `absentRequired` non-empty and lands in `ci_absent_required`. Phase 6 `pr:wait-mergeable-and-merge` never clears. The opt-in path converts an unattended multi-story swarm into a per-story hang, on exactly the repos that took the advice.\nDisposition: the rule selecting which contexts become required must be a deterministic property computed before the PUT -- posts a check run on every PR to the default branch, no paths / paths-ignore filter, no conditional app trigger -- not a harvest of whatever ran recently. If that filter cannot be computed at bind time, the configure half must ship as detect-and-report with the PUT deferred. Operator attention is not a control here: the stall surfaces as a quiet wait, not a failure.\n\n## Greenfield placement has no context source, and an empty required set reads as protected\nblocks-the-design\nEvidence: two checks. First the premise -- `content/templates/` at the dispatch SHA holds no workflow template, `content/skills/deft-directive-setup/SKILL.md` never writes `.github/workflows`, never creates a remote and never pushes, and a grep for consumer CI scaffolding across `content/` and `packages/` returns only directive's own repository workflows. \"Directive currently scaffolds CI workflows\" is not substantiated at this SHA. Second the consequence -- `gh.ts` comments the empty-protection case explicitly: \"Successful protection payload with no required checks still counts as a trusted source (inventory empty intentionally)\", and pushes `branch_protection` onto `sources` for a zero-context payload.\nFailure mode: the proposed placement is project-definition / project-readiness time, before strategies run, with context names pulled from a recent run and no guessing. On the greenfield path that placement section targets there is no push, no workflow and therefore no run, so the detected set is empty. Opting in writes protection with zero required checks, which directive's own resolver then records as a trusted intentional-empty inventory. The project is worse off than the opening 404: it looks protected to directive, reports `sources: [\"branch_protection\"]`, and enforces nothing. Opting out records a deliberate decision the operator was never in a position to make.\nDisposition: before bind, split the halves by time. The decision-and-record half can sit at project readiness; detect-and-configure needs a default-branch run to exist and belongs at first-green or first-merge. Acceptance must also forbid a PUT with an empty required-context set. Drop the CI-scaffolding premise or name the surface that actually produces those workflows.\n\n## The neutral-exclusion rule contradicts directive's own conclusion semantics\nsharpens-framing\nEvidence: `packages/core/src/pr-merge-readiness/ci-gate.ts:20` reads `const SUCCESS_CONCLUSIONS = new Set([\"success\", \"neutral\", \"skipped\"])`. Directive already counts `neutral` as passing at merge readiness.\nFailure mode: the proposal excludes advisory checks that report `neutral` by design from the required set. If a neutral conclusion already satisfies a required check, the exclusion buys nothing and costs the enforcement the issue exists to add: a SLizard or Socket run concluding `failure` is then not platform-required, so the platform merges it red. That leaves P1 open for precisely the review and security apps the issue cites as the reason merge gates look enforced when they are not.\nDisposition: this rule is solving the wrong variable. Replace it with the every-PR criterion from the finding above -- whether an app posts a check run at all is the property that matters, not what conclusion it posts when it does. Re-derive GitHub's required-check pass set against live behaviour before bind rather than inheriting the assumption that neutral blocks.\n\n## The configure step needs authority nothing here probes, and has no third outcome\nsharpens-framing\nEvidence: a grep for `permissions.admin`, `enforce_admins`, and repo-admin probing across `packages/core/src/**` returns nothing at the dispatch SHA. `content/contracts/scm-readiness.md` documents the readiness JSON shape -- `ready`, `binary`, `auth_state`, `github_auth_mode`, `injected_token_present`, `skipped_gates`, `remediation`, `failure_kind` -- with no repo-permission field. The #5016 provisioned-credential path (`packages/core/src/intake/github-auth-modes.ts`) validates principal / installation, not repository administration.\nFailure mode: a PUT to `repos/{repo}/branches/{b}/protection` requires repo admin. A provisioned installation token, a fine-grained PAT without Administration write, or a member-level contributor gets 403. The proposal defines exactly two outcomes: configured, or an opt-out recorded so the question is never re-asked. A 403 at a blocking gate therefore lands in the opt-out bucket -- the operator said yes, the write failed, and directive permanently records that they declined merge-gate enforcement. That is the one thing the record must not become. Plan-level unavailability of classic protection on private repos produces the same permanent misrecord for a whole class of consumers.\nDisposition: before bind, add a distinct non-decision outcome (cannot-configure, with the reason: no admin, plan restriction, resolution failed) that is not written as an opt-out and stays re-checkable, and probe administration capability before the offer is made rather than after the answer. Name whether `scm:status` / `github-auth-modes` owns that probe; do not add a fourth credential surface.\n\n## \"Branch-protection ON\" already means something else in this product\nsharpens-framing\nEvidence: `content/glossary.md:139` defines **Branch-protection policy** as `plan.policy.allowDirectCommitsToMaster`, a local flag. `content/skills/deft-directive-setup/SKILL.md:543` has the Phase 2 interview surface the resolved value as \"Current setting: `allowDirectCommitsToMaster=false` (branch-protection ON)\". `packages/core/src/branch/evaluate.ts` prints \"deft branch-protection: feature branch '<name>' -- proceeding\" and makes no GitHub call anywhere in the module.\nFailure mode: the Phase 2 interview tells the operator branch protection is ON, minutes before the new gate is supposed to tell them the default branch has no branch protection. That collision is a plausible mechanism for the dogfood gap itself -- the operator had already answered a branch-protection question and been told it was enforced. Bound with the same noun, the two surfaces contradict each other on every greenfield setup, and the more visible one is the one that is wrong about platform enforcement.\nDisposition: the bound remedy must use a distinct name (merge-gate enforcement readiness, or required-checks readiness), and the Phase 2 capability-cost disclosure at `SKILL.md:533-543` must state that the local policy governs agent commits only and makes no check required on GitHub. That is a rename plus one disclosure line, so it scopes the lean rather than blocking it.\n\n## Injection lens: harvested check names become platform authority\nsharpens-framing\nEvidence: this target changes authority over when unattended swarm and auto-merge may begin, and it sources its configuration from GitHub-supplied strings. Directive's own model already anticipates the ambiguity -- `RequiredStatusContext` carries an optional `appId`, `contextDedupeKey` keys on name plus appId, and the ci-gate matches name plus optional app id -- but `contextsFromBranchProtection` and `contextsFromBranchRules` populate `appId` only when the upstream payload already pinned it.\nFailure mode: check-run names are not trusted input. If contexts are harvested from a run on a PR head, a contributor's PR can add a workflow whose job name seeds the required-context list. Once a context is required by bare name, any app or workflow may satisfy it: a decoy job named `quality (ubuntu-latest)` that always succeeds satisfies the requirement while the real matrix leg fails under a name nobody required. The gate then reports platform-enforced merge gating that a PR author can satisfy at will -- worse than the honest 404, because the readiness record now asserts enforcement.\nDisposition: before bind, require that contexts are harvested only from a run on the default branch, and that the write pins app id per context using the rulesets `checks[]` form rather than the bare-name `contexts[]` form. Both are already representable in the types directive has.\n\n## A blocking gate moves a framework-local surface into the SCM-dependent class\nsharpens-framing\nEvidence: `content/contracts/scm-readiness.md` partitions gates -- `session:start`, `verify:branch`, `xbrief:preflight` and `scope:*` are framework-local and run regardless of SCM readiness, and the probe table marks `session:start` default and `--with-network` both \"Blocks session? no\". Comment 5780291064 on this thread records the counter-pain directly: starting project work blocked until GitHub ceremony exists, a local experiment that cannot begin.\nFailure mode: a project-readiness gate that blocks on a GitHub-side fact reclassifies project readiness as SCM-dependent. In the mismatched and headless environments #2275 exists for -- gh absent, unauthenticated, or token-injected without repo scope -- the gate cannot evaluate its own precondition. Under the two-outcome shape it resolves either to a prompt the operator cannot answer truthfully or to an opt-out produced by a missing binary. Projects with no remote, or a non-GitHub remote, hit the same wall.\nDisposition: scope the gate to strategy start with SCM ready and a GitHub remote resolved, not to project-definition time unconditionally, and make a not-ready SCM probe resolve to deferred-not-applicable, never to a recorded opt-out. Say so in acceptance: the current line \"works at the project level regardless of spec path\" is silent on the no-SCM axis.\n\n## Relation to #1509 is asserted, not derived\nfootnote\nEvidence: the issue places itself as stronger than recommend-not-mandate against #1509, and the Stop 1 write-back repeats the companion framing. Nothing in the body derives why the merge-gate decision earns a hard gate while the changelog decision earns a recommendation, beyond the assertion that this one is enforcement.\nFailure mode: none demonstrable from the tree; this is a framing gap rather than a defect. It is recorded because the three blocking findings above all narrow the blocking scope, and if the gate ends up detect-and-report at project start plus configure at first-green, the distinction from #1509 becomes largely one of persistence rather than blocking.\nDisposition: no change required before bind.\n\n---\n\nRoad not taken: running the whole thing at project readiness as written, with contexts derived statically from workflow YAML job names instead of from a run. Rejected because matrix expansion (`quality (ubuntu-latest)`) and third-party app display names are not derivable from the repository tree, so static derivation reintroduces the guessing the issue correctly forbids, and a wrong guess lands in `ci_absent_required` with the same stall.\n\nSteelman of the position I am pushing against: discovering the gap mid-run is exactly the failure this issue is about, so a gate that defers the configure half to first-green has already let the first PRs merge unenforced, and the dogfood case shows nobody goes back. That is a real cost and the split does not erase it. What would flip the verdict on the two greenfield-shaped blockers: if directive owned the CI scaffold, so required context names were known before any run and unconditional by construction, the empty-inventory failure and most of the every-PR filtering problem disappear and project readiness becomes the right placement. That makes \"directive should scaffold CI\" a plausible predecessor to this gate rather than a premise it can assume.\n\n",
+          "id": 5837440299,
+          "html_url": "https://github.com/deftai/directive/issues/1517#issuecomment-5837440299",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:26:09Z",
+          "updated_at": "2026-09-25T18:26:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** successor after round-1 panel (N>=3; yolo standing confirm of all-accept map)\n\n## In plain English\n\nDirective can start build/swarm while GitHub required checks are empty, and the issue's classic-404 detector plus auto-harvest configure recipe would fork inventory, stall swarms, and fake-protect greenfield. The bound shape reuses the existing #3234 required-context resolver, makes a durable forge required-checks decision (or explicit opt-out / cannot-configure) fail-closed at strategy start, keeps configure optional and safe (no empty PUT, no auto-require of harvested names, preserve human-review and requireHumanMerge axes), and uses a distinct name from local branch-protection. Confirming this map asserts that later harvest implements that readiness contract without inventing a second protection client.\n\n## Parent-side substantiation\n\nNon-self-arbitration: triage author and lean author are the same parent party; load-bearing takes cite panel critics 5837362769 (codex), 5837370145 (grok), 5837440299 (claude).\n\n## Takes\n\n### Detection predicate forks the inventory directive already owns\ntake: accept-into-contract\ncite: critic 5837440299\nrelieves: P1\nrelieves: P2\n\n### Auto-requiring harvested contexts stalls the unattended swarm it is meant to protect\ntake: accept-into-contract\ncite: critic 5837440299\nrelieves: P1\nrelieves: P3\n\n### Greenfield placement has no context source, and an empty required set reads as protected\ntake: accept-into-contract\ncite: critic 5837440299\nrelieves: P2\n\n### Readiness must preserve existing merge authority\ntake: accept-into-contract\ncite: critic 5837362769\nrelieves: P3\n\n### Observed check names are candidates, not the required-check policy\ntake: accept-into-contract\ncite: critic 5837362769\nrelieves: P1\nrelieves: P3\n\n### Local branch-protection is a different axis from forge required checks\ntake: accept-into-contract\ncite: critic 5837370145\nrelieves: P2\n\n### Detect must reuse #3234; configure is separate admin mutation\ntake: accept-into-contract\ncite: critic 5837370145\nrelieves: P1\nrelieves: P2\n\n### Strategy-start fail-closed, not setup-interview-only\ntake: accept-into-contract\ncite: critic 5837370145\nrelieves: P2\n\n### Check-only forge recipe vs requireHumanMerge surface (3)\ntake: accept-into-contract\ncite: critic 5837370145\nrelieves: P3\n\n### Context discovery that requires a prior check run deadlocks greenfield\ntake: accept-into-contract\ncite: critic 5837370145\nrelieves: P2\n\n### Reuse the ruleset-aware inventory, but distinguish unknown from absent\ntake: accept-into-contract\ncite: critic 5837362769\n\n### Local bootstrap needs a durable but repository-scoped decision\ntake: accept-into-contract\ncite: critic 5837362769\n\n### The neutral-exclusion rule contradicts directive's own conclusion semantics\ntake: accept-into-contract\ncite: critic 5837440299\n\n### The configure step needs authority nothing here probes, and has no third outcome\ntake: accept-into-contract\ncite: critic 5837440299\n\n### \"Branch-protection ON\" already means something else in this product\ntake: accept-into-contract\ncite: critic 5837440299\n\n### Injection lens: harvested check names become platform authority\ntake: accept-into-contract\ncite: critic 5837440299\n\n### A blocking gate moves a framework-local surface into the SCM-dependent class\ntake: accept-into-contract\ncite: critic 5837440299\n\n### Adoption-blocker local-experiment pressure\ntake: accept-into-contract\ncite: critic 5837370145\n(footnote)\n\n### Relation to #1509 is asserted, not derived\ntake: accept-into-contract\ncite: critic 5837440299\n(footnote)\n\n## Bound remedy\n\n1. Name the axis forge required-status-check / merge-gate enforcement readiness, distinct from local deft branch-protection / allowDirectCommitsToMaster. Update Phase 2 disclosure so \"branch-protection ON\" is stated as agent-commit policy only.\n2. Detect with existing fetchRequiredStatusContexts (#3234): rulesets + classic, resolutionFailed fail-closed, outcomes protected (non-empty contexts) / absent / unknown. Forbid a second classic-404-only inventory.\n3. Decision gate is fail-closed at build/swarm strategy start when SCM is ready and a GitHub remote is resolved (setup may be an early optional surface). Persist a durable repo/branch-scoped record: configured | explicit-opt-out | cannot-configure (not an opt-out) | deferred-not-applicable for no-SCM / local-only.\n4. Configure is optional and separate from the decision. Never PUT an empty required-context set. Never auto-promote observed check-run names into required policy. Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from default-branch runs if harvesting at all. Prefer every-PR unconditional contexts over neutral-exclusion heuristics.\n5. Preserve existing human approving-review requirements and unrelated protection settings. Readiness acceptance does not grant bot-merge or change requireHumanMerge; keep policy:allow-bot-merge as the separate agent-merge axis. Check-only configure must not encode GitHub review-count as the human-merge gate.\n6. Admin/plan inability to configure is cannot-configure and stays re-checkable; do not record a failed write as opt-out.\n7. Drop or demote the premise that Directive already scaffolds consumer CI workflows at this SHA; detect-and-configure may wait for first-green / first default-branch run while the decision-and-record half can still complete earlier.\n\nSpec-path: harvest Bound remedy from this lean for issue:ingest later.\n\nTarget-digest: sha256:15820a6d734f39afd200811108dd4be64927c1dbc242f4fd38c6abe5814bb97a\n\nsupersedes: Stop 1 write-back 5837066277\nround-1 siblings: 3\nsibling: 5837362769\nsibling: 5837370145\nsibling: 5837440299\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\nyolo-standing: yes\nspend: N>=3\npanel-deposit: 5837303141",
+          "id": 5837463490,
+          "html_url": "https://github.com/deftai/directive/issues/1517#issuecomment-5837463490",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:27:40Z",
+          "updated_at": "2026-09-25T18:27:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#1517\nCharter: open critique. Pain-audit seat after bind-capable successor lean 5837463490 under yolo. Round-1 panel already spent N>=3; reserved leftover-pain / pain-audit seat.\nRound: pain-audit of relieves. Fresh critic.\nId ceiling (inclusive): 5837463490\nSHA at dispatch: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/1517\naudit-targets: pain-P1, pain-P2, pain-P3\nSeat: grok\nLauncher: grok\n\nPain-audit of successor lean 5837463490 relieves cites against Stop 1 pains P1–P3 (write-back 5837066277). HEAD matched `042eea8c31f5629b1fc0cfa2f75e4cb967af7980`. Envelope honored through id 5837463490. Pin reads via `git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980:<path>`.\n\n## Follow-through census\n\n- pain-P1: footnotes-only / sharpening with no harvest change — bindable\n- pain-P2: footnotes-only / sharpening with no harvest change — bindable\n- pain-P3: footnotes-only / sharpening with no harvest change — bindable\n\nNo `blocks-the-design` finding on the asserted relieves. Harvest Bound remedy 1–7 already carries the panel's load-bearing constraints; no new bind lean required from this seat.\n\n## P1 — advisory merges while required checks are empty\n\nStop 1 P1: multi-PR build/swarm can run with CI/apps posting while the default branch has no required-status-check protection, so merges stay agent-discipline only.\n\nLean cites `relieves: P1` under detection-fork, auto-harvest stall, observed-names-as-candidates, and #3234-reuse takes. Bound #2–#4: detect via existing `fetchRequiredStatusContexts` (rulesets + classic; `resolutionFailed` fail-closed; protected/absent/unknown), forbid a second classic-404 inventory, never PUT an empty required set, never auto-promote observed check-run names into required policy.\n\nPin re-check: `packages/core/src/pr-merge-readiness/gh.ts` exports that resolver with soft-404 empties and `resolutionFailed` on hard errors; empty classic protection still pushes `branch_protection` as a trusted intentional-empty source; `ci-gate.ts` already terminals `ci_absent_required` when required names lack check-runs. The Bound shape therefore closes P1's \"start strategies with no required-check decision/enforcement posture\" class without reintroducing the classic-404 fork or the harvest→require stall.\n\n### First-green configure deferral is intentional residual, not unrelieved P1\nfootnote\nEvidence: Bound #7 splits decision-and-record (may complete earlier) from detect-and-configure (may wait for first-green / first default-branch run), matching Claude 5837440299 greenfield disposition already accept-into-contract.\nFailure mode: early PRs before configure can still merge without platform-required contexts; that is the accepted greenfield cost, not a silent drop of the strategy-start decision gate.\nDisposition: no harvest change; do not treat deferred configure as missing P1 relief while Bound #3 still fail-closes strategy start without a durable record.\n\n## P2 — no readiness decision before implementation strategies\n\nStop 1 P2: no project-level set-up-or-explicit-opt-out before strategies, so the gap is found mid-run.\n\nLean cites `relieves: P2` under detection-fork, greenfield-empty, local-vs-forge naming, #3234-reuse, strategy-start fail-closed, and discovery-deadlock takes. Bound #1/#3/#6/#7: distinct forge required-check axis; fail-closed at build/swarm strategy start when SCM is ready and a GitHub remote is resolved; durable repo/branch-scoped record `configured | explicit-opt-out | cannot-configure | deferred-not-applicable`; cannot-configure stays re-checkable; decision-and-record does not require observed check names.\n\nPin re-check: glossary + setup Phase 2 still mean local `allowDirectCommitsToMaster` when they say \"branch-protection ON\"; `branch/evaluate.ts` stays local. Strategy-start (not setup-interview-only) matches Grok 5837370145 against Track 2/3 / headless paths. Honest relief of mid-run discovery.\n\n### Durable-record storage surface unnamed\nfootnote\nEvidence: Bound #3 requires a durable repo/branch-scoped decision record but does not name the writer/key (policy field vs scm artifact vs meta).\nFailure mode: implementer bikeshed does not reopen P2 while the gate still refuses strategy start without some persisted outcome in that closed set.\nDisposition: sharpening at most; no harvest change for pain relief. Naming the concrete store is implement detail inside the already-bound record obligation.\n\n## P3 — unattended-compatible checks + durable opt-out\n\nStop 1 P3: require CI/review-bot checks without a human approving review an agent cannot self-provide, and record opt-out so the question is not re-asked forever.\n\nLean cites `relieves: P3` under auto-harvest stall, preserve-merge-authority, observed-names-as-candidates, and check-only vs `requireHumanMerge` takes. Bound #4–#6: optional configure with operator/authorized selection, pin app id, default-branch harvest only, prefer every-PR unconditional contexts; preserve existing human approving-review requirements and unrelated protection settings; readiness acceptance does not grant bot-merge or change `requireHumanMerge`; check-only must not encode GitHub review-count as the human-merge gate; admin/plan failure is `cannot-configure`, not opt-out.\n\nPin re-check: `packages/core/src/policy/require-human-merge.ts` already separates agent-merge authority (surfaces 1–2) from documented GitHub reviewer ceremony (surface 3). Bound #5 keeps that split. Durable `explicit-opt-out` satisfies the no-repeat half; `cannot-configure` correctly stays re-checkable so a failed write cannot permanently fake decline.\n\n### Actor-bypass / enforce_admins outside P3 harvest\nfootnote\nEvidence: Codex 5837362769 sharpening noted nonempty required-context inventory is not proof the merge actor cannot bypass enforcement; Bound harvest does not add an enforce_admins / actor-effective probe.\nFailure mode: admin bypass remains a platform property adjacent to required-check readiness; it does not reopen P3's check-only + opt-out contract.\nDisposition: footnote; no harvest change.\n\n## Injection / swarm lens\n\nTarget changes when unattended swarm/auto-merge may begin and sources required-context strings from GitHub. Bound #4 already pins app id and limits harvest to default-branch runs; #2 forbids a second inventory. No additional blocking injection finding on the relieves map.\n\n## Road not taken\n\nChose bindable follow-through (honest relieves; harvest already carries panel constraints) over demanding a Recut for unnamed storage key or first-green residual. Steelman for blocking: without a named policy key, implementers could store a non-durable interview answer and re-open P2. What keeps the verdict non-blocking is Bound #3's closed outcome set plus strategy-start fail-closed — a non-durable answer fails the Bound remedy as written, and that is a verify/implement concern, not missing pain coverage on this lean.\n\nfollow-through: footnotes-only\nbindable: yes\r\n\n",
+          "id": 5837507224,
+          "html_url": "https://github.com/deftai/directive/issues/1517#issuecomment-5837507224",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:30:25Z",
+          "updated_at": "2026-09-25T18:30:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Classic-404-only detect forks #3234 inventory | critic 5837440299; fetchRequiredStatusContexts at 042eea8c31 | accepted |\n| Auto-requiring harvested contexts stalls swarm via ci_absent_required | critic 5837440299; ci-gate.ts | accepted |\n| Greenfield empty configure looks protected | critic 5837440299 | accepted |\n| Observed names are candidates; preserve merge authority / requireHumanMerge | critics 5837362769 | accepted |\n| Strategy-start fail-closed; distinct forge axis from local branch-protection | critic 5837370145 | accepted |\n| Bound remedy 1-7 relieves P1-P3 | lean 5837463490; pain-audit 5837507224 footnote-only bindable | accepted |\n\nEmpty disagreement set over panel siblings 5837362769 / 5837370145 / 5837440299 + pain-audit 5837507224 under yolo standing.\n\n",
+          "id": 5837517493,
+          "html_url": "https://github.com/deftai/directive/issues/1517#issuecomment-5837517493",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:31:05Z",
+          "updated_at": "2026-09-25T18:31:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDirective can start build/swarm with empty GitHub required checks, and a classic-404 detect plus auto-harvest configure would fork inventory, stall swarms, and fake-protect greenfield. Bound remedy reuses #3234 detection, fails closed at strategy start with a durable forge required-checks decision (or opt-out / cannot-configure), keeps configure optional and safe, and names the axis apart from local branch-protection. Pain-audit 5837507224 was footnote-only with no harvest change. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5837463490.\n\n",
+          "id": 5837517722,
+          "html_url": "https://github.com/deftai/directive/issues/1517#issuecomment-5837517722",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:31:06Z",
+          "updated_at": "2026-09-25T18:31:06Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\r\n\r\nBefore directive lets implementation strategies (build / swarm) run on a project, it should ensure the project's merge-gate is actually ENFORCED — i.e. the default branch has branch protection with required status checks — OR the user has explicitly opted out. Directive currently scaffolds CI workflows but never verifies or sets branch protection, and it will happily start building before that decision is made. The decision should be forced up front, not discovered mid-run.\r\n\r\n## Dogfood repro (statusreport)\r\n\r\n- `deftai/statusreport` is directive-scaffolded. It ships CI workflows (`ci.yml` quality matrix on ubuntu/macos/windows, `deft-core-guard.yml`) and has Greptile, SLizard, and Socket apps linked — all posting checks on every PR.\r\n- But the default branch (`master`) had NO branch protection at all (`GET .../branches/master/protection` -> 404 \"Branch not protected\").\r\n- Result: an entire multi-PR build (IP-1 through IP-8) proceeded with merges gated ONLY by agent/process discipline, not by the platform. Nothing on GitHub would have stopped a red or unreviewed merge. The gap was caught manually, several PRs in.\r\n\r\n## Why it matters\r\n\r\nDirective heavily emphasizes the review-cycle and quality gates — but those gates are advisory unless branch protection makes the checks REQUIRED. \"Bots linked / checks posting\" is NOT the same as \"checks required to merge.\" A directive project (especially one running an unattended swarm / auto-merge flow) can run end to end with zero platform-enforced gating. That is a silent, high-impact gap precisely where directive's value proposition (disciplined, reviewable delivery) is strongest.\r\n\r\n## Proposed placement (consistent with #1509)\r\n\r\nA PROJECT-LEVEL readiness gate that runs BEFORE the implementation strategies (build / swarm), at project-definition / project-readiness time — so it applies regardless of how the spec was produced (speckit or interview). It should:\r\n\r\n- Detect whether the default branch has required-status-check branch protection.\r\n- If not, surface it and offer to configure it: required checks = the repo's actual CI check contexts plus any linked review/security app checks, with the context names pulled from a recent run (do not guess names). Exclude advisory checks that report `neutral` by design.\r\n- Configure protection in a way that stays compatible with unattended swarm/auto-merge: require the CI + review-bot CHECK runs, but do NOT require a human approving review (an agent cannot self-approve, which would stall the flow).\r\n- If the user declines, record an explicit opt-out so it is a deliberate decision and do not nag again.\r\n\r\n## Stronger than recommend-not-mandate: decision required before start\r\n\r\nUnlike the changelog recommendation (#1509), this one should be a DECISION GATE: directive should not silently begin implementation strategies until the merge-gate decision (set it up, or explicit opt-out) has been made. The user can absolutely say \"no\" — but directive shouldn't start building as if the question never existed.\r\n\r\n## Acceptance (ideas)\r\n\r\n- Starting a build/swarm strategy on a directive project whose default branch lacks required-check protection triggers a readiness prompt BEFORE any code/PR work begins.\r\n- Opting in configures branch protection with the detected CI/app check contexts as required (advisory `neutral` checks excluded), without requiring a human approving review.\r\n- Opting out is recorded; no repeated prompting.\r\n- Works at the project level regardless of spec path (speckit or interview).\r\n\r\n## Relation\r\n\r\nCompanion to deftai/directive#1509 (project-level changelog recommendation before strategies run) and #1510 (label hygiene on issue creation). All three are project/issue/delivery-hygiene gaps surfaced while dogfooding directive on `deftai/statusreport`. This one is the merge-gate ENFORCEMENT readiness precondition.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 4594031845,
+        "origin": "deftai/directive#1517",
+        "id": "github.issue.4594031845"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "15820a6d734f39afd200811108dd4be64927c1dbc242f4fd38c6abe5814bb97a"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pr-merge-readiness/gh.ts",
+          "packages/core/src/pr-merge-readiness/gh.test.ts",
+          "packages/core/src/pr-merge-readiness/compute.ts",
+          "packages/core/src/pr-merge-readiness/index.ts",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/glossary.md",
+          "content/scm/github.md",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "id": "github.issue.4594031845",
+    "updated": "2026-09-29T00:49:46Z"
+  }
+}
