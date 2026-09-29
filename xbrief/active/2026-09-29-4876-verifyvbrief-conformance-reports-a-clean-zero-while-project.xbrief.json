@@ -1,0 +1,474 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4876",
+    "updated": "2026-09-29T15:22:11Z"
+  },
+  "plan": {
+    "title": "verify:vbrief-conformance reports a clean zero while PROJECT-DEFINITION is on disk",
+    "status": "running",
+    "narratives": {
+      "Description": "verify:vbrief-conformance reports a clean zero while PROJECT-DEFINITION is on disk",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4876",
+      "Overview": "\n\n1. On every Setup Phase 2 / policy-postcondition `verify:vbrief-conformance` invocation, force the resolved PROJECT-DEFINITION into the candidate set (canonical `xbrief/PROJECT-DEFINITION.xbrief.json` and/or `DEFT_PROJECT_PATH` / `projectDefinitionPath`), or fail closed when that artifact exists on disk and was not counted.\n2. Reject any reading that treats exit 0 with a clean-zero candidate count as proof PROJECT-DEFINITION was inspected for #1620 bare keys.\n3. Keep the existing Setup Phase 2 agent re-read of the two policy keys; do not bind a Setup-prose-only restatement of that re-read as the product remedy. Narrow P2 to: conformance green is still consumed as the bare-key certificate and can green without scanning PD.\n4. Prefer the existing `evaluateConformance` + `projectDefinitionPath` / `DEFT_PROJECT_PATH` injection seam over inventing a second Setup-only scanner.\n5. Scope the hole to untracked / non-injected configured paths; once tracked, canonical PD already matches `isLifecycleArtifactPath`.\n\nSpec-path: harvest Bound remedy from this lean for issue:ingest later.\n\nTarget-digest: sha256:f97fe0dbfb52b3fbefd35d76e1599bc5d87280b9fc863de9167434ef5545eab7\n\nsupersedes: Stop 1 write-back 5837066832\nround-1 siblings: 1\nsibling: 5837154310\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1",
+      "Labels": "bug, adoption-blocker, agent-experience, process, source-of-truth, area:cli, area:vbrief, status:child, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "On every Setup Phase 2 / policy-postcondition `verify:vbrief-conformance` invocation, force the resolved PROJECT-DEFINITION into the candidate set (canonical `xbrief/PROJECT-DEFINITION.xbrief.json` and/or `DEFT_PROJECT_PATH` / `projectDefinitionPath`), or fail closed when that artifact exists on disk and was not counted.",
+        "status": "proposed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/main.test.ts",
+          "recorded_at": "2026-09-29T19:24:20.160Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Reject any reading that treats exit 0 with a clean-zero candidate count as proof PROJECT-DEFINITION was inspected for #1620 bare keys.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/main.test.ts",
+          "recorded_at": "2026-09-29T19:24:20.160Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Keep the existing Setup Phase 2 agent re-read of the two policy keys; do not bind a Setup-prose-only restatement of that re-read as the product remedy.",
+        "status": "proposed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/main.test.ts",
+          "recorded_at": "2026-09-29T19:24:20.160Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Narrow P2 to: conformance green is still consumed as the bare-key certificate and can green without scanning PD.",
+        "status": "proposed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/main.test.ts",
+          "recorded_at": "2026-09-29T19:24:20.160Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Prefer the existing `evaluateConformance` + `projectDefinitionPath` / `DEFT_PROJECT_PATH` injection seam over inventing a second Setup-only scanner.",
+        "status": "proposed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/main.test.ts",
+          "recorded_at": "2026-09-29T19:24:20.160Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Scope the hole to untracked / non-injected configured paths; once tracked, canonical PD already matches `isLifecycleArtifactPath`.",
+        "status": "proposed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/main.test.ts",
+          "recorded_at": "2026-09-29T19:24:20.160Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Spec-path: harvest Bound remedy from this lean for issue:ingest later.",
+        "status": "proposed",
+        "id": "clause.7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/main.test.ts",
+          "recorded_at": "2026-09-29T19:24:20.160Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Target-digest: sha256:f97fe0dbfb52b3fbefd35d76e1599bc5d87280b9fc863de9167434ef5545eab7 supersedes: Stop 1 write-back 5837066832 round-1 siblings: 1 sibling: 5837154310 dispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 arc-mode: no-ingest yolo-standing: yes spend: N=1",
+        "status": "proposed",
+        "id": "clause.8",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/main.test.ts",
+          "recorded_at": "2026-09-29T19:24:20.160Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "area:vbrief",
+      "status:child",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4876",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4876: verify:vbrief-conformance reports a clean zero while PROJECT-DEFINITION is on disk"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "vbrief-conformance reports a clean zero while PROJECT-DEFINITION is on disk",
+          "reason": "first token \"vbrief-conformance\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "labeled@L1"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/vbrief-validate/conformance.ts",
+          "packages/core/src/vbrief-validate/main.ts",
+          "packages/core/src/vbrief-validate/main.test.ts",
+          "packages/core/src/vbrief-validate/project-definition.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/vbrief-validate/main.test.ts"
+        ],
+        "expected_outputs": [
+          "open Tracking PR"
+        ],
+        "depends_on": [],
+        "conflict_group": "through-merge-4876",
+        "size": "M",
+        "model_tier": "default",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Gates: the check that stands in the doorway before work is called good. A green result should mean Directive actually looked. A red result should say what to do next.\n\nWhat a new person hits: The check that is supposed to prove the project definition is well formed reports \"zero files, all clean\" while the definition file is sitting on disk, unread.\n\nWhy that ruins the product for them: Setup's certificate of health did not look at the file it certifies. The reassurance is fake.\n\nHow likely: Medium-high. It runs as part of setup's own proof, so it is on the first-run path.\n\n",
+          "id": 5780291798,
+          "html_url": "https://github.com/deftai/directive/issues/4876#issuecomment-5780291798",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:38:55Z",
+          "updated_at": "2026-09-22T16:38:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Setup Phase 2 treats verify:vbrief-conformance exit 0 as proof the policy block is namespaced, yet the verb can report 0 vBRIEF files clean while xbrief/PROJECT-DEFINITION.xbrief.json is on disk and uncounted until a lifecycle brief reaches active/.\n\ncharter: refutation\nrefutation-target: verify:vbrief-conformance exit 0 with a clean-zero candidate count is sufficient proof that PROJECT-DEFINITION (and its policy namespace) was inspected, so Setup Phase 2 may complete on that green alone even when PROJECT-DEFINITION is present on disk but outside the counted candidate set.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator asked for the recommended Dual-stop spend per issue. This is a concrete false-green child of tracker #4814: exit 0 with zero counted files while PROJECT-DEFINITION exists. Narrow instance against the landed conformance scanner. Not a whole-motion babysit hang. N=1.\n\npain: P1, P2\n\nP1. verify:vbrief-conformance can exit 0 and print a clean-zero candidate count while xbrief/PROJECT-DEFINITION.xbrief.json is present on disk, because default candidate discovery only counts lifecycle-layout paths unless a configured projectDefinitionPath is injected.\nP2. Setup Phase 2 reads that exit 0 as proof the policy block is namespaced / PROJECT-DEFINITION was checked, so Phase 2 can complete without ever scanning the file that carries the policy postcondition.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4876-dc\norigin-ref: origin/HEAD\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\npin-kind: origin-default\ntarget-digest: sha256:f97fe0dbfb52b3fbefd35d76e1599bc5d87280b9fc863de9167434ef5545eab7\n\nPin reads use git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980. Child of #4814 (tracker already design-critique:ingest-ready). evaluateConformance only adds PROJECT-DEFINITION when options.projectDefinitionPath is set. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5837066832,
+          "html_url": "https://github.com/deftai/directive/issues/4876#issuecomment-5837066832",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:00:14Z",
+          "updated_at": "2026-09-25T18:00:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\ncharter: refutation\nround: 1\nseat: grok\nlauncher: grok\nid-ceiling: 5837066832\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\naudit-targets: none\ntarget: https://github.com/deftai/directive/issues/4876\n\nRefutation target under test (Stop 1 comment 5837066832): verify:vbrief-conformance exit 0 with a clean-zero candidate count is sufficient proof that PROJECT-DEFINITION (and its policy namespace) was inspected, so Setup Phase 2 may complete on that green alone even when PROJECT-DEFINITION is present on disk but outside the counted candidate set.\n\n**Verdict: the refutation target does not survive.**\n\n## Clean-zero is not inspection of PROJECT-DEFINITION\nblocks-the-design\nEvidence: At `042eea8c31f5629b1fc0cfa2f75e4cb967af7980`, `evaluateConformance` builds candidates from `gitTrackedFiles` / `gitStagedFiles` filtered by `isLifecycleArtifactPath`, then adds PROJECT-DEFINITION only when `options.projectDefinitionPath` is set (`packages/core/src/vbrief-validate/conformance.ts`). `runConformance` passes that option solely from `process.env.DEFT_PROJECT_PATH` (`packages/core/src/vbrief-validate/main.ts`); there is no `--project-definition` flag. On empty findings it returns exit 0 with `` `${candidates.length} vBRIEF file(s) clean -- no bare keys (#1620)` ``, so length 0 is a success shape. Local discovery mirror at that SHA: untracked `xbrief/PROJECT-DEFINITION.xbrief.json` present on disk → 0 candidates; same path with `projectDefinitionPath` injected → 1 candidate (`<configured PROJECT-DEFINITION>`); after `git add`+commit without inject → 1 candidate. Setup Phase 2 writes PROJECT-DEFINITION via `project:write-narratives` while `xbrief/active/` is empty, then runs `deft verify:vbrief-conformance --project-root <policy-project-root>` (`content/skills/deft-directive-setup/SKILL.md` Branch-policy persistence gate).\nFailure mode: Fresh Phase 2 (or any tree with PD on disk but not yet tracked, or a non-lifecycle `DEFT_PROJECT_PATH` without the env wired into the conformance process) prints clean-zero exit 0 while bare keys in PROJECT-DEFINITION, including bare `plan.policy`, are never `scanVbrief`'d. Treating that green as proof the file was inspected false-certifies the #1620 doorway.\nDisposition: Before bind, reject any lean that keeps \"exit 0 / clean-zero ⇒ PROJECT-DEFINITION inspected.\" Existing mechanism to inventory first: force the resolved PROJECT-DEFINITION into the candidate set (canonical path and/or `DEFT_PROJECT_PATH`) on every Setup / policy conformance invocation, or fail closed when the resolved artifact exists on disk and was not counted. Do not invent a second Setup-only scanner while this injection seam already exists.\n\n## Phase 2 already re-reads PROJECT-DEFINITION for the two policy keys\nsharpens-framing\nEvidence: Same skill block requires three postconditions before Phase 2 completion: re-read PROJECT-DEFINITION for `plan[\"x-directive/policy\"].allowDirectCommitsToMaster`, confirm bare `plan.policy` is absent, and `verify:vbrief-conformance` exit 0, plus `policy:show` match. Stop 1 P2 collapses that into \"Setup Phase 2 reads that exit 0 as proof the policy block is namespaced / PROJECT-DEFINITION was checked.\"\nFailure mode: A lean that only restates the agent re-read, or that treats P2 as \"Setup has no PD read,\" would either under-ship the machine #1620 hole (P1) or over-correct prose that already separates policy key checks from conformance.\nDisposition: Keep P1 as the gate/mechanics gap. Narrow P2 to: conformance green is still consumed as the bare-key certificate in the Phase 2 postcondition cluster, and that certificate can green without scanning PD; the existing re-read covers only the two named policy conditions, not the full #1620 key walk. Bind the scanner/wiring fix; do not bind a Setup-prose-only restatement of the re-read as the remedy.\n\n## Tracked canonical PROJECT-DEFINITION is already a lifecycle candidate\nfootnote\nEvidence: `isLifecycleArtifactPath` accepts any `xbrief|vbrief/` + artifact-suffix path (`packages/core/src/layout/resolve.ts`); `xbrief/PROJECT-DEFINITION.xbrief.json` matches. Reproduction: once tracked, it appears in the candidate set with no `projectDefinitionPath` injection. Filename D7 already exempts PROJECT-DEFINITION (`isScopeLifecyclePath` is length-3 only; conformance skips D7 for configured candidates and for non-scope-lifecycle paths).\nFailure mode: None for bind if the lean scopes the hole to untracked / non-injected configured paths rather than claiming canonical tracked PD is invisible to discovery.\nDisposition: No separate disposition weight; use as scope guard when stating the mechanism.\n\nExisting mechanisms inventoried before any new gate: `evaluateConformance` + optional `projectDefinitionPath`, CLI `DEFT_PROJECT_PATH` passthrough, Setup skill preserve-`$DEFT_PROJECT_PATH` / `--project-root` rules, policy writer tests that already init git then run conformance with env for noncanonical paths (`packages/cli/src/policy.test.ts`). Injection/swarm lens: not triggered — this arc concerns candidate discovery and Setup postcondition meaning; issue/comment text stayed data.\n\n",
+          "id": 5837154310,
+          "html_url": "https://github.com/deftai/directive/issues/4876#issuecomment-5837154310",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:05:55Z",
+          "updated_at": "2026-09-25T18:05:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** successor after round-1 critic 5837154310 (N=1; yolo standing confirm of all-accept map)\n\n## In plain English\n\nSetup Phase 2 can treat a green `verify:vbrief-conformance` as proof PROJECT-DEFINITION was scanned for bare keys, but the gate can exit 0 with zero candidates while that file sits on disk unscanned. The bound fix is to make every Setup/policy conformance invocation count the resolved PROJECT-DEFINITION (or fail closed when it exists and was not counted), and to stop reading clean-zero exit 0 as inspection proof. Confirming this map asserts that harvest and later implement work close that certificate hole without replacing the existing Phase 2 policy re-read.\n\n## Parent-side substantiation\n\nNon-self-arbitration: triage author and lean author are the same parent party; load-bearing takes below cite critic 5837154310.\n\n## Takes\n\n### Clean-zero is not inspection of PROJECT-DEFINITION\ntake: accept-into-contract\ncite: critic 5837154310\nrelieves: P1\nrelieves: P2\n\n### Phase 2 already re-reads PROJECT-DEFINITION for the two policy keys\ntake: accept-into-contract\ncite: critic 5837154310\nrelieves: P2\n\n### Tracked canonical PROJECT-DEFINITION is already a lifecycle candidate\ntake: accept-into-contract\ncite: critic 5837154310\n(footnote; scope guard only)\n\n## Bound remedy\n\n1. On every Setup Phase 2 / policy-postcondition `verify:vbrief-conformance` invocation, force the resolved PROJECT-DEFINITION into the candidate set (canonical `xbrief/PROJECT-DEFINITION.xbrief.json` and/or `DEFT_PROJECT_PATH` / `projectDefinitionPath`), or fail closed when that artifact exists on disk and was not counted.\n2. Reject any reading that treats exit 0 with a clean-zero candidate count as proof PROJECT-DEFINITION was inspected for #1620 bare keys.\n3. Keep the existing Setup Phase 2 agent re-read of the two policy keys; do not bind a Setup-prose-only restatement of that re-read as the product remedy. Narrow P2 to: conformance green is still consumed as the bare-key certificate and can green without scanning PD.\n4. Prefer the existing `evaluateConformance` + `projectDefinitionPath` / `DEFT_PROJECT_PATH` injection seam over inventing a second Setup-only scanner.\n5. Scope the hole to untracked / non-injected configured paths; once tracked, canonical PD already matches `isLifecycleArtifactPath`.\n\nSpec-path: harvest Bound remedy from this lean for issue:ingest later.\n\nTarget-digest: sha256:f97fe0dbfb52b3fbefd35d76e1599bc5d87280b9fc863de9167434ef5545eab7\n\nsupersedes: Stop 1 write-back 5837066832\nround-1 siblings: 1\nsibling: 5837154310\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1",
+          "id": 5837176678,
+          "html_url": "https://github.com/deftai/directive/issues/4876#issuecomment-5837176678",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:07:37Z",
+          "updated_at": "2026-09-25T18:07:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\ncharter: refutation\nround: pain-audit of relieves. Fresh critic.\nseat: grok\nlauncher: grok\nid-ceiling: 5837176678\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2\ntarget: https://github.com/deftai/directive/issues/4876\n\nPain-audit of successor lean 5837176678 (asserted `relieves: P1` / `relieves: P2`) against Stop 1 pains in 5837066832 and Bound remedy items 1–5. Round-1 critic 5837154310 is in envelope. `git rev-parse HEAD` equals `042eea8c31f5629b1fc0cfa2f75e4cb967af7980`; pin reads use `git show` at that SHA.\n\n**P1** (Stop 1): `verify:vbrief-conformance` can exit 0 and print a clean-zero candidate count while `xbrief/PROJECT-DEFINITION.xbrief.json` is present on disk, because default candidate discovery only counts lifecycle-layout paths unless a configured `projectDefinitionPath` is injected.\n**P2** (Stop 1): Setup Phase 2 reads that exit 0 as proof the policy block is namespaced / PROJECT-DEFINITION was checked, so Phase 2 can complete without ever scanning the file that carries the policy postcondition.\n\n## Bound remedy items 1–2 and 4–5 cover P1\nfootnote\nEvidence: At `042eea8c31f5629b1fc0cfa2f75e4cb967af7980`, `evaluateConformance` builds candidates from git-tracked / staged paths filtered by `isLifecycleArtifactPath`, then adds PROJECT-DEFINITION only when `options.projectDefinitionPath` is set (`packages/core/src/vbrief-validate/conformance.ts`). `runConformance` passes that option solely from `process.env.DEFT_PROJECT_PATH` (`packages/core/src/vbrief-validate/main.ts`); empty findings still return exit 0 with `` `${candidates.length} vBRIEF file(s) clean -- no bare keys (#1620)` ``, so length 0 is a success shape. Round-1 already showed untracked PD → 0 candidates without inject, and tracked canonical PD matching lifecycle discovery. Lean item 1 forces the resolved PROJECT-DEFINITION into the candidate set on every Setup Phase 2 / policy-postcondition conformance invocation, or fails closed when that artifact exists on disk and was not counted. Item 2 rejects reading exit 0 / clean-zero as inspection proof. Item 4 prefers the existing `projectDefinitionPath` / `DEFT_PROJECT_PATH` seam. Item 5 scopes the hole to untracked / non-injected configured paths.\nFailure mode: None under this Bound remedy for Stop 1 P1. Closing the unscanned-PD certificate path removes the clean-zero false green that P1 names for this arc.\nDisposition: No harvest change. The asserted `relieves: P1` cite matches items 1–2 and 4–5 as written. Implement may land the fail-closed arm inside `evaluateConformance` so the verb itself refuses clean-zero when PD exists; that stays inside item 1’s OR.\n\n## Bound remedy items 1–3 cover P2 (as narrowed by round-1)\nfootnote\nEvidence: Setup Branch-policy persistence gate requires three postconditions before Phase 2 completion: re-read PROJECT-DEFINITION for `plan[\"x-directive/policy\"].allowDirectCommitsToMaster`, confirm bare `plan.policy` is absent, and `deft verify:vbrief-conformance --project-root <policy-project-root>` exits 0, plus `policy:show` match (`content/skills/deft-directive-setup/SKILL.md`). Round-1 classified that the agent re-read already covers the two named policy conditions and sharpened P2 to: conformance green is still consumed as the bare-key certificate and can green without scanning PD. Lean take “Clean-zero is not inspection…” accepts into contract with `relieves: P2`; take “Phase 2 already re-reads…” accepts into contract with `relieves: P2`. Item 1 closes the unscanned certificate. Item 2 rejects clean-zero-as-inspection. Item 3 keeps the existing two-key re-read and binds that narrowed P2 reading; it forbids a Setup-prose-only restatement of the re-read as the product remedy.\nFailure mode: None under this Bound remedy for Stop 1 P2 as sharpened. Phase 2 can no longer treat an unscanned clean-zero as the #1620 bare-key certificate while the policy key re-read stays in place.\nDisposition: No harvest change. The asserted `relieves: P2` cites match items 1–3. Follow-through class: footnotes-only / sharpening with no harvest change → bindable without an extra lean.\n\n## Tracked canonical PD scope guard stays a footnote\nfootnote\nEvidence: Round-1 footnote and lean item 5: once tracked, `xbrief/PROJECT-DEFINITION.xbrief.json` already matches `isLifecycleArtifactPath` and enters the candidate set without inject.\nFailure mode: None for P1–P2 relief if implement keeps that scope guard when stating the mechanism.\nDisposition: No harvest change. Do not widen Bound remedy to claim tracked canonical PD is invisible to discovery.\n\n## Injection / swarm lens\nN/A for this pain-audit seat: the audited target is candidate discovery and Setup postcondition meaning already inventoried on round-1; this seat only grades honesty of the `relieves:` cites against that map. Issue/comment text stayed data.\n\n",
+          "id": 5837291461,
+          "html_url": "https://github.com/deftai/directive/issues/4876#issuecomment-5837291461",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:15:43Z",
+          "updated_at": "2026-09-25T18:15:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Clean-zero exit 0 can leave PROJECT-DEFINITION unscanned | critic 5837154310; evaluateConformance candidate discovery + projectDefinitionPath injection at 042eea8c31 | accepted |\n| Setup Phase 2 consumes that green as the #1620 bare-key certificate | critic 5837154310; setup SKILL Phase 2 postcondition | accepted |\n| Existing agent re-read covers only the two policy keys, not full #1620 walk | critic 5837154310; pain-audit 5837291461 (footnote-only) | accepted |\n| Bound remedy: force PD into candidate set or fail closed; keep injection seam; do not bind Setup-prose-only | lean 5837176678 Bound remedy 1-5; pain-audit 5837291461 bindable | accepted |\n| P1 and P2 relieved by that lean | lean relieves cites; pain-audit 5837291461 | accepted |\n\nEmpty disagreement set over round-1 critic 5837154310 + pain-audit 5837291461 under yolo standing.",
+          "id": 5837303152,
+          "html_url": "https://github.com/deftai/directive/issues/4876#issuecomment-5837303152",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:16:34Z",
+          "updated_at": "2026-09-25T18:16:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nverify:vbrief-conformance can go green with zero files counted while PROJECT-DEFINITION is on disk unscanned, and Setup Phase 2 still treats that green as the bare-key certificate. The accepted fix is to force the resolved PROJECT-DEFINITION into the candidate set on those invocations (or fail closed when it exists and was not counted), keep the existing DEFT_PROJECT_PATH / projectDefinitionPath injection seam, and leave the separate policy-key re-read as-is. Pain-audit 5837291461 was footnote-only with no harvest change. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5837176678.\n\n",
+          "id": 5837303631,
+          "html_url": "https://github.com/deftai/directive/issues/4876#issuecomment-5837303631",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:16:36Z",
+          "updated_at": "2026-09-25T18:27:40Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Parent: #4814\n\n## Finding\n\nSetup Phase 2 treats verify:vbrief-conformance exit 0 as proof the policy block is namespaced. The verb reported 0 vBRIEF files clean while xbrief/PROJECT-DEFINITION.xbrief.json was present, and only counted a file once a brief reached active/.\n\nSplit out of #4814 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: GATES\n- Priority: High (audit scale S2)\n- Source: #4814\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540569526,
+        "origin": "deftai/directive#4876",
+        "id": "github.issue.5540569526"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f97fe0dbfb52b3fbefd35d76e1599bc5d87280b9fc863de9167434ef5545eab7"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/vbrief-validate/main.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "On every Setup Phase 2 / policy-postcondition `verify:vbrief-conformance` invocation, force the resolved PROJECT-DEFINITION into the candidate set (canonical `xbrief/PROJECT-DEFINITION.xbrief.json` and/or `DEFT_PROJECT_PATH` / `projectDefinitionPath`), or fail closed when that artifact exists on disk and was not counted.",
+        "Reject any reading that treats exit 0 with a clean-zero candidate count as proof PROJECT-DEFINITION was inspected for #1620 bare keys.",
+        "Keep the existing Setup Phase 2 agent re-read of the two policy keys; do not bind a Setup-prose-only restatement of that re-read as the product remedy.",
+        "Narrow P2 to: conformance green is still consumed as the bare-key certificate and can green without scanning PD.",
+        "Prefer the existing `evaluateConformance` + `projectDefinitionPath` / `DEFT_PROJECT_PATH` injection seam over inventing a second Setup-only scanner.",
+        "Scope the hole to untracked / non-injected configured paths; once tracked, canonical PD already matches `isLifecycleArtifactPath`.",
+        "Spec-path: harvest Bound remedy from this lean for issue:ingest later.",
+        "Target-digest: sha256:f97fe0dbfb52b3fbefd35d76e1599bc5d87280b9fc863de9167434ef5545eab7 supersedes: Stop 1 write-back 5837066832 round-1 siblings: 1 sibling: 5837154310 dispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 arc-mode: no-ingest yolo-standing: yes spend: N=1"
+      ],
+      "admitted_source_sentences": [
+        "On every Setup Phase 2 / policy-postcondition `verify:vbrief-conformance` invocation, force the resolved PROJECT-DEFINITION into the candidate set (canonical `xbrief/PROJECT-DEFINITION.xbrief.json` and/or `DEFT_PROJECT_PATH` / `projectDefinitionPath`), or fail closed when that artifact exists on disk and was not counted.",
+        "Reject any reading that treats exit 0 with a clean-zero candidate count as proof PROJECT-DEFINITION was inspected for #1620 bare keys.",
+        "Keep the existing Setup Phase 2 agent re-read of the two policy keys; do not bind a Setup-prose-only restatement of that re-read as the product remedy.",
+        "Narrow P2 to: conformance green is still consumed as the bare-key certificate and can green without scanning PD.",
+        "Prefer the existing `evaluateConformance` + `projectDefinitionPath` / `DEFT_PROJECT_PATH` injection seam over inventing a second Setup-only scanner.",
+        "Scope the hole to untracked / non-injected configured paths; once tracked, canonical PD already matches `isLifecycleArtifactPath`.",
+        "Spec-path: harvest Bound remedy from this lean for issue:ingest later.",
+        "Target-digest: sha256:f97fe0dbfb52b3fbefd35d76e1599bc5d87280b9fc863de9167434ef5545eab7 supersedes: Stop 1 write-back 5837066832 round-1 siblings: 1 sibling: 5837154310 dispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 arc-mode: no-ingest yolo-standing: yes spend: N=1"
+      ],
+      "admitted_source_digest": "d68977176483fce9d679866c91c7e9596aee7f7bb281847f81765300f87169e0",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On every Setup Phase 2 / policy-postcondition `verify:vbrief-conformance` invocation, force the resolved PROJECT-DEFINITION into the candidate set (canonical `xbrief/PROJECT-DEFINITION.xbrief.json` and/or `DEFT_PROJECT_PATH` / `projectDefinitionPath`), or fail closed when that artifact exists on disk and was not counted.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Reject any reading that treats exit 0 with a clean-zero candidate count as proof PROJECT-DEFINITION was inspected for #1620 bare keys.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Keep the existing Setup Phase 2 agent re-read of the two policy keys; do not bind a Setup-prose-only restatement of that re-read as the product remedy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Narrow P2 to: conformance green is still consumed as the bare-key certificate and can green without scanning PD.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Prefer the existing `evaluateConformance` + `projectDefinitionPath` / `DEFT_PROJECT_PATH` injection seam over inventing a second Setup-only scanner.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Scope the hole to untracked / non-injected configured paths; once tracked, canonical PD already matches `isLifecycleArtifactPath`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Spec-path: harvest Bound remedy from this lean for issue:ingest later.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Target-digest: sha256:f97fe0dbfb52b3fbefd35d76e1599bc5d87280b9fc863de9167434ef5545eab7 supersedes: Stop 1 write-back 5837066832 round-1 siblings: 1 sibling: 5837154310 dispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 arc-mode: no-ingest yolo-standing: yes spend: N=1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": []
+    },
+    "id": "github.issue.5540569526",
+    "updated": "2026-09-29T15:22:11Z"
+  }
+}
