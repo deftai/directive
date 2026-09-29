@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for dest residual PR #5121 / Tracking #4671 (dest-local)",
-    "updated": "2026-09-28T23:32:38Z"
+    "updated": "2026-09-29T00:00:41.852Z"
   },
   "plan": {
     "title": "[UAT Tester 1] issue:ingest Requirements harvest + empty-after-harvest notice (#4671)",
@@ -19,10 +19,11 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5121#39ef080cefc536dfb5c35f3e32be08ac87e46964",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "pointer": "39ef080cefc536dfb5c35f3e32be08ac87e46964",
+          "recorded_at": "2026-09-29T00:00:41.852Z",
           "recorded_by": "MScottAdams"
-        }
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
@@ -30,10 +31,11 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5121#39ef080cefc536dfb5c35f3e32be08ac87e46964",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "pointer": "39ef080cefc536dfb5c35f3e32be08ac87e46964",
+          "recorded_at": "2026-09-29T00:00:41.852Z",
           "recorded_by": "MScottAdams"
-        }
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
@@ -41,10 +43,11 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
-          "pointer": "github.com/deftai/directive/pull/5121#39ef080cefc536dfb5c35f3e32be08ac87e46964",
-          "recorded_at": "2026-09-28T23:27:37.545Z",
+          "pointer": "39ef080cefc536dfb5c35f3e32be08ac87e46964",
+          "recorded_at": "2026-09-29T00:00:41.852Z",
           "recorded_by": "MScottAdams"
-        }
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -74,6 +77,6 @@
       "commands": []
     },
     "id": "github.issue.5480360210",
-    "updated": "2026-09-28T23:32:38Z"
+    "updated": "2026-09-29T00:00:41.852Z"
   }
 }
