@@ -1,0 +1,186 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5154",
+    "updated": "2026-09-29T20:53:29Z"
+  },
+  "plan": {
+    "title": "docs(readme): link deftai/directive-training from Getting Started",
+    "status": "completed",
+    "narratives": {
+      "Description": "docs(readme): link deftai/directive-training from Getting Started",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5154",
+      "Overview": "## Summary\n\n## Scope boundary\n\n**Work lives only in `deftai/directive`.** Edit `README.md` (Getting Started) in this repo to link out to `https://github.com/deftai/directive-training`.\n\n⊗ Do not change `deftai/directive-training` for this issue. No PRs, README edits, or course content work in the training repo.\n\n\nAdd a Getting Started pointer in the **Directive README** to the public training course repo [`deftai/directive-training`](https://github.com/deftai/directive-training) (\"Training course for learning to use deft/directive\").\n\n## Why\n\nNew humans and agents land on `README.md` first. The Getting Started section already points at `content/docs/getting-started.md`, but it does not surface the dedicated training repo. That course is the hands-on path for learning Directive; it should be discoverable from the main product README without hunting the org.\n\n## Proposed change (README only for this issue)\n\nIn [`README.md`](https://github.com/deftai/directive/blob/master/README.md) under **Getting Started** (near the existing first-project tutorial link / situation table), add a short line or row that links:\n\n- **Training course:** https://github.com/deftai/directive-training\n\nKeep the copy brief (one sentence + link). Do not replace the existing `getting-started.md` tutorial pointer.\n\nOptional follow-on (out of scope unless included in the same PR): mirror the same link once in `content/docs/getting-started.md` so the long tutorial and the training repo stay cross-linked.\n\n## Related (not duplicates)\n\n- #4981 — in-session first-run Directive Tutorial (Beacon practice project inside the session). Different surface: product first-run UX, not a README link to the external training repo.\n- Public docs site: https://deftai.github.io/directive/\n\n## Acceptance\n\n- [ ] `README.md` Getting Started names and links `https://github.com/deftai/directive-training`\n- [ ] Link text makes clear it is the training / learning course\n- [ ] Existing install / first-project tutorial links remain\n\n## Origin\n\nOperator ask: file an issue to include the Directive training repo in Getting Started info in the Directive README.\r\n\n",
+      "Labels": "bug, documentation, agent-experience, area:guidance"
+    },
+    "items": [
+      {
+        "title": "`README.md` Getting Started names and links `https://github.com/deftai/directive-training`",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "README.md",
+          "recorded_at": "2026-09-29T20:53:28.347Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Link text makes clear it is the training / learning course",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "README.md",
+          "recorded_at": "2026-09-29T20:53:28.347Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Existing install / first-project tutorial links remain",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "README.md",
+          "recorded_at": "2026-09-29T20:53:28.347Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "documentation",
+      "agent-experience",
+      "area:guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5154",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5154: docs(readme): link deftai/directive-training from Getting Started"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "`README.md` Getting Started names and links `https://github.com/deftai/directive-training`",
+        "Link text makes clear it is the training / learning course",
+        "Existing install / first-project tutorial links remain"
+      ],
+      "admitted_source_sentences": [
+        "`README.md` Getting Started names and links `https://github.com/deftai/directive-training`",
+        "Link text makes clear it is the training / learning course",
+        "Existing install / first-project tutorial links remain"
+      ],
+      "admitted_source_digest": "7e70a423153d60baaee6a870e380c960c41df84c3a8e231ed12507a63aad49a5",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`README.md` Getting Started names and links `https://github.com/deftai/directive-training`",
+          "artifact_path": "README.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Link text makes clear it is the training / learning course",
+          "artifact_path": "README.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Existing install / first-project tutorial links remain",
+          "artifact_path": "README.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": []
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Clarifying scope: this issue is **README Getting Started in `deftai/directive` only**.\n\nLink *to* `https://github.com/deftai/directive-training`. No work in the training repo.",
+          "id": 5896794727,
+          "html_url": "https://github.com/deftai/directive/issues/5154#issuecomment-5896794727",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T19:05:30Z",
+          "updated_at": "2026-09-29T19:05:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5635586516,
+        "origin": "deftai/directive#5154",
+        "id": "github.issue.5635586516"
+      },
+      "swarm": {
+        "file_scope": [
+          "README.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/swarm/finalize-owed.test.ts"
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5155,
+        "prBase": null,
+        "mergeCommit": "c30bb56c441287a549bb91f6d5fdb896a27d7c15",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2eb3d1165785d505752651c152aa3a89edd564bd",
+        "verifiedAt": "2026-09-29T20:53:29Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-29T20:53:29Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-29T20:53:29Z"
+      }
+    },
+    "id": "github.issue.5635586516",
+    "updated": "2026-09-29T20:53:29Z"
+  }
+}
