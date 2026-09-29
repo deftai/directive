@@ -258,6 +258,75 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     }
   });
 
+  it("refuses inherit when sessionRitualStalenessHours is invalid", () => {
+    const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = require("node:fs");
+    const { join } = require("node:path");
+    const { tmpdir } = require("node:os");
+    const primary = mkdtempSync(join(tmpdir(), "pd-bad-policy-"));
+    const dest = mkdtempSync(join(tmpdir(), "pd-dest-bad-policy-"));
+    try {
+      mkdirSync(join(primary, ".deft"), { recursive: true });
+      mkdirSync(join(primary, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(primary, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            title: "bad-policy",
+            status: "running",
+            narratives: { Overview: "O", TechStack: "T" },
+            items: [],
+            policy: { sessionRitualStalenessHours: 0 },
+          },
+        }),
+        "utf8",
+      );
+      const nowIso = new Date().toISOString();
+      writeFileSync(
+        join(primary, ".deft", "ritual-state.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          contract: "session-ritual-state",
+          session_id: "host:test:primary",
+          git_head: "abc",
+          worktree_path: primary,
+          started_at: nowIso,
+          quick_steps: {},
+          gated_steps: {},
+          finalize_owed: {
+            ok: true,
+            ts: nowIso,
+            deferred_reason: "cohort-add",
+            message: "finalize owed deferred: cohort-add",
+          },
+        }),
+        "utf8",
+      );
+      const result = evaluateFinalizeOwedSessionGate(dest, {
+        isLinkedWorktree: () => true,
+        runGit: (_cwd, args) => {
+          if (args.includes("--git-common-dir")) {
+            return { code: 0, stdout: `${join(primary, ".git")}\n`, stderr: "" };
+          }
+          if (args[0] === "rev-parse" && args.includes("HEAD")) {
+            return { code: 0, stdout: "abc\n", stderr: "" };
+          }
+          return { code: 0, stdout: "", stderr: "" };
+        },
+        probeFinalizeOwed: () => ({
+          lines: ["finalize owed inventory:", "  #4919 owed [blocks]"],
+          blocks: true,
+          unknown: false,
+        }),
+      });
+      expect(result.blocks).toBe(true);
+      expect(result.deferred).toBe(false);
+    } finally {
+      rmSync(primary, { recursive: true, force: true });
+      rmSync(dest, { recursive: true, force: true });
+    }
+  });
+
   it("linked worktree refuses stale primary finalize_owed inherit", () => {
     const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = require("node:fs");
     const { join } = require("node:path");

@@ -598,7 +598,12 @@ function inheritDeferOwedFromPrimary(
   if (primaryHead.length === 0 || state.gitHead !== primaryHead) {
     return null;
   }
-  const { hours } = resolveSessionRitualStalenessHours(primary);
+  const staleness = resolveSessionRitualStalenessHours(primary);
+  // Invalid sessionRitualStalenessHours must not soft-fallback into Prefer-A inherit.
+  if (staleness.source === "default-on-error") {
+    return null;
+  }
+  const { hours } = staleness;
   const ageMs = Date.now() - state.startedAt.getTime();
   if (!Number.isFinite(ageMs) || ageMs < 0 || ageMs > hours * 60 * 60 * 1000) {
     return null;
