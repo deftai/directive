@@ -73,6 +73,17 @@ describe("occupancyLeaseDoctorTip (#4667)", () => {
     expect(tip).toContain("heartbeat-stale");
   });
 
+
+  it("invalid lease tip does not rely on occupancy:release session-id alone", () => {
+    const root = mkdtempSync(join(tmpdir(), "doctor-lease-tip-"));
+    roots.push(root);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "occupancy.json"), "{not-json", "utf8");
+    const tip = occupancyLeaseDoctorTip(root);
+    expect(tip).toContain("unreadable or invalid");
+    expect(tip).toContain("Delete or rewrite");
+    expect(tip).not.toMatch(/^Occupancy lease recovery:/);
+  });
   it("help recovery recipe no longer leads with Abandoned live", () => {
     expect(ABANDONED_OCCUPANCY_LEASE_RECOVERY.startsWith("Occupancy lease recovery:")).toBe(true);
     expect(ABANDONED_OCCUPANCY_LEASE_RECOVERY).toContain(

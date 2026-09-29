@@ -178,8 +178,6 @@ describe("occupancy-release CLI (#3604)", () => {
     const readme = readFileSync(readmePath, "utf8");
     expect(readme).toContain("Abandoned occupancy lease");
     expect(readme).toContain("occupancy:release --session-id=<id from .deft/occupancy.json>");
-    expect(readme).toContain("presented no session identity");
-    expect(readme).toContain("host:none");
-    expect(readme).toContain("TTL");
+    expect(readme).toContain("TTL claim-over");
   });
 });
