@@ -15,6 +15,7 @@ describe("occupancy-namespace unrecognized arguments (#4411)", () => {
   it.each([
     ["grant", parseGrant, runGrant],
     ["heartbeat", parseHeartbeat, runHeartbeat],
+    ["release", parseRelease, runRelease],
     ["steal", parseSteal, runSteal],
   ] as const)("%s --help names deft help / deft commands and exits 2", (_verb, parse, run) => {
     const error = parse(["--help"]).error;
@@ -22,12 +23,5 @@ describe("occupancy-namespace unrecognized arguments (#4411)", () => {
     expect(error).toContain("deft help");
     expect(error).toContain("deft commands");
     expect(run(["--help"])).toBe(2);
-  });
-
-  it("release --help is recognized and exits 0", () => {
-    const parsed = parseRelease(["--help"]);
-    expect(parsed.error).toBeUndefined();
-    expect(parsed.help).toBe(true);
-    expect(runRelease(["--help"])).toBe(0);
   });
 });
