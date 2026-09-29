@@ -62,16 +62,11 @@
         "title": "Treat host:none / address:none as ordinary unset metadata, not the lock cause.",
         "status": "completed",
         "id": "clause.5",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Greptile Class A residual shortened README cold-start; discovery retained via occupancy:release --session-id line + doctor tip/help. Tokens removed intentionally to avoid live-lease steal wording (#5147).",
-          "recorded_at": "2026-09-29T23:15:29.353Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-29T23:15:29.353Z",
-            "mintedVia": "leftover-complete"
-          }
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "packages/core/src/doctor/main.ts",
+          "recorded_at": "2026-09-29T23:26:32.930Z",
+          "recorded_by": "MScottAdams"
         }
       },
       {
@@ -80,8 +75,8 @@
         "id": "clause.6",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
-          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "pointer": "packages/cli/src/occupancy-release.test.ts",
+          "recorded_at": "2026-09-29T23:26:32.930Z",
           "recorded_by": "MScottAdams"
         }
       },
@@ -91,8 +86,8 @@
         "id": "clause.7",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/doctor/occupancy-lease-tip.test.ts",
-          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "pointer": "packages/cli/src/occupancy-release.test.ts",
+          "recorded_at": "2026-09-29T23:26:32.930Z",
           "recorded_by": "MScottAdams"
         }
       },
@@ -198,9 +193,9 @@
         "status": "completed",
         "id": "clause.104",
         "x-directive/evidence": {
-          "kind": "review",
-          "pointer": "README.md",
-          "recorded_at": "2026-09-29T23:14:57.179Z",
+          "kind": "test",
+          "pointer": "packages/cli/src/occupancy-release.test.ts",
+          "recorded_at": "2026-09-29T23:26:32.930Z",
           "recorded_by": "MScottAdams"
         }
       },
@@ -611,7 +606,7 @@
           "author_association": "MEMBER"
         }
       ],
-      "issueBody": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C5, C6; blocked B until released\n**Defect:** 14\n\n### Expected\nDead/abandoned sessions do not lock the worktree. `deft session:end` from a normal shell can clear a stale lease.\n\n### What happened\nOccupancy JSON: `host: none`, `address: none`, heartbeat == claimed_at, no recorded write. `deft.cmd session:end` from PowerShell: \"This process presented no session identity\". Recovery: `occupancy:release --session-id=<id from json>` â€" not in README. Recurred after setup and after ingest.\n\n### Evidence\n`.deft/occupancy.json`; CLI `session:end` / `occupancy:release` output.\n\n### Environment\nDirective 0.119.1. Codex TUI (Ctrl+C leave).\r\n\n",
+      "issueBody": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C5, C6; blocked B until released\n**Defect:** 14\n\n### Expected\nDead/abandoned sessions do not lock the worktree. `deft session:end` from a normal shell can clear a stale lease.\n\n### What happened\nOccupancy JSON: `host: none`, `address: none`, heartbeat == claimed_at, no recorded write. `deft.cmd session:end` from PowerShell: \"This process presented no session identity\". Recovery: `occupancy:release --session-id=<id from json>` - not in README. Recurred after setup and after ingest.\n\n### Evidence\n`.deft/occupancy.json`; CLI `session:end` / `occupancy:release` output.\n\n### Environment\nDirective 0.119.1. Codex TUI (Ctrl+C leave).\r\n\n",
       "x-directive/plan-id": {
         "version": 1,
         "source": "github-rest-id",
