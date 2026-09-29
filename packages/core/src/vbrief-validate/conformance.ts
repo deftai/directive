@@ -476,6 +476,16 @@ export function evaluateConformance(
   } else if (mode === "staged") {
     // #4876: staged canonical PD stays in the git candidate set (no on-disk
     // inject), but must be required so invalid JSON cannot clean-pass.
+    for (const candidate of candidates) {
+      const base = candidate.displayPath.split("/").pop() ?? "";
+      if (
+        (base === "PROJECT-DEFINITION.xbrief.json" ||
+          base === "PROJECT-DEFINITION.vbrief.json") &&
+        !isAllowListed(candidate.displayPath, customGlobs)
+      ) {
+        candidate.required = true;
+      }
+    }
     const canonical = canonicalProjectDefinitionOnDisk(root);
     if (canonical !== null && !isAllowListed(canonical.displayPath, customGlobs)) {
       let canonicalReal: string | null = null;
@@ -492,7 +502,6 @@ export function evaluateConformance(
           candidateReal = resolve(candidate.fullPath);
         }
         if (candidateReal === canonicalReal) {
-          // Keep staged displayPath so D7 filename validation still runs (#4876).
           candidate.required = true;
         }
       }
@@ -503,7 +512,8 @@ export function evaluateConformance(
   const filenameErrors: string[] = [];
   const chronologyWarnings: string[] = [];
   for (const candidate of candidates) {
-    if (!candidate.required && isScopeLifecyclePath(candidate.displayPath)) {
+    // Always validate staged/lifecycle filenames — required PD must not skip D7 (#4876).
+    if (isScopeLifecyclePath(candidate.displayPath)) {
       filenameErrors.push(...validateFilename(candidate.displayPath));
     }
     let text: string;
