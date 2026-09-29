@@ -247,9 +247,32 @@ export function itemHasTraces(item: JsonObject): boolean {
   return false;
 }
 
-export function missingRequiredSwarmFields(swarm: JsonObject): string[] {
+/**
+ * Field mode for swarm readiness (#3718).
+ * `concurrent` keeps the full Swarm-Ready Story Contract.
+ * `solo-headless` is documented N=1 / solo headless launch: ceremony fields
+ * (`expected_outputs`, `conflict_group`, `model_tier`) are not required;
+ * load-bearing fence/evidence fields stay required.
+ */
+export type SwarmFieldMode = "concurrent" | "solo-headless";
+
+/** Ceremony-only under documented N=1 / solo headless (#3718). */
+export const SOLO_HEADLESS_CEREMONY_SWARM_FIELDS = [
+  "expected_outputs",
+  "conflict_group",
+  "model_tier",
+] as const;
+
+export function missingRequiredSwarmFields(
+  swarm: JsonObject,
+  mode: SwarmFieldMode = "concurrent",
+): string[] {
   const missing: string[] = [];
-  for (const key of ["file_scope", "verify_commands", "expected_outputs"] as const) {
+  const listKeys =
+    mode === "solo-headless"
+      ? (["file_scope", "verify_commands"] as const)
+      : (["file_scope", "verify_commands", "expected_outputs"] as const);
+  for (const key of listKeys) {
     if (asStrList(swarm[key]).length === 0) {
       missing.push(`plan.metadata.swarm.${key}`);
     }
@@ -257,7 +280,11 @@ export function missingRequiredSwarmFields(swarm: JsonObject): string[] {
   if (!("depends_on" in swarm)) {
     missing.push("plan.metadata.swarm.depends_on");
   }
-  for (const key of ["conflict_group", "size", "file_scope_confidence", "model_tier"] as const) {
+  const stringKeys =
+    mode === "solo-headless"
+      ? (["size", "file_scope_confidence"] as const)
+      : (["conflict_group", "size", "file_scope_confidence", "model_tier"] as const);
+  for (const key of stringKeys) {
     const value = swarm[key];
     if (typeof value !== "string" || !value.trim()) {
       missing.push(`plan.metadata.swarm.${key}`);

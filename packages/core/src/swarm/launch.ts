@@ -69,6 +69,7 @@ export type PreflightGateFn = (vbriefPath: string) => { exitCode: number; messag
 export type ReadinessGateFn = (
   vbriefPath: string,
   projectRoot: string,
+  options?: { soloHeadless?: boolean },
 ) => { exitCode: number; report: string };
 export type WorktreeResolverFn = (
   mapping: readonly Record<string, unknown>[],
@@ -84,8 +85,10 @@ export const defaultPreflightGate: PreflightGateFn = (vbriefPath) => {
   return { exitCode: result.exitCode, message: result.message };
 };
 
-export const defaultReadinessGate: ReadinessGateFn = (vbriefPath, projectRoot) => {
-  const { exitCode, report } = readinessReport(projectRoot, [vbriefPath]);
+export const defaultReadinessGate: ReadinessGateFn = (vbriefPath, projectRoot, options) => {
+  const { exitCode, report } = readinessReport(projectRoot, [vbriefPath], {
+    soloHeadless: options?.soloHeadless === true,
+  });
   return { exitCode, report };
 };
 
@@ -662,18 +665,20 @@ export function enforceGates(
   preflightGate: PreflightGateFn = defaultPreflightGate,
   readinessGate: ReadinessGateFn = defaultReadinessGate,
 ): { story: ResolvedStory; reason: string } | null {
+  const soloHeadless = resolved.length === 1;
   for (const story of resolved) {
     const pre = preflightGate(story.path);
     if (pre.exitCode !== 0) {
       return { story, reason: `preflight gate failed: ${pre.message.trim()}` };
     }
-    const ready = readinessGate(story.path, projectRoot);
+    const ready = readinessGate(story.path, projectRoot, { soloHeadless });
     if (ready.exitCode !== 0) {
       return { story, reason: `swarm:readiness gate failed:\n${ready.report.trim()}` };
     }
   }
   return null;
 }
+
 
 function safeSegment(text: string): string {
   let cleaned = "";

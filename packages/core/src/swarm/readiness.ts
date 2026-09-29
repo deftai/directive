@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import {
@@ -21,9 +21,44 @@ import {
   itemHasTraces,
   itemsHaveAcceptance,
   missingRequiredSwarmFields,
+  type SwarmFieldMode,
   storyQualityIssues,
 } from "../vbrief-validation/story-quality.js";
 import { LIFECYCLE_FOLDERS, READY } from "./constants.js";
+
+/** Remediation when swarm block is missing/incomplete (#3718). */
+export const SWARM_BLOCK_REMEDIATION_HINT =
+  "Swarm block missing or incomplete. xbrief:preflight exit 0 is lifecycle-ready, not swarm-ready. " +
+  "Scaffold operator-named paths and explicit draft fields only: " +
+  "swarm:readiness --scaffold <xbrief-path> --file-scope <path> [--file-scope ...] " +
+  "--verify-command <cmd> --size <small|medium|large> --file-scope-confidence <high|medium|low> " +
+  "--readiness ready --parallel-safe true|false " +
+  "(do not invent file_scope or verify_commands from issue text; #4988). " +
+  "Documented N=1 / solo headless launch relaxes ceremony fields expected_outputs, conflict_group, and model_tier (#3718). " +
+  "Interactive solo-worker discoverability stays on #3669.";
+
+export interface ReadinessReportOptions {
+  readonly soloHeadless?: boolean;
+}
+
+export interface ScaffoldSwarmDraftInput {
+  readonly projectRoot: string;
+  readonly vbriefPath: string;
+  readonly fileScope: readonly string[];
+  readonly verifyCommands: readonly string[];
+  readonly expectedOutputs?: readonly string[];
+  readonly dependsOn?: readonly string[];
+  readonly conflictGroup?: string;
+  readonly size: string;
+  readonly fileScopeConfidence: string;
+  readonly modelTier?: string;
+  readonly readiness: string;
+  readonly parallelSafe: boolean;
+}
+
+export type ScaffoldSwarmDraftResult =
+  | { ok: true; path: string; writtenKeys: string[] }
+  | { ok: false; error: string };
 
 export interface Candidate {
   path: string;
@@ -352,7 +387,11 @@ function candidateFromPath(path: string, projectRoot: string): Candidate | null 
   };
 }
 
-function validateCandidate(candidate: Candidate, knownIds: Map<string, [string, string]>): void {
+function validateCandidate(
+  candidate: Candidate,
+  knownIds: Map<string, [string, string]>,
+  fieldMode: SwarmFieldMode = "concurrent",
+): void {
   if (candidate.kind === "epic" || candidate.kind === "phase") {
     candidate.decomposition_needed = true;
     return;
@@ -405,7 +444,7 @@ function validateCandidate(candidate: Candidate, knownIds: Map<string, [string, 
   if (parallelSafe !== true && parallelSafe !== false) {
     candidate.missing.push("plan.metadata.swarm.parallel_safe");
   }
-  candidate.missing.push(...missingRequiredSwarmFields(candidate.swarm));
+  candidate.missing.push(...missingRequiredSwarmFields(candidate.swarm, fieldMode));
   if (!hasTraces(candidate.plan, candidate.swarm)) {
     candidate.missing.push("Traces or missing_traces_justification");
   }
@@ -707,10 +746,28 @@ function renderReport(
   return lines.join("\n");
 }
 
+function needsSwarmBlockRemediation(candidates: readonly Candidate[]): boolean {
+  for (const c of candidates) {
+    for (const item of c.missing) {
+      if (
+        item.startsWith("plan.metadata.swarm.") ||
+        item.includes("readiness=ready") ||
+        item === "plan.metadata.swarm.parallel_safe"
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function readinessReport(
   projectRoot: string,
   paths: readonly string[],
+  options: ReadinessReportOptions = {},
 ): { exitCode: number; report: string } {
+  const fieldMode: SwarmFieldMode =
+    options.soloHeadless === true ? "solo-headless" : "concurrent";
   const candidates = paths
     .map((p) => candidateFromPath(p, projectRoot))
     .filter((c): c is Candidate => c !== null);
@@ -722,24 +779,120 @@ export function readinessReport(
     knownIds.set(c.story_id, [c.path, c.status]);
   }
   for (const c of candidates) {
-    validateCandidate(c, knownIds);
+    validateCandidate(c, knownIds, fieldMode);
   }
   const graph = candidateDepGraph(candidates, knownIds);
   markCycles(candidates, graph);
   propagateBlockedDependencies(candidates, graph);
   const overlaps = fileOverlaps(candidates, graph);
-  const report = renderReport(candidates, graph, overlaps);
+  let report = renderReport(candidates, graph, overlaps);
+  if (fieldMode === "solo-headless") {
+    report = `${report}\n\nField mode: solo-headless (N=1 ceremony fields relaxed: expected_outputs, conflict_group, model_tier).`;
+  }
   const failed =
     candidates.some(
       (c) => c.missing.length > 0 || c.blocked.length > 0 || c.decomposition_needed,
     ) || overlaps.size > 0;
+  if (failed && needsSwarmBlockRemediation(candidates)) {
+    report = `${report}\n\n${SWARM_BLOCK_REMEDIATION_HINT}`;
+  }
   const withSerialize =
     failed && !report.includes("serialize N PRs")
-      ? `${report}
-
-${SERIALIZE_N_PRS}`
+      ? `${report}\n\n${SERIALIZE_N_PRS}`
       : report;
   return { exitCode: failed ? 1 : 0, report: withSerialize };
+}
+
+/**
+ * Write plan.metadata.swarm from operator-named paths and explicit draft fields only (#3718).
+ * Refuses empty file_scope / verify_commands. Does not read issue body text.
+ */
+export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwarmDraftResult {
+  const fileScope = input.fileScope.map((p) => p.trim()).filter((p) => p.length > 0);
+  const verifyCommands = input.verifyCommands.map((c) => c.trim()).filter((c) => c.length > 0);
+  if (fileScope.length === 0) {
+    return {
+      ok: false,
+      error:
+        "scaffold requires operator-named --file-scope paths; refuse inventing fence authority from issue text (#4988 / #3718)",
+    };
+  }
+  if (verifyCommands.length === 0) {
+    return {
+      ok: false,
+      error:
+        "scaffold requires explicit --verify-command values; refuse promoting issue-body commands (#4988 / #3718)",
+    };
+  }
+  const size = input.size.trim();
+  const confidence = input.fileScopeConfidence.trim();
+  const readiness = input.readiness.trim();
+  if (!size || !confidence || !readiness) {
+    return {
+      ok: false,
+      error: "scaffold requires explicit --size, --file-scope-confidence, and --readiness",
+    };
+  }
+  const absPath = resolve(input.projectRoot, input.vbriefPath);
+  const data = loadJson(absPath);
+  if (data === null) {
+    return { ok: false, error: `scaffold could not read xBRIEF JSON at ${input.vbriefPath}` };
+  }
+  const plan = planOf(data);
+  const metadata =
+    typeof plan.metadata === "object" && plan.metadata !== null && !Array.isArray(plan.metadata)
+      ? ({ ...(plan.metadata as Record<string, unknown>) } as Record<string, unknown>)
+      : {};
+  const existingSwarm =
+    typeof metadata.swarm === "object" &&
+    metadata.swarm !== null &&
+    !Array.isArray(metadata.swarm)
+      ? ({ ...(metadata.swarm as Record<string, unknown>) } as Record<string, unknown>)
+      : {};
+
+  const swarm: Record<string, unknown> = {
+    ...existingSwarm,
+    readiness,
+    parallel_safe: input.parallelSafe,
+    file_scope: fileScope,
+    verify_commands: verifyCommands,
+    depends_on: input.dependsOn !== undefined ? [...input.dependsOn] : [],
+    size,
+    file_scope_confidence: confidence,
+  };
+  const writtenKeys = [
+    "readiness",
+    "parallel_safe",
+    "file_scope",
+    "verify_commands",
+    "depends_on",
+    "size",
+    "file_scope_confidence",
+  ];
+  if (input.expectedOutputs !== undefined) {
+    swarm.expected_outputs = [...input.expectedOutputs];
+    writtenKeys.push("expected_outputs");
+  }
+  if (input.conflictGroup !== undefined && input.conflictGroup.trim()) {
+    swarm.conflict_group = input.conflictGroup.trim();
+    writtenKeys.push("conflict_group");
+  }
+  if (input.modelTier !== undefined && input.modelTier.trim()) {
+    swarm.model_tier = input.modelTier.trim();
+    writtenKeys.push("model_tier");
+  }
+  metadata.swarm = swarm;
+  plan.metadata = metadata;
+  data.plan = plan;
+  try {
+    writeFileSync(absPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  } catch (err) {
+    return {
+      ok: false,
+      error: `scaffold write failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+  return { ok: true, path: absPath, writtenKeys };
 }
 
 export function expandReadinessPaths(projectRoot: string, patterns: readonly string[]): string[] {
