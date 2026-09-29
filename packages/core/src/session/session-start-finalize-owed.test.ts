@@ -185,7 +185,6 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     expect(result.deferred).toBe(false);
     expect(result.lines.join("\n")).toContain("blocks mutation");
   });
-  it("skips tip fetch and discover when --defer-owed is set (#5145 Prefer-A)", () => {
   it("skips tip fetch when --defer-owed is set (#5145 Prefer-A)", () => {
     let fetchCalls = 0;
     const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
