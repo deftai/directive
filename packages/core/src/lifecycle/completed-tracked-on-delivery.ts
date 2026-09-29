@@ -12,6 +12,7 @@
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import {
   hasArtifactSuffix,
   LEGACY_ARTIFACT_DIR,
@@ -25,6 +26,7 @@ import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { defaultGitRunner, type GitRunner, showBlobsBatch } from "../session/git.js";
 import { CACHE_DIR_NAME, CACHE_SOURCE_GITHUB_ISSUE } from "../triage/queue/constants.js";
 import { resolveRepo } from "../triage/queue/repo.js";
+import { parseGithubIssueUri } from "../triage/reconcile/parse-uri.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -287,21 +289,21 @@ export function resolveIssueCloseKind(
 ): IssueCloseKind {
   const cached = readCachedIssuePayload(projectRoot, ref);
   const cachedKind = closeKindFromPayload(cached);
-  // Trust cached shipped-closed without live (refuse stays fail-closed).
-  if (cachedKind === "shipped-closed") {
-    return "shipped-closed";
-  }
   if (skipGh) {
     return cachedKind;
   }
-  // Prefer live for open / abandon / unknown cache. Stale open or abandon must
-  // not authorize cancel after a later completed close.
+  // Prefer live for every cache kind. Stale cached completed must not block
+  // abandon after a later reopen / not_planned close (#5126 Greptile P1).
+  // Stale open / abandon must not authorize cancel after a later completed close.
   const live = fetchIssuePayloadLive(ref, runGh);
   if (live !== null) {
     return closeKindFromPayload(live);
   }
-  // Live failed: only shipped-closed was early-trusted above. Do not trust
+  // Live failed: trust cached shipped-closed (fail-closed refuse). Do not trust
   // cached open or abandon as permission to cancel.
+  if (cachedKind === "shipped-closed") {
+    return "shipped-closed";
+  }
   return "unknown";
 }
 
@@ -870,6 +872,94 @@ function formatCancelShippedOriginRefuse(
 }
 
 /**
+ * Own-origin issue refs for the #5126 cancel refuse.
+ *
+ * Uses plan.references github-issue entries. Does not treat
+ * x-tracking.decomposition_origin as a cancel gate — a closed related /
+ * decomposition parent without a tip twin must not block abandoning an
+ * open-origin brief (#5126 Greptile P1). Falls back to x-tracking.parent_issue
+ * only when references named no origin. Bare numbers with no resolvable repo
+ * set unresolvedBareOrigin.
+ */
+export function collectCancelOwnOriginIssues(
+  plan: Record<string, unknown>,
+  defaultRepo: string | null,
+): { issues: IssueRef[]; unresolvedBareOrigin: boolean } {
+  const issues: IssueRef[] = [];
+  const seen = new Set<string>();
+  let unresolvedBareOrigin = false;
+
+  const add = (repo: string | null, number: number | null): void => {
+    if (number === null) {
+      return;
+    }
+    const resolved = repo ?? defaultRepo;
+    if (resolved === null || resolved.length === 0) {
+      unresolvedBareOrigin = true;
+      return;
+    }
+    const key = `${resolved}:${number}`;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    issues.push({ repo: resolved, number });
+  };
+
+  const parseTrackingIssue = (value: unknown): number | null => {
+    if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+      return value;
+    }
+    if (typeof value !== "string") {
+      return null;
+    }
+    const match = value.match(/#(\d+)/);
+    return match ? Number(match[1]) : null;
+  };
+
+  const refs = plan.references;
+  if (Array.isArray(refs)) {
+    for (const ref of refs) {
+      if (typeof ref !== "object" || ref === null || Array.isArray(ref)) {
+        continue;
+      }
+      const typed = ref as Record<string, unknown>;
+      const type = String(typed.type ?? "");
+      if (!referenceTypeMatches(type, "github-issue")) {
+        continue;
+      }
+      const [repo, number] = parseGithubIssueUri(typed.uri);
+      add(repo, number);
+    }
+  }
+
+  let parentNumber: number | null = null;
+  let decompNumber: number | null = null;
+  const metadata = plan.metadata;
+  if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
+    const tracking = (metadata as Record<string, unknown>)["x-tracking"];
+    if (typeof tracking === "object" && tracking !== null && !Array.isArray(tracking)) {
+      const t = tracking as Record<string, unknown>;
+      parentNumber = parseTrackingIssue(t.parent_issue);
+      decompNumber = parseTrackingIssue(t.decomposition_origin);
+    }
+  }
+
+  if (issues.length === 0 && parentNumber !== null) {
+    add(defaultRepo, parentNumber);
+  } else if (
+    issues.length === 0 &&
+    parentNumber === null &&
+    decompNumber !== null &&
+    defaultRepo === null
+  ) {
+    unresolvedBareOrigin = true;
+  }
+
+  return { issues, unresolvedBareOrigin };
+}
+
+/**
  * Fail-closed cancel refuse for shipped Tracking/Refs close without completed
  * tip twin (#5126). True abandon stays open when origin is open or abandoned-closed.
  */
@@ -884,7 +974,16 @@ export function evaluateCancelShippedOriginRefuse(
   const runGit = options.runGit ?? defaultGitRunner;
   const defaultRepo = resolveRepo(options.repo, root);
   const briefPath = formatBriefRemediationPath(root, options.briefPath);
-  const { issues } = collectGithubRefs(plan, defaultRepo);
+  const { issues, unresolvedBareOrigin } = collectCancelOwnOriginIssues(plan, defaultRepo);
+  if (unresolvedBareOrigin && issues.length === 0) {
+    return {
+      refuse: true,
+      message: [
+        "scope:cancel: refused — brief cites a bare origin issue number but no resolvable GitHub repo (origin remote / --repo).",
+        `  Remediation: set origin remote or pass repo, then leftover-complete via task scope:complete -- ${briefPath} or task swarm:finalize-cohort -- --pr <n> / --stories <N>.`,
+      ].join("\n"),
+    };
+  }
   if (issues.length === 0) {
     return { refuse: false };
   }

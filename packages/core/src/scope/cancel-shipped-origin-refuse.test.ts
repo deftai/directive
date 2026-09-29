@@ -297,4 +297,67 @@ describe("scope:cancel shipped-origin refuse (#5126)", () => {
     });
     expect(after.code).toBe(0);
   });
+  it("allows cancel when open origin + closed decomposition parent without twin (#5126 P1)", () => {
+    const root = makeRepo();
+    const plan = {
+      ...originPlan(51271, "running"),
+      metadata: {
+        "x-tracking": {
+          parent_issue: 51271,
+          decomposition_origin: 59999,
+        },
+      },
+    };
+    const active = writeBrief(root, "active", "decomp-parent.xbrief.json", plan);
+    writeCachedIssue(root, "deftai/directive", 51271, "open", null);
+    writeCachedIssue(root, "deftai/directive", 59999, "closed", "completed");
+    const result = runTransition("cancel", active, new Date(), {
+      skipGh: true,
+      tip: "HEAD",
+      repo: "deftai/directive",
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("refuses cancel when bare x-tracking origin has no resolvable repo (#5126 P1)", () => {
+    const root = makeRepo();
+    const plan = {
+      status: "running",
+      title: "bare tracking",
+      items: [],
+      references: [],
+      metadata: { "x-tracking": { parent_issue: 51272 } },
+    };
+    const active = writeBrief(root, "active", "bare-repo.xbrief.json", plan);
+    const result = runTransition("cancel", active, new Date(), {
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("no resolvable GitHub repo");
+  });
+
+  it("prefers live reopen over stale cached completed (#5126 P1)", () => {
+    const root = makeRepo();
+    const active = writeBrief(
+      root,
+      "active",
+      "stale-completed-reopen.xbrief.json",
+      originPlan(51273, "running"),
+    );
+    writeCachedIssue(root, "deftai/directive", 51273, "closed", "completed");
+    const result = runTransition("cancel", active, new Date(), {
+      tip: "HEAD",
+      repo: "deftai/directive",
+      runGh: () => ({
+        returncode: 0,
+        stdout: JSON.stringify({
+          number: 51273,
+          state: "open",
+          state_reason: null,
+        }),
+      }),
+    });
+    expect(result.ok).toBe(true);
+  });
 });
