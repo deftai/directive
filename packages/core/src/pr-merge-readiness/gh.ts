@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
+import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { defaultWhich } from "../scm/binary.js";
 import { classifyScmArgv, resolveBinaryForArgv } from "../scm/call-shape.js";
 import { ghxSpawnFallbackBinary } from "../scm/spawn-status.js";
@@ -920,12 +921,23 @@ export function writeMergeGateEnforcementRecord(
       : {}),
   };
   const path = mergeGateEnforcementRecordPath(input.projectRoot, record.repo, record.branch);
+  const file = `${encodeMergeGateScopePart(record.repo)}--${encodeMergeGateScopePart(record.branch)}.json`;
   try {
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+    containedWrite({
+      root: input.projectRoot,
+      target: join(MERGE_GATE_ENFORCEMENT_DIR, file),
+      data: `${JSON.stringify(record, null, 2)}\n`,
+      mode: existsSync(path) ? "replace" : "create",
+      mkdir: true,
+    });
     return { ok: true, record, error: "" };
   } catch (exc: unknown) {
-    const message = exc instanceof Error ? exc.message : String(exc);
+    const message =
+      exc instanceof ContainedWriteError
+        ? exc.message
+        : exc instanceof Error
+          ? exc.message
+          : String(exc);
     return { ok: false, record: null, error: `merge-gate enforcement record write: ${message}` };
   }
 }
@@ -1181,7 +1193,12 @@ export function applyMergeGateConfigure(
   const bodyPath = join(bodyDir, "protection.json");
   let putRc: RunGhResult;
   try {
-    writeFileSync(bodyPath, `${JSON.stringify(built.payload)}\n`, "utf8");
+    containedWrite({
+      root: bodyDir,
+      target: "protection.json",
+      data: `${JSON.stringify(built.payload)}\n`,
+      mode: "create",
+    });
     putRc = input.runGh([
       "gh",
       "api",
