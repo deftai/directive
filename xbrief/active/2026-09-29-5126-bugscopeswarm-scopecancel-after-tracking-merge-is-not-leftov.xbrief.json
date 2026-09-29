@@ -1,0 +1,543 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5126",
+    "updated": "2026-09-29T01:29:12Z"
+  },
+  "plan": {
+    "title": "bug(scope,swarm): scope:cancel after Tracking merge is not leftover-complete",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(scope,swarm): scope:cancel after Tracking merge is not leftover-complete",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5126",
+      "Overview": "\n\n1. **Fail-closed cancel refuse (primary A).** On `scope:cancel`, before the move/stamp: if the brief origin issue `#N` is shipped-closed (`state_reason=completed` or equivalent) AND `origin/<deliveryBranch>` has no `xbrief/completed/*` (or legacy `vbrief/completed/*`) whose origin cites `#N`, refuse non-zero. Print one remediation line naming leftover-complete / `scope:complete --merge-commit … --pr …` or `swarm:finalize-cohort`. Do not invent approve/skip phrases. True abandon/supersede still works when the origin is open or not shipped-closed.\n\n2. **Tip-twin predicate = completed-only for this ship path.** The refuse and Tracking/Refs leftover-complete expect a **completed** tip twin, not a cancelled tip twin. `#3476` `verify:completed-tracked` may still treat completed|cancelled as tip-terminal for its own DONE scan; this cancel refuse does not green on cancelled-only land for a shipped Tracking close. Cancelled tip twins remain for true abandon land only.\n\n3. **Compose existing inventory.** Implement the refuse by composing the same issue-state + tip-twin resolvers already used by `completed-tracked-on-delivery` / orphan-active shipped-origin detection. Fail closed when shipped-looking cancel cannot prove tip twin or cannot resolve closed state under those verbs' rules (including `--skip-gh` / cache / reopen races). ⊗ New ad-hoc gh/state path that can disagree with `#3476`.\n\n4. **Always-pin / orphan-active prose recut.** On the shipped-closed Tracking/Refs product-merge path, preamble post-merge lifecycle and orphan-active remediation treat cancel as **abandon-only**, not an alternate ship exit beside complete. Grok through-merge closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`. Keep cancel available for true abandon when origin is open or not shipped-closed.\n\n5. **DONE probe (B) — first-ship MUST.** On the Tracking/Refs parent-retained closer path after product merge closeout, before parent `DONE`, run existing `verify:completed-tracked -- --issue N` against `origin/<deliveryBranch>`. Exit 1 = not DONE. Reuse `evaluateCompletedTracked` / delivery-tip resolvers (same inventory as item 3). ⊗ Parallel DONE gh probe. Not a new mechanism — habit enforcement made mandatory for this closer path.\n\n6. **Tests.** Unit/integration: cancel on shipped closed-origin brief without completed twin → non-zero + remediation naming leftover-complete. Cancel still works for true supersede/abandon when issue is open or not shipped-closed. Tracking merge fixture: `verify:completed-tracked --issue N` exit 1 until completed twin exists; exit 0 after leftover-complete.\n\n7. **Non-goals.** Do not auto-attest acceptance from GitHub merge alone (#3240). Do not teach cancel to mint completed/. Do not broad-reconcile rewrite. Do not collapse #3476 tip-terminal set globally to completed-only outside this ship-path refuse.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:3a6c365882b6175870073129be3f8e09b2235226f8bb039bb4a7c8b22fc11125\n\n\n",
+      "Labels": "bug, swarm, agent-experience, process, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:swarm"
+    },
+    "items": [
+      {
+        "title": "**Fail-closed cancel refuse (primary A).** On `scope:cancel`, before the move/stamp: if the brief origin issue `#N` is shipped-closed (`state_reason=completed` or equivalent) AND `origin/<deliveryBranch>` has no `xbrief/completed/*` (or legacy `vbrief/completed/*`) whose origin cites `#N`, refuse non-zero. Print one remediation line naming leftover-complete / `scope:complete --merge-commit … --pr …` or `swarm:finalize-cohort`. Do not invent approve/skip phrases. True abandon/supersede still works when the origin is open or not shipped-closed.",
+        "status": "proposed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/main.ts",
+          "recorded_at": "2026-09-29T04:58:51Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "**Tip-twin predicate = completed-only for this ship path.** The refuse and Tracking/Refs leftover-complete expect a **completed** tip twin, not a cancelled tip twin. `#3476` `verify:completed-tracked` may still treat completed|cancelled as tip-terminal for its own DONE scan; this cancel refuse does not green on cancelled-only land for a shipped Tracking close. Cancelled tip twins remain for true abandon land only.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "recorded_at": "2026-09-29T04:58:51Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "**Compose existing inventory.** Implement the refuse by composing the same issue-state + tip-twin resolvers already used by `completed-tracked-on-delivery` / orphan-active shipped-origin detection. Fail closed when shipped-looking cancel cannot prove tip twin or cannot resolve closed state under those verbs' rules (including `--skip-gh` / cache / reopen races). ⊗ New ad-hoc gh/state path that can disagree with `#3476`.",
+        "status": "proposed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/running-briefs.ts",
+          "recorded_at": "2026-09-29T04:58:51Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "**Always-pin / orphan-active prose recut.** On the shipped-closed Tracking/Refs product-merge path, preamble post-merge lifecycle and orphan-active remediation treat cancel as **abandon-only**, not an alternate ship exit beside complete. Grok through-merge closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`. Keep cancel available for true abandon when origin is open or not shipped-closed.",
+        "status": "proposed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/templates/agent-prompt-preamble.md",
+          "recorded_at": "2026-09-29T04:58:51Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "**DONE probe (B) — first-ship MUST.** On the Tracking/Refs parent-retained closer path after product merge closeout, before parent `DONE`, run existing `verify:completed-tracked -- --issue N` against `origin/<deliveryBranch>`. Exit 1 = not DONE. Reuse `evaluateCompletedTracked` / delivery-tip resolvers (same inventory as item 3). ⊗ Parallel DONE gh probe. Not a new mechanism — habit enforcement made mandatory for this closer path.",
+        "status": "proposed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "recorded_at": "2026-09-29T04:58:51Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "**Tests.** Unit/integration: cancel on shipped closed-origin brief without completed twin → non-zero + remediation naming leftover-complete. Cancel still works for true supersede/abandon when issue is open or not shipped-closed. Tracking merge fixture: `verify:completed-tracked --issue N` exit 1 until completed twin exists; exit 0 after leftover-complete.",
+        "status": "proposed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/cancel-shipped-origin-refuse.test.ts",
+          "recorded_at": "2026-09-29T04:58:51Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "**Non-goals.** Do not auto-attest acceptance from GitHub merge alone (#3240). Do not teach cancel to mint completed/. Do not broad-reconcile rewrite. Do not collapse #3476 tip-terminal set globally to completed-only outside this ship-path refuse.",
+        "status": "proposed",
+        "id": "clause.7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-29T04:58:51Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5126",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5126: bug(scope,swarm): scope:cancel after Tracking merge is not leftover-complete"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "verify:completed-tracked -- --issue N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "verify:completed-tracked --issue N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L15"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/main.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "packages/core/src/orphan-active/running-briefs.ts",
+          "content/templates/agent-prompt-preamble.md",
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "CHANGELOG.md",
+          "packages/core/src/orphan-active/evaluate.ts",
+          "packages/core/src/scope/cancel-shipped-origin-refuse.test.ts"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Current known state (2026-09-28 Stage A)\n\nStage A `task triage:evaluate -- 5126` on origin/master `0a2f7b4f9499`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/0a2f7b4f9499/15535b35-9c47-4c38-8c96-473b208a4c96`\n\n### Live gap\n\nGrok through-merge closer squash-merges a Tracking PR, closes the issue, then `scope:cancel`s the dest-local active xBRIEF when `scope:complete` hits acceptance / #3550. Master stays orphan-clean, but no brief lands in `xbrief/completed/`. That is not leftover-complete. Observed on cohort #5105 / #3791 / #4533 / #4659 / #4664 / #4574 / #5110 / #5111 / #4671. Related #4714, #4529 / #4821, #3476, #3240.\n\n### Spend recommendation\n\nConcrete fail-closed `scope:cancel` refuse with closed Acceptance and a named primary fix (A) plus optional DONE probe (B). Recommended Dual-stop **N=1**.\n\nOperator launched with **#5111 desired defaults**: yolo + no-ingest + use recommended Dual-stop (no `n=` ask).\n\nCatalog facets added: process, source-of-truth, area:cli, framework-gap, core-capabilities, promise:swarm. Chip: design-critique:mechanism-shaped.",
+          "id": 5881429082,
+          "html_url": "https://github.com/deftai/directive/issues/5126#issuecomment-5881429082",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T00:42:00Z",
+          "updated_at": "2026-09-29T00:42:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because after Tracking merge the closer can scope:cancel a shipped closed-origin brief with no completed twin on origin/<deliveryBranch>, which discharges the story without leftover-complete.\n\ncharter: refutation\nrefutation-target: After a Tracking/Refs product merge closes issue #N, scope:cancel of the dest-local active brief is an acceptable ship discharge when scope:complete hits acceptance/#3550, even when origin/<deliveryBranch> has no xbrief/completed/* citing #N.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\n\nOperator directed arc using new desired defaults (#5111). Concrete closed-AC cancel-refuse gap; recommended Dual-stop N=1 applied without a spend ask.\n\npain: P1, P2, P3\n\nP1. scope:cancel succeeds on a shipped closed-origin brief when no completed twin citing #N exists on origin/<deliveryBranch>.\nP2. Closer substitutes cancel + issue close when scope:complete hits acceptance / #3550 instead of finishing leftover-complete.\nP3. Parent DONE can fire without verify:completed-tracked -- --issue N exit 0 on origin/<deliveryBranch>.\n\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-5126-dc\norigin-ref: origin/HEAD\ndispatch-sha: 0a2f7b4f94999d154b6e013eefd1a055dfe2102e\npin-kind: origin-default\ntarget-digest: sha256:3a6c365882b6175870073129be3f8e09b2235226f8bb039bb4a7c8b22fc11125\n\nPin reads use git show 0a2f7b4f94999d154b6e013eefd1a055dfe2102e:. Single Grok seat. Not dual-launched. Non-goals: do not auto-attest acceptance from GitHub merge alone (#3240); do not teach cancel to mint completed/; do not broad-reconcile rewrite.",
+          "id": 5881429817,
+          "html_url": "https://github.com/deftai/directive/issues/5126#issuecomment-5881429817",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T00:42:05Z",
+          "updated_at": "2026-09-29T00:42:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5126\ncharter: refutation\nround: 1 critic\nfresh critic\nid-ceiling: 5881429817\ndispatch-sha: 0a2f7b4f94999d154b6e013eefd1a055dfe2102e\narc-mode: no-ingest\naudit-targets: none\nseat: grok\nlauncher: grok\n\nHEAD at dispatch equals `0a2f7b4f94999d154b6e013eefd1a055dfe2102e` (`git rev-parse HEAD`). Pin reads via `git show` at that SHA. In-ceiling thread: current-state `5881429082`, Stop 1 write-back `5881429817`.\n\n## Refutation-target survival\n\nThe refutation target does **not** survive.\n\nDest-local `scope:cancel` after a Tracking/Refs product merge close, when `origin/<deliveryBranch>` has no `xbrief/completed/*` citing `#N`, is not an acceptable ship discharge. At this SHA, cancel clears the active brief without the `#3240` / `#3550` complete gates, while `verify:completed-tracked -- --issue N` still requires a tip twin under `xbrief/completed/` or `xbrief/cancelled/`. Grok through-merge (`#4529` / `#4821`) names parent-retained closer plus post-merge `scope:complete`, with `swarm:finalize-cohort` as leftover land. Cancel is classified as reversible abandon (`REVERSIBLE_ACTIONS`), not a ship terminal (`TERMINAL_ACTIONS` = complete|fail).\n\n## Cancel has no shipped-origin refuse today\nsharpens-framing\nEvidence: `git show 0a2f7b4f94999d154b6e013eefd1a055dfe2102e:packages/core/src/scope/transition.ts` — `act === \"complete\"` runs `evaluateAcceptanceEvidenceGate` / acceptance walk; `act === \"cancel\"` only `stampLifecycleWrite(..., \"cancel\")` then moves to `cancelled/`. `git show 0a2f7b4f94999d154b6e013eefd1a055dfe2102e:packages/core/src/scope/constants.ts` — cancel allowed from any lifecycle folder; cancel ∈ `REVERSIBLE_ACTIONS`; `TERMINAL_ACTIONS` = `{complete, fail}`. No `state_reason` / closed-origin conjunct on the cancel path.\nFailure mode: when `scope:complete` refuses on acceptance / `#3550` narrative floor, cancel still succeeds and clears orphan-active locally, so the closer can treat cancel + issue close as DONE while tip has no completed record for `#N`.\nDisposition: Bound refuse (proposed A) belongs on the cancel transition / CLI before the move, keyed to shipped-closed origin plus missing tip twin; keep true abandon/supersede when the origin is open or not shipped-closed.\n\n## Tip twin set is completed|cancelled; proposed A names completed only\nsharpens-framing\nEvidence: `git show 0a2f7b4f94999d154b6e013eefd1a055dfe2102e:packages/core/src/lifecycle/completed-tracked-on-delivery.ts` — `TIP_TERMINAL_FOLDERS = [\"completed\",\"cancelled\"]`; refusal text requires tracked `completed/` or `cancelled/` on the delivery tip. Related `#4714` AC at live REST also admits completed or cancelled on a fresh clone. `git show 0a2f7b4f94999d154b6e013eefd1a055dfe2102e:packages/core/src/swarm/finalize-cohort.ts` — `listLandedCompletedRelpaths` / `completedBriefRelpathForIssue` scan only `xbrief|vbrief/completed` for origin-close / leftover-complete DONE.\nFailure mode: if Bound A refuses cancel only when `completed/*` is missing, a later land of dest `cancelled/` can green `#3476` while still missing the completed record Tracking leftover-complete and finalize origin-close expect. If Bound A is meant to forbid cancelled tip twins for this ship path, that is stricter than `#3476` / `#4714` and must be stated.\nDisposition: Before bind, name the tip-twin predicate for the refuse: completed-only (stricter, matches finalize origin-close) versus completed|cancelled (matches `#3476`). Tie the Tracking/Refs product-merge ship path to leftover-complete → completed land, and keep cancelled tip twins for true abandon land only.\n\n## Always-pin prose still offers cancel as post-merge exit\nsharpens-framing\nEvidence: `git show 0a2f7b4f94999d154b6e013eefd1a055dfe2102e:content/templates/agent-prompt-preamble.md` post-merge lifecycle card — orchestrator MUST run `scope:complete` or `scope:cancel` after merge. `git show 0a2f7b4f94999d154b6e013eefd1a055dfe2102e:packages/core/src/orphan-active/evaluate.ts` remediation still prints `task scope:cancel … # when abandoning` beside complete for shipped orphans. Contrasted with `git show 0a2f7b4f94999d154b6e013eefd1a055dfe2102e:content/skills/deft-directive-swarm/SKILL.md` Grok through-merge — parent-retained closer plus post-merge `scope:complete`; finalize-cohort is leftover after merge.\nFailure mode: a cancel refuse alone can be green in code while always-pin prose still teaches cancel as a legal ship exit after Tracking merge, recreating the observed closer substitution when complete hits the acceptance floor.\nDisposition: Bound remedy must recut the shipped-closed Tracking/Refs path in preamble / orphan-active remediation so cancel is abandon-only there; keep Grok closer on `scope:complete` + leftover-complete / `verify:completed-tracked`.\n\n## Swarm / authority lens on the refuse\nsharpens-framing\nEvidence: Proposed A consults GitHub closed state for origin `#N` and tip blobs on `origin/<deliveryBranch>` — shared lifecycle authority across dest worktree and delivery tip. Existing resolvers already live in `completed-tracked-on-delivery.ts` (`defaultResolveIssueState`, tip blob scan) and orphan-active shipped-origin detection.\nFailure mode: a new ad-hoc gh/state path on cancel can disagree with `#3476` under cache / `--skip-gh` / reopen races, so cancel refuses or allows inconsistently with the DONE probe.\nDisposition: Compose the refuse from the existing issue-state + tip-twin inventory; fail closed when shipped-looking cancel cannot prove tip twin or cannot resolve closed state under the same rules those verbs already use.\n\n## Optional DONE probe is already named\nfootnote\nEvidence: preamble `#3476` already requires `verify:completed-tracked -- --issue N` exit 0 on `origin/<deliveryBranch>` after `scope:complete` before DONE; CLI + evaluator exist at `packages/cli/src/verify-completed-tracked.ts` and `packages/core/src/lifecycle/completed-tracked-on-delivery.ts`.\nFailure mode: none for bind shape — B is habit enforcement of an existing verb, not a new mechanism.\nDisposition: Prefer A as the verb choke-point; treat B as checklist reuse, not a second invention.\n\n## Inventory note on cancel stamp pairing\nfootnote\nEvidence: `completed-write-guard.ts` header and cancel-stamp pairing — `cancelled/` destinations pair when they carry a `lifecycleWrite` cancel stamp; closed-origin park to `proposed/` is refused.\nFailure mode: none for this refutation; shows cancel is already a stamped abandon path, not a silent delete.\nDisposition: No change required for this census; A should keep stamped cancel for true abandon.\r\n\n",
+          "id": 5881478958,
+          "html_url": "https://github.com/deftai/directive/issues/5126#issuecomment-5881478958",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T00:46:59Z",
+          "updated_at": "2026-09-29T00:46:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter Tracking merge, cancel of a shipped closed-origin brief with no completed tip twin is not ship discharge. The gap survives in sharpened form: fail-closed cancel refuse on that path, tip-twin predicate is completed-only (stricter than #3476 completed|cancelled, matching finalize leftover-complete), always-pin prose must stop offering cancel as a post-merge ship exit, and the refuse reuses existing issue-state + tip-twin inventory. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5881429817. Critic 5881478958 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5881429817\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 0a2f7b4f94999d154b6e013eefd1a055dfe2102e\n\n## Takes\n\n- 5881478958 Cancel has no shipped-origin refuse today — accept-into-contract\n- 5881478958 Tip twin set is completed|cancelled; proposed A names completed only — accept-into-contract\n- 5881478958 Always-pin prose still offers cancel as post-merge exit — accept-into-contract\n- 5881478958 Swarm / authority lens on the refuse — accept-into-contract\n- 5881478958 Optional DONE probe is already named — accept-into-contract\n- 5881478958 Inventory note on cancel stamp pairing — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. **Fail-closed cancel refuse (primary A).** On `scope:cancel`, before the move/stamp: if the brief origin issue `#N` is shipped-closed (`state_reason=completed` or equivalent) AND `origin/<deliveryBranch>` has no `xbrief/completed/*` (or legacy `vbrief/completed/*`) whose origin cites `#N`, refuse non-zero. Print one remediation line naming leftover-complete / `scope:complete --merge-commit … --pr …` or `swarm:finalize-cohort`. Do not invent approve/skip phrases. True abandon/supersede still works when the origin is open or not shipped-closed.\n\n2. **Tip-twin predicate = completed-only for this ship path.** The refuse and Tracking/Refs leftover-complete expect a **completed** tip twin, not a cancelled tip twin. `#3476` `verify:completed-tracked` may still treat completed|cancelled as tip-terminal for its own DONE scan; this cancel refuse does not green on cancelled-only land for a shipped Tracking close. Cancelled tip twins remain for true abandon land only.\n\n3. **Compose existing inventory.** Implement the refuse by composing the same issue-state + tip-twin resolvers already used by `completed-tracked-on-delivery` / orphan-active shipped-origin detection. Fail closed when shipped-looking cancel cannot prove tip twin or cannot resolve closed state under those verbs' rules (including `--skip-gh` / cache / reopen races). ⊗ New ad-hoc gh/state path that can disagree with `#3476`.\n\n4. **Always-pin / orphan-active prose recut.** On the shipped-closed Tracking/Refs product-merge path, preamble post-merge lifecycle and orphan-active remediation treat cancel as **abandon-only**, not an alternate ship exit beside complete. Grok through-merge closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`. Keep cancel available for true abandon when origin is open or not shipped-closed.\n\n5. **Optional DONE probe (B).** Prefer A as the verb choke-point. B is checklist reuse of existing `verify:completed-tracked -- --issue N` on `origin/<deliveryBranch>` before parent DONE — not a new mechanism. Same PR optional.\n\n6. **Tests.** Unit/integration: cancel on shipped closed-origin brief without completed twin → non-zero + remediation naming leftover-complete. Cancel still works for true supersede/abandon when issue is open or not shipped-closed. Optional: Tracking merge fixture where completed-tracked exits 1 until completed twin exists.\n\n7. **Non-goals.** Do not auto-attest acceptance from GitHub merge alone (#3240). Do not teach cancel to mint completed/. Do not broad-reconcile rewrite. Do not collapse #3476 tip-terminal set globally to completed-only outside this ship-path refuse.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:3a6c365882b6175870073129be3f8e09b2235226f8bb039bb4a7c8b22fc11125\n\n## Parent-side substantiation\n\nCritic overturned the target and required naming completed-only for the Tracking ship refuse, composing existing tip inventory, and recutting always-pin cancel-as-ship prose. Items 1–4 are first-ship; item 5 keeps B as habit; item 6 is acceptance; item 7 keeps non-goals.\n\naudit:cancel-shipped-origin-refuse sha=0a2f7b4f94999d154b6e013eefd1a055dfe2102e pointer=comment:5881478958 reading=asserted\naudit:tip-twin-completed-only sha=0a2f7b4f94999d154b6e013eefd1a055dfe2102e pointer=comment:5881478958 reading=asserted\naudit:preamble-cancel-abandon-only sha=0a2f7b4f94999d154b6e013eefd1a055dfe2102e pointer=comment:5881478958 reading=asserted\naudit:compose-completed-tracked-inventory sha=0a2f7b4f94999d154b6e013eefd1a055dfe2102e pointer=comment:5881478958 reading=asserted",
+          "id": 5881486344,
+          "html_url": "https://github.com/deftai/directive/issues/5126#issuecomment-5881486344",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T00:47:46Z",
+          "updated_at": "2026-09-29T00:47:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5126\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nfresh critic\nid-ceiling: 5881486344\ndispatch-sha: 0a2f7b4f94999d154b6e013eefd1a055dfe2102e\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nseat: grok\nlauncher: grok\n\nPin reads via `git show 0a2f7b4f94999d154b6e013eefd1a055dfe2102e:`. Local `git rev-parse HEAD` is `48e8cbf0e7818a2b2ca60a070791e236ca088ac0` (≠ dispatch SHA); no fetch/checkout. In-ceiling: Stop 1 `5881429817`, round-1 critic `5881478958`, successor lean `5881486344`. Bound remedy items on that lean are the claimed relief for Stop 1 pains P1–P3.\n\n## `relieves: P3` while Bound item 5 keeps B optional\nblocks-the-design\nEvidence: Stop 1 `5881429817` names P3 as parent DONE firing without `verify:completed-tracked -- --issue N` exit 0 on `origin/<deliveryBranch>`. Lean `5881486344` Bound item 5 labels the DONE probe **optional** / habit reuse of the existing verb, Prefer A as the cancel choke-point; items 1–4 and 6–7 do not add a DONE-path MUST that runs that probe to exit 0. At the dispatch SHA the probe already exists (`packages/cli/src/verify-completed-tracked.ts`, `packages/core/src/lifecycle/completed-tracked-on-delivery.ts`) and preamble / swarm ops already name it before DONE (#3476); the observed skip is habit, which is why P3 was warranted separately from P1. Round-1 critic `5881478958` already classed B as checklist reuse, not a new mechanism — the lean then still stamps `relieves: P3`.\nFailure mode: binding with `relieves: P3` treats an optional checklist as coverage of a named DONE-gate pain. After Prefer-A ships, a closer can still emit DONE without running `verify:completed-tracked -- --issue N` (tip twin may exist from leftover-complete land, or the session can skip the probe entirely). That leaves P3’s stated condition live while the cite claims relief.\nDisposition: Before bind, either promote Bound item 5 to a first-ship MUST on the Tracking/Refs parent-retained closer DONE path (run `verify:completed-tracked -- --issue N` against `origin/<deliveryBranch>`; exit 1 = not DONE), or drop the P3 relieve cite on a retraction / successor map (recut disposition for that id). Do not keep Prefer-A-only Bound English paired with `relieves: P3`.\n\n## P1 cancel-without-completed-twin is covered by Bound items 1–3 + 6\nfootnote\nEvidence: P1 is cancel succeeding on shipped-closed origin with no completed tip twin. Bound items 1–2 refuse that path with completed-only tip predicate; item 3 composes existing issue-state + tip inventory; item 6 tests the refuse. At this SHA cancel still stamps/moves with no shipped-origin gate (`packages/core/src/scope/transition.ts` cancel branch; `constants.ts` cancel ∈ reversible, allowed from any lifecycle folder).\nFailure mode: none for cite honesty on P1 under the Bound list as written.\nDisposition: Census only; no Bound change required for P1 coverage.\n\n## P2 closer cancel-substitution is covered by Bound items 1 + 4\nfootnote\nEvidence: P2 is closer substituting cancel + issue close when `scope:complete` hits acceptance / #3550 instead of leftover-complete. Bound item 1 fails that substitute closed; item 4 recuts always-pin / orphan-active prose so cancel is abandon-only on the shipped Tracking/Refs path and the closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`. At this SHA preamble post-merge still offers `scope:complete` or `scope:cancel`, and orphan-active remediation still prints cancel `# when abandoning` beside complete.\nFailure mode: none for cite honesty on P2 — the named pain is the wrong discharge, and Bound blocks it while pointing remediation at leftover-complete. Acceptance-floor auto-attest remains out of scope per Bound item 7 / #3240.\nDisposition: Census only; no Bound change required for P2 coverage.\n\n## Swarm / authority on the P3 fix path\nfootnote\nEvidence: Promoting B to a MUST reuses the existing `#3476` verb and tip scan already composed for Bound item 3; it does not invent a second issue-state path. Dropping the P3 cite changes no runtime authority.\nFailure mode: none beyond the cite-honesty block above.\nDisposition: If item 5 is promoted, keep the same `evaluateCompletedTracked` / delivery-tip resolvers; do not add a parallel DONE gh probe.\r\n\n",
+          "id": 5881520182,
+          "html_url": "https://github.com/deftai/directive/issues/5126#issuecomment-5881520182",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T00:51:12Z",
+          "updated_at": "2026-09-29T00:51:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit 5881520182 blocked: Prefer-A Bound English cannot keep B optional while citing relieves: P3. Recut promotes the DONE probe to a first-ship MUST on the Tracking/Refs parent-retained closer path. Cancel refuse + completed-only tip twin + always-pin abandon-only prose stay. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5881429817 and lean 5881486344. Critic 5881478958 / pain 5881520182 check the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Recut:** supersedes lean 5881486344. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5881486344\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 0a2f7b4f94999d154b6e013eefd1a055dfe2102e\n\n## Takes\n\n- 5881478958 Cancel has no shipped-origin refuse today — accept-into-contract\n- 5881478958 Tip twin set is completed|cancelled; proposed A names completed only — accept-into-contract\n- 5881478958 Always-pin prose still offers cancel as post-merge exit — accept-into-contract\n- 5881478958 Swarm / authority lens on the refuse — accept-into-contract\n- 5881478958 Optional DONE probe is already named — accept-into-contract (promoted: first-ship MUST on Tracking closer DONE path)\n- 5881478958 Inventory note on cancel stamp pairing — accept-into-contract\n- 5881520182 relieves: P3 while Bound item 5 keeps B optional — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. **Fail-closed cancel refuse (primary A).** On `scope:cancel`, before the move/stamp: if the brief origin issue `#N` is shipped-closed (`state_reason=completed` or equivalent) AND `origin/<deliveryBranch>` has no `xbrief/completed/*` (or legacy `vbrief/completed/*`) whose origin cites `#N`, refuse non-zero. Print one remediation line naming leftover-complete / `scope:complete --merge-commit … --pr …` or `swarm:finalize-cohort`. Do not invent approve/skip phrases. True abandon/supersede still works when the origin is open or not shipped-closed.\n\n2. **Tip-twin predicate = completed-only for this ship path.** The refuse and Tracking/Refs leftover-complete expect a **completed** tip twin, not a cancelled tip twin. `#3476` `verify:completed-tracked` may still treat completed|cancelled as tip-terminal for its own DONE scan; this cancel refuse does not green on cancelled-only land for a shipped Tracking close. Cancelled tip twins remain for true abandon land only.\n\n3. **Compose existing inventory.** Implement the refuse by composing the same issue-state + tip-twin resolvers already used by `completed-tracked-on-delivery` / orphan-active shipped-origin detection. Fail closed when shipped-looking cancel cannot prove tip twin or cannot resolve closed state under those verbs' rules (including `--skip-gh` / cache / reopen races). ⊗ New ad-hoc gh/state path that can disagree with `#3476`.\n\n4. **Always-pin / orphan-active prose recut.** On the shipped-closed Tracking/Refs product-merge path, preamble post-merge lifecycle and orphan-active remediation treat cancel as **abandon-only**, not an alternate ship exit beside complete. Grok through-merge closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`. Keep cancel available for true abandon when origin is open or not shipped-closed.\n\n5. **DONE probe (B) — first-ship MUST.** On the Tracking/Refs parent-retained closer path after product merge closeout, before parent `DONE`, run existing `verify:completed-tracked -- --issue N` against `origin/<deliveryBranch>`. Exit 1 = not DONE. Reuse `evaluateCompletedTracked` / delivery-tip resolvers (same inventory as item 3). ⊗ Parallel DONE gh probe. Not a new mechanism — habit enforcement made mandatory for this closer path.\n\n6. **Tests.** Unit/integration: cancel on shipped closed-origin brief without completed twin → non-zero + remediation naming leftover-complete. Cancel still works for true supersede/abandon when issue is open or not shipped-closed. Tracking merge fixture: `verify:completed-tracked --issue N` exit 1 until completed twin exists; exit 0 after leftover-complete.\n\n7. **Non-goals.** Do not auto-attest acceptance from GitHub merge alone (#3240). Do not teach cancel to mint completed/. Do not broad-reconcile rewrite. Do not collapse #3476 tip-terminal set globally to completed-only outside this ship-path refuse.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:3a6c365882b6175870073129be3f8e09b2235226f8bb039bb4a7c8b22fc11125\n\n## Parent-side substantiation\n\nPain-audit required either promoting B or dropping the P3 cite. Recut promotes item 5 so all three Stop 1 pains have honest relief. Items 1–4 unchanged from 5881486344.\n\naudit:cancel-shipped-origin-refuse sha=0a2f7b4f94999d154b6e013eefd1a055dfe2102e pointer=comment:5881478958 reading=asserted\naudit:tip-twin-completed-only sha=0a2f7b4f94999d154b6e013eefd1a055dfe2102e pointer=comment:5881478958 reading=asserted\naudit:preamble-cancel-abandon-only sha=0a2f7b4f94999d154b6e013eefd1a055dfe2102e pointer=comment:5881478958 reading=asserted\naudit:compose-completed-tracked-inventory sha=0a2f7b4f94999d154b6e013eefd1a055dfe2102e pointer=comment:5881478958 reading=asserted\naudit:done-probe-must-tracking-closer sha=0a2f7b4f94999d154b6e013eefd1a055dfe2102e pointer=comment:5881520182 reading=asserted",
+          "id": 5881531881,
+          "html_url": "https://github.com/deftai/directive/issues/5126#issuecomment-5881531881",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T00:52:24Z",
+          "updated_at": "2026-09-29T00:52:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5126\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nfresh critic\nid-ceiling: 5881531881\ndispatch-sha: 0a2f7b4f94999d154b6e013eefd1a055dfe2102e\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nseat: grok\nlauncher: grok\n\nPin reads via `git show 0a2f7b4f94999d154b6e013eefd1a055dfe2102e:`. Local `git rev-parse HEAD` is `48e8cbf0e7818a2b2ca60a070791e236ca088ac0` (≠ dispatch SHA); no fetch/checkout. In-ceiling: Stop 1 `5881429817`, round-1 critic `5881478958`, prior lean `5881486344` (superseded), blocked pain `5881520182`, Recut bind map `5881531881`. Bound remedy on the Recut is the claimed relief for Stop 1 pains P1–P3.\n\n## P1 cancel-without-completed-twin stays covered by Bound items 1–3 + 6\nfootnote\nEvidence: Stop 1 `5881429817` P1 is cancel succeeding on shipped-closed origin with no completed tip twin. Recut `5881531881` Bound items 1–2 refuse that path with a completed-only tip predicate; item 3 composes existing issue-state + tip inventory; item 6 tests the refuse. Items 1–4 are unchanged from superseded lean `5881486344`; prior pain `5881520182` already classed P1 coverage as footnote. At this SHA cancel still stamps/moves with no shipped-origin gate (`packages/core/src/scope/transition.ts` cancel branch; `constants.ts` cancel ∈ reversible, allowed from any lifecycle folder).\nFailure mode: none for cite honesty on P1 under the Recut Bound list.\nDisposition: Census only; no Bound change required for P1 coverage.\n\n## P2 closer cancel-substitution stays covered by Bound items 1 + 4\nfootnote\nEvidence: Stop 1 P2 is closer substituting cancel + issue close when `scope:complete` hits acceptance / #3550 instead of leftover-complete. Recut Bound item 1 fails that substitute closed; item 4 recuts always-pin / orphan-active prose so cancel is abandon-only on the shipped Tracking/Refs path and the closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`. Prior pain `5881520182` already classed P2 coverage as footnote; Recut keeps those items.\nFailure mode: none for cite honesty on P2 — the named pain is the wrong discharge, and Bound blocks it while pointing remediation at leftover-complete. Acceptance-floor auto-attest remains out of scope per Bound item 7 / #3240.\nDisposition: Census only; no Bound change required for P2 coverage.\n\n## P3 DONE-without-probe cite honesty restored by Bound item 5 promotion\nfootnote\nEvidence: Prior pain `5881520182` blocked because lean `5881486344` Bound item 5 kept B optional while citing `relieves: P3`. Recut `5881531881` promotes item 5 to **DONE probe (B) — first-ship MUST** on the Tracking/Refs parent-retained closer path: before parent `DONE`, run existing `verify:completed-tracked -- --issue N` against `origin/<deliveryBranch>`; exit 1 = not DONE; reuse `evaluateCompletedTracked` / delivery-tip resolvers. That matches the blocking disposition (promote B to MUST, or drop the P3 cite). At this SHA the probe already exists (`packages/cli/src/verify-completed-tracked.ts`, `packages/core/src/lifecycle/completed-tracked-on-delivery.ts`); `TIP_TERMINAL_FOLDERS` remains `completed|cancelled` per Bound items 2/7.\nFailure mode: none for cite honesty on P3 under the Recut — the named pain is DONE without probe exit 0, and Bound item 5 makes that probe a first-ship MUST on the warranted closer path.\nDisposition: Census only; Prefer-A (items 1–3) remains the hard choke-point; item 5 is habit enforcement made mandatory for this closer path, as the prior blocking audit required for the cite.\n\n## Item 6 fixture wording vs #3476 tip set\nfootnote\nEvidence: Recut item 6 names a Tracking merge fixture where `verify:completed-tracked --issue N` exits 1 until a **completed** twin exists and exits 0 after leftover-complete. Bound items 2/7 keep `#3476` tip-terminal as completed|cancelled globally and limit completed-only to this ship-path cancel refuse.\nFailure mode: none for pain-cite honesty — the fixture names the leftover-complete happy path that lands completed/, not a global collapse of `TIP_TERMINAL_FOLDERS`.\nDisposition: Census only; implement tests against the leftover-complete completed twin without rewriting `#3476` tip set outside Bound item 2's refuse predicate.\n\n## Swarm / authority on promoted B\nfootnote\nEvidence: Item 5 reuses the same `#3476` verb and tip scan Bound item 3 already composes; Recut take line from `5881520182` accepts that promotion. No parallel DONE gh probe.\nFailure mode: none beyond census.\nDisposition: Keep `evaluateCompletedTracked` / delivery-tip resolvers shared with the cancel refuse.\n\n",
+          "id": 5881566501,
+          "html_url": "https://github.com/deftai/directive/issues/5126#issuecomment-5881566501",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T00:55:51Z",
+          "updated_at": "2026-09-29T00:55:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Finding | Class | Disposition | Cite |\n| --- | --- | --- | --- |\n| Cancel has no shipped-origin refuse today | blocks-the-design | accept-into-contract — Bound items 1–3 + 6 refuse cancel without completed tip twin | 5881478958 |\n| Tip twin set is completed\\|cancelled; proposed A names completed only | sharpens-framing | accept-into-contract — Bound item 2 completed-only for this ship path | 5881478958 |\n| Always-pin prose still offers cancel as post-merge exit | sharpens-framing | accept-into-contract — Bound item 4 abandon-only on Tracking/Refs ship path | 5881478958 |\n| Swarm / authority lens on the refuse | footnote | accept-into-contract — Bound item 3 compose existing inventory | 5881478958 |\n| Optional DONE probe is already named | sharpens-framing | accept-into-contract — Bound item 5 promoted to first-ship MUST on Tracking closer DONE path | 5881478958 / 5881520182 |\n| Inventory note on cancel stamp pairing | footnote | accept-into-contract — Bound item 6 fixture | 5881478958 |\n| relieves: P3 while Bound item 5 kept B optional | blocks-the-design | accept-into-contract — Recut 5881531881 promotes B to MUST | 5881520182 |\n\nDisagreement set: empty.\nPain-audit 5881566501 of Recut lean 5881531881: footnote-only for harvest; coverage of pain-P1, pain-P2, pain-P3 holds.",
+          "id": 5881579422,
+          "html_url": "https://github.com/deftai/directive/issues/5126#issuecomment-5881579422",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T00:57:16Z",
+          "updated_at": "2026-09-29T00:57:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter Tracking merge, cancel of a shipped closed-origin brief with no completed tip twin is not ship discharge. Bound remedy fails closed on that cancel, requires a completed tip twin for the ship path, recuts always-pin prose to abandon-only, and makes the existing verify:completed-tracked DONE probe a first-ship MUST on the Tracking/Refs parent-retained closer path. Pain-audit 5881566501 of Recut lean 5881531881 was footnote-only after an earlier block forced the B promotion. The same parent wrote Stop 1 5881429817. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5881531881",
+          "id": 5881579633,
+          "html_url": "https://github.com/deftai/directive/issues/5126#issuecomment-5881579633",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T00:57:17Z",
+          "updated_at": "2026-09-29T00:57:17Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nGrok through-merge (`stop-at: pr-open` + parent-retained closer) squash-merges a Tracking PR, closes the GitHub issue, then runs `scope:cancel` on the dest-local active xBRIEF. Master stays clean of orphans, but no brief lands in `xbrief/completed/`. That is not leftover-complete.\n\nObserved 2026-09-28 on cohort #5105 / #3791 / #4533 / #4659 / #4664 / #4574 / #5110 / #5111 / #4671: product PRs merged, issues closed completed, briefs only in worktree `cancelled/`. Related symptom class: #4714. Related envelope: #4529 / #4821.\n\n## Why cancel happened\n\n`scope:complete` hit acceptance stamp / #3550 narrative floor. Closer substituted cancel + issue close instead of finishing leftover-complete.\n\n## Desired behavior\n\nAfter a Tracking/Refs product merge for issue `#N`:\n\n1. Leftover-complete (stamp → `scope:complete` / `swarm:finalize-cohort`) so a completed brief is on `origin/<deliveryBranch>`.\n2. `verify:completed-tracked -- --issue N` exit 0 before parent `DONE`.\n3. `scope:cancel` is not a valid ship discharge for that path.\n\n## Proposed fix (deterministic, low token, simple)\n\n### A. Fail-closed cancel refuse (primary)\n\n`scope:cancel` refuses when:\n\n- brief origin issue `#N` is closed (`state_reason=completed` or equivalent shipped close), and\n- `origin/<deliveryBranch>` has no `xbrief/completed/*` whose origin cites `#N`\n\nPrint one remediation line: run leftover-complete / `scope:complete --merge-commit … --pr …` (or `swarm:finalize-cohort`). Do not invent approve/skip phrases.\n\n### B. Tiny DONE probe (secondary, optional same PR)\n\nAfter Tracking merge closeout, parent must run existing `verify:completed-tracked -- --issue N` against `origin/<deliveryBranch>` before `DONE`. Exit 1 = not DONE. No new LLM judgment.\n\nPrefer A alone if one change: it blocks the wrong exit at the verb. B is the DONE checklist already named in preamble/#3476 and was skipped in practice.\n\n## Non-goals\n\n- Auto-attesting acceptance from GitHub merge alone (#3240).\n- Teaching cancel to mint completed/.\n- Broad reconcile rewrites.\n\n## Acceptance\n\n- Unit/integration: cancel on a shipped closed-origin brief without completed twin → non-zero + remediation naming leftover-complete.\n- Cancel still works for true supersede/abandon when issue is open or not shipped-closed.\n- Optional: after Tracking merge fixture, `verify:completed-tracked --issue N` exit 1 until completed twin exists; exit 0 after leftover-complete.\n\n## Related\n\n- #4714 (records: completed/ missing on fresh clone)\n- #4529 / #4821 (Grok through-merge envelope)\n- #3476 (`verify:completed-tracked`)\n- #3240 (scope:complete acceptance gate)\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5622631751,
+        "origin": "deftai/directive#5126",
+        "id": "github.issue.5622631751"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3a6c365882b6175870073129be3f8e09b2235226f8bb039bb4a7c8b22fc11125"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(scope,swarm): scope:cancel after Tracking merge is not leftover-complete",
+        "Fail-closed cancel refuse (primary A). On `scope:cancel`, before the move/stamp: if the brief origin issue `#N` is shipped-closed (`state_reason=completed` or equivalent) AND `origin/<deliveryBranch>` has no `xbrief/completed/*` (or legacy `vbrief/completed/*`) whose origin cites `#N`, refuse non-zero.",
+        "Print one remediation line naming leftover-complete / `scope:complete --merge-commit … --pr …` or `swarm:finalize-cohort`.",
+        "Do not invent approve/skip phrases.",
+        "True abandon/supersede still works when the origin is open or not shipped-closed.",
+        "Tip-twin predicate = completed-only for this ship path. The refuse and Tracking/Refs leftover-complete expect a completed tip twin, not a cancelled tip twin.",
+        "`#3476` `verify:completed-tracked` may still treat completed|cancelled as tip-terminal for its own DONE scan; this cancel refuse does not green on cancelled-only land for a shipped Tracking close.",
+        "Cancelled tip twins remain for true abandon land only.",
+        "Compose existing inventory. Implement the refuse by composing the same issue-state + tip-twin resolvers already used by `completed-tracked-on-delivery` / orphan-active shipped-origin detection.",
+        "Fail closed when shipped-looking cancel cannot prove tip twin or cannot resolve closed state under those verbs' rules (including `--skip-gh` / cache / reopen races).",
+        "⊗ New ad-hoc gh/state path that can disagree with `#3476`.",
+        "Always-pin / orphan-active prose recut. On the shipped-closed Tracking/Refs product-merge path, preamble post-merge lifecycle and orphan-active remediation treat cancel as abandon-only, not an alternate ship exit beside complete.",
+        "Grok through-merge closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`.",
+        "Keep cancel available for true abandon when origin is open or not shipped-closed.",
+        "DONE probe (B) — first-ship MUST. On the Tracking/Refs parent-retained closer path after product merge closeout, before parent `DONE`, run existing `verify:completed-tracked -- --issue N` against `origin/<deliveryBranch>`.",
+        "Exit 1 = not DONE.",
+        "Reuse `evaluateCompletedTracked` / delivery-tip resolvers (same inventory as item 3).",
+        "⊗ Parallel DONE gh probe.",
+        "Not a new mechanism — habit enforcement made mandatory for this closer path.",
+        "Tests. Unit/integration: cancel on shipped closed-origin brief without completed twin → non-zero + remediation naming leftover-complete.",
+        "Cancel still works for true supersede/abandon when issue is open or not shipped-closed.",
+        "Tracking merge fixture: `verify:completed-tracked --issue N` exit 1 until completed twin exists; exit 0 after leftover-complete.",
+        "Non-goals. Do not auto-attest acceptance from GitHub merge alone (#3240).",
+        "Do not teach cancel to mint completed/.",
+        "Do not broad-reconcile rewrite.",
+        "Do not collapse #3476 tip-terminal set globally to completed-only outside this ship-path refuse.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:3a6c365882b6175870073129be3f8e09b2235226f8bb039bb4a7c8b22fc11125"
+      ],
+      "admitted_source_sentences": [
+        "Fail-closed cancel refuse (primary A). On `scope:cancel`, before the move/stamp: if the brief origin issue `#N` is shipped-closed (`state_reason=completed` or equivalent) AND `origin/<deliveryBranch>` has no `xbrief/completed/*` (or legacy `vbrief/completed/*`) whose origin cites `#N`, refuse non-zero.",
+        "Print one remediation line naming leftover-complete / `scope:complete --merge-commit … --pr …` or `swarm:finalize-cohort`.",
+        "Do not invent approve/skip phrases.",
+        "True abandon/supersede still works when the origin is open or not shipped-closed.",
+        "Tip-twin predicate = completed-only for this ship path. The refuse and Tracking/Refs leftover-complete expect a completed tip twin, not a cancelled tip twin.",
+        "`#3476` `verify:completed-tracked` may still treat completed|cancelled as tip-terminal for its own DONE scan; this cancel refuse does not green on cancelled-only land for a shipped Tracking close.",
+        "Cancelled tip twins remain for true abandon land only.",
+        "Compose existing inventory. Implement the refuse by composing the same issue-state + tip-twin resolvers already used by `completed-tracked-on-delivery` / orphan-active shipped-origin detection.",
+        "Fail closed when shipped-looking cancel cannot prove tip twin or cannot resolve closed state under those verbs' rules (including `--skip-gh` / cache / reopen races).",
+        "⊗ New ad-hoc gh/state path that can disagree with `#3476`.",
+        "Always-pin / orphan-active prose recut. On the shipped-closed Tracking/Refs product-merge path, preamble post-merge lifecycle and orphan-active remediation treat cancel as abandon-only, not an alternate ship exit beside complete.",
+        "Grok through-merge closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`.",
+        "Keep cancel available for true abandon when origin is open or not shipped-closed.",
+        "DONE probe (B) — first-ship MUST. On the Tracking/Refs parent-retained closer path after product merge closeout, before parent `DONE`, run existing `verify:completed-tracked -- --issue N` against `origin/<deliveryBranch>`.",
+        "Exit 1 = not DONE.",
+        "Reuse `evaluateCompletedTracked` / delivery-tip resolvers (same inventory as item 3).",
+        "⊗ Parallel DONE gh probe.",
+        "Not a new mechanism — habit enforcement made mandatory for this closer path.",
+        "Tests. Unit/integration: cancel on shipped closed-origin brief without completed twin → non-zero + remediation naming leftover-complete.",
+        "Cancel still works for true supersede/abandon when issue is open or not shipped-closed.",
+        "Tracking merge fixture: `verify:completed-tracked --issue N` exit 1 until completed twin exists; exit 0 after leftover-complete.",
+        "Non-goals. Do not auto-attest acceptance from GitHub merge alone (#3240).",
+        "Do not teach cancel to mint completed/.",
+        "Do not broad-reconcile rewrite.",
+        "Do not collapse #3476 tip-terminal set globally to completed-only outside this ship-path refuse.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:3a6c365882b6175870073129be3f8e09b2235226f8bb039bb4a7c8b22fc11125"
+      ],
+      "admitted_source_digest": "b47ff1c82bf44d8f511cf1c8ad4b6987cffae80b6b510ba4c33d9f2551c909ee",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Fail-closed cancel refuse (primary A). On `scope:cancel`, before the move/stamp: if the brief origin issue `#N` is shipped-closed (`state_reason=completed` or equivalent) AND `origin/<deliveryBranch>` has no `xbrief/completed/*` (or legacy `vbrief/completed/*`) whose origin cites `#N`, refuse non-zero. Print one remediation line naming leftover-complete / `scope:complete --merge-commit … --pr …` or `swarm:finalize-cohort`. Do not invent approve/skip phrases. True abandon/supersede still works when the origin is open or not shipped-closed.",
+          "artifact_path": "packages/core/src/scope/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Tip-twin predicate = completed-only for this ship path. The refuse and Tracking/Refs leftover-complete expect a completed tip twin, not a cancelled tip twin. `#3476` `verify:completed-tracked` may still treat completed|cancelled as tip-terminal for its own DONE scan; this cancel refuse does not green on cancelled-only land for a shipped Tracking close. Cancelled tip twins remain for true abandon land only.",
+          "artifact_path": "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Compose existing inventory. Implement the refuse by composing the same issue-state + tip-twin resolvers already used by `completed-tracked-on-delivery` / orphan-active shipped-origin detection. Fail closed when shipped-looking cancel cannot prove tip twin or cannot resolve closed state under those verbs' rules (including `--skip-gh` / cache / reopen races). ⊗ New ad-hoc gh/state path that can disagree with `#3476`.",
+          "artifact_path": "packages/core/src/orphan-active/running-briefs.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Always-pin / orphan-active prose recut. On the shipped-closed Tracking/Refs product-merge path, preamble post-merge lifecycle and orphan-active remediation treat cancel as abandon-only, not an alternate ship exit beside complete. Grok through-merge closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`. Keep cancel available for true abandon when origin is open or not shipped-closed.",
+          "artifact_path": "content/templates/agent-prompt-preamble.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "DONE probe (B) — first-ship MUST. On the Tracking/Refs parent-retained closer path after product merge closeout, before parent `DONE`, run existing `verify:completed-tracked -- --issue N` against `origin/<deliveryBranch>`. Exit 1 = not DONE. Reuse `evaluateCompletedTracked` / delivery-tip resolvers (same inventory as item 3). ⊗ Parallel DONE gh probe. Not a new mechanism — habit enforcement made mandatory for this closer path.",
+          "artifact_path": "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Tests. Unit/integration: cancel on shipped closed-origin brief without completed twin → non-zero + remediation naming leftover-complete. Cancel still works for true supersede/abandon when issue is open or not shipped-closed. Tracking merge fixture: `verify:completed-tracked --issue N` exit 1 until completed twin exists; exit 0 after leftover-complete.",
+          "artifact_path": "packages/core/src/scope/cancel-shipped-origin-refuse.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Non-goals. Do not auto-attest acceptance from GitHub merge alone (#3240). Do not teach cancel to mint completed/. Do not broad-reconcile rewrite. Do not collapse #3476 tip-terminal set globally to completed-only outside this ship-path refuse.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5622631751",
+    "updated": "2026-09-29T01:29:12Z"
+  }
+}
