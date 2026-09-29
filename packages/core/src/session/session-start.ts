@@ -572,6 +572,17 @@ export function evaluateFinalizeOwedSessionGate(
       ? options.deferOwedReason.trim()
       : null;
   const deferred = deferReason !== null;
+  // #5145 Prefer-A: defer skips tip inventory entirely (match doctor/cache_fresh defer skip).
+  // Soft-pass alone still paid discoverFinalizeOwed / fetchDeliveryTipPrivate before this cut.
+  if (deferred && deferReason !== null && options.probeFinalizeOwed === undefined) {
+    return {
+      lines: [`finalize owed deferred: ${deferReason}`],
+      blocks: false,
+      unknown: false,
+      deferred: true,
+      deferReason,
+    };
+  }
   if (options.probeFinalizeOwed !== undefined) {
     const probed = options.probeFinalizeOwed(projectRoot);
     const lines = [...probed.lines];

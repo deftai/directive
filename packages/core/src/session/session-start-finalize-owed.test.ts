@@ -185,4 +185,24 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     expect(result.deferred).toBe(false);
     expect(result.lines.join("\n")).toContain("blocks mutation");
   });
+  it("skips tip fetch and discover when --defer-owed is set (#5145 Prefer-A)", () => {
+    let fetchCalls = 0;
+    let discoverCalls = 0;
+    const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
+      deferOwedReason: "cohort-add",
+      runGit: () => {
+        fetchCalls += 1;
+        return { code: 0, stdout: "TIP\n", stderr: "" };
+      },
+      env: { GH_REPO: "deftai/directive" },
+    });
+    expect(result.blocks).toBe(false);
+    expect(result.deferred).toBe(true);
+    expect(result.deferReason).toBe("cohort-add");
+    expect(result.lines.join("\n")).toContain("deferred");
+    // Live path must not thrash tip/network under defer (spy via runGit never called).
+    expect(fetchCalls).toBe(0);
+    expect(discoverCalls).toBe(0);
+  });
+
 });
