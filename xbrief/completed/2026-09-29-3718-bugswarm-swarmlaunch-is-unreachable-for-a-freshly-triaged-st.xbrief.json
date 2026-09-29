@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3718",
-    "updated": "2026-09-29T00:49:39Z"
+    "updated": "2026-09-29T05:12:12Z"
   },
   "plan": {
     "title": "bug(swarm): swarm:launch is unreachable for a freshly-triaged story -- readiness needs 15 hand-authored fields and file_scope collides with the provenance gate",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(swarm): swarm:launch is unreachable for a freshly-triaged story -- readiness needs 15 hand-authored fields and file_scope collides with the provenance gate",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3718",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Keep #4956/#4988 as already discharging the proceed-path file_scope/provenance TTY-mint collision. Do not bind a joint readiness+provenance redesign, and do not re-introduce `scope:record-approved-scope` as the launch bootstrap.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/evidence": {
           "kind": "test",
@@ -27,7 +27,7 @@
       },
       {
         "title": "First ship on #3718: make a freshly-accepted / freshly-promoted story able to clear `swarm:launch` without hand-authoring the full swarm block. Prefer one of these (or a recorded conjunct): (a) a scaffolding verb or triage/setup seam that writes `plan.metadata.swarm` from operator-named paths and explicit draft fields only (no auto-fill of `file_scope` / `verify_commands` from issue body text; reuse #4988 operator-named / ingest strip constraints); (b) a deliberate readiness relaxation for documented N=1 / solo headless launch that names which fields remain load-bearing vs ceremony.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/evidence": {
           "kind": "test",
@@ -38,7 +38,7 @@
       },
       {
         "title": "Keep `xbrief:preflight` exit 0 as lifecycle-ready, not swarm-ready. At the point of `swarm:readiness` / `swarm:launch` failure, say plainly that the swarm block is missing or incomplete and name the generator or relaxation path from item 2 — do not imply the two gates must converge under #3156.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/evidence": {
           "kind": "test",
@@ -49,7 +49,7 @@
       },
       {
         "title": "Interactive solo-worker discoverability and the #3032 naming debt stay on open #3669. Do not bind \"sanctioned path unreachable for any freshly-triaged story\" against the interactive path #3666 already pointed at.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/evidence": {
           "kind": "test",
@@ -60,7 +60,7 @@
       },
       {
         "title": "Tests and CHANGELOG `[Unreleased]` lock the chosen generator and/or readiness relaxation, including the forbid on inventing fence authority from untrusted issue text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/disposition": {
           "disposition": "not_applicable",
@@ -75,7 +75,7 @@
       {
         "id": "clause.6",
         "title": "At the point of `swarm:readiness` / `swarm:launch` failure, say plainly that the swarm block is missing or incomplete an",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5132; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -89,7 +89,7 @@
       {
         "id": "clause.7",
         "title": "Interactive solo-worker discoverability and the #3032 naming debt stay on open #3669.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5132; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -103,7 +103,7 @@
       {
         "id": "clause.8",
         "title": "Do not bind \"sanctioned path unreachable for any freshly-triaged story\" against the interactive path #3666 already point",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5132; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -117,7 +117,7 @@
       {
         "id": "clause.9",
         "title": "Tests and CHANGELOG `[Unreleased]` lock the chosen generator and/or readiness relaxation, including the forbid on invent",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5132; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -131,7 +131,7 @@
       {
         "id": "clause.10",
         "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:95ca1ab9cfb17cc20eaa8d4cb0bab5ab911d3dc5b079035901dbd6a6eee",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5132; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -675,9 +675,32 @@
           "packages/core/src/vbrief-validation/story-quality.ts",
           "CHANGELOG.md"
         ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5132,
+        "prBase": null,
+        "mergeCommit": "fb67bea25c605618423262b948ba199f80599ec8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "25102e62a4f146ee9a1171ecc34e51118c9bc73e",
+        "verifiedAt": "2026-09-29T05:12:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-29T05:12:12Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-29T05:12:12Z"
       }
     },
     "id": "github.issue.5242244132",
-    "updated": "2026-09-29T00:49:39Z"
+    "updated": "2026-09-29T05:12:12Z"
   }
 }
