@@ -1230,6 +1230,70 @@ describe("finalize-owed proposed historical cite refuse (#5143)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  
+  it("marked productPullRequest under epic/tracker still owes (#5143 Class A)", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-5143-marked-epic-"));
+    const rel = "xbrief/active/marked-under-epic.xbrief.json";
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, rel),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "marked-under-epic",
+          status: "running",
+          metadata: { productPullRequest: 401 },
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/635",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const tipBlobs = new Map<string, string>([[rel, readFileSync(join(root, rel), "utf8")]]);
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: tipGit(tipBlobs),
+      runGh: (cmd) => {
+        const joined = cmd.join(" ");
+        if (joined.includes("/pulls?")) {
+          return { returncode: 0, stdout: "[]", stderr: "" };
+        }
+        if (joined.includes("/pulls/401")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              merged_at: "2026-04-01T00:00:00Z",
+              merge_commit_sha: "deadbeef401",
+              base: { ref: "master" },
+            }),
+            stderr: "",
+          };
+        }
+        if (joined.includes("/issues/635")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              state: "open",
+              labels: [{ name: "epic" }, { name: "status:tracker" }],
+            }),
+            stderr: "",
+          };
+        }
+        return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
+      },
+    });
+    const owed = inventory.stories.filter((s) => s.blocks);
+    expect(owed.length).toBeGreaterThan(0);
+    expect(owed.some((s) => s.issue === 635 && s.productPr === 401)).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("still blocks true unmarked active Tracking leftovers with open non-protected origin", () => {
     const root = mkdtempSync(join(tmpdir(), "finalize-owed-5143-true-leftover-"));
     const rel = "xbrief/active/stuck-unmarked.xbrief.json";

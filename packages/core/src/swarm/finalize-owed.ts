@@ -625,7 +625,12 @@ export function discoverFinalizeOwed(
       continue;
     }
     // Closed origin: do not reclaim/delete a finalize branch for finished work (#4919).
-    if (issueState.state === "closed" || issueState.protectedUmbrella) {
+    // Protected staying-open (epic/tracker/umbrella) skips only unmarked admits (#5143).
+    // Durable metadata.productPullRequest leftovers still owe under those labels (Greptile).
+    if (issueState.state === "closed") {
+      continue;
+    }
+    if (issueState.protectedUmbrella && unmarkedDetail !== null) {
       continue;
     }
     if (claim.exists && claim.stale) {
