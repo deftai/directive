@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Name #3032 solo-worker launch path on AGENTS.md / commands.md / swarm SKILL (#3669).** Equates the always-pin to the interactive swarm-skill path (Phase 0 default; Mode B; `dispatch_kind: solo`); states `swarm:readiness` exit 0 gates concurrent workers and that headless `swarm:launch` emits solo only after concurrent-ready gates. Declines N=1 sequential `swarm:launch` mode for first ship (multi-story sequential / `fileOverlaps` / conflict-group sequencing out of scope). Closed #3666 did not discharge this debt. Skills-pack source carries the same Hard-gates naming so `packs:render` does not wipe the SKILL projection. Tracking #3669.
+- **Tighten #3032 always-pin solo naming for agents-md-budget (#3669).** Keep Bound meaning (interactive swarm skill = solo path; headless `swarm:launch` concurrent-gated; N=1 sequential declined) in a shorter agents-entry / AGENTS.md form so managed section stays under absoluteMaxBytes. Tracking #3669.
 
 ### Fixed
 - **fix(hooks,verify): readiness recovery no longer concatenates UNUSED_HOST_HOOKS_RECOVERY on matcher drift (Tracking #5110).** Missing/drifted evaluateAgentHooks and non-timeout live readiness no longer teach `disable-host-hooks` as Grok matcher recovery; capability-cost disclosure stays on the unconfirmed disable verb. Leftover of #4574.
