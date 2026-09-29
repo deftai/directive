@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for dest residual PR #5121 / Tracking #4671 (dest-local)",
-    "updated": "2026-09-29T00:00:41.852Z"
+    "updated": "2026-09-29T00:12:02.179Z"
   },
   "plan": {
     "title": "[UAT Tester 1] issue:ingest Requirements harvest + empty-after-harvest notice (#4671)",
@@ -55,8 +55,16 @@
       "4671"
     ],
     "references": [
-      "https://github.com/deftai/directive/issues/4671",
-      "https://github.com/deftai/directive/pull/5121"
+      {
+        "uri": "https://github.com/deftai/directive/issues/4671",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4671"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/5121",
+        "type": "x-xbrief/github-pr",
+        "title": "PR #5121"
+      }
     ],
     "metadata": {
       "dest_local": true,
@@ -69,7 +77,14 @@
       "productPullRequest": 5121,
       "swarm": {},
       "completedAt": "2026-09-28T23:32:38Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5480360210,
+        "origin": "deftai/directive#4671",
+        "id": "github.issue.5480360210"
+      }
     },
     "acceptance": {
       "none_stated": true,
@@ -77,6 +92,6 @@
       "commands": []
     },
     "id": "github.issue.5480360210",
-    "updated": "2026-09-29T00:00:41.852Z"
+    "updated": "2026-09-29T00:12:02.179Z"
   }
 }
