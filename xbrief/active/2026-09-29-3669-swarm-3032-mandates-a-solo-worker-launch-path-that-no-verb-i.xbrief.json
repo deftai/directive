@@ -19,10 +19,21 @@
         "status": "proposed",
         "id": "clause.1",
         "x-directive/evidence": {
-          "kind": "review",
-          "pointer": "https://github.com/deftai/directive/pull/5131 (Greptile 5/5 CLEAN; squash merge fd5ad6312b97f213c121db45880fec1eb90c0f72)",
-          "recorded_at": "2026-09-29T02:39:25.457Z",
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5131 (merge fd5ad6312)",
+          "recorded_at": "2026-09-29T02:46:32.868Z",
           "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Docs naming story: clause verified by product PR #5131 review+merge; pathless derived clause cannot bind kind:test (#4986). Leftover-complete after Tracking squash.",
+          "recorded_at": "2026-09-29T02:46:32.868Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T02:46:32.868Z",
+            "mintedVia": "through-merge-leftover"
+          }
         }
       },
       {
@@ -30,10 +41,21 @@
         "status": "proposed",
         "id": "clause.2",
         "x-directive/evidence": {
-          "kind": "review",
-          "pointer": "https://github.com/deftai/directive/pull/5131 (Greptile 5/5 CLEAN; squash merge fd5ad6312b97f213c121db45880fec1eb90c0f72)",
-          "recorded_at": "2026-09-29T02:39:25.457Z",
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5131 (merge fd5ad6312)",
+          "recorded_at": "2026-09-29T02:46:32.868Z",
           "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Docs naming story: clause verified by product PR #5131 review+merge; pathless derived clause cannot bind kind:test (#4986). Leftover-complete after Tracking squash.",
+          "recorded_at": "2026-09-29T02:46:32.868Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T02:46:32.868Z",
+            "mintedVia": "through-merge-leftover"
+          }
         }
       },
       {
@@ -41,10 +63,21 @@
         "status": "proposed",
         "id": "clause.3",
         "x-directive/evidence": {
-          "kind": "review",
-          "pointer": "https://github.com/deftai/directive/pull/5131 (Greptile 5/5 CLEAN; squash merge fd5ad6312b97f213c121db45880fec1eb90c0f72)",
-          "recorded_at": "2026-09-29T02:39:25.457Z",
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5131 (merge fd5ad6312)",
+          "recorded_at": "2026-09-29T02:46:32.868Z",
           "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Docs naming story: clause verified by product PR #5131 review+merge; pathless derived clause cannot bind kind:test (#4986). Leftover-complete after Tracking squash.",
+          "recorded_at": "2026-09-29T02:46:32.868Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T02:46:32.868Z",
+            "mintedVia": "through-merge-leftover"
+          }
         }
       },
       {
@@ -52,10 +85,21 @@
         "status": "proposed",
         "id": "clause.4",
         "x-directive/evidence": {
-          "kind": "review",
-          "pointer": "https://github.com/deftai/directive/pull/5131 (Greptile 5/5 CLEAN; squash merge fd5ad6312b97f213c121db45880fec1eb90c0f72)",
-          "recorded_at": "2026-09-29T02:39:25.457Z",
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5131 (merge fd5ad6312)",
+          "recorded_at": "2026-09-29T02:46:32.868Z",
           "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Docs naming story: clause verified by product PR #5131 review+merge; pathless derived clause cannot bind kind:test (#4986). Leftover-complete after Tracking squash.",
+          "recorded_at": "2026-09-29T02:46:32.868Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T02:46:32.868Z",
+            "mintedVia": "through-merge-leftover"
+          }
         }
       },
       {
@@ -63,10 +107,21 @@
         "status": "proposed",
         "id": "clause.5",
         "x-directive/evidence": {
-          "kind": "review",
-          "pointer": "https://github.com/deftai/directive/pull/5131 (Greptile 5/5 CLEAN; squash merge fd5ad6312b97f213c121db45880fec1eb90c0f72)",
-          "recorded_at": "2026-09-29T02:39:25.457Z",
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5131 (merge fd5ad6312)",
+          "recorded_at": "2026-09-29T02:46:32.868Z",
           "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Docs naming story: clause verified by product PR #5131 review+merge; pathless derived clause cannot bind kind:test (#4986). Leftover-complete after Tracking squash.",
+          "recorded_at": "2026-09-29T02:46:32.868Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T02:46:32.868Z",
+            "mintedVia": "through-merge-leftover"
+          }
         }
       }
     ],
@@ -169,7 +224,8 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": []
     },
     "metadata": {
       "intended_placement": {
