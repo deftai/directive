@@ -3,7 +3,7 @@
     "version": "0.6",
     "description": "Scope vBRIEF (#635 child, needs-discussion shape): Phase 0 spec scaffolding RFC -- multi-phase plan with open design questions for generated per-phase task gates (e.g. spec:phase0, spec:pipeline). Should run discussion before swarm assignment per canonical #642 workflow comment.",
     "created": "2026-04-27T22:25:52Z",
-    "updated": "2026-04-27T22:25:52Z"
+    "updated": "2026-09-29T16:13:09Z"
   },
   "plan": {
     "id": "635-phase-0-spec-scaffolding-rfc",
@@ -93,7 +93,7 @@
         "title": "#233 (remaining 6) -- the phase-0-generated-per-phase-gates item references this RFC as its design gate (related-plan, not parent/child, so no D4 back-link required)"
       }
     ],
-    "updated": "2026-09-29T16:04:18Z",
+    "updated": "2026-09-29T16:13:09Z",
     "x-directive/cancelledNote": "Abandoned/superseded: parent #233 More Determinism closed 2026-08-03 with phase-0-generated-per-phase-gates marked completed; RFC never left proposed/needs_discussion and no spec:phase0 surface landed. Cancelling clears tip inventory."
   }
 }

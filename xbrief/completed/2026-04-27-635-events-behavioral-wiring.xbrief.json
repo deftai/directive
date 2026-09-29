@@ -3,7 +3,7 @@
     "version": "0.6",
     "description": "Scope vBRIEF (#635 child): wire 3 behavioral framework events that lack existing detectors -- session:interrupted/session:resumed (paired), plan:approved, legacy:detected. Split out from PR #401 per canonical #642 workflow comment so the trimmed PR lands hygiene only and behavioral events become enforceable structural artifacts.",
     "created": "2026-04-27T22:25:52Z",
-    "updated": "2026-04-27T22:25:52Z"
+    "updated": "2026-09-29T16:13:09Z"
   },
   "plan": {
     "id": "635-events-behavioral",
@@ -85,12 +85,12 @@
         "title": "PR #401: hygiene/DDD/determinism (trim makes the events surface available for structural respawn under this vBRIEF)"
       },
       {
-        "uri": "proposed/2026-04-27-635-events-detection-bound-wiring.xbrief.json",
+        "uri": "completed/2026-04-27-635-events-detection-bound-wiring.xbrief.json",
         "type": "x-xbrief/related-plan",
         "title": "Sibling vBRIEF: events detection-bound wiring (lands shared scripts/_events.py helper) -- related-plan, not parent/child, so no D4 back-link required"
       }
     ],
-    "updated": "2026-09-29T16:04:18Z",
+    "updated": "2026-09-29T16:13:09Z",
     "x-directive/completedNote": "Product already shipped via PR #706 (2026-04-28): behavioral events unified into content/events/registry.json. Tip proposed copy was leftover lifecycle debt; completing clears finalize-owed unmarked compose against historical PR #401. Epic #635 stays open."
   }
 }

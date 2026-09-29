@@ -449,10 +449,10 @@
       {
         "id": "2026-04-27-635-events-behavioral-wiring",
         "title": "Events: behavioral wiring (3 items: session interrupt/resume pair, plan:approved, legacy:detected)",
-        "status": "proposed",
+        "status": "completed",
         "metadata": {
-          "source_path": "proposed/2026-04-27-635-events-behavioral-wiring.xbrief.json",
-          "lifecycle_folder": "proposed",
+          "source_path": "completed/2026-04-27-635-events-behavioral-wiring.xbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/635",
@@ -470,7 +470,7 @@
               "title": "PR #401: hygiene/DDD/determinism (trim makes the events surface available for structural respawn under this vBRIEF)"
             },
             {
-              "uri": "proposed/2026-04-27-635-events-detection-bound-wiring.xbrief.json",
+              "uri": "completed/2026-04-27-635-events-detection-bound-wiring.xbrief.json",
               "type": "x-xbrief/related-plan",
               "title": "Sibling vBRIEF: events detection-bound wiring (lands shared scripts/_events.py helper) -- related-plan, not parent/child, so no D4 back-link required"
             }
@@ -480,10 +480,10 @@
       {
         "id": "2026-04-27-635-events-detection-bound-wiring",
         "title": "Events: detection-bound wiring (5 events with existing detectors)",
-        "status": "proposed",
+        "status": "completed",
         "metadata": {
-          "source_path": "proposed/2026-04-27-635-events-detection-bound-wiring.xbrief.json",
-          "lifecycle_folder": "proposed",
+          "source_path": "completed/2026-04-27-635-events-detection-bound-wiring.xbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/635",
@@ -511,10 +511,10 @@
       {
         "id": "2026-04-27-635-phase-0-spec-scaffolding-rfc",
         "title": "RFC: Phase 0 spec scaffolding -- generated per-phase task gates (needs-discussion)",
-        "status": "proposed",
+        "status": "cancelled",
         "metadata": {
-          "source_path": "proposed/2026-04-27-635-phase-0-spec-scaffolding-rfc.xbrief.json",
-          "lifecycle_folder": "proposed",
+          "source_path": "cancelled/2026-04-27-635-phase-0-spec-scaffolding-rfc.xbrief.json",
+          "lifecycle_folder": "cancelled",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/635",
@@ -542,10 +542,10 @@
       {
         "id": "2026-04-27-635-rule-ownership-map-data-file-and-lint",
         "title": "Rule Ownership Map: data file + lint enforcement (replaces REFERENCES.md prose section)",
-        "status": "proposed",
+        "status": "completed",
         "metadata": {
-          "source_path": "proposed/2026-04-27-635-rule-ownership-map-data-file-and-lint.xbrief.json",
-          "lifecycle_folder": "proposed",
+          "source_path": "completed/2026-04-27-635-rule-ownership-map-data-file-and-lint.xbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/635",
