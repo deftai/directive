@@ -36,7 +36,7 @@ Agents Lie, Cheat, and Steal (LCS). Directive is the practice layer that helps p
 
 ## 🚀 Getting Started
 
-Directive is three commands — `init`, `update`, and `doctor`. After install, walk the [first-project tutorial](./content/docs/getting-started.md).
+Directive is three commands — `init`, `update`, and `doctor`. After install, walk the [first-project tutorial](./content/docs/getting-started.md). Hands-on learning: the [Directive training course](https://github.com/deftai/directive-training).
 
 | Your situation | Run this one command | What it does |
 | --- | --- | --- |

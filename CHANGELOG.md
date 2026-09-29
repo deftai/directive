@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **README Getting Started links the Directive training course (#5154).** Points at [`deftai/directive-training`](https://github.com/deftai/directive-training). Tracking #5154.
+
 - **chore(xbrief): clear stale #635 proposed split briefs** -- complete three April tip copies whose product already shipped (#705 rule-ownership, #707/#706 events) and cancel the abandoned phase-0 RFC; removes finalize-owed false positives that cited historical PR #401 against open epic #635. Refs #5142 #635 #642.
 
 - **Clearer check-gate failure remedies (#1883).** Composition check failures now name a concrete next step instead of a generic re-run line; empty or opaque diagnostics stay marked as a named-cause seam bug. Extends #3282. Tracking #1883.
