@@ -124,8 +124,8 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ### Dest leaf ceremony (#5145)
 
 ! Dest through-merge / worktree leaves still need their own ritual — primary checkout ritual does not satisfy dest hooks.
-! When dest `.deft/ritual-state.json` already exists, prefer `session:start --rearm` (maintainer: `task session:start -- --rearm`) over a full cold start.
-! Linked dest Prefer-A inherits primary `finalize_owed` (deferred or ok) so leaves skip tip inventory after the head ceremony without `--defer-owed`. `--rearm` alone on primary/main still scans unless `--defer-owed=<reason>` is set. Keep `--defer=cache_fresh=…` soft paths. Standalone linked worktrees without a primary finalize_owed record still fail-closed.
+! When dest `.deft/ritual-state.json` already exists, prefer `session:start --rearm` (maintainer: `task session:start -- --rearm`) over a full cold start — dest rearm Prefer-A when primary ritual top-level `finalize_owed` is already recorded (no dest `--defer-owed` required).
+! Linked dest Prefer-A inherits primary top-level `finalize_owed` (deferred or ok). `--rearm` alone on primary/main still scans unless `--defer-owed=<reason>` is set. Keep `--defer=cache_fresh=…` soft paths. Standalone linked worktrees without a primary `finalize_owed` record still fail-closed.
 ⊗ Stampede N dest cold tip inventories before primary records finalize_owed / before Prefer-A is on tip. Depth: `templates/agent-prompt-preamble.md` §12.
 
 ### Next-phase tool dispatch (#2934)

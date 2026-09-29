@@ -204,7 +204,6 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     expect(fetchCalls).toBe(0);
   });
 
-
   it("linked worktree Prefer-A when primary already deferred (#5145 dest-default)", () => {
     const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = require("node:fs");
     const { join } = require("node:path");
@@ -223,13 +222,12 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
           worktree_path: primary,
           started_at: "2026-09-29T00:00:00Z",
           quick_steps: {},
-          gated_steps: {
-            finalize_owed: {
-              ok: true,
-              ts: "2026-09-29T00:00:00Z",
-              deferred_reason: "cohort-add",
-              message: "finalize owed deferred: cohort-add",
-            },
+          gated_steps: {},
+          finalize_owed: {
+            ok: true,
+            ts: "2026-09-29T00:00:00Z",
+            deferred_reason: "cohort-add",
+            message: "finalize owed deferred: cohort-add",
           },
         }),
         "utf8",
@@ -269,5 +267,4 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     expect(result.blocks).toBe(true);
     expect(result.deferred).toBe(false);
   });
-
 });

@@ -590,15 +590,17 @@ function inheritDeferOwedFromPrimary(
   if (state === null) {
     return null;
   }
-  const step = state.gatedSteps.finalize_owed;
-  if (step === undefined || step === null || typeof step !== "object") {
+  // session:start writes finalize_owed at ritual-state top level (not gated_steps).
+  const step = state.raw.finalize_owed;
+  if (step === undefined || step === null || typeof step !== "object" || Array.isArray(step)) {
     return null;
   }
-  const deferred = step.deferred_reason;
+  const rec = step as Record<string, unknown>;
+  const deferred = rec.deferred_reason;
   if (typeof deferred === "string" && deferred.trim().length > 0) {
     return `primary:${deferred.trim()}`;
   }
-  if (step.ok === true) {
+  if (rec.ok === true) {
     return PRIMARY_INHERITED_DEFER_OWED_REASON;
   }
   return null;
