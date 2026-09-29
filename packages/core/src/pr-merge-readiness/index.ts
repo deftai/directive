@@ -13,22 +13,42 @@ export {
 export {
   type ComputeGateOptions,
   computeGateResult,
+  evaluateMergeGateEnforcementAtStrategyStart,
   type FetchMergeabilityFn,
   type FetchRequiredContextsFn,
+  type MergeGateEnforcementStrategyStartOptions,
+  type MergeGateEnforcementStrategyStartResult,
 } from "./compute.js";
 export * from "./constants.js";
 export { evaluateGates, isMergeReady } from "./evaluate.js";
 export {
+  applyMergeGateConfigure,
+  type ApplyMergeGateConfigureInput,
+  type ApplyMergeGateConfigureResult,
+  buildMergeGateConfigurePayload,
   checkRunMatchesRequiredContext,
+  classifyMergeGateEnforcement,
   contextsFromBranchProtection,
   contextsFromBranchRules,
   defaultRunGh,
   fetchPrBaseRef,
   fetchRequiredStatusContexts,
+  MERGE_GATE_ENFORCEMENT_DIR,
+  MERGE_GATE_ENFORCEMENT_SCHEMA,
+  type MergeGateConfigurePayloadResult,
+  type MergeGateConfigureProposal,
+  type MergeGateEnforcementDecision,
+  type MergeGateEnforcementDetection,
+  type MergeGateEnforcementRecord,
+  type MergeGateEnforcementRecordResult,
+  mergeGateEnforcementRecordPath,
   normalizeRequiredContexts,
+  readMergeGateEnforcementRecord,
   type RequiredStatusContext,
   type RequiredStatusContextsResult,
   requiredContextLabel,
+  type WriteMergeGateEnforcementInput,
+  writeMergeGateEnforcementRecord,
 } from "./gh.js";
 export {
   evaluateInlineReviewThreads,

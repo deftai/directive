@@ -15,6 +15,7 @@ import {
 import { evaluateGates, isMergeReady } from "./evaluate.js";
 import {
   type CheckRunRecord,
+  classifyMergeGateEnforcement,
   fetchCheckRunsRest,
   fetchGreptileBodyRest,
   fetchGreptileCommentBody,
@@ -22,10 +23,15 @@ import {
   fetchPrHeadSha,
   fetchPrHeadShaRest,
   fetchRequiredStatusContexts,
+  type MergeGateEnforcementDecision,
+  type MergeGateEnforcementDetection,
+  type MergeGateEnforcementRecord,
   normalizeRequiredContexts,
+  readMergeGateEnforcementRecord,
   type RequiredStatusContext,
   requiredContextLabel,
   resolveRepo,
+  writeMergeGateEnforcementRecord,
 } from "./gh.js";
 import {
   fetchUnresolvedGreptileInlineFindings,
@@ -711,3 +717,163 @@ export function computeGateResult(
 }
 
 export { buildGateResult, isMergeReady };
+
+/** Strategy-start options for forge merge-gate enforcement readiness (#1517). */
+export interface MergeGateEnforcementStrategyStartOptions {
+  readonly projectRoot: string;
+  /** When false / unset with no GitHub remote, record/return deferred-not-applicable. */
+  readonly scmReady: boolean;
+  /** owner/repo when a GitHub remote is resolved; null/empty => deferred-not-applicable. */
+  readonly repo: string | null;
+  readonly branch: string;
+  readonly runGh: RunGhFn;
+  readonly fetchRequiredContextsFn?: FetchRequiredContextsFn;
+  /**
+   * When detection is protected and no durable record exists, auto-persist
+   * configured (decision-and-record half; configure remains optional).
+   */
+  readonly autoRecordConfigured?: boolean;
+}
+
+export interface MergeGateEnforcementStrategyStartResult {
+  readonly ok: boolean;
+  readonly decision: MergeGateEnforcementDecision | null;
+  readonly detection: MergeGateEnforcementDetection | null;
+  readonly record: MergeGateEnforcementRecord | null;
+  readonly message: string;
+  readonly remediation: string;
+}
+
+/**
+ * Fail-closed strategy-start gate for forge required-status-check readiness (#1517).
+ * Distinct from local allowDirectCommitsToMaster / deft branch-protection.
+ * Does not grant bot-merge or change requireHumanMerge.
+ */
+export function evaluateMergeGateEnforcementAtStrategyStart(
+  options: MergeGateEnforcementStrategyStartOptions,
+): MergeGateEnforcementStrategyStartResult {
+  const repo = options.repo?.trim() || "";
+  if (!options.scmReady || repo.length === 0) {
+    const reason =
+      "SCM not ready or no GitHub remote resolved; merge-gate enforcement deferred-not-applicable (#1517)";
+    if (repo.length > 0 && options.branch.trim()) {
+      writeMergeGateEnforcementRecord({
+        projectRoot: options.projectRoot,
+        repo,
+        branch: options.branch,
+        decision: "deferred-not-applicable",
+        reason,
+        detection: null,
+      });
+    }
+    return {
+      ok: true,
+      decision: "deferred-not-applicable",
+      detection: null,
+      record: null,
+      message: reason,
+      remediation: "",
+    };
+  }
+
+  const existing = readMergeGateEnforcementRecord(options.projectRoot, repo, options.branch);
+  if (!existing.ok) {
+    return {
+      ok: false,
+      decision: null,
+      detection: null,
+      record: null,
+      message: `Merge-gate enforcement record unreadable; fail closed (#1517). ${existing.error}`,
+      remediation:
+        "Repair or remove .deft/merge-gate-enforcement/<repo>--<branch>.json, then re-run strategy start.",
+    };
+  }
+
+  if (existing.record?.decision === "configured" || existing.record?.decision === "explicit-opt-out") {
+    return {
+      ok: true,
+      decision: existing.record.decision,
+      detection: existing.record.detection,
+      record: existing.record,
+      message: `Merge-gate enforcement decision present: ${existing.record.decision}`,
+      remediation: "",
+    };
+  }
+
+  if (existing.record?.decision === "deferred-not-applicable") {
+    // Prior local-only deferral; re-evaluate now that SCM+repo are ready.
+  }
+
+  // cannot-configure stays re-checkable: fall through to detect again (#1517).
+  const fetchFn = options.fetchRequiredContextsFn ?? fetchRequiredStatusContexts;
+  const inventory = fetchFn(repo, options.branch, options.runGh);
+  const detection = classifyMergeGateEnforcement(inventory);
+
+  if (detection === "unknown") {
+    return {
+      ok: false,
+      decision: existing.record?.decision ?? null,
+      detection,
+      record: existing.record,
+      message:
+        "Forge required-status-check inventory unknown; fail closed at strategy start (#1517). " +
+        (inventory.error || "resolutionFailed"),
+      remediation:
+        "Fix GitHub auth/permissions and re-run. Do not record explicit-opt-out for an observation failure.",
+    };
+  }
+
+  if (detection === "protected") {
+    const contexts = normalizeRequiredContexts(inventory.contexts);
+    let record = existing.record;
+    if (options.autoRecordConfigured !== false) {
+      const written = writeMergeGateEnforcementRecord({
+        projectRoot: options.projectRoot,
+        repo,
+        branch: options.branch,
+        decision: "configured",
+        reason: "Non-empty required contexts from fetchRequiredStatusContexts (#1517)",
+        detection,
+        contexts,
+      });
+      record = written.record;
+    }
+    return {
+      ok: true,
+      decision: "configured",
+      detection,
+      record,
+      message: "Forge merge-gate enforcement ready (required contexts present)",
+      remediation: "",
+    };
+  }
+
+  // absent — need durable decision before strategies proceed
+  if (existing.record?.decision === "cannot-configure") {
+    return {
+      ok: false,
+      decision: "cannot-configure",
+      detection,
+      record: existing.record,
+      message:
+        "Required status checks are absent and prior configure was cannot-configure (re-checkable, not an opt-out) (#1517).",
+      remediation:
+        "Retry optional configure with operator-selected contexts (never empty PUT), or record explicit-opt-out. " +
+        "Readiness acceptance does not grant bot-merge or change requireHumanMerge.",
+    };
+  }
+
+  return {
+    ok: false,
+    decision: null,
+    detection,
+    record: existing.record,
+    message:
+      "Forge required-status-check inventory is absent; strategy start blocked until configured or explicit-opt-out (#1517).",
+    remediation:
+      "Detect via fetchRequiredStatusContexts (rulesets+classic). Optionally configure with operator-confirmed every-PR contexts (pin app id; never auto-promote harvested names; never empty PUT). " +
+      "Or writeMergeGateEnforcementRecord({ decision: 'explicit-opt-out' }). " +
+      "Setup Phase 2 branch-protection ON is agent-commit policy only — distinct axis. " +
+      "Directive does not assume consumer CI workflows are already scaffolded; detect-and-configure may wait for first default-branch run while decision-and-record can complete earlier.",
+  };
+}

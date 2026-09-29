@@ -663,6 +663,18 @@ Phrasing from `deft policy:show --field=allowDirectCommitsToMaster`. When OFF (d
 
 ⊗ Begin a session that will commit/push without surfacing policy when `allowDirectCommitsToMaster=true`.
 
+## Merge-gate enforcement readiness (#1517)
+
+Forge **required-status-check** / platform merge-gate readiness is a **distinct axis** from local deft branch-protection / `allowDirectCommitsToMaster` (agent-commit policy only). Phase 2 "branch-protection ON" does not mean GitHub requires status checks.
+
+- ! Detect with existing `fetchRequiredStatusContexts` (#3234): rulesets + classic; `resolutionFailed` fail-closed; outcomes `protected` (non-empty contexts) / `absent` / `unknown`. ⊗ Invent a second classic-404-only inventory.
+- ! Decision gate is fail-closed at build/swarm strategy start when SCM is ready and a GitHub remote is resolved: call `evaluateMergeGateEnforcementAtStrategyStart` (`packages/core/src/pr-merge-readiness/compute.ts`). Setup may be an early optional surface.
+- ! Persist a durable repo/branch-scoped record under `.deft/merge-gate-enforcement/<repo>--<branch>.json`: `configured` | `explicit-opt-out` | `cannot-configure` (re-checkable, **not** an opt-out) | `deferred-not-applicable` (no-SCM / local-only).
+- ! Configure is optional and separate (`buildMergeGateConfigurePayload` / `applyMergeGateConfigure`). Never PUT an empty required-context set. Never auto-promote observed check-run names into required policy. Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from default-branch runs if harvesting at all. Prefer every-PR unconditional contexts over neutral-exclusion heuristics.
+- ! Preserve existing human approving-review requirements and unrelated protection settings. Readiness acceptance does **not** grant bot-merge or change `requireHumanMerge`; keep `policy:allow-bot-merge` as the separate agent-merge axis. Check-only configure must not encode GitHub review-count as the human-merge gate.
+- ! Admin/plan inability to configure is `cannot-configure` and stays re-checkable; do not record a failed write as opt-out.
+- ! Directive does not assume consumer CI workflows are already scaffolded; detect-and-configure may wait for first-green / first default-branch run while the decision-and-record half can still complete earlier.
+
 ## Local git hooks (#747 / #2049)
 
 Project-root `.githooks/` enforce branch policy and encoding gates through the **`deft` CLI only** — no Python `scripts/*.py` dispatch (#2049). `deft init` and `deft update` deposit hook files; `deft setup` / `task setup` wires `core.hooksPath=.githooks` and refuses when the directory is missing (#2530).

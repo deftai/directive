@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { defaultWhich } from "../scm/binary.js";
 import { classifyScmArgv, resolveBinaryForArgv } from "../scm/call-shape.js";
 import { ghxSpawnFallbackBinary } from "../scm/spawn-status.js";
@@ -718,4 +720,363 @@ export function fetchRequiredStatusContexts(
     error: notes.join("; "),
     resolutionFailed,
   };
+}
+
+/** Detection outcome for forge required-status-check inventory (#1517). */
+export type MergeGateEnforcementDetection = "protected" | "absent" | "unknown";
+
+/**
+ * Classify #3234 inventory into protected / absent / unknown (#1517).
+ * Non-empty contexts => protected. resolutionFailed => unknown (fail-closed).
+ * Trusted empty inventory => absent. Do not invent a second classic-404 detector.
+ */
+export function classifyMergeGateEnforcement(
+  inventory: RequiredStatusContextsResult,
+): MergeGateEnforcementDetection {
+  if (inventory.resolutionFailed) {
+    return "unknown";
+  }
+  if (inventory.contexts.length > 0) {
+    return "protected";
+  }
+  return "absent";
+}
+
+/** Durable decision outcomes for merge-gate enforcement readiness (#1517). */
+export type MergeGateEnforcementDecision =
+  | "configured"
+  | "explicit-opt-out"
+  | "cannot-configure"
+  | "deferred-not-applicable";
+
+export const MERGE_GATE_ENFORCEMENT_SCHEMA = "deft.merge-gate-enforcement.v1" as const;
+export const MERGE_GATE_ENFORCEMENT_DIR = ".deft/merge-gate-enforcement";
+
+export interface MergeGateEnforcementRecord {
+  readonly schema: typeof MERGE_GATE_ENFORCEMENT_SCHEMA;
+  readonly repo: string;
+  readonly branch: string;
+  readonly decision: MergeGateEnforcementDecision;
+  readonly recordedAt: string;
+  readonly detection: MergeGateEnforcementDetection | null;
+  readonly reason: string;
+  readonly contexts?: readonly RequiredStatusContext[];
+}
+
+export interface MergeGateEnforcementRecordResult {
+  readonly ok: boolean;
+  readonly record: MergeGateEnforcementRecord | null;
+  readonly error: string;
+}
+
+function sanitizeMergeGateScopePart(raw: string): string {
+  return raw.replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^_+|_+$/g, "") || "_";
+}
+
+/** Repo/branch-scoped path under projectRoot for the durable readiness record (#1517). */
+export function mergeGateEnforcementRecordPath(
+  projectRoot: string,
+  repo: string,
+  branch: string,
+): string {
+  const file = `${sanitizeMergeGateScopePart(repo)}--${sanitizeMergeGateScopePart(branch)}.json`;
+  return join(projectRoot, MERGE_GATE_ENFORCEMENT_DIR, file);
+}
+
+function isMergeGateDecision(value: unknown): value is MergeGateEnforcementDecision {
+  return (
+    value === "configured" ||
+    value === "explicit-opt-out" ||
+    value === "cannot-configure" ||
+    value === "deferred-not-applicable"
+  );
+}
+
+function isMergeGateDetection(value: unknown): value is MergeGateEnforcementDetection {
+  return value === "protected" || value === "absent" || value === "unknown";
+}
+
+/** Read a durable merge-gate enforcement record (repo/branch scoped) (#1517). */
+export function readMergeGateEnforcementRecord(
+  projectRoot: string,
+  repo: string,
+  branch: string,
+): MergeGateEnforcementRecordResult {
+  const path = mergeGateEnforcementRecordPath(projectRoot, repo, branch);
+  if (!existsSync(path)) {
+    return { ok: true, record: null, error: "" };
+  }
+  try {
+    const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      return { ok: false, record: null, error: "merge-gate enforcement record is not an object" };
+    }
+    const o = raw as Record<string, unknown>;
+    if (o.schema !== MERGE_GATE_ENFORCEMENT_SCHEMA) {
+      return { ok: false, record: null, error: "unsupported merge-gate enforcement schema" };
+    }
+    if (typeof o.repo !== "string" || o.repo.length === 0) {
+      return { ok: false, record: null, error: "merge-gate enforcement record missing repo" };
+    }
+    if (typeof o.branch !== "string" || o.branch.length === 0) {
+      return { ok: false, record: null, error: "merge-gate enforcement record missing branch" };
+    }
+    if (!isMergeGateDecision(o.decision)) {
+      return { ok: false, record: null, error: "merge-gate enforcement record has invalid decision" };
+    }
+    if (typeof o.recordedAt !== "string" || o.recordedAt.length === 0) {
+      return { ok: false, record: null, error: "merge-gate enforcement record missing recordedAt" };
+    }
+    if (typeof o.reason !== "string") {
+      return { ok: false, record: null, error: "merge-gate enforcement record missing reason" };
+    }
+    const detection =
+      o.detection === null || o.detection === undefined
+        ? null
+        : isMergeGateDetection(o.detection)
+          ? o.detection
+          : null;
+    if (o.detection !== null && o.detection !== undefined && detection === null) {
+      return {
+        ok: false,
+        record: null,
+        error: "merge-gate enforcement record has invalid detection",
+      };
+    }
+    const contexts = Array.isArray(o.contexts)
+      ? normalizeRequiredContexts(o.contexts as readonly (string | RequiredStatusContext)[])
+      : undefined;
+    const record: MergeGateEnforcementRecord = {
+      schema: MERGE_GATE_ENFORCEMENT_SCHEMA,
+      repo: o.repo,
+      branch: o.branch,
+      decision: o.decision,
+      recordedAt: o.recordedAt,
+      detection,
+      reason: o.reason,
+      ...(contexts !== undefined ? { contexts } : {}),
+    };
+    return { ok: true, record, error: "" };
+  } catch (exc: unknown) {
+    const message = exc instanceof Error ? exc.message : String(exc);
+    return { ok: false, record: null, error: `merge-gate enforcement record parse: ${message}` };
+  }
+}
+
+export interface WriteMergeGateEnforcementInput {
+  readonly projectRoot: string;
+  readonly repo: string;
+  readonly branch: string;
+  readonly decision: MergeGateEnforcementDecision;
+  readonly reason: string;
+  readonly detection?: MergeGateEnforcementDetection | null;
+  readonly contexts?: readonly RequiredStatusContext[];
+  readonly recordedAt?: string;
+}
+
+/**
+ * Persist a durable merge-gate enforcement decision (#1517).
+ * cannot-configure is allowed and stays re-checkable — never coerce a failed
+ * configure into explicit-opt-out.
+ */
+export function writeMergeGateEnforcementRecord(
+  input: WriteMergeGateEnforcementInput,
+): MergeGateEnforcementRecordResult {
+  if (!input.repo.trim() || !input.branch.trim()) {
+    return {
+      ok: false,
+      record: null,
+      error: "repo and branch are required for merge-gate enforcement record",
+    };
+  }
+  const record: MergeGateEnforcementRecord = {
+    schema: MERGE_GATE_ENFORCEMENT_SCHEMA,
+    repo: input.repo.trim(),
+    branch: input.branch.trim(),
+    decision: input.decision,
+    recordedAt: input.recordedAt ?? new Date().toISOString(),
+    detection: input.detection ?? null,
+    reason: input.reason,
+    ...(input.contexts !== undefined
+      ? { contexts: normalizeRequiredContexts(input.contexts) }
+      : {}),
+  };
+  const path = mergeGateEnforcementRecordPath(input.projectRoot, record.repo, record.branch);
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+    return { ok: true, record, error: "" };
+  } catch (exc: unknown) {
+    const message = exc instanceof Error ? exc.message : String(exc);
+    return { ok: false, record: null, error: `merge-gate enforcement record write: ${message}` };
+  }
+}
+
+export interface MergeGateConfigureProposal {
+  readonly contexts: readonly RequiredStatusContext[];
+  /** Candidates only — never auto-promoted into required policy (#1517). */
+  readonly candidateContexts?: readonly RequiredStatusContext[];
+  readonly pinAppIds: boolean;
+}
+
+export interface MergeGateConfigurePayloadResult {
+  readonly ok: boolean;
+  readonly payload: Record<string, unknown> | null;
+  readonly error: string;
+}
+
+/**
+ * Build a check-only classic protection body for required contexts (#1517).
+ * Refuses empty context sets. Does not encode GitHub review-count as the
+ * human-merge gate. Preserves existing required_pull_request_reviews when
+ * cloning unrelated fields from existingProtection.
+ */
+export function buildMergeGateConfigurePayload(
+  proposal: MergeGateConfigureProposal,
+  existingProtection: Record<string, unknown> | null = null,
+): MergeGateConfigurePayloadResult {
+  const selected = normalizeRequiredContexts(proposal.contexts);
+  if (selected.length === 0) {
+    return {
+      ok: false,
+      payload: null,
+      error:
+        "Refuse empty required-context PUT for merge-gate enforcement (#1517). " +
+        "Select operator-confirmed contexts first; discovery candidates are not policy.",
+    };
+  }
+  const checks = selected.map((c) => {
+    if (proposal.pinAppIds && c.appId != null) {
+      return { context: c.name, app_id: c.appId };
+    }
+    return { context: c.name };
+  });
+  const required_status_checks = {
+    strict: true,
+    contexts: selected.map((c) => c.name),
+    checks,
+  };
+  const base: Record<string, unknown> =
+    existingProtection !== null ? { ...existingProtection } : {};
+  delete base.url;
+  delete base.html_url;
+  delete base.contexts_url;
+  base.required_status_checks = required_status_checks;
+  if (base.enforce_admins === undefined) {
+    base.enforce_admins = false;
+  }
+  if (base.required_linear_history === undefined) {
+    base.required_linear_history = false;
+  }
+  if (base.allow_force_pushes === undefined) {
+    base.allow_force_pushes = false;
+  }
+  if (base.allow_deletions === undefined) {
+    base.allow_deletions = false;
+  }
+  return { ok: true, payload: base, error: "" };
+}
+
+export interface ApplyMergeGateConfigureInput {
+  readonly repo: string;
+  readonly branch: string;
+  readonly proposal: MergeGateConfigureProposal;
+  readonly runGh: RunGhFn;
+  /** When true (default), GET existing protection first and preserve unrelated fields. */
+  readonly preserveExisting?: boolean;
+}
+
+export interface ApplyMergeGateConfigureResult {
+  readonly ok: boolean;
+  /** configured on success; cannot-configure on admin/plan/write failure (not opt-out). */
+  readonly outcome: "configured" | "cannot-configure" | "refused";
+  readonly error: string;
+  readonly reRead: RequiredStatusContextsResult | null;
+}
+
+/**
+ * Optional configure helper — separate from the strategy-start decision (#1517).
+ * Never auto-promotes candidateContexts. Failed writes return cannot-configure.
+ */
+export function applyMergeGateConfigure(
+  input: ApplyMergeGateConfigureInput,
+): ApplyMergeGateConfigureResult {
+  if (
+    input.proposal.candidateContexts !== undefined &&
+    input.proposal.contexts.length === 0 &&
+    input.proposal.candidateContexts.length > 0
+  ) {
+    return {
+      ok: false,
+      outcome: "refused",
+      error:
+        "Observed/discovered check names are candidates only (#1517). " +
+        "Pass operator-confirmed contexts; do not auto-promote candidateContexts.",
+      reRead: null,
+    };
+  }
+  let existing: Record<string, unknown> | null = null;
+  if (input.preserveExisting !== false) {
+    const encoded = encodeURIComponent(input.branch);
+    const getRc = input.runGh([
+      "gh",
+      "api",
+      `repos/${input.repo}/branches/${encoded}/protection`,
+    ]);
+    if (getRc.returncode === 0 && getRc.stdout.trim()) {
+      try {
+        const parsed = JSON.parse(getRc.stdout) as unknown;
+        if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+          existing = parsed as Record<string, unknown>;
+        }
+      } catch {
+        // Fall through with null existing — still refuse empty PUT below.
+      }
+    }
+  }
+  const built = buildMergeGateConfigurePayload(input.proposal, existing);
+  if (!built.ok || built.payload === null) {
+    return { ok: false, outcome: "refused", error: built.error, reRead: null };
+  }
+  const encoded = encodeURIComponent(input.branch);
+  // Body is not piped through defaultRunGh; injectable runGh fixtures assert the
+  // PUT argv and may ignore stdin. Production callers should supply a runGh that
+  // posts built.payload (or use a higher-level writer). Non-zero PUT / missing
+  // admin is cannot-configure, never opt-out (#1517).
+  const putRc = input.runGh([
+    "gh",
+    "api",
+    "-X",
+    "PUT",
+    `repos/${input.repo}/branches/${encoded}/protection`,
+    "--input",
+    "-",
+  ]);
+  if (putRc.returncode !== 0) {
+    const err = putRc.stderr.trim() || `exit ${putRc.returncode}`;
+    return {
+      ok: false,
+      outcome: "cannot-configure",
+      error: `merge-gate configure write failed (cannot-configure, re-checkable): ${err}`,
+      reRead: null,
+    };
+  }
+  const reRead = fetchRequiredStatusContexts(input.repo, input.branch, input.runGh);
+  if (reRead.resolutionFailed) {
+    return {
+      ok: false,
+      outcome: "cannot-configure",
+      error: `post-write inventory unknown: ${reRead.error || "resolutionFailed"}`,
+      reRead,
+    };
+  }
+  if (reRead.contexts.length === 0) {
+    return {
+      ok: false,
+      outcome: "cannot-configure",
+      error: "post-write inventory still empty; refuse claiming configured (#1517)",
+      reRead,
+    };
+  }
+  return { ok: true, outcome: "configured", error: "", reRead };
 }
