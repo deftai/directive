@@ -1,0 +1,383 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4877",
+    "updated": "2026-09-29T22:51:55Z"
+  },
+  "plan": {
+    "title": "scope:complete provenance refusal invites a self-asserted human-origin string",
+    "status": "completed",
+    "narratives": {
+      "Description": "scope:complete provenance refusal invites a self-asserted human-origin string",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4877",
+      "Overview": "\n\n1. Change the missing-path refusal in parseDisposition (and the operator-facing field-spec / commands.md provenance (human-origin) prose) so they emit a recordable GrantOrigin shape: kind from the closed human-origin set (operator-cli|operator-session|human-event) plus a non-agent actor example, matching what isHumanOrigin / fixtures already accept.\n2. Keep the invalid-object message that already lists those kinds as the disclosure for malformed objects. Do not rewrite every provenance refusal surface.\n3. Reuse existing isHumanOrigin / stampNamespacedDisposition mechanisms. Do not invent a second provenance system, and do not begin accepting a bare human-origin string as provenance.\n4. Parent #4842 stays a tracker. First ship on #4877 is the missing-path + field-spec/help disclosure above (tests + CHANGELOG). Other #4842 findings stay off this issue. task scope:stamp-evidence remains evidence-only unless a later lean explicitly widens it.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:610c5bcaf8c313dfddd45c58ba48795bd4942d6fa8528ed29cf065e0d7d034d4\n\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, source-of-truth, area:cli, area:vbrief, status:child, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "Change the missing-path refusal in parseDisposition (and the operator-facing field-spec / commands.md provenance (human-origin) prose) so they emit a recordable GrantOrigin shape: kind from the closed human-origin set (operator-cli|operator-session|human-event) plus a non-agent actor example, matching what isHumanOrigin / fixtures already accept.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.ts",
+          "recorded_at": "2026-09-29T16:34:48Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Keep the invalid-object message that already lists those kinds as the disclosure for malformed objects. Do not rewrite every provenance refusal surface.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.ts",
+          "recorded_at": "2026-09-29T16:34:48Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Reuse existing isHumanOrigin / stampNamespacedDisposition mechanisms. Do not invent a second provenance system, and do not begin accepting a bare human-origin string as provenance.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.ts",
+          "recorded_at": "2026-09-29T16:34:48Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Parent #4842 stays a tracker. First ship on #4877 is the missing-path + field-spec/help disclosure above (tests + CHANGELOG). Other #4842 findings stay off this issue. task scope:stamp-evidence remains evidence-only unless a later lean explicitly widens it.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.ts",
+          "recorded_at": "2026-09-29T16:34:48Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "area:vbrief",
+      "status:child",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4877",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4877: scope:complete provenance refusal invites a self-asserted human-origin string"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "scope:complete provenance refusal invites a self-asserted human-origin string",
+        "Change the missing-path refusal in parseDisposition (and the operator-facing field-spec / commands.md provenance (human-origin) prose) so they emit a recordable GrantOrigin shape: kind from the closed human-origin set (operator-cli|operator-session|human-event) plus a non-agent actor example, matching what isHumanOrigin / fixtures already accept.",
+        "Keep the invalid-object message that already lists those kinds as the disclosure for malformed objects. Do not rewrite every provenance refusal surface.",
+        "Reuse existing isHumanOrigin / stampNamespacedDisposition mechanisms. Do not invent a second provenance system, and do not begin accepting a bare human-origin string as provenance.",
+        "Parent #4842 stays a tracker. First ship on #4877 is the missing-path + field-spec/help disclosure above (tests + CHANGELOG). Other #4842 findings stay off this issue. task scope:stamp-evidence remains evidence-only unless a later lean explicitly widens it.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:610c5bcaf8c313dfddd45c58ba48795bd4942d6fa8528ed29cf065e0d7d034d4"
+      ],
+      "admitted_source_sentences": [
+        "Change the missing-path refusal in parseDisposition (and the operator-facing field-spec / commands.md provenance (human-origin) prose) so they emit a recordable GrantOrigin shape: kind from the closed human-origin set (operator-cli|operator-session|human-event) plus a non-agent actor example, matching what isHumanOrigin / fixtures already accept.",
+        "Keep the invalid-object message that already lists those kinds as the disclosure for malformed objects. Do not rewrite every provenance refusal surface.",
+        "Reuse existing isHumanOrigin / stampNamespacedDisposition mechanisms. Do not invent a second provenance system, and do not begin accepting a bare human-origin string as provenance.",
+        "Parent #4842 stays a tracker. First ship on #4877 is the missing-path + field-spec/help disclosure above (tests + CHANGELOG). Other #4842 findings stay off this issue. task scope:stamp-evidence remains evidence-only unless a later lean explicitly widens it."
+      ],
+      "admitted_source_digest": "e304884a3231dcd54bb282221fab8249f1404c0cd969e698ec0f5706bdafdfc8",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Change the missing-path refusal in parseDisposition (and the operator-facing field-spec / commands.md provenance (human-origin) prose) so they emit a recordable GrantOrigin shape: kind from the closed human-origin set (operator-cli|operator-session|human-event) plus a non-agent actor example, matching what isHumanOrigin / fixtures already accept.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep the invalid-object message that already lists those kinds as the disclosure for malformed objects. Do not rewrite every provenance refusal surface.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Reuse existing isHumanOrigin / stampNamespacedDisposition mechanisms. Do not invent a second provenance system, and do not begin accepting a bare human-origin string as provenance.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Parent #4842 stays a tracker. First ship on #4877 is the missing-path + field-spec/help disclosure above (tests + CHANGELOG). Other #4842 findings stay off this issue. task scope:stamp-evidence remains evidence-only unless a later lean explicitly widens it.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "scope:complete provenance refusal invites a self-asserted human-origin string",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:610c5bcaf8c313dfddd45c58ba48795bd4942d6fa8528ed29cf065e0d7d034d4"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Gates: the check that stands in the doorway before work is called good. A green result should mean Directive actually looked. A red result should say what to do next.\n\nWhat a new person hits: To mark the work finished, the error tells them to type a human-origin value by hand. That is the same kind of self-certified answer the product is supposed to reject.\n\nWhy that ruins the product for them: Finishing honestly is blocked, and the suggested fix is to fake the paperwork. People who notice will not trust the finish line.\n\nHow likely: Medium. They have to get all the way to \"mark this done.\" People who do are already invested, and this is a sour ending.\n\n",
+          "id": 5780295466,
+          "html_url": "https://github.com/deftai/directive/issues/4877#issuecomment-5780295466",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:39:09Z",
+          "updated_at": "2026-09-22T16:39:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because a missing disposition.provenance refusal prints \"required (human-origin)\" and a prose field-spec that invites the bare self-asserted string human-origin authz rejects, while neither the refusal nor command help offers a GrantOrigin value the receiving actor can actually record.\n\ncharter: refutation\nrefutation-target: When disposition.provenance is missing, printing \"disposition.provenance is required (human-origin)\" plus a prose field-spec is enough guidance, even though a bare human-origin string is the self-asserted grant shape that human-origin authz rejects and neither the refusal nor help offers a recordable GrantOrigin (kind + actor) value.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered with recommended N per issue after the missing-token ask. This is a concrete provenance-shape / refusal-copy defect on scope:complete, not a whole-motion babysit hang. Recommended spend N=1.\n\npain: P1, P2, P3\n\nP1. Missing provenance refuses with \"disposition.provenance is required (human-origin)\", which reads as inviting a bare human-origin string stamp.\nP2. That bare string is exactly the self-asserted grant shape human-origin authz rejects; the live parser requires a GrantOrigin-shaped object (kind + actor) that passes isHumanOrigin.\nP3. Neither the refusal nor command help offers a value the receiving actor can actually record; parent #4842 stays a tracker, so this child must bind its own recordable provenance shape without waiting on the other #4842 findings.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4877-dc\norigin-ref: origin/HEAD\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\npin-kind: origin-default\ntarget-digest: sha256:610c5bcaf8c313dfddd45c58ba48795bd4942d6fa8528ed29cf065e0d7d034d4\n\nPin reads use git show 650ab1a614cd6049b4c70c2b48fa181ffef5455e. Child of #4842. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\r\n\n",
+          "id": 5857510540,
+          "html_url": "https://github.com/deftai/directive/issues/4877#issuecomment-5857510540",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:06:28Z",
+          "updated_at": "2026-09-27T16:06:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nround: 1 critic\ncharter: refutation\nissue: deftai/directive#4877\nid-ceiling: 5857510540\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\nseat: grok\nlauncher: grok\narc-mode: no-ingest\n\n## Missing-path copy is not enough guidance\nblocks-the-design\nEvidence: At `650ab1a614cd6049b4c70c2b48fa181ffef5455e`, `parseDisposition` in `packages/core/src/scope/acceptance-evidence.ts` returns `disposition.provenance is required (human-origin)` when `asRecord(obj.provenance)` is null (missing or non-object). The same file's `evaluateAcceptanceEvidenceGate` field-spec and `content/commands.md` § `scope:complete` both write `provenance (human-origin)` as prose. `AcceptanceDispositionRecord.provenance` is typed as GrantOrigin `kind` + `actor` (other fields optional). `HUMAN_ORIGIN_KINDS` is the closed set `operator-cli|operator-session|human-event`; `isHumanOrigin` rejects empty actor and agent-shaped actors. Fixtures already stamp a recordable object (`humanProv` with `kind: \"operator-cli\"`, `actor: \"operator@example.com\"`). `task scope:stamp-evidence` is documented evidence-only with no disposition argv.\nFailure mode: An actor at `scope:complete` who follows the missing-path refusal plus the field-spec treats parenthetical `human-origin` as the value to record. A bare string (or any non-object) re-enters the same `asRecord` null path and reprints the identical refusal, so the finish line never discloses a stampable `{ kind, actor }` object. That is the self-asserted grant shape the gate is built to reject, while shared complete authority still depends on a passing human-origin disposition.\nDisposition: The presumption that current missing-path copy plus prose field-spec is enough guidance cannot bind. Before bind, the missing-path refusal and the operator-facing field-spec/help must emit a recordable GrantOrigin shape (kind from the closed human-origin set plus a non-agent actor), reusing the existing `isHumanOrigin` / `stampNamespacedDisposition` mechanisms rather than inventing a second provenance system.\n\n## Invalid-object path already names kinds\nsharpens-framing\nEvidence: The present-but-invalid branch in the same `parseDisposition` returns `disposition.provenance must be human-origin (kind operator-cli|operator-session|human-event + non-agent actor)`. The agent-origin fixture (`kind: \"operator-cli\"`, `actor: \"agent:worker\"`) fails closed on that gate. The Stop 1 pains read as if every refusal and help surface is silent on GrantOrigin shape.\nFailure mode: Binding a remedy that rewrites every provenance refusal, or that opens a new mint/CLI surface for disposition, overscopes past the measured hole: the missing-path message and the `provenance (human-origin)` prose in the gate summary and `commands.md`.\nDisposition: Narrow the bind to the missing-path refusal plus the field-spec/help prose that still say `(human-origin)`. Keep the invalid-object message's kind list as the existing disclosure for malformed objects; extend missing-path and docs to the same recordable object shape.\n\n## Injection / swarm lens on complete authority\nfootnote\nEvidence: Disposition stamps ride `evaluateAcceptanceEvidenceGate` / `scope:complete` and already call `isHumanOrigin` on a reconstructed `GrantOrigin`. `REJECTED_ORIGIN_KINDS` includes `self-asserted`; literal kind `human-origin` is simply outside `HUMAN_ORIGIN_KINDS`.\nFailure mode: A copy-only fix that began accepting a bare string as provenance would widen shared complete authority without a human GrantOrigin.\nDisposition: No separate product surface required beyond keeping the existing structural gate while fixing the guidance that currently withholds the recordable value.\n\n## Verdict\nThe refutation target does not survive. Printing `disposition.provenance is required (human-origin)` plus the prose field-spec is not enough guidance: those surfaces invite a non-recordable shape, and the missing-path path never offers a GrantOrigin `{ kind, actor }` value the receiving actor can stamp.\r\n\n",
+          "id": 5857538414,
+          "html_url": "https://github.com/deftai/directive/issues/4877#issuecomment-5857538414",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:10:23Z",
+          "updated_at": "2026-09-27T16:10:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWhen disposition.provenance is missing, scope:complete prints \"required (human-origin)\" and a prose field-spec that invite a bare string. That string is not a recordable GrantOrigin, so the finish line loops on the same refusal. The invalid-object path already names the closed kind list; the hole is the missing-path copy and the field-spec/help prose. Confirming this map means the Bound remedy list is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5857538414 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5857510540\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\n\n## Takes\n\n- 5857538414 Missing-path copy is not enough guidance — accept-into-contract\n- 5857538414 Invalid-object path already names kinds — accept-into-contract\n- 5857538414 Injection / swarm lens on complete authority — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Change the missing-path refusal in parseDisposition (and the operator-facing field-spec / commands.md provenance (human-origin) prose) so they emit a recordable GrantOrigin shape: kind from the closed human-origin set (operator-cli|operator-session|human-event) plus a non-agent actor example, matching what isHumanOrigin / fixtures already accept.\n2. Keep the invalid-object message that already lists those kinds as the disclosure for malformed objects. Do not rewrite every provenance refusal surface.\n3. Reuse existing isHumanOrigin / stampNamespacedDisposition mechanisms. Do not invent a second provenance system, and do not begin accepting a bare human-origin string as provenance.\n4. Parent #4842 stays a tracker. First ship on #4877 is the missing-path + field-spec/help disclosure above (tests + CHANGELOG). Other #4842 findings stay off this issue. task scope:stamp-evidence remains evidence-only unless a later lean explicitly widens it.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:610c5bcaf8c313dfddd45c58ba48795bd4942d6fa8528ed29cf065e0d7d034d4\n\n## Parent-side substantiation\n\nThe critic blocked the \"current copy is enough\" presumption. Item 1 discharges that blocking finding. Items 2–3 accept the sharpening (narrow to missing-path + prose) and the footnote (keep structural gate; no bare-string acceptance). Item 4 keeps tracker scope.\n\naudit:missing-path-grantorigin-copy sha=650ab1a614cd6049b4c70c2b48fa181ffef5455e pointer=comment:5857538414 reading=asserted\naudit:narrow-not-bare-string sha=650ab1a614cd6049b4c70c2b48fa181ffef5455e pointer=comment:5857538414 reading=asserted\r\n\n",
+          "id": 5857553404,
+          "html_url": "https://github.com/deftai/directive/issues/4877#issuecomment-5857553404",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:12:27Z",
+          "updated_at": "2026-09-27T16:12:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nseat: grok\nlauncher: grok\n\nround: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\ncharter: refutation\nissue: deftai/directive#4877\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\nid-ceiling: 5857553404\narc-mode: no-ingest\ntarget: https://github.com/deftai/directive/issues/4877\n\nPain-audit of successor lean 5857553404 (asserted `relieves: P1` / `relieves: P2` / `relieves: P3`) against Stop 1 pains in 5857510540 and Bound remedy items 1–4. Round-1 critic 5857538414 is in envelope. HEAD and pin reads match `650ab1a614cd6049b4c70c2b48fa181ffef5455e`.\n\n**P1** (Stop 1): Missing provenance refuses with \"disposition.provenance is required (human-origin)\", which reads as inviting a bare human-origin string stamp.\n**P2** (Stop 1): That bare string is exactly the self-asserted grant shape human-origin authz rejects; the live parser requires a GrantOrigin-shaped object (kind + actor) that passes isHumanOrigin.\n**P3** (Stop 1): Neither the refusal nor command help offers a value the receiving actor can actually record; parent #4842 stays a tracker, so this child must bind its own recordable provenance shape without waiting on the other #4842 findings.\n\n## Bound remedy item 1 closes the missing-path / bare-string invitation (P1)\nfootnote\nEvidence: At `650ab1a614cd6049b4c70c2b48fa181ffef5455e`, `parseDisposition` in `packages/core/src/scope/acceptance-evidence.ts` returns `disposition.provenance is required (human-origin)` when `asRecord(obj.provenance)` is null. `evaluateAcceptanceEvidenceGate` field-spec and `content/commands.md` § `scope:complete` both write `provenance (human-origin)` as prose. Lean item 1 requires those missing-path and operator-facing surfaces to emit a recordable GrantOrigin shape: kind from `operator-cli|operator-session|human-event` plus a non-agent actor example matching what `isHumanOrigin` / fixtures already accept (`humanProv` with `kind: \"operator-cli\"`, `actor: \"operator@example.com\"` in `acceptance-evidence.test.ts`).\nFailure mode: None under this Bound remedy for P1. Replacing the parenthetical invitation with an object-shaped disclosure removes the bare-string lure the Stop 1 warrant named.\nDisposition: No harvest change. The asserted P1 cite matches item 1 as written.\n\n## Narrow keep-invalid-object / no-bare-string items cover P2\nfootnote\nEvidence: The present-but-invalid branch already returns `disposition.provenance must be human-origin (kind operator-cli|operator-session|human-event + non-agent actor)` and `isHumanOrigin` rejects empty and agent-shaped actors. Lean item 2 keeps that invalid-object message as the disclosure for malformed objects and refuses a rewrite of every provenance refusal. Lean item 3 reuses `isHumanOrigin` / `stampNamespacedDisposition` and forbids accepting a bare `human-origin` string as provenance.\nFailure mode: None under this Bound remedy for P2. The live parser already demands a GrantOrigin object that passes `isHumanOrigin`; items 2–3 keep that structural gate while item 1 supplies the missing-path shape P2 said actors never see.\nDisposition: No harvest change. The asserted P2 cite matches items 2–3 (with item 1 as the missing-path disclosure).\n\n## Tracker-scoped first ship covers P3\nfootnote\nEvidence: Stop 1 P3 names the refusal and command help as the surfaces that withhold a recordable value, and requires this child to bind its own shape while #4842 stays a tracker. Lean item 1 puts the recordable GrantOrigin disclosure on those exact surfaces. Lean item 4 keeps parent #4842 a tracker, lands first ship on #4877 as the missing-path + field-spec/help disclosure (tests + CHANGELOG), leaves other #4842 findings off this issue, and keeps `task scope:stamp-evidence` evidence-only unless a later lean widens it.\nFailure mode: None under this Bound remedy for P3. The child binds a stampable object shape on its own refusal/help path without waiting on the tracker remainder; stamp-evidence staying evidence-only does not reopen P3 because P3 named refusal and command help, not a new disposition mint.\nDisposition: No harvest change. The asserted P3 cite matches items 1 and 4 as written.\n\n## Injection / swarm lens on complete authority stays inside items 1 and 3\nfootnote\nEvidence: Round-1 footnote (accepted into contract) warned that accepting a bare string would widen shared complete authority without a human GrantOrigin. Lean item 3 forbids bare-string acceptance; item 1 emits the object shape the existing gate already checks via `isHumanOrigin`.\nFailure mode: None residual for P1–P3 beyond what items 1 and 3 already bind.\nDisposition: No harvest change.\r\n\n",
+          "id": 5857567869,
+          "html_url": "https://github.com/deftai/directive/issues/4877#issuecomment-5857567869",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:14:26Z",
+          "updated_at": "2026-09-27T16:14:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMissing disposition.provenance refused with \"required (human-origin)\" and a prose field-spec that invited a bare string the human-origin gate rejects. Bound remedy makes the missing-path refusal and field-spec/help emit a recordable GrantOrigin (kind + actor), keeps the invalid-object kind list, forbids bare-string acceptance, and leaves #4842 as tracker. Pain-audit 5857567869 of relieves P1-P3 was footnote-only. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5857553404.\r\n\n",
+          "id": 5857586884,
+          "html_url": "https://github.com/deftai/directive/issues/4877#issuecomment-5857586884",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:17:03Z",
+          "updated_at": "2026-09-27T16:17:03Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Parent: #4842\n\n## Finding\n\nThe refusal says disposition.provenance is required (human-origin) and prints a field spec whose provenance slot reads as prose. That is the self-asserted grant human-origin authz rejects, and neither the refusal nor the command help offers a value the receiving actor can actually record.\n\nSplit out of #4842 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: GATES\n- Priority: High (audit scale S2)\n- Source: #4842\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540570286,
+        "origin": "deftai/directive#4877",
+        "id": "github.issue.5540570286"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "610c5bcaf8c313dfddd45c58ba48795bd4942d6fa8528ed29cf065e0d7d034d4"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/acceptance-evidence.test.ts"
+        ],
+        "expected_outputs": [
+          "open Tracking PR"
+        ],
+        "depends_on": [],
+        "conflict_group": "through-merge-4877",
+        "size": "M",
+        "model_tier": "default",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5153,
+        "prBase": null,
+        "mergeCommit": "91a33d54c0027619bcb5ad9e0277281b2cb8360f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "91a33d54c0027619bcb5ad9e0277281b2cb8360f",
+        "verifiedAt": "2026-09-29T22:51:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGVkZGYtZTVjZC03YmQwLWJhNTktYmZlZjE1MmRjMTEx"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-29T22:51:55Z",
+      "completedSessionId": "host:grok:v1:MDFhMGVkZGYtZTVjZC03YmQwLWJhNTktYmZlZjE1MmRjMTEx",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-29T22:51:55Z"
+      }
+    },
+    "id": "github.issue.5540570286",
+    "updated": "2026-09-29T22:51:55Z"
+  }
+}
