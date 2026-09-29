@@ -178,9 +178,7 @@ describe("verify:ac run (#3284)", () => {
       chunks.push(String(c));
       return true;
     });
-    expect(
-      run(["--project-root", root, "--soft-missing-xbrief", "--capture-only"]),
-    ).toBe(0);
+    expect(run(["--project-root", root, "--soft-missing-xbrief", "--capture-only"])).toBe(0);
     const out = chunks.join("");
     expect(out).toMatch(/capture-only multi-active: listing 2 scopes/);
     expect(out).toMatch(/a\.xbrief\.json/);
