@@ -90,6 +90,160 @@
           "recorded_at": "2026-09-29T05:06:32Z",
           "recorded_by": "scope:stamp-evidence"
         }
+      },
+      {
+        "id": "clause.8",
+        "title": "Never PUT an empty required-context set.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:26.585Z"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Never auto-promote observed check-run names into required policy.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:26.585Z"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from def",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:26.585Z"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "Prefer every-PR unconditional contexts over neutral-exclusion heuristics.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:26.585Z"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "Preserve existing human approving-review requirements and unrelated protection settings.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:26.585Z"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "Readiness acceptance does not grant bot-merge or change requireHumanMerge; keep policy:allow-bot-merge as the separate a",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:26.585Z"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "Check-only configure must not encode GitHub review-count as the human-merge gate.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:26.585Z"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "Admin/plan inability to configure is cannot-configure and stays re-checkable; do not record a failed write as opt-out.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:26.585Z"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "Drop or demote the premise that Directive already scaffolds consumer CI workflows at this SHA; detect-and-configure may ",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:26.585Z"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "Spec-path: harvest Bound remedy from this lean for issue:ingest later.",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:26.585Z"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "Target-digest: sha256:15820a6d734f39afd200811108dd4be64927c1dbc242f4fd38c6abe5814bb97a supersedes: Stop 1 write-back 583",
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-29T05:11:26.585Z"
+        }
       }
     ],
     "tags": [
@@ -116,12 +270,31 @@
     ],
     "acceptance": {
       "commands": [
-        "pnpm exec vitest run packages/core/src/pr-merge-readiness/gh.test.ts --reporter=dot"
+        "task --version"
       ],
       "none_stated": false,
       "source_rung": "derived",
       "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
-      "sentences": [],
+      "sentences": [
+        "Name the axis forge required-status-check / merge-gate enforcement readiness, distinct from local deft branch-protection / allowDirectCommitsToMaster.",
+        "Update Phase 2 disclosure so \"branch-protection ON\" is stated as agent-commit policy only.",
+        "Detect with existing fetchRequiredStatusContexts (#3234): rulesets + classic, resolutionFailed fail-closed, outcomes protected (non-empty contexts) / absent / unknown.",
+        "Forbid a second classic-404-only inventory.",
+        "Decision gate is fail-closed at build/swarm strategy start when SCM is ready and a GitHub remote is resolved (setup may be an early optional surface).",
+        "Persist a durable repo/branch-scoped record: configured | explicit-opt-out | cannot-configure (not an opt-out) | deferred-not-applicable for no-SCM / local-only.",
+        "Configure is optional and separate from the decision.",
+        "Never PUT an empty required-context set.",
+        "Never auto-promote observed check-run names into required policy.",
+        "Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from default-branch runs if harvesting at all.",
+        "Prefer every-PR unconditional contexts over neutral-exclusion heuristics.",
+        "Preserve existing human approving-review requirements and unrelated protection settings.",
+        "Readiness acceptance does not grant bot-merge or change requireHumanMerge; keep policy:allow-bot-merge as the separate agent-merge axis.",
+        "Check-only configure must not encode GitHub review-count as the human-merge gate.",
+        "Admin/plan inability to configure is cannot-configure and stays re-checkable; do not record a failed write as opt-out.",
+        "Drop or demote the premise that Directive already scaffolds consumer CI workflows at this SHA; detect-and-configure may wait for first-green / first default-branch run while the decision-and-record half can still complete earlier.",
+        "Spec-path: harvest Bound remedy from this lean for issue:ingest later.",
+        "Target-digest: sha256:15820a6d734f39afd200811108dd4be64927c1dbc242f4fd38c6abe5814bb97a supersedes: Stop 1 write-back 5837066277 round-1 siblings: 3 sibling: 5837362769 sibling: 5837370145 sibling: 5837440299 dispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 arc-mode: no-ingest yolo-standing: yes spend: N>=3 panel-deposit: 5837303141"
+      ],
       "admitted_source_sentences": [
         "Name the axis forge required-status-check / merge-gate enforcement readiness, distinct from local deft branch-protection / allowDirectCommitsToMaster.",
         "Update Phase 2 disclosure so \"branch-protection ON\" is stated as agent-commit policy only.",
@@ -146,52 +319,111 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Name the axis forge required-status-check / merge-gate enforcement readiness, distinct from local deft branch-protection / allowDirectCommitsToMaster. Update Phase 2 disclosure so \"branch-protection ON\" is stated as agent-commit policy only.",
+          "text": "Name the axis forge required-status-check / merge-gate enforcement readiness, distinct from local deft branch-protection / allowDirectCommitsToMaster.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
         },
         {
           "id": 2,
-          "text": "Detect with existing fetchRequiredStatusContexts (#3234): rulesets + classic, resolutionFailed fail-closed, outcomes protected (non-empty contexts) / absent / unknown. Forbid a second classic-404-only inventory.",
+          "text": "Update Phase 2 disclosure so \"branch-protection ON\" is stated as agent-commit policy only.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
         },
         {
           "id": 3,
-          "text": "Decision gate is fail-closed at build/swarm strategy start when SCM is ready and a GitHub remote is resolved (setup may be an early optional surface). Persist a durable repo/branch-scoped record: configured | explicit-opt-out | cannot-configure (not an opt-out) | deferred-not-applicable for no-SCM / local-only.",
+          "text": "Detect with existing fetchRequiredStatusContexts (#3234): rulesets + classic, resolutionFailed fail-closed, outcomes protected (non-empty contexts) / absent / unknown.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
         },
         {
           "id": 4,
-          "text": "Configure is optional and separate from the decision. Never PUT an empty required-context set. Never auto-promote observed check-run names into required policy. Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from default-branch runs if harvesting at all. Prefer every-PR unconditional contexts over neutral-exclusion heuristics.",
+          "text": "Forbid a second classic-404-only inventory.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
         },
         {
           "id": 5,
-          "text": "Preserve existing human approving-review requirements and unrelated protection settings. Readiness acceptance does not grant bot-merge or change requireHumanMerge; keep policy:allow-bot-merge as the separate agent-merge axis. Check-only configure must not encode GitHub review-count as the human-merge gate.",
+          "text": "Decision gate is fail-closed at build/swarm strategy start when SCM is ready and a GitHub remote is resolved (setup may be an early optional surface).",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
         },
         {
           "id": 6,
-          "text": "Admin/plan inability to configure is cannot-configure and stays re-checkable; do not record a failed write as opt-out.",
+          "text": "Persist a durable repo/branch-scoped record: configured | explicit-opt-out | cannot-configure (not an opt-out) | deferred-not-applicable for no-SCM / local-only.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
         },
         {
           "id": 7,
+          "text": "Configure is optional and separate from the decision.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 8,
+          "text": "Never PUT an empty required-context set.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 9,
+          "text": "Never auto-promote observed check-run names into required policy.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 10,
+          "text": "Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from default-branch runs if harvesting at all.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 11,
+          "text": "Prefer every-PR unconditional contexts over neutral-exclusion heuristics.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 12,
+          "text": "Preserve existing human approving-review requirements and unrelated protection settings.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 13,
+          "text": "Readiness acceptance does not grant bot-merge or change requireHumanMerge; keep policy:allow-bot-merge as the separate agent-merge axis.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 14,
+          "text": "Check-only configure must not encode GitHub review-count as the human-merge gate.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 15,
+          "text": "Admin/plan inability to configure is cannot-configure and stays re-checkable; do not record a failed write as opt-out.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 16,
           "text": "Drop or demote the premise that Directive already scaffolds consumer CI workflows at this SHA; detect-and-configure may wait for first-green / first default-branch run while the decision-and-record half can still complete earlier.",
           "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "ambiguous": false
+        },
+        {
+          "id": 17,
+          "text": "Spec-path: harvest Bound remedy from this lean for issue:ingest later.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 18,
+          "text": "Target-digest: sha256:15820a6d734f39afd200811108dd4be64927c1dbc242f4fd38c6abe5814bb97a supersedes: Stop 1 write-back 5837066277 round-1 siblings: 3 sibling: 5837362769 sibling: 5837370145 sibling: 5837440299 dispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 arc-mode: no-ingest yolo-standing: yes spend: N>=3 panel-deposit: 5837303141",
+          "artifact_path": null,
+          "ambiguous": false
         }
       ],
       "ambiguity_attestation": "none_found",
