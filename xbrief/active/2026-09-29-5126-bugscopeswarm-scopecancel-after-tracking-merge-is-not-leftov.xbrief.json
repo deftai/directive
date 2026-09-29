@@ -462,49 +462,49 @@
         {
           "id": 1,
           "text": "Fail-closed cancel refuse (primary A). On `scope:cancel`, before the move/stamp: if the brief origin issue `#N` is shipped-closed (`state_reason=completed` or equivalent) AND `origin/<deliveryBranch>` has no `xbrief/completed/*` (or legacy `vbrief/completed/*`) whose origin cites `#N`, refuse non-zero. Print one remediation line naming leftover-complete / `scope:complete --merge-commit … --pr …` or `swarm:finalize-cohort`. Do not invent approve/skip phrases. True abandon/supersede still works when the origin is open or not shipped-closed.",
-          "artifact_path": "packages/core/src/scope/main.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Tip-twin predicate = completed-only for this ship path. The refuse and Tracking/Refs leftover-complete expect a completed tip twin, not a cancelled tip twin. `#3476` `verify:completed-tracked` may still treat completed|cancelled as tip-terminal for its own DONE scan; this cancel refuse does not green on cancelled-only land for a shipped Tracking close. Cancelled tip twins remain for true abandon land only.",
-          "artifact_path": "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Compose existing inventory. Implement the refuse by composing the same issue-state + tip-twin resolvers already used by `completed-tracked-on-delivery` / orphan-active shipped-origin detection. Fail closed when shipped-looking cancel cannot prove tip twin or cannot resolve closed state under those verbs' rules (including `--skip-gh` / cache / reopen races). ⊗ New ad-hoc gh/state path that can disagree with `#3476`.",
-          "artifact_path": "packages/core/src/orphan-active/running-briefs.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "Always-pin / orphan-active prose recut. On the shipped-closed Tracking/Refs product-merge path, preamble post-merge lifecycle and orphan-active remediation treat cancel as abandon-only, not an alternate ship exit beside complete. Grok through-merge closer stays on `scope:complete` + leftover-complete / `verify:completed-tracked`. Keep cancel available for true abandon when origin is open or not shipped-closed.",
-          "artifact_path": "content/templates/agent-prompt-preamble.md",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "DONE probe (B) — first-ship MUST. On the Tracking/Refs parent-retained closer path after product merge closeout, before parent `DONE`, run existing `verify:completed-tracked -- --issue N` against `origin/<deliveryBranch>`. Exit 1 = not DONE. Reuse `evaluateCompletedTracked` / delivery-tip resolvers (same inventory as item 3). ⊗ Parallel DONE gh probe. Not a new mechanism — habit enforcement made mandatory for this closer path.",
-          "artifact_path": "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
           "text": "Tests. Unit/integration: cancel on shipped closed-origin brief without completed twin → non-zero + remediation naming leftover-complete. Cancel still works for true supersede/abandon when issue is open or not shipped-closed. Tracking merge fixture: `verify:completed-tracked --issue N` exit 1 until completed twin exists; exit 0 after leftover-complete.",
-          "artifact_path": "packages/core/src/scope/cancel-shipped-origin-refuse.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 7,
           "text": "Non-goals. Do not auto-attest acceptance from GitHub merge alone (#3240). Do not teach cancel to mint completed/. Do not broad-reconcile rewrite. Do not collapse #3476 tip-terminal set globally to completed-only outside this ship-path refuse.",
-          "artifact_path": "CHANGELOG.md",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         }
