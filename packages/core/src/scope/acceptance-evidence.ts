@@ -17,7 +17,7 @@
  */
 
 import { isHumanOrigin } from "../authz/origin.js";
-import { HUMAN_ORIGIN_KINDS, type GrantOrigin } from "../authz/types.js";
+import { type GrantOrigin, HUMAN_ORIGIN_KINDS } from "../authz/types.js";
 import {
   SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE,
   scopeCompleteRejectsZeroVerifiedWalk,
@@ -47,8 +47,7 @@ import { utcNowIso } from "./vbrief-json.js";
  * Matches isHumanOrigin + fixtures (kind closed set + non-agent actor example).
  * Bare "human-origin" strings remain rejected; this is guidance only.
  */
-const DISPOSITION_PROVENANCE_SHAPE =
-  `{kind: ${HUMAN_ORIGIN_KINDS.join("|")}, actor: <non-agent, e.g. operator@example.com>}`;
+const DISPOSITION_PROVENANCE_SHAPE = `{kind: ${HUMAN_ORIGIN_KINDS.join("|")}, actor: <non-agent, e.g. operator@example.com>}`;
 
 /** Canonical namespaced key for typed acceptance evidence (#3305 / #1620). */
 export const ACCEPTANCE_EVIDENCE_KEY = "x-directive/evidence" as const;
