@@ -422,8 +422,10 @@
       }
     },
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/scope/cancel-shipped-origin-refuse.test.ts --reporter=dot"
+      ],
+      "none_stated": false,
       "source_rung": "derived",
       "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
       "sentences": [],
