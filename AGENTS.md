@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=c4571ba7d385 refreshed=2026-09-29T02:24:13Z session=b3f7a407457d -->
+<!-- deft:managed-section v3 sha=56e37e8ae956 refreshed=2026-09-29T03:02:59Z session=e8ab30be73cb -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -178,10 +178,6 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Opaque non-zero exit (usually 127) on every mutation = `deft-hook` is not executable on this host, not a Directive deny — no Directive code ran, and no in-session flag reaches it. Out of band: `deft policy:disable-host-hooks --host cursor --confirm`, or install the runtime (`npm i -g @deftai/directive@<pin>`). Depth: `.deft/core/docs/hook-runtime-unavailable.md`.
 ⊗ Hand-edit `failClosed` in `.cursor/hooks.json` — the next `deft update` rewrites it and silently re-arms the lockout.
-
-## Codex ritual-git recovery (#4664)
-
-! Codex sandbox EPERM on ritual `git` → approve outside-sandbox once for the session (`/approvals` / session trust). Depth: `.deft/core/contracts/agent-hook-readiness.md`. ⊗ Invent an in-process git substitute; ⊗ treat repeated per-verb prompts as Continuity discharge.
 
 ## Session routing (#2176)
 
@@ -267,7 +263,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ! **Grok through-merge (#4529 / #4821):** implement MUST be `stop-at: pr-open`. Dest class A residual, then Approach 1 wait, then parent-retained closer after CLEAN. Not a global SLA recut. ⊗ Harvest option 2 / `merge-release` / parent-inline residual.
 ! After stop-at:pr-open (#4882), merge-path owner MUST keep a still-running phase-correct wait (pre-CLEAN: blocking `pr:watch` / Approach 1; post-CLEAN: `pr:wait-mergeable-and-merge`) until CLEAN or explicit option-C finish; under human-merge also remain for post-merge `scope:complete`. Sticky lease alone or Path B promise without a live wait is unarmed; CLEAN alone is not lifecycle complete. Probe: `deft verify:review-monitor -- --pr <N> --merge-path-arm` (`--live-wait` / `--explicit-finish`). `pr:watch --json` wrappers MUST parse full stdout JSON (pretty multi-line valid); line-split misses CLEAN (#5015). Prefer native `pr:watch`.
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`. ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261). ⊗ Stand down unarmed, or treat lease-only / line-parsed `pr-watch --json` as armed (#4882).
-! After merge of issue `#N`, `deft verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429). After `scope:complete` (cancel≠ship exit #5126), `deft verify:completed-tracked -- --issue N` MUST exit 0 on `origin/<deliveryBranch>` before `DONE` (#3476). Exit 1 shipped → printed `scope:complete`; missing tracked land → `swarm:finalize-cohort` or a lifecycle PR; unresolved lookup → retry / `BLOCKED` (⊗ complete unfinished scope). **Grok leftover (#4529):** Phase 6 `swarm:finalize-cohort`, not the implement dest.
+! After merge of issue `#N`, `deft verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429). After `scope:complete`, `deft verify:completed-tracked -- --issue N` MUST exit 0 on `origin/<deliveryBranch>` before `DONE` (#3476). Exit 1 shipped → printed `scope:complete`; missing tracked land → `swarm:finalize-cohort` or a lifecycle PR; unresolved lookup → retry / `BLOCKED` (⊗ complete unfinished scope). **Grok leftover (#4529):** Phase 6 `swarm:finalize-cohort`, not the implement dest.
 ⊗ Emit `ISSUE: closed` while that brief is still in `active/`.
 
 ## Nuclear-family A2A topology (#3155)
@@ -302,7 +298,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Branch policy & branch verification
 
 ! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md`. One origin/PR else one-PR-unit grant (not #1378/`--allow-close`).
-! Scope gates (#3145 / #4956) — `deft verify:test-boundary` (warn-only), `deft verify:scope-provenance` (merge-base `file_scope` fence; production allowance 2–5; test roots free), `deft verify:consumer-check-contract`, `deft verify:evaluator-surface`, `deft verify:class-checks`, `deft verify:observable-scope`, `deft verify:intent-constraint`, `deft verify:durable-effect-acquisition`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`).
+! Test placement + scope provenance (#3145 / #4956) — `deft verify:test-boundary` (warn-only), `deft verify:scope-provenance` (merge-base `file_scope` fence; production allowance 2–5; test roots free), `deft verify:consumer-check-contract`, `deft verify:evaluator-surface`, `deft verify:class-checks`, `deft verify:observable-scope`, `deft verify:intent-constraint`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`).
 ! After proceed: no scope ceremony (#4956). No approved-scope digest on proceed; head brief does not widen the fence; over-budget splits (no remint). Class checks #4980. #4383 still open. Depth: `docs/scope-provenance.md`.
 
 ## Branch Policy Disclosure (#746)
