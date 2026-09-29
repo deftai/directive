@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  CONSUMER_CHECK_GATES,
+  FRAMEWORK_CHECK_GATES,
+  checkGateId,
+} from "./gate-lists.js";
+import {
   extractGateCause,
   formatDegradedSkipReport,
   formatNamedCauseFailure,
+  GENERIC_FALLBACK_REMEDY_PREFIX,
+  isGenericFallbackRemedy,
+  isOpaqueGateCause,
+  listCompositionGatesMissingSpecificRemedies,
+  OPAQUE_OR_GENERIC_NOTE,
   remedyForGate,
 } from "./named-cause.js";
+import { auditCheckCompositionNamedRemedies } from "./orchestrator.js";
 
 describe("named-cause gate failures (#3282)", () => {
   it("includes gate name, cause, and remedy without env values", () => {
@@ -290,6 +301,60 @@ describe("named-cause gate failures (#3282)", () => {
 
   it("returns a generic remedy for unknown gates", () => {
     expect(remedyForGate("unknown:gate", "something broke")).toMatch(/Re-run the gate/);
+    expect(isGenericFallbackRemedy(remedyForGate("unknown:gate", "something broke"))).toBe(true);
+  });
+
+  it("gives previously generic-fallback composition gates a concrete remedy (#1883)", () => {
+    const closing = formatNamedCauseFailure({
+      gateId: "verify:closing-keywords",
+      exitCode: 1,
+      stderr: "",
+      stdout: "",
+    });
+    expect(isOpaqueGateCause(closing.cause)).toBe(true);
+    expect(isGenericFallbackRemedy(closing.remedy)).toBe(false);
+    expect(closing.remedy).toMatch(/Tracking:|Refs|--allow-close/i);
+    expect(closing.opaqueOrGenericOnly).toBe(true);
+    expect(closing.lines.join("\n")).toContain(OPAQUE_OR_GENERIC_NOTE);
+
+    const stubs = formatNamedCauseFailure({
+      gateId: "verify:stubs",
+      exitCode: 1,
+      stderr: "stub leftover in foo.ts\n",
+      stdout: "",
+    });
+    expect(stubs.cause).toMatch(/stub leftover/i);
+    expect(isGenericFallbackRemedy(stubs.remedy)).toBe(false);
+    expect(stubs.remedy).toMatch(/stub leftover|Remove or replace/i);
+    expect(stubs.opaqueOrGenericOnly).toBe(false);
+
+    const ruleMap = formatNamedCauseFailure({
+      gateId: "docs:rule-map:check",
+      exitCode: 1,
+      stderr: "",
+      stdout: "",
+    });
+    expect(isGenericFallbackRemedy(ruleMap.remedy)).toBe(false);
+    expect(ruleMap.remedy).toMatch(/RULE-MAP|Regenerate/i);
+  });
+
+  it("keeps empty-diagnostic and generic-only cases fail-visible as the bug class (#1883)", () => {
+    const opaque = formatNamedCauseFailure({
+      gateId: "unknown:composition",
+      exitCode: 1,
+      stdout: "",
+      stderr: "",
+    });
+    expect(opaque.cause).toMatch(/without a diagnostic/);
+    expect(opaque.remedy.startsWith(GENERIC_FALLBACK_REMEDY_PREFIX)).toBe(true);
+    expect(opaque.opaqueOrGenericOnly).toBe(true);
+    expect(opaque.lines.join("\n")).toContain(OPAQUE_OR_GENERIC_NOTE);
+  });
+
+  it("covers FRAMEWORK ∪ CONSUMER composition gates with specific remedies (#1883)", () => {
+    const ids = [...new Set([...FRAMEWORK_CHECK_GATES, ...CONSUMER_CHECK_GATES].map(checkGateId))];
+    expect(listCompositionGatesMissingSpecificRemedies(ids)).toEqual([]);
+    expect(auditCheckCompositionNamedRemedies()).toEqual([]);
   });
 
   it("attributes verify:ac instead of quoting engine:_ts-build (#3449)", () => {

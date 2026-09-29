@@ -1,5 +1,5 @@
 /**
- * Consumer check-graph integrity (#3070).
+ * Consumer check-graph integrity (#3070 / #1883).
  *
  * CONSUMER_CHECK_GATES lists Taskfile tasks that must resolve in a vendored
  * deposit. When optional Taskfile includes silently omit `tasks/verify.yml`
@@ -9,11 +9,13 @@
  *  1. Maps each gate to its include namespace / root Taskfile surface
  *  2. Proves shipped files define those tasks (static + runtime)
  *  3. Emits a deposit-repair recovery message instead of opaque go-task errors
+ *  4. Audits that each consumer composition gate has a concrete named-cause remedy
  */
 
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { type CheckGateSpec, CONSUMER_CHECK_GATES, checkGateId } from "./gate-lists.js";
+import { listCompositionGatesMissingSpecificRemedies } from "./named-cause.js";
 
 /** Include namespaces required by the consumer check graph (Taskfile includes). */
 export const CHECK_GRAPH_REQUIRED_NAMESPACES = ["verify", "toolchain", "vbrief"] as const;
@@ -301,6 +303,16 @@ export function formatConsumerGateIntegrityFailure(result: ConsumerGateIntegrity
     `  recovery: ${result.recovery}`,
   ];
   return `${lines.join("\n")}\n`;
+}
+
+/**
+ * Consumer composition gates that still lack a concrete named-cause remedy (#1883).
+ * Empty means #3070 integrity + #3282 remedies cover the consumer check path.
+ */
+export function listConsumerCheckGatesMissingNamedRemedies(
+  gates: readonly CheckGateSpec[] = CONSUMER_CHECK_GATES,
+): readonly string[] {
+  return listCompositionGatesMissingSpecificRemedies(gates.map(checkGateId));
 }
 
 /**

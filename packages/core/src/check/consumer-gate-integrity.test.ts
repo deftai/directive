@@ -11,6 +11,7 @@ import {
   gateLocalName,
   gateNamespace,
   includeTaskfileRel,
+  listConsumerCheckGatesMissingNamedRemedies,
   parseTaskfileIncludes,
   requiredNamespacesForGates,
   taskDefinedInTaskfileYaml,
@@ -57,6 +58,10 @@ describe("gate id helpers (#3070)", () => {
     for (const required of CHECK_GRAPH_REQUIRED_NAMESPACES) {
       expect(ns).toContain(required);
     }
+  });
+
+  it("gives every CONSUMER_CHECK_GATES id a concrete named-cause remedy (#1883)", () => {
+    expect(listConsumerCheckGatesMissingNamedRemedies()).toEqual([]);
   });
 });
 

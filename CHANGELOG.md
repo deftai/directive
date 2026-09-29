@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **chore(xbrief): clear stale #635 proposed split briefs** -- complete three April tip copies whose product already shipped (#705 rule-ownership, #707/#706 events) and cancel the abandoned phase-0 RFC; removes finalize-owed false positives that cited historical PR #401 against open epic #635. Refs #5142 #635 #642.
 
+- **Named-cause remedies for composition check gates (#1883).** Widen `GATE_REMEDIES` across `FRAMEWORK_CHECK_GATES` ∪ `CONSUMER_CHECK_GATES` (including former generic-fallback gates such as `verify:closing-keywords`, `verify:stubs`, and `docs:rule-map:check`). Opaque empty-diagnostic causes and generic-only remedies stay fail-visible as a named-cause seam bug, with orchestrator/consumer integrity audit helpers. Extends #3282 / #3070; does not add a coding/tools/patterns trilogy. Tracking #1883.
+
 ### Changed
 
 ### Fixed

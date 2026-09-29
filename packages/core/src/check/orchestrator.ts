@@ -1,5 +1,5 @@
 /**
- * check/orchestrator.ts -- Context-aware `task check` orchestrator (#1854).
+ * check/orchestrator.ts -- Context-aware `task check` orchestrator (#1854 / #1883).
  *
  * TypeScript port of scripts/_project_context.py dispatch_task_check().
  * Detects whether we are running in the framework-source context or a
@@ -9,6 +9,7 @@
  * Default path uses the cached sequential gate runner (#1713) with
  * fast-before-slow ordering (#3188): cheap gates run before `ts:check-lane`
  * (vitest+coverage). A fast-gate failure aborts before the suite starts.
+ * Opaque / generic-only named-cause fallbacks on that path are bugs (#1883).
  *
  * Exit codes (three-state, mirrors _project_context.py):
  *   0 -- all gates passed
@@ -24,6 +25,12 @@ import {
   formatConsumerGateIntegrityFailure,
 } from "./consumer-gate-integrity.js";
 import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
+import {
+  CONSUMER_CHECK_GATES,
+  FRAMEWORK_CHECK_GATES,
+  checkGateId,
+} from "./gate-lists.js";
+import { listCompositionGatesMissingSpecificRemedies } from "./named-cause.js";
 
 export type {
   CachedCheckCompletion,
@@ -31,6 +38,15 @@ export type {
   CheckOrchestratorSeams,
 } from "./context.js";
 export { isFrameworkRepoRoot, isFrameworkSourceContext, resolveCheckTarget } from "./context.js";
+
+/**
+ * Composition gates (framework ∪ consumer) still missing a concrete GATE_REMEDIES
+ * entry — residual audit for the named-cause seam (#1883). Empty is the ship bar.
+ */
+export function auditCheckCompositionNamedRemedies(): readonly string[] {
+  const ids = [...new Set([...FRAMEWORK_CHECK_GATES, ...CONSUMER_CHECK_GATES].map(checkGateId))];
+  return listCompositionGatesMissingSpecificRemedies(ids);
+}
 
 /**
  * Dispatch to the context-appropriate `task check` aggregate target.

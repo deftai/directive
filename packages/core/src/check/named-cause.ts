@@ -1,13 +1,16 @@
 /**
- * Named-cause + remedy formatting for check gate failures (#3282).
+ * Named-cause + remedy formatting for check gate failures (#3282 / #1883).
  *
  * Gate failures must never be bare exit 1: report gate name, cause, and remedy
- * without embedding env values.
+ * without embedding env values. Composition gates on FRAMEWORK_CHECK_GATES /
+ * CONSUMER_CHECK_GATES must carry a concrete GATE_REMEDIES entry; empty-diagnostic
+ * cause and generic-only remedy on that seam are bugs, not steady state.
  */
 import { DURABLE_EFFECT_REMEDIATION } from "../durable-effect-acquisition/types.js";
 import { INTENT_CONSTRAINT_REMEDIATION } from "../intent-constraint/types.js";
 import { OBSERVABLE_SCOPE_REMEDIATION } from "../observable-scope/types.js";
 import { PRESENTATION_CEILING_REMEDIATION } from "../presentation-ceiling/types.js";
+import { EMPTY_AC_REMEDY } from "../product-first-done-gate/empty-resolution.js";
 
 export interface NamedCauseMessage {
   readonly gateId: string;
@@ -15,28 +18,71 @@ export interface NamedCauseMessage {
   readonly cause: string;
   readonly remedy: string;
   readonly lines: readonly string[];
+  /** True when cause is empty-diagnostic or remedy is the generic re-run fallback (#1883). */
+  readonly opaqueOrGenericOnly: boolean;
 }
+
+/** Prefix of the generic fallback remedy (unknown gate or missing GATE_REMEDIES entry). */
+export const GENERIC_FALLBACK_REMEDY_PREFIX = "Re-run the gate for details:";
+
+/** Empty-diagnostic cause when stdout/stderr yield nothing useful (#3282 / #1883). */
+export const OPAQUE_CAUSE_RE = /without a diagnostic message/i;
+
+export const OPAQUE_OR_GENERIC_NOTE =
+  "opaque/generic-only check failure is a bug on the named-cause seam — extend GATE_REMEDIES / cause extraction (#1883)";
 
 /** Per-gate remedy hints (static; no env interpolation). */
 const GATE_REMEDIES: Readonly<Record<string, string>> = {
+  "verify:ac":
+    `Fix the failing acceptance clause or command; empty floor: ${EMPTY_AC_REMEDY}`,
   "verify:branch":
     "Create a feature branch (`git switch -c feat/<name>`) or set plan.policy.allowDirectCommitsToMaster with confirmation",
   "verify:encoding":
     "Fix non-ASCII / encoding issues flagged by the gate; re-run task verify:encoding",
+  "verify:closing-keywords":
+    "Rewrite Closes/Fixes/Resolves to Tracking:/Refs (or pass --allow-close N only for intentional close)",
   "verify:cache-fresh": "Run task cache:fetch-all or task triage:bootstrap to refresh the cache",
   "verify:orphan-active":
     "Complete or cancel active xBRIEFs whose issues are closed / PRs merged (task scope:complete / scope:cancel)",
+  "verify:completed-write-guard":
+    "Pair active/ deletes with stamped completed/ (scope:complete) or leave the brief untracked — do not rename away without a terminal stamp",
   "verify:wip-cap":
     "Demote stale pending scopes (task scope:demote) or raise plan.policy.wipCap deliberately",
+  "verify:license-sync": "Sync LICENSE / package license fields",
+  "verify:contract-drift":
+    "Align generated contracts with their sources; re-run task verify:contract-drift and apply the named regen",
   doctor: "Run task doctor and follow the named recovery steps",
   "toolchain:check":
     "Install missing maintainer tools reported by the gate (go, uv, git, gh, node, pnpm)",
   "toolchain:check-consumer":
     "Install the missing consumer tool reported by the gate; use npm from Node or enable pnpm with Corepack as declared by package.json",
+  "verify:stubs":
+    "Remove or replace stub leftovers named by the gate (TODO/FIXME/NotImplemented placeholders that fail the scan)",
+  "verify:links":
+    "Fix broken markdown/link targets reported by the gate; consumer deposits use deposit-relative paths",
+  "verify:rule-ownership":
+    "Update content/conventions/rule-ownership.json (or the named ownership map) to cover the flagged rule",
+  "verify:biome-config":
+    "Align biome.json with the framework-required shape; re-run task verify:biome-config",
+  "verify:content-manifest":
+    "Regenerate or repair the content manifest so declared paths match the tree",
+  "verify:deposit-closure":
+    "Restore C1 required deposit paths in the staged pack (task verify:deposit-closure)",
+  "verify:skill-external-fetch-gate":
+    "Remove or allowlist the skill external-fetch flagged by the gate",
+  "verify:semantic-single-source":
+    "Make shipped authoring surfaces name exactly one current xBRIEF write version (0.8)",
+  "verify:cursor-tier1":
+    "Repair Cursor tier-1 host surface drift named by the gate",
+  "verify:openclaw-tier1":
+    "Repair OpenClaw tier-1 host surface drift named by the gate",
+  "verify:go-freeze":
+    "Do not edit frozen Go surfaces; revert or land the change through the allowed thaw path",
+  "verify:bridge-drift":
+    "Regenerate bridge artifacts so they match the TypeScript source of truth",
   "ts:check-lane": "Fix lint/type/test failures; re-run task ts:check-lane",
-  "vbrief:validate": "Fix xBRIEF/vBRIEF schema errors reported by the gate",
-  "verify-strategy-output":
-    "Re-run strategy output or fix non-conformant scope filenames / PROJECT-DEFINITION",
+  "verify:forward-coverage":
+    "Add tests for new source files and uncovered changed branches (task verify:forward-coverage)",
   "verify:test-boundary":
     "Move tests to the allowed placement or update plan.policy test-boundary allowlist",
   "verify:class-checks": "Move or remove the path; class checks have no approve, skip, or phrase",
@@ -50,15 +96,62 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
   "verify:durable-effect-acquisition": DURABLE_EFFECT_REMEDIATION,
   "verify:presentation-coverage":
     "Under an armed presentation ceiling, cannot-evaluate is refuse or escalate. Continue only from a merge-base human-stamped mint or extensionAmendment covering the same paths.",
-  "verify:consumer-test-lane":
-    "Fix the project's declared test command, or set plan.policy.testCommand; do not invent a suite",
-  "verify:forward-coverage":
-    "Add tests for new source files and uncovered changed branches (task verify:forward-coverage)",
+  "verify:telemetry-coverage":
+    "Cover or disposition the dead telemetry surface named by the gate (warn-only unless --enforce)",
+  "verify:vbrief-conformance":
+    "Fix xBRIEF conformance findings (D7 filename / schema / stamp); re-run task verify:vbrief-conformance",
+  "verify:destructive-gh-verbs":
+    "Avoid default-branch push / destructive gh verbs, or use policy:allow-destructive-gh-verbs --confirm",
   "verify:scm-boundary": "Move SCM mutations off GraphQL-heavy paths or wait for rate-limit reset",
-  "verify:license-sync": "Sync LICENSE / package license fields",
+  "verify:xbrief-drift":
+    "Convert legacy vBRIEF envelopes on *.xbrief.json paths, or move them onto the BUILTIN_ALLOW_LIST",
+  "verify:no-task-runtime":
+    "Remove runtime `task`/`go-task` invocations from product paths; use the Directive CLI instead",
+  "verify:pack-drift":
+    "Regenerate or restore pack files so they match the declared pack sources",
   "verify:agents-md-budget":
     "Trim AGENTS.md managed section or raise plan.policy.agentsMdBudget deliberately",
+  "verify:eval-health-relocation":
+    "Move eval-health surfaces to the required location vs origin/master (task verify:eval-health-relocation)",
+  "verify:eval-triggers-relocation":
+    "Move eval-triggers surfaces to the required location vs origin/master (task verify:eval-triggers-relocation)",
+  "vbrief:validate": "Fix xBRIEF/vBRIEF schema errors reported by the gate",
+  "codebase:validate-structure":
+    "Fix plan.architecture.codeStructure / codebase layout mismatches named by the gate",
+  "verify:codebase-map-fresh":
+    "Run task codebase:map to refresh .planning/codebase/MAP.md, then re-verify",
+  "verify:spec-prd-fresh":
+    "Re-render SPECIFICATION.md / PRD.md (task spec:render / prd:render) so committed files match",
+  "docs:rule-map:check":
+    "Regenerate docs/RULE-MAP.md from the renderer so the committed file is byte-identical",
+  "docs:capability-map:check":
+    "Regenerate the capability index so it matches overlay + registries",
+  "verify-strategy-output":
+    "Re-run strategy output or fix non-conformant scope filenames / PROJECT-DEFINITION",
+  "verify:consumer-test-lane":
+    "Fix the project's declared test command, or set plan.policy.testCommand; do not invent a suite",
 };
+
+export function isOpaqueGateCause(cause: string): boolean {
+  return OPAQUE_CAUSE_RE.test(cause);
+}
+
+export function isGenericFallbackRemedy(remedy: string): boolean {
+  return remedy.trimStart().startsWith(GENERIC_FALLBACK_REMEDY_PREFIX);
+}
+
+/** Composition-list gate ids that still lack a specific GATE_REMEDIES entry (#1883). */
+export function listCompositionGatesMissingSpecificRemedies(
+  gateIds: readonly string[],
+): readonly string[] {
+  const missing: string[] = [];
+  for (const id of gateIds) {
+    if (GATE_REMEDIES[id] === undefined) {
+      missing.push(id);
+    }
+  }
+  return missing;
+}
 
 /**
  * Basename miss on vbrief:validate (#4844). Names the non-renaming scope.
@@ -298,7 +391,7 @@ export function remedyForGate(gateId: string, cause: string): string {
   if (basenameRemedy !== null) return basenameRemedy;
   return (
     GATE_REMEDIES[gateId] ??
-    `Re-run the gate for details: task ${gateId}  (or task check); fix the reported product/process defect`
+    `${GENERIC_FALLBACK_REMEDY_PREFIX} task ${gateId}  (or task check); fix the reported product/process defect`
   );
 }
 
@@ -324,17 +417,22 @@ export function formatNamedCauseFailure(input: {
   const raw = `${input.stdout ?? ""}\n${input.stderr ?? ""}`;
   const remedy =
     vbriefBasenameRemedy(input.gateId, cause, raw) ?? remedyForGate(input.gateId, cause);
+  const opaqueOrGenericOnly = isOpaqueGateCause(cause) || isGenericFallbackRemedy(remedy);
   const lines = [
     `check: gate ${input.gateId} failed (exit ${input.exitCode})`,
     `  cause: ${cause}`,
     `  remedy: ${remedy}`,
   ];
+  if (opaqueOrGenericOnly) {
+    lines.push(`  note: ${OPAQUE_OR_GENERIC_NOTE}`);
+  }
   return {
     gateId: input.gateId,
     exitCode: input.exitCode,
     cause,
     remedy,
     lines,
+    opaqueOrGenericOnly,
   };
 }
 
