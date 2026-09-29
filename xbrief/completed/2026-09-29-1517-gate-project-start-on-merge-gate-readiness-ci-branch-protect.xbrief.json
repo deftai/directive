@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #1517",
-    "updated": "2026-09-29T00:49:46Z"
+    "updated": "2026-09-29T05:12:03Z"
   },
   "plan": {
     "title": "Gate project start on merge-gate readiness (CI + branch protection) or an explicit opt-out, before strategies run",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Gate project start on merge-gate readiness (CI + branch protection) or an explicit opt-out, before strategies run",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1517",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Name the axis forge required-status-check / merge-gate enforcement readiness, distinct from local deft branch-protection / allowDirectCommitsToMaster. Update Phase 2 disclosure so \"branch-protection ON\" is stated as agent-commit policy only.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/evidence": {
           "kind": "test",
@@ -27,7 +27,7 @@
       },
       {
         "title": "Detect with existing fetchRequiredStatusContexts (#3234): rulesets + classic, resolutionFailed fail-closed, outcomes protected (non-empty contexts) / absent / unknown. Forbid a second classic-404-only inventory.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/evidence": {
           "kind": "test",
@@ -38,7 +38,7 @@
       },
       {
         "title": "Decision gate is fail-closed at build/swarm strategy start when SCM is ready and a GitHub remote is resolved (setup may be an early optional surface). Persist a durable repo/branch-scoped record: configured | explicit-opt-out | cannot-configure (not an opt-out) | deferred-not-applicable for no-SCM / local-only.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/evidence": {
           "kind": "test",
@@ -49,7 +49,7 @@
       },
       {
         "title": "Configure is optional and separate from the decision. Never PUT an empty required-context set. Never auto-promote observed check-run names into required policy. Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from default-branch runs if harvesting at all. Prefer every-PR unconditional contexts over neutral-exclusion heuristics.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/evidence": {
           "kind": "test",
@@ -60,7 +60,7 @@
       },
       {
         "title": "Preserve existing human approving-review requirements and unrelated protection settings. Readiness acceptance does not grant bot-merge or change requireHumanMerge; keep policy:allow-bot-merge as the separate agent-merge axis. Check-only configure must not encode GitHub review-count as the human-merge gate.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/evidence": {
           "kind": "test",
@@ -71,7 +71,7 @@
       },
       {
         "title": "Admin/plan inability to configure is cannot-configure and stays re-checkable; do not record a failed write as opt-out.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "x-directive/evidence": {
           "kind": "test",
@@ -82,7 +82,7 @@
       },
       {
         "title": "Drop or demote the premise that Directive already scaffolds consumer CI workflows at this SHA; detect-and-configure may wait for first-green / first default-branch run while the decision-and-record half can still complete earlier.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "x-directive/evidence": {
           "kind": "test",
@@ -94,7 +94,7 @@
       {
         "id": "clause.8",
         "title": "Never PUT an empty required-context set.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -108,7 +108,7 @@
       {
         "id": "clause.9",
         "title": "Never auto-promote observed check-run names into required policy.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -122,7 +122,7 @@
       {
         "id": "clause.10",
         "title": "Discovery may propose candidates; operator/authorized selection confirms; pin app id when writing; harvest only from def",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -136,7 +136,7 @@
       {
         "id": "clause.11",
         "title": "Prefer every-PR unconditional contexts over neutral-exclusion heuristics.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -150,7 +150,7 @@
       {
         "id": "clause.12",
         "title": "Preserve existing human approving-review requirements and unrelated protection settings.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -164,7 +164,7 @@
       {
         "id": "clause.13",
         "title": "Readiness acceptance does not grant bot-merge or change requireHumanMerge; keep policy:allow-bot-merge as the separate a",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -178,7 +178,7 @@
       {
         "id": "clause.14",
         "title": "Check-only configure must not encode GitHub review-count as the human-merge gate.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -192,7 +192,7 @@
       {
         "id": "clause.15",
         "title": "Admin/plan inability to configure is cannot-configure and stays re-checkable; do not record a failed write as opt-out.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -206,7 +206,7 @@
       {
         "id": "clause.16",
         "title": "Drop or demote the premise that Directive already scaffolds consumer CI workflows at this SHA; detect-and-configure may ",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -220,7 +220,7 @@
       {
         "id": "clause.17",
         "title": "Spec-path: harvest Bound remedy from this lean for issue:ingest later.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -234,7 +234,7 @@
       {
         "id": "clause.18",
         "title": "Target-digest: sha256:15820a6d734f39afd200811108dd4be64927c1dbc242f4fd38c6abe5814bb97a supersedes: Stop 1 write-back 583",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Leftover-complete after product Tracking squash-merge #5130; discharged by green task --version oracle plus merge-commit delivery evidence on scope:complete.",
@@ -751,9 +751,32 @@
           "content/scm/github.md",
           "CHANGELOG.md"
         ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5130,
+        "prBase": null,
+        "mergeCommit": "25102e62a4f146ee9a1171ecc34e51118c9bc73e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "25102e62a4f146ee9a1171ecc34e51118c9bc73e",
+        "verifiedAt": "2026-09-29T05:12:03Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-29T05:12:03Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-29T05:12:03Z"
       }
     },
     "id": "github.issue.4594031845",
-    "updated": "2026-09-29T00:49:46Z"
+    "updated": "2026-09-29T05:12:03Z"
   }
 }
