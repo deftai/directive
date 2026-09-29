@@ -39,7 +39,7 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
   "verify:encoding":
     "Fix non-ASCII / encoding issues flagged by the gate; re-run task verify:encoding",
   "verify:closing-keywords":
-    "Rewrite Closes/Fixes/Resolves to Tracking:/Refs (or pass --allow-close N only for intentional close)",
+    "If the gate names a missing or stale merge base, run the printed git fetch recovery first; otherwise rewrite Closes/Fixes/Resolves to Tracking:/Refs (or pass --allow-close N only for intentional close)",
   "verify:cache-fresh": "Run task cache:fetch-all or task triage:bootstrap to refresh the cache",
   "verify:orphan-active":
     "Complete or cancel active xBRIEFs whose issues are closed / PRs merged (task scope:complete / scope:cancel)",
@@ -134,13 +134,14 @@ export function isGenericFallbackRemedy(remedy: string): boolean {
   return remedy.trimStart().startsWith(GENERIC_FALLBACK_REMEDY_PREFIX);
 }
 
-/** Composition-list gate ids that still lack a specific GATE_REMEDIES entry (#1883). */
+/** Composition-list gate ids that still lack a concrete (non-empty, non-generic) GATE_REMEDIES entry (#1883). */
 export function listCompositionGatesMissingSpecificRemedies(
   gateIds: readonly string[],
 ): readonly string[] {
   const missing: string[] = [];
   for (const id of gateIds) {
-    if (GATE_REMEDIES[id] === undefined) {
+    const remedy = GATE_REMEDIES[id];
+    if (remedy === undefined || remedy.trim() === "" || isGenericFallbackRemedy(remedy)) {
       missing.push(id);
     }
   }

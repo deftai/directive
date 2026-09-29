@@ -608,7 +608,9 @@ export function dispatchCachedTaskCheck(
           id: gateId,
           status: "run",
           exit_code: result.exitCode,
-          cause: `advisory hygiene failure: ${named.cause}`,
+          cause: named.opaqueOrGenericOnly
+            ? `advisory hygiene failure: ${named.cause} (opaque-or-generic named-cause bug #1883)`
+            : `advisory hygiene failure: ${named.cause}`,
           remedy: named.remedy,
           from_cache: result.fromCache,
         });

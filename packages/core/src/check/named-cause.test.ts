@@ -309,6 +309,7 @@ describe("named-cause gate failures (#3282)", () => {
     });
     expect(isOpaqueGateCause(closing.cause)).toBe(true);
     expect(isGenericFallbackRemedy(closing.remedy)).toBe(false);
+    expect(closing.remedy).toMatch(/git fetch|merge base/i);
     expect(closing.remedy).toMatch(/Tracking:|Refs|--allow-close/i);
     expect(closing.opaqueOrGenericOnly).toBe(true);
     expect(closing.lines.join("\n")).toContain(OPAQUE_OR_GENERIC_NOTE);
