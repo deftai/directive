@@ -1,0 +1,519 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5162",
+    "updated": "2026-09-29T23:42:59Z"
+  },
+  "plan": {
+    "title": "process(review-cycle): sha_match stall must escalate to @greptileai review",
+    "status": "completed",
+    "narratives": {
+      "Description": "process(review-cycle): sha_match stall must escalate to @greptileai review",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5162",
+      "Overview": "## Problem\nAfter tip-rot rebases, Greptile stays on a stale SHA (`clean_gate_holdout=sha_match`) at confidence 4/5. Agents idle-poll homemade CLEAN monitors instead of babysitting.\n\nSeen on PRs #5153 / #5147 (CI green, p0/p1=0 on HEAD, dogfood floor 5/5).\n\n## Bound remedy (simple / deterministic)\nWhen `pr:watch --one-shot --json` reports `clean_gate_holdout=sha_match` and the sticky summary still names a non-HEAD commit after one native poll window:\n\n1. Fail loud once: `BLOCKED: greptile-sha-stall`\n2. Post `@greptileai review` on that PR (or ask operator once if policy forbids auto-post)\n3. Re-enter native `pr:watch` — no third freestyle poller\n\nDo not invent sleep/CLEAN monitors. Do not treat sha_match as dest residual.\n\n## Non-goals\n- Lowering minGreptileConfidence\n- Empty-commit retriggers\n- Changing Greptile vendor behavior\n\n## Acceptance\n- [ ] review-cycle (or pr:watch caller docs) names the sha-stall to `@greptileai review` step\n- [ ] One regression test or fixture asserts holdout sha_match routes to that remedy string (not CLEAN / not dest-residual)",
+      "Labels": "bug, determinism, agent-experience, review-cycle, process, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "When pr:watch --one-shot --json reports clean_gate_holdout=sha_match and sticky summary names a non-HEAD commit after one native poll window, fail loud once with BLOCKED: greptile-sha-stall",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2f784b03c7b632ca9784ec6f266c38dad27ee75f",
+          "recorded_at": "2026-09-30T01:17:08.832Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process clause satisfied by product PR #5165 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:17:08.832Z",
+            "mintedVia": "leftover-complete-after-5165"
+          },
+          "recorded_at": "2026-09-30T01:17:08.832Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Post @greptileai review on that PR (or ask operator once if policy forbids auto-post)",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2f784b03c7b632ca9784ec6f266c38dad27ee75f",
+          "recorded_at": "2026-09-30T01:17:08.832Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process clause satisfied by product PR #5165 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:17:08.832Z",
+            "mintedVia": "leftover-complete-after-5165"
+          },
+          "recorded_at": "2026-09-30T01:17:08.832Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Re-enter native pr:watch — no third freestyle poller; do not invent sleep/CLEAN monitors; do not treat sha_match as dest residual",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2f784b03c7b632ca9784ec6f266c38dad27ee75f",
+          "recorded_at": "2026-09-30T01:17:08.832Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process clause satisfied by product PR #5165 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:17:08.832Z",
+            "mintedVia": "leftover-complete-after-5165"
+          },
+          "recorded_at": "2026-09-30T01:17:08.832Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "review-cycle (or pr:watch caller docs) names the sha-stall to @greptileai review step",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2f784b03c7b632ca9784ec6f266c38dad27ee75f",
+          "recorded_at": "2026-09-30T01:17:08.832Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process clause satisfied by product PR #5165 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:17:08.832Z",
+            "mintedVia": "leftover-complete-after-5165"
+          },
+          "recorded_at": "2026-09-30T01:17:08.832Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "One regression test or fixture asserts holdout sha_match routes to that remedy string (not CLEAN / not dest-residual)",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2f784b03c7b632ca9784ec6f266c38dad27ee75f",
+          "recorded_at": "2026-09-30T01:17:08.832Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process clause satisfied by product PR #5165 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:17:08.832Z",
+            "mintedVia": "leftover-complete-after-5165"
+          },
+          "recorded_at": "2026-09-30T01:17:08.832Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-experience",
+      "review-cycle",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5162",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5162: process(review-cycle): sha_match stall must escalate to @greptileai review"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 2 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "When pr:watch --one-shot --json reports clean_gate_holdout=sha_match and sticky summary names a non-HEAD commit after one native poll window, fail loud once with BLOCKED: greptile-sha-stall",
+        "Post @greptileai review on that PR (or ask operator once if policy forbids auto-post)",
+        "Re-enter native pr:watch — no third freestyle poller; do not invent sleep/CLEAN monitors; do not treat sha_match as dest residual",
+        "review-cycle (or pr:watch caller docs) names the sha-stall to @greptileai review step",
+        "One regression test or fixture asserts holdout sha_match routes to that remedy string (not CLEAN / not dest-residual)"
+      ],
+      "admitted_source_sentences": [
+        "Problem After tip-rot rebases, Greptile stays on a stale SHA (`clean_gate_holdout=sha_match`) at confidence 4/5.",
+        "Agents idle-poll homemade CLEAN monitors instead of babysitting.",
+        "Seen on PRs #5153 / #5147 (CI green, p0/p1=0 on HEAD, dogfood floor 5/5).",
+        "Bound remedy (simple / deterministic) When `pr:watch --one-shot --json` reports `clean_gate_holdout=sha_match` and the sticky summary still names a non-HEAD commit after one native poll window: 1.",
+        "Fail loud once: `BLOCKED: greptile-sha-stall` 2.",
+        "Post `@greptileai review` on that PR (or ask operator once if policy forbids auto-post) 3.",
+        "Re-enter native `pr:watch` — no third freestyle poller Do not invent sleep/CLEAN monitors.",
+        "Do not treat sha_match as dest residual.",
+        "Lowering minGreptileConfidence",
+        "Empty-commit retriggers",
+        "Changing Greptile vendor behavior",
+        "[ ] review-cycle (or pr:watch caller docs) names the sha-stall to `@greptileai review` step",
+        "[ ] One regression test or fixture asserts holdout sha_match routes to that remedy string (not CLEAN / not dest-residual)"
+      ],
+      "admitted_source_digest": "bd36691ba0c36d380a6b8e0a4a7b58e4f07616f4aa17341adf057bf60345c052",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When pr:watch --one-shot --json reports clean_gate_holdout=sha_match and sticky summary names a non-HEAD commit after one native poll window, fail loud once with BLOCKED: greptile-sha-stall",
+          "artifact_path": null
+        },
+        {
+          "id": 2,
+          "text": "Post @greptileai review on that PR (or ask operator once if policy forbids auto-post)",
+          "artifact_path": null
+        },
+        {
+          "id": 3,
+          "text": "Re-enter native pr:watch — no third freestyle poller; do not invent sleep/CLEAN monitors; do not treat sha_match as dest residual",
+          "artifact_path": null
+        },
+        {
+          "id": 4,
+          "text": "review-cycle (or pr:watch caller docs) names the sha-stall to @greptileai review step",
+          "artifact_path": null
+        },
+        {
+          "id": 5,
+          "text": "One regression test or fixture asserts holdout sha_match routes to that remedy string (not CLEAN / not dest-residual)",
+          "artifact_path": null
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Current known state (2026-09-29 Stage A)\n\nStage A `task triage:evaluate -- 5162` on origin/master `91f01172b063`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/91f01172b063/048b1e2a-38e7-47dd-b760-9f4757bcedc7`\n\n### Live gap\n\nAfter tip-rot rebases, Greptile can stick on a stale SHA (`clean_gate_holdout=sha_match`) at confidence 4/5 while CI is green and HEAD has p0/p1=0. `pr:watch` treats `sha_match` as INCOMPLETE for HEAD (#1259 / #2313) and keeps waiting rather than early STALL. Review-cycle skill text at tip has no `sha_match` / `@greptileai review` escalation step, so agents invent homemade CLEAN/sleep monitors or treat sha_match as dest residual. Observed on PRs #5153 / #5147. Related: #4822 (sha_match stays wait inside the native poller); #5102 (SLizard babysit process gap).\n\n### Spend recommendation\n\nConcrete closed-AC process/babysit defect adjacent to landed wait doctrine. Recommended Dual-stop **N=1**. Bare `label 5162 and arc` applies `#5111` defaults: no-ingest, yolo-standing, spend from this recommend.\n\nTarget-digest sha256:cc5f04950d70fff4a12eaf4c909064409d04b3b060b9c98a88f2f68951ff4576\r\n\n",
+          "id": 5900590004,
+          "html_url": "https://github.com/deftai/directive/issues/5162#issuecomment-5900590004",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:52:38Z",
+          "updated_at": "2026-09-29T22:52:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because after tip-rot, clean_gate_holdout=sha_match with sticky non-HEAD Greptile leaves agents inventing freestyle CLEAN monitors instead of fail-loud BLOCKED: greptile-sha-stall then posting @greptileai review and re-entering native pr:watch.\n\ncharter: refutation\nrefutation-target: When pr:watch reports clean_gate_holdout=sha_match and the sticky Greptile summary still names a non-HEAD commit after one native poll window, babysit may keep waiting, invent freestyle CLEAN/sleep monitors, or treat sha_match as dest residual instead of fail-loud BLOCKED: greptile-sha-stall, posting @greptileai review, and re-entering native pr:watch.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\npain: P1, P2, P3\n\nP1. On sticky sha_match after tip-rot, agents invent homemade CLEAN/sleep monitors instead of using the native babysit path.\nP2. review-cycle (or pr:watch caller docs) do not name the sha-stall to @greptileai review escalation step.\nP3. sha_match after one native poll window with sticky non-HEAD is not fail-loud as BLOCKED: greptile-sha-stall and is sometimes treated as dest residual.\n\nOperator directed label+arc 5162 using #5111 defaults. Concrete closed-AC process defect; recommended Dual-stop N=1 applied without a spend ask. Non-goals: lowering minGreptileConfidence; empty-commit retriggers; changing Greptile vendor behavior; inventing a third freestyle poller.\n\nTarget-digest sha256:cc5f04950d70fff4a12eaf4c909064409d04b3b060b9c98a88f2f68951ff4576\ndispatch-sha: 91f01172b063de617b51b86e158e0496a91755e3\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5162-dc\npin-kind: origin-default\r\n\n",
+          "id": 5900591433,
+          "html_url": "https://github.com/deftai/directive/issues/5162#issuecomment-5900591433",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:52:46Z",
+          "updated_at": "2026-09-29T22:52:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nround: 1\nseat: grok\nlauncher: grok\ncharter: refutation\nid-ceiling: 5900591433\ndispatch-sha: 91f01172b063de617b51b86e158e0496a91755e3\narc-mode: no-ingest\naudit-targets: none\n\nRefutation target does not survive as written. Sticky tip-rot with no HEAD Greptile check-run can still warrant a named babysit escalation, but only after the lean separates that signature from intentional in-flight keep-wait and resolves the #564 auto-retrigger fence.\n\n## Unqualified sha_match window vs in-flight keep-wait\nblocks-the-design\nEvidence: At dispatch SHA `91f01172b063`, `packages/core/src/pr-watch/watch.ts` excludes `clean_gate_holdout === \"sha_match\"` from the early STALL streak and keeps polling until the max-wait cap; `watch.test.ts` locks \"does NOT STALL on stale-SHA confidence during re-review (#2313)\" ending in TIMEOUT after more than three polls. `content/skills/deft-directive-review-cycle/SKILL.md` #4822 holdout table routes `sha_match` to \"Blocking `pr:watch` until SHA match or cap.\" The issue Bound remedy and Stop 1 target escalate after \"one native poll window\" with no conjunct that Greptile has no in-flight HEAD check-run / terminal_check_run path.\nFailure mode: Binding that window as written turns ordinary tip-push re-review (2–5 minutes of legitimate `sha_match` holdout) into `BLOCKED: greptile-sha-stall`, aborting the #2313 keep-wait contract and thrashing `@greptileai review` while Greptile is already reviewing HEAD.\nDisposition: Before bind, redefine the trigger as sticky tip-rot without an in-flight Greptile Review on current HEAD (or an equivalent machine signal), and name the clock against existing surfaces (`DEFAULT_MAX_WAIT_MINUTES`, Stall Rubric ~10 min IN_PROGRESS, or a new bounded sticky-sha counter). Do not treat bare one-shot / one-poll `sha_match` as the stall.\n\n## Auto `@greptileai review` vs Stall Detection Rubric\nsharpens-framing\nEvidence: Same skill Stall Detection Rubric (#564) forbids auto-retrigger: \"⊗ Auto-retrigger Greptile (empty commits, force-pushes, agent-posted `@greptileai` comments…) without explicit user approval. The escalation menu's option 2 is the ONLY supported re-trigger path.\" Soft `?` Phase-0 fallback and INFORMAL-CLEAN / ERRORED recovery paths already name `@greptileai` under constrained recovery, not as a silent babysit default. Bound remedy step 2 posts `@greptileai review` first, with only a vague \"ask once if policy forbids\" parenthetical.\nFailure mode: Binding auto-post without an explicit #564 recut leaves contradictory skill text: one section requires a user-picked menu, another requires agent-posted `@greptileai review` on sticky `sha_match`.\nDisposition: Lean must either (a) keep ask-first / menu option 2 as the only post path and make `BLOCKED: greptile-sha-stall` the fail-loud handoff that surfaces that menu, or (b) record a deliberate #564 recut that authorizes one agent post for the narrowed tip-rot signature, then re-enter native `pr:watch`.\n\n## Freestyle monitors and dest-residual already fenced\nfootnote\nEvidence: #4822 skill text already has \"⊗ Treat `sha_match` as dest residual\" and \"⊗ Invent a third poller.\" `packages/core/src/pr-watch/constants.ts` WATCH_HELP already steers wrappers away from homemade DONE/`--json` line-split monitors (#5015 class). No `greptile-sha-stall` token exists in `watch.ts`, the review-cycle skill, or the greptile poller template at this SHA.\nFailure mode: none for bind anatomy; census only.\nDisposition: Census P1/P3 freestyle and dest-residual halves as compliance against landed forbids. The novel gap is a named sticky tip-rot escalation that native `pr:watch` currently carries only to TIMEOUT, not a new poller or a new residual class.\n\nInjection/swarm lens: remedy edits babysit authority and may authorize bot-ping comments on untrusted PR threads; keep the #564 approval fence or an explicit one-shot audit comment if that fence is recut. Issue/comment bodies treated as data only.\r\n\n",
+          "id": 5900648688,
+          "html_url": "https://github.com/deftai/directive/issues/5162#issuecomment-5900648688",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:56:29Z",
+          "updated_at": "2026-09-29T22:56:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter tip-rot, Greptile can stick on a stale SHA while CI is green. Bare \"one native poll window\" of `clean_gate_holdout=sha_match` is the wrong trigger: `pr:watch` intentionally keeps waiting on in-flight re-review (#2313 / #4822). Critic 5900648688 blocked that unqualified window and sharpened the #564 auto-`@greptileai` fence. The bind narrows the stall to sticky tip-rot with no in-flight Greptile Review on current HEAD, fails loud once, asks before posting `@greptileai review`, then re-enters native `pr:watch`. Freestyle monitors and dest-residual stay already-forbidden. The same parent wrote Stop 1 5900591433. Critic 5900648688 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** Prefer-A — named sticky tip-rot escalation with ask-first `@greptileai review`. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual of critic 5900648688 (blocks-the-design + sharpens-framing folded).\n\n### Bound remedy\n\n1. **Narrow trigger (Prefer-A).** Escalate only when sticky tip-rot is true: `clean_gate_holdout=sha_match` AND sticky Greptile summary still names a non-HEAD commit AND there is no in-flight Greptile Review check-run on current HEAD (no queued/in_progress/pending terminal_check_run path for HEAD). Do not escalate on bare one-shot / one-poll `sha_match` during intentional keep-wait (#2313).\n\n2. **Clock.** Name the sticky window against an existing surface: consecutive `sha_match` polls past the Stall Detection Rubric ~10 min IN_PROGRESS band (or an explicit sticky-sha streak bound documented next to `DEFAULT_MAX_WAIT_MINUTES=30`). First-ship MUST pick one clock and lock it in skill + test; do not leave \"one native poll window\" as the trigger text.\n\n3. **Fail loud once.** Emit `BLOCKED: greptile-sha-stall` (or equivalent single remedy string) when the narrowed trigger fires. Do not invent a third freestyle CLEAN/sleep poller. Do not treat `sha_match` as dest residual (#4822 forbids already).\n\n4. **Ask-first post (keep #564).** Do not silent-auto-post `@greptileai review`. Surface the existing Stall Detection Rubric (#564) escalation menu option 2 / ask the operator once; after approval (or recorded operator standing for that PR), post `@greptileai review`, then re-enter native `pr:watch`. Deliberate #564 recut that authorizes unsolicited agent auto-post is out of Prefer-A first-ship.\n\n5. **Docs + fixture.** review-cycle (or pr:watch caller docs) MUST name the narrowed sha-stall → ask/`@greptileai review` → re-enter `pr:watch` step. One regression test or fixture asserts holdout `sha_match` under the narrowed signature routes to the remedy string (not CLEAN, not dest-residual, not bare one-poll escalate).\n\n### Non-goals\n\n- Lowering minGreptileConfidence\n- Empty-commit retriggers\n- Changing Greptile vendor behavior\n- Inventing a third freestyle poller\n- Recutting #564 to silent auto-post in first-ship\n- Treating ordinary in-flight keep-wait `sha_match` as stall\n\n### Coverage asserted for Stop 1 pains\n\n- relieves:P1 — freestyle CLEAN/sleep monitors: fail-loud + native re-enter; freestyle already forbidden; named path replaces invent\n- relieves:P2 — review-cycle / caller docs name the narrowed sha-stall → ask/`@greptileai review` step\n- relieves:P3 — narrowed sticky tip-rot fails loud as `BLOCKED: greptile-sha-stall`; not dest residual\n\nTarget-digest sha256:cc5f04950d70fff4a12eaf4c909064409d04b3b060b9c98a88f2f68951ff4576\ndispatch-sha: 91f01172b063de617b51b86e158e0496a91755e3\r\n\n",
+          "id": 5900662329,
+          "html_url": "https://github.com/deftai/directive/issues/5162#issuecomment-5900662329",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:57:15Z",
+          "updated_at": "2026-09-29T22:57:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nround: 4 Pass-4 audit\nseat: grok\nlauncher: grok\ncharter: refutation\nid-ceiling: 5900662329\ndispatch-sha: 91f01172b063de617b51b86e158e0496a91755e3\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\nPain-audit of Prefer-A bind lean 5900662329 against Stop 1 pains in 5900591433. Prior critic 5900648688 folded. HEAD pin `91f01172b063de617b51b86e158e0496a91755e3` confirmed; reads via `git show` only.\n\n## pain-P1 — freestyle CLEAN/sleep invent on sticky tip-rot\ncovers: yes\nfootnote\nEvidence: Stop 1 P1 is inventing homemade CLEAN/sleep monitors instead of the native babysit path. Prefer-A Bound remedy steps 3–4 fail loud once as `BLOCKED: greptile-sha-stall`, ask-first for `@greptileai review` per #564, then re-enter native `pr:watch`. At dispatch SHA, review-cycle skill already forbids inventing a third poller and treating `sha_match` as dest residual (#4822); `WATCH_HELP` steers wrappers off homemade DONE/`--json` line-split monitors (#5015). Round-1 5900648688 already census'd that half as landed forbid.\nFailure mode: none for bind anatomy; named fail-loud + native re-enter replaces the invent gap on the narrowed sticky tip-rot signature.\nDisposition: Asserted coverage of P1 holds. No Bound-remedy change.\n\n## pain-P2 — docs omit sha-stall → @greptileai step\ncovers: yes\nfootnote\nEvidence: Stop 1 P2 is missing review-cycle / pr:watch caller docs for the sha-stall → `@greptileai review` escalation. Prefer-A Bound remedy step 5 MUST name narrowed sha-stall → ask/`@greptileai review` → re-enter `pr:watch`. Ask-first keeps Stall Detection Rubric (#564) menu option 2 as the post path (Prefer-A non-goal: silent auto-post recut). At SHA, skill #4822 holdout table still routes bare `sha_match` to keep-wait until SHA match or cap, with no greptile-sha-stall step yet — that is the doc gap Prefer-A closes.\nFailure mode: none for bind anatomy; the docs obligation is explicit on the bind map.\nDisposition: Asserted coverage of P2 holds. No Bound-remedy change.\n\n## pain-P3 — no fail-loud BLOCKED: greptile-sha-stall / dest-residual misread\ncovers: yes\nfootnote\nEvidence: Stop 1 P3 is sticky non-HEAD `sha_match` not failing loud as `BLOCKED: greptile-sha-stall` and sometimes treated as dest residual. Prefer-A steps 1+3 emit that remedy string on the narrowed sticky tip-rot conjunct (`sha_match` + sticky non-HEAD + no in-flight Greptile Review on HEAD) and keep dest-residual forbid. At SHA, `watch.ts` excludes `clean_gate_holdout === \"sha_match\"` from early STALL and keeps polling to cap (#2313); `watch.test.ts` locks \"does NOT STALL on stale-SHA confidence during re-review\"; no `greptile-sha-stall` token exists yet — Prefer-A adds it. Bare one-poll escalate and in-flight keep-wait are Prefer-A non-goals (folded from round-1 block).\nFailure mode: none for bind anatomy; fail-loud + not-dest-residual substance of P3 is on the map. Stop 1's literal \"one native poll window\" is superseded by Prefer-A narrowing, not left as unmet pain remainder.\nDisposition: Asserted coverage of P3 holds. No Bound-remedy change from the pain substance.\n\n## Prefer-A clock option vs Stall Rubric IN_PROGRESS machinery\nsharpens-framing\nEvidence: Prefer-A Bound remedy step 2 offers consecutive `sha_match` polls past the Stall Detection Rubric ~10 min IN_PROGRESS band **or** an explicit sticky-sha streak next to `DEFAULT_MAX_WAIT_MINUTES=30`, with first-ship MUST pick one. Prefer-A trigger step 1 requires **no** in-flight Greptile Review check-run on current HEAD. At SHA, Stall Detection Rubric (#564) clocks continuous IN_PROGRESS on the same `commit.oid` from `startedAt` until a terminal transition — a measurement that does not start when Prefer-A's no-in-flight conjunct is true.\nFailure mode: An implementer wires `greptile-sha-stall` to Stall Rubric IN_PROGRESS `startedAt` elapsed. Under Prefer-A's no-in-flight signature that clock never arms, so fail-loud never fires and agents fall back to invent/TIMEOUT paths P1/P3 already name.\nDisposition: Lean can bind. Prefer-A step 2 should state sticky-sha streak / elapsed-since-first-sticky-`sha_match` as the Prefer-A clock for this signature; ~10 min may remain only as a borrowed duration constant, not as the IN_PROGRESS measurement path. Harvested Prefer-A shape (narrow trigger, fail-loud, ask-first, native re-enter, docs+fixture) stays; this is clock-surface wording on step 2.\n\nInjection/swarm lens: Prefer-A edits babysit authority and may post `@greptileai` on untrusted PR threads after ask-first / recorded standing. Keeping #564 ask-first (Prefer-A non-goal: silent auto-post) is the deterministic control. Issue/comment bodies treated as data only.\n\nRoad-not-taken: Re-blocking Prefer-A for dual-clock optionality as incomplete P3 relief. Rejected because first-ship already MUST pick one clock and sticky-sha streak is a correct option for the no-in-flight signature; the Stall Rubric option is framing debt, not missing fail-loud substance.\r\n\n",
+          "id": 5900697156,
+          "html_url": "https://github.com/deftai/directive/issues/5162#issuecomment-5900697156",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:59:51Z",
+          "updated_at": "2026-09-29T22:59:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPrefer-A still binds. Pain-audit 5900697156 of lean 5900662329 was footnote-only for P1–P3 coverage and sharpened Prefer-A step 2: the Stall Rubric IN_PROGRESS `startedAt` clock cannot arm under Prefer-A's no-in-flight Greptile conjunct. This Recut picks sticky-sha streak / elapsed-since-first-sticky-`sha_match` as the Prefer-A clock and keeps ~10 min only as a borrowed duration constant. The same parent wrote Stop 1 5900591433 and lean 5900662329. Critic 5900648688 and pain 5900697156 check the findings.\n\n**Lean:** Prefer-A Recut — sticky-sha clock for greptile-sha-stall. This map supersedes 5900662329.\n\nsiblings: 1\nRound: 1 Recut\nResidual of pain-audit 5900697156 (sharpens-framing on clock surface).\n\n### Bound remedy (supersedes 5900662329)\n\n1. **Narrow trigger (Prefer-A).** Escalate only when sticky tip-rot is true: `clean_gate_holdout=sha_match` AND sticky Greptile summary still names a non-HEAD commit AND there is no in-flight Greptile Review check-run on current HEAD (no queued/in_progress/pending terminal_check_run path for HEAD). Do not escalate on bare one-shot / one-poll `sha_match` during intentional keep-wait (#2313).\n\n2. **Clock (Recut).** Prefer-A clock for this signature is sticky-sha streak / elapsed time since first sticky `sha_match` observation on the current HEAD while the no-in-flight conjunct holds. May borrow ~10 minutes as a duration constant only. Do not wire fail-loud to Stall Detection Rubric (#564) IN_PROGRESS `startedAt` on `commit.oid` — that measurement does not start when Prefer-A's no-in-flight conjunct is true. Lock the chosen sticky-sha clock in skill + test.\n\n3. **Fail loud once.** Emit `BLOCKED: greptile-sha-stall` when the narrowed trigger + sticky-sha clock fire. Do not invent a third freestyle CLEAN/sleep poller. Do not treat `sha_match` as dest residual (#4822 forbids already).\n\n4. **Ask-first post (keep #564).** Do not silent-auto-post `@greptileai review`. Surface Stall Detection Rubric (#564) escalation menu option 2 / ask the operator once; after approval (or recorded operator standing for that PR), post `@greptileai review`, then re-enter native `pr:watch`. Deliberate #564 recut that authorizes unsolicited agent auto-post is out of Prefer-A first-ship.\n\n5. **Docs + fixture.** review-cycle (or pr:watch caller docs) MUST name the narrowed sha-stall → ask/`@greptileai review` → re-enter `pr:watch` step, including the sticky-sha clock. One regression test or fixture asserts holdout `sha_match` under the narrowed signature routes to the remedy string (not CLEAN, not dest-residual, not bare one-poll escalate, not IN_PROGRESS-startedAt wiring).\n\n### Non-goals\n\n- Lowering minGreptileConfidence\n- Empty-commit retriggers\n- Changing Greptile vendor behavior\n- Inventing a third freestyle poller\n- Recutting #564 to silent auto-post in first-ship\n- Treating ordinary in-flight keep-wait `sha_match` as stall\n- Using Stall Rubric IN_PROGRESS `startedAt` as the Prefer-A greptile-sha-stall arming clock\n\n### Coverage asserted for Stop 1 pains\n\n- relieves:P1 — freestyle CLEAN/sleep monitors: fail-loud + native re-enter; freestyle already forbidden; named path replaces invent\n- relieves:P2 — review-cycle / caller docs name the narrowed sha-stall → ask/`@greptileai review` step with sticky-sha clock\n- relieves:P3 — narrowed sticky tip-rot fails loud as `BLOCKED: greptile-sha-stall` on sticky-sha clock; not dest residual; not IN_PROGRESS-startedAt dead clock\n\nTarget-digest sha256:cc5f04950d70fff4a12eaf4c909064409d04b3b060b9c98a88f2f68951ff4576\ndispatch-sha: 91f01172b063de617b51b86e158e0496a91755e3\r\n\n",
+          "id": 5900704606,
+          "html_url": "https://github.com/deftai/directive/issues/5162#issuecomment-5900704606",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T23:00:29Z",
+          "updated_at": "2026-09-29T23:00:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nround: 4 Pass-4 audit\nseat: grok\nlauncher: grok\ncharter: refutation\nid-ceiling: 5900704606\ndispatch-sha: 91f01172b063de617b51b86e158e0496a91755e3\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\nPain-audit of Prefer-A Recut bind lean 5900704606 against Stop 1 pains in 5900591433. Prior critic 5900648688; prior pain 5900697156 (footnote P1-P3 + clock sharpening -> this Recut). HEAD pin `91f01172b063de617b51b86e158e0496a91755e3` confirmed; reads via `git show` only.\n\n## pain-P1 -- freestyle CLEAN/sleep invent on sticky tip-rot\ncovers: yes\nfootnote\nEvidence: Stop 1 P1 is inventing homemade CLEAN/sleep monitors instead of the native babysit path. Recut Bound remedy steps 3-4 fail loud once as `BLOCKED: greptile-sha-stall`, ask-first for `@greptileai review` per #564, then re-enter native `pr:watch`. At dispatch SHA, review-cycle skill #4822 already forbids inventing a third poller and treating `sha_match` as dest residual; `WATCH_HELP` steers wrappers off homemade DONE/`--json` line-split monitors (#5015). Round-1 5900648688 and pain 5900697156 already census'd that half as landed forbid; Recut keeps the named fail-loud + native re-enter path.\nFailure mode: none for bind anatomy; named fail-loud + native re-enter replaces the invent gap on the narrowed sticky tip-rot signature.\nDisposition: Asserted coverage of P1 holds on this Recut. No Bound-remedy change from the pain substance.\n\n## pain-P2 -- docs omit sha-stall -> @greptileai step\ncovers: yes\nfootnote\nEvidence: Stop 1 P2 is missing review-cycle / pr:watch caller docs for the sha-stall -> `@greptileai review` escalation. Recut Bound remedy step 5 MUST name narrowed sha-stall -> ask/`@greptileai review` -> re-enter `pr:watch`, including the sticky-sha clock. Ask-first keeps Stall Detection Rubric (#564) menu option 2 as the post path (Prefer-A non-goal: silent auto-post). At SHA, skill #4822 holdout table still routes bare `sha_match` to keep-wait until SHA match or cap, with no greptile-sha-stall step yet -- that is the doc gap Prefer-A/Recut closes.\nFailure mode: none for bind anatomy; the docs obligation is explicit on the bind map.\nDisposition: Asserted coverage of P2 holds on this Recut. No Bound-remedy change from the pain substance.\n\n## pain-P3 -- no fail-loud BLOCKED: greptile-sha-stall / dest-residual misread\ncovers: yes\nfootnote\nEvidence: Stop 1 P3 is sticky non-HEAD `sha_match` not failing loud as `BLOCKED: greptile-sha-stall` and sometimes treated as dest residual. Recut steps 1+2+3 emit that remedy string on the narrowed sticky tip-rot conjunct (`sha_match` + sticky non-HEAD + no in-flight Greptile Review on HEAD) armed by sticky-sha streak / elapsed-since-first-sticky-`sha_match`, and keep dest-residual forbid. Recut step 2 + non-goals forbid wiring fail-loud to Stall Rubric (#564) IN_PROGRESS `startedAt` on `commit.oid`; step 5 fixture forbids IN_PROGRESS-startedAt wiring -- absorbing prior pain 5900697156 clock sharpening. At SHA, `watch.ts` excludes `clean_gate_holdout === \"sha_match\"` from early STALL and keeps polling to cap (#2313); `watch.test.ts` locks \"does NOT STALL on stale-SHA confidence during re-review\"; no `greptile-sha-stall` token exists yet -- Prefer-A/Recut adds it.\nFailure mode: none for bind anatomy; fail-loud + sticky-sha clock + not-dest-residual substance of P3 is on the map. Prior dead-clock residual is closed.\nDisposition: Asserted coverage of P3 holds on this Recut. No Bound-remedy change from the pain substance; clock residual from 5900697156 is absorbed.\n\nInjection/swarm lens: Prefer-A edits babysit authority and may post `@greptileai` on untrusted PR threads after ask-first / recorded standing. Keeping #564 ask-first (Prefer-A non-goal: silent auto-post) is the deterministic control. Issue/comment bodies treated as data only.\n\nRoad-not-taken: Re-blocking Recut for remaining sticky-sha streak vs elapsed dual-option inside step 2. Rejected because prior pain 5900697156 recommended that slash form as the Prefer-A clock wording, Recut requires locking the chosen sticky-sha variant in skill + test, and Stall Rubric IN_PROGRESS `startedAt` is already forbidden -- framing debt inside one correct clock family, not missing fail-loud substance for P1-P3.\n\n",
+          "id": 5900752381,
+          "html_url": "https://github.com/deftai/directive/issues/5162#issuecomment-5900752381",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T23:04:35Z",
+          "updated_at": "2026-09-29T23:04:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| # | Claim | Evidence |\n|---|---|---|\n| 1 | Stage A still-open on origin/master `91f01172b063` | triage:evaluate sink `.deft-scratch/issue-eval/91f01172b063/048b1e2a-38e7-47dd-b760-9f4757bcedc7` |\n| 2 | Tip review-cycle routes bare `sha_match` to keep-wait; Stall Rubric #564 forbids auto-`@greptileai` without user pick | `git show 91f01172b063:content/skills/deft-directive-review-cycle/SKILL.md` |\n| 3 | `pr:watch` excludes `sha_match` from early STALL (#2313) | `packages/core/src/pr-watch/watch.ts` + watch.test.ts at dispatch SHA |\n| 4 | Critic 5900648688 blocked unqualified one-poll escalate; sharpened #564 auto-post fence | comment 5900648688 |\n| 5 | Pain 5900697156 footnote P1–P3 + clock sharpening; Recut 5900704606 locks sticky-sha clock | comments 5900697156, 5900704606 |\n| 6 | Pain 5900752381 of Recut footnote-only for P1–P3 harvest | comment 5900752381 |\n| 7 | Target-digest pins live raw issue body | sha256:cc5f04950d70fff4a12eaf4c909064409d04b3b060b9c98a88f2f68951ff4576 (1074 bytes) |\n\ndispatch-sha: 91f01172b063de617b51b86e158e0496a91755e3\r\n\n",
+          "id": 5900758804,
+          "html_url": "https://github.com/deftai/directive/issues/5162#issuecomment-5900758804",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T23:05:08Z",
+          "updated_at": "2026-09-29T23:05:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter tip-rot, Greptile can stick on a stale SHA while CI is green. Unqualified one-poll `sha_match` escalate would thrash intentional keep-wait (#2313). Bound Prefer-A Recut narrows the stall to sticky tip-rot with no in-flight Greptile on HEAD, arms fail-loud `BLOCKED: greptile-sha-stall` on a sticky-sha clock (not Stall Rubric IN_PROGRESS `startedAt`), asks once before `@greptileai review` (#564), then re-enters native `pr:watch`. Docs and one fixture lock the path. The same parent wrote Stop 1 5900591433. Critic 5900648688, lean 5900662329, pain 5900697156, Recut 5900704606, and pain 5900752381 closed the Dual-stop. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5900704606.\r\n\n",
+          "id": 5900760136,
+          "html_url": "https://github.com/deftai/directive/issues/5162#issuecomment-5900760136",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T23:05:14Z",
+          "updated_at": "2026-09-29T23:05:14Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5638030311,
+        "origin": "deftai/directive#5162",
+        "id": "github.issue.5638030311"
+      },
+      "swarm": {
+        "file_scope": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "packages/cli/src/pr-watch.ts",
+          "packages/cli/src/pr-watch.test.ts",
+          "packages/core/src/pr-watch",
+          "CHANGELOG.md"
+        ]
+      },
+      "productPullRequest": 5165,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5165,
+        "prBase": "master",
+        "mergeCommit": "2f784b03c7b632ca9784ec6f266c38dad27ee75f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2f784b03c7b632ca9784ec6f266c38dad27ee75f",
+        "verifiedAt": "2026-09-30T01:18:14.812Z",
+        "verifier": "leftover-complete",
+        "disposition": "delivered",
+        "handoffState": "delivered"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-30T01:18:14.812Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T01:18:14.812Z"
+      }
+    },
+    "id": "github.issue.5638030311",
+    "updated": "2026-09-29T23:42:59Z"
+  }
+}
