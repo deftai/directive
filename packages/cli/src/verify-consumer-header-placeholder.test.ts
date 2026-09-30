@@ -1,8 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import { CONSUMER_HEADER_PLACEHOLDER_ONELINER } from "@deftai/directive-core/platform";
+import { afterEach, describe, expect, it } from "vitest";
 import { parseArgs, run } from "./verify-consumer-header-placeholder.js";
 
 const tempDirs: string[] = [];
@@ -28,7 +28,9 @@ describe("verify-consumer-header-placeholder CLI (#4544)", () => {
       projectRoot: "/tmp/x",
       quiet: true,
     });
-    expect(parseArgs(["--bogus"])).toMatchObject({ error: expect.stringContaining("unrecognized") });
+    expect(parseArgs(["--bogus"])).toMatchObject({
+      error: expect.stringContaining("unrecognized"),
+    });
   });
 
   it("exits 1 on placeholder + product mutation; 0 on Process-only and custom", () => {

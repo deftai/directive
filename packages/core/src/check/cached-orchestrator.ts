@@ -38,6 +38,10 @@ import {
   evaluateConsumerGateIntegrity,
   formatConsumerGateIntegrityFailure,
 } from "./consumer-gate-integrity.js";
+import {
+  CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
+  evaluateConsumerHeaderPlaceholderAtRoot,
+} from "./consumer-header-placeholder.js";
 import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
 import {
   checkGateId,
@@ -46,10 +50,6 @@ import {
   isSuiteCheckGate,
 } from "./gate-lists.js";
 import { formatDegradedSkipReport, formatNamedCauseFailure, remedyForGate } from "./named-cause.js";
-import {
-  CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
-  evaluateConsumerHeaderPlaceholderAtRoot,
-} from "./consumer-header-placeholder.js";
 import {
   CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID,
   checkRejectsEmptyPlanningNarratives,
