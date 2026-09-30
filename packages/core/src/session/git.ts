@@ -343,13 +343,18 @@ export interface ShowBlobsBatchOptions {
   readonly onBatchMiss?: ShowBlobsBatchOnMiss;
 }
 
+type CatFileBatchAttempt =
+  | { readonly kind: "ok"; readonly map: Map<string, string | null> }
+  | { readonly kind: "spawn-fail" }
+  | { readonly kind: "parse-fail" };
+
 function tryCatFileBatch(
   projectRoot: string,
   tip: string,
   paths: readonly string[],
-): Map<string, string | null> | null {
+): CatFileBatchAttempt {
   if (paths.length === 0) {
-    return new Map();
+    return { kind: "ok", map: new Map() };
   }
   const input = Buffer.from(`${paths.map((path) => `${tip}:${path}`).join("\n")}\n`, "utf8");
   const result = spawnSync("git", ["cat-file", "--batch"], {
@@ -359,9 +364,13 @@ function tryCatFileBatch(
     windowsHide: true,
   });
   if (result.error !== undefined || result.status !== 0 || result.stdout === undefined) {
-    return null;
+    return { kind: "spawn-fail" };
   }
-  return parseGitCatFileBatch(coerceGitBytes(result.stdout), paths);
+  const parsed = parseGitCatFileBatch(coerceGitBytes(result.stdout), paths);
+  if (parsed === null) {
+    return { kind: "parse-fail" };
+  }
+  return { kind: "ok", map: parsed };
 }
 
 function showBlobsBatchChunkRetry(
@@ -374,10 +383,18 @@ function showBlobsBatchChunkRetry(
   if (paths.length === 0) {
     return out;
   }
-  const parsed = tryCatFileBatch(projectRoot, tip, paths);
-  if (parsed !== null) {
-    return parsed;
+  const attempt = tryCatFileBatch(projectRoot, tip, paths);
+  if (attempt.kind === "ok") {
+    return attempt.map;
   }
+  // Persistent process/spawn failure: fail loud with nulls — do not bisect into 2N-1 spawns (#5172 P2).
+  if (attempt.kind === "spawn-fail") {
+    for (const path of paths) {
+      out.set(path, null);
+    }
+    return out;
+  }
+  // Truncate/parse miss only: bisect. Size-1 may use one git show.
   if (paths.length === 1) {
     const only = paths[0]!;
     out.set(only, showBlobViaRunner(projectRoot, tip, only, runGit));
@@ -418,9 +435,9 @@ export function showBlobsBatch(
     return showBlobsBatchChunkRetry(projectRoot, tip, paths, runGit);
   }
 
-  const parsed = tryCatFileBatch(projectRoot, tip, paths);
-  if (parsed !== null) {
-    return parsed;
+  const attempt = tryCatFileBatch(projectRoot, tip, paths);
+  if (attempt.kind === "ok") {
+    return attempt.map;
   }
 
   for (const path of paths) {

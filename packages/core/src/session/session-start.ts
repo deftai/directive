@@ -678,12 +678,17 @@ export function evaluateFinalizeOwedSessionGate(
   const delivery = resolveDeliveryBranch(projectRoot, runGit).branch;
   const fetched = fetchDeliveryTipPrivate(projectRoot, delivery, runGit);
   if (fetched.tip === null) {
+    // Preserve operator deferral so linked dests can inherit it (#5172 P1 / #5171).
+    const lines = ["finalize owed: unknown"];
+    if (deferred && deferReason !== null) {
+      lines.push(`finalize owed deferred: ${deferReason}`);
+    }
     return {
-      lines: ["finalize owed: unknown"],
+      lines,
       blocks: false,
       unknown: true,
-      deferred: false,
-      deferReason: null,
+      deferred,
+      deferReason: deferred ? deferReason : null,
     };
   }
   const repo = resolveFinalizeOwedRepo(projectRoot, env, runGit);

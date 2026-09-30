@@ -49,6 +49,30 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     expect(result.blocks).toBe(false);
   });
 
+  it("preserves --defer-owed when tip fetch fails so dests can inherit (#5172)", () => {
+    const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
+      deferOwedReason: "afk-release",
+      env: { GH_REPO: "deftai/directive" },
+      runGit: (_cwd, args) => {
+        if (args[0] === "fetch") {
+          return { code: 1, stdout: "", stderr: "network down" };
+        }
+        if (args[0] === "symbolic-ref" || args.includes("--abbrev-ref")) {
+          return { code: 0, stdout: "master\n", stderr: "" };
+        }
+        if (args[0] === "rev-parse") {
+          return { code: 1, stdout: "", stderr: "missing tip" };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(result.unknown).toBe(true);
+    expect(result.blocks).toBe(false);
+    expect(result.deferred).toBe(true);
+    expect(result.deferReason).toBe("afk-release");
+    expect(result.lines.join("\n")).toContain("deferred");
+  });
+
   it("fails closed when tip fetch works but repo cannot be resolved", () => {
     const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
       env: {},
