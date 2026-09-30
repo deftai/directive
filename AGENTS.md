@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=52b290aadd40 refreshed=2026-09-29T04:42:09Z session=bfd5a75ae16f -->
+<!-- deft:managed-section v3 sha=3c4ab2925934 refreshed=2026-09-30T00:45:12Z session=61a2da8553cf -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -287,6 +287,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Review-surface precedence (#2308)
 
 ! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261). Zero-reviewer (#3630): `NO_REVIEWER_INSTALLED` → pre-pr (`skipped:no-reviewer-installed`); empty never CLEAN. Depth: review-cycle SKILL.
+! Sticky tip-rot (#5162): `clean_gate_holdout=sha_match` + non-HEAD Last-reviewed + no in-flight Greptile on HEAD past sticky-sha clock (~10 min) → `GREPTILE_SHA_STALL` / `BLOCKED: greptile-sha-stall`; ask once (#564) before `@greptileai review`, then re-enter native `pr:watch`. ⊗ Bare one-shot `sha_match` escalate; ⊗ silent auto-post.
 
 ## Value feedback and attribution (#1709)
 

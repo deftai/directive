@@ -1489,6 +1489,21 @@ export function checkReviewerPresence(projectRoot: string, seams: CheckSeams = {
       }),
     };
   }
+  // Blank-only / invalid reviewers must surface the resolve error (#5165 P2).
+  if (policy.source === "invalid") {
+    return {
+      name,
+      status: "fail",
+      detail:
+        `Reviewer: invalid plan.policy.review.reviewers (${policy.error ?? "invalid"}). ` +
+        "Use [] for explicit zero or name a reviewer; blank-only entries are not zero.",
+      data: stampAdvisory({
+        state: "probe",
+        source: "invalid",
+        error: policy.error,
+      }),
+    };
+  }
   if (policy.reviewers !== null && policy.reviewers.length > 0) {
     return {
       name,

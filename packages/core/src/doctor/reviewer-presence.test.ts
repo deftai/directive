@@ -48,6 +48,15 @@ describe("checkReviewerPresence (#3630)", () => {
     expect(check.detail).toContain("never CLEAN");
   });
 
+  it("reports blank-only reviewers as invalid with remedy (#5165)", () => {
+    root = makeProject({ review: { reviewers: ["", "  "] } });
+    const check = checkReviewerPresence(root);
+    expect(check.status).toBe("fail");
+    expect(check.detail).toMatch(/invalid/i);
+    expect(check.detail).toMatch(/blank/i);
+    expect(check.detail).toContain("[]");
+  });
+
   it("reports local greptile.json", () => {
     root = makeProject({}, ["greptile.json"]);
     const check = checkReviewerPresence(root);

@@ -248,6 +248,13 @@ const PROPAGATION_ACTION_VERBS = [
   "start agent",
 ] as const;
 
+
+const STICKY_TIP_ROT_MARKERS = [
+  "Sticky tip-rot (#5162)",
+  "GREPTILE_SHA_STALL",
+  "BLOCKED: greptile-sha-stall",
+] as const;
+
 const SKILLS_POINTER_MARKERS = ["## Skills", "Skills Index", "packs:slice skills list"] as const;
 
 const INDEXED_SKILL_IDS = [
@@ -1037,6 +1044,8 @@ describe("test_agents_entry_contract", () => {
   it("skill_pin_policy_anti_pattern_present_in_both_files", () => {
     expect(missingMarkers(template, SKILL_PIN_ANTI_PATTERN_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, SKILL_PIN_ANTI_PATTERN_MARKERS)).toEqual([]);
+    expect(missingMarkers(template, STICKY_TIP_ROT_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, STICKY_TIP_ROT_MARKERS)).toEqual([]);
   });
 
   it("references_md_documents_pin_tiers", () => {
