@@ -47,6 +47,10 @@ import {
 } from "./gate-lists.js";
 import { formatDegradedSkipReport, formatNamedCauseFailure, remedyForGate } from "./named-cause.js";
 import {
+  CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
+  evaluateConsumerHeaderPlaceholderAtRoot,
+} from "./consumer-header-placeholder.js";
+import {
   CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID,
   checkRejectsEmptyPlanningNarratives,
   evaluateCheckPersistedPlanningNarratives,
@@ -299,6 +303,21 @@ export function dispatchCachedTaskCheck(
       status: "failed",
       cause: planning.narratives.cause,
       remedy: planning.narratives.remedy,
+    });
+    return finish(1, false);
+  }
+
+  // #4544 Prefer-A: fail closed when product-mutation completion still has
+  // the exact scaffold AGENTS header placeholder. Process-only / custom pass.
+  const headerPlaceholder = evaluateConsumerHeaderPlaceholderAtRoot(resolvedProject);
+  if (!headerPlaceholder.ok) {
+    process.stderr.write(`${headerPlaceholder.message}\n`);
+    gateOutcomes.push({
+      id: CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
+      status: "failed",
+      exit_code: 1,
+      cause: headerPlaceholder.reason,
+      remedy: headerPlaceholder.message,
     });
     return finish(1, false);
   }

@@ -116,3 +116,67 @@ export function containsRetiredUnmanagedHeaderPatterns(text: string): boolean {
   }
   return RETIRED_NEXT_LABEL_PATTERN.test(normalized);
 }
+
+/** Exact scaffold edit-me still present in AGENTS.md (#4544 Prefer-A). */
+export function agentsMdContainsExactPlaceholder(agentsMd: string): boolean {
+  return agentsMd.replace(/\r\n/g, "\n").includes(CONSUMER_HEADER_PLACEHOLDER_ONELINER);
+}
+
+export const FIRST_SHIP_HEADER_PLACEHOLDER_CAUSE =
+  "unmanaged AGENTS.md header still equals scaffold edit-me after product-mutation completion";
+
+export const FIRST_SHIP_HEADER_PLACEHOLDER_REMEDY =
+  "confirm Overview then compareAndSetConsumerHeaderOneLiner (setup Phase 3); leave custom headers untouched; Process-only exits may keep the placeholder";
+
+export type FirstShipHeaderPlaceholderReason =
+  | "no-agents-md"
+  | "not-placeholder"
+  | "process-only"
+  | "placeholder-with-product-mutation";
+
+export interface FirstShipHeaderPlaceholderResult {
+  readonly ok: boolean;
+  readonly reason: FirstShipHeaderPlaceholderReason;
+  readonly message: string;
+}
+
+/**
+ * Fail-closed first-ship gate (#4544 Prefer-A): product-mutation completion must
+ * not finish while the unmanaged header still equals the exact scaffold
+ * placeholder. Process-only (no product mutation) and custom headers pass.
+ * Returned failure only — no throw.
+ */
+export function evaluateFirstShipHeaderPlaceholderGate(input: {
+  readonly agentsMd: string | null;
+  readonly productMutationCompletion: boolean;
+}): FirstShipHeaderPlaceholderResult {
+  if (input.agentsMd === null) {
+    return {
+      ok: true,
+      reason: "no-agents-md",
+      message: "consumer-header-placeholder: no AGENTS.md (skip)",
+    };
+  }
+  if (!agentsMdContainsExactPlaceholder(input.agentsMd)) {
+    return {
+      ok: true,
+      reason: "not-placeholder",
+      message: "consumer-header-placeholder: header is not the scaffold edit-me placeholder",
+    };
+  }
+  if (!input.productMutationCompletion) {
+    return {
+      ok: true,
+      reason: "process-only",
+      message:
+        "consumer-header-placeholder: placeholder allowed (no product-mutation completion)",
+    };
+  }
+  return {
+    ok: false,
+    reason: "placeholder-with-product-mutation",
+    message:
+      `consumer-header-placeholder FAIL: ${FIRST_SHIP_HEADER_PLACEHOLDER_CAUSE}; ` +
+      `remedy: ${FIRST_SHIP_HEADER_PLACEHOLDER_REMEDY}`,
+  };
+}

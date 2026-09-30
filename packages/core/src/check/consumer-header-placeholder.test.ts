@@ -1,0 +1,85 @@
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { CONSUMER_HEADER_PLACEHOLDER_ONELINER } from "../platform/agents-consumer-header.js";
+import { evaluateConsumerHeaderPlaceholderAtRoot } from "./consumer-header-placeholder.js";
+
+const tempDirs: string[] = [];
+afterEach(() => {
+  for (const d of tempDirs.splice(0)) {
+    try {
+      rmSync(d, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  }
+});
+
+function tempRoot(): string {
+  const root = mkdtempSync(join(tmpdir(), "header-placeholder-"));
+  tempDirs.push(root);
+  return root;
+}
+
+/** packages/core/src/check → repo root (4 levels). */
+const REPO_ROOT = join(import.meta.dirname, "..", "..", "..", "..");
+const FIXTURE_ROOT = join(REPO_ROOT, "tests/fixtures/agents-md/first-ship-placeholder-gate");
+
+describe("evaluateConsumerHeaderPlaceholderAtRoot (#4544 Prefer-A)", () => {
+  it("fails closed on fixture placeholder + product mutation; custom and Process-only pass", () => {
+    const placeholderAgents = readFileSync(join(FIXTURE_ROOT, "AGENTS.placeholder.md"), "utf8");
+    const customAgents = readFileSync(join(FIXTURE_ROOT, "AGENTS.custom.md"), "utf8");
+    expect(placeholderAgents).toContain(CONSUMER_HEADER_PLACEHOLDER_ONELINER);
+    expect(customAgents).not.toContain(CONSUMER_HEADER_PLACEHOLDER_ONELINER);
+
+    const fail = evaluateConsumerHeaderPlaceholderAtRoot("/fixture-unused", {
+      readAgentsMd: () => placeholderAgents,
+      sessionChangedProductFiles: true,
+    });
+    expect(fail.ok).toBe(false);
+    expect(fail.reason).toBe("placeholder-with-product-mutation");
+
+    const processOnly = evaluateConsumerHeaderPlaceholderAtRoot("/fixture-unused", {
+      readAgentsMd: () => placeholderAgents,
+      sessionChangedProductFiles: false,
+    });
+    expect(processOnly.ok).toBe(true);
+    expect(processOnly.reason).toBe("process-only");
+
+    const custom = evaluateConsumerHeaderPlaceholderAtRoot("/fixture-unused", {
+      readAgentsMd: () => customAgents,
+      sessionChangedProductFiles: true,
+    });
+    expect(custom.ok).toBe(true);
+    expect(custom.reason).toBe("not-placeholder");
+  });
+
+  it("reads AGENTS.md and occupancy last_write_at from disk", () => {
+    const wrote = tempRoot();
+    writeFileSync(
+      join(wrote, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    mkdirSync(join(wrote, ".deft"), { recursive: true });
+    writeFileSync(
+      join(wrote, ".deft", "occupancy.json"),
+      JSON.stringify({ last_write_at: "2026-09-30T12:00:00Z" }),
+      "utf8",
+    );
+    const fail = evaluateConsumerHeaderPlaceholderAtRoot(wrote);
+    expect(fail.ok).toBe(false);
+    expect(fail.reason).toBe("placeholder-with-product-mutation");
+
+    const processOnly = tempRoot();
+    writeFileSync(
+      join(processOnly, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    const pass = evaluateConsumerHeaderPlaceholderAtRoot(processOnly);
+    expect(pass.ok).toBe(true);
+    expect(pass.reason).toBe("process-only");
+  });
+});

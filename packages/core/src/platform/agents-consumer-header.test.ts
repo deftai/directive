@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   CONSUMER_HEADER_PLACEHOLDER_ONELINER,
+  agentsMdContainsExactPlaceholder,
   compareAndSetConsumerHeaderOneLiner,
   composeGreenfieldAgentsMd,
   containsRetiredUnmanagedHeaderPatterns,
+  evaluateFirstShipHeaderPlaceholderGate,
   RETIRED_UNMANAGED_HEADER_SECTIONS,
   renderConsumerHeader,
 } from "./agents-consumer-header.js";
@@ -92,5 +94,41 @@ describe("agents-consumer-header", () => {
     const openIdx = composed.indexOf(AGENTS_MANAGED_OPEN_V3_LITERAL);
     expect(composed.slice(0, openIdx).endsWith("\n\n")).toBe(true);
     expect(composed.slice(0, openIdx).endsWith("\n\n\n")).toBe(false);
+  });
+
+  it("first-ship placeholder gate fails closed only on exact placeholder + product mutation (#4544)", () => {
+    const managed = `${AGENTS_MANAGED_OPEN_V3_LITERAL}\n# Deft\n<!-- /deft:managed-section -->`;
+    const scaffold = composeGreenfieldAgentsMd(managed);
+    expect(agentsMdContainsExactPlaceholder(scaffold)).toBe(true);
+
+    const fail = evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: scaffold,
+      productMutationCompletion: true,
+    });
+    expect(fail.ok).toBe(false);
+    expect(fail.reason).toBe("placeholder-with-product-mutation");
+    expect(fail.message).toMatch(/compareAndSetConsumerHeaderOneLiner/);
+
+    const processOnly = evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: scaffold,
+      productMutationCompletion: false,
+    });
+    expect(processOnly.ok).toBe(true);
+    expect(processOnly.reason).toBe("process-only");
+
+    const custom = "# Garden Notes\n\nCustom one-liner.\n\n## Session orientation\n";
+    const leaveCustom = evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: custom,
+      productMutationCompletion: true,
+    });
+    expect(leaveCustom.ok).toBe(true);
+    expect(leaveCustom.reason).toBe("not-placeholder");
+
+    const missing = evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: null,
+      productMutationCompletion: true,
+    });
+    expect(missing.ok).toBe(true);
+    expect(missing.reason).toBe("no-agents-md");
   });
 });

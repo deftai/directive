@@ -25,6 +25,11 @@ export {
   taskDefinedInTaskfileYaml,
 } from "./consumer-gate-integrity.js";
 export {
+  CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
+  type ConsumerHeaderPlaceholderSeams,
+  evaluateConsumerHeaderPlaceholderAtRoot,
+} from "./consumer-header-placeholder.js";
+export {
   type CheckGateSpec,
   CONSUMER_CHECK_GATES,
   checkGateId,
