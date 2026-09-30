@@ -79,7 +79,17 @@ export function resolveReviewers(projectRoot?: string | null): ReviewersResolved
   if (validationError !== null) {
     return { reviewers: null, source: "invalid", error: validationError };
   }
-  const cleaned = (raw as string[]).map((s) => s.trim()).filter((s) => s.length > 0);
+  const rawList = raw as string[];
+  const cleaned = rawList.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+  // Explicit [] is the named zero (#3630). Blank-only entries (["", " "]) must
+  // not collapse into that zero — fail closed to unset/probe (#5165 Greptile).
+  if (rawList.length > 0 && cleaned.length === 0) {
+    return {
+      reviewers: null,
+      source: "invalid",
+      error: `${FIELD_REVIEW_REVIEWERS} has only blank entries; use [] for explicit zero or name a reviewer`,
+    };
+  }
   return { reviewers: cleaned, source: "typed", error: null };
 }
 

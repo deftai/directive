@@ -50,6 +50,14 @@ describe("resolveReviewers (#3630)", () => {
     expect(resolved.source).toBe("typed");
   });
 
+  it("blank-only reviewers entries do not collapse to explicit zero (#5165)", () => {
+    root = makeProject({ review: { reviewers: ["", "  "] } });
+    const resolved = resolveReviewers(root);
+    expect(resolved.reviewers).toBeNull();
+    expect(resolved.source).toBe("invalid");
+    expect(resolved.error).toMatch(/blank entries/i);
+  });
+
   it("typed non-empty list is expected reviewers", () => {
     root = makeProject({ review: { reviewers: ["greptile"] } });
     const resolved = resolveReviewers(root);
