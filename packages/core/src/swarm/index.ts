@@ -20,5 +20,6 @@ export * from "./subagent-status-dir.js";
 export * from "./subprocess.js";
 export * from "./verify-review-clean.js";
 export { verifyReviewCleanMain } from "./verify-review-clean-cli.js";
+export * from "./dest-place.js";
 export * from "./worktrees.js";
 export { parseWorktreesArgv, worktreesMain } from "./worktrees-cli.js";

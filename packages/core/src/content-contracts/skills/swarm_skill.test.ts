@@ -500,6 +500,17 @@ describe("test_swarm_skill", () => {
     const block = _preamble_section_26_block(_read_preamble());
     expect(/!\s+Every intentional backend-routed dispatch MUST carry/m.test(block)).toBe(true);
   });
+  it("grok_implement_dest_place_then_cwd_4575", () => {
+    const host = readRepoFile("skills/deft-directive-swarm/references/host-grok-build.md");
+    expect(host).toContain("Dest-place then cwd (#4575 Prefer-A)");
+    expect(host).toContain("destPlaceImplementSpawn");
+    expect(host).toContain("git worktree add --detach <path> <commit-ish>");
+    expect(host).toContain("mintImplementSpawnReservation");
+    expect(host).toContain("tool_input.cwd");
+    const block = _preamble_section_26_block(_read_preamble());
+    expect(block).toContain("destPlaceImplementSpawn");
+    expect(block).toContain("#4575");
+  });
   it.each([
     "packages/core/src/platform/platform-capabilities.ts",
     "packages/core/src/intake/github-auth-modes.ts",

@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dest-missing recovery now leads with a paste-ready worktree path (#5184).** Tracking #5184.
 - **Linked-worktree apply_patch now harvests declared string input (#5129).** Closes #5129.
 
+- **Interactive Grok implement spawn dest-place then cwd (#4575).** Parent dest-places a unique linked worktree via `destPlaceImplementSpawn` (same `git worktree add --detach <path> <commit-ish>` argv as createWorktree / ensureArcDest), then sets `tool_input.cwd` before `spawn_subagent`. Reservation mint stays `mintImplementSpawnReservation` after consult; bare `--detach` refused; deny-copy remains on leftover #5184. Tracking #4575.
+
 ### Removed
 
 ## [0.119.12] - 2026-09-30
