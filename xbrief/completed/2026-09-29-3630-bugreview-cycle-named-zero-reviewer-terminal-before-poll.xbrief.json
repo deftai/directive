@@ -1,0 +1,122 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Leftover-complete record for GitHub issue #3630 after PR #5161",
+    "updated": "2026-09-30T00:12:30.287Z"
+  },
+  "plan": {
+    "title": "bug(review-cycle): named zero-reviewer terminal before poll",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(review-cycle): a repository with no reviewer installed cannot reach a terminal state — absence reads as \"review pending\"",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3630",
+      "Overview": "Named non-CLEAN zero-reviewer terminal before the poll loop. Shared SoT: pr:watch / pr:merge-ready / evaluateReviewerExpectation. Empty reviewers: [] is explicit zero. Exit NO_REVIEWER_INSTALLED (exit 2) with handback review_cycle: skipped:no-reviewer-installed routing to deft-directive-pre-pr. Empty observation never CLEAN. #769 stays substitution. Shipped via PR #5161 (da99bfcf159fc1b20bdac3ca5d3e66ebbdcd080a).",
+      "Labels": "bug, adoption-blocker, agent-experience, review-cycle, process, source-of-truth, area:cli, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Named NO_REVIEWER_INSTALLED terminal before pr:watch / review-cycle poll loop",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "packages/core/src/pr-merge-readiness/reviewer-presence.ts",
+          "recorded_at": "2026-09-30T00:12:30.287Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "pr:watch and pr:merge-ready inherit the presence probe",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-merge-readiness",
+          "recorded_at": "2026-09-30T00:12:30.287Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Handback review_cycle: skipped:no-reviewer-installed routes to deft-directive-pre-pr",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "recorded_at": "2026-09-30T00:12:30.287Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Empty observation never CLEAN; slow/ambiguous still polls",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-watch",
+          "recorded_at": "2026-09-30T00:12:30.287Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "agents-entry / AGENTS.md mirror for consumer guidance (#1309)",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/templates/agents-entry.md",
+          "recorded_at": "2026-09-30T00:12:30.287Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "#769 stays substitution / multi-profile only",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "recorded_at": "2026-09-30T00:12:30.287Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "review-cycle",
+      "process",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3630",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/5161",
+        "type": "x-xbrief/github-pull-request"
+      }
+    ],
+    "metadata": {
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pr-merge-readiness/",
+          "packages/core/src/pr-watch/",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/templates/agents-entry.md",
+          "content/templates/swarm-greptile-poller-prompt.md",
+          "AGENTS.md",
+          "CHANGELOG.md"
+        ]
+      },
+      "x-directive/delivery": {
+        "merge_commit": "da99bfcf159fc1b20bdac3ca5d3e66ebbdcd080a",
+        "product_pr": 5161,
+        "recorded_at": "2026-09-30T00:12:30.287Z",
+        "recorded_by": "MScottAdams"
+      }
+    }
+  }
+}
