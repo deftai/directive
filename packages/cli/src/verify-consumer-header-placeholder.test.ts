@@ -1,6 +1,7 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { recordProductMutationCompletion } from "@deftai/directive-core/check";
 import { CONSUMER_HEADER_PLACEHOLDER_ONELINER } from "@deftai/directive-core/platform";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseArgs, run } from "./verify-consumer-header-placeholder.js";
@@ -40,12 +41,7 @@ describe("verify-consumer-header-placeholder CLI (#4544)", () => {
       `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
       "utf8",
     );
-    mkdirSync(join(failRoot, ".deft"), { recursive: true });
-    writeFileSync(
-      join(failRoot, ".deft", "occupancy.json"),
-      JSON.stringify({ last_write_at: "2026-09-30T12:00:00Z" }),
-      "utf8",
-    );
+    recordProductMutationCompletion(failRoot, new Date("2026-09-30T12:00:00Z"));
     expect(run(["--project-root", failRoot, "--quiet"])).toBe(1);
 
     const processOnly = tempRoot();
@@ -58,12 +54,7 @@ describe("verify-consumer-header-placeholder CLI (#4544)", () => {
 
     const custom = tempRoot();
     writeFileSync(join(custom, "AGENTS.md"), "# Garden\n\nCustom one-liner.\n", "utf8");
-    mkdirSync(join(custom, ".deft"), { recursive: true });
-    writeFileSync(
-      join(custom, ".deft", "occupancy.json"),
-      JSON.stringify({ last_write_at: "2026-09-30T12:00:00Z" }),
-      "utf8",
-    );
+    recordProductMutationCompletion(custom, new Date("2026-09-30T12:00:00Z"));
     expect(run(["--project-root", custom, "--quiet"])).toBe(0);
   });
 
