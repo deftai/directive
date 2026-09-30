@@ -437,11 +437,34 @@ describe("pr:watch wait heartbeat (#5020)", () => {
     );
     const firstAt = (JSON.parse(readFileSync(hbPath, "utf8")) as { last_heartbeat_at: string })
       .last_heartbeat_at;
+    const readHeartbeatAt = (): string => {
+      // containedWrite replace uses O_TRUNC — retry mid-write / empty reads (#5020).
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        try {
+          const raw = readFileSync(hbPath, "utf8");
+          if (raw.trim().length === 0) {
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+            continue;
+          }
+          const parsed = JSON.parse(raw) as { last_heartbeat_at?: string };
+          if (typeof parsed.last_heartbeat_at === "string" && parsed.last_heartbeat_at.length > 0) {
+            return parsed.last_heartbeat_at;
+          }
+        } catch {
+          /* truncated JSON while worker refreshes */
+        }
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+      }
+      throw new Error(`timed out waiting for valid heartbeat JSON at ${hbPath}`);
+    };
     const refresher = startWaitHeartbeatRefresher(root, 42, { intervalSeconds: 0.05 });
     try {
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200);
-      const secondAt = (JSON.parse(readFileSync(hbPath, "utf8")) as { last_heartbeat_at: string })
-        .last_heartbeat_at;
+      let secondAt = firstAt;
+      const deadline = Date.now() + 2_000;
+      while (Date.now() < deadline && !(Date.parse(secondAt) > Date.parse(firstAt))) {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
+        secondAt = readHeartbeatAt();
+      }
       expect(Date.parse(secondAt)).toBeGreaterThan(Date.parse(firstAt));
     } finally {
       refresher.stop();
