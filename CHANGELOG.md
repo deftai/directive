@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Closeout no longer attests merge evidence minted only in memory (#5120).** `evaluateAcceptanceEvidenceGate` is read-only over persisted bytes. `scope:complete` stamps declared merge evidence on the persist path (even when later acceptance refuses) so later closeout, `verify:completed-tracked`, and orphan-active triage see the same file. After delivery ancestry already passed on that complete, the stamp reuses it and does not `git fetch` again. Closeout does not mint and does not `git fetch`. Closes #5120.
+
+- **fix(swarm): Grok dest-missing deny leads with `tool_input.cwd` (#5184).** Missing-cwd and non-existing-cwd destination-missing recovery now lead with paste-ready `tool_input.cwd` to an existing unique linked worktree (not primary, not occupied). Critic-CLI lead, reserved jargon, and Cursor-compat refuse leave this path; `git worktree add` stays out of deny text (dest-place remains #4575). Tracking #5184.
 - **fix(hooks,codex): harvest declared apply_patch string `input` for linked-worktree targets (#5129).** Canonical `tool_input.input` and top-level `payload.input` now yield mutation targets; raw-string `tool_input` stays unclassified. Non-canonical input cannot select `effectiveRoot` even with a declared path. Closes #5129.
 
 ### Removed

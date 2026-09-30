@@ -117,8 +117,14 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     expect(decision.allow).toBe(false);
     if (!decision.allow) {
       expect(decision.reason).toBe("destination-missing");
+      expect(decision.message).toContain("tool_input.cwd");
+      expect(decision.message).toMatch(/unique linked worktree/i);
       expect(decision.message).toContain("own worktree");
       expect(decision.message).not.toContain("steal");
+      expect(decision.message).not.toMatch(/\breserved\b/i);
+      expect(decision.message).not.toContain(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY);
+      expect(decision.message).not.toContain(GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE);
+      expect(decision.message).not.toContain("git worktree add");
     }
   });
 
@@ -169,10 +175,15 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     expect(decision.allow).toBe(false);
     if (!decision.allow) {
       expect(decision.reason).toBe("destination-missing");
-      expect(decision.message).toContain("cwd");
+      expect(decision.message).toContain("tool_input.cwd");
+      expect(decision.message).toMatch(/unique linked worktree/i);
       expect(decision.message).not.toContain("worktree_path");
       expect(decision.message).not.toContain("isolation=worktree");
       expect(decision.message).not.toContain("steal");
+      expect(decision.message).not.toMatch(/\breserved\b/i);
+      expect(decision.message).not.toContain(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY);
+      expect(decision.message).not.toContain(GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE);
+      expect(decision.message).not.toContain("git worktree add");
     }
   });
 
@@ -933,8 +944,14 @@ describe("consultImplementSpawnOccupancy (#4215)", () => {
     expect(decision.allow).toBe(false);
     if (!decision.allow) {
       expect(decision.reason).toBe("destination-missing");
-      expect(decision.message).toContain("cwd");
+      expect(decision.message).toContain("does not exist");
+      expect(decision.message).toContain("tool_input.cwd");
+      expect(decision.message).toMatch(/unique linked worktree/i);
       expect(decision.message).not.toContain("worktree_path");
+      expect(decision.message).not.toMatch(/\breserved\b/i);
+      expect(decision.message).not.toContain(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY);
+      expect(decision.message).not.toContain(GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE);
+      expect(decision.message).not.toContain("git worktree add");
     }
     expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
   });

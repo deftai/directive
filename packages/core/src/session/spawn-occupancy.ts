@@ -289,14 +289,20 @@ function leftoverReuseIncarnation(
   return existingIncarnation;
 }
 
+/** #5184: dest-missing recovery lead — paste-ready tool_input.cwd, no reserved jargon. */
+function grokDestMissingRecovery(): string {
+  return (
+    "Set tool_input.cwd to an existing unique linked worktree of this repo " +
+    "(not primary, not occupied)."
+  );
+}
+
 function grokMissingDestMessage(): string {
   return (
-    GROK_CRITIC_SPAWN_NOT_READY_RECOVERY +
-    " Directive denied implement-class spawn: no worktree destination on the spawn payload " +
-    "(tool_input.cwd). Spawned mutating work takes its own worktree; do not inherit the " +
-    "parent checkout. Grok spawn_subagent cannot rewrite input -- pass cwd to a reserved " +
-    "linked worktree before the spawn primitive. " +
-    GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE
+    "Directive denied implement-class spawn: no worktree destination on the spawn payload. " +
+    grokDestMissingRecovery() +
+    " Spawned mutating work takes its own worktree; do not inherit the parent checkout. " +
+    "Grok spawn_subagent cannot rewrite input."
   );
 }
 
@@ -554,7 +560,8 @@ export function consultImplementSpawnOccupancy(
     return consultDeny(
       "destination-missing",
       "Directive denied implement-class spawn: destination cwd does not exist as a " +
-        "directory. Pass cwd to an existing reserved linked worktree.",
+        "directory. " +
+        grokDestMissingRecovery(),
       parentId,
       destination,
       destPath,
