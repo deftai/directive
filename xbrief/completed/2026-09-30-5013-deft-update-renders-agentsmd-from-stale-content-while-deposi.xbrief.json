@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5013",
-    "updated": "2026-09-30T19:01:56Z"
+    "updated": "2026-09-30T21:39:27Z"
   },
   "plan": {
     "title": "deft update renders AGENTS.md from stale content while depositing newer templates, and stamps it with the new sha",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "deft update renders AGENTS.md from stale content while depositing newer templates, and stamps it with the new sha",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5013",
@@ -442,9 +442,34 @@
       "github": {
         "issue": 5013
       },
-      "productPullRequest": 5189
+      "productPullRequest": 5189,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5189,
+        "prBase": null,
+        "mergeCommit": "b9ef97e32cb0a89f6541a3c81789e671ceb640c9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "99adb2040e1aac48ee10a2df66886a188ae21600",
+        "verifiedAt": "2026-09-30T21:39:27Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-30T21:39:27Z",
+      "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T21:39:27Z"
+      }
     },
     "id": "github.issue.5571072825",
-    "updated": "2026-09-30T19:01:56Z"
+    "updated": "2026-09-30T21:39:27Z"
   }
 }
