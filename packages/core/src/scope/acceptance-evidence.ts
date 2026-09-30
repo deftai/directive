@@ -417,7 +417,15 @@ export function isEvidenceKindSuitable(
   return requiredAxes.every((axis) => kind === axis);
 }
 
-function parseEvidence(raw: unknown):
+/**
+ * Structural x-directive/evidence parse. Pointer-shape is optional so landing-set
+ * already_terminal can accept historical kind:uat test pointers (#4563) while still
+ * refusing empty {} / missing fields (Greptile P1 / #4879).
+ */
+function parseEvidence(
+  raw: unknown,
+  options: { readonly requirePointerShape?: boolean } = {},
+):
   | {
       ok: true;
       record: AcceptanceEvidenceRecord;
@@ -426,6 +434,7 @@ function parseEvidence(raw: unknown):
       ok: false;
       message: string;
     } {
+  const requirePointerShape = options.requirePointerShape !== false;
   const obj = asRecord(raw);
   if (obj === null) {
     return { ok: false, message: "evidence must be an object" };
@@ -461,9 +470,11 @@ function parseEvidence(raw: unknown):
   if (!isNonEmptyString(obj.recorded_by)) {
     return { ok: false, message: "evidence.recorded_by is required" };
   }
-  const shape = evidencePointerShapeError(kindRaw as AcceptanceEvidenceKind, obj.pointer.trim());
-  if (shape !== null) {
-    return { ok: false, message: shape };
+  if (requirePointerShape) {
+    const shape = evidencePointerShapeError(kindRaw as AcceptanceEvidenceKind, obj.pointer.trim());
+    if (shape !== null) {
+      return { ok: false, message: shape };
+    }
   }
   return {
     ok: true,
@@ -1363,13 +1374,13 @@ function evaluateOneItem(
   // even when already terminal; persist skips creating a second pending row (#4385).
   if (!NON_TERMINAL_ITEM_STATUSES.has(status) && !isClauseBindingItem(item, clauseKeys)) {
     // #4879 Prefer-A: landing-set statuses cannot enter completed/ without typed
-    // evidence. Well-formed namespaced evidence still skips suitability re-check;
-    // empty {} / malformed records do not count (Greptile P1). empty/done stay
-    // outside this list and remain already_terminal for the folder check.
+    // evidence. Structural namespaced evidence still skips suitability / pointer-
+    // shape re-check (#4563 historical kind:uat); empty {} / malformed do not
+    // count (Greptile P1). empty/done stay outside this list.
     if (COMPLETED_LANDING_WITHOUT_EVIDENCE_STATUSES.has(status)) {
       const landingFields = readNamespacedAcceptanceFields(item);
       const landingEvidence = landingFields.hasEvidence
-        ? parseEvidence(landingFields.evidence)
+        ? parseEvidence(landingFields.evidence, { requirePointerShape: false })
         : null;
       if (landingEvidence === null || !landingEvidence.ok) {
         const bareHint =
