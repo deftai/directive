@@ -83,15 +83,15 @@
         "status": "completed",
         "id": "clause.5",
         "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Process/product clause satisfied by product PR #5174 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f105149bdd99cc545d95961b85be18fecddb2e6a.",
+          "disposition": "deferred",
+          "reason": "Product PR #5174 landed duration refresh + share-plus-reset; full Windows production Step 5 under-60m measurement (SHA/suite/elapsed/tee + ubuntu ratio) remains a tracked performance residual per Bound item 5 / implement leaf residual. Sub-15m aspiration still open.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T13:18:42.708Z",
+            "mintedAt": "2026-09-30T13:26:57.628Z",
             "mintedVia": "leftover-complete-after-5174"
           },
-          "recorded_at": "2026-09-30T13:18:42.708Z"
+          "recorded_at": "2026-09-30T13:26:57.628Z"
         }
       },
       {
@@ -229,7 +229,8 @@
       ],
       "ambiguity_attestation": "none_found",
       "confessions": [
-        "[Bound] Recover Windows Step 5 under 60m via duration refresh + share-plus-reset (#5140)"
+        "[Bound] Recover Windows Step 5 under 60m via duration refresh + share-plus-reset (#5140)",
+        "[residual] Bound item 5 measured green Step 5 under 60m without --skip-ci remains deferred after PR #5174; track on #5140 until a recorded release-host pass."
       ]
     },
     "metadata": {
