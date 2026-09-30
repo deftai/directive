@@ -1,12 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5176,
+  "issue": 4544,
   "surfaces": [
     "Taskfile.yml",
     "tasks/verify.yml",
-    "vitest.config.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5176 Prefer-A persisted planning narratives gate wiring into check Taskfile/verify.yml and vitest.config. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #4544 Prefer-A consumer-header placeholder gate wiring into check Taskfile/verify.yml after rebase onto #5179 Prefer-A planning narratives. Disclosure only; not #3164 authorization."
 }
