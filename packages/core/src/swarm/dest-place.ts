@@ -19,7 +19,8 @@ export type DestPlaceFailureCode =
   | "commit-ish-required"
   | "path-not-worktree"
   | "worktree-add-failed"
-  | "deposit-refused";
+  | "deposit-refused"
+  | "revision-mismatch";
 
 export type DestPlaceResult =
   | {
@@ -126,6 +127,38 @@ export function destPlaceImplementSpawn(input: DestPlaceImplementSpawnInput): De
         message: `dest-place refused: ${worktreePath} exists and is not a linked worktree`,
       };
     }
+    let requestedOid = "";
+    let actualOid = "";
+    try {
+      const want = git(
+        ["rev-parse", "--verify", "--end-of-options", `${commitIsh}^{commit}`],
+        repoRoot,
+      );
+      const have = git(["rev-parse", "HEAD"], worktreePath);
+      if (want.returncode === 0) {
+        requestedOid = (want.stdout.trim().split(/\s+/)[0] ?? "").toLowerCase();
+      }
+      if (have.returncode === 0) {
+        actualOid = (have.stdout.trim().split(/\s+/)[0] ?? "").toLowerCase();
+      }
+    } catch {
+      /* fall through to mismatch refuse */
+    }
+    if (
+      requestedOid.length === 0 ||
+      actualOid.length === 0 ||
+      requestedOid !== actualOid
+    ) {
+      return {
+        ok: false,
+        code: "revision-mismatch",
+        message:
+          `dest-place refused: existing worktree ${worktreePath} HEAD is ` +
+          `${actualOid || "(missing)"} but requested commit-ish '${commitIsh}' ` +
+          `resolves to ${requestedOid || "(unresolved)"}. Reuse requires a matching HEAD; ` +
+          `pick a fresh path or reset the worktree to the requested commit.`,
+      };
+    }
     ensureSubagentStatusDir(worktreePath);
     return {
       ok: true,
@@ -161,6 +194,11 @@ export function destPlaceImplementSpawn(input: DestPlaceImplementSpawnInput): De
     preferPrimaryCore: true,
   });
   if (deposit.status === "refused") {
+    try {
+      git(["worktree", "remove", "--force", worktreePath], repoRoot);
+    } catch {
+      /* best-effort cleanup so retry does not take the existing-worktree path */
+    }
     return {
       ok: false,
       code: "deposit-refused",

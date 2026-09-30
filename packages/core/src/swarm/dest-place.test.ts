@@ -164,6 +164,35 @@ describe("destPlaceImplementSpawn (#4575 Prefer-A)", () => {
     expect(result.code).toBe("path-not-worktree");
   });
 
+  it("refuses reuse when existing worktree HEAD mismatches commit-ish", () => {
+    const repo = freshRepo("dest-place-stale-");
+    const firstSha = headOid(repo);
+    const wt = join(repo, "wt-stale");
+    const first = destPlaceImplementSpawn({
+      repoRoot: repo,
+      worktreePath: wt,
+      commitIsh: firstSha,
+      git: liveGit,
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    writeFileSync(join(repo, "f2.txt"), "y\n", "utf8");
+    execFileSync("git", ["add", "-A"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "second"], { cwd: repo, encoding: "utf8" });
+    const secondSha = headOid(repo);
+    expect(secondSha).not.toBe(firstSha);
+    const reused = destPlaceImplementSpawn({
+      repoRoot: repo,
+      worktreePath: wt,
+      commitIsh: secondSha,
+      git: liveGit,
+    });
+    expect(reused.ok).toBe(false);
+    if (reused.ok) return;
+    expect(reused.code).toBe("revision-mismatch");
+    expect(reused.message).toMatch(/Reuse requires a matching HEAD/);
+  });
+
   it("suggestImplementSpawnDestPath stays under .deft-scratch/worktrees", () => {
     const repo = freshRepo("dest-place-suggest-");
     const suggested = suggestImplementSpawnDestPath(repo, "issue-4575/child");
