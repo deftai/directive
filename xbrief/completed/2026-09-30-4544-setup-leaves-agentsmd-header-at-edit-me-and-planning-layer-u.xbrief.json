@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4544",
-    "updated": "2026-09-30T14:56:51Z"
+    "updated": "2026-09-30T22:28:06Z"
   },
   "plan": {
     "title": "Fail-closed AGENTS header placeholder gate at first-ship (DCR residual #4544)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Setup leaves AGENTS.md header at \"edit me\" and planning layer unused on a single-prompt greenfield build",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4544",
@@ -1274,7 +1274,7 @@
         "mergeCommit": "f195e22e90248f8cff507f49fff46522f0ea257a",
         "deliveryBranch": "master",
         "deliveryCommit": "0e7cd6b50479dfdbe4ac6c349029844fec18ebd9",
-        "verifiedAt": "2026-09-30T22:27:35Z",
+        "verifiedAt": "2026-09-30T22:28:06Z",
         "verifier": "scope:complete",
         "disposition": "delivered",
         "handoffState": "delivered",
@@ -1283,7 +1283,14 @@
         "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm"
       },
       "deliveryDisposition": "delivered",
-      "handoffState": "delivered"
+      "handoffState": "delivered",
+      "completedAt": "2026-09-30T22:28:06Z",
+      "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T22:28:06Z"
+      }
     },
     "acceptance": {
       "commands": [
@@ -1350,6 +1357,6 @@
       "quality_notice": null
     },
     "id": "github.issue.5453269518",
-    "updated": "2026-09-30T14:56:51Z"
+    "updated": "2026-09-30T22:28:06Z"
   }
 }
