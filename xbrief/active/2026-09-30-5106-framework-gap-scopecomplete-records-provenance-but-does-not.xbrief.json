@@ -24,10 +24,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T22:10:15.066Z",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
             "mintedVia": "leftover-complete-after-5190"
           },
-          "recorded_at": "2026-09-30T22:10:15.066Z"
+          "recorded_at": "2026-09-30T22:15:11.086Z"
         }
       },
       {
@@ -40,10 +40,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T22:10:15.066Z",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
             "mintedVia": "leftover-complete-after-5190"
           },
-          "recorded_at": "2026-09-30T22:10:15.066Z"
+          "recorded_at": "2026-09-30T22:15:11.086Z"
         }
       },
       {
@@ -56,10 +56,186 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T22:10:15.066Z",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
             "mintedVia": "leftover-complete-after-5190"
           },
-          "recorded_at": "2026-09-30T22:10:15.066Z"
+          "recorded_at": "2026-09-30T22:15:11.086Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:15:11.086Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:15:11.086Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:15:11.086Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:15:11.086Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:15:11.086Z"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:15:11.086Z"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:15:11.086Z"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:15:11.086Z"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:15:11.086Z"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:15:11.086Z"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:15:11.086Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:15:11.086Z"
         }
       }
     ],
@@ -462,7 +638,25 @@
       "github": {
         "issue": 5106
       },
-      "productPullRequest": 5190
+      "productPullRequest": 5190,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5190,
+        "prBase": null,
+        "mergeCommit": "99adb2040e1aac48ee10a2df66886a188ae21600",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8067ba6313361b0de78f5048c93804c98999283b",
+        "verifiedAt": "2026-09-30T22:12:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered"
     },
     "id": "github.issue.5617516982",
     "updated": "2026-09-30T19:01:50Z"
