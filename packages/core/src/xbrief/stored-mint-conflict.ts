@@ -223,6 +223,10 @@ function bindingConflictDetail(
 /**
  * Stored-mint conflict for one artifact. Null when there is no parsed binding
  * or the binding agrees. Does not scan sibling briefs.
+ *
+ * Residual REST-segment mismatches are parse-malformed so adopt refuses them;
+ * they still surface here so xbrief:verify rejects instead of silent-accepting
+ * via malformed→null (#5177 Prefer-A).
  */
 export function storedMintIdentityConflict(
   data: Record<string, unknown>,
@@ -230,6 +234,12 @@ export function storedMintIdentityConflict(
   const plan = asPlanRecord(data);
   if (plan === null) return null;
   const parsed = readStoredPlanIdBinding(plan);
+  if (parsed.kind === "malformed") {
+    if (parsed.detail.includes("does not match github_issue_id")) {
+      return { detail: parsed.detail, disagree: false };
+    }
+    return null;
+  }
   if (parsed.kind !== "ok") return null;
   const planId = extractPlanId(data);
   const detail = bindingConflictDetail(parsed.binding, planId, data);

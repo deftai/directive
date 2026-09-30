@@ -46,6 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Residual re-ingest Greptile residuals (#5177).** Ownership stays repo-scoped; residual lineage records the selected completed brief's actual `planId`; `verify:completed-tracked` requires every current residual identity on completed tip (not cancelled, not an earlier residual alone); residual stored-mint match is exact REST-id segment; Stage A ownership hits include Origin/plan-id briefs when `plan.references` omits the issue.
 >>>>>>> d052dcfd8 (fix(intake): Greptile Class A residuals for residual re-ingest (#5177))
 
+- **Residual re-ingest Greptile residuals (#5177).** Ownership stays repo-scoped; residual lineage records the selected completed brief's actual `planId`; `verify:completed-tracked` requires every current residual identity on completed tip (not cancelled, not an earlier residual alone); residual stored-mint match is exact REST-id segment; Stage A ownership hits include Origin/plan-id briefs when `plan.references` omits the issue. `xbrief:verify` rejects residual REST-segment mismatches instead of silent-accepting via malformed→null.
+
 ### Removed
 
 ## [0.119.12] - 2026-09-30

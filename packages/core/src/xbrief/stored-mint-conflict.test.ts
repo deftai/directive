@@ -335,24 +335,27 @@ describe("storedMintIdentityConflict (#4963)", () => {
   });
 
   it("rejects residual ids that only share a numeric prefix with github_issue_id", () => {
-    // Mismatched residual REST segment is malformed at readStoredPlanIdBinding,
-    // so storedMintIdentityConflict has no parsed binding to disagree on.
-    expect(
-      storedMintIdentityConflict({
-        plan: {
-          id: "github.issue.residual.123",
-          metadata: {
-            "x-directive/plan-id": {
-              version: 1,
-              source: "github-residual",
-              github_issue_id: 12,
-              origin: "o/r#1",
-              id: "github.issue.residual.123",
-            },
+    // Prefer-A exact segment: residual.123 must not match github_issue_id 12.
+    // Parse marks the binding malformed (adopt refuses); conflict still surfaces
+    // so xbrief:verify rejects instead of silent-accepting via malformed→null.
+    const mismatched = storedMintIdentityConflict({
+      plan: {
+        id: "github.issue.residual.123",
+        metadata: {
+          "x-directive/plan-id": {
+            version: 1,
+            source: "github-residual",
+            github_issue_id: 12,
+            origin: "o/r#1",
+            id: "github.issue.residual.123",
           },
         },
-      }),
-    ).toBeNull();
+      },
+    });
+    expect(mismatched).toEqual({
+      detail: "stored residual plan-id binding id does not match github_issue_id.",
+      disagree: false,
+    });
     expect(
       readStoredPlanIdBinding({
         metadata: {
@@ -416,6 +419,26 @@ describe("xbrief:verify stored mint (#4963)", () => {
     const result = verifyXbrief({ format: "json", out: stem, projectRoot: root });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("disagrees with github_issue_id 99");
+    expect(result.stderr).not.toContain("xbrief:adopt-stored-plan-id");
+  });
+
+  it("fails residual REST-segment mismatch (not silent-accept via malformed)", () => {
+    const root = freshRoot("xbrief-verify-residual-");
+    const stem = "xbrief/proposed/2026-09-30-residual-mismatch";
+    const path = writeCreated(root, stem, "github.issue.residual.123");
+    patchPlan(path, (plan) => {
+      const meta = plan.metadata as Record<string, unknown>;
+      meta["x-directive/plan-id"] = {
+        version: 1,
+        source: "github-residual",
+        github_issue_id: 12,
+        origin: "o/r#1",
+        id: "github.issue.residual.123",
+      };
+    });
+    const result = verifyXbrief({ format: "json", out: stem, projectRoot: root });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("does not match github_issue_id");
     expect(result.stderr).not.toContain("xbrief:adopt-stored-plan-id");
   });
 
