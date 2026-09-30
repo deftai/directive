@@ -7,6 +7,7 @@ import {
   bindLeanPredecessorValid,
   deriveReservedPainAuditPostsUsed,
   dualStopCapNotation,
+  dualStopReservedLiteracyRecordLine,
   evaluateBoundRemedyCites,
   evaluateContinueRemainder,
   evaluateDualStopParentPath,
@@ -15,13 +16,17 @@ import {
   evaluatePainAuditDispatchFill,
   evaluatePainAuditFollowThrough,
   evaluatePainCitePlacement,
+  evaluateReservedSlotLiteracyRecording,
+  evaluateVerificationPathBeforePanelDeposit,
   evaluateYoloLeftoverRecommendation,
   evaluateYoloStandingLeftoverScope,
   mapCarriesAssertedPainCoverage,
   painAuditDispatchAuditTargetsLine,
   recordingCommentOpensSuccessorLean,
   recordLeftoverIssueNumber,
+  verificationPathRecordLine,
 } from "./leftover-pain.js";
+import { N1_SPEND, N3_SPEND } from "./spend.js";
 
 describe("yolo leftover-pain handling (#4593)", () => {
   it("recommends one leftover path when yolo unrelieved recut still has remainder", () => {
@@ -626,5 +631,98 @@ describe("yolo leftover-pain handling (#4593)", () => {
       status: "blocked",
       reason: "unresolved-pain-audit",
     });
+  });
+});
+
+describe("reserved-slot literacy + verification-path (#5188)", () => {
+  it("owes dual-stop-reserved literacy only for N≥3 with non-vacuous pain", () => {
+    expect(
+      evaluateReservedSlotLiteracyRecording({
+        spend: N3_SPEND,
+        painIds: ["P1", "P2"],
+      }),
+    ).toEqual({
+      owed: true,
+      recordLine: dualStopReservedLiteracyRecordLine(),
+    });
+    expect(dualStopReservedLiteracyRecordLine()).toContain("dual-stop-reserved:");
+    expect(dualStopReservedLiteracyRecordLine()).toContain("evaluateDualStopParentPath");
+    expect(
+      evaluateReservedSlotLiteracyRecording({
+        spend: N1_SPEND,
+        painIds: ["P1"],
+      }),
+    ).toEqual({ owed: false, recordLine: null });
+    expect(
+      evaluateReservedSlotLiteracyRecording({
+        spend: N3_SPEND,
+        painIds: [],
+      }),
+    ).toEqual({ owed: false, recordLine: null });
+  });
+
+  it("keeps second reserved pain-audit raise-by-design after first use", () => {
+    const spentAsserted = {
+      spendSeats: 3,
+      criticPostsUsed: 3,
+      operatorRaisedCap: null,
+      afterHandoff: false,
+      mapCarriesAssertedPainCoverage: true,
+    };
+    expect(
+      evaluateDualStopParentPath({
+        ...spentAsserted,
+        reservedPainAuditPostsUsed: 0,
+      }).admit,
+    ).toBe(true);
+    expect(
+      evaluateDualStopParentPath({
+        ...spentAsserted,
+        reservedPainAuditPostsUsed: 1,
+      }),
+    ).toEqual({
+      postsRemaining: 0,
+      inCapWithoutRaise: false,
+      admit: false,
+    });
+  });
+
+  it("defaults verification-path to pin-read; refuses missing line on process-only dest", () => {
+    const pin = verificationPathRecordLine({
+      kind: "pin-read",
+      dispatchSha: "5a311bf5cb976ccaacdcfe939e630878135ab819",
+    });
+    expect(pin).toBe(
+      "verification-path: pin-read git show 5a311bf5cb976ccaacdcfe939e630878135ab819:; dest cwd-without-occupy",
+    );
+    expect(
+      evaluateVerificationPathBeforePanelDeposit({
+        processOnlyDest: true,
+        recordedLine: pin,
+      }),
+    ).toEqual({ ok: true });
+    expect(
+      evaluateVerificationPathBeforePanelDeposit({
+        processOnlyDest: true,
+        recordedLine: null,
+      }),
+    ).toEqual({ ok: false, reason: "missing-verification-path" });
+    expect(
+      evaluateVerificationPathBeforePanelDeposit({
+        processOnlyDest: false,
+        recordedLine: null,
+      }),
+    ).toEqual({ ok: true });
+    const provisioned = verificationPathRecordLine({
+      kind: "provisioned",
+      path: "pnpm exec vitest run packages/core/src/design-critique",
+    });
+    expect(provisioned).toContain("verification-path: provisioned ");
+    expect(
+      evaluateVerificationPathBeforePanelDeposit({
+        processOnlyDest: true,
+        recordedLine: provisioned,
+      }),
+    ).toEqual({ ok: true });
   });
 });

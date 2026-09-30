@@ -16,6 +16,8 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 - Target (work issue or umbrella):
 - Audit targets (marker ids, comma-separated, or `none`; ids only, no parent rationale). Copy onto the posted critic comment as an operative line-start `audit-targets:`. Pain-audit of relieves uses those ids (`pain-P1`), not an English heading:
 - Seat families (N≥3: three claimed families before spawn):
+- Dual-stop reserved literacy (N≥3 + non-vacuous pain: record `dual-stop-reserved:` on Stop 1 / parent; raise after reserved spent):
+- Verification path (process-only dest before panel-deposit: `verification-path: pin-read …` default, or provisioned runnable path):
 - Launcher (spawn_subagent | grok | claude | codex | paste-ready):
 
 ## Forbidden inputs
@@ -41,6 +43,8 @@ Read, do not restate:
 | Stop 1 `refutation-target:` | Stop 1 — Gate |
 | Run posture `arc-mode:` | Stop 1 — Gate |
 | Spend `spend:` / `spend-ask:` | Stop 1 — Gate |
+| Dual-stop reserved-slot literacy (`dual-stop-reserved:`) | Dual stop |
+| Verification-path before panel-deposit | Run posture / Critic method / Envelope and ceiling |
 | Variant selection | Stop 2 — Variant selection |
 | Parent-facing dispatch rules | Parent-facing dispatch rules |
 | Critic method | Critic method |

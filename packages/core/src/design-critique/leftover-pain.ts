@@ -8,6 +8,10 @@
  * Pain-audit headings are not targeting. Parent calls
  * evaluateAutoStampPath1Write before path-1. Footnote-only follow-through
  * is not clearance (#4648).
+ *
+ * #5188 recording helpers: reserved-slot literacy (`dual-stop-reserved:`) and
+ * process-only `verification-path:` before panel-deposit. Returned refusals
+ * only; no Dual-stop math recut and no always-on +1.
  */
 
 import { type PainCite, scanPainCites } from "./citation-grammar.js";
@@ -19,6 +23,7 @@ import {
 } from "./completed-arc-record.js";
 import { evaluateDualStopReservedSlot } from "./handoff.js";
 import { extractOperativeAuditTargets, painMarkerId } from "./parent-audit.js";
+import { type ArcSpend, N3_SPEND } from "./spend.js";
 
 export type PainAuditFindingClass = "blocking" | "sharpening" | "footnote";
 
@@ -374,4 +379,69 @@ export function dualStopCapNotation(posts: number): string {
 
 export function recordingCommentOpensSuccessorLean(body: string): boolean {
   return isSuccessorLeanBody(body);
+}
+
+/** Closed Stop 1 / parent literacy line when spend is N≥3 and pain is non-vacuous (#5188). */
+export const DUAL_STOP_RESERVED_LITERACY_FIELD = "dual-stop-reserved:";
+
+export function dualStopReservedLiteracyRecordLine(): string {
+  return (
+    `${DUAL_STOP_RESERVED_LITERACY_FIELD} first post-lean pain-audit of asserted ` +
+    "coverage in-cap via evaluateDualStopParentPath; raise after reserved spent"
+  );
+}
+
+/**
+ * Whether Stop 1 / parent must surface Dual-stop reserved-slot literacy.
+ * Reuses existing N≥3 spend token and pain ids; does not grow numbered budget
+ * or key a second reserved-slot predicate off Stop 1 pain presence.
+ */
+export function evaluateReservedSlotLiteracyRecording(input: {
+  readonly spend: ArcSpend | null;
+  readonly painIds: readonly string[];
+}): { readonly owed: boolean; readonly recordLine: string | null } {
+  const nonVacuous = input.painIds.some((id) => /^P\d{1,8}$/.test(id));
+  const owed = input.spend === N3_SPEND && nonVacuous;
+  return {
+    owed,
+    recordLine: owed ? dualStopReservedLiteracyRecordLine() : null,
+  };
+}
+
+/** Closed verification-path line before panel-deposit on a process-only dest (#5188). */
+export const VERIFICATION_PATH_FIELD = "verification-path:";
+
+export type VerificationPathRecord =
+  | { readonly kind: "pin-read"; readonly dispatchSha: string }
+  | { readonly kind: "provisioned"; readonly path: string };
+
+export function verificationPathRecordLine(input: VerificationPathRecord): string {
+  if (input.kind === "pin-read") {
+    return (
+      `${VERIFICATION_PATH_FIELD} pin-read git show ${input.dispatchSha}:; ` +
+      "dest cwd-without-occupy"
+    );
+  }
+  return `${VERIFICATION_PATH_FIELD} provisioned ${input.path}`;
+}
+
+const VERIFICATION_PATH_LINE_RE = /^verification-path:\s+\S/;
+
+/**
+ * Fixture over parent-claimed process-only dest + recorded line.
+ * Default pin-read; launch-probe is not method-verification. Returned refusal
+ * only — no throw.
+ */
+export function evaluateVerificationPathBeforePanelDeposit(input: {
+  readonly processOnlyDest: boolean;
+  readonly recordedLine: string | null;
+}): { readonly ok: true } | { readonly ok: false; readonly reason: "missing-verification-path" } {
+  if (!input.processOnlyDest) {
+    return { ok: true };
+  }
+  const line = input.recordedLine?.trim() ?? "";
+  if (VERIFICATION_PATH_LINE_RE.test(line)) {
+    return { ok: true };
+  }
+  return { ok: false, reason: "missing-verification-path" };
 }
