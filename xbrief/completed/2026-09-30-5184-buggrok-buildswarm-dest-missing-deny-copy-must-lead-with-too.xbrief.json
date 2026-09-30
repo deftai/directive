@@ -1,0 +1,479 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5184",
+    "updated": "2026-09-30T19:31:46Z"
+  },
+  "plan": {
+    "title": "bug(grok-build,swarm): dest-missing deny copy must lead with tool_input.cwd (leftover from #4575)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(grok-build,swarm): dest-missing deny copy must lead with tool_input.cwd (leftover from #4575)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5184",
+      "Overview": "\n\n- Rewrite `grokMissingDestMessage` (missing-cwd / unresolved destination-missing) so the lead recovery is `tool_input.cwd` to an existing unique linked worktree of this repo (not primary, not occupied).\n- Rewrite the separate non-existing-cwd destination-missing string the same way: lead with `tool_input.cwd`; drop reserved jargon.\n- Drop critic-CLI lead and Cursor-compat tail from this dest-missing recovery path (Cursor-compat stays Cursor-gated elsewhere if needed).\n- Do not put `git worktree add` in either deny string. Dest-place stays on #4575. Directive mints reservation after consult; deny text must not invent same-tree grant or pathless `--detach`.\n\n",
+      "Labels": "bug, design, swarm, agent-experience, process, grok-build, source-of-truth, urgent, area:cli, status:claimed, design-critique:ingest-ready, framework-gap, core-capabilities, promise:swarm"
+    },
+    "items": [
+      {
+        "title": "Rewrite `grokMissingDestMessage` (missing-cwd / unresolved destination-missing) so the lead recovery is `tool_input.cwd` to an existing unique linked worktree of this repo (not primary, not occupied).",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5187 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 704db5564313741fd07d9e3092420ad149f01e16.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T19:30:16.541Z",
+            "mintedVia": "leftover-complete-after-5187"
+          },
+          "recorded_at": "2026-09-30T19:30:16.541Z"
+        }
+      },
+      {
+        "title": "Rewrite the separate non-existing-cwd destination-missing string the same way: lead with `tool_input.cwd`; drop reserved jargon.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5187 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 704db5564313741fd07d9e3092420ad149f01e16.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T19:30:16.541Z",
+            "mintedVia": "leftover-complete-after-5187"
+          },
+          "recorded_at": "2026-09-30T19:30:16.541Z"
+        }
+      },
+      {
+        "title": "Drop critic-CLI lead and Cursor-compat tail from this dest-missing recovery path (Cursor-compat stays Cursor-gated elsewhere if needed).",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5187 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 704db5564313741fd07d9e3092420ad149f01e16.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T19:30:16.541Z",
+            "mintedVia": "leftover-complete-after-5187"
+          },
+          "recorded_at": "2026-09-30T19:30:16.541Z"
+        }
+      },
+      {
+        "title": "Do not put `git worktree add` in either deny string. Dest-place stays on #4575. Directive mints reservation after consult; deny text must not invent same-tree grant or pathless `--detach`.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5187 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 704db5564313741fd07d9e3092420ad149f01e16.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T19:30:16.541Z",
+            "mintedVia": "leftover-complete-after-5187"
+          },
+          "recorded_at": "2026-09-30T19:30:16.541Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Dest-place stays on #4575.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5187 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 704db5564313741fd07d9e3092420ad149f01e16.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T19:30:16.541Z",
+            "mintedVia": "leftover-complete-after-5187"
+          },
+          "recorded_at": "2026-09-30T19:30:16.541Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Directive mints reservation after consult; deny text must not invent same-tree grant or pathless `--detach`.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5187 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 704db5564313741fd07d9e3092420ad149f01e16.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T19:30:16.541Z",
+            "mintedVia": "leftover-complete-after-5187"
+          },
+          "recorded_at": "2026-09-30T19:30:16.541Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "swarm",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "status:claimed",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5184",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5184: bug(grok-build,swarm): dest-missing deny copy must lead with tool_input.cwd (leftover from #4575)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4575",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4575"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/session/spawn-occupancy.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Rewrite `grokMissingDestMessage` (missing-cwd / unresolved destination-missing) so the lead recovery is `tool_input.cwd` to an existing unique linked worktree of this repo (not primary, not occupied).",
+        "Rewrite the separate non-existing-cwd destination-missing string the same way: lead with `tool_input.cwd`; drop reserved jargon.",
+        "Drop critic-CLI lead and Cursor-compat tail from this dest-missing recovery path (Cursor-compat stays Cursor-gated elsewhere if needed).",
+        "Do not put `git worktree add` in either deny string.",
+        "Dest-place stays on #4575.",
+        "Directive mints reservation after consult; deny text must not invent same-tree grant or pathless `--detach`."
+      ],
+      "admitted_source_sentences": [
+        "Rewrite `grokMissingDestMessage` (missing-cwd / unresolved destination-missing) so the lead recovery is `tool_input.cwd` to an existing unique linked worktree of this repo (not primary, not occupied).",
+        "Rewrite the separate non-existing-cwd destination-missing string the same way: lead with `tool_input.cwd`; drop reserved jargon.",
+        "Drop critic-CLI lead and Cursor-compat tail from this dest-missing recovery path (Cursor-compat stays Cursor-gated elsewhere if needed).",
+        "Do not put `git worktree add` in either deny string.",
+        "Dest-place stays on #4575.",
+        "Directive mints reservation after consult; deny text must not invent same-tree grant or pathless `--detach`."
+      ],
+      "admitted_source_digest": "645308f9e6a306d817e9b18f935709274771c77821bd51a9c9c54766553f58cd",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Rewrite `grokMissingDestMessage` (missing-cwd / unresolved destination-missing) so the lead recovery is `tool_input.cwd` to an existing unique linked worktree of this repo (not primary, not occupied).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Rewrite the separate non-existing-cwd destination-missing string the same way: lead with `tool_input.cwd`; drop reserved jargon.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Drop critic-CLI lead and Cursor-compat tail from this dest-missing recovery path (Cursor-compat stays Cursor-gated elsewhere if needed).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not put `git worktree add` in either deny string.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Dest-place stays on #4575.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Directive mints reservation after consult; deny text must not invent same-tree grant or pathless `--detach`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(grok-build,swarm): dest-missing deny copy must lead with tool_input.cwd (leftover from #4575)"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Current state\n\nBare arc 5184 under #5111 defaults (no-ingest, yolo). Leftover from #4575 owns dest-missing deny-copy only.\n\n- Stage A: still-open; critique-recommend false (operator-directed bare arc)\n- Chip: mechanism-shaped → in-progress with Stop 1\n- Dest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5184-dc\n- dispatch-sha: 0b071d00ee9cc5358c41b9a3dabaebec639083ff\n- Target-digest: sha256:f2625a9d9248be55563d740866437b2023bde789e7022acdeac14a03904fbfcf\n- Parent remainder #4575 is design-critique:ingest-ready (dest-place Prefer-A lean 5915754041)\n- Dual-stop spend: N=1 (leftover dest-missing copy / closed AC)\n\narc-mode: no-ingest\nyolo-standing: yes\n\n",
+          "id": 5916768779,
+          "html_url": "https://github.com/deftai/directive/issues/5184#issuecomment-5916768779",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T17:56:21Z",
+          "updated_at": "2026-09-30T17:56:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Grok dest-missing deny still leads with critic-CLI / reserved wording instead of a paste-ready `tool_input.cwd` recovery to an existing unique linked worktree, so orchestrators cannot act on the #4066 deny after leftover split from #4575.\n\ncharter: refutation\nrefutation-target: Dest-missing deny for missing/non-existing cwd already teaches a paste-ready recovery that leads with `tool_input.cwd` to an existing unique linked worktree of this repo, without reserved jargon, critic-CLI lead, Cursor-compat tail, or `git worktree add`.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\npain: P1\n\nP1. Dest-missing deny text for missing/non-existing cwd does not lead with `tool_input.cwd` to an existing unique linked worktree of this repo (not primary, not occupied); it still leads with critic-CLI / reserved wording and does not drop those tails for this recovery path.\n\nLeftover-only after #4575 split. Bound-remedy harvest on this number is deny-copy only — dest-place stays on #4575. Non-goals: `git worktree add` in deny text; same-tree occupancy:grant; isolation=worktree as Grok dest admit; inventing pathless `--detach`; Cursor-compat tail unless Cursor-gated; reservation mint (Directive mints after consult).\n\nOperator bare arc 5184 under #5111 defaults; Dual-stop N=1 for leftover dest-missing copy with closed AC.\n\nparent-split: #4575\nTarget-digest sha256:f2625a9d9248be55563d740866437b2023bde789e7022acdeac14a03904fbfcf\ndispatch-sha: 0b071d00ee9cc5358c41b9a3dabaebec639083ff\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5184-dc\npin-kind: origin-default\n\n",
+          "id": 5916769114,
+          "html_url": "https://github.com/deftai/directive/issues/5184#issuecomment-5916769114",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T17:56:22Z",
+          "updated_at": "2026-09-30T17:56:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5184\nCharter: refutation. Spend N=1. Only seat.\nRound: 1 critic\nId ceiling (inclusive): 5916769114\nSHA at dispatch: 0b071d00ee9cc5358c41b9a3dabaebec639083ff\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/5184\naudit-targets: none\nSeat: grok. Launcher: grok.\n\n## Verdict\n\nRefutation-target does not survive at `0b071d00ee9cc5358c41b9a3dabaebec639083ff`.\n\nPin HEAD matches dispatch SHA (`git rev-parse HEAD`). Reads via `git show 0b071d00…:<path>` only. In-ceiling inputs: current-state `5916768779`, Stop 1 `5916769114`.\n\n## Findings\n\n### Missing-cwd destination-missing still leads with critic-CLI recovery and keeps reserved + Cursor-compat tails\nblocks-the-design\n\nEvidence: `packages/core/src/session/spawn-occupancy.ts` `grokMissingDestMessage` still builds:\n\n1. Lead: `GROK_CRITIC_SPAWN_NOT_READY_RECOVERY` — \"Critic recovery after this recorded native deny: dest-rooted grok --cwd --prompt-file … Native first; CLI last-resort …\"\n2. Mid: \"pass cwd to a reserved linked worktree before the spawn primitive\"\n3. Tail: `GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE` — \"Default-on vendor compat must work; do not set [compat.cursor] hooks = false as the product fix.\"\n\nCall sites for absent cwd / isolation=worktree-without-cwd / unresolved path still return that full string (`consultDeny(\"destination-missing\", grokMissingDestMessage(), …)`).\n\nFailure mode: an orchestrator denied for missing dest still sees critic-CLI / process-only playbook first. The paste-ready lead Stop 1 requires — `tool_input.cwd` to an existing unique linked worktree of this repo — is not the lead recovery. Reserved wording and Cursor-compat refuse remain on this path.\n\nDisposition consequence: P1 stands. A lean that treated the pin dest-missing copy as already paste-ready cannot bind.\n\n### Non-existing cwd destination-missing is a separate string that also keeps reserved jargon and does not lead with `tool_input.cwd`\nsharpens-framing\n\nEvidence: same file, Grok branch when `destPath` is null or `!isExistingDirectory(destPath)`:\n\n\"Directive denied implement-class spawn: destination cwd does not exist as a directory. Pass cwd to an existing reserved linked worktree.\"\n\nFailure mode: Stop 1 names missing/non-existing together. The non-existing branch already drops critic-CLI lead and Cursor-compat tail, but still says \"reserved\" and says \"Pass cwd\" without leading on the paste-ready field name `tool_input.cwd`.\n\nDisposition consequence: Bound remedy harvest must rewrite both the `grokMissingDestMessage` composition and this non-existing-cwd destination-missing string, or P1 coverage for non-existing cwd stays incomplete.\n\n### Neither destination-missing string instructs `git worktree add`\nfootnote\n\nEvidence: pin-read of both strings above; no `git worktree add` token. Dest-place remains on #4575. That conjunct of the refutation-target already holds and does not rescue the lead/reserved/Cursor failures.\r\n\n",
+          "id": 5916807849,
+          "html_url": "https://github.com/deftai/directive/issues/5184#issuecomment-5916807849",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T17:58:59Z",
+          "updated_at": "2026-09-30T17:58:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPrefer-A for #5184: rewrite both Grok destination-missing deny strings so recovery leads with `tool_input.cwd` to an existing unique linked worktree of this repo (not primary, not occupied). Drop reserved jargon, critic-CLI lead, and Cursor-compat tail from this recovery path. Do not put `git worktree add` in deny text. Directive still mints the reservation after consult; deny text must not invent same-tree grant or pathless `--detach`.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.5 parent authored Stop 1 and these takes.\n\nForward verdict: bind. Disposition: classified headings accept-into-contract. Residual: none.\nSpec-path: next-build contract is not this body.\n\n**Lean:** dest-missing deny-copy Prefer-A for leftover #5184. Cites critic 5916807849. Parent split #4575 owns dest-place.\n\nTarget-digest: sha256:f2625a9d9248be55563d740866437b2023bde789e7022acdeac14a03904fbfcf\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5184-dc\norigin-ref: origin/master\ndispatch-sha: 0b071d00ee9cc5358c41b9a3dabaebec639083ff\ntarget shape: single-issue\nround: 1\nsiblings: 1\nparent-split: #4575\n\nTakes:\n\n- 5916807849 1 Missing-cwd destination-missing still leads with critic-CLI recovery and keeps reserved + Cursor-compat tails — accept-into-contract\n- 5916807849 2 Non-existing cwd destination-missing is a separate string that also keeps reserved jargon and does not lead with `tool_input.cwd` — accept-into-contract\n- 5916807849 3 Neither destination-missing string instructs `git worktree add` — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Rewrite `grokMissingDestMessage` (missing-cwd / unresolved destination-missing) so the lead recovery is `tool_input.cwd` to an existing unique linked worktree of this repo (not primary, not occupied).\n- Rewrite the separate non-existing-cwd destination-missing string the same way: lead with `tool_input.cwd`; drop reserved jargon.\n- Drop critic-CLI lead and Cursor-compat tail from this dest-missing recovery path (Cursor-compat stays Cursor-gated elsewhere if needed).\n- Do not put `git worktree add` in either deny string. Dest-place stays on #4575. Directive mints reservation after consult; deny text must not invent same-tree grant or pathless `--detach`.\n\n",
+          "id": 5916815396,
+          "html_url": "https://github.com/deftai/directive/issues/5184#issuecomment-5916815396",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T17:59:29Z",
+          "updated_at": "2026-09-30T17:59:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5184\nCharter: refutation. Pain-audit of asserted coverage on the bind lean. Spend N=1. Only seat.\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nId ceiling (inclusive): 5916815396\nSHA at dispatch: 0b071d00ee9cc5358c41b9a3dabaebec639083ff\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/5184\naudit-targets: pain-P1\nSeat: grok. Launcher: grok.\n\n## P1 coverage under Prefer-A\n\nPrefer-A Bound lean 5916815396 covers Stop 1 pain P1 (5916769114).\n\nP1 requires dest-missing deny for missing/non-existing cwd to lead with `tool_input.cwd` to an existing unique linked worktree of this repo, and to drop critic-CLI / reserved lead plus those recovery-path tails. The lean Bound remedy rewrites both pin strings: `grokMissingDestMessage` (missing-cwd / unresolved destination-missing) and the separate non-existing-cwd destination-missing string. Lead becomes `tool_input.cwd` to an existing unique linked worktree (not primary, not occupied). Critic-CLI lead and Cursor-compat tail leave this recovery path. Reserved jargon drops. `git worktree add` stays out of deny text; dest-place stays on #4575. That matches Stop 1 leftover-only harvest and issue AC 1–4 for this number.\n\nPin HEAD equals dispatch SHA. Pin-read `packages/core/src/session/spawn-occupancy.ts` still shows unrepaired copy (expected on a no-ingest design arc): `grokMissingDestMessage` still concatenates `GROK_CRITIC_SPAWN_NOT_READY_RECOVERY` + reserved linked-worktree mid + `GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE`; non-existing branch still says \"Pass cwd to an existing reserved linked worktree.\" Coverage is the Bound rewrite, not current pin text.\n\n## Findings\n\n### Prefer-A Bound rewrites both destination-missing strings named by round-1 critic\nfootnote\n\nEvidence: lean Bound remedy bullets 1–2 accept critic headings 1–2 (5916807849); pin still has two distinct destination-missing compositions; Prefer-A English and Bound both name both. Failure mode if omitted: non-existing cwd would keep reserved wording and miss `tool_input.cwd` lead. Disposition: census confirmation; harvest already includes both; no Bound change.\n\n### Critic-CLI lead and Cursor-compat tail leave only this dest-missing recovery path\nfootnote\n\nEvidence: Bound bullet 3 drops those from dest-missing recovery; Cursor-compat may stay Cursor-gated elsewhere. Pin `invalid-extra-destination` for isolation=worktree+cwd still prefixes `GROK_CRITIC_SPAWN_NOT_READY_RECOVERY`, outside P1 destination-missing scope. Disposition: out-of-scope residual stays on other deny reasons; does not reopen P1.\n\n### No `git worktree add` in either destination-missing string; dest-place remains #4575\nfootnote\n\nEvidence: pin-read of both strings has no `git worktree add` token; lean Bound bullet 4 and Stop 1 non-goals keep dest-place on #4575. Disposition: already-true conjunct; does not change Prefer-A.\r\n\n",
+          "id": 5916838580,
+          "html_url": "https://github.com/deftai/directive/issues/5184#issuecomment-5916838580",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T18:00:59Z",
+          "updated_at": "2026-09-30T18:00:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Missing-cwd `grokMissingDestMessage` still leads with critic-CLI recovery and keeps reserved + Cursor-compat tails at pin | pin-read `spawn-occupancy.ts`; critic 5916807849 | verified |\n| Non-existing cwd destination-missing is a separate string that still says reserved and does not lead with `tool_input.cwd` | critic 5916807849 finding 2; lean 5916815396 | verified |\n| Prefer-A rewrites both deny strings to lead with `tool_input.cwd` to an existing unique linked worktree; drops reserved / critic-CLI / Cursor-compat from this path | lean 5916815396 Bound remedy | verified |\n| Neither deny string instructs `git worktree add`; dest-place stays on #4575 | critic 5916807849 footnote; pain-audit 5916838580 | verified |\n| Pain-audit of `relieves: P1` is footnote-only; bind map stays bindable | pain-audit 5916838580 | verified |\n\nCeiling: lean 5916815396. Pain-audit: 5916838580. Dispatch SHA: 0b071d00ee9cc5358c41b9a3dabaebec639083ff.\nparent-split: #4575\n\n",
+          "id": 5916846566,
+          "html_url": "https://github.com/deftai/directive/issues/5184#issuecomment-5916846566",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T18:01:29Z",
+          "updated_at": "2026-09-30T18:01:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPrefer-A for leftover #5184: rewrite both Grok destination-missing deny strings so recovery leads with tool_input.cwd to an existing unique linked worktree of this repo. Drop reserved jargon, critic-CLI lead, and Cursor-compat tail from this recovery path. Do not put git worktree add in deny text. Dest-place stays on #4575. Directive mints the reservation after consult.\n\nBound contract: successor lean 5916815396\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nRound-1 critic 5916807849 headings accepted into the Prefer-A lean. Pain-audit 5916838580 footnote-only; no Bound-remedy harvest change. Verified-claims table posted as the prior comment. Yolo standing confirms the all-accept map. Parent remainder #4575 remains separate ingest-ready dest-place work.\n\n",
+          "id": 5916846943,
+          "html_url": "https://github.com/deftai/directive/issues/5184#issuecomment-5916846943",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T18:01:30Z",
+          "updated_at": "2026-09-30T18:01:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nLeftover from #4575 Handoff split (parent 5702172851 / critic 5702161665). This issue owns **dest-missing deny-copy only**. Dest-place stays on #4575.\n\nOn Grok Build + Directive, when `spawn_subagent` is denied for missing dest (#4066), the deny text must teach a paste-ready recovery that an orchestrator can act on. Today the copy still leads with critic-CLI / reserved wording and does not lead with the minimal successful field: `tool_input.cwd` to an existing unique linked worktree of this repo.\n\n## Bound remedy (leftover only)\n\n- Lead dest-missing with `tool_input.cwd` to an existing unique linked worktree of this repo (not primary, not occupied).\n- Drop reserved, critic-CLI lead, and Cursor-compat tail from the dest-missing deny copy for this recovery path.\n- Do **not** put `git worktree add` in the dest-missing deny text (dest-place lives on #4575).\n- Directive mints the reservation; the deny text must not invent same-tree grant or pathless `--detach`.\n\n## Non-goals (owned by #4575 remainder)\n\n- `git worktree add --detach <path> <commit-ish>` before spawn\n- Unique path per child, then `tool_input.cwd` to that path\n- Dispatcher-owned release\n- Bare `--detach` refuse\n\n## Acceptance\n\n1. Dest-missing deny for non-existing / missing cwd names `tool_input.cwd` to a unique linked worktree of this repo as the lead recovery.\n2. Deny text does not instruct `git worktree add`.\n3. Deny text does not say the worktree is \"unreserved\" / invent reservation jargon the orchestrator cannot paste.\n4. Cursor-compat tail stays gated on Cursor (out of this leftover's P1 coverage unless Cursor-only).\n5. Recurrence class in #4575 comment 5733432123 (opaque dest/#4066 deny) is addressable by this copy alone once #4575 dest-place ships or an existing worktree is already present.\n\n## Related\n\n- Parent split: #4575 (remainder = dest-place)\n- #4066 (spawned work takes its own worktree)\n- #4315 (Grok spawn_subagent schema / process_only)\n- Recurrence evidence: https://github.com/deftai/directive/issues/4575#issuecomment-5733432123\n\nRefs #4575\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5649912452,
+        "origin": "deftai/directive#5184",
+        "id": "github.issue.5649912452"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f2625a9d9248be55563d740866437b2023bde789e7022acdeac14a03904fbfcf"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/session/spawn-occupancy.ts",
+          "packages/core/src/session/spawn-occupancy.test.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "github": {
+        "issue": 5184
+      },
+      "productPullRequest": 5187,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5187,
+        "prBase": null,
+        "mergeCommit": "704db5564313741fd07d9e3092420ad149f01e16",
+        "deliveryBranch": "master",
+        "deliveryCommit": "704db5564313741fd07d9e3092420ad149f01e16",
+        "verifiedAt": "2026-09-30T19:31:46Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-30T19:31:46Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T19:31:46Z"
+      }
+    },
+    "id": "github.issue.5649912452",
+    "updated": "2026-09-30T19:31:46Z"
+  }
+}
