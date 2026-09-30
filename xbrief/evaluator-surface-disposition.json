@@ -1,10 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4285,
+  "issue": 5140,
   "surfaces": [
-    "packages/core/src/check/gate-lists.ts",
+    "packages/core/src/durable-effect-acquisition/evaluate.test.ts",
+    "vitest.config.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #4285 soft-missing DEFT_ACTIVE_SCOPE pin: gate-lists.ts touch for soft-missing multi-active path. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5140 Step 5 duration refresh + durable-effect share-plus-reset evaluator-surface touches. Disclosure only; not #3164 authorization."
 }
