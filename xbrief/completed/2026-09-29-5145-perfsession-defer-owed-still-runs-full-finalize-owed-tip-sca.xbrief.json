@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "perf(session): --defer-owed still runs full finalize-owed tip scan; dest leaves cold-start stampede",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "perf(session): --defer-owed still runs full finalize-owed tip scan; dest leaves cold-start stampede",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5145",
@@ -17,7 +17,7 @@
       {
         "id": "clause.1",
         "title": "When deferOwedReason is non-empty, evaluateFinalizeOwedSessionGate does not call discoverFinalizeOwed or fetchDeliveryTipPrivate on the blocking inventory path; it records deferred ritual lines and continues.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "90a5902663b30378d8a5ac50be85b59b0df13c98",
@@ -39,7 +39,7 @@
       {
         "id": "clause.2",
         "title": "Undeferred session:start still fail-closes on blocking finalize-owed with existing remediation text.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "90a5902663b30378d8a5ac50be85b59b0df13c98",
@@ -61,7 +61,7 @@
       {
         "id": "clause.3",
         "title": "Swarm skill and/or host-grok-build / preamble teach dest leaves to prefer session:start --rearm when dest ritual-state exists, keep audited --defer-owed, and avoid N concurrent cold tip inventories while the gate is scan-first.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "90a5902663b30378d8a5ac50be85b59b0df13c98",
@@ -83,7 +83,7 @@
       {
         "id": "clause.4",
         "title": "Regression test proves defer path does not call fetchDeliveryTipPrivate / discoverFinalizeOwed (spy/no-network), not soft-pass alone.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "90a5902663b30378d8a5ac50be85b59b0df13c98",
@@ -105,7 +105,7 @@
       {
         "id": "clause.5",
         "title": "Non-goals: no timeout raise, no auto-clear of tip residue, no reopen of anonymous occupancy release.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "90a5902663b30378d8a5ac50be85b59b0df13c98",
