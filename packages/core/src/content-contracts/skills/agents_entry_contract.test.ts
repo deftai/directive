@@ -248,7 +248,6 @@ const PROPAGATION_ACTION_VERBS = [
   "start agent",
 ] as const;
 
-
 const STICKY_TIP_ROT_MARKERS = [
   "Sticky tip-rot (#5162)",
   "GREPTILE_SHA_STALL",
