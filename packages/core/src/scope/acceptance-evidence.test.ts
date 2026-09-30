@@ -585,32 +585,109 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
     expect(gate.message).toMatch(/items\[2\]\.subItems\[0\]/);
   });
 
-  it("already-terminal items skip typed evidence re-check (#3240 / #3305 policy)", () => {
+  it("landing-set terminals without typed evidence refuse completed/ entry (#4879)", () => {
+    const landing = [
+      "completed",
+      "complete",
+      "failed",
+      "cancelled",
+      "blocked",
+      "draft",
+      "approved",
+      "auto",
+    ] as const;
+    for (const status of landing) {
+      const gate = evaluateAcceptanceEvidenceGate({
+        items: [
+          {
+            title: `landing ${status}`,
+            status,
+            narrative: { Result: "pre-marked", Verification: "manual" },
+          },
+        ],
+      });
+      expect({ status, ok: gate.ok, outcome: gate.reports[0]?.outcome }).toEqual({
+        status,
+        ok: false,
+        outcome: "missing",
+      });
+      expect(gate.reports[0]?.detail).toMatch(/#4879|blocks completed\/ entry/);
+    }
+  });
+
+  it("landing-set bare evidence and disposition-only still refuse (#4879)", () => {
+    const bare = evaluateAcceptanceEvidenceGate({
+      items: [{ title: "terminal bare", status: "completed", evidence: testEvidence }],
+    });
+    expect(bare.ok).toBe(false);
+    expect(bare.reports[0]?.outcome).toBe("missing");
+    expect(bare.reports[0]?.detail).toMatch(/bare evidence\/disposition ignored/);
+
+    const dispositionOnly = evaluateAcceptanceEvidenceGate({
+      items: [
+        withDisposition(
+          { title: "failed disposition only", status: "failed" },
+          {
+            disposition: "waived",
+            reason: "operator waived",
+            provenance: humanProv,
+            recorded_at: "2026-08-10T12:00:00Z",
+          },
+        ),
+      ],
+    });
+    expect(dispositionOnly.ok).toBe(false);
+    expect(dispositionOnly.reports[0]?.outcome).toBe("missing");
+  });
+
+  it("landing-set with namespaced evidence still skips re-check (#4879 / #3240)", () => {
     const gate = evaluateAcceptanceEvidenceGate({
       items: [
-        // Terminal with no typed evidence — explicit skip, not a silent dual success.
-        {
-          title: "legacy narrative only",
-          status: "completed",
-          narrative: { Result: "done via narrative workaround", Verification: "manual" },
-        },
-        // Terminal with bare (invalid) evidence still already_terminal, not evidence success.
-        {
-          title: "terminal bare",
-          status: "completed",
-          evidence: testEvidence,
-        },
-        // Terminal with namespaced evidence still already_terminal (not re-validated).
-        withEvidence({
-          title: "terminal namespaced",
-          status: "failed",
-        }),
+        withEvidence({ title: "terminal namespaced", status: "failed" }),
+        withEvidence(
+          { title: "unsuitable kind still skipped", status: "completed" },
+          {
+            kind: "merge",
+            pointer: "abc1234",
+            recorded_at: "2026-08-10T12:00:00Z",
+            recorded_by: "vitest",
+          },
+        ),
       ],
     });
     expect(gate.ok).toBe(true);
     expect(gate.reports.every((r) => r.outcome === "already_terminal")).toBe(true);
     expect(gate.reports.some((r) => r.outcome === "evidence")).toBe(false);
     expect(gate.reports[0]?.detail).toMatch(/typed evidence not re-checked/);
+  });
+
+  it("empty and done stay outside the landing-set refuse (#4879 clause 3)", () => {
+    for (const status of ["", "done"] as const) {
+      const gate = evaluateAcceptanceEvidenceGate({
+        items: [{ title: `outside ${status || "empty"}`, status }],
+      });
+      expect({ status, ok: gate.ok, outcome: gate.reports[0]?.outcome }).toEqual({
+        status,
+        ok: true,
+        outcome: "already_terminal",
+      });
+    }
+  });
+
+  it("scope:complete refuses pre-marked completed without typed evidence (#4879)", () => {
+    root = makeRepo();
+    const file = writeActive(root, "premarked.xbrief.json", [
+      {
+        title: "pre-marked",
+        status: "completed",
+        narrative: { Result: "narrative only", Verification: "manual" },
+      },
+    ]);
+    const result = runTransition("complete", file);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/#4879|Acceptance evidence required|#3240/);
+    expect(existsSync(join(root, "xbrief", "completed", "premarked.xbrief.json"))).toBe(false);
+    expect(existsSync(file)).toBe(true);
   });
 
   it("fail/cancel still auto-advance without acceptance evidence", () => {

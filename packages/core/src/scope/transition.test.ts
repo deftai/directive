@@ -911,9 +911,13 @@ describe("runTransition", () => {
           { title: "pending-item", status: "pending", ...aceEvidence("pending-item") },
           { title: "proposed-item", status: "proposed", ...aceEvidence("proposed-item") },
           { title: "running-item", status: "running", ...aceEvidence("running-item") },
-          { title: "cancelled-item", status: "cancelled" },
-          { title: "failed-item", status: "failed" },
-          { title: "already-completed", status: "completed" },
+          { title: "cancelled-item", status: "cancelled", ...aceEvidence("cancelled-item") },
+          { title: "failed-item", status: "failed", ...aceEvidence("failed-item") },
+          {
+            title: "already-completed",
+            status: "completed",
+            ...aceEvidence("already-completed"),
+          },
           {
             title: "parent-with-sub",
             status: "pending",
@@ -924,7 +928,11 @@ describe("runTransition", () => {
                 status: "pending",
                 ...aceEvidence("sub-pending"),
               },
-              { title: "sub-cancelled", status: "cancelled" },
+              {
+                title: "sub-cancelled",
+                status: "cancelled",
+                ...aceEvidence("sub-cancelled"),
+              },
             ],
           },
         ],
@@ -1073,7 +1081,7 @@ describe("runTransition", () => {
               },
             ],
           },
-          { title: "blocked-item", status: "blocked" },
+          { title: "blocked-item", status: "blocked", ...aceEvidence("blocked-item") },
         ],
       },
     });

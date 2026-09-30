@@ -126,6 +126,22 @@ export const MERGE_POINTER_SHAPE_REMEDIATION =
 /** Item statuses that still represent unfinished acceptance work (#2862 / #3240). */
 const NON_TERMINAL_ITEM_STATUSES = new Set(["pending", "proposed", "running"]);
 
+/**
+ * Non-clause statuses that currently land in completed/ via the already_terminal
+ * skip when typed evidence is absent (#4879 Prefer-A / lean 5781675816).
+ * Empty and done stay outside this list; completed-folder consistency refuses them.
+ */
+const COMPLETED_LANDING_WITHOUT_EVIDENCE_STATUSES = new Set([
+  "completed",
+  "complete",
+  "failed",
+  "cancelled",
+  "blocked",
+  "draft",
+  "approved",
+  "auto",
+]);
+
 /** Stable plan.item id for a clause so stampNamespacedEvidence has a row (#4385 / #4707). */
 export const CLAUSE_KEYED_ITEM_ID_PREFIX = "clause." as const;
 
@@ -1346,10 +1362,26 @@ function evaluateOneItem(
   // Clause-keyed bindings still need typed evidence or a human-origin disposition
   // even when already terminal; persist skips creating a second pending row (#4385).
   if (!NON_TERMINAL_ITEM_STATUSES.has(status) && !isClauseBindingItem(item, clauseKeys)) {
-    // Already-terminal: complete does not re-validate typed evidence (#3240 / #3305).
-    // Suitability/provenance apply only when advancing non-terminal items. Pre-marking
-    // items completed with narrative-only fields still skips the typed gate — that is
-    // intentional for fail/cancel and historical terminals, not a silent dual success path.
+    // #4879 Prefer-A: landing-set statuses cannot enter completed/ without typed
+    // evidence. Present namespaced evidence still skips re-validation; empty/done
+    // stay outside this list and remain already_terminal for the folder check.
+    if (COMPLETED_LANDING_WITHOUT_EVIDENCE_STATUSES.has(status)) {
+      const landingFields = readNamespacedAcceptanceFields(item);
+      if (!landingFields.hasEvidence) {
+        const bareHint =
+          landingFields.hasBareEvidence || landingFields.hasBareDisposition
+            ? ` bare evidence/disposition ignored — use ${ACCEPTANCE_EVIDENCE_KEY} or ${ACCEPTANCE_DISPOSITION_KEY} (#3305);`
+            : "";
+        return {
+          path,
+          title,
+          outcome: "missing",
+          detail:
+            `status=${status} already terminal but no ${ACCEPTANCE_EVIDENCE_KEY};` +
+            `${bareHint} missing typed evidence blocks completed/ entry (#4879)`,
+        };
+      }
+    }
     return {
       path,
       title,
