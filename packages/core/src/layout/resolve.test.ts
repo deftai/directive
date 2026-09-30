@@ -13,6 +13,7 @@ import {
   resolveAuditPath,
   resolveEvalDir,
   resolveEvalPath,
+  resolveLayoutRootOrCanonical,
   resolveLifecycleFolder,
   resolveLifecycleLayout,
   resolveLifecycleRoot,
@@ -81,6 +82,18 @@ describe("layout resolution (#2109 part 1)", () => {
     // Only a legacy-suffixed file under xbrief/ -- not a migrated artifact.
     writeFileSync(join(root, "xbrief", "active", "stray.vbrief.json"), "{}", "utf8");
     expect(() => resolveLifecycleLayout(root)).toThrow(/deft migrate:xbrief/);
+  });
+
+  it("resolveLayoutRootOrCanonical refuses empty xbrief that hides legacy scopes (#4756)", () => {
+    seedVbrief();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    expect(() => resolveLayoutRootOrCanonical(root)).toThrow(/deft migrate:xbrief/);
+  });
+
+  it("resolveLayoutRootOrCanonical keeps canonical fallback for empty/new roots (#4756 R5)", () => {
+    expect(resolveLayoutRootOrCanonical(root)).toBe(join(root, "xbrief"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    expect(resolveLayoutRootOrCanonical(root)).toBe(join(root, "xbrief"));
   });
 
   it("throws with a migration hint when neither layout is present (#2112)", () => {

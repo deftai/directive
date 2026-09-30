@@ -21,7 +21,7 @@ import {
 import { basename, dirname, join } from "node:path";
 import { ContainedWriteError, containedOpenExclusive } from "../fs/contained-write.js";
 import { resolveLifecycleFolder } from "../layout/resolve.js";
-import { renderRoadmapToBuffer } from "../render/roadmap-render.js";
+import { renderRoadmapToBufferResult } from "../render/roadmap-render.js";
 import { promoteChangelog } from "./changelog.js";
 import {
   type ChangelogSafetyFail,
@@ -614,7 +614,9 @@ function buffersFromChangelogText(
   try {
     const pending = resolveLifecycleFolder(input.projectRoot, "pending");
     const completed = resolveLifecycleFolder(input.projectRoot, "completed");
-    roadmapText = renderRoadmapToBuffer(pending, completed);
+    const [ok, value] = renderRoadmapToBufferResult(pending, completed);
+    if (!ok) return safetyFail(EXIT_VIOLATION, "roadmap-render", value);
+    roadmapText = value;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return safetyFail(EXIT_VIOLATION, "roadmap-render", msg);

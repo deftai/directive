@@ -577,22 +577,42 @@ function renderRoadmapBodyFromProbes(probes: LifecycleProbes): string {
   return `${lines.join("\n")}\n`;
 }
 
-/** Single render-to-buffer entry used by both write and --check (mirrors ``scripts/roadmap_render.generate_roadmap_content``). */
-export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string): string {
-  return renderRoadmapBodyFromProbes(gatherLifecycleProbes(pendingDir, completedDir));
-}
-
-/** @deprecated Prefer ``renderRoadmapToBuffer`` — kept for existing imports and parity harnesses. */
-export function generateRoadmapContent(pendingDir: string, completedDir?: string): string {
-  return renderRoadmapToBuffer(pendingDir, completedDir);
-}
-
 export type RenderRoadmapResult = readonly [boolean, string];
 
 export type RenderRoadmapOptions = {
   completedDir?: string;
   projectRoot?: string;
 };
+
+/**
+ * Gated render-to-buffer used by write, --check, and release (#4756 R3).
+ * Returns a failure instead of emitting either empty claim when probes refuse.
+ */
+export function renderRoadmapToBufferResult(
+  pendingDir: string,
+  completedDir?: string,
+): RenderRoadmapResult {
+  const probes = gatherLifecycleProbes(pendingDir, completedDir);
+  const gate = evaluateEmptyClaimGate(probes);
+  if (!gate.ok) return [false, gate.message];
+  return [true, renderRoadmapBodyFromProbes(probes)];
+}
+
+/**
+ * Single render-to-buffer entry used by both write and --check (mirrors
+ * ``scripts/roadmap_render.generate_roadmap_content``). Applies the empty-claim
+ * gate; refused probes throw so string callers cannot emit a false-empty page.
+ */
+export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string): string {
+  const [ok, value] = renderRoadmapToBufferResult(pendingDir, completedDir);
+  if (!ok) throw new Error(value);
+  return value;
+}
+
+/** @deprecated Prefer ``renderRoadmapToBuffer`` — kept for existing imports and parity harnesses. */
+export function generateRoadmapContent(pendingDir: string, completedDir?: string): string {
+  return renderRoadmapToBuffer(pendingDir, completedDir);
+}
 
 export function renderRoadmap(
   pendingDir: string,

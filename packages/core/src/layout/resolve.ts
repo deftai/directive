@@ -57,17 +57,26 @@ function isDirectory(path: string): boolean {
  *
  * - If a valid `xbrief/` layout exists, returns its root.
  * - If only `vbrief/` exists (legacy-only), throws so the caller surfaces the migrate hint.
+ * - If `xbrief/` exists but is uninhabited while `vbrief/` still has scopes, throws the same
+ *   migrate hint — do not fall back to empty `xbrief/` and hide legacy work (#4756 / PR #5206).
  * - If neither exists (empty/new project), falls back to `<projectRoot>/xbrief/` canonical path.
  */
 export function resolveLayoutRootOrCanonical(projectRoot: string): string {
   try {
     return resolveLifecycleRoot(projectRoot);
   } catch (err) {
-    if (
-      isDirectory(join(projectRoot, LEGACY_ARTIFACT_DIR)) &&
-      !isDirectory(join(projectRoot, MIGRATED_ARTIFACT_DIR))
-    ) {
+    const legacyRoot = join(projectRoot, LEGACY_ARTIFACT_DIR);
+    const migratedRoot = join(projectRoot, MIGRATED_ARTIFACT_DIR);
+    if (isDirectory(legacyRoot) && !isDirectory(migratedRoot)) {
       throw err; // Legacy-only project: operator must run deft migrate:xbrief.
+    }
+    // Empty/uninhabited xbrief must not hide inhabited legacy scopes.
+    if (
+      isDirectory(legacyRoot) &&
+      containsRecognizedArtifact(legacyRoot) &&
+      !(isDirectory(migratedRoot) && containsMigratedArtifact(migratedRoot))
+    ) {
+      throw err;
     }
     return join(projectRoot, MIGRATED_ARTIFACT_DIR); // New/empty project; use canonical path.
   }
@@ -114,6 +123,25 @@ function containsMigratedArtifact(root: string): boolean {
       if (entry.isDirectory()) {
         stack.push(join(dir, entry.name));
       } else if (entry.isFile() && entry.name.endsWith(MIGRATED_ARTIFACT_SUFFIX)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** Walk `root` looking for any recognized lifecycle artifact suffix. */
+function containsRecognizedArtifact(root: string): boolean {
+  const stack: string[] = [root];
+  while (stack.length > 0) {
+    const dir = stack.pop();
+    if (dir === undefined || !isDirectory(dir)) {
+      continue;
+    }
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        stack.push(join(dir, entry.name));
+      } else if (entry.isFile() && hasArtifactSuffix(entry.name)) {
         return true;
       }
     }

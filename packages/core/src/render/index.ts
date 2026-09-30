@@ -45,6 +45,7 @@ export {
   main as roadmapRenderMain,
   renderRoadmap,
   renderRoadmapToBuffer,
+  renderRoadmapToBufferResult,
 } from "./roadmap-render.js";
 export { main as ruleMapMain } from "./rule-map.js";
 export { aggregateScopeSection, buildScopeOutlookSection } from "./scope-outlook.js";

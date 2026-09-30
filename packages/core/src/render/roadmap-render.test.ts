@@ -16,6 +16,7 @@ import {
   generateRoadmapContent,
   renderRoadmap,
   renderRoadmapToBuffer,
+  renderRoadmapToBufferResult,
   main as roadmapRenderMain,
 } from "./roadmap-render.js";
 
@@ -654,6 +655,26 @@ describe("roadmap-render main() --project-root layout resolver (#2139)", () => {
     expect(existsSync(outPath)).toBe(false);
   });
 
+  it("refuses empty xbrief that would hide legacy vbrief scopes (#4756 Greptile P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-roadmap-empty-xbrief-legacy-"));
+    tmpDirs.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const pending = join(root, "vbrief", "pending");
+    mkdirSync(pending, { recursive: true });
+    writeFileSync(
+      join(pending, "2026-01-01-feature.vbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6" },
+        plan: { title: "Legacy still here", status: "pending", items: [] },
+      }),
+      "utf8",
+    );
+    const outPath = join(root, "ROADMAP.md");
+    const exit = roadmapRenderMain(["--project-root", root, outPath]);
+    expect(exit).toBe(2);
+    expect(existsSync(outPath)).toBe(false);
+  });
+
   it("keeps canonical xbrief fallback for empty --project-root (#4756 R5)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-roadmap-empty-root-"));
     tmpDirs.push(root);
@@ -973,6 +994,21 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     expect(withCwd(root, () => roadmapRenderMain([]))).not.toBe(0);
     expect(existsSync(join(root, "ROADMAP.md"))).toBe(false);
     expect(withCwd(root, () => roadmapRenderMain(["--check"]))).not.toBe(0);
+  });
+
+  it("buffer/result path refuses corrupt-only empty claim (release gate) (#4756 Greptile P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-roadmap-4756-buffer-corrupt-"));
+    tmpDirs.push(root);
+    const pending = join(root, "xbrief", "pending");
+    const active = join(root, "xbrief", "active");
+    mkdirSync(pending, { recursive: true });
+    mkdirSync(active, { recursive: true });
+    writeFileSync(join(active, "broken.xbrief.json"), "{broken", "utf8");
+
+    const [ok, msg] = renderRoadmapToBufferResult(pending);
+    expect(ok).toBe(false);
+    expect(msg).toMatch(/Unreadable lifecycle file/i);
+    expect(() => renderRoadmapToBuffer(pending)).toThrow(/Unreadable lifecycle file/i);
   });
 
   it("corrupt active beside completed history refuses completed-only marker", () => {
