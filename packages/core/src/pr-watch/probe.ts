@@ -121,7 +121,9 @@ export function probeOnce(
   let ciCapacityStalledChecks: readonly string[] = [];
   let terminalCheckRun = true;
   let greptileReviewTerminal = false;
-  let greptileReviewInFlight = false;
+  // Fail-closed (#5162 P1): unknown/unreachable check-run inventory is treated as
+  // in-flight so sticky tip-rot cannot false-escalate to GREPTILE_SHA_STALL.
+  let greptileReviewInFlight = repo !== null;
   let commentsAdded: number | null = null;
   let checkRunsUnknown = true;
   let botCheckPresent = false;
@@ -144,6 +146,7 @@ export function probeOnce(
       greptileReviewInFlight = isGreptileReviewInFlight(greptileRun?.status);
       commentsAdded = parseCommentsAdded(greptileRun?.summary);
     }
+    // summary === null → leave greptileReviewInFlight true (inventory unknown).
   }
 
   let restPullComments: { p0Count: number; p1Count: number } | null = null;

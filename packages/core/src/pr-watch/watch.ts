@@ -82,8 +82,7 @@ export function watch(
   const pollSeconds = Math.max(1, options.pollSeconds ?? DEFAULT_POLL_SECONDS);
   const oneShot = options.oneShot ?? false;
   const stallThreshold = options.stallThreshold ?? DEFAULT_STALL_THRESHOLD;
-  const stickyShaStallSeconds =
-    options.stickyShaStallSeconds ?? DEFAULT_STICKY_SHA_STALL_SECONDS;
+  const stickyShaStallSeconds = options.stickyShaStallSeconds ?? DEFAULT_STICKY_SHA_STALL_SECONDS;
   const runGh = options.runGh ?? defaultRunGh;
   const clockFn = options.clockFn ?? systemMonotonicClock;
   const sleepFn = options.sleepFn ?? defaultSleep;
@@ -100,6 +99,7 @@ export function watch(
   let stallStreak = 0;
   let ciBlockedStreak = 0;
   let stickyShaStartedAt: number | null = null;
+  let stickyShaHead: string | null = null;
 
   const build = (
     verdict: string,
@@ -181,7 +181,11 @@ export function watch(
     // observation; borrow ~10 min). Do not use Stall Rubric IN_PROGRESS
     // startedAt. Bare one-shot stays PENDING (#2313 keep-wait).
     if (isStickyShaTipRot(probe)) {
-      if (stickyShaStartedAt === null) {
+      // New HEAD gets its own sticky-sha window (#5162 P1); do not inherit the prior tip timer.
+      if (stickyShaHead !== probe.headSha) {
+        stickyShaHead = probe.headSha;
+        stickyShaStartedAt = clockFn.now();
+      } else if (stickyShaStartedAt === null) {
         stickyShaStartedAt = clockFn.now();
       }
       const stickyElapsed = Math.round(clockFn.now() - stickyShaStartedAt);
@@ -196,6 +200,7 @@ export function watch(
       }
     } else {
       stickyShaStartedAt = null;
+      stickyShaHead = null;
     }
 
     // STALL (#1039): wedged CLEAN-gate on HEAD — !has_blocking && !is_clean for N

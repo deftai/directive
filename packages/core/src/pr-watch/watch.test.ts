@@ -369,6 +369,44 @@ describe("watch blocking loop (injected clock + sleep)", () => {
     expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
   });
 
+  it("resets sticky-sha clock when HEAD changes mid-wait (#5162)", () => {
+    const clock = new FakeClock();
+    const sleep = vi.fn(makeSleep(clock));
+    const HEAD2 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const first = makeProbe({
+      lastReviewedSha: STALE,
+      shaMatch: false,
+      hasBlocking: false,
+      isClean: false,
+      cleanGateHoldout: "sha_match",
+      confidence: 4,
+      greptileReviewInFlight: false,
+    });
+    const second = makeProbe({
+      headSha: HEAD2,
+      lastReviewedSha: STALE,
+      shaMatch: false,
+      hasBlocking: false,
+      isClean: false,
+      cleanGateHoldout: "sha_match",
+      confidence: 4,
+      greptileReviewInFlight: false,
+    });
+    // Burn 2s of a 3s sticky window on HEAD1, then switch to HEAD2. An inherited
+    // timer would stall on the next poll; a reset reaches TIMEOUT instead.
+    const { fn } = makeProbeSeq(first, first, second, second);
+    const r = watch(5162, "deftai/directive", {
+      pollSeconds: 1,
+      maxWaitMinutes: 0.05,
+      stickyShaStallSeconds: 3,
+      probeFn: fn,
+      clockFn: clock,
+      sleepFn: sleep,
+    });
+    expect(r.verdict).toBe(VERDICT_TIMEOUT);
+    expect(r.verdict).not.toBe(VERDICT_GREPTILE_SHA_STALL);
+  });
+
   it("keeps waiting on sha_match while Greptile Review is in flight (#5162 / #2313)", () => {
     const clock = new FakeClock();
     const sleep = vi.fn(makeSleep(clock));

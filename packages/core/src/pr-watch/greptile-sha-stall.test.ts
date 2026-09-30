@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  DEFAULT_STICKY_SHA_STALL_SECONDS,
-  GREPTILE_SHA_STALL_REMEDY,
-} from "./constants.js";
+import { DEFAULT_STICKY_SHA_STALL_SECONDS, GREPTILE_SHA_STALL_REMEDY } from "./constants.js";
 import {
   evaluateGreptileShaStallRemedy,
   isGreptileReviewInFlight,
@@ -66,6 +63,13 @@ describe("greptile-sha-stall Prefer-A Recut (#5162)", () => {
         oneShot: true,
       }),
     ).toBeNull();
+  });
+
+  it("treats unknown inventory (greptileReviewInFlight default) as non-escalating tip-rot", () => {
+    // Probe construction leaves greptileReviewInFlight=false only when inventory is known idle.
+    // Unknown inventory must set greptileReviewInFlight=true in probeOnce; sticky tip-rot then false.
+    const probe = makeProbe({ greptileReviewInFlight: true, cleanGateHoldout: "sha_match" });
+    expect(isStickyShaTipRot(probe)).toBe(false);
   });
 
   it("does not escalate while Greptile Review is in flight on HEAD", () => {

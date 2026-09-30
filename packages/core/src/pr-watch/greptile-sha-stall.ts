@@ -8,7 +8,7 @@
  * sha_match stays keep-wait (#2313).
  */
 
-import { GREPTILE_SHA_STALL_REMEDY, DEFAULT_STICKY_SHA_STALL_SECONDS } from "./constants.js";
+import { DEFAULT_STICKY_SHA_STALL_SECONDS, GREPTILE_SHA_STALL_REMEDY } from "./constants.js";
 import type { WatchProbe } from "./types.js";
 
 /** True when Greptile Review check-run status is still queued/in progress. */
