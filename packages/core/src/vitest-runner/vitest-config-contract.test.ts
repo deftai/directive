@@ -246,6 +246,30 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
     expect(occupancy).toMatch(/beforeAll/);
     expect(occupancy).toMatch(/sharedRoot/);
   });
+
+  it("keeps durable-effect evaluate on unit share-plus-reset without isolate:false (#5140)", () => {
+    const durable = readFileSync(
+      join(repoRoot, "packages/core/src/durable-effect-acquisition/evaluate.test.ts"),
+      "utf8",
+    );
+    const durations = JSON.parse(
+      readFileSync(join(repoRoot, "packages/core/fixtures/vitest-file-durations.json"), "utf8"),
+    ) as { files: Record<string, number> };
+    expect(durable).toMatch(/resetSharedSnap/);
+    expect(durable).toMatch(/sharedSnapshot/);
+    expect(durable).toMatch(/beforeAll/);
+    expect(source).not.toMatch(/\bisolate\s*:\s*false\b/);
+    expect(source).not.toContain("durable-effect-acquisition/evaluate.test.ts");
+    expect(
+      durations.files["packages/core/src/durable-effect-acquisition/evaluate.test.ts"],
+    ).toBeGreaterThan(30_000);
+    expect(
+      durations.files["packages/core/src/presentation-coverage/gates.test.ts"],
+    ).toBeGreaterThan(30_000);
+    expect(
+      durations.files["packages/core/src/vbrief-validate/landed-filename.test.ts"],
+    ).toBeGreaterThan(30_000);
+  });
 });
 
 describe("ts:check-lane release-host timeline (#4744 leftover)", () => {

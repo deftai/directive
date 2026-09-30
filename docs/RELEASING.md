@@ -58,6 +58,8 @@ Release Step 5 runs `task check` on the **cached** path with a **60-minute hang 
 
 **Stale-binary diagnostic (before treating 124 as a vitest hang).** If a single-shot `Measure-Command { node -e 0 }` is greater than about 100 ms or `git --version` is greater than about 150 ms, investigate before assuming a suite hang. Probe with a **repeated** measurement and read the **median** — the first invocation in a fresh shell is a warm. Confirm with the claimant's differential: rename the original binary, copy a fresh file onto the original path; the renamed original stays slow and the fresh copy at the same path goes fast. Then copy-over-self / reinstall. Measured 40 min → 3.6 min on deft01 2026-09-07. Bitdefender exceptions are optional (216–277 s across states, within noise).
 
+**#5140 host probe (record, do not invent a silent repair).** On the release host used for the #5140 implement leaf (2026-09-30): Node `C:\Program Files\nodejs\node.exe` v24.18.0 median cold `node -e 0` ≈132 ms (5 probes); Git `C:\Users\msada\AppData\Local\grok\git\2.55.0.windows.5\cmd\git.exe` 2.55.0.windows.5 median `git --version` ≈470 ms (5 probes; first 559 ms); host load ≈55% on 32 logical CPUs (AMD RYZEN AI MAX+ 395). Git median is above the ~150 ms stale-binary tip — treat host binary latency as an open differential alongside suite composition. Do **not** silently AV-exclude or replace binaries as the #5140 product change; host repair needs explicit operator evidence.
+
 GHA `CI` → “Test with coverage (vitest)” keeps its own 20-minute wall (`timeout-minutes: 20` on that step). Do not equate that Ubuntu CI budget with the Windows release Step 5 hang detector.
 
 **When Step 5 or CI appears stuck**
@@ -80,6 +82,8 @@ pnpm exec tsx packages/core/src/ts-check-lane/duration-rank.ts --top 20 .deft/ch
 `--top` is required (no coded default). Use `--top 20` for the #5024 cheapen baseline paste.
 
 Paste the top-20 from the next production Windows Step 5 cut into #5024 as the cheapen baseline. Out of scope here: acting on the ranking; uploading the artifact.
+
+**#5140 sequencer fixture refresh.** `packages/core/fixtures/vitest-file-durations.json` is the `DurationSequencer` input (#5028). Refresh it from a retained tee via the #5027 scraper; delete sub-30s seeded noise; validate every key resolves to a tip test file. #5140 used tee `.deft/check-tees/no-session/60556-1277c46c.log` (original v0.119.11 hang-kill tee was missing on host). Top measured offenders on that tee: `init-deposit/refresh` (~1393s), `session/occupancy` (~1379s), `durable-effect-acquisition/evaluate` (~478s), `presentation-coverage/gates` (~472s), `vbrief-validate/landed-filename` (~315s). Keep unit git tails in the **unit** project with share-plus-reset; do not move them into `spawn-heavy`. Search space includes default Vitest `pool` / `poolOptions.forks.isolate` (do not flip `isolate: false` without a measured cut). `DurationSequencer` name-tiebreak is `spawn-heavy` < `unit` lexicographically when `groupOrder` matches; config still omits `sequence.groupOrder` so projects overlap.
 
 Pointer: `content/scm/github.md` § Release Step 5 timeout (maintainer cross-link).
 

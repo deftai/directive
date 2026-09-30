@@ -69,7 +69,16 @@ describe("loadFileDurationsFromPath (#5028)", () => {
     expect(loaded.kind).toBe("ok");
     if (loaded.kind !== "ok") return;
     expect(loaded.durations.size).toBeGreaterThan(0);
-    expect(loaded.durations.has("packages/cli/src/hook-host-identity-lifetime.test.ts")).toBe(true);
+    // #5140 refreshed fixture from Step 5 tee; assert measured hang-tail keys.
+    expect(
+      loaded.durations.has("packages/core/src/durable-effect-acquisition/evaluate.test.ts"),
+    ).toBe(true);
+    expect(loaded.durations.has("packages/core/src/presentation-coverage/gates.test.ts")).toBe(
+      true,
+    );
+    expect(loaded.durations.has("packages/core/src/vbrief-validate/landed-filename.test.ts")).toBe(
+      true,
+    );
   });
 
   it("returns missing for absent paths", () => {
@@ -113,6 +122,19 @@ describe("compareSpecsByCommittedDuration (#5028)", () => {
         durations,
       ),
     ).toBeLessThan(0);
+  });
+});
+
+describe("DurationSequencer project-name tiebreak (#5140)", () => {
+  it("documents lexicographic spawn-heavy before unit when groupOrder matches", () => {
+    // Settled from DurationSequencer.sort + config refusal of sequence.groupOrder:
+    // equal groupOrder → name compare only; "spawn-heavy" < "unit". That is not
+    // a groupOrder serial drain; cheapen unit git tails in-place (#5140).
+    expect("spawn-heavy" < "unit").toBe(true);
+    const source = readFileSync(configPath, "utf8");
+    expect(source).not.toMatch(/groupOrder\s*:/);
+    expect(source).toMatch(/sequencer:\s*DurationSequencer/);
+    expect(source).not.toMatch(/\bisolate\s*:\s*false\b/);
   });
 });
 

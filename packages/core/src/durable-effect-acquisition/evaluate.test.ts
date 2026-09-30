@@ -1,8 +1,16 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  renameSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { evaluateDurableEffectAcquisition, readLivePresentationSource } from "./evaluate.js";
 import { PRESENTATION_CEILING_ARTIFACT_REL, PRESENTATION_CEILING_SCHEMA } from "./types.js";
 
@@ -10,6 +18,9 @@ const CEILING = `${JSON.stringify({
   schema: PRESENTATION_CEILING_SCHEMA,
   changeClass: "presentation",
 })}\n`;
+
+const SAFE_FORM = '<form method="get" action="/orders"></form>';
+const UNSAFE_FORM = '<form method="post" action="/orders"></form>';
 
 function files(head: Record<string, string>, base?: Record<string, string>) {
   const changed = Object.keys(head);
@@ -443,73 +454,106 @@ describe("evaluateDurableEffectAcquisition (#5080)", () => {
     expect(result.message).toMatch(/form-method|durable-effect/);
   });
 
-  it("reads working-tree bytes before committed HEAD", () => {
-    const root = mkdtempSync(join(tmpdir(), "dea-live-"));
-    try {
-      execFileSync("git", ["init", "-b", "master"], { cwd: root, stdio: "ignore" });
-      mkdirSync(join(root, "src"));
-      writeFileSync(join(root, "src/A.tsx"), "export const A = () => <a href='/ok' />;\n");
-      execFileSync("git", ["add", "src/A.tsx"], { cwd: root, stdio: "ignore" });
-      execFileSync("git", ["-c", "user.email=t@t.test", "-c", "user.name=t", "commit", "-m", "a"], {
-        cwd: root,
-        stdio: "ignore",
-      });
-      writeFileSync(
-        join(root, "src/A.tsx"),
-        "export const A = () => <a href='https://collector.example/p' />;\n",
-      );
-      const live = readLivePresentationSource(root, "src/A.tsx");
-      expect(live).toContain("collector.example");
-      expect(live).not.toContain("/ok");
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
 });
 
+/** #4567 share-plus-reset: one git init, hard-reset between cases (#5140). */
+const sharedTemps: string[] = [];
+let sharedSnap: { root: string; head: string } | null = null;
+
+function gitAt(root: string, ...args: string[]): string {
+  return execFileSync("git", ["-C", root, ...args], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+}
+
+function writeAt(root: string, path: string, source: string): void {
+  mkdirSync(join(root, path, ".."), { recursive: true });
+  writeFileSync(join(root, path), source);
+}
+
+function resetSharedSnap(): void {
+  if (sharedSnap === null) return;
+  const { root, head } = sharedSnap;
+  gitAt(root, "checkout", "-q", "-f", "master");
+  gitAt(root, "reset", "--hard", "-q", head);
+  gitAt(root, "clean", "-fdq");
+}
+
+function buildSharedSnap(): { root: string; head: string } {
+  const root = mkdtempSync(join(tmpdir(), "dea-git-"));
+  sharedTemps.push(root);
+  gitAt(root, "init", "--quiet", "-b", "master");
+  gitAt(root, "config", "user.email", "fixture@example.test");
+  gitAt(root, "config", "user.name", "Fixture");
+  writeAt(root, "App.html", SAFE_FORM);
+  writeAt(root, PRESENTATION_CEILING_ARTIFACT_REL, CEILING);
+  gitAt(root, "add", ".");
+  gitAt(root, "commit", "--quiet", "-m", "base");
+  return { root, head: gitAt(root, "rev-parse", "HEAD") };
+}
+
+function sharedSnapshot(): {
+  root: string;
+  base: string;
+  git: (...args: string[]) => string;
+  write: (path: string, source: string) => void;
+} {
+  if (sharedSnap === null) sharedSnap = buildSharedSnap();
+  const { root, head } = sharedSnap;
+  return {
+    root,
+    base: head,
+    git: (...args: string[]) => gitAt(root, ...args),
+    write: (path, source) => writeAt(root, path, source),
+  };
+}
+
+function reseedWithCeiling(
+  ceilingPath: string,
+  ceiling: string,
+): { root: string; base: string; write: (path: string, source: string) => void } {
+  const { root, git, write } = sharedSnapshot();
+  // Drop seed files, then plant the case-specific ceiling shape and recommit.
+  git("rm", "-rf", "--quiet", "--ignore-unmatch", ".");
+  git("clean", "-fdq");
+  write("App.html", SAFE_FORM);
+  if (ceilingPath) write(ceilingPath, ceiling);
+  git("add", ".");
+  git("commit", "--quiet", "-m", "base");
+  return { root, base: git("rev-parse", "HEAD"), write };
+}
+
 describe("actual git snapshots", () => {
-  const safe = '<form method="get" action="/orders"></form>';
-  const unsafe = '<form method="post" action="/orders"></form>';
-  function fixture(
-    test: (f: {
-      root: string;
-      base: string;
-      git: (...args: string[]) => string;
-      write: (path: string, source: string) => void;
-    }) => void,
-    ceilingPath = PRESENTATION_CEILING_ARTIFACT_REL,
-    ceiling = CEILING,
-  ) {
-    const root = mkdtempSync(join(tmpdir(), "dea-git-"));
-    const git = (...args: string[]) =>
-      execFileSync("git", ["-C", root, ...args], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-      }).trim();
-    const write = (path: string, source: string) => {
-      mkdirSync(join(root, path, ".."), { recursive: true });
-      writeFileSync(join(root, path), source);
-    };
-    try {
-      git("init", "--quiet");
-      git("config", "user.email", "fixture@example.test");
-      git("config", "user.name", "Fixture");
-      write("App.html", safe);
-      if (ceilingPath) write(ceilingPath, ceiling);
-      git("add", ".");
-      git("commit", "--quiet", "-m", "base");
-      test({ root, base: git("rev-parse", "HEAD"), git, write });
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  }
-  it.each([
-    "unstaged",
-    "staged",
-    "committed",
-  ])("checks new effects and deletions in the %s snapshot", (mode) =>
-    fixture(({ root, base, git, write }) => {
-      write("App.html", unsafe);
+  beforeAll(() => {
+    sharedSnapshot();
+  });
+
+  afterEach(() => {
+    resetSharedSnap();
+  });
+
+  afterAll(() => {
+    for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+    sharedSnap = null;
+  });
+
+  it("reads working-tree bytes before committed HEAD", () => {
+    const { root, git, write } = sharedSnapshot();
+    write("src/A.tsx", "export const A = () => <a href='/ok' />;\n");
+    git("add", "src/A.tsx");
+    git("commit", "--quiet", "-m", "a");
+    write("src/A.tsx", "export const A = () => <a href='https://collector.example/p' />;\n");
+    const live = readLivePresentationSource(root, "src/A.tsx");
+    expect(live).toContain("collector.example");
+    expect(live).not.toContain("/ok");
+  });
+
+  it.each(["unstaged", "staged", "committed"])(
+    "checks new effects and deletions in the %s snapshot",
+    (mode) => {
+      const { root, base, git, write } = sharedSnapshot();
+      write("App.html", UNSAFE_FORM);
       if (mode !== "unstaged") git("add", ".");
       if (mode === "committed") git("commit", "--quiet", "-m", "effect");
       expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
@@ -517,26 +561,36 @@ describe("actual git snapshots", () => {
       if (mode !== "unstaged") git("add", ".");
       if (mode === "committed") git("commit", "--quiet", "-m", "delete");
       expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(0);
-    }));
-  it.each(["unstaged", "staged"])("does not resurrect newly committed effects deleted %s", (mode) =>
-    fixture(({ root, base, git, write }) => {
-      write("App.html", unsafe);
+    },
+  );
+
+  it.each(["unstaged", "staged"])(
+    "does not resurrect newly committed effects deleted %s",
+    (mode) => {
+      const { root, base, git, write } = sharedSnapshot();
+      write("App.html", UNSAFE_FORM);
       git("add", ".");
       git("commit", "--quiet", "-m", "effect");
       unlinkSync(join(root, "App.html"));
       if (mode === "staged") git("add", ".");
       expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(0);
-    }));
-  it("reads live bytes over staged bytes and handles unusual renamed paths", () =>
-    fixture(({ root, base, git, write }) => {
-      write("App.html", unsafe);
-      git("add", ".");
-      write("App.html", safe);
-      expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(0);
-      renameSync(join(root, "App.html"), join(root, "Space\nand ünicode.html"));
-      write("Space\nand ünicode.html", unsafe);
-      expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
-    }));
+    },
+  );
+
+  it("reads live bytes over staged bytes and handles unusual renamed paths", () => {
+    const { root, base, git, write } = sharedSnapshot();
+    write("App.html", UNSAFE_FORM);
+    git("add", ".");
+    write("App.html", SAFE_FORM);
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(0);
+    // Win32 forbids control chars (including newline) in filenames; spaces +
+    // unicode still exercise unusual-path handling without ENOENT on rename.
+    const unusual = "Space and ünicode.html";
+    renameSync(join(root, "App.html"), join(root, unusual));
+    write(unusual, UNSAFE_FORM);
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
+  });
+
   it.each([
     ["xbrief/active/a.xbrief.json", { plan: { "x-directive/changeClass": "presentation" } }],
     [
@@ -552,50 +606,59 @@ describe("actual git snapshots", () => {
       { plan: { metadata: { "x-directive/changeClass": { changeClass: "presentation" } } } },
     ],
     ["policy/presentation-ceiling.json", { changeClass: "presentation" }],
-  ])("discovers #5056 shape at %s", (path, payload) =>
-    fixture(
-      ({ root, base, write }) => {
-        write("App.html", unsafe);
-        expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(
-          1,
-        );
-      },
-      path as string,
-      JSON.stringify(payload),
-    ));
-  it("retains deleted base ceilings and arms untracked restrictions", () =>
-    fixture(({ root, base, write }) => {
-      unlinkSync(join(root, PRESENTATION_CEILING_ARTIFACT_REL));
-      write("App.html", unsafe);
-      expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
-    }));
-  it("arms a new untracked restriction", () =>
-    fixture(({ root, base, write }) => {
-      write(PRESENTATION_CEILING_ARTIFACT_REL, CEILING);
-      write("App.html", unsafe);
-      expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
-    }, ""));
-  it("distinguishes I/O failure from deletion", () =>
-    fixture(({ root, base }) => {
-      unlinkSync(join(root, "App.html"));
-      mkdirSync(join(root, "App.html"));
-      expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(2);
-    }));
+  ])("discovers #5056 shape at %s", (path, payload) => {
+    const { root, base, write } = reseedWithCeiling(path as string, JSON.stringify(payload));
+    write("App.html", UNSAFE_FORM);
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
+  });
+
+  it("retains deleted base ceilings and arms untracked restrictions", () => {
+    const { root, base, write } = sharedSnapshot();
+    unlinkSync(join(root, PRESENTATION_CEILING_ARTIFACT_REL));
+    write("App.html", UNSAFE_FORM);
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
+  });
+
+  it("arms a new untracked restriction", () => {
+    const { root, base, write } = reseedWithCeiling("", "");
+    write(PRESENTATION_CEILING_ARTIFACT_REL, CEILING);
+    write("App.html", UNSAFE_FORM);
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
+  });
+
+  it("distinguishes I/O failure from deletion", () => {
+    const { root, base } = sharedSnapshot();
+    unlinkSync(join(root, "App.html"));
+    mkdirSync(join(root, "App.html"));
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(2);
+  });
+
   it("reports failed git snapshots", () => {
     const root = mkdtempSync(join(tmpdir(), "dea-not-git-"));
-    try {
-      expect(
-        evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: "missing" }).code,
-      ).toBe(2);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    sharedTemps.push(root);
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: "missing" }).code).toBe(
+      2,
+    );
   });
 });
 
 describe("merge-base ref discovery (#5104)", () => {
+  const discoverTemps: string[] = [];
+  let discoverRoot: string | null = null;
+
   afterEach(() => {
     vi.unstubAllEnvs();
+    if (discoverRoot !== null && existsSync(discoverRoot)) {
+      rmSync(join(discoverRoot, ".git"), { recursive: true, force: true });
+      for (const name of ["App.html", "policy", "xbrief", ".deft"]) {
+        rmSync(join(discoverRoot, name), { recursive: true, force: true });
+      }
+    }
+  });
+
+  afterAll(() => {
+    for (const t of discoverTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+    discoverRoot = null;
   });
 
   function discoverRepo(opts: {
@@ -603,18 +666,17 @@ describe("merge-base ref discovery (#5104)", () => {
     remoteRefs?: readonly string[];
     files?: Record<string, string>;
   }): string {
-    const root = mkdtempSync(join(tmpdir(), "dea-discover-"));
-    const git = (...args: string[]) =>
-      execFileSync("git", ["-C", root, ...args], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-      }).trim();
+    if (discoverRoot === null) {
+      discoverRoot = mkdtempSync(join(tmpdir(), "dea-discover-"));
+      discoverTemps.push(discoverRoot);
+    }
+    const root = discoverRoot;
+    const git = (...args: string[]) => gitAt(root, ...args);
     git("init", "--quiet", "-b", opts.branch);
     git("config", "user.email", "fixture@example.test");
     git("config", "user.name", "Fixture");
     for (const [path, source] of Object.entries(opts.files ?? {})) {
-      mkdirSync(join(root, path, ".."), { recursive: true });
-      writeFileSync(join(root, path), source);
+      writeAt(root, path, source);
     }
     git("add", ".");
     git("commit", "--quiet", "-m", "base");
@@ -628,15 +690,11 @@ describe("merge-base ref discovery (#5104)", () => {
     const root = discoverRepo({
       branch: "feature",
       remoteRefs: ["origin/main"],
-      files: { "App.html": '<form method="post" action="/orders"></form>' },
+      files: { "App.html": UNSAFE_FORM },
     });
-    try {
-      const result = evaluateDurableEffectAcquisition({ projectRoot: root });
-      expect(result.code).toBe(0);
-      expect(result.message).toMatch(/off-ceiling/);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    const result = evaluateDurableEffectAcquisition({ projectRoot: root });
+    expect(result.code).toBe(0);
+    expect(result.message).toMatch(/off-ceiling/);
   });
 
   it("returns a configuration error when no default base ref exists", () => {
@@ -644,15 +702,11 @@ describe("merge-base ref discovery (#5104)", () => {
     vi.stubEnv("GITHUB_BASE_REF", undefined);
     const root = discoverRepo({
       branch: "topic",
-      files: { "App.html": '<form method="post" action="/orders"></form>' },
+      files: { "App.html": UNSAFE_FORM },
     });
-    try {
-      const result = evaluateDurableEffectAcquisition({ projectRoot: root });
-      expect(result.code).toBe(2);
-      expect(result.message).toMatch(/merge-base|base ref/);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    const result = evaluateDurableEffectAcquisition({ projectRoot: root });
+    expect(result.code).toBe(2);
+    expect(result.message).toMatch(/merge-base|base ref/);
   });
 
   it("still requires a merge-base when a ceiling is armed", () => {
@@ -662,16 +716,12 @@ describe("merge-base ref discovery (#5104)", () => {
       branch: "topic",
       files: {
         [PRESENTATION_CEILING_ARTIFACT_REL]: CEILING,
-        "App.html": '<form method="post" action="/orders"></form>',
+        "App.html": UNSAFE_FORM,
       },
     });
-    try {
-      const result = evaluateDurableEffectAcquisition({ projectRoot: root });
-      expect(result.code).toBe(2);
-      expect(result.message).toMatch(/merge-base|base ref/);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    const result = evaluateDurableEffectAcquisition({ projectRoot: root });
+    expect(result.code).toBe(2);
+    expect(result.message).toMatch(/merge-base|base ref/);
   });
 
   it("evaluates an armed ceiling against origin/main when origin/master is absent", () => {
@@ -682,16 +732,12 @@ describe("merge-base ref discovery (#5104)", () => {
       remoteRefs: ["origin/main"],
       files: {
         [PRESENTATION_CEILING_ARTIFACT_REL]: CEILING,
-        "App.html": '<form method="get" action="/orders"></form>',
+        "App.html": SAFE_FORM,
       },
     });
-    try {
-      writeFileSync(join(root, "App.html"), '<form method="post" action="/orders"></form>');
-      const result = evaluateDurableEffectAcquisition({ projectRoot: root });
-      expect(result.code).toBe(1);
-      expect(result.message).toMatch(/durable-effect/);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    writeFileSync(join(root, "App.html"), UNSAFE_FORM);
+    const result = evaluateDurableEffectAcquisition({ projectRoot: root });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/durable-effect/);
   });
 });
