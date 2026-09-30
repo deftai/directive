@@ -182,4 +182,18 @@ describe("agents-consumer-header", () => {
     expect(unreadable.ok).toBe(false);
     expect(unreadable.reason).toBe("agents-md-unreadable");
   });
+
+  it("fails closed when Prefer-A marker is unreadable (#4544)", () => {
+    const unreadable = evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: composeGreenfieldAgentsMd(
+        `${AGENTS_MANAGED_OPEN_V3_LITERAL}\n# Deft\n<!-- /deft:managed-section -->`,
+      ),
+      productMutationCompletion: false,
+      productMutationMarkerUnreadable: true,
+      productMutationMarkerDetail: "Unexpected token",
+    });
+    expect(unreadable.ok).toBe(false);
+    expect(unreadable.reason).toBe("product-mutation-marker-unreadable");
+    expect(unreadable.message).toMatch(/Unexpected token/);
+  });
 });

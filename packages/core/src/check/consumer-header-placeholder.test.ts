@@ -120,4 +120,19 @@ describe("evaluateConsumerHeaderPlaceholderAtRoot (#4544 Prefer-A)", () => {
     expect(fail.ok).toBe(false);
     expect(fail.reason).toBe("agents-md-unreadable");
   });
+
+  it("fails closed when Prefer-A marker exists but is malformed (not Process-only)", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    mkdirSync(join(root, ".deft", "cache"), { recursive: true });
+    writeFileSync(productMutationCompletionMarkerPath(root), "{ broken", "utf8");
+    const fail = evaluateConsumerHeaderPlaceholderAtRoot(root);
+    expect(fail.ok).toBe(false);
+    expect(fail.reason).toBe("product-mutation-marker-unreadable");
+    expect(fail.message).toMatch(/do not treat as Process-only/i);
+  });
 });

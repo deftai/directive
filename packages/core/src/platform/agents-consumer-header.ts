@@ -189,7 +189,8 @@ export type FirstShipHeaderPlaceholderReason =
   | "not-placeholder"
   | "process-only"
   | "placeholder-with-product-mutation"
-  | "agents-md-unreadable";
+  | "agents-md-unreadable"
+  | "product-mutation-marker-unreadable";
 
 export interface FirstShipHeaderPlaceholderResult {
   readonly ok: boolean;
@@ -201,12 +202,15 @@ export interface FirstShipHeaderPlaceholderResult {
  * Fail-closed first-ship gate (#4544 Prefer-A): product-mutation completion must
  * not finish while the unmanaged header still equals the exact scaffold
  * placeholder. Process-only (no product mutation) and custom headers pass.
+ * Unreadable Prefer-A marker fails closed (not silent Process-only).
  * Returned failure only — no throw.
  */
 export function evaluateFirstShipHeaderPlaceholderGate(input: {
   readonly agentsMd: string | null;
   readonly productMutationCompletion: boolean;
   readonly agentsMdUnreadable?: boolean;
+  readonly productMutationMarkerUnreadable?: boolean;
+  readonly productMutationMarkerDetail?: string;
 }): FirstShipHeaderPlaceholderResult {
   if (input.agentsMdUnreadable === true) {
     return {
@@ -215,6 +219,22 @@ export function evaluateFirstShipHeaderPlaceholderGate(input: {
       message:
         "consumer-header-placeholder FAIL: AGENTS.md exists but is unreadable; " +
         "remedy: fix file permissions or encoding, then re-run verify:consumer-header-placeholder",
+    };
+  }
+  if (input.productMutationMarkerUnreadable === true) {
+    const detail =
+      input.productMutationMarkerDetail !== undefined &&
+      input.productMutationMarkerDetail.trim().length > 0
+        ? ` (${input.productMutationMarkerDetail.trim()})`
+        : "";
+    return {
+      ok: false,
+      reason: "product-mutation-marker-unreadable",
+      message:
+        "consumer-header-placeholder FAIL: Prefer-A product-mutation marker exists but is " +
+        `unreadable or malformed${detail}; remedy: repair or re-record ` +
+        ".deft/cache/product-mutation-completion.json, then re-run " +
+        "verify:consumer-header-placeholder (do not treat as Process-only)",
     };
   }
   if (input.agentsMd === null) {
