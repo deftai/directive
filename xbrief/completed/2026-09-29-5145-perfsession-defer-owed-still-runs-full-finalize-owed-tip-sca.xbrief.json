@@ -1,0 +1,485 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5145",
+    "updated": "2026-09-29T17:00:37Z"
+  },
+  "plan": {
+    "title": "perf(session): --defer-owed still runs full finalize-owed tip scan; dest leaves cold-start stampede",
+    "status": "running",
+    "narratives": {
+      "Description": "perf(session): --defer-owed still runs full finalize-owed tip scan; dest leaves cold-start stampede",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5145",
+      "Overview": "\n\n1. **Prefer-A defer short-circuit (primary).** In `evaluateFinalizeOwedSessionGate`, when `deferOwedReason` is non-empty, do **not** call `discoverFinalizeOwed` / `fetchDeliveryTipPrivate` on the blocking inventory path. Record deferred ritual lines (`finalize owed deferred: <reason>` + soft `finalize_owed` state) and continue. Match the existing `--defer=doctor` / `--defer=cache_fresh` skip pattern (`includeDoctor` / `includeCacheFresh`). Keep undeferred starts fail-closed with the existing remediation text.\n\n2. **Dest leaf ceremony guidance.** In swarm skill and/or host-grok-build / preamble: prefer `session:start --rearm` when dest `.deft/ritual-state.json` already exists; keep audited `--defer-owed=<reason>` and `--defer=cache_fresh=…`; do not launch N dest cold tip inventories at once while the gate is still scan-first (serialize ceremony, or rely on Prefer-A). Primary ritual does not satisfy dest hooks — dest still needs its own ritual, but must not re-pay full owed discovery when defer applies.\n\n3. **Regression test for cost, not only soft-pass.** Extend `session-start-finalize-owed.test.ts` (or adjacent) so defer with a live-path spy proves `fetchDeliveryTipPrivate` / `discoverFinalizeOwed` are **not** called (no network/tip thrash). Soft-pass-only under injected `probeFinalizeOwed` is insufficient.\n\n4. **Non-goals.** Do not raise `session:start` timeouts / hang-detector budgets to hide the scan. Do not auto-delete or cancel `#635` proposed briefs (separate operator clear). Do not reopen anonymous occupancy release / `#3954`. TTL inventory under `.deft/` remains a later option if undeferred concurrent stampede stays hot after Prefer-A; it is not first-ship.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:adc6610f04e9d1965513b679b2a4c762d42dbe8015f51aeccd83729992fb082a\n\n\n",
+      "Labels": "bug, swarm, determinism, adoption-blocker, agent-experience, process, source-of-truth, urgent, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:swarm"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "When deferOwedReason is non-empty, evaluateFinalizeOwedSessionGate does not call discoverFinalizeOwed or fetchDeliveryTipPrivate on the blocking inventory path; it records deferred ritual lines and continues.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "90a5902663b30378d8a5ac50be85b59b0df13c98",
+          "recorded_at": "2026-09-30T01:39:35.505Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5151 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:39:35.505Z",
+            "mintedVia": "leftover-complete-after-5151"
+          },
+          "recorded_at": "2026-09-30T01:39:35.505Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Undeferred session:start still fail-closes on blocking finalize-owed with existing remediation text.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "90a5902663b30378d8a5ac50be85b59b0df13c98",
+          "recorded_at": "2026-09-30T01:39:35.505Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5151 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:39:35.505Z",
+            "mintedVia": "leftover-complete-after-5151"
+          },
+          "recorded_at": "2026-09-30T01:39:35.505Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Swarm skill and/or host-grok-build / preamble teach dest leaves to prefer session:start --rearm when dest ritual-state exists, keep audited --defer-owed, and avoid N concurrent cold tip inventories while the gate is scan-first.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "90a5902663b30378d8a5ac50be85b59b0df13c98",
+          "recorded_at": "2026-09-30T01:39:35.505Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5151 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:39:35.505Z",
+            "mintedVia": "leftover-complete-after-5151"
+          },
+          "recorded_at": "2026-09-30T01:39:35.505Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Regression test proves defer path does not call fetchDeliveryTipPrivate / discoverFinalizeOwed (spy/no-network), not soft-pass alone.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "90a5902663b30378d8a5ac50be85b59b0df13c98",
+          "recorded_at": "2026-09-30T01:39:35.505Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5151 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:39:35.505Z",
+            "mintedVia": "leftover-complete-after-5151"
+          },
+          "recorded_at": "2026-09-30T01:39:35.505Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Non-goals: no timeout raise, no auto-clear of tip residue, no reopen of anonymous occupancy release.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "90a5902663b30378d8a5ac50be85b59b0df13c98",
+          "recorded_at": "2026-09-30T01:39:35.505Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5151 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:39:35.505Z",
+            "mintedVia": "leftover-complete-after-5151"
+          },
+          "recorded_at": "2026-09-30T01:39:35.505Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "determinism",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5145",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5145: perf(session): --defer-owed still runs full finalize-owed tip scan; dest leaves cold-start stampede"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "When deferOwedReason is non-empty, evaluateFinalizeOwedSessionGate does not call discoverFinalizeOwed or fetchDeliveryTipPrivate on the blocking inventory path; it records deferred ritual lines and continues.",
+        "Undeferred session:start still fail-closes on blocking finalize-owed with existing remediation text.",
+        "Swarm skill and/or host-grok-build / preamble teach dest leaves to prefer session:start --rearm when dest ritual-state exists, keep audited --defer-owed, and avoid N concurrent cold tip inventories while the gate is scan-first.",
+        "Regression test proves defer path does not call fetchDeliveryTipPrivate / discoverFinalizeOwed (spy/no-network), not soft-pass alone.",
+        "Non-goals: no timeout raise, no auto-clear of tip residue, no reopen of anonymous occupancy release.",
+        "[Bound] Prefer-A defer short-circuit for finalize-owed tip scan (#5145)"
+      ],
+      "admitted_source_sentences": [
+        "When deferOwedReason is non-empty, evaluateFinalizeOwedSessionGate does not call discoverFinalizeOwed or fetchDeliveryTipPrivate on the blocking inventory path; it records deferred ritual lines and continues.",
+        "Undeferred session:start still fail-closes on blocking finalize-owed with existing remediation text.",
+        "Swarm skill and/or host-grok-build / preamble teach dest leaves to prefer session:start --rearm when dest ritual-state exists, keep audited --defer-owed, and avoid N concurrent cold tip inventories while the gate is scan-first.",
+        "Regression test proves defer path does not call fetchDeliveryTipPrivate / discoverFinalizeOwed (spy/no-network), not soft-pass alone.",
+        "Non-goals: no timeout raise, no auto-clear of tip residue, no reopen of anonymous occupancy release."
+      ],
+      "admitted_source_digest": "e3d01b4964695c5f13251590c081fdfe9a1effdfcb2eeebc2cd3a1ab42fff209",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When deferOwedReason is non-empty, evaluateFinalizeOwedSessionGate does not call discoverFinalizeOwed or fetchDeliveryTipPrivate on the blocking inventory path; it records deferred ritual lines and continues.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Undeferred session:start still fail-closes on blocking finalize-owed with existing remediation text.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Swarm skill and/or host-grok-build / preamble teach dest leaves to prefer session:start --rearm when dest ritual-state exists, keep audited --defer-owed, and avoid N concurrent cold tip inventories while the gate is scan-first.",
+          "artifact_path": "content/skills/deft-directive-swarm/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Regression test proves defer path does not call fetchDeliveryTipPrivate / discoverFinalizeOwed (spy/no-network), not soft-pass alone.",
+          "artifact_path": "packages/core/src/session/session-start-finalize-owed.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Non-goals: no timeout raise, no auto-clear of tip residue, no reopen of anonymous occupancy release.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[Bound] Prefer-A defer short-circuit for finalize-owed tip scan (#5145)"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Current known state (2026-09-29 Stage A)\n\nStage A `task triage:evaluate -- 5145` on origin/master `41dbcbb5ae6a`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/41dbcbb5ae6a/21edb473-a835-4bc2-b5ea-82995760a97b`\n\n### Live gap\n\n`evaluateFinalizeOwedSessionGate` still calls `discoverFinalizeOwed` (tip fetch + nonterminal walk + PR admit) before applying `deferOwedReason`. Defer clears `blocks` only; wall-clock stays. Observed parent rearm ~894s with `--defer-owed=…`, and concurrent dest leaves each re-running cold tip inventory. Related: closed `#4919`; tip residue `#635` / PR `#401` (operator clearing separately).\n\n### Spend recommendation\n\nConcrete closed-AC session:start defer short-circuit + dest ceremony guidance adjacent to landed `#4919`. Recommended Dual-stop **N=1** (mechanism-shaped; Prefer-A short-circuit already named). Bare `arc 5145` applies `#5111` defaults: no-ingest, yolo-standing, spend from this recommend.\n\nTarget-digest sha256:adc6610f04e9d1965513b679b2a4c762d42dbe8015f51aeccd83729992fb082a\r\n\n",
+          "id": 5894222255,
+          "html_url": "https://github.com/deftai/directive/issues/5145#issuecomment-5894222255",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:21:18Z",
+          "updated_at": "2026-09-29T16:21:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because --defer-owed still runs full discoverFinalizeOwed tip inventory before soft-passing, so dest through-merge ceremony stays ~10–15 minutes even when defer is already on argv.\n\ncharter: refutation\nrefutation-target: When --defer-owed=<reason> is present, running full discoverFinalizeOwed (tip fetch + nonterminal walk + PR admit) then soft-passing blocks is acceptable ceremony cost for session:start / --rearm and for concurrent dest leaves.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\npain: P1, P2, P3\n\nOperator directed bare arc 5145 using #5111 defaults. Concrete closed-AC defer short-circuit + dest --rearm guidance; recommended Dual-stop N=1 applied without a spend ask.\n\nTarget-digest sha256:adc6610f04e9d1965513b679b2a4c762d42dbe8015f51aeccd83729992fb082a\ndispatch-sha: 41dbcbb5ae6ad182312d1fc624162d77cf1363f5\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5145-dc\npin-kind: origin-default\r\n\n",
+          "id": 5894222576,
+          "html_url": "https://github.com/deftai/directive/issues/5145#issuecomment-5894222576",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:21:19Z",
+          "updated_at": "2026-09-29T16:42:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5145\nCharter: refutation\nRound: 1 critic\nSeat: grok. Launcher: grok.\nId ceiling (inclusive): 5894222576\nSHA at dispatch: 41dbcbb5ae6ad182312d1fc624162d77cf1363f5\narc-mode: no-ingest\naudit-targets: none\n\nRefutation target (Stop 1 5894222576): When --defer-owed=<reason> is present, running full discoverFinalizeOwed (tip fetch + nonterminal walk + PR admit) then soft-passing blocks is acceptable ceremony cost for session:start / --rearm and for concurrent dest leaves.\n\n## Verdict\n\nThe refutation target does not survive.\n\n## Existing mechanisms inventoried\n\n- `evaluateFinalizeOwedSessionGate` (`packages/core/src/session/session-start.ts`): computes `deferReason` first; production path still always `fetchDeliveryTipPrivate` then `discoverFinalizeOwed`; `blocks` becomes `blocking && !deferred` only after that work.\n- Cold and re-arm both call that gate (`// #4919: re-arm also runs the finalize-owed gate`).\n- Sibling ritual deferrals already short-circuit work: `--defer=doctor` / `--defer=cache_fresh` set `includeDoctor: !doctorDeferred` / `includeCacheFresh: !cacheDeferred`.\n- CLI parses `--defer-owed` / `--defer-owed=` into `deferOwedReason` (`packages/cli/src/session-start.ts`).\n- Tests lock soft-pass of `blocks` under injected `probeFinalizeOwed`; they do not lock that discovery is skipped (`session-start-finalize-owed.test.ts`).\n- `discoverFinalizeOwed` pays tip `ls-tree`, per-brief `git show`, open-PR `gh api`, and per-story `remoteClaimMeta` (`ls-remote` + private claim fetch).\n- No `.deft/` TTL inventory cache found for finalize-owed.\n- Preamble names `session:start --rearm` for stale-ritual recovery and `DEFT_SESSION_RITUAL_SKIP=1` for dispatched workers; swarm skill / host-grok-build do not teach dest `--rearm` + `--defer-owed` stampede avoidance.\n\n## Defer soft-passes after full tip discovery\nblocks-the-design\nEvidence: At `41dbcbb5ae6ad182312d1fc624162d77cf1363f5`, `git show` of `evaluateFinalizeOwedSessionGate` shows `deferred` set from `deferOwedReason`, then unconditional `fetchDeliveryTipPrivate` + `discoverFinalizeOwed` on the live path (no `if (deferred)` early return). Issue current-state 5894222255 records parent rearm ~894s with `--defer-owed=…` then `finalize owed deferred: …`. Sibling `--defer=doctor|cache_fresh` already skips the deferred step body.\nFailure mode: Operators treat `--defer-owed` as audited skip/reuse; ceremony still burns tip fetch + nonterminal walk + PR admit before soft-passing. Through-merge leaves sit in `session:start` for minutes while Bound remedy work has not started. Raising hang-detector / timeout budgets (issue non-goal) becomes the silent pressure valve.\nDisposition: Bind Prefer-A: when `deferOwedReason` is non-empty, skip `discoverFinalizeOwed` / `fetchDeliveryTipPrivate` on the blocking inventory path; record deferred ritual lines; keep undeferred fail-closed. The acceptability premise cannot bind.\n\n## Concurrent dest leaves re-pay the same tip inventory\nblocks-the-design\nEvidence: Same SHA: cold path and re-arm path each call `evaluateFinalizeOwedSessionGate`. `fetchDeliveryTipPrivate` writes per-clone `refs/deft/finalize-owed/<branch>`; each dest worktree is its own `projectRoot`. No shared inventory reuse under `.deft/`. Swarm / host-grok-build / preamble lack dest ceremony guidance that prefers `--rearm` when dest ritual exists and that avoids N concurrent cold tip inventories while the gate is scan-first. Injection/swarm lens: concurrency + worktrees + shared origin tip.\nFailure mode: A five-leaf cohort with `--defer-owed` still launches five independent tip inventories against the same delivery tip. Wall-clock multiplies; operators see the cohort \"stuck in session:start\" even though every leaf already deferred the block.\nDisposition: First-ship must pair the Prefer-A short-circuit with dest ceremony guidance (skill or preamble): prefer `--rearm` when dest `.deft/ritual-state.json` exists; keep audited `--defer-owed` / `--defer=cache_fresh`; do not stampede N cold owed tip scans under defer. Concurrent-leaves clause of the target fails with the parent rearm clause.\n\n## Tests lock soft-pass, not cost\nsharpens-framing\nEvidence: `session-start-finalize-owed.test.ts` at the dispatch SHA asserts `blocks === false` and a deferred line when `deferOwedReason` is set under injected `probeFinalizeOwed`. The live production path that calls `fetchDeliveryTipPrivate` / `discoverFinalizeOwed` is unexercised for the defer short-circuit. Acceptance already names a regression test without network/tip thrash.\nFailure mode: A lean that only restates \"defer clears blocks\" can ship green while wall-clock stays scan-first. Soft-pass alone re-binds the refuted premise under a different sentence.\nDisposition: Acceptance and the bind lean must require a regression that proves defer skips (or TTL-hits) discovery without tip thrash — not merely that `blocks` is false.\n\n## Tip residue amplifies cost; clearing it does not fix defer semantics\nfootnote\nEvidence: `discoverFinalizeOwed` scales with TIP_NONTERMINAL + completed tip paths and per-story claim probes. Issue body and current-state name `#635` / PR `#401` residue as a separate operator clear; this arc's non-goal is auto-deleting those briefs.\nFailure mode: Emptying residue helps undeferred starts; deferred starts still pay full discovery until Prefer-A lands.\nDisposition: Keep `#635` out of first-ship. Do not treat residue clearing as a substitute for defer short-circuit.\n\n## Road-not-taken\n\nTTL inventory under `.deft/` (issue option 2) would help undeferred concurrent leaves reuse one scan. Prefer-A skip-on-defer is the smaller first-ship and matches existing doctor/cache_fresh defer short-circuit. TTL can remain a later sharpening if undeferred stampede stays hot after Prefer-A.\n\n## Steelmans\n\nStrongest defense of the target: deferred starts should still print a live inventory so operators see owed residue even when mutation is allowed. That audit value already has `task swarm:finalize-owed` inventory/dry-run surfaces; session:start under an explicit deferral is the wrong place to force a multi-minute tip walk. Soft-pass-after-scan keeps the audit line while breaking the defer cost contract that sibling ritual deferrals already honor.",
+          "id": 5894297539,
+          "html_url": "https://github.com/deftai/directive/issues/5145#issuecomment-5894297539",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:25:59Z",
+          "updated_at": "2026-09-29T16:25:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`--defer-owed` still pays the full finalize-owed tip inventory before soft-passing. That is not an acceptable ceremony cost. First ship skips discovery when defer is present (same pattern as doctor/cache_fresh defer), teaches dest leaves to prefer `--rearm` under defer, and locks the skip with a no-network regression. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5894222576. Critic 5894297539 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5894222576\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 41dbcbb5ae6ad182312d1fc624162d77cf1363f5\n\n## Takes\n\n- 5894297539 Defer soft-passes after full tip discovery — accept-into-contract\n- 5894297539 Concurrent dest leaves re-pay the same tip inventory — accept-into-contract\n- 5894297539 Tests lock soft-pass, not cost — accept-into-contract\n- 5894297539 Tip residue amplifies cost; clearing it does not fix defer — accept-into-contract\n- 5894297539 Prefer-A over TTL as first-ship — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. **Prefer-A defer short-circuit (primary).** In `evaluateFinalizeOwedSessionGate`, when `deferOwedReason` is non-empty, do **not** call `discoverFinalizeOwed` / `fetchDeliveryTipPrivate` on the blocking inventory path. Record deferred ritual lines (`finalize owed deferred: <reason>` + soft `finalize_owed` state) and continue. Match the existing `--defer=doctor` / `--defer=cache_fresh` skip pattern (`includeDoctor` / `includeCacheFresh`). Keep undeferred starts fail-closed with the existing remediation text.\n\n2. **Dest leaf ceremony guidance.** In swarm skill and/or host-grok-build / preamble: prefer `session:start --rearm` when dest `.deft/ritual-state.json` already exists; keep audited `--defer-owed=<reason>` and `--defer=cache_fresh=…`; do not launch N dest cold tip inventories at once while the gate is still scan-first (serialize ceremony, or rely on Prefer-A). Primary ritual does not satisfy dest hooks — dest still needs its own ritual, but must not re-pay full owed discovery when defer applies.\n\n3. **Regression test for cost, not only soft-pass.** Extend `session-start-finalize-owed.test.ts` (or adjacent) so defer with a live-path spy proves `fetchDeliveryTipPrivate` / `discoverFinalizeOwed` are **not** called (no network/tip thrash). Soft-pass-only under injected `probeFinalizeOwed` is insufficient.\n\n4. **Non-goals.** Do not raise `session:start` timeouts / hang-detector budgets to hide the scan. Do not auto-delete or cancel `#635` proposed briefs (separate operator clear). Do not reopen anonymous occupancy release / `#3954`. TTL inventory under `.deft/` remains a later option if undeferred concurrent stampede stays hot after Prefer-A; it is not first-ship.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:adc6610f04e9d1965513b679b2a4c762d42dbe8015f51aeccd83729992fb082a\n\n## Parent-side substantiation\n\nCritic overturned the target at the production path: deferred is computed, then tip fetch + discover still run. Sibling ritual deferrals already skip work. Concurrent dest clones each re-pay the same tip. Soft-pass tests alone would re-bind the premise. Prefer-A is the smallest first-ship; dest guidance pairs with it; `#635` stays out.\n\naudit:defer-skip-discover sha=41dbcbb5ae6ad182312d1fc624162d77cf1363f5 pointer=comment:5894297539 reading=asserted\naudit:dest-rearm-ceremony sha=41dbcbb5ae6ad182312d1fc624162d77cf1363f5 pointer=comment:5894297539 reading=asserted\naudit:defer-skip-regression sha=41dbcbb5ae6ad182312d1fc624162d77cf1363f5 pointer=comment:5894297539 reading=asserted\r\n\n",
+          "id": 5894369082,
+          "html_url": "https://github.com/deftai/directive/issues/5145#issuecomment-5894369082",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:30:17Z",
+          "updated_at": "2026-09-29T16:30:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5145\nCharter: refutation\nRound: 4 Pass-4 audit. Fresh critic.\nSeat: grok. Launcher: grok.\nId ceiling (inclusive): 5894369082\nSHA at dispatch: 41dbcbb5ae6ad182312d1fc624162d77cf1363f5\narc-mode: no-ingest\naudit-targets: pain-P1,pain-P2,pain-P3\n\nPain-audit of Bound lean 5894369082 against Stop 1 5894222576 + round-1 critic 5894297539. HEAD `git rev-parse` equals dispatch SHA. Production and test reads via `git show` at that SHA only.\n\n## Existing mechanisms re-verified\n\n- `evaluateFinalizeOwedSessionGate` at the pin: `deferred` is derived from `deferOwedReason`, then the live path always runs `fetchDeliveryTipPrivate` and `discoverFinalizeOwed` before `blocks: blocking && !deferred`. No early return when deferred.\n- Cold and re-arm both call that gate.\n- Sibling ritual deferrals already skip work bodies via `includeDoctor` / `includeCacheFresh`.\n- `discoverFinalizeOwed` pays tip `ls-tree`, per-brief `git show`, open-PR admit, and per-story `remoteClaimMeta` (`ls-remote` + private claim fetch).\n- `session-start-finalize-owed.test.ts` asserts soft-pass under injected `probeFinalizeOwed`; no spy that the live fetch/discover path is skipped under defer.\n- Preamble teaches `session:start --rearm` for stale-ritual recovery and `DEFT_SESSION_RITUAL_SKIP=1` for dispatched workers; dest `--rearm` + `--defer-owed` stampede avoidance for concurrent leaves is still the gap the lean names.\n\n## pain-P1 — defer soft-passes after full tip discovery\n\nCited disposition on lean: Prefer-A short-circuit (Bound remedy 1).\n\n**Coverage: holds.**\n\nEvidence: Bound remedy 1 requires that a non-empty `deferOwedReason` skip `discoverFinalizeOwed` / `fetchDeliveryTipPrivate` on the blocking inventory path, record deferred ritual lines, and keep undeferred fail-closed — matching the doctor/cache_fresh skip pattern. Pin re-check confirms the scan-first production path still runs today, so the remedy targets the verified defect. Same disposition the round-1 finding required for bind.\n\nfootnote — Tip-null early return today sets `deferred: false` even when a defer reason was supplied; Prefer-A removes that path for deferred starts by skipping the fetch, so it does not reopen P1.\n\n## pain-P2 — concurrent dest leaves re-pay the same tip inventory\n\nCited disposition on lean: Prefer-A (Bound remedy 1) paired with dest ceremony guidance (Bound remedy 2).\n\n**Coverage: holds.**\n\nEvidence: Under `--defer-owed`, Prefer-A stops each dest clone from paying tip inventory, which is the concurrent failure mode the round-1 finding named. Bound remedy 2 adds skill/preamble guidance: prefer `--rearm` when dest `.deft/ritual-state.json` exists; keep audited defer flags; avoid N cold tip inventories while the gate is still scan-first. That pairing matches the round-1 disposition. Injection/swarm lens (concurrency + worktrees + shared origin tip) stays in scope and is addressed by skip-on-defer plus ceremony guidance, without inventing a shared `.deft/` inventory cache as first-ship.\n\nfootnote — After Prefer-A lands, deferred concurrent cost is carried by the code short-circuit; Bound remedy 2 remains useful for rearm preference and undeferred stampede hygiene, and the lean already parks TTL inventory as a later option.\n\n## pain-P3 — tests lock soft-pass, not cost\n\nCited disposition on lean: cost regression (Bound remedy 3).\n\n**Coverage: holds.**\n\nEvidence: Bound remedy 3 requires a live-path spy that `fetchDeliveryTipPrivate` / `discoverFinalizeOwed` are not called under defer (no network/tip thrash). Pin re-check confirms current tests only lock `blocks === false` under injected `probeFinalizeOwed`. Soft-pass-only would re-bind the refuted premise; the lean closes that hole.\n\n## Census\n\nNo blocks-the-design findings on the three cited relieves. No sharpens-framing that changes the harvested Bound remedy. Footnotes only.\n\n## Road-not-taken\n\nTreating P2 as unrelieved until a shared tip inventory lands would reopen Prefer-A as insufficient for deferred concurrent leaves. Prefer-A already zeroes deferred tip work per clone; TTL remains correctly later for undeferred stampede.\r\n\n",
+          "id": 5894418693,
+          "html_url": "https://github.com/deftai/directive/issues/5145#issuecomment-5894418693",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:33:13Z",
+          "updated_at": "2026-09-29T16:33:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| Prefer-A: non-empty deferOwedReason skips discoverFinalizeOwed / fetchDeliveryTipPrivate | verified | critic 5894297539; pain 5894418693 coverage holds P1 |\n| Dest ceremony prefers --rearm + audited defer; no N cold tip stampede under defer | verified | critic 5894297539; pain 5894418693 coverage holds P2 |\n| Regression proves skip (spy), not soft-pass alone | verified | critic 5894297539; pain 5894418693 coverage holds P3 |\n| #635 tip residue clearing is out of first-ship | verified | issue non-goal; critic footnote; pain footnote |\n| TTL inventory later, not first-ship | verified | critic road-not-taken; lean non-goals; pain road-not-taken |\n\ndisagreement-set: (empty — agents agreed)\r\n\n",
+          "id": 5894517431,
+          "html_url": "https://github.com/deftai/directive/issues/5145#issuecomment-5894517431",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:39:22Z",
+          "updated_at": "2026-09-29T16:39:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\n\n`--defer-owed` must skip the expensive tip inventory, not scan-then-soft-pass. Dest leaves should prefer `--rearm` under defer. Tests must lock the skip. Nothing was ingested in this arc.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5894369082\n\nsuccessor lean 5894369082\n\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 41dbcbb5ae6ad182312d1fc624162d77cf1363f5\npain-audit: 5894418693 footnote-only\nverified-claims: 5894517431\r\n\n",
+          "id": 5894517807,
+          "html_url": "https://github.com/deftai/directive/issues/5145#issuecomment-5894517807",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:39:23Z",
+          "updated_at": "2026-09-29T16:40:05Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Pain\n\nDest through-merge leaves (and parent `session:start --rearm`) spend ~10–15 minutes in `session:start` even when `--defer-owed=<reason>` is already on the argv. Operators see a five-leaf cohort \"stuck in session:start\" while each worktree re-runs the same tip finalize-owed inventory. Ceremony wall-clock dominates before any Bound-remedy code write.\n\nObserved on deftai/directive 2026-09-29:\n- Parent rearm with `--defer-owed=operator-other-agent-handles-635-finalize-owed` recorded success after **~894s**, mostly tip/finalize discovery.\n- Concurrent dest leaves each invoked `session:start` with `--defer-owed=…` / `--defer=cache_fresh=…` and remained in ceremony for ~15 minutes.\n- `#635` proposed briefs citing merged PR `#401` keep the inventory non-empty (false-positive owed shape); clearing that residue is tracked separately. This issue is the **gate cost when defer is already present**, plus dest ceremony shape.\n\n## Desired outcome\n\n1. **`--defer-owed` short-circuits the expensive probe** (or uses a short TTL cache), so defer means skip/reuse work — not \"scan fully, then soft-pass.\"\n2. **Dest leaf ceremony prefers cheap rearm / shared cache** when a ritual already exists, and does not stampede N cold tip inventories against the same delivery tip.\n\n## Bound direction (product)\n\n### A. Defer skips or caches owed discovery (#4919 follow-on)\n\nToday `evaluateFinalizeOwedSessionGate` still calls `discoverFinalizeOwed` (tip fetch + nonterminal walk + PR admit) before applying `deferOwedReason`. Defer only clears `blocks`; it does not clear the wall-clock.\n\nFix options (prefer smallest):\n- When `deferOwedReason` is non-empty, **do not** call `discoverFinalizeOwed` / `fetchDeliveryTipPrivate` for the blocking inventory path; record deferred lines + ritual `finalize_owed` soft state and continue.\n- Or: persist last inventory under `.deft/` with a short TTL; concurrent dest `session:start` reuse it; defer still skips refresh when reason is present.\n\nDo not weaken the fail-closed owed gate for undeferred starts. Empty/non-blocking inventory should stay a fast path either way.\n\n### B. Dest leaf ceremony (swarm / Grok through-merge)\n\nDocument and/or teach leaves (swarm skill / host-grok-build / preamble):\n- Prefer `session:start --rearm` when dest `.deft/ritual-state.json` already exists.\n- Keep `--defer-owed=<reason>` and `--defer=cache_fresh=…` as audited soft paths.\n- Avoid launching N dest cold `session:start` tip inventories at once while the gate is still scan-first (serialize ceremony, or wait for A).\n- Primary ritual does not satisfy dest worktree hooks — dest still needs its own ritual, but it should not re-pay full owed discovery when defer/cache applies.\n\n## Non-goals\n\n- Raising `session:start` timeouts or hang-detector budgets to hide the scan.\n- Auto-deleting or cancelling the `#635` proposed briefs (handled by a separate operator agent).\n- Reopening anonymous occupancy release / `#3954` doctrine.\n\n## Acceptance\n\n- With `--defer-owed=<reason>`, `session:start` / `--rearm` on a tip that would otherwise block completes in seconds-class time (no full `discoverFinalizeOwed` tip walk), and ritual records the deferred reason.\n- Without defer, blocking owed inventory still fail-closes with the existing remediation text.\n- Dest through-merge leaf guidance (skill or preamble) prefers `--rearm` when dest ritual exists and documents defer/cache_fresh; a five-leaf cohort does not require five full cold owed tip scans when defer is set.\n- Regression test covers defer short-circuit (or TTL cache hit) without network/tip thrash.\n\n## Evidence\n\n- Parent ceremony line: `[deft session] ceremony rearm 893761ms` with finalize owed inventory listed then `finalize owed deferred: …`\n- Concurrent leaf `session:start` processes observed with `--defer-owed=through-merge-cohort` / leaf-specific defer reasons while heartbeats still showed starting/orienting.\n- Related: closed `#4919` (finalize-owed backstop); tip residue `#635` / PR `#401` (operator clearing separately).",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5633563511,
+        "origin": "deftai/directive#5145",
+        "id": "github.issue.5633563511"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "adc6610f04e9d1965513b679b2a4c762d42dbe8015f51aeccd83729992fb082a"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start-finalize-owed.test.ts",
+          "packages/core/src/swarm/finalize-owed.ts",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "bound-remedy",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/session-start-finalize-owed.test.ts"
+        ],
+        "expected_outputs": [
+          "defer short-circuits discoverFinalizeOwed",
+          "dest --rearm guidance"
+        ],
+        "depends_on": [],
+        "conflict_group": "session-finalize-owed",
+        "size": "M",
+        "model_tier": "default"
+      },
+      "productPullRequest": 5151,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5151,
+        "prBase": "master",
+        "mergeCommit": "90a5902663b30378d8a5ac50be85b59b0df13c98",
+        "deliveryBranch": "master",
+        "deliveryCommit": "90a5902663b30378d8a5ac50be85b59b0df13c98",
+        "verifiedAt": "2026-09-30T01:39:35.505Z",
+        "verifier": "leftover-complete",
+        "disposition": "delivered",
+        "handoffState": "delivered"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-30T01:39:35.505Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T01:39:35.505Z"
+      }
+    },
+    "id": "github.issue.5633563511",
+    "updated": "2026-09-29T17:00:37Z"
+  }
+}
