@@ -135,4 +135,25 @@ describe("evaluateConsumerHeaderPlaceholderAtRoot (#4544 Prefer-A)", () => {
     expect(fail.reason).toBe("product-mutation-marker-unreadable");
     expect(fail.message).toMatch(/do not treat as Process-only/i);
   });
+
+  it("passes custom header and absent AGENTS.md even when Prefer-A marker is malformed", () => {
+    const customRoot = tempRoot();
+    writeFileSync(
+      join(customRoot, "AGENTS.md"),
+      "# Garden Notes\n\nCustom one-liner.\n\n## Session orientation\n",
+      "utf8",
+    );
+    mkdirSync(join(customRoot, ".deft", "cache"), { recursive: true });
+    writeFileSync(productMutationCompletionMarkerPath(customRoot), "{ broken", "utf8");
+    const custom = evaluateConsumerHeaderPlaceholderAtRoot(customRoot);
+    expect(custom.ok).toBe(true);
+    expect(custom.reason).toBe("not-placeholder");
+
+    const absentRoot = tempRoot();
+    mkdirSync(join(absentRoot, ".deft", "cache"), { recursive: true });
+    writeFileSync(productMutationCompletionMarkerPath(absentRoot), "{ broken", "utf8");
+    const absent = evaluateConsumerHeaderPlaceholderAtRoot(absentRoot);
+    expect(absent.ok).toBe(true);
+    expect(absent.reason).toBe("no-agents-md");
+  });
 });

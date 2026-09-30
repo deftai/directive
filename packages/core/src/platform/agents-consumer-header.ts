@@ -201,8 +201,9 @@ export interface FirstShipHeaderPlaceholderResult {
 /**
  * Fail-closed first-ship gate (#4544 Prefer-A): product-mutation completion must
  * not finish while the unmanaged header still equals the exact scaffold
- * placeholder. Process-only (no product mutation) and custom headers pass.
- * Unreadable Prefer-A marker fails closed (not silent Process-only).
+ * placeholder. Absent AGENTS.md, custom headers, and Process-only pass.
+ * Unreadable Prefer-A marker fails closed only while the header is still the
+ * scaffold placeholder (not silent Process-only; do not refuse custom/absent).
  * Returned failure only — no throw.
  */
 export function evaluateFirstShipHeaderPlaceholderGate(input: {
@@ -221,6 +222,20 @@ export function evaluateFirstShipHeaderPlaceholderGate(input: {
         "remedy: fix file permissions or encoding, then re-run verify:consumer-header-placeholder",
     };
   }
+  if (input.agentsMd === null) {
+    return {
+      ok: true,
+      reason: "no-agents-md",
+      message: "consumer-header-placeholder: no AGENTS.md (skip)",
+    };
+  }
+  if (!agentsMdContainsExactPlaceholder(input.agentsMd)) {
+    return {
+      ok: true,
+      reason: "not-placeholder",
+      message: "consumer-header-placeholder: header is not the scaffold edit-me placeholder",
+    };
+  }
   if (input.productMutationMarkerUnreadable === true) {
     const detail =
       input.productMutationMarkerDetail !== undefined &&
@@ -235,20 +250,6 @@ export function evaluateFirstShipHeaderPlaceholderGate(input: {
         `unreadable or malformed${detail}; remedy: repair or re-record ` +
         ".deft/cache/product-mutation-completion.json, then re-run " +
         "verify:consumer-header-placeholder (do not treat as Process-only)",
-    };
-  }
-  if (input.agentsMd === null) {
-    return {
-      ok: true,
-      reason: "no-agents-md",
-      message: "consumer-header-placeholder: no AGENTS.md (skip)",
-    };
-  }
-  if (!agentsMdContainsExactPlaceholder(input.agentsMd)) {
-    return {
-      ok: true,
-      reason: "not-placeholder",
-      message: "consumer-header-placeholder: header is not the scaffold edit-me placeholder",
     };
   }
   if (!input.productMutationCompletion) {

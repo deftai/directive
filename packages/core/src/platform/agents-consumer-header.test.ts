@@ -183,7 +183,7 @@ describe("agents-consumer-header", () => {
     expect(unreadable.reason).toBe("agents-md-unreadable");
   });
 
-  it("fails closed when Prefer-A marker is unreadable (#4544)", () => {
+  it("fails closed when Prefer-A marker is unreadable only on scaffold placeholder (#4544)", () => {
     const unreadable = evaluateFirstShipHeaderPlaceholderGate({
       agentsMd: composeGreenfieldAgentsMd(
         `${AGENTS_MANAGED_OPEN_V3_LITERAL}\n# Deft\n<!-- /deft:managed-section -->`,
@@ -195,5 +195,22 @@ describe("agents-consumer-header", () => {
     expect(unreadable.ok).toBe(false);
     expect(unreadable.reason).toBe("product-mutation-marker-unreadable");
     expect(unreadable.message).toMatch(/Unexpected token/);
+
+    const custom = evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: "# Garden Notes\n\nCustom one-liner.\n\n## Session orientation\n",
+      productMutationCompletion: false,
+      productMutationMarkerUnreadable: true,
+      productMutationMarkerDetail: "Unexpected token",
+    });
+    expect(custom.ok).toBe(true);
+    expect(custom.reason).toBe("not-placeholder");
+
+    const missing = evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: null,
+      productMutationCompletion: false,
+      productMutationMarkerUnreadable: true,
+    });
+    expect(missing.ok).toBe(true);
+    expect(missing.reason).toBe("no-agents-md");
   });
 });
