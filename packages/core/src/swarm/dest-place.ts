@@ -156,6 +156,19 @@ export function destPlaceImplementSpawn(input: DestPlaceImplementSpawnInput): De
           `pick a fresh path or reset the worktree to the requested commit.`,
       };
     }
+    const reuseDeposit = reconstituteLinkedWorktreeDeposit(worktreePath, {
+      preferPrimaryCore: true,
+    });
+    if (reuseDeposit.status === "refused") {
+      return {
+        ok: false,
+        code: "deposit-refused",
+        message:
+          `dest-place refused reuse of ${worktreePath}: deposit reconstitution refused: ` +
+          `${reuseDeposit.message}. Pick a fresh path or repair the payload source; ` +
+          `this path was left in place (no force-remove).`,
+      };
+    }
     ensureSubagentStatusDir(worktreePath);
     return {
       ok: true,
@@ -191,15 +204,13 @@ export function destPlaceImplementSpawn(input: DestPlaceImplementSpawnInput): De
     preferPrimaryCore: true,
   });
   if (deposit.status === "refused") {
-    try {
-      git(["worktree", "remove", "--force", worktreePath], repoRoot);
-    } catch {
-      /* best-effort cleanup so retry does not take the existing-worktree path */
-    }
     return {
       ok: false,
       code: "deposit-refused",
-      message: `dest-place deposit reconstitution refused for ${worktreePath}: ${deposit.message}`,
+      message:
+        `dest-place deposit reconstitution refused for ${worktreePath}: ${deposit.message}. ` +
+        `Worktree left in place (no force-remove). Retry reconstitutes the same path when HEAD matches; ` +
+        `or pick a fresh path.`,
     };
   }
 
