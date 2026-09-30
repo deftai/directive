@@ -1,7 +1,14 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
-import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
+import {
+  hasArtifactSuffix,
+  MIGRATED_ARTIFACT_DIR,
+  resolveLayoutRootOrCanonical,
+} from "../layout/resolve.js";
+import { parseProjectDefinitionAt } from "../vbrief-build/project-definition-io.js";
+import { validateProjectDefinition } from "../vbrief-validate/project-definition.js";
+import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 import {
   MIGRATOR_METADATA_KEY,
   ROADMAP_BANNER,
@@ -32,34 +39,6 @@ function scopeRankSortKey(vbrief: JsonObject): [number, number] {
   const rank = scopeMetadataRank(plan);
   if (rank === null) return [1, 0];
   return [0, rank];
-}
-
-function loadVbriefs(folder: string): JsonObject[] {
-  if (!existsSync(folder)) return [];
-  let files: string[];
-  try {
-    files = readdirSync(folder)
-      .filter((n) => hasArtifactSuffix(n))
-      .sort();
-  } catch {
-    return [];
-  }
-  const vbriefs: JsonObject[] = [];
-  for (const f of files) {
-    try {
-      const data = JSON.parse(readFileSync(join(folder, f), "utf8")) as JsonObject;
-      data._source_file = f;
-      vbriefs.push(data);
-    } catch {
-      /* skip */
-    }
-  }
-  vbriefs.sort((a, b) => {
-    const [ba, ra] = scopeRankSortKey(a);
-    const [bb, rb] = scopeRankSortKey(b);
-    return ba - bb || ra - rb;
-  });
-  return vbriefs;
 }
 
 function extractIssueRefs(references: unknown): string[] {
@@ -251,15 +230,6 @@ function lifecycleSibling(pendingDir: string, bucket: string): string {
   return join(dirname(pendingDir), bucket);
 }
 
-function hasLifecycleArtifacts(dir: string): boolean {
-  if (!existsSync(dir)) return false;
-  try {
-    return readdirSync(dir).some((n) => hasArtifactSuffix(n));
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Prefer completion-time stamps over creation-dated filenames so the cap
  * keeps recently completed scopes (#2653 Greptile P1).
@@ -406,13 +376,150 @@ function renderPendingBody(vbriefs: JsonObject[]): string[] {
   return lines;
 }
 
-/** Single render-to-buffer entry used by both write and --check (mirrors ``scripts/roadmap_render.generate_roadmap_content``). */
-export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string): string {
-  const pendingVbriefs = loadVbriefs(pendingDir);
-  const activeVbriefs = loadVbriefs(lifecycleSibling(pendingDir, "active"));
-  const proposedVbriefs = loadVbriefs(lifecycleSibling(pendingDir, "proposed"));
-  const resolvedCompleted = resolveCompletedDir(pendingDir, completedDir);
-  const completedVbriefs = loadVbriefs(resolvedCompleted);
+type FolderProbe =
+  | { kind: "absent" }
+  | { kind: "unreadable"; detail: string }
+  | {
+      kind: "readable";
+      recognizedNames: string[];
+      parsed: JsonObject[];
+      failedNames: string[];
+    };
+
+type LifecycleProbes = {
+  pending: FolderProbe;
+  active: FolderProbe;
+  proposed: FolderProbe;
+  completed: FolderProbe;
+};
+
+type GateResult = { ok: true } | { ok: false; message: string };
+
+function sortParsedVbriefs(vbriefs: JsonObject[]): JsonObject[] {
+  return [...vbriefs].sort((a, b) => {
+    const [ba, ra] = scopeRankSortKey(a);
+    const [bb, rb] = scopeRankSortKey(b);
+    return ba - bb || ra - rb;
+  });
+}
+
+/** Three-state probe for one lifecycle folder (#4756 R3). */
+function probeLifecycleFolder(dir: string): FolderProbe {
+  try {
+    if (!existsSync(dir)) return { kind: "absent" };
+  } catch {
+    return { kind: "unreadable", detail: dir };
+  }
+  let st;
+  try {
+    st = lstatSync(dir);
+  } catch {
+    return { kind: "unreadable", detail: dir };
+  }
+  if (!st.isDirectory()) {
+    return { kind: "unreadable", detail: `${dir} is not a directory` };
+  }
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return { kind: "unreadable", detail: dir };
+  }
+  const recognizedNames = entries.filter((n) => hasArtifactSuffix(n)).sort();
+  const parsed: JsonObject[] = [];
+  const failedNames: string[] = [];
+  for (const f of recognizedNames) {
+    try {
+      const data = JSON.parse(readFileSync(join(dir, f), "utf8")) as JsonObject;
+      data._source_file = f;
+      parsed.push(data);
+    } catch {
+      failedNames.push(f);
+    }
+  }
+  return {
+    kind: "readable",
+    recognizedNames,
+    parsed: sortParsedVbriefs(parsed),
+    failedNames,
+  };
+}
+
+function gatherLifecycleProbes(pendingDir: string, completedDir?: string): LifecycleProbes {
+  return {
+    pending: probeLifecycleFolder(pendingDir),
+    active: probeLifecycleFolder(lifecycleSibling(pendingDir, "active")),
+    proposed: probeLifecycleFolder(lifecycleSibling(pendingDir, "proposed")),
+    completed: probeLifecycleFolder(resolveCompletedDir(pendingDir, completedDir)),
+  };
+}
+
+function vbriefsFromProbe(probe: FolderProbe): JsonObject[] {
+  return probe.kind === "readable" ? probe.parsed : [];
+}
+
+function probeBucketLabel(bucket: keyof LifecycleProbes): string {
+  return bucket;
+}
+
+/**
+ * Fail-closed before either empty claim (#4756 R3).
+ * Missing directories are empty; read failures are never empty.
+ */
+function evaluateEmptyClaimGate(probes: LifecycleProbes): GateResult {
+  const forwardParsed =
+    vbriefsFromProbe(probes.pending).length +
+    vbriefsFromProbe(probes.active).length +
+    vbriefsFromProbe(probes.proposed).length;
+  const completedParsed = vbriefsFromProbe(probes.completed).length;
+  const claim =
+    forwardParsed === 0 && completedParsed === 0
+      ? "all-empty"
+      : forwardParsed === 0 && completedParsed > 0
+        ? "completed-only"
+        : "none";
+  if (claim === "none") return { ok: true };
+
+  for (const bucket of ["pending", "active", "proposed", "completed"] as const) {
+    const probe = probes[bucket];
+    if (probe.kind === "unreadable") {
+      return {
+        ok: false,
+        message: `✗ Lifecycle folder unreadable (${probeBucketLabel(bucket)}): ${probe.detail}`,
+      };
+    }
+    if (probe.kind === "readable" && probe.failedNames.length > 0) {
+      return {
+        ok: false,
+        message:
+          `✗ Unreadable lifecycle file in ${probeBucketLabel(bucket)}/: ` +
+          probe.failedNames.join(", "),
+      };
+    }
+  }
+
+  if (claim === "completed-only") {
+    for (const bucket of ["pending", "active", "proposed"] as const) {
+      const probe = probes[bucket];
+      if (probe.kind === "readable" && probe.recognizedNames.length > 0) {
+        return {
+          ok: false,
+          message:
+            `✗ Cannot claim empty forward plan: unrecognized parse failure in ${bucket}/ ` +
+            `(${probe.recognizedNames.join(", ")})`,
+        };
+      }
+    }
+  }
+
+  return { ok: true };
+}
+
+function renderRoadmapBodyFromProbes(probes: LifecycleProbes): string {
+  const pendingVbriefs = vbriefsFromProbe(probes.pending);
+  const activeVbriefs = vbriefsFromProbe(probes.active);
+  const proposedVbriefs = vbriefsFromProbe(probes.proposed);
+  const completedVbriefs = vbriefsFromProbe(probes.completed);
 
   const lines: string[] = [ROADMAP_BANNER, "# Roadmap\n"];
 
@@ -425,7 +532,6 @@ export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string)
     return `${lines.join("\n")}\n`;
   }
 
-  // D2.2: never emit Completed-only without an explicit empty-forward marker.
   if (!hasForward && completedVbriefs.length > 0) {
     lines.push("## Forward plan\n");
     lines.push(ROADMAP_EMPTY_FORWARD_MARKER);
@@ -464,6 +570,11 @@ export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string)
   return `${lines.join("\n")}\n`;
 }
 
+/** Single render-to-buffer entry used by both write and --check (mirrors ``scripts/roadmap_render.generate_roadmap_content``). */
+export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string): string {
+  return renderRoadmapBodyFromProbes(gatherLifecycleProbes(pendingDir, completedDir));
+}
+
 /** @deprecated Prefer ``renderRoadmapToBuffer`` — kept for existing imports and parity harnesses. */
 export function generateRoadmapContent(pendingDir: string, completedDir?: string): string {
   return renderRoadmapToBuffer(pendingDir, completedDir);
@@ -489,8 +600,13 @@ export function renderRoadmap(
     completedDir = completedDirOrOptions.completedDir;
     projectRoot = completedDirOrOptions.projectRoot;
   }
+  const probes = gatherLifecycleProbes(pendingDir, completedDir);
+  const gate = evaluateEmptyClaimGate(probes);
+  if (!gate.ok) {
+    return [false, gate.message];
+  }
   try {
-    const content = renderRoadmapToBuffer(pendingDir, completedDir);
+    const content = renderRoadmapBodyFromProbes(probes);
     // Trust boundary is the project root — never dirname(outPath), which follows a
     // diverted parent symlink and would make containment pass outside the checkout.
     const projectDir =
@@ -503,19 +619,39 @@ export function renderRoadmap(
   }
 }
 
+function anyRecognizedArtifacts(probes: LifecycleProbes): boolean {
+  for (const bucket of ["pending", "active", "proposed", "completed"] as const) {
+    const probe = probes[bucket];
+    if (probe.kind === "readable" && probe.recognizedNames.length > 0) return true;
+  }
+  return false;
+}
+
+function firstUnreadable(probes: LifecycleProbes): string | null {
+  for (const bucket of ["pending", "active", "proposed", "completed"] as const) {
+    const probe = probes[bucket];
+    if (probe.kind === "unreadable") return `${bucket}: ${probe.detail}`;
+  }
+  return null;
+}
+
 export function checkDrift(
   pendingDir: string,
   roadmapPath: string,
   completedDir?: string,
 ): RenderRoadmapResult {
-  const expected = renderRoadmapToBuffer(pendingDir, completedDir);
+  const probes = gatherLifecycleProbes(pendingDir, completedDir);
+  const gate = evaluateEmptyClaimGate(probes);
+  if (!gate.ok) {
+    return [false, gate.message];
+  }
+  const expected = renderRoadmapBodyFromProbes(probes);
   if (!existsSync(roadmapPath)) {
-    const hasPending = hasLifecycleArtifacts(pendingDir);
-    const hasActive = hasLifecycleArtifacts(lifecycleSibling(pendingDir, "active"));
-    const hasProposed = hasLifecycleArtifacts(lifecycleSibling(pendingDir, "proposed"));
-    const inferredCompleted = resolveCompletedDir(pendingDir, completedDir);
-    const hasCompleted = hasLifecycleArtifacts(inferredCompleted);
-    if (!hasPending && !hasActive && !hasProposed && !hasCompleted) {
+    const unreadable = firstUnreadable(probes);
+    if (unreadable !== null) {
+      return [false, `✗ Lifecycle folder unreadable while ROADMAP.md is missing (${unreadable})`];
+    }
+    if (!anyRecognizedArtifacts(probes)) {
       return [true, "✓ No ROADMAP.md needed (no lifecycle scope vBRIEFs)"];
     }
     return [false, "✗ ROADMAP.md does not exist but vBRIEFs found"];
@@ -526,6 +662,53 @@ export function checkDrift(
     false,
     "✗ ROADMAP.md has drifted from lifecycle scope vBRIEFs -- run: task roadmap:render",
   ];
+}
+
+type RootIdentityResult = { ok: true } | { ok: false; message: string };
+
+/**
+ * No-flag cwd earns project-root identity only via a validated local
+ * PROJECT-DEFINITION artifact (#4756 R1).
+ */
+function validateNoFlagRootIdentity(cwd: string): RootIdentityResult {
+  const markerPath = join(cwd, MIGRATED_ARTIFACT_DIR, "PROJECT-DEFINITION.xbrief.json");
+  let st;
+  try {
+    st = lstatSync(markerPath);
+  } catch {
+    return {
+      ok: false,
+      message:
+        `✗ No local PROJECT-DEFINITION at ${markerPath}. ` +
+        "Run project setup or `deft migrate:xbrief` before no-flag roadmap:render.",
+    };
+  }
+  if (!st.isFile()) {
+    return {
+      ok: false,
+      message:
+        `✗ Local PROJECT-DEFINITION path is not a regular file: ${markerPath}. ` +
+        "Run project setup or `deft migrate:xbrief`.",
+    };
+  }
+  let data: JsonObject;
+  try {
+    data = parseProjectDefinitionAt(markerPath);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, message: `✗ ${msg}` };
+  }
+  const xbriefDir = join(cwd, MIGRATED_ARTIFACT_DIR);
+  const schemaErrors = validateVbriefSchema(data, markerPath);
+  const projectErrors = validateProjectDefinition(markerPath, data, xbriefDir);
+  const errors = [...schemaErrors, ...projectErrors];
+  if (errors.length > 0) {
+    return {
+      ok: false,
+      message: `✗ Local PROJECT-DEFINITION failed validation:\n${errors.join("\n")}`,
+    };
+  }
+  return { ok: true };
 }
 
 /** CLI entry (mirrors ``scripts/roadmap_render.main``). */
@@ -547,15 +730,36 @@ export function main(argv: readonly string[]): number {
     }
   }
 
+  const cwd = process.cwd();
   let pendingDir: string;
   let outPath: string;
+  let resolvedProjectRoot: string | undefined;
+
   if (projectRoot !== undefined) {
-    const lifecycleRoot = resolveLifecycleRoot(resolve(projectRoot));
-    pendingDir = join(lifecycleRoot, "pending");
-    outPath = positional[0] ?? join(resolve(projectRoot), "ROADMAP.md");
+    const resolvedRoot = resolve(projectRoot);
+    try {
+      const lifecycleRoot = resolveLayoutRootOrCanonical(resolvedRoot);
+      pendingDir = join(lifecycleRoot, "pending");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`✗ ${msg}\n`);
+      return 2;
+    }
+    outPath = positional[0] ?? join(resolvedRoot, "ROADMAP.md");
+    resolvedProjectRoot = resolvedRoot;
+  } else if (positional[0] !== undefined) {
+    // Explicit pending-directory override retains existing meaning (#4756 R0/R1).
+    pendingDir = positional[0];
+    outPath = positional[1] ?? join(cwd, "ROADMAP.md");
   } else {
-    pendingDir = positional[0] ?? join(process.cwd(), "vbrief", "pending");
-    outPath = positional[1] ?? join(process.cwd(), "ROADMAP.md");
+    const identity = validateNoFlagRootIdentity(cwd);
+    if (!identity.ok) {
+      process.stderr.write(`${identity.message}\n`);
+      return 2;
+    }
+    pendingDir = join(cwd, MIGRATED_ARTIFACT_DIR, "pending");
+    outPath = join(cwd, "ROADMAP.md");
+    resolvedProjectRoot = cwd;
   }
 
   if (check) {
@@ -563,10 +767,8 @@ export function main(argv: readonly string[]): number {
     process.stdout.write(`${msg}\n`);
     return ok ? 0 : 1;
   }
-  // When --project-root is set, use it; otherwise renderRoadmap derives from pendingDir
-  // (…/xbrief|vbrief/pending → project root). Never use dirname(outPath).
   const [ok, msg] = renderRoadmap(pendingDir, outPath, {
-    projectRoot: projectRoot !== undefined ? resolve(projectRoot) : undefined,
+    projectRoot: resolvedProjectRoot,
   });
   process.stdout.write(`${msg}\n`);
   return ok ? 0 : 1;
