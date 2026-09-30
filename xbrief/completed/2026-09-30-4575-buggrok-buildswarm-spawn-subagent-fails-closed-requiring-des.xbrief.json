@@ -1,0 +1,1017 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4575",
+    "updated": "2026-09-30T20:45:11Z"
+  },
+  "plan": {
+    "title": "Grok implement spawn dest-place then cwd (remainder #4575 after #5184)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(grok-build,swarm): spawn_subagent fails closed requiring dest with no usable recovery on 0.119",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4575",
+      "Overview": "Remainder after leftover #5184: interactive Grok implement spawn_subagent must dest-place (createWorktree/ensureArcDest argv) then set tool_input.cwd. Reservation mint stays mintImplementSpawnReservation after consult. Deny-copy stays on #5184. Bare --detach refused. Bound Prefer-A lean 5915754041.",
+      "Labels": "bug, swarm, agent-experience, grok-build, urgent, design-critique:ingest-ready, core-capabilities, promise:swarm"
+    },
+    "items": [
+      {
+        "title": "On the interactive Grok implement spawn_subagent path, parent dest-places a unique linked worktree per child by reusing createWorktree / ensureArcDest argv: git worktree add --detach <path> <commit-ish>, then sets tool_input.cwd to that path before spawn.",
+        "status": "completed",
+        "id": "clause-1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5186 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 5a311bf5cb976ccaacdcfe939e630878135ab819.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T20:44:40.236Z",
+            "mintedVia": "leftover-complete-after-5186"
+          },
+          "recorded_at": "2026-09-30T20:44:40.236Z"
+        }
+      },
+      {
+        "title": "Dest-place only creates the unique linked path. mintImplementSpawnReservation remains the reservation mint after consult allows. Do not tell the parent to mint reservation before spawn or to dest-place a \"reserved\" worktree.",
+        "status": "completed",
+        "id": "clause-2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5186 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 5a311bf5cb976ccaacdcfe939e630878135ab819.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T20:44:40.236Z",
+            "mintedVia": "leftover-complete-after-5186"
+          },
+          "recorded_at": "2026-09-30T20:44:40.236Z"
+        }
+      },
+      {
+        "title": "Dispatcher-owned release cites existing child-occupancy compare-and-release. Filesystem git worktree remove stays outside this P1 unless a later lean widens.",
+        "status": "completed",
+        "id": "clause-3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5186 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 5a311bf5cb976ccaacdcfe939e630878135ab819.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T20:44:40.236Z",
+            "mintedVia": "leftover-complete-after-5186"
+          },
+          "recorded_at": "2026-09-30T20:44:40.236Z"
+        }
+      },
+      {
+        "title": "Bare --detach (no path) remains refused. Deny-copy / leftover-number protocol stay on #5184 — not on this Bound-remedy harvest.",
+        "status": "completed",
+        "id": "clause-4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5186 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 5a311bf5cb976ccaacdcfe939e630878135ab819.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T20:44:40.236Z",
+            "mintedVia": "leftover-complete-after-5186"
+          },
+          "recorded_at": "2026-09-30T20:44:40.236Z"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "On the interactive Grok implement spawn_subagent path, parent dest-places a unique linked worktree per child by reusing createWorktree / ensureArcDest argv: git worktree add --detach <path> <commit-ish>, then sets tool_input.cwd to that path before spawn.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5186 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 5a311bf5cb976ccaacdcfe939e630878135ab819.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T20:44:40.236Z",
+            "mintedVia": "leftover-complete-after-5186"
+          },
+          "recorded_at": "2026-09-30T20:44:40.236Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Dest-place only creates the unique linked path. mintImplementSpawnReservation remains the reservation mint after consult allows. Do not tell the parent to mint reservation before spawn or to dest-place a \"reserved\" worktree.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5186 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 5a311bf5cb976ccaacdcfe939e630878135ab819.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T20:44:40.236Z",
+            "mintedVia": "leftover-complete-after-5186"
+          },
+          "recorded_at": "2026-09-30T20:44:40.236Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Dispatcher-owned release cites existing child-occupancy compare-and-release. Filesystem git worktree remove stays outside this P1 unless a later lean widens.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5186 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 5a311bf5cb976ccaacdcfe939e630878135ab819.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T20:44:40.236Z",
+            "mintedVia": "leftover-complete-after-5186"
+          },
+          "recorded_at": "2026-09-30T20:44:40.236Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Bare --detach (no path) remains refused. Deny-copy / leftover-number protocol stay on #5184 — not on this Bound-remedy harvest.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5186 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 5a311bf5cb976ccaacdcfe939e630878135ab819.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T20:44:40.236Z",
+            "mintedVia": "leftover-complete-after-5186"
+          },
+          "recorded_at": "2026-09-30T20:44:40.236Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "grok-build",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4575",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4575: bug(grok-build,swarm): spawn_subagent fails closed requiring dest with no usable recovery on 0.119"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/session/spawn-occupancy.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": null,
+      "sentences": [
+        "On the interactive Grok implement spawn_subagent path, parent dest-places a unique linked worktree per child by reusing createWorktree / ensureArcDest argv: git worktree add --detach <path> <commit-ish>, then sets tool_input.cwd to that path before spawn.",
+        "Dest-place only creates the unique linked path. mintImplementSpawnReservation remains the reservation mint after consult allows. Do not tell the parent to mint reservation before spawn or to dest-place a \"reserved\" worktree.",
+        "Dispatcher-owned release cites existing child-occupancy compare-and-release. Filesystem git worktree remove stays outside this P1 unless a later lean widens.",
+        "Bare --detach (no path) remains refused. Deny-copy / leftover-number protocol stay on #5184 — not on this Bound-remedy harvest."
+      ],
+      "admitted_source_sentences": [
+        "On the interactive Grok implement spawn_subagent path, parent dest-places a unique linked worktree per child by reusing createWorktree / ensureArcDest argv: git worktree add --detach <path> <commit-ish>, then sets tool_input.cwd to that path before spawn.",
+        "Dest-place only creates the unique linked path. mintImplementSpawnReservation remains the reservation mint after consult allows. Do not tell the parent to mint reservation before spawn or to dest-place a \"reserved\" worktree.",
+        "Dispatcher-owned release cites existing child-occupancy compare-and-release. Filesystem git worktree remove stays outside this P1 unless a later lean widens.",
+        "Bare --detach (no path) remains refused. Deny-copy / leftover-number protocol stay on #5184 — not on this Bound-remedy harvest."
+      ],
+      "admitted_source_digest": "9bc0a2a54e99ca9f3950184bc8aacaddf32ee937409fce677c22e2cc25842187",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On the interactive Grok implement spawn_subagent path, parent dest-places a unique linked worktree per child by reusing createWorktree / ensureArcDest argv: git worktree add --detach <path> <commit-ish>, then sets tool_input.cwd to that path before spawn.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Dest-place only creates the unique linked path. mintImplementSpawnReservation remains the reservation mint after consult allows. Do not tell the parent to mint reservation before spawn or to dest-place a \"reserved\" worktree.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Dispatcher-owned release cites existing child-occupancy compare-and-release. Filesystem git worktree remove stays outside this P1 unless a later lean widens.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Bare --detach (no path) remains refused. Deny-copy / leftover-number protocol stay on #5184 — not on this Bound-remedy harvest.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": null
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because Grok implement spawn fail-closes dest without a Grok-valid recovery that an orchestrator can copy, while the issue body also offers same-tree occupancy:grant — a dest-lock protocol gap, not disposition-only.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4575-dc\norigin-ref: origin/master\ndispatch-sha: 650ea08e71d9b856ec9c01949066f9e0824fde35\n\ncharter: refutation\nspend: N=1\nspend-why: default motion. Body names a closed OR (same-tree grant vs dest-field recovery). Dest-lock is a closed surface.\n\nrefutation-target: Grok spawn path either accepts same-tree children when parent holds occupancy and grants the child, or deny text names the exact Grok-valid fields (cwd / isolation=worktree / CLI argv) that satisfy dest placement, plus an occupancy:grant example that works on 0.119.\n\ntarget: #4575\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nThe triage author stamps the semantic call. P1 is Grok implement spawn dest recovery that an orchestrator can use without recutting #4066 dest-lock or disabling Claude hooks. Dual-host constraint from #4565 / #4574 later-arcs: keep Claude installed. No implement and no ingest from this parent.",
+          "id": 5688906715,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5688906715",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-15T22:23:49Z",
+          "updated_at": "2026-09-15T22:23:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\ncharter: refutation\nround: 1\ndispatch-sha: 650ea08e71d9b856ec9c01949066f9e0824fde35\ninput-ceiling: 5688906715\ntarget: #4575\n\n## Verdict\n\nThe recorded OR does not survive dest SHA `650ea08e`. Same-tree `occupancy:grant` is not dest-lock recovery. Naming `isolation=worktree` as a Grok-valid dest field, plus a dest-missing grant example, would send an orchestrator into a second deny. Residual is copy-honesty: implement dest-missing already names `tool_input.cwd` and dest-rooted `grok --cwd --prompt-file`, but that CLI is process-only skip-class, not implement dest-lock admit.\n\n## Re-verify\n\n- `git rev-parse HEAD` = `650ea08e71d9b856ec9c01949066f9e0824fde35` (detached, matches dispatch-sha).\n- Pin reads via `git show 650ea08e:` of `packages/core/src/session/spawn-occupancy.ts` (`grokMissingDestMessage`, `consultImplementSpawnOccupancy`), `packages/core/src/hooks/readonly.ts` (`appliesGrokSpawnDestContract`, `isProcessOnlyCriticSpawn`), `packages/core/src/hooks/dispatcher.ts` (dest deny / overlay), `packages/cli/src/occupancy-grant.ts`, `packages/core/src/session/occupancy.ts`.\n- Vitest at dest: 4 files, 130 passed (`occupancy-unrecognized.test.ts`, `spawn-occupancy.test.ts`, `readonly.test.ts`, `dispatcher-spawn-dest.test.ts`). Includes `occupancy:grant --help` exit 2, Grok `isolation=worktree` plus cwd as `invalid-extra-destination`, pathless `isolation=worktree` as dest-missing, `process_only` skip-class, primary-path refuse.\n\n## Inventory (existing mechanisms)\n\nDest-lock (#4066) is unique linked-worktree reservation before occupancy claim. Consult order in `consultImplementSpawnOccupancy`: Grok extra-dest keys, then dest-missing, then existing-dir, then primary-path, then not-worktree, then foreign, then destination-occupied, then reservation-conflict. Membership (`occupancy:grant`) is not in that order.\n\nGrok dest contract (`appliesGrokSpawnDestContract`): dest field is `tool_input.cwd` only. Extra keys `worktree_path` / `worktreePath` / `worktree` are `invalid-extra-destination`. `isolation=worktree` with cwd is the same reason, not dest-missing. Pathless `isolation=worktree` is dest-missing and still tells the caller to pass cwd.\n\n`grokMissingDestMessage` (dest-missing, Grok): prefixes `GROK_CRITIC_SPAWN_NOT_READY_RECOVERY` (`dest-rooted grok --cwd --prompt-file`, dest still required, native first / CLI last-resort), then `tool_input.cwd`, then \"pass cwd to a reserved linked worktree\", then vendor-compat refuse. It does not name `occupancy:grant`. Destination-occupied consult says \"Use another worktree. Do not grant across hosts onto that lease\".\n\nProcess-only skip-class: host-visible Grok stdin `subagent_type` `plan` or `process_only`. Dest-path is not the class. Implement-class never sets `process_only`. Unmarked dest-cwd `general-purpose` stays implement dest-lock. Launcher-family `grok --cwd --prompt-file` dest-present is `spawn-process-only-ready` (critic skip); dest-absent fails closed.\n\n`occupancy:grant` admits writes on an existing lease (`grantOccupancyMembership`). Role must be one of `leaf-implementation | orchestrator | review-monitor | merge-release`. Same-tree membership is documented as the primary-path exception, not the default. On Grok (`host-env`) parent and child are different actors; each claims its own worktree. `occupancy:grant --help` is unrecognized and exits 2; that is locked (#4411) to `deft help` / `deft commands`. Copyable grant text lives on write-gate occupied remediation (`occupancyGrantCommand`), not dest-missing spawn.\n\n## Injection / swarm lens\n\nThe target is concurrent implement-class spawn onto a live occupied tree. Dest-lock exists so N `general-purpose` writers cannot share the primary checkout: unique dest-lock incarnation, leftover-release is same-parent retry not share, destination-occupied forbids grant-across-host, primary-path refuse is occupancy-claim only (`release-cut` / `policy-restore` / `operator-default-branch`). Grant cap is 32 at four-hour TTL against a twenty-minute lease. Accepting arm 1 would re-open that hole. The existing same-dest cwd-without-occupy path is process-only skip-class, which implement-class never sets. Specs-only writes are still mutating; unmarked `general-purpose` is implement-class.\n\n## Findings\n\n### 1. Same-tree grant is dest-lock recut, not recovery\n\nclass: blocks-the-design\n\nEvidence: dest-missing and primary-path fire before any grant lookup. `cwd` equal to the payload root is `primary-path` even when the payload names a primary-claim exception (spawn-occupancy test \"refuses spawn onto a git main clone even when the payload names an exception\"). Destination-occupied consult forbids grant-across-host. `occupancy.ts`: spawned mutating children take a reserved linked worktree; same-tree membership stays reachable only as the documented primary-path exception. `commands.md` spawn occupancy seam: sharing the primary checkout with a live occupant is refuse, not grant-across-host. Process-only skip is the only cwd-without-occupy admit, and implement-class never sets that flag.\n\nFailure mode: binding arm 1 lets a Grok parent grant three unmarked `general-purpose` PM writers onto the occupied primary. Dest-lock uniqueness, incarnation, leftover-release, and primary-path would no longer hold. Grant is write-admission after dest-place, not dest-place itself. Child ids on Grok are host-published and unknown until after spawn, so a pre-spawn grant cannot name the child that dest-missing is refusing.\n\nDisposition: drop same-tree `occupancy:grant` from the Expected OR. Dest-place a unique linked worktree, then grant on that dest if write membership is still needed.\n\n### 2. Arm 2 names a Grok-invalid dest field and a grant that cannot dest-place\n\nclass: blocks-the-design\n\nEvidence: Grok consult occupancy-denies `isolation=worktree` plus cwd as `invalid-extra-destination` (test at dest, reason locked). Pathless `isolation=worktree` is dest-missing and names cwd, not `worktree_path`. Extra dest keys are invalid on Grok; dest is `tool_input.cwd` only. Host-general `commands.md` still lists `isolation=worktree` / `worktree_path` / `cwd` as inspect fields; the Grok overlay is stricter. `grokMissingDestMessage` has no grant example. Destination-occupied spawn consult forbids grant. `occupancyGrantCommand` is write-gate occupied remediation.\n\nFailure mode: a deny that lists `cwd / isolation=worktree / CLI argv` plus a dest-missing grant example matches the issue Expected and contradicts dest SHA. An orchestrator that copies `isolation=worktree` (or `worktree_path`) hits `invalid-extra-destination`. An orchestrator that runs `occupancy:grant` then retries pathless `spawn_subagent` is still dest-missing.\n\nDisposition: Grok-valid dest field is `tool_input.cwd` pointing at an existing reserved linked worktree of this repo, not primary, not `isolation=worktree`, not `worktree_path`. Do not attach `occupancy:grant` to dest-missing copy. CLI `grok --cwd --prompt-file` stays last-resort process-only skip when dest is present, not implement dest-lock admit.\n\n### 3. Dest-missing copy already names cwd and critic CLI; remainder is lead honesty\n\nclass: sharpens-framing\n\nEvidence: issue Actual paraphrases `GROK_CRITIC_SPAWN_NOT_READY_RECOVERY` (\"Critic recovery after recorded native deny — dest-rooted grok --cwd --prompt-file … Dest still required (#4066)\"). That string is the prefix of `grokMissingDestMessage` for implement dest-missing. The same function then names `tool_input.cwd` and \"pass cwd to a reserved linked worktree\". Overlay prepends the critic string again only for process-only critic class or launcher-family argv. Launcher dest-present is `spawn-process-only-ready`; dest-absent fails closed. Unmarked dest-cwd `general-purpose` is never that skip.\n\nFailure mode: an implement orchestrator reads the lead as critic recovery, copies CLI last-resort, and either gets process-only skip (no dest-lock, not a PM writer seat) or dest-absent fail-closed. The usable native field (`tool_input.cwd` on a reserved linked dest) is in the same message, after the critic lead. Binding \"no usable recovery\" overstates dest SHA; binding the OR understates the class split.\n\nDisposition: if next-build is copy, lead implement dest-missing with unique linked `tool_input.cwd`. Keep critic CLI as last-resort after recorded native miss for process-only skip-class. Do not recut dest-lock so unmarked `general-purpose` inherits parent cwd.\n\n### 4. `occupancy:grant --help` exit 2 is locked help routing, not dest-lock residual\n\nclass: footnote\n\nEvidence: `packages/cli/src/occupancy-grant.ts` `parseArgs` treats `--help` as unrecognized. `occupancy-unrecognized.test.ts` locks grant/heartbeat/release/steal `--help` to exit 2 naming `deft help` / `deft commands`. `deft commands` lists `occupancy:grant` summary. Copyable grant argv is `occupancyGrantCommand` on write-gate occupied, with `--role` from `SWARM_WORKER_ROLES` (no PM/spec-writer role).\n\nFailure mode: treating `--help` exit 2 as the reason dest-missing is unusable mis-locates the hole. Grant help opacity does not make dest-missing grant-shaped.\n\nDisposition: leave #4411 help routing. Do not grow dest-missing copy with a grant example that cannot dest-place.\n\n## Census\n\n- blocks-the-design: 2 (findings 1, 2)\n- sharpens-framing: 1 (finding 3)\n- footnote: 1 (finding 4)\n\n## Road not taken\n\nConsidered treating `occupancy:grant` as dest-lock skip when the parent holds occupancy. Rejected: dest-missing and primary-path do not consult membership; destination-occupied consult forbids grant; dest-lock uniqueness is independent of write-gate membership.\n\nSteelmanned rejected position: specs-only PM writers are not product code, so dest-lock is overkill and grant is the join protocol. What would flip: a host-visible skip-class that implement-class never sets (the `process_only` pattern) for that writer class, or a measured dest-lock consult that admits a live grant in place of unique reservation. Neither exists at dest SHA. Inventing a specs-only skip is a new class, not dest-missing copy and not arm 1 of the OR.\r\n\n",
+          "id": 5688971614,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5688971614",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-15T22:31:01Z",
+          "updated_at": "2026-09-15T22:31:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe expected OR cannot bind. Same-tree occupancy:grant is dest-lock recut, not recovery. isolation=worktree is invalid on Grok. Dest-missing already names tool_input.cwd; the critic CLI lead is the wrong class for implement writers. Confirming this map recuts #4575 to cwd-only dest-place on a reserved linked worktree, and leaves grant off dest-missing copy.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Yolo standing confirms this all-accept map.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4575 after round 1 sibling 1. Cites critic 5688971614. Supersedes write-back 5688906715.\n\nTarget-digest: sha256:7e07a6e3c85098226c0e02e99c55941a0a8069b609ef70384cbac2c9437785ca\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4575-dc\norigin-ref: origin/master\ndispatch-sha: 650ea08e71d9b856ec9c01949066f9e0824fde35\ntarget shape: single-issue\npain: P1\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5688971614 1 Same-tree grant is dest-lock recut, not recovery — accept-into-contract\n- 5688971614 2 Arm 2 names a Grok-invalid dest field and a grant that cannot dest-place — accept-into-contract\n- 5688971614 3 Dest-missing copy already names cwd and critic CLI; remainder is lead honesty — accept-into-contract\n- remaining classified headings — accept-into-contract\n\n## Bound remedy\n\n- Drop same-tree occupancy:grant from Expected. Dest-place a unique linked worktree, then grant on that dest only if write membership is still needed.\n- Grok implement dest is tool_input.cwd to an existing reserved linked worktree of this repo, not primary, not isolation=worktree, not worktree_path.\n- Do not attach occupancy:grant to dest-missing copy. grok --cwd --prompt-file stays last-resort process-only skip, not implement dest-lock admit.\n- Lead implement dest-missing with unique linked tool_input.cwd. Keep critic CLI as last-resort after recorded native miss for process-only skip-class.\n- occupancy:grant --help exit 2 stays #4411 help routing, not dest-lock residual.",
+          "id": 5688985710,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5688985710",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-15T22:32:35Z",
+          "updated_at": "2026-09-15T22:32:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5688985710. Footnote from critic 5688971614 is not in this denominator.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5688985710 are accept-into-contract | critic 5688971614 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer on 1-3 |\n| Target-digest match | lean 5688985710 | sha256 of live REST #4575 body |\n| isolation=worktree plus cwd is invalid-extra-destination | critic vitest at dest | dispatcher-spawn-dest |\n| occupancy:grant --help exit 2 | critic vitest | occupancy-unrecognized |",
+          "id": 5688987099,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5688987099",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-15T22:32:45Z",
+          "updated_at": "2026-09-15T22:32:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n#4575 is recut to cwd-only dest-place on a reserved linked worktree. Same-tree grant is not recovery. isolation=worktree is not a Grok dest field. Leftover next-build is dest-missing copy that leads with tool_input.cwd. No leftover next-build for occupancy:grant --help as dest-lock.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and the successor lean.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCite successor lean 5688985710 and verified-claims table 5688987099.",
+          "id": 5688988533,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5688988533",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-15T22:32:54Z",
+          "updated_at": "2026-09-15T22:32:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe Bound-remedy already first-ships dest-place a unique linked worktree and Grok implement dest as tool_input.cwd, without same-tree occupancy:grant or disabling Claude hooks. That is P1. This map cites that relief. Ingest-ready chip removed; no ingest.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: none.\nSpec-path: next-build contract is not this body.\n\n**Lean:** pain-cite recut of #4575. Supersedes successor lean 5688985710.\n\nTarget-digest: sha256:7e07a6e3c85098226c0e02e99c55941a0a8069b609ef70384cbac2c9437785ca\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4575-dc\norigin-ref: origin/master\ndispatch-sha: 650ea08e71d9b856ec9c01949066f9e0824fde35\n\nTakes:\n\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Drop same-tree occupancy:grant from Expected. Dest-place a unique linked worktree, then grant on that dest only if write membership is still needed.\n- Grok implement dest is tool_input.cwd to an existing reserved linked worktree of this repo, not primary, not isolation=worktree, not worktree_path.\n- Do not attach occupancy:grant to dest-missing copy. grok --cwd --prompt-file stays last-resort process-only skip, not implement dest-lock admit.\n- Lead implement dest-missing with unique linked tool_input.cwd. Keep critic CLI as last-resort after recorded native miss for process-only skip-class.\n- occupancy:grant --help exit 2 stays #4411 help routing, not dest-lock residual.\n\n",
+          "id": 5689656570,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5689656570",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-15T23:37:15Z",
+          "updated_at": "2026-09-15T23:37:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\ncharter: open critique\nround: 2 reiteration\ncritic role: fresh\ndispatch-sha: 650ea08e71d9b856ec9c01949066f9e0824fde35\ninput-ceiling: 5689656570\ntarget: successor lean 5689656570\narc-mode: no-ingest\n\n## Verdict\n\n**Partially relieves.** The Bound remedy on successor lean 5689656570 relieves the *diagnosis* half of P1, and I can confirm that half behaviourally: `tool_input.cwd` pointed at a unique linked worktree is a working Grok implement-class admit, and it preserves #4066 dest-lock rather than recutting it.\n\nThe *actionability* half is not relieved. P1 is scoped as a recovery \"an orchestrator can use,\" and the one positive Bound-remedy item mis-names the precondition as an \"existing **reserved** linked worktree.\" Verified at dest SHA: a pre-existing reservation is a **deny**, not a precondition, and no orchestrator-callable reserve step exists anywhere in the tree. The remedy carries forward the exact noun the reporter already read and could not action.\n\nBecause a Spec-path token is stamped on this lean, the Bound-remedy list is literally captured into `plan.items`. The mis-naming is therefore not cosmetic; it propagates into the next build.\n\n## Re-verify\n\nAnchors re-run, not cited.\n\n- `git rev-parse HEAD` = `650ea08e71d9b856ec9c01949066f9e0824fde35`, matches dispatch-sha. Reads pinned via `git show 650ea08e:`.\n- Round-1 anchor suite re-run at dest: `spawn-occupancy.test.ts`, `dispatcher-spawn-dest.test.ts`, `readonly.test.ts`, `occupancy-unrecognized.test.ts` — **4 files, 130 passed**. Reproduces the round-1 count.\n- Ran the live thread (all 6 comments, all at or below ceiling) through `evaluateCompletedArcRecord`. Four states, measured:\n  - at ceiling 5689656570 → `blocked` / **`missing-record`**: \"no completed-arc record cites the latest successor lean 5689656570; existing record(s) cite lean 5688985710\".\n  - the same thread truncated before the recut (at or below 5688988533) → `blocked` / **`unrelieved-pain`** on P1. That is the state the recut was posted to fix, and it did fix it.\n  - thread plus a synthesis citing 5689656570, **without** a pain-audit critic → `blocked` / **`unresolved-pain-audit`** (`envelope-omits-target, bind-unresolved`).\n  - thread plus this critic comment (`role: critic`, audit target `pain-P1`) plus that synthesis → **`complete`**, citedLeanId 5689656570.\n\nSo the relief cite did discharge the pain conjunct at the engine level. Per `### Pain coverage`, engine pass is not relief: the cite is an ADR-006 asserted premise and the parent cannot self-clear. The substantive grade is below.\n\n## Inventory (existing mechanisms, before proposing)\n\n- `consultImplementSpawnOccupancy` (`packages/core/src/session/spawn-occupancy.ts`) Grok order: extra-dest keys → `isolation=worktree` plus cwd → dest-missing → existing-dir → primary-path → not-worktree → foreign → destination-occupied → **reservation-conflict**.\n- `mintImplementSpawnReservation` creates the reservation **after** the consult allows. `destIsProven` requires only: existing directory, `isLinkedWorktreePath`, same common dir as the parent.\n- `existingDispatchReservation` non-null with a foreign parent or mismatched incarnation → `reservation-conflict` deny.\n- `grokMissingDestMessage` already says \"pass cwd to a reserved linked worktree before the spawn primitive.\"\n- `tasks/occupancy.yml` exposes `steal`, `release`, `heartbeat`, `grant`. There is no `worktree:add` or reserve task anywhere in `tasks/`.\n- `content/skills/deft-directive-swarm/references/core-phase-0.md:50` is the only place in the tree that names the creation step: \"C3 worktree-map or `git worktree add`\".\n\n## Findings\n\n### 1. The remedy's central noun names a deny condition, not a precondition\n\nclass: blocks-the-design\n\nEvidence: `spawn-occupancy.test.ts` \"keeps unique dest-lock for implement-class general-purpose (#4296)\" builds its dest with `addLinkedWorktree`, which is exactly `git worktree add --detach <dest> HEAD` and nothing else. Grok host, `subagent_type: general-purpose`, `cwd: dest` → `allow: true`, reservation minted. A **second** spawn onto that same dest → `reservation-conflict`. So a plain unreserved linked worktree admits, and a dest that already carries a dispatch reservation denies. The consult chain never reads a reservation as an input; `mintImplementSpawnReservation` writes one as an output of the allow.\n\nFailure mode: an orchestrator reads Bound-remedy item 2, \"tool_input.cwd to an existing **reserved** linked worktree,\" and looks for the reserve step. `tasks/occupancy.yml` has none; `occupancy:grant --help` exits 2; no `worktree:add` task exists. Best case they stall exactly where the reporter stalled and fall back to serial shell writes — the original 0.119 symptom, unchanged. Worst case they infer that the `occupancy:*` family is the reserve step, take a lease on the dest, and convert a working admit into `destination-occupied` or `reservation-conflict`. The word that is supposed to carry the relief is the word that produces the second deny.\n\nDisposition consequence: the relief cite overclaims as written, so the lean cannot bind on the pain axis unamended. Amend Bound-remedy item 2 to name the precondition the code actually checks — an existing linked worktree of this repo, not the primary checkout, not currently occupied, not already dispatch-reserved — and drop \"reserved\" as a qualifier on the input. Directive mints the reservation; the orchestrator must not.\n\n### 2. The creation step is named only on the swarm path, and this issue is explicitly not swarm\n\nclass: sharpens-framing\n\nEvidence: the only tree-wide occurrence of the dest-creation step for spawned mutating work is `core-phase-0.md:50`, scoped to swarm Phase 2/3 (\"C3 worktree-map or `git worktree add`\"). The issue body closes with \"This is a **current 0.119 field miss** on the interactive Grok orchestrator path, not through-merge swarm.\" Bound-remedy item 1 says \"Dest-place a unique linked worktree\" but names no command; item 4 changes lead ordering in the deny copy without adding one.\n\nFailure mode: the interactive orchestrator is never routed to the swarm reference, so the remedy reads as a constraint list with no first step. Four of the five Bound-remedy bullets are prohibitions (drop grant, do not attach grant, not `isolation=worktree`, not `worktree_path`); the fifth is a lead-ordering change. A remedy that is net-negative in content does not by itself make a blocked orchestrator unblocked.\n\nDisposition consequence: scope the relief honestly. Either add the creation step to the Bound-remedy slice that the Spec-path token will harvest — `git worktree add --detach <path> HEAD`, one per child, then pass each as `tool_input.cwd` — or restate the cite as partial and carry the actionability half as residual. With Spec-path stamped, the harvested list is what the next build implements; an items-only capture of five constraints will not produce usable copy.\n\n### 3. The Claude-hooks conjunct of P1 is carried by silence, and the hooks copy that ships on this path is off-target\n\nclass: sharpens-framing\n\nEvidence: the Stop 1 gate stamp scopes P1 as recovery \"without recutting #4066 dest-lock or disabling Claude hooks,\" with the dual-host constraint \"keep Claude installed.\" The Bound remedy says nothing about hooks. The only hooks-disable refusal reaching this path is `GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE`, appended to `grokMissingDestMessage`, and it names `[compat.cursor] hooks = false` — Cursor compat, per its own #4272 doc comment, not Claude.\n\nFailure mode: the reporter is on Grok Build / macOS with no Cursor in the loop. They read a dest-missing deny whose final sentence instructs them about a Cursor compat flag. The usable instruction (`tool_input.cwd`) sits mid-message between a critic-CLI lead and a Cursor-compat tail — the same lead-honesty defect round 1 found at heading 3, except the remedy fixes the lead and leaves the tail. Meanwhile the Claude-hooks conjunct is neither tested nor contradicted, so the relief cite asserts something about it that nothing in the arc measured.\n\nDisposition consequence: either drop the Claude-hooks conjunct from P1 as untested by this arc, or name the Claude-hooks interaction concretely. Separately, the Cursor-compat tail does not belong on a Grok dest-missing message; gate it on Cursor.\n\n### 4. At ceiling the thread is blocked on bookkeeping, not on pain\n\nclass: sharpens-framing\n\nEvidence: measured above. Synthesis 5688988533 cites lean 5688985710. The pain-cite recut 5689656570 supersedes that lean. `evaluateCompletedArcRecord` clears by set membership against the *latest* successor lean, so the accepted record no longer matches and the verdict at ceiling is `missing-record`, naming lean 5689656570.\n\nFailure mode: the recut fixed `unrelieved-pain` and simultaneously invalidated the accepted synthesis. An operator reading the arc as \"pain was the blocker, pain is now cited\" will expect ingest to clear and find it does not, with a reason that never mentions pain. Re-posting more pain cites cannot move it.\n\nDisposition consequence: parent owes a fresh synthesis citing successor lean 5689656570 and table 5688987099. Confirmed by measurement: this critic comment plus that synthesis yields `complete`. That is bookkeeping rather than a defect in the remedy, but it is the actual next step, and it is not the one the pain framing implies.\n\n## Census\n\n- blocks-the-design: 1 (finding 1)\n- sharpens-framing: 3 (findings 2, 3, 4)\n- footnote: 0\n\n## Injection / swarm lens\n\nFires: the target governs concurrency, worktrees, shared state, and spawn identity.\n\nMy finding-1 disposition loosens a word in deny copy, so the lens is on whether it loosens the gate. It does not. Naming the true precondition removes no consult step: primary-path refuse, `destination-not-worktree`, `destination-foreign`, `destination-occupied`, and `reservation-conflict` all still fire, and uniqueness per child is still enforced by `reservation-conflict` on the second spawn. Nothing in my disposition re-opens the arm-1 hole round 1 closed — same-tree `occupancy:grant` stays out, and `leftoverReuseIncarnation` remains same-parent-only.\n\nTwo residual hazards worth stating rather than leaving to reviewer attention, since deny copy on this path becomes agent-executed argv:\n\n- Adding `git worktree add` to deny copy makes worktree creation an agent reflex on every dest-missing retry, with no release step in the same message. Terminal release is dispatcher-owned (`phase: terminal` plus incarnation) and a refused child must not be told to steal. Any copy change that names creation should name the dispatcher-owned release in the same breath, or it trades a blocked orchestrator for unbounded tree growth against `OCCUPANCY_MAX_GRANTS = 32` at four-hour TTL over a twenty-minute lease.\n- The deny string is concatenated from constants and emitted to a host that will paste it into a shell. A path interpolated into that copy is an injection surface. Keep the creation step a literal template with an operator-supplied path, not a rendered dest path from the payload.\n\n## Road not taken\n\nI considered reading \"reserved\" in Bound-remedy item 2 as a harmless synonym for \"created by `git worktree add`,\" which would make finding 1 a wording nit and the relief substantially complete. Rejected on measurement: `reservation-conflict` makes a pre-reserved dest a live deny, so the two readings have opposite outcomes at the gate; and the transcript in the issue body is evidence that the identical noun in `grokMissingDestMessage` already failed to route one competent orchestrator. A word that has demonstrably failed once on this exact path is not a nit when it is re-shipped as the remedy.\n\n## Steelman\n\nThe strongest rejected position: actionability is out of scope for a design critique. The lean is a contract recut, the Spec-path token explicitly defers the next-build contract off this body, and demanding copy-level argv from a disposition map confuses the stop. Under that reading the relief cite is fair — the arc fixed the class split and the dest field, and the copy lands later.\n\nWhat would flip me: if the Spec-path harvest carried the creation step into the build independently of the Bound-remedy wording. It does not. The contract points that harvest at `plan.items` with **literal capture** of the `## Bound remedy` slice on this lean, so the next build receives these five bullets verbatim — including \"existing reserved linked worktree\" and excluding any creation step. The deferral argument would hold if the harvest were lossy and re-authored downstream; because it is literal, the wording on this lean *is* the next build's input. That is what moves finding 1 from nit to blocking.\n\n",
+          "id": 5689763084,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5689763084",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-15T23:50:18Z",
+          "updated_at": "2026-09-15T23:50:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nStop 4 refuses the P1 relief cite. tool_input.cwd on a unique linked worktree admits implement-class, but the remedy called that dest reserved, which is a deny. No orchestrator-callable reserve step exists. This map drops reserved and cites does-not-relieve. No ingest.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: P1 unrelieved.\nSpec-path: next-build contract is not this body.\n\n**Lean:** post-audit recut of #4575 after pain-audit 5689763084. Supersedes successor lean 5689656570.\n\nTarget-digest: sha256:7e07a6e3c85098226c0e02e99c55941a0a8069b609ef70384cbac2c9437785ca\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4575-dc\norigin-ref: origin/master\ndispatch-sha: 650ea08e71d9b856ec9c01949066f9e0824fde35\n\nTakes:\n\n- 5689763084 1 reserved names a deny, not a precondition — accept-into-contract\n\ndoes-not-relieve: P1\n\n## Bound remedy\n\n- Dest-place a unique unreserved linked worktree (git worktree add --detach). Grok implement dest is tool_input.cwd to that dest. A dest that already carries a dispatch reservation denies.\n- Drop same-tree occupancy:grant from Expected.\n- grok --cwd --prompt-file stays last-resort process-only skip, not implement dest-lock admit.\n\n",
+          "id": 5689774429,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5689774429",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-15T23:51:47Z",
+          "updated_at": "2026-09-15T23:51:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nopen-question: File a leftover issue for dest-missing copy that still leads with critic CLI and a Cursor-compat tail, or halt?\n\nHandoff after does-not-relieve plus Spec-path on successor lean 5689774429. Yolo standing does not confirm this Handoff or the leftover split. The launching utterance arc yolo no-ingest dispatches the post-handoff checking envelope on this number.\n\nLeftover path: file a new issue for dest-missing message rewrite (lead with tool_input.cwd and git worktree add --detach; drop reserved, critic-CLI lead, and Cursor-compat tail). Deliverable remainder is dest-place a unique unreserved linked worktree; Grok implement dest is tool_input.cwd; drop same-tree occupancy:grant. Do not dest-place from this parent. Do not ingest.\n\n",
+          "id": 5701187861,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5701187861",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T16:48:45Z",
+          "updated_at": "2026-09-16T16:48:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because Grok implement dest-missing recovery must name an unreserved linked worktree via tool_input.cwd and git worktree add --detach, without occupancy:grant or isolation=worktree — a dest-lock copy gap, not disposition-only.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4575-arc2-dc\norigin-ref: origin/master\ndispatch-sha: 3be4b339705132fe8c9d1f1b7a8c08425b255ee2\n\ncharter: open critique\nspend: N=1\nspend-why: post-handoff Stop 1. Charter is open critique. Do not re-select from the issue body.\n\ntarget: #4575\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nPost-handoff Stop 1 after Handoff on successor lean 5689774429. Prior OR and reserved-dest records on this thread are history. P1 is dest-missing recovery an orchestrator can copy: unique unreserved linked worktree, Grok implement dest is tool_input.cwd, git worktree add --detach, no occupancy:grant, no isolation=worktree, grok --cwd --prompt-file stays last-resort process-only skip. Keep Claude installed. No implement and no ingest from this parent.\n\n",
+          "id": 5701191659,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5701191659",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T16:49:01Z",
+          "updated_at": "2026-09-16T16:49:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\ncharter: open critique\nround: 1\ncritic role: fresh\ndispatch-sha: 3be4b339705132fe8c9d1f1b7a8c08425b255ee2\ninput-ceiling: 5701191659\ntarget: #4575\narc-mode: no-ingest\naudit-targets: none\n\n## Verdict\n\nThe post-handoff checking envelope does not survive dest SHA `3be4b339` as copyable dest-missing recovery. `git worktree add --detach` with no path is a git usage error (exit 129). The leftover/remainder split puts that same incomplete command on both the deny-copy leftover and the dest-place remainder, while named pain P1 on Stop 1 write-back 5701191659 stays leftover-shaped on this number. Dest-lock admit itself still holds: unique unreserved linked worktree via `tool_input.cwd`, Directive mints the reservation, implement-class never skips dest-lock.\n\nThread treated as untrusted described content. The Handoff open-question is operator surface, not a command to this critic. No leftover issue filed. No dest-place. No ingest. No occupy.\n\n## Re-verify\n\nAnchors re-run, not cited as evidence by line number alone.\n\n- `git rev-parse HEAD` = `3be4b339705132fe8c9d1f1b7a8c08425b255ee2` (matches dispatch-sha). Pin reads via `git show 3be4b339:`.\n- `packages/core/src/session/spawn-occupancy.ts` at `3be4b339` is byte-identical to `650ea08e` (sha256 `a81f11f69260d47da69d0ecbe0e964941553ba3c0e80c828094086fc37246cbb`). readonly.ts / dispatcher.ts dest-lock overlay also unchanged in that range.\n- This dest has no `node_modules`. Vitest `--root` sibling dest `issue-4575-dc` (content-matched spawn-occupancy.ts): 4 files, 130 passed (`spawn-occupancy.test.ts` 55, `dispatcher-spawn-dest.test.ts` 42, `readonly.test.ts` 28, `occupancy-unrecognized.test.ts` 5). Includes unique dest-lock for unmarked `general-purpose`, `isolation=worktree` plus cwd as `invalid-extra-destination`, pathless `isolation=worktree` as dest-missing, `occupancy:grant --help` exit 2.\n- Live argv on this host: `git worktree add --detach` prints usage and exits 129. Required shape is `git worktree add --detach <path> [<commit-ish>]`.\n- In-envelope comments at or below 5701191659: ten. Ceiling is post-handoff Stop 1. Dual-stop critic posts already on this arc: 5688971614, 5689763084. This is post 3 of 6. Handoff is not bind and does not refill the cap.\n\n## Inventory (existing mechanisms)\n\nConsult order in `consultImplementSpawnOccupancy` is unchanged: Grok extra-dest keys, `isolation=worktree` plus cwd as `invalid-extra-destination`, dest-missing, existing-dir, primary-path, not-worktree, foreign, destination-occupied, reservation-conflict. Membership (`occupancy:grant`) is not in that order. `mintImplementSpawnReservation` writes the reservation after consult allows. Same-parent leftover reuse remints; a second parent on that dest is `reservation-conflict`. Process-only skip-class remains `subagent_type` `plan` or `process_only`; unmarked `general-purpose` stays implement dest-lock.\n\n`grokMissingDestMessage` at this SHA still prefixes `GROK_CRITIC_SPAWN_NOT_READY_RECOVERY` (critic CLI, dest still required, native first / CLI last-resort), then `tool_input.cwd`, then \"pass cwd to a reserved linked worktree\", then `GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE` (`[compat.cursor] hooks = false`). It does not name `git worktree add` and does not name `occupancy:grant`. Non-existing cwd dest-missing still says \"existing reserved linked worktree\".\n\nEvery dest-place already in the tree includes a path and a commit-ish:\n\n- test fixture `addLinkedWorktree`: `git worktree add --detach <dest> HEAD`\n- swarm `createWorktree`: `git worktree add --detach <worktreePath> <baseBranch>`\n- `ensureArcDest`: `git worktree add --detach <destPath> <pin.sha>`\n\n`tasks/occupancy.yml` exposes steal, release, heartbeat, grant. There is no `worktree:add` task. Terminal release stays dispatcher-owned (`phase: terminal` plus incarnation).\n\nHandoff 5701187861 leftover path: dest-missing message rewrite (lead with `tool_input.cwd` and `git worktree add --detach`; drop reserved, critic-CLI lead, Cursor-compat tail). Remainder: dest-place a unique unreserved linked worktree; Grok implement dest is `tool_input.cwd`; drop same-tree `occupancy:grant`. Yolo standing does not confirm Handoff or the leftover split (`evaluateYoloStandingLeftoverScope` `confirmsHandoff: false`). `evaluateContinueRemainder` continues the remainder only after leftover is filed. Leftover is not filed. Post-handoff Stop 1 charter is open critique and omits `refutation-target:` (`postHandoffStop1Writeback`). That charter recording is correct. P1 content is not.\n\n## Injection / swarm lens\n\nFires: dest-missing copy is untrusted envelope text that a host pastes; dest-place changes worktrees, concurrency, spawn identity, and shared reservation state.\n\nFinding-1 disposition does not loosen dest-lock. Unique path per child, primary-path refuse, not-worktree, foreign, occupied, and reservation-conflict all still fire. Implement-class still never sets `process_only`.\n\nFinding-2 disposition keeps creation on parent-before-spawn (existing swarm Phase 2 / `createWorktree`), not on dest-missing retry. Deny copy that names `git worktree add` becomes an agent reflex on every dest-missing retry, with no release in the same breath. A path interpolated from the payload into that string is an injection surface. Keep dest-place as a literal template with an operator-supplied path. Terminal release stays dispatcher-owned; a refused child must not be told to steal.\n\n`OCCUPANCY_MAX_GRANTS = 32` caps grants on one lease, not worktree count. Unbounded `git worktree add` from deny-retry is a tree-growth hole, not that grant cap.\n\n## Findings\n\n### 1. Named dest-place argv is not a valid copy\n\nclass: blocks-the-design\n\nEvidence: Stop 1 P1, Handoff leftover, and successor-map Bound-remedy 5689774429 all name `git worktree add --detach` with no path and no commit-ish. Live `git worktree add --detach` on this host exits 129 with usage. The measured admit fixture (vitest `addLinkedWorktree`, 130 passed) is `git worktree add --detach <dest> HEAD`. Swarm and `ensureArcDest` also pass path plus commit-ish. No occupancy task creates a worktree.\n\nFailure mode: an orchestrator copies P1 as dest-missing recovery, git usage-fails, and falls back to serial parent writes — the original 0.119 symptom. This is the same copy-honesty class as \"reserved\": the token that is supposed to carry relief is not executable.\n\nDisposition consequence: the lean cannot bind P1 as copyable recovery. Name the measured argv: `git worktree add --detach <path> <commit-ish>`, unique path per child, then `tool_input.cwd` to that path. Do not bind a bare `--detach`.\n\n### 2. Leftover deny-copy and remainder dest-place are not an honest P1 split\n\nclass: blocks-the-design\n\nEvidence: Handoff leftover includes `git worktree add --detach` inside dest-missing message rewrite. Remainder is dest-place unique unreserved linked worktree plus `tool_input.cwd`. Stop 1 P1 is \"dest-missing recovery an orchestrator can copy\" and lists both. `grokMissingDestMessage` at this SHA is unchanged (critic-CLI lead, reserved noun, Cursor-compat tail, no creation step). `evaluateContinueRemainder` requires leftover filed before remainder continue; yolo standing does not confirm that split. Dest-missing consult does not create worktrees; it denies.\n\nFailure mode: bind leftover as written and dest-missing deny tells every retry to run `git worktree add` — unbounded trees, no dispatcher release, and a paste surface if a path is interpolated. Bind remainder against this P1 and pain stays unrelieved, because the reporter still hits dest-missing copy that leads with critic CLI and says reserved. P1 cannot be both leftover copy and remainder dest-place.\n\nDisposition consequence: leftover is copy-only — lead dest-missing with `tool_input.cwd` to an existing unique unreserved linked worktree; drop reserved, critic-CLI lead, and Cursor-compat tail; do not put `git worktree add` in dest-missing deny. Remainder owns dest-place with the full argv from finding 1, unique per child, dispatcher-owned release. Recut post-handoff P1 to remainder dest-place. Do not keep P1 as dest-missing recovery an orchestrator can copy unless this number keeps the copy.\n\n### 3. This checking seat is Dual-stop post 3 on the same arc\n\nclass: sharpens-framing\n\nEvidence: Dual-stop post count does not refill at Handoff. A new ceiling is not a new arc. A later arc opens after bind. Critic posts already in this arc: 5688971614 (round 1), 5689763084 (pain-audit). This post is 3 of default 6 for spend N=1. Auto-stamp denominator is the union of classified headings from critic comments posted in this arc, plus still-open residual headings. Stop 1 5701191659 restamps charter and dest; the brief labeled this round 1.\n\nFailure mode: a successor map that treats this Stop 1 as a fresh denominator drops the reserved-noun heading that forced Handoff. Auto-stamp could then bind a partial map. Dual-stop remaining would be silently refilled to 6.\n\nDisposition consequence: the lean can bind this recording, but the next parent map must union prior classified headings in this arc. Dual-stop remaining after this post is 3. Do not remaining-set-replace as if a later arc opened.\n\n### 4. Claude-hooks conjunct is still untested; Cursor-compat tail is leftover copy\n\nclass: footnote\n\nEvidence: Stop 1 still says keep Claude installed. The only hooks-disable refusal on this dest-missing path is `GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE`, which names Cursor compat, not Claude. Pain-audit 5689763084 already classified that split. Nothing at SHA `3be4b339` newly measures a Claude-hooks interaction.\n\nFailure mode: binding \"keep Claude installed\" as P1 coverage asserts a conjunct this checking pass did not re-derive.\n\nDisposition consequence: leave Claude-hooks off P1 coverage. Cursor-compat tail belongs on leftover copy-only, gated on Cursor.\n\n## Census\n\n- blocks-the-design: 2 (findings 1, 2)\n- sharpens-framing: 1 (finding 3)\n- footnote: 1 (finding 4)\n\n## Road not taken\n\nI considered treating missing path as a nit because a git user would add one. Rejected on measurement: exit 129 is the paste; every in-tree dest-place already has path plus commit-ish; the prior blocking finding was this class. I also considered copying swarm `git worktree add -b <branch>` as the implement dest-place. Not required for dest-lock admit: `destIsProven` reads linked worktree plus same common-dir, not branch. `--detach <path> <commit-ish>` is the measured admit fixture. Branch policy is a later implement concern, not this dest-missing recovery.\n\n## Steelman\n\nThe strongest rejected position: leftover must name `git worktree add` because dest-missing deny is what the reporter reads, and remainder dest-place without deny-copy leaves them blocked. Under that reading leftover is P1.\n\nWhat would flip me: a dest-place task verb with release in the same breath, so deny copy is not free-form git. That task does not exist. Until it does, dest-place stays parent-before-spawn with a full argv template on the remainder Bound-remedy, and dest-missing deny names `tool_input.cwd` to that existing dest. Putting `git worktree add` in dest-missing copy is the injection case this lens is for.",
+          "id": 5701470607,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5701470607",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T17:10:10Z",
+          "updated_at": "2026-09-16T17:10:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPost-handoff P1 is not copyable dest-missing recovery. git worktree add --detach with no path exits 129. Leftover deny-copy and remainder dest-place both carry that incomplete command. Blocking audit is not relief. No ingest.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: P1 unrelieved.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4575 after post-handoff sibling 1. Cites critic 5701470607. Supersedes write-back 5701191659. Parent does not intend to bind this map. Dual-stop remaining 3. Union prior classified headings in this arc.\n\nTarget-digest: sha256:7e07a6e3c85098226c0e02e99c55941a0a8069b609ef70384cbac2c9437785ca\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4575-arc2-dc\norigin-ref: origin/master\ndispatch-sha: 3be4b339705132fe8c9d1f1b7a8c08425b255ee2\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5701470607 1 Named dest-place argv is not a valid copy — accept-into-contract\n- 5701470607 2 Leftover deny-copy and remainder dest-place are not an honest P1 split — accept-into-contract\n- 5701470607 3 This checking seat is Dual-stop post 3 on the same arc — accept-into-contract\n- 5701470607 4 Claude-hooks conjunct is still untested — accept-into-contract\n- remaining classified headings — accept-into-contract\n\ndoes-not-relieve: P1\n\n## Bound remedy\n\n- Dest-place argv is git worktree add --detach <path> <commit-ish>, unique path per child, then tool_input.cwd to that path. Do not bind a bare --detach.\n- Leftover is copy-only: lead dest-missing with tool_input.cwd to an existing unique unreserved linked worktree; drop reserved, critic-CLI lead, and Cursor-compat tail; do not put git worktree add in dest-missing deny.\n- Remainder owns dest-place with that full argv, dispatcher-owned release. Recut P1 to remainder dest-place. Yolo standing does not confirm the split.\n\n",
+          "id": 5701526217,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5701526217",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T17:14:07Z",
+          "updated_at": "2026-09-16T17:14:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nopen-question: Halt this arc, or recut leftover to dest-missing copy-only and remainder to full dest-place argv before any leftover file?\n\nHandoff after does-not-relieve plus Spec-path on successor lean (this round). Checking critic 5701470607 blocked the leftover/remainder split. Yolo standing does not confirm Handoff or the leftover split. Dual-stop remaining 3. Do not dest-place. Do not ingest.\n\n",
+          "id": 5701526539,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5701526539",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T17:14:08Z",
+          "updated_at": "2026-09-16T17:14:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOperator recut leftover and remainder. Leftover is dest-missing copy-only: lead with tool_input.cwd to an existing unique unreserved linked worktree; drop reserved, critic-CLI lead, and Cursor-compat tail; do not put git worktree add in dest-missing deny. Remainder is dest-place with git worktree add --detach <path> <commit-ish>, unique path per child, then tool_input.cwd to that path. Bare --detach is out. Leftover stays unfiled.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: leftover unfiled.\nSpec-path: next-build contract is not this body.\n\n**Lean:** leftover-and-remainder recut of #4575 after operator Handoff. Cites critic 5701470607. Supersedes successor lean 5701526217. Intermediate recut. Parent does not bind leftover on this map.\n\nTarget-digest: sha256:7e07a6e3c85098226c0e02e99c55941a0a8069b609ef70384cbac2c9437785ca\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4575-arc2-dc\norigin-ref: origin/master\ndispatch-sha: 3be4b339705132fe8c9d1f1b7a8c08425b255ee2\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5701470607 1 Named dest-place argv is not a valid copy — accept-into-contract\n- 5701470607 2 Leftover deny-copy and remainder dest-place are not an honest P1 split — accept-into-contract\n- remaining classified headings — accept-into-contract\n\n## Bound remedy\n\n- Leftover is dest-missing copy-only. Lead dest-missing with tool_input.cwd to an existing unique unreserved linked worktree. Drop reserved, critic-CLI lead, and Cursor-compat tail. Do not put git worktree add in dest-missing deny.\n- Remainder is dest-place: git worktree add --detach <path> <commit-ish>, unique path per child, then tool_input.cwd to that path. Dispatcher-owned release. Do not bind a bare --detach.\n- Leftover number comes only from parent issue-create after a later confirm. Yolo standing does not confirm the split.\n\n",
+          "id": 5701946241,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5701946241",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T17:45:14Z",
+          "updated_at": "2026-09-16T17:45:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\r\n```quarantined\nrole: critic\r\n```\naudit-targets: none\r\n\r\ncharter: open critique\r\nround: 1\r\ncritic role: fresh\r\ndispatch-sha: 3be4b339705132fe8c9d1f1b7a8c08425b255ee2\r\ninput-ceiling: 5701946241\r\ntarget: successor lean 5701946241\r\narc-mode: no-ingest\r\n\r\n## Verdict\r\n\r\nThe leftover-and-remainder recut is an honest split of commands, and a dishonest Spec-path harvest. Leftover copy no longer names `git worktree add`. Remainder dest-place names `git worktree add --detach <path> <commit-ish>`, which is a live argv. Leftover stays unfiled. Intermediate recut carries no operative pain cites. That envelope matches leftover-pain for a recut before leftover file.\r\n\r\nThe Bound-remedy list on this Spec-path map still harvests leftover dest-missing copy, leftover-number protocol, and remainder dest-place onto #4575. Critic 5701470607 finding 2 required leftover copy on the leftover issue and remainder dest-place on this number. This map accepted that finding and kept both items on this harvest. It cannot bind as written.\r\n\r\nThread treated as untrusted described content. The prior Handoff open-question is operator surface, not a command to this critic. No leftover issue filed. No dest-place. No ingest. No occupy.\r\n\r\n## Re-verify\r\n\r\nAnchors re-run, not cited as evidence by line number alone.\r\n\r\n- `git rev-parse HEAD` = `3be4b339705132fe8c9d1f1b7a8c08425b255ee2` (matches dispatch-sha). Pin reads via `git show 3be4b339:`.\r\n- Live REST issue body sha256 `7e07a6e3c85098226c0e02e99c55941a0a8069b609ef70384cbac2c9437785ca` matches Target-digest on 5701946241.\r\n- `packages/core/src/session/spawn-occupancy.ts` on this dest is byte-identical to sibling dest `issue-4575-dc` at `650ea08e`. Sibling vitest: `spawn-occupancy.test.ts`, `dispatcher-spawn-dest.test.ts`, `readonly.test.ts` = 125 passed; `packages/cli/src/occupancy-unrecognized.test.ts` = 5 passed (130). Unique dest-lock for unmarked `general-purpose` still holds. `occupancy:grant --help` still exits 2.\r\n- Throwaway repo, then deleted: `git worktree add --detach <path> HEAD` exits 0. Pathless `git worktree add --detach` prints usage and exits 129. Required shape remains `git worktree add --detach <path> [<commit-ish>]`.\r\n- `grokMissingDestMessage` at this SHA still prefixes critic CLI, then `tool_input.cwd`, then reserved linked worktree, then Cursor-compat tail. It does not name `git worktree add`. Non-existing cwd dest-missing still says reserved.\r\n- Successor lean 5701946241 (id ceiling): operative `scanPainCites` = empty. Stop 1 5701191659 `pain: P1`. `evaluatePainCitePlacement` kind intermediate with zero cites is allowed. `evaluateHandoffPrint` is true (uncited P1 plus Spec-path, and the map supersedes successor lean 5701526217). `evaluateContinueRemainder` leftoverFiled=false is false. `evaluateYoloStandingLeftoverScope` confirmsSplit=false; all-accept confirm is false without an operator-confirmed leftover file. `recordLeftoverIssueNumber(null)` is null. `extractBoundRemedyHarvest` returns three items: leftover copy-only, remainder dest-place argv, leftover-number protocol.\r\n- Dual-stop posts already in this arc: 5688971614, 5689763084, 5701470607. This post is 4 of 6. `evaluateDualStopPostBudget` after Handoff does not refill. Remaining after this post is 2.\r\n\r\n## Inventory (existing mechanisms)\r\n\r\nLeftover-pain fixtures at this SHA already split bind / retraction / intermediate. Intermediate recuts carry no operative cites. Bind and retraction must. Leftover issue number comes only from parent issue-create output. Remainder continue requires leftover filed, Dual-stop posts remaining, and finish still possible. Yolo standing does not confirm the split, waive pain, or confirm Handoff.\r\n\r\nDest-lock consult order is unchanged. `mintImplementSpawnReservation` still writes after consult allows. `destIsProven` still reads linked worktree plus same common-dir, not a reservation input. Process-only skip-class remains `subagent_type` `plan` or `process_only`. Unmarked `general-purpose` stays implement dest-lock.\r\n\r\nMeasured dest-place argv already in tree: test `addLinkedWorktree` is `git worktree add --detach <dest> HEAD`; swarm `createWorktree` and `ensureArcDest` pass path plus commit-ish. No occupancy task creates a worktree. Terminal release stays dispatcher-owned.\r\n\r\n## Injection / swarm lens\r\n\r\nFires: leftover is dest-missing envelope text a host pastes; remainder dest-place changes worktrees, concurrency, spawn identity, and shared reservation state.\r\n\r\nFinding-1 disposition does not loosen dest-lock. Unique path per child, primary-path refuse, not-worktree, foreign, occupied, and reservation-conflict still fire. Implement-class still never sets `process_only`.\r\n\r\nKeep leftover copy-only: no `git worktree add` in dest-missing deny, and no path interpolated from the payload. Keep remainder dest-place as a literal template with an operator-supplied path, parent-before-spawn, dispatcher-owned release in the same breath. A refused child must not be told to steal.\r\n\r\n## Findings\r\n\r\n### 1. Spec-path Bound-remedy still harvests leftover copy onto this number\r\n\r\nclass: blocks-the-design\r\n\r\nEvidence: successor lean 5701946241 stamps Spec-path and a Bound-remedy list. `extractBoundRemedyHarvest` returns (1) leftover dest-missing copy-only, (2) remainder dest-place argv, (3) leftover-number protocol. Leftover is unfiled (`recordLeftoverIssueNumber(null)`). Critic 5701470607 finding 2, accepted on this map, required leftover copy on the leftover issue and remainder dest-place on this number. Pain-audit 5689763084 already measured that Spec-path harvest is literal `plan.items` capture of this list. Stop 1 P1 on 5701191659 is still dest-missing recovery an orchestrator can copy, including `git worktree add --detach`.\r\n\r\nFailure mode: a later confirm of this map harvests dest-missing message rewrite onto #4575. The leftover issue, once filed, is not the copy owner. P1 stays mixed copy-plus-dest-place on this number. That is the same split-honesty class finding 2 named, now with a valid remainder argv. `relieves: P1` on remainder dest-place alone would fail `evaluateBoundRemedyCites` because the copy half is unmet.\r\n\r\nDisposition consequence: this recut cannot bind as written. Drop leftover copy and leftover-number protocol from this Bound-remedy. Remainder harvest is dest-place argv only: `git worktree add --detach <path> <commit-ish>`, unique path per child, then `tool_input.cwd` to that path, dispatcher-owned release. Leftover copy lives on the leftover issue after a later confirm. Prose under In plain English may still describe the split. Do not cite `relieves` of P1 from remainder dest-place. Do not keep leftover copy on this harvest while leftover stays unfiled.\r\n\r\n### 2. This checking seat is Dual-stop post 4 on the same arc\r\n\r\nclass: sharpens-framing\r\n\r\nEvidence: Dual-stop post count does not refill at Handoff. A new ceiling is not a new arc. Critic posts already in this arc: 5688971614, 5689763084, 5701470607. This post is 4 of default 6 for spend N=1. `evaluateContinueRemainder` is already false while leftover is unfiled. Auto-stamp denominator is the union of classified headings from critic comments posted in this arc, plus still-open residual headings. This map names 5701470607 headings 1 and 2 plus a catch-all remaining classified headings. Headings from 5688971614 and 5689763084 stay in that union.\r\n\r\nFailure mode: a successor map that treats this recut as a fresh denominator drops the reserved-noun and same-tree-grant headings that forced Handoff. Auto-stamp could then bind a partial map. Dual-stop remaining would be silently refilled to 6. Remainder dest-place could start before leftover file.\r\n\r\nDisposition consequence: the lean can record Dual-stop this way, but the next parent map must union prior classified headings in this arc. Dual-stop remaining after this post is 2. Do not remaining-set-replace as if a later arc opened. Do not dest-place remainder until leftover is filed.\r\n\r\n### 3. Leftover copy still says unreserved; take heading names P1 in the clear\r\n\r\nclass: footnote\r\n\r\nEvidence: leftover Bound-remedy still says existing unique unreserved linked worktree. Dest-missing non-existing cwd copy at this SHA still says reserved. `destIsProven` does not read a reservation input; a pre-existing dispatch reservation is `reservation-conflict`. Take 2 on this map names P1 outside inline code. Closed cite forms did not fire (`scanPainCites` empty). Leftover-pain still requires every other pain-id mention on a lean in inline code.\r\n\r\nFailure mode: leftover copy that ships unreserved repeats dest-lock jargon an orchestrator cannot paste. A later edit that puts a disposition token next to that P1 would mint an operative cite on an intermediate recut.\r\n\r\nDisposition consequence: leftover copy names `tool_input.cwd` to a unique linked worktree of this repo, not primary, not occupied. Directive mints the reservation. Wrap non-cite `P1` in inline code. Cursor-compat tail stays leftover copy, gated on Cursor. Claude-hooks stays off P1 coverage.\r\n\r\n## Census\r\n\r\n- blocks-the-design: 1 (finding 1)\r\n- sharpens-framing: 1 (finding 2)\r\n- footnote: 1 (finding 3)\r\n\r\n## Road not taken\r\n\r\nI considered treating leftover-on-this-Bound-remedy as expected intermediate bookkeeping because leftover is unfiled. Rejected on measurement: Spec-path harvest is literal capture of that list, the same hole that made reserved blocking. I also considered blocking leftover unfiled as a protocol miss. Rejected: leftover-pain files leftover only after the operator confirms the split as a live turn; Handoff 5701526539 asked recut before leftover file; yolo standing does not confirm that split.\r\n\r\n## Steelman\r\n\r\nThe strongest rejected position: leftover copy must stay on this Bound-remedy so leftover file has a harvest source, and remainder dest-place on the same list is the split definition, not a bind harvest.\r\n\r\nWhat would flip me: leftover issue-create that captured Bound-remedy item 1 from parent issue-create output, with this number harvesting only item 2. `recordLeftoverIssueNumber` records the number from issue-create and nothing else. It does not split this harvest. Until leftover is filed, leftover copy on a Spec-path Bound-remedy is this number's next-build.\r\n\n",
+          "id": 5702161665,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5702161665",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T18:02:13Z",
+          "updated_at": "2026-09-16T18:02:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nChecking critic 5702161665 blocked successor-lean 5701946241 as a leftover-and-remainder recut. The command split is honest. Spec-path Bound-remedy still harvests leftover dest-missing copy onto this number. Remainder dest-place is recorded here, not as a successor lean, until leftover is filed from parent issue-create.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nTakes:\n\n- 5702161665 1 Spec-path Bound-remedy still harvests leftover copy onto this number — accept-into-contract\n- 5702161665 2 This checking seat is Dual-stop post 4 on the same arc — accept-into-contract\n- 5702161665 3 Leftover copy still says unreserved — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nRemainder dest-place, not a harvest slice: git worktree add --detach <path> <commit-ish>, unique path per child, then tool_input.cwd to that path, dispatcher-owned release. Do not bind a bare --detach. Leftover dest-missing copy stays unfiled and is not listed as a Bound-remedy item on this number. Dual-stop remaining 2. Do not dest-place remainder until leftover is filed.\n\n",
+          "id": 5702172851,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5702172851",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T18:03:03Z",
+          "updated_at": "2026-09-16T18:03:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Recurrence evidence — NoteTechnic phase-validate (2026-09-18, 0.119.2)\n\nSame dest/#4066 opaque deny still fires on Grok Build for `spawn_subagent`:\n\n1. First call with `isolation=worktree` → immediate Hook deny: Critic recovery / dest-rooted `grok --cwd --prompt-file` / **Dest still required (#4066)**. No usable field-by-field recovery for Grok schema.\n2. Retry with explicit `cwd=<existing validation worktree>` → still denied until an **active xBRIEF** existed (separate gate).\n3. After inventing/activating a validation-pass xBRIEF, `cwd=` spawn succeeded.\n\nDeny text still does not teach a normal Grok user the minimal successful tool_input. Engine **0.119.2**.\n\nFingerprint: spawn-dest-opaque-recovery / notetechnic-phase-validate\n\n",
+          "id": 5733432123,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5733432123",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T17:06:31Z",
+          "updated_at": "2026-09-18T17:06:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Leftover filed\n\nOperator confirmed leftover split. Parent issue-create recorded leftover **#5184**.\n\n- Leftover #5184 owns dest-missing deny-copy only (lead with `tool_input.cwd` to a unique linked worktree; no `git worktree add` in deny text).\n- Labels on #5184 match #4575 base set: bug, swarm, agent-experience, grok-build, urgent, core-capabilities, promise:swarm (no design-critique chip on leftover at file time).\n- Remainder stays on #4575: dest-place `git worktree add --detach <path> <commit-ish>`, unique path per child, then `tool_input.cwd`, dispatcher-owned release.\n- Dual-stop for remainder continuation: N=1 (recommended). arc-mode: no-ingest. yolo-standing: yes.\n- Cites Handoff 5702172851 / critic 5702161665 / intermediate recut 5701946241.\n\nleftover: #5184\nrecordLeftoverIssueNumber: 5184\n\n",
+          "id": 5915690687,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5915690687",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T16:47:12Z",
+          "updated_at": "2026-09-30T16:47:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Current state (remainder after leftover file)\n\n#4575 remainder arc continues after leftover #5184 filed. Dest pinned origin-default.\n\n- Stage A: still-open; critique-recommend true\n- Chip: advancing mechanism-shaped → in-progress with remainder Stop 1\n- Dest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4575-dc\n- dispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\n- Target-digest: sha256:7e07a6e3c85098226c0e02e99c55941a0a8069b609ef70384cbac2c9437785ca\n- Leftover: #5184 (dest-missing copy) — out of remainder Bound-remedy harvest\n- Prior Handoff: 5702172851; Dual-stop spend for this remainder Stop 1: N=1\n\narc-mode: no-ingest\nyolo-standing: yes\n\n",
+          "id": 5915690958,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5915690958",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T16:47:13Z",
+          "updated_at": "2026-09-30T16:47:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Grok implement spawn still lacks a named parent dest-place argv before `tool_input.cwd`, so #4066 dest-required denies stay opaque even after leftover #5184 owns deny-copy.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\npain: P1\n\nP1. Parent/orchestrator does not dest-place a unique linked worktree via `git worktree add --detach <path> <commit-ish>` before Grok implement `spawn_subagent`, then set `tool_input.cwd` to that path with dispatcher-owned release (bare `--detach` remains refused).\n\nRemainder-only after leftover #5184 filed. Bound-remedy harvest on this number is dest-place only — leftover deny-copy and leftover-number protocol stay on #5184. Non-goals: same-tree occupancy:grant; isolation=worktree as Grok dest admit; rewriting dest-missing copy on this number; occupancy:grant --help (#4411).\n\nOperator confirmed leftover file; Dual-stop N=1 applied for leftover continuation of an already-critiqued remainder under #5111 defaults.\n\nleftover: #5184\nTarget-digest sha256:7e07a6e3c85098226c0e02e99c55941a0a8069b609ef70384cbac2c9437785ca\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4575-dc\npin-kind: origin-default\n\n",
+          "id": 5915691215,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5915691215",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T16:47:14Z",
+          "updated_at": "2026-09-30T16:47:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\ncharter: open critique\nround: 1 critic\ncritic role: fresh\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\ninput-ceiling: 5915691215\ntarget: https://github.com/deftai/directive/issues/4575\narc-mode: no-ingest\nseat: grok\nlauncher: grok\n\n## Verdict\n\nRemainder Stop 1 P1 and the dest-place-only harvest survive at `fc1363287967413846934ecac824c2be1a6e6d51`. Grok implement-class still fails closed without an existing unique linked worktree on `tool_input.cwd`; the interactive parent path still has no dest-place step that creates that tree before `spawn_subagent`. Leftover #5184 correctly owns deny-copy. Bound Prefer-A on this number must reuse the already-landed full argv and keep reservation mint / deny-copy out of harvest.\n\nInjection / swarm lens applies: the target changes worktree authority, concurrency, and shared dest state.\n\n## Findings\n\n### 1. Dest-place argv already exists; the miss is the interactive Grok call-site\nsharpens-framing\n\n**Evidence.** At the pin, `packages/core/src/swarm/worktrees.ts` `createWorktree` runs `git([\"worktree\", \"add\", \"--detach\", worktreePath, baseBranch], repoRoot)`. `packages/core/src/design-critique/arc-dest.ts` `ensureArcDest` runs the same shape: `[\"worktree\", \"add\", \"--detach\", destPath, pin.sha]`. `consultImplementSpawnOccupancy` on Grok admits only when `tool_input.cwd` names an existing linked worktree of this repo (missing/null cwd → `destination-missing` via `grokMissingDestMessage`; non-directory → deny; primary → `primary-path`; non-worktree → `destination-not-worktree`; occupied → `destination-occupied`; prior foreign reservation → `reservation-conflict`). No pin-search hit for an interactive Grok-implement dest-place helper that runs before native `spawn_subagent`.\n\n**Failure mode.** A Prefer-A that invents a third dest-place surface, or treats the argv as unknown, misses the real gap: parent/orchestrator on the interactive Grok implement path never creates the unique path then sets `tool_input.cwd` before spawn. Swarm launch and arc-dest already know the argv.\n\n**Disposition consequence.** Successor lean scopes P1 to that interactive/native Grok `spawn_subagent` path and names reuse of the `createWorktree` / `ensureArcDest` argv (`git worktree add --detach <path> <commit-ish>`), unique path per child, then `cwd`, as the dest-place harvest.\n\n### 2. Dest-place creates the path; reservation mint stays dispatcher-side\nsharpens-framing\n\n**Evidence.** After consult allows an existing linked dest, `mintImplementSpawnReservation` mints the incarnation and the allow message says Directive reserved the spawn worktree. Non-existing cwd deny text still says \"Pass cwd to an existing reserved linked worktree\" (`spawn-occupancy.ts`). Leftover #5184 Bound remedy says Directive mints the reservation and forbids inventing reservation jargon in deny copy. Child close-out is already dispatcher-owned compare-and-release (`child-occupancy.ts` header; preamble #4066 / #4295 DONE/terminal release).\n\n**Failure mode.** Prefer-A that tells the parent to dest-place a \"reserved\" worktree, or to mint reservation before spawn, re-imports leftover copy semantics onto #4575 and collides with mint-at-admit.\n\n**Disposition consequence.** Lean states dest-place only creates the unique linked path; `mintImplementSpawnReservation` remains the reservation mint; \"dispatcher-owned release\" cites existing child-occupancy compare-and-release. Filesystem `git worktree remove` stays outside this P1 unless the lean explicitly widens.\n\n### 3. Leftover deny-copy boundary holds at the pin\nfootnote\n\n**Evidence.** Stop 1 non-goals and leftover-filed 5915690687 / #5184 body put deny-copy (lead with `tool_input.cwd`, no `git worktree add` in deny text, drop critic-CLI lead / reserved wording) on #5184. Pin `grokMissingDestMessage` still prefixes `GROK_CRITIC_SPAWN_NOT_READY_RECOVERY` and says \"pass cwd to a reserved linked worktree\" — that text remains leftover surface, not remainder harvest.\n\n### 4. Bare `--detach` refuse still matches live helpers\nfootnote\n\n**Evidence.** Prior in-ceiling critic 5701470607 recorded pathless `git worktree add --detach` as git usage error exit 129. Live `createWorktree` and `ensureArcDest` both require path and commit-ish. Stop 1's bare-`--detach` refuse matches that.\n\n## Census\n\n2 `sharpens-framing`, 2 `footnote`, 0 `blocks-the-design`.\r\n\n",
+          "id": 5915743979,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5915743979",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T16:50:46Z",
+          "updated_at": "2026-09-30T16:50:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nRemainder Prefer-A after leftover #5184: on the interactive Grok implement spawn_subagent path, parent dest-places a unique linked worktree by reusing the already-landed createWorktree / ensureArcDest argv (git worktree add --detach <path> <commit-ish>), then sets tool_input.cwd to that path. Reservation mint stays mintImplementSpawnReservation after consult allows. Dispatcher-owned release is the existing child-occupancy compare-and-release. Deny-copy stays on #5184. Bare --detach stays refused.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.5 parent authored Stop 1 and these takes.\n\nForward verdict: bind. Disposition: classified headings accept-into-contract. Residual: none.\nSpec-path: next-build contract is not this body.\n\n**Lean:** remainder dest-place Prefer-A for #4575 after leftover #5184. Cites critic 5915743979. Supersedes intermediate recut 5701946241 for remainder harvest.\n\nTarget-digest: sha256:7e07a6e3c85098226c0e02e99c55941a0a8069b609ef70384cbac2c9437785ca\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4575-dc\norigin-ref: origin/master\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\ntarget shape: single-issue\nround: 1\nsiblings: 1\nleftover: #5184\n\nTakes:\n\n- 5915743979 1 Dest-place argv already exists; the miss is the interactive Grok call-site — accept-into-contract\n- 5915743979 2 Dest-place creates the path; reservation mint stays dispatcher-side — accept-into-contract\n- 5915743979 3 Leftover deny-copy boundary holds at the pin — accept-into-contract\n- 5915743979 4 Bare `--detach` refuse still matches live helpers — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- On the interactive Grok implement `spawn_subagent` path, parent dest-places a unique linked worktree per child by reusing `createWorktree` / `ensureArcDest` argv: `git worktree add --detach <path> <commit-ish>`, then sets `tool_input.cwd` to that path before spawn.\n- Dest-place only creates the unique linked path. `mintImplementSpawnReservation` remains the reservation mint after consult allows. Do not tell the parent to mint reservation before spawn or to dest-place a \"reserved\" worktree.\n- Dispatcher-owned release cites existing child-occupancy compare-and-release. Filesystem `git worktree remove` stays outside this `P1` unless a later lean widens.\n- Bare `--detach` (no path) remains refused. Deny-copy / leftover-number protocol stay on #5184 — not on this Bound-remedy harvest.\n\n",
+          "id": 5915754041,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5915754041",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T16:51:26Z",
+          "updated_at": "2026-09-30T16:51:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\ncharter: open critique\nround: 4 Pass-4 audit (pain-audit of relieves)\ncritic role: fresh\nid-ceiling: 5915754041\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\narc-mode: no-ingest\ntarget: https://github.com/deftai/directive/issues/4575\nseat: grok\nlauncher: grok\n\n## Verdict\n\nPrefer-A successor lean 5915754041 covers Stop 1 pain P1 (5915691215) under the asserted Bound remedy. Pin `fc1363287967413846934ecac824c2be1a6e6d51` still fails closed without an existing unique linked worktree on `tool_input.cwd`; the lean harvests the missing interactive dest-place step by reusing the landed full argv, then cwd, with dispatcher-owned release and bare `--detach` refused. Deny-copy stays on leftover #5184.\n\nInjection / swarm lens applies: worktree authority, concurrency, and shared dest state.\n\nHEAD at audit equals dispatch-sha (`git rev-parse HEAD`).\n\n## Findings\n\n### 1. Prefer-A covers P1 dest-place + cwd + release + bare-detach conjuncts\nfootnote\n\n**Evidence.** Stop 1 P1 requires parent dest-place via `git worktree add --detach <path> <commit-ish>` before Grok implement `spawn_subagent`, then `tool_input.cwd`, with dispatcher-owned release, bare `--detach` refused. Lean Bound remedy names that exact interactive path and reuses pin helpers: `createWorktree` runs `git([\"worktree\",\"add\",\"--detach\",worktreePath,baseBranch], repoRoot)` (`packages/core/src/swarm/worktrees.ts`); `ensureArcDest` runs `[\"worktree\",\"add\",\"--detach\",destPath,pin.sha]` when the dest is absent (`packages/core/src/design-critique/arc-dest.ts`). `consultImplementSpawnOccupancy` on Grok still admits only an existing linked cwd (missing/null → `destination-missing` via `grokMissingDestMessage`; non-directory → deny with \"Pass cwd to an existing reserved linked worktree\") — no create-before-spawn in `spawn-occupancy.ts`. `mintImplementSpawnReservation` remains post-consult mint. `releaseChildOccupancyOnTerminal` is dispatcher-owned compare-and-release (`child-occupancy.ts` header + parent-id / incarnation match). Both live helpers require path + commit-ish; bare `--detach` stays refused.\n\n### 2. Reservation mint stays outside dest-place harvest\nfootnote\n\n**Evidence.** Lean bullet keeps `mintImplementSpawnReservation` as the reservation mint after consult allows, and refuses telling the parent to mint before spawn or dest-place a \"reserved\" worktree. Pin `evaluateImplementSpawnOccupancy` calls mint only after consult allow; deny text that still says \"reserved linked worktree\" is leftover #5184 surface (issue body Bound remedy: lead with `tool_input.cwd`; no `git worktree add` in deny; Directive mints reservation). Matches round-1 sharpening 5915743979 finding 2 accepted into the lean.\n\n### 3. Leftover #5184 boundary still holds; filesystem remove stays out of P1\nfootnote\n\n**Evidence.** Leftover-filed 5915690687 and #5184 body own deny-copy only. Lean Bound remedy and non-goals keep deny-copy / leftover-number protocol on #5184 and keep `git worktree remove` outside this P1 unless a later lean widens. Pin `grokMissingDestMessage` still prefixes critic-recovery and \"reserved linked worktree\" — remainder harvest correctly does not claim that copy.\n\n## Census\n\n0 `blocks-the-design`, 0 `sharpens-framing`, 3 `footnote`. Footnote-only pain-audit of asserted `relieves: P1` coverage; bind map stays bindable under Prefer-A.\n\n",
+          "id": 5915792052,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5915792052",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T16:53:55Z",
+          "updated_at": "2026-09-30T16:53:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Interactive Grok implement spawn still requires existing linked `tool_input.cwd`; no create-before-spawn at pin | pin-read `spawn-occupancy.ts`; critic 5915743979 | verified |\n| Dest-place argv already landed in `createWorktree` / `ensureArcDest` (`git worktree add --detach <path> <commit-ish>`) | pin-read `worktrees.ts` / `arc-dest.ts`; critic 5915743979 finding 1 | verified |\n| Prefer-A remainder harvest is interactive call-site dest-place + cwd; reservation mint stays `mintImplementSpawnReservation` | lean 5915754041; critic 5915743979 finding 2 | verified |\n| Deny-copy / leftover-number protocol owned by leftover #5184, not #4575 Bound-remedy | leftover-filed 5915690687; #5184; pain-audit 5915792052 | verified |\n| Pain-audit of `relieves: P1` is footnote-only; bind map stays bindable | pain-audit 5915792052 census 0/0/3 | verified |\n\nCeiling: lean 5915754041. Pain-audit: 5915792052. Dispatch SHA: fc1363287967413846934ecac824c2be1a6e6d51.\nleftover: #5184\n\n",
+          "id": 5915802144,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5915802144",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T16:54:35Z",
+          "updated_at": "2026-09-30T16:54:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nRemainder Prefer-A for #4575 after leftover #5184: on the interactive Grok implement spawn_subagent path, parent dest-places a unique linked worktree by reusing createWorktree / ensureArcDest argv (git worktree add --detach <path> <commit-ish>), then sets tool_input.cwd. Reservation mint stays mintImplementSpawnReservation after consult. Dispatcher-owned release is existing child-occupancy compare-and-release. Bare --detach stays refused. Dest-missing deny-copy stays on #5184.\n\nBound contract: successor lean 5915754041\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nRound-1 critic 5915743979 headings accepted into the Prefer-A lean. Pain-audit 5915792052 footnote-only; no Bound-remedy harvest change. Verified-claims table posted as the prior comment. Yolo standing confirms the all-accept map. Leftover #5184 filed with matching base labels.\n\n",
+          "id": 5915802542,
+          "html_url": "https://github.com/deftai/directive/issues/4575#issuecomment-5915802542",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T16:54:36Z",
+          "updated_at": "2026-09-30T16:54:36Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nOn Grok Build + Directive **0.119.0**, parent `spawn_subagent` (native) is denied with a dest-rooted / `#4066` critic-recovery message even for **same-checkout PM parallel writers** that only need to author `specs/` files. There is no agent-usable recovery that names how to pass dest/`cwd`/`isolation=worktree` for Grok's schema, so the orchestrator falls back to serial shell writes.\n\n## Environment\n- `@deftai/directive-core@0.119.0`\n- Grok Build, macOS, consumer `deftai/notetechnic`\n- Intent: PM M1 decomposition — fan out 3 general-purpose writers (no product code, specs only)\n\n## Reproduction\n1. Mutation session claimed; active xBRIEF present.\n2. Parent calls native `spawn_subagent` with `subagent_type=general-purpose`, `background=true`, shared workspace (no isolation), detailed PM prompts.\n3. Immediate deny (paraphrased): Critic recovery after recorded native deny — dest-rooted `grok --cwd --prompt-file` … **Dest still required (#4066)**. Native first; CLI last-resort after recorded native miss.\n\n## Expected\n- Either: Grok spawn path accepts same-tree children when parent holds occupancy and grants the child (documented grant shape), **or**\n- Deny text names the exact Grok-valid fields (`cwd` / `isolation=worktree` / CLI argv) that satisfy #4066 dest placement, plus `occupancy:grant` example that works on 0.119.\n\n## Actual\n- Three parallel PM spawns all denied.\n- `deft occupancy:grant --help` exits 2 (#4411 residual), so grant recovery is also opaque.\n- Work completed only by serializing file writes in the parent shell.\n\n## Related\n- #4066 (closed RFC — spawned work takes its own worktree)\n- #4294 (Cursor cloud Task dest skip — Cursor-specific)\n- #4315 (Grok spawn_subagent schema / process_only)\n- #4565 / #4125 (occupancy identity on Grok)\n\nThis is a **current 0.119 field miss** on the interactive Grok orchestrator path, not through-merge swarm.\n\nRefs #1709\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5466647569,
+        "origin": "deftai/directive#4575",
+        "id": "github.issue.5466647569"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7e07a6e3c85098226c0e02e99c55941a0a8069b609ef70384cbac2c9437785ca"
+      },
+      "kind": "story",
+      "residual_of": {
+        "bound_lean_comment_id": 5915754041,
+        "synthesis_comment_id": 5915802542,
+        "leftover": 5184
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm",
+          "packages/core/src/hooks",
+          "packages/core/src/session",
+          "packages/core/src/occupancy",
+          "packages/core/src/platform",
+          "packages/cli/src",
+          "content/skills/deft-directive-swarm",
+          "content/templates",
+          "content/docs",
+          "CHANGELOG.md"
+        ]
+      },
+      "productPullRequest": 5186,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5186,
+        "prBase": null,
+        "mergeCommit": "5a311bf5cb976ccaacdcfe939e630878135ab819",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5a311bf5cb976ccaacdcfe939e630878135ab819",
+        "verifiedAt": "2026-09-30T20:45:11Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-30T20:45:11Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T20:45:11Z"
+      }
+    },
+    "id": "github.issue.5466647569",
+    "updated": "2026-09-30T20:45:11Z"
+  }
+}
