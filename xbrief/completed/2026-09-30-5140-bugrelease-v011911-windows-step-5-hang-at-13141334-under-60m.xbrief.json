@@ -1,0 +1,641 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5140",
+    "updated": "2026-09-30T13:18:44Z"
+  },
+  "plan": {
+    "title": "bug(release): v0.119.11 Windows Step 5 hang at 1314/1334 under 60m — recover sub-15m suite wall-clock",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(release): v0.119.11 Windows Step 5 hang at 1314/1334 under 60m — recover sub-15m suite wall-clock",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5140",
+      "Overview": "\n\n1. **Sequencer input refresh (blocks-finding discharge).** Refresh `packages/core/fixtures/vitest-file-durations.json` from the retained v0.119.11 / hang-kill tee via existing `duration-rank` scraper. Delete sub-30s seeded noise. Ensure measured entries for `durable-effect-acquisition/evaluate.test.ts`, `presentation-coverage/gates.test.ts`, and corrected `landed-filename.test.ts`. Validate every fixture key resolves to a real tip test file. Acceptance criterion 4 is this fixture land, not CHANGELOG paste alone (CHANGELOG/RELEASING still document top offenders + fix class).\n\n2. **Host diagnosis (record, do not invent).** On the release host, record repeated Git/Node binary latency, executable paths/versions, and host load against the existing RELEASING stale-binary differential before attributing the regression solely to suite composition. Host repair requires explicit evidence; no silent AV exclusion / binary replace as this critique's product change.\n\n3. **Cheapen class for the three unit-project git tail files.** Prefer `#4567` share-plus-reset (one init, state reset between cases) for `durable-effect-acquisition/evaluate.test.ts` first (largest per-case git-spawn count), leaving it in the **unit** project. Do **not** move these three into `spawn-heavy` (one win32 worker would serial-drain them). Apply the existing `#4591` / `#5022` cost-class playbook only where share-plus-reset / in-process is product-safe; refresh durations for measured newcomers.\n\n4. **Search space includes pool/isolate.** Root-cause inventory for this arc must name `pool` / `poolOptions.forks.isolate` alongside spawn/git cost, worker count, suite composition, AV/spawn latency, and heavy files. First-ship does **not** flip `isolate: false`; that lever is a separately measured later cut after item 5's before/after number exists, sequenced after fixture refresh (injection/swarm lens: win32 `dangerouslyIgnoreUnhandledErrors` swallows bleed).\n\n5. **Acceptance = measured green Step 5 path under unchanged 60m.** Keep `RELEASE_CHECK_TIMEOUT_*` at 60 and keep `#5026` Step 5 host no-coverage lane. First-ship success is a Windows production-shaped Step 5 / `ts:check-lane` that completes the selected suite with zero test failures, valid tip-SHA coverage-of-record, no `--skip-ci`, under the existing detector. Record SHA, suite size, conditions, elapsed time, and retained tee on this issue; also record same-tip ubuntu coverage-of-record duration as the ratio anchor. Clear the named durable-effect assertion failure from its actual error. Historical sub-15m remains the recovery aspiration; if first ship only proves reliable sub-60m, state that gap as a tracked performance residual.\n\n6. **Settle sequencer partition before sizing the tail.** With one instrumented win32 run (or equivalent evidence), settle whether `DurationSequencer`'s project-name tiebreak re-serializes spawn-heavy ahead of unit contrary to the config's `groupOrder` refusal. Size cheapen against that settled shape.\n\n7. **Non-goals / later.** No `RELEASE_CHECK_TIMEOUT_*` raise. No `maxWorkers` cut. No `sequence.groupOrder`. No moving the three tail files into `spawn-heavy`. No first-ship `poolOptions.forks.isolate: false`. `#635`-class residue and unrelated session ceremony stay out.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:53465c92d8aaccd6d9c1a272e3dcedeb93020003d500634214c3c16ed9357fa2\n\n\n",
+      "Labels": "bug, ci-cd, agent-experience, process, source-of-truth, area:cli, area:release, platform:windows, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "title": "**Sequencer input refresh (blocks-finding discharge).** Refresh `packages/core/fixtures/vitest-file-durations.json` from the retained v0.119.11 / hang-kill tee via existing `duration-rank` scraper. Delete sub-30s seeded noise. Ensure measured entries for `durable-effect-acquisition/evaluate.test.ts`, `presentation-coverage/gates.test.ts`, and corrected `landed-filename.test.ts`. Validate every fixture key resolves to a real tip test file. Acceptance criterion 4 is this fixture land, not CHANGELOG paste alone (CHANGELOG/RELEASING still document top offenders + fix class).",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5174 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f105149bdd99cc545d95961b85be18fecddb2e6a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T13:18:42.708Z",
+            "mintedVia": "leftover-complete-after-5174"
+          },
+          "recorded_at": "2026-09-30T13:18:42.708Z"
+        }
+      },
+      {
+        "title": "**Host diagnosis (record, do not invent).** On the release host, record repeated Git/Node binary latency, executable paths/versions, and host load against the existing RELEASING stale-binary differential before attributing the regression solely to suite composition. Host repair requires explicit evidence; no silent AV exclusion / binary replace as this critique's product change.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5174 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f105149bdd99cc545d95961b85be18fecddb2e6a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T13:18:42.708Z",
+            "mintedVia": "leftover-complete-after-5174"
+          },
+          "recorded_at": "2026-09-30T13:18:42.708Z"
+        }
+      },
+      {
+        "title": "**Cheapen class for the three unit-project git tail files.** Prefer `#4567` share-plus-reset (one init, state reset between cases) for `durable-effect-acquisition/evaluate.test.ts` first (largest per-case git-spawn count), leaving it in the **unit** project. Do **not** move these three into `spawn-heavy` (one win32 worker would serial-drain them). Apply the existing `#4591` / `#5022` cost-class playbook only where share-plus-reset / in-process is product-safe; refresh durations for measured newcomers.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5174 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f105149bdd99cc545d95961b85be18fecddb2e6a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T13:18:42.708Z",
+            "mintedVia": "leftover-complete-after-5174"
+          },
+          "recorded_at": "2026-09-30T13:18:42.708Z"
+        }
+      },
+      {
+        "title": "**Search space includes pool/isolate.** Root-cause inventory for this arc must name `pool` / `poolOptions.forks.isolate` alongside spawn/git cost, worker count, suite composition, AV/spawn latency, and heavy files. First-ship does **not** flip `isolate: false`; that lever is a separately measured later cut after item 5's before/after number exists, sequenced after fixture refresh (injection/swarm lens: win32 `dangerouslyIgnoreUnhandledErrors` swallows bleed).",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5174 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f105149bdd99cc545d95961b85be18fecddb2e6a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T13:18:42.708Z",
+            "mintedVia": "leftover-complete-after-5174"
+          },
+          "recorded_at": "2026-09-30T13:18:42.708Z"
+        }
+      },
+      {
+        "title": "**Acceptance = measured green Step 5 path under unchanged 60m.** Keep `RELEASE_CHECK_TIMEOUT_*` at 60 and keep `#5026` Step 5 host no-coverage lane. First-ship success is a Windows production-shaped Step 5 / `ts:check-lane` that completes the selected suite with zero test failures, valid tip-SHA coverage-of-record, no `--skip-ci`, under the existing detector. Record SHA, suite size, conditions, elapsed time, and retained tee on this issue; also record same-tip ubuntu coverage-of-record duration as the ratio anchor. Clear the named durable-effect assertion failure from its actual error. Historical sub-15m remains the recovery aspiration; if first ship only proves reliable sub-60m, state that gap as a tracked performance residual.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5174 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f105149bdd99cc545d95961b85be18fecddb2e6a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T13:18:42.708Z",
+            "mintedVia": "leftover-complete-after-5174"
+          },
+          "recorded_at": "2026-09-30T13:18:42.708Z"
+        }
+      },
+      {
+        "title": "**Settle sequencer partition before sizing the tail.** With one instrumented win32 run (or equivalent evidence), settle whether `DurationSequencer`'s project-name tiebreak re-serializes spawn-heavy ahead of unit contrary to the config's `groupOrder` refusal. Size cheapen against that settled shape.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5174 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f105149bdd99cc545d95961b85be18fecddb2e6a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T13:18:42.708Z",
+            "mintedVia": "leftover-complete-after-5174"
+          },
+          "recorded_at": "2026-09-30T13:18:42.708Z"
+        }
+      },
+      {
+        "title": "**Non-goals / later.** No `RELEASE_CHECK_TIMEOUT_*` raise. No `maxWorkers` cut. No `sequence.groupOrder`. No moving the three tail files into `spawn-heavy`. No first-ship `poolOptions.forks.isolate: false`. `#635`-class residue and unrelated session ceremony stay out.",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5174 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f105149bdd99cc545d95961b85be18fecddb2e6a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T13:18:42.708Z",
+            "mintedVia": "leftover-complete-after-5174"
+          },
+          "recorded_at": "2026-09-30T13:18:42.708Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "area:release",
+      "platform:windows",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5140",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5140: bug(release): v0.119.11 Windows Step 5 hang at 1314/1334 under 60m — recover sub-15m suite wall-clock"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/ts-check-lane/duration-rank.test.ts packages/core/src/vitest-runner/duration-sequencer.test.ts packages/core/src/durable-effect-acquisition/evaluate.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Sequencer input refresh (blocks-finding discharge). Refresh `packages/core/fixtures/vitest-file-durations.json` from the retained v0.119.11 / hang-kill tee via existing `duration-rank` scraper. Delete sub-30s seeded noise. Ensure measured entries for `durable-effect-acquisition/evaluate.test.ts`, `presentation-coverage/gates.test.ts`, and corrected `landed-filename.test.ts`. Validate every fixture key resolves to a real tip test file. Acceptance criterion 4 is this fixture land, not CHANGELOG paste alone (CHANGELOG/RELEASING still document top offenders + fix class).",
+        "Host diagnosis (record, do not invent). On the release host, record repeated Git/Node binary latency, executable paths/versions, and host load against the existing RELEASING stale-binary differential before attributing the regression solely to suite composition. Host repair requires explicit evidence; no silent AV exclusion / binary replace as this critique's product change.",
+        "Cheapen class for the three unit-project git tail files. Prefer `#4567` share-plus-reset (one init, state reset between cases) for `durable-effect-acquisition/evaluate.test.ts` first (largest per-case git-spawn count), leaving it in the unit project. Do not move these three into `spawn-heavy` (one win32 worker would serial-drain them). Apply the existing `#4591` / `#5022` cost-class playbook only where share-plus-reset / in-process is product-safe; refresh durations for measured newcomers.",
+        "Search space includes pool/isolate. Root-cause inventory for this arc must name `pool` / `poolOptions.forks.isolate` alongside spawn/git cost, worker count, suite composition, AV/spawn latency, and heavy files. First-ship does not flip `isolate: false`; that lever is a separately measured later cut after item 5's before/after number exists, sequenced after fixture refresh (injection/swarm lens: win32 `dangerouslyIgnoreUnhandledErrors` swallows bleed).",
+        "Acceptance = measured green Step 5 path under unchanged 60m. Keep `RELEASE_CHECK_TIMEOUT_*` at 60 and keep `#5026` Step 5 host no-coverage lane. First-ship success is a Windows production-shaped Step 5 / `ts:check-lane` that completes the selected suite with zero test failures, valid tip-SHA coverage-of-record, no `--skip-ci`, under the existing detector. Record SHA, suite size, conditions, elapsed time, and retained tee on this issue; also record same-tip ubuntu coverage-of-record duration as the ratio anchor. Clear the named durable-effect assertion failure from its actual error. Historical sub-15m remains the recovery aspiration; if first ship only proves reliable sub-60m, state that gap as a tracked performance residual.",
+        "Settle sequencer partition before sizing the tail. With one instrumented win32 run (or equivalent evidence), settle whether `DurationSequencer`'s project-name tiebreak re-serializes spawn-heavy ahead of unit contrary to the config's `groupOrder` refusal. Size cheapen against that settled shape.",
+        "Non-goals / later. No `RELEASE_CHECK_TIMEOUT_*` raise. No `maxWorkers` cut. No `sequence.groupOrder`. No moving the three tail files into `spawn-heavy`. No first-ship `poolOptions.forks.isolate: false`. `#635`-class residue and unrelated session ceremony stay out."
+      ],
+      "admitted_source_sentences": [
+        "Sequencer input refresh (blocks-finding discharge). Refresh `packages/core/fixtures/vitest-file-durations.json` from the retained v0.119.11 / hang-kill tee via existing `duration-rank` scraper. Delete sub-30s seeded noise. Ensure measured entries for `durable-effect-acquisition/evaluate.test.ts`, `presentation-coverage/gates.test.ts`, and corrected `landed-filename.test.ts`. Validate every fixture key resolves to a real tip test file. Acceptance criterion 4 is this fixture land, not CHANGELOG paste alone (CHANGELOG/RELEASING still document top offenders + fix class).",
+        "Host diagnosis (record, do not invent). On the release host, record repeated Git/Node binary latency, executable paths/versions, and host load against the existing RELEASING stale-binary differential before attributing the regression solely to suite composition. Host repair requires explicit evidence; no silent AV exclusion / binary replace as this critique's product change.",
+        "Cheapen class for the three unit-project git tail files. Prefer `#4567` share-plus-reset (one init, state reset between cases) for `durable-effect-acquisition/evaluate.test.ts` first (largest per-case git-spawn count), leaving it in the unit project. Do not move these three into `spawn-heavy` (one win32 worker would serial-drain them). Apply the existing `#4591` / `#5022` cost-class playbook only where share-plus-reset / in-process is product-safe; refresh durations for measured newcomers.",
+        "Search space includes pool/isolate. Root-cause inventory for this arc must name `pool` / `poolOptions.forks.isolate` alongside spawn/git cost, worker count, suite composition, AV/spawn latency, and heavy files. First-ship does not flip `isolate: false`; that lever is a separately measured later cut after item 5's before/after number exists, sequenced after fixture refresh (injection/swarm lens: win32 `dangerouslyIgnoreUnhandledErrors` swallows bleed).",
+        "Acceptance = measured green Step 5 path under unchanged 60m. Keep `RELEASE_CHECK_TIMEOUT_*` at 60 and keep `#5026` Step 5 host no-coverage lane. First-ship success is a Windows production-shaped Step 5 / `ts:check-lane` that completes the selected suite with zero test failures, valid tip-SHA coverage-of-record, no `--skip-ci`, under the existing detector. Record SHA, suite size, conditions, elapsed time, and retained tee on this issue; also record same-tip ubuntu coverage-of-record duration as the ratio anchor. Clear the named durable-effect assertion failure from its actual error. Historical sub-15m remains the recovery aspiration; if first ship only proves reliable sub-60m, state that gap as a tracked performance residual.",
+        "Settle sequencer partition before sizing the tail. With one instrumented win32 run (or equivalent evidence), settle whether `DurationSequencer`'s project-name tiebreak re-serializes spawn-heavy ahead of unit contrary to the config's `groupOrder` refusal. Size cheapen against that settled shape.",
+        "Non-goals / later. No `RELEASE_CHECK_TIMEOUT_*` raise. No `maxWorkers` cut. No `sequence.groupOrder`. No moving the three tail files into `spawn-heavy`. No first-ship `poolOptions.forks.isolate: false`. `#635`-class residue and unrelated session ceremony stay out."
+      ],
+      "admitted_source_digest": "c76c81e09544c88f139ed09609be51aabae60e55ec36d93add375a40295cc7b2",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Sequencer input refresh (blocks-finding discharge). Refresh `packages/core/fixtures/vitest-file-durations.json` from the retained v0.119.11 / hang-kill tee via existing `duration-rank` scraper. Delete sub-30s seeded noise. Ensure measured entries for `durable-effect-acquisition/evaluate.test.ts`, `presentation-coverage/gates.test.ts`, and corrected `landed-filename.test.ts`. Validate every fixture key resolves to a real tip test file. Acceptance criterion 4 is this fixture land, not CHANGELOG paste alone (CHANGELOG/RELEASING still document top offenders + fix class).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Host diagnosis (record, do not invent). On the release host, record repeated Git/Node binary latency, executable paths/versions, and host load against the existing RELEASING stale-binary differential before attributing the regression solely to suite composition. Host repair requires explicit evidence; no silent AV exclusion / binary replace as this critique's product change.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Cheapen class for the three unit-project git tail files. Prefer `#4567` share-plus-reset (one init, state reset between cases) for `durable-effect-acquisition/evaluate.test.ts` first (largest per-case git-spawn count), leaving it in the unit project. Do not move these three into `spawn-heavy` (one win32 worker would serial-drain them). Apply the existing `#4591` / `#5022` cost-class playbook only where share-plus-reset / in-process is product-safe; refresh durations for measured newcomers.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Search space includes pool/isolate. Root-cause inventory for this arc must name `pool` / `poolOptions.forks.isolate` alongside spawn/git cost, worker count, suite composition, AV/spawn latency, and heavy files. First-ship does not flip `isolate: false`; that lever is a separately measured later cut after item 5's before/after number exists, sequenced after fixture refresh (injection/swarm lens: win32 `dangerouslyIgnoreUnhandledErrors` swallows bleed).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Acceptance = measured green Step 5 path under unchanged 60m. Keep `RELEASE_CHECK_TIMEOUT_*` at 60 and keep `#5026` Step 5 host no-coverage lane. First-ship success is a Windows production-shaped Step 5 / `ts:check-lane` that completes the selected suite with zero test failures, valid tip-SHA coverage-of-record, no `--skip-ci`, under the existing detector. Record SHA, suite size, conditions, elapsed time, and retained tee on this issue; also record same-tip ubuntu coverage-of-record duration as the ratio anchor. Clear the named durable-effect assertion failure from its actual error. Historical sub-15m remains the recovery aspiration; if first ship only proves reliable sub-60m, state that gap as a tracked performance residual.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Settle sequencer partition before sizing the tail. With one instrumented win32 run (or equivalent evidence), settle whether `DurationSequencer`'s project-name tiebreak re-serializes spawn-heavy ahead of unit contrary to the config's `groupOrder` refusal. Size cheapen against that settled shape.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Non-goals / later. No `RELEASE_CHECK_TIMEOUT_*` raise. No `maxWorkers` cut. No `sequence.groupOrder`. No moving the three tail files into `spawn-heavy`. No first-ship `poolOptions.forks.isolate: false`. `#635`-class residue and unrelated session ceremony stay out.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[Bound] Recover Windows Step 5 under 60m via duration refresh + share-plus-reset (#5140)"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Incident cut for v0.119.11: production Step 5 hit hang detector exit 124 at 1314/1334 files (last: presentation-coverage/gates.test.ts) on tip bc060886b. Operator authorized --skip-ci --allow-skip-ci=5140 for the recut. Next production patch must cut without --skip-ci once cheapen lands.\n\nnpm-publish run: https://github.com/deftai/directive/actions/runs/36581105662",
+          "id": 5892079237,
+          "html_url": "https://github.com/deftai/directive/issues/5140#issuecomment-5892079237",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T14:14:42Z",
+          "updated_at": "2026-09-29T14:14:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Current known state (2026-09-29 Stage A)\n\nStage A `task triage:evaluate -- 5140` on origin/master `1890550a2afa`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/1890550a2afa/d4c3763a-9b66-419b-bc9e-1d3c3c10e1be`\n\n### Live gap\n\nWindows production `task release` Step 5 (`ts:check-lane`) hit hang-detector exit **124** at **1314/1334** files on tip `bc060886b` (v0.119.11). Historical host-class baseline was under ~15m; hang detector has been raised 20→30→45→60 without recovering that wall-clock. Operator comment 5892079237 authorized `--skip-ci --allow-skip-ci=5140` for the incident cut; next production patch must cut without `--skip-ci` once cheapen lands. Related: #5022/#5023/#5024/#5026/#5027/#5028/#5091/#5107.\n\n### Spend recommendation\n\nOpen root-cause space (spawn/git/worker/suite/AV/heavy files) plus release-pipeline hang blast. Recommended Dual-stop **N≥3**. Bare `label and arc 5140` applies `#5111` defaults: no-ingest, yolo-standing, spend from this recommend.\n\nTarget-digest sha256:53465c92d8aaccd6d9c1a272e3dcedeb93020003d500634214c3c16ed9357fa2\r\n\n",
+          "id": 5894310852,
+          "html_url": "https://github.com/deftai/directive/issues/5140#issuecomment-5894310852",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:26:49Z",
+          "updated_at": "2026-09-29T16:26:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Windows release Step 5 wall-clock has regressed past successive hang-detector raises to a 60m kill at 1314/1334, and the next production cut must complete under the existing detector without --skip-ci.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: NΓëÑ3\nspend-ask: resolved\nspend-recommend: NΓëÑ3\npain: P1, P2, P3\n\nOperator directed label+arc 5140 using #5111 defaults. Open root-cause + release hang blast; recommended Dual-stop NΓëÑ3 applied without a spend ask. Panel-deposit and launch probe follow before sibling critics.\n\nTarget-digest sha256:53465c92d8aaccd6d9c1a272e3dcedeb93020003d500634214c3c16ed9357fa2\ndispatch-sha: 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5140-dc\npin-kind: origin-default\n\n\n",
+          "id": 5894311288,
+          "html_url": "https://github.com/deftai/directive/issues/5140#issuecomment-5894311288",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:26:50Z",
+          "updated_at": "2026-09-29T16:42:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5894333864\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\n\nLaunch probe (bypass argv class): claude pong rc0; codex pong rc0; grok pong rc0. Spend N≥3 from Stop 1 5894311288.\r\n\n",
+          "id": 5894333864,
+          "html_url": "https://github.com/deftai/directive/issues/5140#issuecomment-5894333864",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:28:13Z",
+          "updated_at": "2026-09-29T16:28:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1 open critique; dispatch SHA `1890550a2afa7a6aa46e2cd3e27813a1dee36a9a`, input ceiling 5894333864. `git rev-parse HEAD` matched. Reads used that SHA; no fetch, checkout, ingest, or product edits. I did not read sibling posts.\n\n## Diagnose the host before binding a suite-only remedy\nsharpens-framing\nEvidence: Five serial `git --version` probes in this Windows critic session took 673, 650, 973, 568, and 746 ms (median 673 ms; first-probe-excluded median 698 ms). At the dispatch SHA, `docs/RELEASING.md` already prescribes repeated binary-latency probes above roughly 150 ms for Git and describes a stale-binary differential with a previously measured 40m-to-3.6m recovery. `vitest.config.ts` separately records historical Windows spawn-throughput contention. These are competing explanations, not proof that either explains this incident. This probe is current host evidence, not a recreation of the release workload.\nFailure mode: Binding exclusively to test rewrites or worker-count tuning can spend substantial scope compensating for a host executable regression. Conversely, declaring AV or stale binaries causal from this small probe would overclaim.\nDisposition: Keep root-cause work in the first ship. Record repeated Git/Node latency, executable paths/versions, host load, and the existing documented differential on the release host before attributing the regression. Any host repair must be explicitly evidenced; do not require an AV exclusion or silently replace binaries as part of this critique. Preserve a comparable before/after full-lane measurement.\n\n## Reuse the existing scheduler and reduce actual spawn work\nsharpens-framing\nEvidence: A Node inventory using `git show <dispatch-sha>:<path>` checked the config and committed duration JSON. There are 110 duration entries. `durable-effect-acquisition/evaluate.test.ts` and `presentation-coverage/gates.test.ts` are absent from both the spawn-heavy list and the duration map; `vbrief-validate/landed-filename.test.ts` is in unit and already has a 155168 ms duration entry. Source inspection shows real Git fixture creation in all three; durable-effect mixes injected in-process cases with Git integration cases. Existing mechanisms include overlapping unit/spawn-heavy projects, a Windows unit cap of `max(1,min(12,floor(cpus*0.25)))`, one spawn-heavy worker, and `DurationSequencer` using committed durations with BaseSequencer fallback. The reporter already flushes completed files lasting at least 30s, and `duration-rank.ts` ranks those retained tee lines.\nFailure mode: A new reporter or generic slowest-first proposal duplicates landed work. Moving every slow file into the one-worker project can create a longer serial drain; refreshing durations changes scheduling but does not remove Git process cost. The last completed file and a completion-only top-N also do not identify the twenty unfinished files or prove an idle tail.\nDisposition: Use the retained incident tee and existing ranker first, explicitly distinguishing completed-duration evidence from unfinished work. Refresh the existing duration seed for measured newcomers. Prefer a bounded cheapen of the measured dominant fixture/spawn class, with before/after spawn counts and full-lane wall time. Split pure cases from real-Git cases where useful; preserve integration coverage for committed/staged/live bytes and failure behavior. Shared fixture reset must restore refs/index/worktree and authority artifacts between cases. Pool changes remain an evidence-backed fallback, not the default Bound remedy.\n\n## Define recovery as a passing Step 5, not merely beating the timer\nsharpens-framing\nEvidence: `release/constants.ts` fixes 60 minutes. `runReleaseCheck` computes one deadline before dispatching native `task check`, rejects exit 124, verifies that `ts:check-lane` actually ran when completion evidence is available, and resolves green tip-SHA GHA coverage on success. `docs/RELEASING.md` and `release/preflight.ts` confirm that Windows release Step 5 already drops host coverage under #5026; ambient `task check` is a different instrument. The in-ceiling issue evidence reports one failed durable-effect test before termination. Closed #5107 documents a full ~44m suite that nevertheless failed on a test timeout. I did not reproduce the incident failure or run a full release in this process-only critique.\nFailure mode: A faster isolated test run, cached suite stamp, or 59-minute run with an assertion failure could be presented as recovery while the production release remains blocked. Treating the historical sub-15m aspiration as already demonstrated would likewise overstate the evidence.\nDisposition: Bind first-ship success to an actual Windows production Step 5 with the full selected suite executed, zero test failures, valid tip-SHA coverage-of-record, no skip-ci, and total Step 5 time below the unchanged 60m deadline. Record SHA, suite size, conditions, elapsed time, and retained tee. Resolve the named failed test from its actual error, not by assuming it is only a timeout. Retain sub-15m as the measured recovery target; if the first ship only establishes reliable sub-60m operation, state that gap and leave a tracked performance residual instead of claiming the baseline restored.\n\nThe strongest first-ship Bound shape I would accept is one measured recovery slice: establish the release-host baseline using existing diagnostics and tee ranking; remove the dominant confirmed cost (host fault if demonstrated, otherwise a bounded fixture/spawn refactor); refresh existing duration data where needed; and prove the complete passing production Step 5 under the unchanged detector. Keep the existing coverage authority and test assertions intact. I would not bind a speculative worker/pool redesign or another timeout raise. The strongest case for scheduling-only work is an observed long idle tail with otherwise healthy spawn latency; such evidence would change that choice. No blocking finding is asserted against this open root-cause scope.",
+          "id": 5894391645,
+          "html_url": "https://github.com/deftai/directive/issues/5140#issuecomment-5894391645",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:31:37Z",
+          "updated_at": "2026-09-29T16:31:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nround: 1 critic\nseat: grok\nlauncher: grok\ndispatch-sha: 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a\nid-ceiling: 5894333864\nHEAD confirmed: 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a\n\n## Strongest first-ship Bound I would accept\n\nKeep `RELEASE_CHECK_TIMEOUT_MS` / `RELEASE_CHECK_TIMEOUT_MINUTES` at **60** and keep the #5026 Step 5 host no-coverage lane (`isStep5HostNoCoverage` → `pnpm exec vitest run`). First-ship recovers Windows production Step 5 so it **completes under that existing detector without `--skip-ci`**.\n\nCompose mechanisms already on tip at the dispatch SHA:\n\n1. Rank offenders from a hang-kill-durable `.deft/check-tees/**` tee with `packages/core/src/ts-check-lane/duration-rank.ts` (#5027 / RELEASING.md). Last-completed-file is only a hang cursor.\n2. Refresh `packages/core/fixtures/vitest-file-durations.json` from that no-coverage tee so `DurationSequencer` (#5028) arms cold release worktrees with current durations (fixture is still the interim seed).\n3. Apply the existing #4591 / #5022 cost-class playbook to tee-ranked multi-minute git-spawn files that still live in the **unit** project: move into `spawnHeavyGlobs` and/or share-plus-reset / in-process where the product allows. Do not invent a new pool, a new hang ceiling, or a maxWorkers cut (#3480 / vitest.config comments already forbid that class of \"fix\").\n4. Treat assertion failures on the same Step 5 path as a separate red class that must clear in the same green-under-60m batch (body tee signal: `durable-effect-acquisition/evaluate.test.ts` 1 failed).\n5. Document top offenders and the fix class in CHANGELOG / RELEASING when landed.\n\nRoad-not-taken: another numeric raise of `RELEASE_CHECK_TIMEOUT_*` (named-cause and RELEASING already say cheapen-first; #5091 already at 60m). Steelman for a raise only flips if a measured post-cheapen tee still kills at 60m with no further cost-class left inside the existing playbook — that would be a deliberate gate change + mint, not this first-ship.\n\n## First-ship success bar is under-60m, not sub-15m\nsharpens-framing\nEvidence: Issue title asks to \"recover sub-15m suite wall-clock\"; Acceptance item 2 requires Step 5 complete under the existing 60m hang detector without `--skip-ci`; item 3 prefers measured cheapen over another raise. Stop 1 5894311288 and operator 5892079237 frame the next production patch as cut-without-skip-ci after cheapen. At dispatch SHA, `RELEASE_CHECK_TIMEOUT_MS = 60 * 60 * 1000` in `packages/core/src/release/constants.ts` and RELEASING.md / release skill pin 60m hang detection.\nFailure mode: Binding \"sub-15m restored\" as the first-ship gate can keep the arc open after a real under-60m recovery, or force thrash past the release unblock the operator already authorized skip-ci for.\nDisposition: State the Bound success bar as green Step 5 under the existing 60m detector without `--skip-ci`. Keep sub-15m as stretch measurement / later residual unless the title and AC are deliberately aligned before bind.\n\n## Body-named multi-minute files still sit in unit, outside spawn-heavy\nsharpens-framing\nEvidence: At dispatch SHA, `spawnHeavyGlobs` in `vitest.config.ts` lists 19 paths; `packages/core/src/vbrief-validate/landed-filename.test.ts`, `packages/core/src/durable-effect-acquisition/evaluate.test.ts`, and `packages/core/src/presentation-coverage/gates.test.ts` are absent from that list and therefore run in the unit project (`include: packages/*/src/**/*.test.ts` excluding spawn-heavy) under `maxWorkers: winMaxWorkers`. All three files use real `execFileSync(\"git\", …)` fixtures. Committed duration fixture ranks `landed-filename.test.ts` at 155168ms and still marks it UNIT; evaluate/gates are not present in the 110-file seed at all. Spawn-heavy already exists with win32 `maxWorkers: Number(isWin32)` so it does not double the unit fork cap (#4591 / #5022).\nFailure mode: A Bound that only \"investigate root cause\" or invents a new concurrency knob, while leaving tee-confirmed multi-minute git-spawn files in the contended unit pool, recreates the 1314/1334 kill class under the same 60m ceiling.\nDisposition: First-ship Bound must inventory tee-ranked unit leftovers against `spawnHeavyGlobs` / share-plus-reset / in-process before proposing new mechanisms, and must name the move-or-cheapen action for confirmed offenders (including landed-filename when the tee agrees).\n\n## Duration fixture is still the interim seed; #5027/#5028 already supply the refresh path\nsharpens-framing\nEvidence: `packages/core/fixtures/vitest-file-durations.json` at dispatch SHA has `source: seeded-from-primary-node_modules-.vite-vitest-results-until-5027`, `dependsOnIssue: 5027`, and only 110 `files` entries while the suite has 1334 `*.test.ts` paths. Near-end body offenders evaluate/gates are missing from the map. `DurationSequencer` sorts listed files slowest-first and leaves unlisted pairs in BaseSequencer order. RELEASING.md already documents `pnpm exec tsx packages/core/src/ts-check-lane/duration-rank.ts --top 20 .deft/check-tees/<session>/<run>.log` as the hang-kill-durable ranking input. This dest has no local `.deft/check-tees` to re-rank the incident run from.\nFailure mode: Binding cheapen from body prose or the stale coverage-era seed alone can mis-order cold release worktrees and miss the files that actually burned the last minutes of the 60m wall.\nDisposition: Require a tee-ranked refresh of the committed durations fixture (and the cheapen target list) from a no-coverage Step 5 / exit-124 tee before claiming the #5028 sequencer is doing its job for this recovery.\n\n## Hang class and assertion-failure class are conflated in the incident narrative\nsharpens-framing\nEvidence: Issue body and current-state cite hang-detector exit 124 at 1314/1334 with last file `presentation-coverage/gates.test.ts`, and also cite `durable-effect-acquisition/evaluate.test.ts` (49 tests | 1 failed, ~277s) immediately before that stamp. Named-cause / superviseChild already treat 124 as timeout kill; a failed test is a different Step 5 red.\nFailure mode: A wall-clock-only Bound can land, still fail Step 5 on the assertion, and force another incident `--skip-ci` even though the hang detector no longer fires.\nDisposition: Bound first-ship as green under 60m without skip-ci, which includes clearing the assertion-failure class on the same path when the tee still shows it; do not treat \"1 failed\" as optional color on a hang ticket.\n\n## SUITE_TEE_PRUNE_AGE_MS comment still names the old 20m ceiling\nfootnote\nEvidence: `packages/core/src/check/suite-gate-supervisor-lib.ts` keeps `SUITE_TEE_PRUNE_AGE_MS = 25 * 60 * 1000` with comment \"Age bound sits above the 20-minute hang ceiling\"; prune also requires age ≥ `SUITE_TEE_HANG_CEILING_MS` (= `RELEASE_CHECK_TIMEOUT_MS`, 60m). Effective spare window is the hang ceiling.\nFailure mode: None for the design bind; comment drift only.\nDisposition: Optional doc tidy; does not change the Bound.\n\n## No retained incident tee in this dest to re-verify body duration cites\nfootnote\nEvidence: `Test-Path .deft/check-tees` is false in the pinned dest; body line cites (1314/1334, ~268s landed-filename, ~277s evaluate) were not re-measured here. Fixture + path inventory were re-verified via `git show` at the dispatch SHA.\nFailure mode: Over-fitting Bound file lists to unreproduced body numbers.\nDisposition: Lean on #5027 ranking of a real tee (retained incident tee if still held on the release host, or the next supervised Step 5) as the offender SoT.",
+          "id": 5894423191,
+          "html_url": "https://github.com/deftai/directive/issues/5140#issuecomment-5894423191",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:33:30Z",
+          "updated_at": "2026-09-29T16:33:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nOpen critique, round 1, ceiling 5894333864, dispatch-sha `1890550a2afa7a6aa46e2cd3e27813a1dee36a9a` (confirmed via `git rev-parse HEAD`). All reads pinned with `git show <sha>:`.\n\n## The scheduler input is stale by construction and no acceptance criterion repairs it\nblocks-the-design\n\nEvidence: `git show <sha>:packages/core/fixtures/vitest-file-durations.json` parses to **110 entries** against a **1334-file** suite. `compareSpecsByCommittedDuration` (`packages/core/src/vitest-runner/duration-sequencer.ts`) returns `1` when the left file is unlisted and the right is listed — so every unlisted file sorts *after* every listed file. Key search over that fixture: `durable-effect-acquisition/evaluate.test.ts` gives no entry; `presentation-coverage/gates.test.ts` gives no entry. Those are exactly the two files bracketing the kill (the ~277s near-end signal and the 1314/1334 last-file stamp). `landed-filename.test.ts` *is* listed, at `155168` ms, against the ~268s this cut measured — 42% under. The seed is self-declared interim: `\"source\": \"seeded-from-primary-node_modules-.vite-vitest-results-until-5027\"`, `\"dependsOnIssue\": 5027`. Distribution check: **29 of 110** listed entries are under 30s, 7 under 5s, and `cli-bin-symlink-entrypoint.test.ts` is listed at **1 ms** — so a 1 ms listed file is scheduled ahead of a 277s unlisted one. Grepping `vitest-file-durations` outside the fixture hits only the sequencer and its test: nothing wires `duration-rank.ts` (5027) output back into the fixture, and no gate observes its coverage fraction or freshness.\n\nFailure mode: 5028 is recorded as arming slowest-first on cold release worktrees. For 92% of the suite it arms nothing — it is BaseSequencer order with the unmeasured heavy files pushed to the back, behind a block that includes 1 ms entries. A cheapen that trims mean per-file cost still terminates in a multi-minute unlisted tail on a capped pool, so the 60m kill recurs at the same shape of cursor. Acceptance criterion 4 as written (document top offenders via tee timeline / duration rank in CHANGELOG / RELEASING) discharges by pasting a ranked list into prose. Bound as written, this arc can close green — offenders documented, some cheapen landed — with the sequencer still reading the same 110-entry seed, and the next production cut still dying in the tail.\n\nDisposition: before bind, acceptance criterion 4 must require the ranking to land **as the sequencer input**, not as documentation. Pasting a top-20 into CHANGELOG and refreshing `vitest-file-durations.json` are different deliverables, and only the second changes wall-clock.\n\n## The root-cause enumeration is closed over the wrong variable: pool/isolate is absent\nsharpens-framing\n\nEvidence: grepping `vitest.config.ts` at the dispatch SHA for `pool`, `isolate`, `fileParallelism`, `poolOptions` returns **zero** matches outside two prose comments. `package.json` pins `\"vitest\": \"^4\"`. Vitest 4 defaults are `pool: \"forks\"`, `isolate: true` — one fresh forked child process per test file. The config's own 3616 comment measures the Windows chokepoint at \"~2.4-3.5 spawns/s at ANY concurrency\". At 1334 files and 3 spawns/s that is **about 7.4 minutes of pure worker-fork admission**, before a single test body runs, plus per-fork Node boot and TS transform of the aliased source graph. That term scales linearly with *file count* — the quantity that actually grew across the 20 to 30 to 45 to 60 raises.\n\nFailure mode: acceptance criterion 1 enumerates the space as spawn/git cost, worker count, suite composition, AV/spawn latency, new heavy files. Worker *isolation* is in none of those five buckets — it is not worker count (that is the cap), not suite composition (that is which files), not per-test spawn cost (that is what 4567 / 5022 already mined twice). If the arc binds that enumeration as the search space, the cheapen work goes a third time to per-test git fixtures and never touches the one term that grows with the number that grew. Diminishing returns on a twice-mined seam is the predictable outcome, and the issue explicitly forbids the escape hatch.\n\nDisposition: acceptance criterion 1 must name pool / `poolOptions.forks.isolate` explicitly, or the enumeration understates the space it claims to cover. This does not block the lean — it changes what the lean is allowed to conclude it searched.\n\n## The historical sub-15m host-class anchor is not measurable; a same-tip comparator already is\nsharpens-framing\n\nEvidence: `.github/workflows/ci-lane.yml:57` runs the TypeScript suite step under `timeout-minutes: 20`, invoking `pnpm run test` = `vitest run --coverage` (`package.json:15`) — the full 1334-file suite *with* coverage. 5026 (CHANGELOG line 101) makes that tip-SHA GHA run coverage-of-record and fail-closes Step 5 on it being green. So for the v0.119.11 cut the same suite with coverage completed inside 20 minutes on the CI runner while the Windows host exceeded 60 without coverage.\n\nFailure mode: the issue's target is stated against \"under ~15 minutes on this host class\", a remembered figure from a smaller suite on an unrecorded machine. Two variables moved together — the suite grew and per-file host cost grew — and a remembered aggregate cannot separate them. Bound against that anchor, the arc has no falsifiable pass/fail short of running a full production cut, which is the expensive thing it is trying to stop doing. Worse, the anchor may be unreachable in principle if suite growth accounts for most of it, so the arc can do correct work and still read as failed.\n\nDisposition: restate the target as a per-tip measurement the arc can take cheaply — win32 `ts:check-lane` wall-clock at a named SHA, with the same-SHA ubuntu coverage-of-record duration alongside it as the ratio anchor. The ratio is reproducible; the memory is not.\n\n## The three tail files are unit-project git files, and the 5022 remedy class would make them worse\nsharpens-framing\n\nEvidence: `spawnHeavyGlobs` in `vitest.config.ts` is a 20-entry const. None of `packages/core/src/durable-effect-acquisition/evaluate.test.ts`, `packages/core/src/presentation-coverage/gates.test.ts`, `packages/core/src/vbrief-validate/landed-filename.test.ts` appear in it — all three run in the `unit` project. All three call `execFileSync(\"git\", ...)` with `mkdtempSync` per case, and a `beforeAll` / `beforeEach` grep count is **0** in all three. `evaluate.test.ts` has 33 `it` sites and a `fixture()` helper (around line 483) costing `init` plus two `config` plus `add` plus `commit` plus `rev-parse`, about 6 git spawns *per case*, plus a second per-case `mkdtemp` / `init` / `add` / `commit` path around line 447. At the config's own measured ~3 spawns/s that is roughly 2s of pure spawn admission per case before any assertion runs.\n\nFailure mode: the reflex the prior art teaches is the 5022 one — move the ranked offenders into the `spawn-heavy` project. `spawn-heavy` is pinned `maxWorkers: Number(isWin32)`, i.e. **one** worker on win32. Moving a 277s file there does not parallelise it; it appends it to a serial drain. A bind that names 5022 as the remedy class for these three buys a wall-clock regression on the exact files that ended the run.\n\nDisposition: name 4567 share-plus-reset (one init, state reset between cases) as the remedy class for these three, and state explicitly that `spawn-heavy` is not their destination. The two prior remedies are not interchangeable and the issue text does not distinguish them.\n\n## The sequencer partitions by project name, reproducing the serialization the config refuses\nsharpens-framing\n\nEvidence: `DurationSequencer.sort` compares `a.project.config.sequence.groupOrder`, then `a.project.name !== b.project.name` resolving to a lexicographic name comparison, *before* consulting any duration. Project names are `spawn-heavy` and `unit`; lexicographically `spawn-heavy` sorts first, so the returned list is a strict partition with every spawn-heavy spec ahead of every unit spec. `vitest.config.ts:256-262` records the opposite intent in the same tree: do not set `sequence.groupOrder` here, because Vitest finishes group N before group N+1, so spawn-heavy=0 / unit=1 would serialize the unit pool behind the one-worker drain and worsen the idle-tail; keep both projects on the default group so they overlap.\n\nFailure mode: exactly one of two things is true and neither is recorded. If Vitest consumes the sorted list as one dispatch queue, the sequencer reintroduces by name the precise ordering groupOrder was rejected for. If Vitest schedules per-project pools independently off that list, the name tiebreak is inert — and then the groupOrder refusal argued against a mechanism that could not have hurt. Either way the recorded rationale for the 5028 shape is unverified. I did not settle this: settling it needs a timed win32 run, which is outside a process-only envelope, and I will not assert a runtime consequence I did not observe.\n\nDisposition: cheap to settle with one instrumented run, and the answer changes the shape of the tail the cheapen is sizing against. Bind should require it settled before sizing, not after.\n\n## Injection / swarm lens: concurrency and shared state both move, and win32 already swallows the failure signal\nsharpens-framing\n\nThis target changes concurrency and shared state, so the lens is a triggered obligation here, not a recital.\n\nEvidence: (a) `dangerouslyIgnoreUnhandledErrors: true` is set in the `isWin32` branch of `vitest.config.ts` — only on the platform being changed. (b) Both live cheapen levers convert per-case isolation into shared mutable state: `poolOptions.forks.isolate: false` shares module-level state across files in a reused worker, and share-plus-reset shares a git fixture across cases. (c) The suite contains occupancy / lease / session-ritual files asserting on `.deft/occupancy.json` and child-occupancy state — `spawnHeavyGlobs` alone names `occupancy-stress`, `spawn-occupancy`, `dispatcher-owner-liveness`, `hook-dispatch-worktree`. (d) A fixture refresh *also changes file order*, because `DurationSequencer` output is a function of the fixture contents. (e) `parseFileDurationLine` (`duration-rank.ts:53`) accepts any non-empty `file` capture with no repo-relative or existence validation, and `parseFileDurationsDocument` validates only that values are non-negative finite numbers — the key is normalized, never checked against the real file set. The refresh path is a line-grep over `.deft/check-tees/**/*.log`, a log carrying arbitrary test stdout.\n\nFailure mode: landing an isolation change and a fixture refresh in one cut changes test order and removes test isolation simultaneously, so any resulting flake is attributable to neither — and on win32 a state-bleed surfacing as a worker unhandled rejection is suppressed by (a) before it can be attributed at all. Separately, any test, fixture body, or echoed CLI error emitting a line matching the timeline shape becomes a ranked entry and can be pasted into a committed file that the vitest config loads on every evaluation. The blast is bounded — bad scheduling order, not execution — but it is silent: nothing downstream would report a fixture key naming no test file.\n\nDisposition: bind must sequence these — refresh the fixture, measure, *then* touch isolation in a separately measured cut — and the refresh must validate that each key resolves to a real test file at the tip. Both are one-line obligations; neither needs a new mechanism. Not \"a reviewer would notice the flake\": the deterministic controls are the existence check and the one-lever-per-cut ordering.\n\n## The 60m detector covers the whole `task check`, not the suite\nfootnote\n\nEvidence: `packages/core/src/release/preflight.ts:281` sets `wallMs = seams.checkSeams?.timeoutMs ?? RELEASE_CHECK_TIMEOUT_MS` and applies it to the orchestrator run; line 259 formats a `task check timed out after {m}m at gate {gate}` message. `packages/core/src/check/gate-lists.ts:163-164` places `ts:check-lane` last, after the fast gates. `constants.ts:43` is `60 * 60 * 1000`.\n\nFailure mode: the suite's real budget is 60m minus the fast gates minus coverage merge, so a cheapen sized at \"must fit 60m\" overshoots slightly.\n\nDisposition: state the target as a suite budget with the gate overhead named. Footnote because the overshoot is small next to the gap being closed.\n\n## The GHA mirror constant's JSDoc has drifted\nfootnote\n\nEvidence: `constants.ts:47` is `CI_VITEST_COVERAGE_TIMEOUT_MINUTES = 20` with a JSDoc reading \"mirrors release Step 5 budget, 2652\". `RELEASE_CHECK_TIMEOUT_MINUTES` is now 60. The mirror claim held at 2652 and has been false since 5024.\n\nFailure mode: none at runtime — the constant matches `ci-lane.yml:57`; only the comment is wrong.\n\nDisposition: correct the JSDoc if the cheapen touches this file. No dependency either way.\n\n## Strongest first-ship Bound shape I would accept\n\nRecover the tail before touching the mean. Everything below uses mechanisms that already exist at this SHA; it adds no gate, no evaluator, no CLI verb, no constant.\n\n1. **Refresh `packages/core/fixtures/vitest-file-durations.json` from the retained v0.119.11 tee** using the existing `duration-rank` scraper, and **delete the 29 sub-30s seeded entries**. The progress reporter only flushes at `PROGRESS_FILE_HEARTBEAT_MS` (30s), so a tee-sourced fixture is naturally 30s-and-up only — which is exactly the cut that stops listed-beats-unlisted from scheduling a 1 ms file ahead of a 277s one. Validate that each key resolves to a real test file at the tip.\n2. **Ensure the three tail files carry measured entries** — `durable-effect-acquisition/evaluate.test.ts`, `presentation-coverage/gates.test.ts`, and a corrected `landed-filename.test.ts` (155s becomes measured). Step 1 supplies these if the tee is intact; if the tee lost them, hand-time them once and say so in the fixture `source` field rather than leaving them unlisted.\n3. **Convert `durable-effect-acquisition/evaluate.test.ts` to the 4567 share-plus-reset pattern**, one init with state reset between cases, and leave it in the `unit` project. One file, the proven pattern, the largest per-case git-spawn count of the three.\n4. **Acceptance is a measured `ts:check-lane` wall-clock on the release host at a named tip, before and after, recorded on this issue** — not a production cut, and not the remembered 15m. Record the same-tip ubuntu coverage-of-record duration alongside it.\n5. **Explicitly out of first ship**: any `RELEASE_CHECK_TIMEOUT_*` change; `sequence.groupOrder`; any `maxWorkers` change; moving any of the three tail files into `spawn-heavy`; `poolOptions.forks.isolate`. The isolation lever is the larger prize and belongs in a second cut measured against the number step 4 produces — not folded into the same change as a reordering.\n\nWhy this shape and not a bigger one: steps 1 through 3 are the only changes whose effect is predictable without a run, and step 4 buys the measurement that lets the next cut be argued rather than guessed. The detector has been raised four times because the arc has never held a before/after number it could point at.\n\n## Road not taken\n\nThe fork I actually faced was leading with **`poolOptions.forks.isolate: false`** instead of the fixture refresh. It is the bigger lever by arithmetic — about 7.4 minutes of worker-fork admission at the config's own measured spawn rate, removable in one line, against a fixture refresh that reorders rather than removes work. I did not lead with it because its failure mode is silent on win32 (`dangerouslyIgnoreUnhandledErrors: true`) and lands as order-dependent flakes in the occupancy and session-ritual files, on a release-blocking gate, with no before/after number in hand to attribute a regression against. Ordering matters more than magnitude when the only feedback channel is a 60-minute production cut.\n\n## Steelman of the position I rejected\n\nThe strongest case for skipping the fixture refresh entirely: reordering is zero-sum on a saturated pool. If all workers are busy for the whole run, slowest-first only changes *which* file is last, not when the run ends — and the 60m kill at 1314/1334 is then evidence of total work exceeding budget, not of a bad tail. On that reading step 1 is theatre and only isolation or deletion moves the number.\n\nWhat would flip me: a Step 5 tee showing worker occupancy near capacity through the final ten minutes. If the pool is saturated to the end, the tail is not a scheduling artifact and I would reorder my first ship to lead with isolation. What supports the tail reading instead is the shape of the report — the issue records that the early suite was spawn-heavy and that pace later improved but still projected past 60m, and a 277s file completing immediately before the last-file stamp is what a draining pool looks like, not a saturated one. That is suggestive, not decisive, and the tee would settle it in one read.\n\n",
+          "id": 5894503529,
+          "html_url": "https://github.com/deftai/directive/issues/5140#issuecomment-5894503529",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:38:28Z",
+          "updated_at": "2026-09-29T16:38:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWindows Step 5 dies in an unmeasured tail under a stale 110-entry duration seed, not because another timeout raise is missing. First ship refreshes sequencer input from the incident tee, cheapens the dominant unit-project git-spawn file with share-plus-reset, keeps the 60m detector, and measures before/after on the release host. Isolation and timeout raises stay out of first ship. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5894311288. Critics 5894391645 / 5894423191 / 5894503529 check the findings. Whether the list covers the named pains stays open until a later critic targets those cites.\n\n**Lean:** open critique. This map is the bind.\n\nsiblings: 3\nRound: 1\nResidual: none\nsupersedes: 5894311288\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a\n\n## Takes\n\n- 5894503529 Scheduler input stale; AC4 must land ranking as sequencer input — accept-into-contract\n- 5894503529 Root-cause enum must name pool/isolate — accept-into-contract\n- 5894503529 Restate target as measurable tip wall-clock + same-tip GHA ratio — accept-into-contract\n- 5894503529 Tail files need 4567 share-plus-reset, not spawn-heavy move — accept-into-contract\n- 5894503529 Settle sequencer project-partition behavior before sizing — accept-into-contract\n- 5894503529 Sequence fixture refresh before isolation; validate fixture keys — accept-into-contract\n- 5894391645 Diagnose host Git/Node latency before suite-only bind — accept-into-contract\n- 5894391645 Reuse scheduler + bounded cheapen of measured spawn class — accept-into-contract\n- 5894391645 Recovery = passing Step 5 under 60m, not merely beating the timer — accept-into-contract\n- 5894423191 Keep 60m + #5026 no-coverage lane; rank tee; refresh durations; cost-class playbook; clear assertion failures; document — accept-into-contract\n- 5894503529 / 5894423191 Out of first-ship: timeout raise, maxWorkers cut, spawn-heavy move of the three tail files, isolate:false — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. **Sequencer input refresh (blocks-finding discharge).** Refresh `packages/core/fixtures/vitest-file-durations.json` from the retained v0.119.11 / hang-kill tee via existing `duration-rank` scraper. Delete sub-30s seeded noise. Ensure measured entries for `durable-effect-acquisition/evaluate.test.ts`, `presentation-coverage/gates.test.ts`, and corrected `landed-filename.test.ts`. Validate every fixture key resolves to a real tip test file. Acceptance criterion 4 is this fixture land, not CHANGELOG paste alone (CHANGELOG/RELEASING still document top offenders + fix class).\n\n2. **Host diagnosis (record, do not invent).** On the release host, record repeated Git/Node binary latency, executable paths/versions, and host load against the existing RELEASING stale-binary differential before attributing the regression solely to suite composition. Host repair requires explicit evidence; no silent AV exclusion / binary replace as this critique's product change.\n\n3. **Cheapen class for the three unit-project git tail files.** Prefer `#4567` share-plus-reset (one init, state reset between cases) for `durable-effect-acquisition/evaluate.test.ts` first (largest per-case git-spawn count), leaving it in the **unit** project. Do **not** move these three into `spawn-heavy` (one win32 worker would serial-drain them). Apply the existing `#4591` / `#5022` cost-class playbook only where share-plus-reset / in-process is product-safe; refresh durations for measured newcomers.\n\n4. **Search space includes pool/isolate.** Root-cause inventory for this arc must name `pool` / `poolOptions.forks.isolate` alongside spawn/git cost, worker count, suite composition, AV/spawn latency, and heavy files. First-ship does **not** flip `isolate: false`; that lever is a separately measured later cut after item 5's before/after number exists, sequenced after fixture refresh (injection/swarm lens: win32 `dangerouslyIgnoreUnhandledErrors` swallows bleed).\n\n5. **Acceptance = measured green Step 5 path under unchanged 60m.** Keep `RELEASE_CHECK_TIMEOUT_*` at 60 and keep `#5026` Step 5 host no-coverage lane. First-ship success is a Windows production-shaped Step 5 / `ts:check-lane` that completes the selected suite with zero test failures, valid tip-SHA coverage-of-record, no `--skip-ci`, under the existing detector. Record SHA, suite size, conditions, elapsed time, and retained tee on this issue; also record same-tip ubuntu coverage-of-record duration as the ratio anchor. Clear the named durable-effect assertion failure from its actual error. Historical sub-15m remains the recovery aspiration; if first ship only proves reliable sub-60m, state that gap as a tracked performance residual.\n\n6. **Settle sequencer partition before sizing the tail.** With one instrumented win32 run (or equivalent evidence), settle whether `DurationSequencer`'s project-name tiebreak re-serializes spawn-heavy ahead of unit contrary to the config's `groupOrder` refusal. Size cheapen against that settled shape.\n\n7. **Non-goals / later.** No `RELEASE_CHECK_TIMEOUT_*` raise. No `maxWorkers` cut. No `sequence.groupOrder`. No moving the three tail files into `spawn-heavy`. No first-ship `poolOptions.forks.isolate: false`. `#635`-class residue and unrelated session ceremony stay out.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:53465c92d8aaccd6d9c1a272e3dcedeb93020003d500634214c3c16ed9357fa2\n\n## Parent-side substantiation\n\nClaude blocked on AC4 discharging as prose without sequencer input; Bound item 1 makes fixture refresh the deliverable. Codex and Grok converge on keep-60 + tee rank + duration refresh + cost-class cheapen + green-under-60m. Host latency and pool/isolate enter the search; isolate stays later. Share-plus-reset beats spawn-heavy for the three unit git tails.\n\naudit:sequencer-fixture-refresh sha=1890550a2afa7a6aa46e2cd3e27813a1dee36a9a pointer=comment:5894503529 reading=asserted\naudit:share-plus-reset-tail sha=1890550a2afa7a6aa46e2cd3e27813a1dee36a9a pointer=comment:5894503529 reading=asserted\naudit:keep-60-no-skip-ci sha=1890550a2afa7a6aa46e2cd3e27813a1dee36a9a pointer=comment:5894423191 reading=asserted\naudit:host-latency-diagnosis sha=1890550a2afa7a6aa46e2cd3e27813a1dee36a9a pointer=comment:5894391645 reading=asserted\naudit:isolate-later sha=1890550a2afa7a6aa46e2cd3e27813a1dee36a9a pointer=comment:5894503529 reading=asserted\r\n\n",
+          "id": 5894556796,
+          "html_url": "https://github.com/deftai/directive/issues/5140#issuecomment-5894556796",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:41:49Z",
+          "updated_at": "2026-09-29T16:41:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5140\ncharter: open critique\nround: 4 Pass-4 audit (pain-audit of Bound lean 5894556796)\nfresh critic\nid-ceiling: 5894556796\ndispatch-sha: 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a\narc-mode: no-ingest\naudit-targets: pain-P1,pain-P2,pain-P3\nseat: grok\nlauncher: grok\n\n`git rev-parse HEAD` equals `1890550a2afa7a6aa46e2cd3e27813a1dee36a9a`. Pin reads via `git show 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a:<path>`. No fetch/checkout. In-ceiling: Stop 1 `5894311288`, panel `5894333864`, critics `5894391645` / `5894423191` / `5894503529`, Bound lean `5894556796`. Named pains: P1 sequencer/duration fixture stale (AC must land ranking as sequencer input); P2 green Windows Step 5 under existing 60m without `--skip-ci` or timeout raise; P3 share-plus-reset for the three unit git tails, host latency diagnosis recorded, pool/isolate named with `isolate:false` later.\n\n## P1 fixture-as-sequencer-input cite holds under Bound item 1\nfootnote\nEvidence: Critic `5894503529` blocked because AC4 could discharge as CHANGELOG paste while `vitest-file-durations.json` stayed the interim 110-entry seed. At this SHA the fixture still declares `source: seeded-from-primary-node_modules-.vite-vitest-results-until-5027`, `dependsOnIssue: 5027`, **110** files, **29** under 30s; `durable-effect-acquisition/evaluate.test.ts` and `presentation-coverage/gates.test.ts` absent; `landed-filename.test.ts` listed at `155168`. `compareSpecsByCommittedDuration` returns `1` when the left path is unlisted and the right is listed (unlisted sorts after listed). Bound lean `5894556796` item 1 requires tee→`duration-rank` refresh of that fixture, delete sub-30s noise, measured entries for the three hang-cursor files, key→real-file validation, and states AC4 is that fixture land (CHANGELOG/RELEASING still document offenders).\nFailure mode: none for cite honesty — the blocking disposition (ranking as sequencer input) is Bound item 1's deliverable.\nDisposition: Census only; P1 cite holds.\n\n## P2 green-under-60m-no-skip-ci cite holds under Bound items 5 + 7\nfootnote\nEvidence: Panel consensus (`5894423191`, `5894391645`, `5894503529`) binds first-ship recovery to a passing Windows production-shaped Step 5 under the unchanged detector. At this SHA `RELEASE_CHECK_TIMEOUT_MS = 60 * 60 * 1000` (`packages/core/src/release/constants.ts`). Bound item 5 keeps that 60m ceiling and the `#5026` host no-coverage lane; success is zero test failures, valid tip-SHA coverage-of-record, no `--skip-ci`, under the existing detector, with SHA/suite/conditions/elapsed/tee recorded; clears the named durable-effect assertion from its actual error; treats sub-15m as aspiration with a tracked residual if only sub-60m is proved. Item 7 forbids another `RELEASE_CHECK_TIMEOUT_*` raise.\nFailure mode: none for cite honesty — the named pain is skip-ci / raise / timer-only “recovery,” and Bound bars those while requiring green Step 5 under 60m.\nDisposition: Census only; P2 cite holds.\n\n## P3 share-plus-reset / host / isolate-later cite holds under Bound items 2–4 + 7\nfootnote\nEvidence: Critic `5894503529` sharpened that the three unit git tails need `#4567` share-plus-reset and must not enter `spawn-heavy` (win32 one-worker serial drain); `5894391645` required recorded host Git/Node latency before suite-only bind; `5894503529` required pool/isolate in the search space with `isolate:false` after fixture refresh. At this SHA the three paths are absent from `spawnHeavyGlobs` and run in unit; `vitest.config.ts` has no live `pool` / `isolate` / `poolOptions` settings; RELEASING already documents repeated Git latency above ~150 ms and the stale-binary differential. Bound item 3 prefers share-plus-reset for `durable-effect-acquisition/evaluate.test.ts` first and forbids moving the three into `spawn-heavy`; item 2 records host latency/paths/load against that RELEASING differential without silent AV/binary product change; item 4 names `pool` / `poolOptions.forks.isolate` in the inventory and keeps `isolate: false` out of first ship, sequenced after item 5's before/after number; item 7 repeats those non-goals.\nFailure mode: none for cite honesty — the three sharpenings are Bound obligations, and spawn-heavy move / first-ship isolate flip stay out.\nDisposition: Census only; P3 cite holds.\n\n## `#5022` playbook name vs spawn-heavy forbid for these three\nfootnote\nEvidence: Bound item 3 cites “`#4591` / `#5022` cost-class playbook only where share-plus-reset / in-process is product-safe” while the same item and item 7 forbid moving these three into `spawn-heavy`. `#5022` historically included spawn-heavy moves; the qualifier plus the explicit forbid keep the harvest aligned with P3.\nFailure mode: none for pain-cite honesty — implementers following Bound item 3/7 cannot treat spawn-heavy move of these three as in-ship.\nDisposition: Census only; no Bound change required for P3 coverage.\n\n## Sequencer project-name partition settle (Bound item 6)\nfootnote\nEvidence: Critic `5894503529` sharpened that `DurationSequencer.sort` compares project name before duration; at this SHA that order is `groupOrder` then lexicographic `project.name` then committed duration. Bound item 6 requires one instrumented win32 settle before sizing the tail. Outside the named pain ids; absorbed sharpening.\nFailure mode: none for P1–P3 cite honesty.\nDisposition: Census only.\n\n",
+          "id": 5894628546,
+          "html_url": "https://github.com/deftai/directive/issues/5140#issuecomment-5894628546",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:46:28Z",
+          "updated_at": "2026-09-29T16:46:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| Refresh vitest-file-durations.json from tee as sequencer input (not CHANGELOG-only) | verified | critic 5894503529 blocks; lean 5894556796 item 1; pain 5894628546 P1 holds |\n| Keep RELEASE_CHECK_TIMEOUT at 60; green Step 5 without --skip-ci | verified | critics 5894391645/5894423191; lean item 5; pain P2 holds |\n| Share-plus-reset for unit git tails; no spawn-heavy move; isolate later | verified | critic 5894503529; lean items 3-4,7; pain P3 holds |\n| Host Git/Node latency diagnosis recorded | verified | critic 5894391645; lean item 2; pain footnote |\n| Pool/isolate named in search space; isolate:false out of first-ship | verified | critic 5894503529; lean items 4,7; pain footnote |\n\ndisagreement-set: (empty — agents agreed)\r\n\n",
+          "id": 5894662384,
+          "html_url": "https://github.com/deftai/directive/issues/5140#issuecomment-5894662384",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:48:40Z",
+          "updated_at": "2026-09-29T16:48:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\n\nRecover Windows Step 5 under the existing 60m detector by refreshing sequencer durations from the hang tee and cheapening the dominant unit-project git-spawn file with share-plus-reset. Do not raise the timeout. Isolation stays a later measured cut. Nothing was ingested in this arc.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5894556796\n\nsuccessor lean 5894556796\n\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 1890550a2afa7a6aa46e2cd3e27813a1dee36a9a\npain-audit: 5894628546 footnote-only\nverified-claims: preceding comment\r\n\n",
+          "id": 5894662623,
+          "html_url": "https://github.com/deftai/directive/issues/5140#issuecomment-5894662623",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T16:48:41Z",
+          "updated_at": "2026-09-29T16:48:41Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nWindows production `task release` Step 5 (`ts:check-lane`) hit the 60-minute hang detector (exit 124) on the v0.119.11 cut tip. Suite reached **1314 / 1334** files before kill — twenty files short of completion. Tests used to finish in under ~15 minutes on this host class; Step 5 wall-clock has regressed through successive hang-detector raises (20→30→45→60) without recovering that baseline.\n\n## Evidence (v0.119.11 cut, 2026-09-29)\n\n- Tip: `bc060886b` on `master` (post policy allow + reconcile stamp).\n- Pipeline: Steps 1–4 OK; Step 5 `task check` / `ts:check-lane` **FAIL exit 124**.\n- Last completed test file: `packages/core/src/presentation-coverage/gates.test.ts` (1314/1334).\n- Near-end slow/fail signal in tee: `packages/core/src/durable-effect-acquisition/evaluate.test.ts` (49 tests | 1 failed, ~277s) immediately before the last-file stamp.\n- Early suite was spawn-heavy (multi-minute `landed-filename.test.ts` ~268s); pace later improved but still projected past 60m.\n- Hang detector: `RELEASE_CHECK_TIMEOUT_MS` / `RELEASE_CHECK_TIMEOUT_MINUTES` = **60** (raised under #5091). This issue is **cheapen / root-cause**, not another numeric raise.\n- Prior related: #5022 / #5023 (20→30 + cheapen), #5024 (30→45), #5026 coverage-of-record, #5027/#5028 duration ranking, #5107 (v0.119.10 nearly-green ~44m + suite-load flake; operator skip-ci).\n\n## Acceptance\n\n1. Identify root cause of Windows Step 5 wall-clock regression vs historical <~15m (spawn/git cost, worker count, suite composition, AV/spawn latency, new heavy files).\n2. Land cheapen remediations so a production `task release` Step 5 completes **under the existing 60m hang detector without `--skip-ci`**.\n3. Prefer measured cost reduction over raising `RELEASE_CHECK_TIMEOUT_*` again.\n4. Document top offenders (tee timeline / duration rank) and the fix class in CHANGELOG / RELEASING when landed.\n\n## Operator note\n\nv0.119.11 production cut may use `--skip-ci --allow-skip-ci=<this-issue>` under explicit incident review so the hang class does not block the tag; the next patch after the cheapen lands should cut without `--skip-ci`.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5631949445,
+        "origin": "deftai/directive#5140",
+        "id": "github.issue.5631949445"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "53465c92d8aaccd6d9c1a272e3dcedeb93020003d500634214c3c16ed9357fa2"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/fixtures/vitest-file-durations.json",
+          "packages/core/src/ts-check-lane/duration-rank.ts",
+          "packages/core/src/ts-check-lane/duration-rank.test.ts",
+          "packages/core/src/vitest-runner/duration-sequencer.ts",
+          "packages/core/src/vitest-runner/duration-sequencer.test.ts",
+          "packages/core/src/durable-effect-acquisition/evaluate.test.ts",
+          "packages/core/src/presentation-coverage/gates.test.ts",
+          "packages/core/src/vbrief-validate/landed-filename.test.ts",
+          "packages/core/src/vitest-runner/vitest-config-contract.test.ts",
+          "vitest.config.ts",
+          "CHANGELOG.md",
+          "docs/RELEASING.md",
+          "xbrief/evaluator-surface-disposition.json"
+        ],
+        "file_scope_confidence": "bound-remedy",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/ts-check-lane/duration-rank.test.ts packages/core/src/vitest-runner/duration-sequencer.test.ts packages/core/src/durable-effect-acquisition/evaluate.test.ts"
+        ],
+        "expected_outputs": [
+          "vitest-file-durations refreshed from hang tee",
+          "share-plus-reset on durable-effect evaluate.test",
+          "Step 5 under 60m without skip-ci"
+        ],
+        "depends_on": [],
+        "conflict_group": "windows-step5-wallclock",
+        "size": "L",
+        "model_tier": "default"
+      },
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/ts-check-lane/duration-rank.test.ts packages/core/src/vitest-runner/duration-sequencer.test.ts packages/core/src/durable-effect-acquisition/evaluate.test.ts",
+          "source": "explicit"
+        }
+      ],
+      "productPullRequest": 5174,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5174,
+        "prBase": null,
+        "mergeCommit": "f105149bdd99cc545d95961b85be18fecddb2e6a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f105149bdd99cc545d95961b85be18fecddb2e6a",
+        "verifiedAt": "2026-09-30T13:18:44Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGYyNTktMTI3Zi03NmMxLTk0ZGYtMGU3ZjU3Yzk5NmZm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-30T13:18:44Z",
+      "completedSessionId": "host:grok:v1:MDFhMGYyNTktMTI3Zi03NmMxLTk0ZGYtMGU3ZjU3Yzk5NmZm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T13:18:44Z"
+      }
+    },
+    "id": "github.issue.5631949445",
+    "updated": "2026-09-30T13:18:44Z"
+  }
+}
