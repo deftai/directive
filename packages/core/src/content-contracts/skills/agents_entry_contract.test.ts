@@ -201,9 +201,10 @@ const THROUGH_MERGE_DISPATCH_MARKERS = [
   "Parent conversation implements or babysits",
 ] as const;
 
-/** Always-on Cursor dest-placing spawn dest (#4066 / #4295). */
+/** Always-on Grok/Cursor dest-placing spawn dest (#4066 / #4295 / #4575). */
 const SPAWN_DEST_PLACING_MARKERS = [
-  "Spawn dest (#4066 / #4295)",
+  "Spawn dest (#4066/#4295/#4575)",
+  "dest-place then cwd",
   "dest-placing",
   "Task dest keys",
   "Agent.create",

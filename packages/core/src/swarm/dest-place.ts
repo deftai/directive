@@ -10,7 +10,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve as pathResolve } from "node:path";
 import { reconstituteLinkedWorktreeDeposit } from "../init-deposit/gitignore.js";
-import { isLinkedWorktreePath } from "../session/main-worktree.js";
+import { isLinkedWorktreePath, mainWorktreeRoot } from "../session/main-worktree.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
 import type { TextCaptureResult } from "./subprocess.js";
 import { defaultGitRunner, type GitRunner } from "./worktrees.js";
@@ -21,7 +21,8 @@ export type DestPlaceFailureCode =
   | "path-not-worktree"
   | "worktree-add-failed"
   | "deposit-refused"
-  | "revision-mismatch";
+  | "revision-mismatch"
+  | "foreign-worktree";
 
 export type DestPlaceResult =
   | {
@@ -154,6 +155,17 @@ export function destPlaceImplementSpawn(input: DestPlaceImplementSpawnInput): De
           `${actualOid || "(missing)"} but requested commit-ish '${commitIsh}' ` +
           `resolves to ${requestedOid || "(unresolved)"}. Reuse requires a matching HEAD; ` +
           `pick a fresh path or reset the worktree to the requested commit.`,
+      };
+    }
+    const repoMain = mainWorktreeRoot(repoRoot);
+    const destMain = mainWorktreeRoot(worktreePath);
+    if (repoMain === null || destMain === null || pathResolve(repoMain) !== pathResolve(destMain)) {
+      return {
+        ok: false,
+        code: "foreign-worktree",
+        message:
+          `dest-place refused: ${worktreePath} is not a linked worktree of repoRoot ${repoRoot} ` +
+          `(ownership check before deposit reconstitution).`,
       };
     }
     const reuseDeposit = reconstituteLinkedWorktreeDeposit(worktreePath, {
