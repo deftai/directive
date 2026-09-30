@@ -82,6 +82,7 @@ export * as preflight from "./preflight/index.js";
 export * as presentationCeiling from "./presentation-ceiling/index.js";
 export * as presentationCoverage from "./presentation-coverage/index.js";
 export * as productFirstDoneGate from "./product-first-done-gate/index.js";
+export * as project from "./project/index.js";
 export * as release from "./release/index.js";
 export * as releaseE2e from "./release-e2e/index.js";
 export * as releasePublish from "./release-publish/index.js";

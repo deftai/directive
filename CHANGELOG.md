@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Fail-closed non-empty PROJECT-DEFINITION planning narratives at first-ship (#5176).** Check refuses when every tracked PD planning field (Overview + tech stack) is empty/whitespace after a seeded identity; `verify:persisted-planning-narratives` is the setup Phase 2 completion bar. Reuses `project:write-narratives`; parse/init may still accept empty strings mid-setup. External score: DCR R.4668 / `agent.setup_answers_persisted_in_pd`. Sibling #4544 and closed #4668 Depth/re-ask stay out. Tracking #5176.
+
 ### Changed
 
 - **Windows Step 5 cold-worktree sequencing + unit git-tail cheapen (#5140).** Refresh committed Vitest file durations from a retained Step 5 tee; keep prior ≥30s timings the incomplete tee omitted; share-plus-reset the durable-effect unit git tail; keep unit/spawn-heavy overlapping (no `groupOrder` serial drain). Host probe and fixture notes: `docs/RELEASING.md`. Keep 60m hang detector and #5026 no-coverage host lane; first ship tracks reliable sub-60m without `--skip-ci`. Refs #5022, #5026, #5027, #5028, #4567. Tracking #5140.

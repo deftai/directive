@@ -210,7 +210,7 @@ Every policy writer fails with config exit 2 when bare `plan.policy` and namespa
 
 Legacy-only projects may migrate through the next policy write or through corpus-wide `deft migrate:category-b`. The migration command also fails closed on coexistence; it is not a dual-block healer.
 
-Setup uses these same commands for every interview track. Branch-based is persisted as explicit `false` unless the operator passes the trunk capability-cost confirmation; before reporting Phase 2 complete, setup reads the selected boolean back, confirms bare `plan.policy` is absent, and runs `deft verify:vbrief-conformance --project-root .`.
+Setup uses these same commands for every interview track. Branch-based is persisted as explicit `false` unless the operator passes the trunk capability-cost confirmation; before reporting Phase 2 complete, setup reads the selected boolean back, confirms bare `plan.policy` is absent, runs `deft verify:vbrief-conformance --project-root .`, and runs `deft verify:persisted-planning-narratives --project-root .` (#5176 Prefer-A — at least one non-empty tracked Overview / tech stack field).
 
 ## Default-branch sync (`scm:sync-default`, #3391)
 
@@ -313,6 +313,7 @@ Current status: the validation, extractor, provider, registry, generated MAP, an
 - `task verify:hooks-installed` -- ensure local git hooks are configured; use `deft verify:hooks-installed --scope=agent --live` for fail-closed agent-host registration + command functionality.
 - `task verify:encoding` -- detect mojibake and BOM issues.
 - `task verify:vbrief-conformance` -- validate xBRIEF conformance surfaces.
+- `deft verify:persisted-planning-narratives` -- fail closed when every tracked PROJECT-DEFINITION planning narrative (Overview + tech stack) is empty/whitespace (#5176 Prefer-A). Setup Phase 2 completion and the check surface use this bar; mid-setup parse/`project:write-narratives` may still accept `""`. Remedy: confirm Overview or tech stack, then `deft project:write-narratives`.
 - `task verify:cache-fresh` -- validate cache freshness where required.
 - `task verify:capacity`, `task verify:wip-cap`, and `task verify:judgment-gates` -- policy/capacity gates.
 - `task verify:orphan-active` -- fail closed when active/running xBRIEFs still point at closed issues or merged PRs (#2321). After merge, `task verify:orphan-active -- --issue N` scans briefs that reference that issue. Confirmed shipped prints `task scope:complete -- <path>`; unresolved lookup prints a retry remediation and still exits 1 (#3429). PR-only briefs stay on the unscoped scan or `task swarm:complete-cohort`.

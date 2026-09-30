@@ -55,6 +55,11 @@ export {
   resolveCheckTarget,
 } from "./orchestrator.js";
 export {
+  CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID,
+  checkRejectsEmptyPlanningNarratives,
+  evaluateCheckPersistedPlanningNarratives,
+} from "./persisted-planning-narratives-gate.js";
+export {
   detectTestRunner,
   type RunnerDetectResult,
   runnerDetectionTable,

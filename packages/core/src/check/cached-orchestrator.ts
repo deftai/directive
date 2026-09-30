@@ -47,6 +47,11 @@ import {
 } from "./gate-lists.js";
 import { formatDegradedSkipReport, formatNamedCauseFailure, remedyForGate } from "./named-cause.js";
 import {
+  CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID,
+  checkRejectsEmptyPlanningNarratives,
+  evaluateCheckPersistedPlanningNarratives,
+} from "./persisted-planning-narratives-gate.js";
+import {
   projectHasLifecycleBrief,
   RAPID_SOFT_MISSING_NO_BRIEF_NOTICE,
   rapidCheckWarnsSoftMissingNoBrief,
@@ -281,6 +286,20 @@ export function dispatchCachedTaskCheck(
   if (gates.length === 0) {
     process.stderr.write(`check: no gate list for target ${target}\n`);
     return finish(2, false);
+  }
+
+  // #5176 Prefer-A: first-ship check refuses all-empty tracked PD planning
+  // narratives. Missing PD stays out (init/setup presence); empty seed fails.
+  const planningNarratives = evaluateCheckPersistedPlanningNarratives(resolvedProject);
+  if (checkRejectsEmptyPlanningNarratives(planningNarratives)) {
+    process.stderr.write(`check: ${planningNarratives.message}\n`);
+    gateOutcomes.push({
+      id: CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID,
+      status: "failed",
+      cause: planningNarratives.cause,
+      remedy: planningNarratives.remedy,
+    });
+    return finish(1, false);
   }
 
   // #3282: toolchain preflight — degraded skip when framework tools missing.

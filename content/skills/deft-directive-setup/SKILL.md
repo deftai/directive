@@ -582,9 +582,10 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
 ! A nonzero writer exit halts Phase 2 immediately. Do not print a completion claim and do not retry by hand-editing JSON. Resolve the reported configuration problem, rerun the Re-entry shadow guard, and invoke the writer again.
 
-! Before Phase 2 can complete, re-read PROJECT-DEFINITION and verify all three postconditions: `plan["x-directive/policy"].allowDirectCommitsToMaster` is the selected boolean; bare `plan.policy` is absent; and `deft verify:vbrief-conformance --project-root <policy-project-root>` exits 0. Also run `deft policy:show --field=plan.policy.allowDirectCommitsToMaster --project-root <policy-project-root>` and confirm its resolved value matches the selection. Any mismatch is a hard stop.
+! Before Phase 2 can complete, re-read PROJECT-DEFINITION and verify all four postconditions: `plan["x-directive/policy"].allowDirectCommitsToMaster` is the selected boolean; bare `plan.policy` is absent; `deft verify:vbrief-conformance --project-root <policy-project-root>` exits 0; and `deft verify:persisted-planning-narratives --project-root <policy-project-root>` exits 0 (#5176 Prefer-A — at least one non-empty tracked planning narrative among Overview / tech stack). Also run `deft policy:show --field=plan.policy.allowDirectCommitsToMaster --project-root <policy-project-root>` and confirm its resolved value matches the selection. Any mismatch is a hard stop. Empty strings remain legal mid-setup and at parse; this bar refuses first-ship / Phase 2 completion while every tracked planning value is empty or whitespace. Reuse `deft project:write-narratives` to fill — do not invent a second writer. DCR R.4668 / `agent.setup_answers_persisted_in_pd` is the external score only.
 
 ⊗ Finish Phase 2 after writing only the narrative template
+⊗ Complete Phase 2 while Overview and tech stack (and DCR-equivalent tracked bag) are all empty / whitespace (#5176)
 ⊗ Add a setup-specific policy writer or weaken conformance to permit bare `plan.policy`
 
 ### GitHub PR Template Scaffolding (#531)
