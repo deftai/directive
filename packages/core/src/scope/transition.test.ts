@@ -812,6 +812,91 @@ describe("runTransition", () => {
     expect(existsSync(path)).toBe(true);
   });
 
+  it("refused complete after mid-flight persist leaves no completionProvenance on active (#5106)", () => {
+    root = makeRepo();
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "P",
+          status: "running",
+          policy: { deliveryBranch: "master", wipCap: 20 },
+        },
+      }),
+      "utf8",
+    );
+    const path = join(root, "xbrief", "active", "midflight-provenance.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "code story",
+        status: "running",
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/5106",
+            type: "x-xbrief/github-issue",
+          },
+        ],
+        metadata: {
+          kind: "story",
+          swarm: { file_scope: ["packages/core/src/scope/transition.ts"] },
+        },
+        // Empty items + clauses force mid-flight persist before acceptance refuse.
+        items: [],
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          ambiguity_attestation: "none_found",
+          clauses: [
+            {
+              id: 1,
+              text: "Fail-closed ordering for completionProvenance",
+              artifact_path: null,
+              ambiguous: false,
+            },
+          ],
+        },
+      },
+    });
+    const gitOk: GitRunner = (_cwd, args) => {
+      const joined = args.join(" ");
+      if (joined.includes("merge-base") && joined.includes("--is-ancestor")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (joined.includes("rev-parse") && joined.includes("origin/")) {
+        return { code: 0, stdout: "deliverytipsha", stderr: "" };
+      }
+      if (joined.includes("symbolic-ref")) {
+        return { code: 0, stdout: "origin/master", stderr: "" };
+      }
+      if (joined.includes("show-ref")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "ok", stderr: "" };
+    };
+    const result = runTransition("complete", path, new Date("2026-09-30T12:00:00.000Z"), {
+      nonDeliveryDisposition: "accepted_not_delivered",
+      runGit: gitOk,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Acceptance evidence required|#3240|clause\.1/);
+    expect(existsSync(path)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "completed", "midflight-provenance.xbrief.json"))).toBe(
+      false,
+    );
+    const data = JSON.parse(readFileSync(path, "utf8")) as {
+      plan: {
+        status: string;
+        metadata?: { completionProvenance?: unknown };
+        items: Array<{ id?: string; status?: string }>;
+      };
+    };
+    expect(data.plan.status).toBe("running");
+    expect(data.plan.metadata).not.toHaveProperty("completionProvenance");
+    expect(data.plan.items.some((item) => item.id === "clause.1")).toBe(true);
+  });
+
   it("advances non-terminal own plan.items and stamps xBRIEFInfo.updated on complete (#2862)", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "active", "mixed-items.xbrief.json");

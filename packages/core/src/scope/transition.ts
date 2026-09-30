@@ -60,6 +60,7 @@ import {
   updateDecomposedParentBackReferences,
 } from "./decomposed-refs.js";
 import {
+  briefWithoutDurableCompletionProvenance,
   classifyStoredDeliveryDisposition,
   type DeliveryEvidenceInput,
   evaluateDeliveryGate,
@@ -398,12 +399,20 @@ export function runTransition(
     // Persist clause-keyed items and eligible merge stamps before the read-only
     // gate, even when later acceptance refuses (#5120). Write when persist would
     // have skipped if a merge stamp landed.
+    // #5106: defer durable completionProvenance until the completed/ move commits —
+    // mid-flight active writes keep clause/merge item stamps only so a later refuse
+    // cannot leave provenance on a still-running active source.
     if (
       persist.addedIds.length > 0 ||
       persist.rewrittenIds.length > 0 ||
       mergeStamp.stampedIds.length > 0
     ) {
-      const persistWrite = atomicWriteBrief(resolvedPath, data, vbriefRoot, { projectRoot });
+      const persistWrite = atomicWriteBrief(
+        resolvedPath,
+        briefWithoutDurableCompletionProvenance(data),
+        vbriefRoot,
+        { projectRoot },
+      );
       if (!persistWrite.ok) {
         return { ok: false, message: persistWrite.message };
       }

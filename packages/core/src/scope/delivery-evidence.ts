@@ -565,6 +565,27 @@ export function stampDeliveryProvenance(
 }
 
 /**
+ * Clone a brief for mid-flight active writes without durable completionProvenance (#5106).
+ * Keeps the in-memory stamp for acceptance/commit; refuse paths must not leave
+ * provenance on a still-running active source.
+ */
+export function briefWithoutDurableCompletionProvenance(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const clone = JSON.parse(JSON.stringify(data)) as Record<string, unknown>;
+  const plan = asRecord(clone.plan);
+  if (plan === null) {
+    return clone;
+  }
+  const meta = asRecord(plan.metadata);
+  if (meta === null) {
+    return clone;
+  }
+  delete meta.completionProvenance;
+  return clone;
+}
+
+/**
  * Parse a PR REST payload into delivery evidence fields.
  * Expects GitHub pulls API shape (merged_at, base.ref, merge_commit_sha, …).
  */
