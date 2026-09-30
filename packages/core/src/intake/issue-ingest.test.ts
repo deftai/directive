@@ -2839,3 +2839,174 @@ describe("#4119 plan.id mint, admission, and repair", () => {
     process.platform === "win32" ? 240_000 : 15_000,
   );
 });
+
+
+describe("ingestOne residual mode (#5177 Prefer-A)", () => {
+  function writeOwnedCompleted(xbriefDir: string, issue: number, restId: number): void {
+    const dir = join(xbriefDir, "completed");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, `2026-09-23-${issue}-shipped.xbrief.json`),
+      JSON.stringify({
+        xBRIEFInfo: {
+          version: "0.8",
+          description: `Scope xBRIEF ingested from GitHub issue #${issue}`,
+        },
+        plan: {
+          title: `shipped ${issue}`,
+          id: `github.issue.${restId}`,
+          status: "completed",
+          narratives: {
+            Origin: `Ingested from https://github.com/o/r/issues/${issue}`,
+          },
+          metadata: {
+            "x-directive/plan-id": {
+              version: 1,
+              source: "github-rest-id",
+              github_issue_id: restId,
+              origin: `o/r#${issue}`,
+              id: `github.issue.${restId}`,
+            },
+          },
+          references: [
+            {
+              uri: `https://github.com/o/r/issues/${issue}`,
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+  }
+
+  it("names residual recovery on completed duplicate without --residual", () => {
+    const root = mkdtempSync(join(tmpdir(), "5177-dup-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      writeOwnedCompleted(xbriefDir, 4544, 5453269518);
+      const [result, , msg] = ingestOne(
+        {
+          id: 5453269518,
+          number: 4544,
+          title: "reopen",
+          state: "open",
+          url: "https://github.com/o/r/issues/4544",
+          labels: [],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(result).toBe("duplicate");
+      expect(msg).toContain("issue:ingest --residual -- 4544");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("mints a distinct residual plan.id beside completed history", () => {
+    const root = mkdtempSync(join(tmpdir(), "5177-mint-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      writeOwnedCompleted(xbriefDir, 4544, 5453269518);
+      const [result, path, msg] = ingestOne(
+        {
+          id: 5453269518,
+          number: 4544,
+          title: "residual reopen",
+          state: "open",
+          url: "https://github.com/o/r/issues/4544",
+          labels: [],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          residual: true,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(result).toBe("created");
+      expect(path).toBeTruthy();
+      const parsed = JSON.parse(readFileSync(path as string, "utf8")) as {
+        plan: Record<string, unknown>;
+      };
+      const plan = parsed.plan;
+      expect(plan.id).toBe("github.issue.residual.5453269518");
+      expect(plan.id).not.toBe("github.issue.5453269518");
+      const meta = (plan.metadata as Record<string, unknown>)["x-directive/plan-id"] as Record<
+        string,
+        unknown
+      >;
+      expect(meta.source).toBe("github-residual");
+      const lineage = (plan.metadata as Record<string, unknown>)[
+        "x-directive/residual-lineage"
+      ] as Record<string, unknown>;
+      expect(lineage.predecessor_plan_id).toBe("github.issue.5453269518");
+      expect(String(lineage.predecessor_path)).toContain("completed/");
+      expect(msg).toContain("residual plan.id=");
+      expect(existsSync(join(xbriefDir, "completed"))).toBe(true);
+      expect(readdirSync(join(xbriefDir, "completed")).length).toBeGreaterThan(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a second residual mint when one is already non-terminal", () => {
+    const root = mkdtempSync(join(tmpdir(), "5177-second-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      writeOwnedCompleted(xbriefDir, 4544, 5453269518);
+      const [first] = ingestOne(
+        {
+          id: 5453269518,
+          number: 4544,
+          title: "residual reopen",
+          state: "open",
+          url: "https://github.com/o/r/issues/4544",
+          labels: [],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          residual: true,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(first).toBe("created");
+      const [second, , msg] = ingestOne(
+        {
+          id: 5453269518,
+          number: 4544,
+          title: "residual reopen again",
+          state: "open",
+          url: "https://github.com/o/r/issues/4544",
+          labels: [],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          residual: true,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(second).toBe("duplicate");
+      expect(msg).toContain("residual already admitted");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});

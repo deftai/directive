@@ -84,7 +84,11 @@ export function readStoredPlanIdBinding(plan: Record<string, unknown>): StoredPl
     return { kind: "malformed", detail: "stored plan-id binding version is not supported." };
   }
   const source = binding.source;
-  if (source !== "github-rest-id" && source !== "github-repo-fallback") {
+  if (
+    source !== "github-rest-id" &&
+    source !== "github-repo-fallback" &&
+    source !== "github-residual"
+  ) {
     return {
       kind: "malformed",
       detail: "stored plan-id binding source is not a known mint source.",
@@ -105,13 +109,22 @@ export function readStoredPlanIdBinding(plan: Record<string, unknown>): StoredPl
   if (typeof id !== "string" || id.trim().length === 0) {
     return { kind: "malformed", detail: "stored plan-id binding id is malformed." };
   }
-  if (source === "github-rest-id") {
+  if (source === "github-rest-id" || source === "github-residual") {
     if (typeof binding.github_issue_id !== "number") {
       return { kind: "malformed", detail: "stored plan-id binding github_issue_id is malformed." };
     }
     const restId = parsePositiveGithubIssueId(binding.github_issue_id);
     if (restId === null) {
       return { kind: "malformed", detail: "stored plan-id binding github_issue_id is malformed." };
+    }
+    if (source === "github-residual") {
+      const residualOk = /^github\.issue\.residual\.\d+(?:\.lean\.\d+)?$/.test(id.trim());
+      if (!residualOk || id.trim() === `github.issue.${restId}`) {
+        return {
+          kind: "malformed",
+          detail: "stored residual plan-id binding id does not match github_issue_id.",
+        };
+      }
     }
     return {
       kind: "ok",
@@ -161,6 +174,17 @@ function bindingConflictDetail(
     const expectedId = `github.issue.${binding.githubIssueId}`;
     if (binding.id !== expectedId) {
       return `stored plan-id ${binding.id} disagrees with github_issue_id ${binding.githubIssueId}.`;
+    }
+    return null;
+  }
+  if (binding.source === "github-residual") {
+    const residualOk = /^github\.issue\.residual\.\d+(?:\.lean\.\d+)?$/.test(binding.id);
+    const rest = binding.githubIssueId;
+    if (!residualOk || rest === null || binding.id === `github.issue.${rest}`) {
+      return `stored residual plan-id ${binding.id} disagrees with github_issue_id ${binding.githubIssueId}.`;
+    }
+    if (!binding.id.startsWith(`github.issue.residual.${rest}`)) {
+      return `stored residual plan-id ${binding.id} disagrees with github_issue_id ${binding.githubIssueId}.`;
     }
     return null;
   }

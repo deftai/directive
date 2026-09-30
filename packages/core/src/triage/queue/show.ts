@@ -315,7 +315,7 @@ export function renderOperatorBrief(options: {
   lines.push(`#${options.number}  ${oneLine(issue.title)}`);
   lines.push(`labels:  ${labels}`);
   lines.push(
-    "validity: (agent-owned — still-open | partial | likely-shipped | needs-re-scope + evidence)",
+    "validity: (agent-owned — still-open | partial | likely-shipped | needs-re-scope | residual-in-flight + evidence)",
   );
   lines.push("");
   lines.push("summary:");

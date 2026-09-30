@@ -80,6 +80,18 @@ import {
   type ScmCallFn,
   TERMINAL_LIFECYCLE_FOLDERS,
 } from "./reconcile-issues.js";
+import {
+  attachResidualLineage,
+  findNonterminalResidualHits,
+  findOwnedCompletedHits,
+  formatCompletedDuplicateWithResidualRecovery,
+  formatResidualAlreadyAdmittedMessage,
+  isTerminalRelPath,
+  mintResidualIssuePlanId,
+  predecessorPlanIdForRestIssue,
+  residualIdMatchesRestIssue,
+  RESIDUAL_PLAN_ID_SOURCE,
+} from "./residual-identity.js";
 
 /** Reference type pointing at the canonical current-shape comment permalink (#1870). */
 export const CURRENT_SHAPE_REF_TYPE = "x-xbrief/current-shape" as const;
@@ -504,7 +516,10 @@ const ORIGIN_API_RE = /https?:\/\/api\.github\.com\/repos\/([^/\s]+)\/([^/\s]+)\
 export const PLAN_ID_ORIGIN_META_KEY = "x-directive/plan-id" as const;
 export const PLAN_ID_MINT_VERSION = 1 as const;
 
-export type PlanIdMintSource = "github-rest-id" | "github-repo-fallback";
+export type PlanIdMintSource =
+  | "github-rest-id"
+  | "github-repo-fallback"
+  | typeof RESIDUAL_PLAN_ID_SOURCE;
 
 export interface PlanIdMint {
   readonly id: string;
@@ -846,7 +861,11 @@ function parseStoredPlanIdBinding(plan: Record<string, unknown>): ParsedPlanIdBi
     return { kind: "malformed", detail: "stored plan-id binding version is not supported." };
   }
   const source = binding.source;
-  if (source !== "github-rest-id" && source !== "github-repo-fallback") {
+  if (
+    source !== "github-rest-id" &&
+    source !== "github-repo-fallback" &&
+    source !== RESIDUAL_PLAN_ID_SOURCE
+  ) {
     return {
       kind: "malformed",
       detail: "stored plan-id binding source is not a known mint source.",
@@ -867,13 +886,19 @@ function parseStoredPlanIdBinding(plan: Record<string, unknown>): ParsedPlanIdBi
   if (typeof id !== "string" || id.trim().length === 0) {
     return { kind: "malformed", detail: "stored plan-id binding id is malformed." };
   }
-  if (source === "github-rest-id") {
+  if (source === "github-rest-id" || source === RESIDUAL_PLAN_ID_SOURCE) {
     if (typeof binding.github_issue_id !== "number") {
       return { kind: "malformed", detail: "stored plan-id binding github_issue_id is malformed." };
     }
     const restId = parsePositiveGithubIssueId(binding.github_issue_id);
     if (restId === null) {
       return { kind: "malformed", detail: "stored plan-id binding github_issue_id is malformed." };
+    }
+    if (source === RESIDUAL_PLAN_ID_SOURCE && !residualIdMatchesRestIssue(id.trim(), restId)) {
+      return {
+        kind: "malformed",
+        detail: "stored residual plan-id binding id does not match github_issue_id.",
+      };
     }
     return {
       kind: "ok",
@@ -922,6 +947,15 @@ function bindingIdentityConflict(
     const expectedId = `github.issue.${binding.githubIssueId}`;
     if (binding.id !== expectedId) {
       return `stored plan-id ${binding.id} disagrees with github_issue_id ${binding.githubIssueId}.`;
+    }
+    return null;
+  }
+  if (binding.source === RESIDUAL_PLAN_ID_SOURCE) {
+    if (!residualIdMatchesRestIssue(binding.id, binding.githubIssueId ?? -1)) {
+      return `stored residual plan-id ${binding.id} disagrees with github_issue_id ${binding.githubIssueId}.`;
+    }
+    if (binding.id === `github.issue.${binding.githubIssueId}`) {
+      return `residual plan-id must not reuse primary github.issue.${binding.githubIssueId}.`;
     }
     return null;
   }
@@ -1482,6 +1516,16 @@ export function buildIssueVbrief(
       readonly items: readonly Record<string, string>[];
       readonly sourceText: string;
     };
+    /** Prefer-A residual mint (#5177): distinct plan.id + lineage to predecessor. */
+    residualMint?: {
+      readonly id: string;
+      readonly source: typeof RESIDUAL_PLAN_ID_SOURCE;
+      readonly githubIssueId: number;
+      readonly originKey: string;
+      readonly predecessorPlanId: string;
+      readonly predecessorPath: string;
+      readonly leanCommentId: number | null;
+    };
   } = {},
 ): [Record<string, unknown>, string] {
   const number = Number(issue.number);
@@ -1671,19 +1715,35 @@ export function buildIssueVbrief(
     persistRefusedIssueBodyOnPlan(plan, bodyStr, number);
   }
 
-  const origin = originFromIssue(issue, repoUrl);
-  if (origin !== null) {
-    attachPlanIdMint(plan, mintIssuePlanId({ issueId: issue.id, ...origin }));
+  const residualMint = options.residualMint;
+  if (residualMint !== undefined) {
+    attachPlanIdMint(plan, {
+      id: residualMint.id,
+      source: residualMint.source,
+      githubIssueId: residualMint.githubIssueId,
+      originKey: residualMint.originKey,
+      version: PLAN_ID_MINT_VERSION,
+    });
+    attachResidualLineage(plan, {
+      predecessorPlanId: residualMint.predecessorPlanId,
+      predecessorPath: residualMint.predecessorPath,
+      boundLeanCommentId: residualMint.leanCommentId,
+    });
   } else {
-    const restId = parsePositiveGithubIssueId(issue.id);
-    if (restId !== null) {
-      attachPlanIdMint(plan, {
-        id: `github.issue.${restId}`,
-        source: "github-rest-id",
-        githubIssueId: restId,
-        originKey: numberOnlyOriginKey(number),
-        version: PLAN_ID_MINT_VERSION,
-      });
+    const origin = originFromIssue(issue, repoUrl);
+    if (origin !== null) {
+      attachPlanIdMint(plan, mintIssuePlanId({ issueId: issue.id, ...origin }));
+    } else {
+      const restId = parsePositiveGithubIssueId(issue.id);
+      if (restId !== null) {
+        attachPlanIdMint(plan, {
+          id: `github.issue.${restId}`,
+          source: "github-rest-id",
+          githubIssueId: restId,
+          originKey: numberOnlyOriginKey(number),
+          version: PLAN_ID_MINT_VERSION,
+        });
+      }
     }
   }
 
@@ -1948,7 +2008,7 @@ export function fetchIssue(
   return attachIssueCommentThread(cached, comments);
 }
 
-export type IngestResult = "created" | "dryrun" | "duplicate";
+export type IngestResult = "created" | "dryrun" | "duplicate" | "refused";
 
 /**
  * Resolve the containment root for ingest writes (#2869 / #2871).
@@ -2081,6 +2141,7 @@ export function ingestOne(
     status: IngestStatus;
     repoUrl: string;
     dryRun?: boolean;
+    residual?: boolean;
     existingRefs?: Map<number, string[]>;
     existingOrigins?: Map<string, string[]>;
     scmCall?: ScmCallFn;
@@ -2089,14 +2150,14 @@ export function ingestOne(
   },
 ): [IngestResult, string | null, string] {
   const number = Number(issue.number);
+  const residualMode = options.residual === true;
   return withPlanIdIdentityLock(options.vbriefDir, () => {
-    if (options.existingRefs?.has(number)) {
+    if (!residualMode && options.existingRefs?.has(number)) {
       const existing = options.existingRefs.get(number)?.[0] ?? "";
-      return [
-        "duplicate",
-        join(options.vbriefDir, existing),
-        `#${number} already ingested at ${existing}`,
-      ];
+      const msg = isTerminalRelPath(existing)
+        ? formatCompletedDuplicateWithResidualRecovery(number, existing)
+        : `#${number} already ingested at ${existing}`;
+      return ["duplicate", join(options.vbriefDir, existing), msg];
     }
     const origins = options.existingOrigins ?? scanProvenanceOrigins(options.vbriefDir);
     const origin = originFromIssue(issue, options.repoUrl);
@@ -2104,13 +2165,41 @@ export function ingestOne(
     if (origin !== null) {
       originKeys.unshift(issueOriginKey(origin));
     }
-    for (const key of originKeys) {
-      if (origins.has(key)) {
-        const existing = origins.get(key)?.[0] ?? "";
+    if (!residualMode) {
+      for (const key of originKeys) {
+        if (origins.has(key)) {
+          const existing = origins.get(key)?.[0] ?? "";
+          const msg = isTerminalRelPath(existing)
+            ? formatCompletedDuplicateWithResidualRecovery(number, existing)
+            : `#${number} already ingested at ${existing}`;
+          return ["duplicate", join(options.vbriefDir, existing), msg];
+        }
+      }
+    } else {
+      const liveResiduals = findNonterminalResidualHits(options.vbriefDir, number);
+      if (liveResiduals.length > 0) {
+        const hit = liveResiduals[0] as (typeof liveResiduals)[number];
         return [
           "duplicate",
-          join(options.vbriefDir, existing),
-          `#${number} already ingested at ${existing}`,
+          hit.path,
+          formatResidualAlreadyAdmittedMessage(number, hit.relPath),
+        ];
+      }
+      const ownedCompleted = findOwnedCompletedHits(options.vbriefDir, number);
+      if (ownedCompleted.length === 0) {
+        return [
+          "refused",
+          null,
+          `#${number} residual ingest refused: no owned completed/ history for this origin ` +
+            `(shared ownership predicate; not bare references).`,
+        ];
+      }
+      const issueState = typeof issue.state === "string" ? issue.state.toLowerCase() : "";
+      if (issueState === "closed") {
+        return [
+          "refused",
+          null,
+          `#${number} residual ingest refused: GitHub issue is closed (residual mode requires open).`,
         ];
       }
     }
@@ -2143,7 +2232,9 @@ export function ingestOne(
     let specPathHarvest:
       | { readonly items: readonly Record<string, string>[]; readonly sourceText: string }
       | undefined;
+    let leanCommentId: number | null = null;
     if (verdict.status === "complete") {
+      leanCommentId = verdict.citedLeanId;
       const cited = comments.find((comment) => comment.id === verdict.citedLeanId);
       const citedBody = cited?.body ?? "";
       if (leanCarriesSpecPathToken(citedBody)) {
@@ -2189,11 +2280,64 @@ export function ingestOne(
         }
       }
     }
+
+    let residualMintOption:
+      | {
+          readonly id: string;
+          readonly source: typeof RESIDUAL_PLAN_ID_SOURCE;
+          readonly githubIssueId: number;
+          readonly originKey: string;
+          readonly predecessorPlanId: string;
+          readonly predecessorPath: string;
+          readonly leanCommentId: number | null;
+        }
+      | undefined;
+    if (residualMode) {
+      if (origin === null) {
+        return [
+          "refused",
+          null,
+          `#${number} residual ingest refused: could not resolve repository origin for mint.`,
+        ];
+      }
+      const minted = mintResidualIssuePlanId({
+        issueId: issue.id,
+        owner: origin.owner,
+        repo: origin.repo,
+        number: origin.number,
+        leanCommentId,
+      });
+      if (!minted.ok) {
+        return ["refused", null, `#${number} residual ingest refused: ${minted.message}`];
+      }
+      const sameIdOccupants = findParentsByPlanId(options.vbriefDir, minted.id);
+      if (sameIdOccupants.length > 0) {
+        const occupying = sameIdOccupants[0]?.path ?? minted.id;
+        return [
+          "duplicate",
+          occupying,
+          formatResidualAlreadyAdmittedMessage(number, occupying),
+        ];
+      }
+      const ownedCompleted = findOwnedCompletedHits(options.vbriefDir, number);
+      const predecessor = ownedCompleted[0] as (typeof ownedCompleted)[number];
+      residualMintOption = {
+        id: minted.id,
+        source: minted.source,
+        githubIssueId: minted.githubIssueId,
+        originKey: minted.originKey,
+        predecessorPlanId: predecessorPlanIdForRestIssue(minted.githubIssueId),
+        predecessorPath: predecessor.relPath,
+        leanCommentId: minted.leanCommentId,
+      };
+    }
+
     const emissionLayout = resolveIngestEmissionLayout(options.vbriefDir);
     const [vbrief, folder] = buildIssueVbrief(enriched, options.status, options.repoUrl, {
       infoRootKey: emissionLayout.infoRootKey,
       infoVersion: emissionLayout.infoVersion,
       specPathHarvest,
+      residualMint: residualMintOption,
     });
     if (admittedDigest !== null) {
       attachAdmittedTargetDigest(vbrief.plan, admittedDigest);
@@ -2242,7 +2386,15 @@ export function ingestOne(
     mkdirSync(folderPath, { recursive: true });
     writeFileSync(target, `${JSON.stringify(vbrief, null, 2)}\n`, "utf8");
     emitAcceptanceStampFromPlan(projectRoot, vbrief.plan);
-    return ["created", target, formatIngestCreatedMessage(folder, filename, vbrief.plan)];
+    const createdMsg = formatIngestCreatedMessage(folder, filename, vbrief.plan);
+    if (residualMode && residualMintOption !== undefined) {
+      return [
+        "created",
+        target,
+        `${createdMsg}\nresidual plan.id=${residualMintOption.id}; predecessor=${residualMintOption.predecessorPath}`,
+      ];
+    }
+    return ["created", target, createdMsg];
   });
 }
 
@@ -2363,6 +2515,7 @@ export interface IssueIngestCliArgs {
   label?: string | null;
   status?: IngestStatus;
   dryRun?: boolean;
+  residual?: boolean;
   vbriefDir?: string;
   repo?: string | null;
   projectRoot?: string | null;
@@ -2375,6 +2528,12 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
   }
   if (args.number !== undefined && args.number !== null && args.all) {
     process.stderr.write("Error: Use either a single issue number OR --all, not both\n");
+    return 2;
+  }
+  if (args.residual === true && args.all) {
+    process.stderr.write(
+      "Error: issue:ingest --residual does not support --all; pass one issue number\n",
+    );
     return 2;
   }
 
@@ -2456,6 +2615,7 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
       status,
       repoUrl,
       dryRun: args.dryRun,
+      residual: args.residual === true,
       cwd: projectRoot,
     });
   } catch (exc) {
@@ -2478,7 +2638,10 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
     throw exc;
   }
   process.stdout.write(`${msg}\n`);
-  return result === "duplicate" ? 1 : 0;
+  if (result === "duplicate" || result === "refused") {
+    return 1;
+  }
+  return 0;
 }
 
 export function ingestSingleForAccept(

@@ -268,7 +268,7 @@ describe("renderOperatorBrief (#2890 / #3116)", () => {
     expect(titleIdx).toBeGreaterThan(urlIdx);
     expect(summaryIdx).toBeGreaterThan(titleIdx);
     expect(text).toContain(
-      "validity: (agent-owned — still-open | partial | likely-shipped | needs-re-scope + evidence)",
+      "validity: (agent-owned — still-open | partial | likely-shipped | needs-re-scope | residual-in-flight + evidence)",
     );
     // Mechanical assist does not invent a verdict.
     expect(text).not.toMatch(/^validity: still-open/m);

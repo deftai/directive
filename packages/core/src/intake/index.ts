@@ -7,6 +7,7 @@ export { githubBodyMain } from "./github-body.js";
 export * from "./issue-emit.js";
 export { issueEmitMain } from "./issue-emit.js";
 export * from "./issue-ingest.js";
+export * from "./residual-identity.js";
 
 export { issueIngestMain } from "./issue-ingest.js";
 export * from "./markdown-scanners.js";

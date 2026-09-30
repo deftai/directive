@@ -12,6 +12,7 @@ export const VALIDITY_STATES = [
   "partial",
   "likely-shipped",
   "needs-re-scope",
+  "residual-in-flight",
 ] as const;
 
 export type ValidityState = (typeof VALIDITY_STATES)[number];

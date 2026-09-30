@@ -12,6 +12,7 @@ function parseArgs(argv: string[]) {
     label?: string;
     status?: IngestStatus;
     dryRun?: boolean;
+    residual?: boolean;
     vbriefDir?: string;
     repo?: string;
     projectRoot?: string;
@@ -20,6 +21,7 @@ function parseArgs(argv: string[]) {
     const arg = argv[i] as string;
     if (arg === "--all") out.all = true;
     else if (arg === "--dry-run") out.dryRun = true;
+    else if (arg === "--residual" || arg === "--re-scope") out.residual = true;
     else if (arg === "--label") out.label = argv[++i];
     else if (arg === "--status") out.status = argv[++i] as IngestStatus;
     else if (arg === "--vbrief-dir") out.vbriefDir = argv[++i];

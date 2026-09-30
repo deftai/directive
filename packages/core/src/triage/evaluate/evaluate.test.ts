@@ -32,9 +32,25 @@ function writeXbrief(dir: string, issue: number, title: string): string {
   writeFileSync(
     path,
     JSON.stringify({
-      xBRIEFInfo: { version: "0.8" },
+      xBRIEFInfo: {
+        version: "0.8",
+        description: `Scope xBRIEF ingested from GitHub issue #${issue}`,
+      },
       plan: {
         title,
+        id: `github.issue.${issue}`,
+        narratives: {
+          Origin: `Ingested from https://github.com/deftai/directive/issues/${issue}`,
+        },
+        metadata: {
+          "x-directive/plan-id": {
+            version: 1,
+            source: "github-rest-id",
+            github_issue_id: issue,
+            origin: `deftai/directive#${issue}`,
+            id: `github.issue.${issue}`,
+          },
+        },
         references: [
           {
             uri: `https://github.com/deftai/directive/issues/${issue}`,

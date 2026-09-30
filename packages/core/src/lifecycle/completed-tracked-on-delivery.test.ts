@@ -700,6 +700,70 @@ describe("evaluateCompletedTracked (#3264)", () => {
   });
 });
 
+describe("residual-honest completed-tracked (#5177)", () => {
+  it("does not certify residual delivery from predecessor completed alone", () => {
+    const root = makeGitRepo();
+    const predecessorPlan = {
+      status: "completed",
+      title: "shipped predecessor",
+      id: "github.issue.5453269518",
+      narratives: {
+        Origin: "Ingested from https://github.com/deftai/directive/issues/4544",
+      },
+      metadata: {
+        "x-directive/plan-id": {
+          version: 1,
+          source: "github-rest-id",
+          github_issue_id: 5453269518,
+          origin: "deftai/directive#4544",
+          id: "github.issue.5453269518",
+        },
+      },
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/4544",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    };
+    writeBrief(root, "completed", "2026-09-23-4544-shipped.xbrief.json", predecessorPlan);
+    git(root, ["add", "xbrief/completed/2026-09-23-4544-shipped.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "land predecessor"]);
+    writeBrief(root, "proposed", "2026-09-30-4544-residual.xbrief.json", {
+      status: "proposed",
+      title: "residual",
+      id: "github.issue.residual.5453269518",
+      narratives: {
+        Origin: "Ingested from https://github.com/deftai/directive/issues/4544",
+      },
+      metadata: {
+        "x-directive/plan-id": {
+          version: 1,
+          source: "github-residual",
+          github_issue_id: 5453269518,
+          origin: "deftai/directive#4544",
+          id: "github.issue.residual.5453269518",
+        },
+      },
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/4544",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 4544, "closed");
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      issue: 4544,
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/residual/i);
+  });
+});
+
 describe("shouldAnnounceProgress (#3673)", () => {
   it("stays silent under the measured duration threshold", () => {
     expect(shouldAnnounceProgress(1_700)).toBe(false);
