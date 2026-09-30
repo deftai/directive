@@ -10,6 +10,7 @@ import {
   isResidualPlanId,
   mintResidualIssuePlanId,
   residualRecoveryCommand,
+  selectMostRecentOwnedHit,
 } from "./residual-identity.js";
 
 const temps: string[] = [];
@@ -144,6 +145,43 @@ describe("owned lifecycle census", () => {
     });
     expect(findOwnedCompletedHits(root, 4544)).toHaveLength(1);
     expect(findNonterminalResidualHits(root, 4544)).toHaveLength(1);
+  });
+
+  it("selects the most recently completed hit for residual lineage", () => {
+    const root = mkdtempSync(join(tmpdir(), "residual-lineage-"));
+    temps.push(root);
+    const completed = join(root, "completed");
+    mkdirSync(completed, { recursive: true });
+    writeFileSync(
+      join(completed, "2026-09-01-4544-original.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "github.issue.5453269518",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/4544",
+          },
+        },
+      }),
+      "utf8",
+    );
+    writeFileSync(
+      join(completed, "2026-09-30-4544-residual.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "github.issue.residual.5453269518.lean.1",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/4544",
+          },
+        },
+      }),
+      "utf8",
+    );
+    const hits = findOwnedCompletedHits(root, 4544);
+    expect(hits).toHaveLength(2);
+    const selected = selectMostRecentOwnedHit(hits);
+    expect(selected?.planId).toBe("github.issue.residual.5453269518.lean.1");
+    expect(selected?.relPath).toContain("2026-09-30-4544-residual");
+    expect(selectMostRecentOwnedHit([])).toBeNull();
   });
 });
 

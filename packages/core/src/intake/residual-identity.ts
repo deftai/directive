@@ -372,6 +372,27 @@ export function findOwnedCompletedHits(
   return listOwnedLifecycleHits(vbriefDir, target).filter((hit) => hit.folder === "completed");
 }
 
+/**
+ * Prefer-A residual lineage (#5177): when multiple owned completed briefs
+ * exist, lineage the most recently completed residual/predecessor — not the
+ * oldest ascending-filename hit. Date-prefixed filenames sort lexicographically.
+ */
+export function selectMostRecentOwnedHit(
+  hits: readonly OwnedLifecycleHit[],
+): OwnedLifecycleHit | null {
+  if (hits.length === 0) {
+    return null;
+  }
+  let best = hits[0] as OwnedLifecycleHit;
+  for (let i = 1; i < hits.length; i++) {
+    const hit = hits[i] as OwnedLifecycleHit;
+    if (hit.relPath > best.relPath) {
+      best = hit;
+    }
+  }
+  return best;
+}
+
 export function findNonterminalResidualHits(
   vbriefDir: string,
   target: number | IssueOrigin,

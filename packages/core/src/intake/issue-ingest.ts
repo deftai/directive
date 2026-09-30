@@ -91,6 +91,7 @@ import {
   predecessorPlanIdForRestIssue,
   RESIDUAL_PLAN_ID_SOURCE,
   residualIdMatchesRestIssue,
+  selectMostRecentOwnedHit,
 } from "./residual-identity.js";
 
 /** Reference type pointing at the canonical current-shape comment permalink (#1870). */
@@ -2313,7 +2314,15 @@ export function ingestOne(
         return ["duplicate", occupying, formatResidualAlreadyAdmittedMessage(number, occupying)];
       }
       const ownedCompleted = findOwnedCompletedHits(options.vbriefDir, origin);
-      const predecessor = ownedCompleted[0] as (typeof ownedCompleted)[number];
+      const predecessor = selectMostRecentOwnedHit(ownedCompleted);
+      if (predecessor === null) {
+        return [
+          "refused",
+          null,
+          `#${number} residual ingest refused: no owned completed/ history for this origin ` +
+            `(shared ownership predicate; not bare references).`,
+        ];
+      }
       const predecessorPlanId =
         predecessor.planId !== null && predecessor.planId.trim().length > 0
           ? predecessor.planId

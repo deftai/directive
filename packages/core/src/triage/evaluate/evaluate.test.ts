@@ -313,7 +313,8 @@ describe("evaluateIssues", () => {
   });
 
   it("never passes WIP census into evaluateValidity (signature lock)", () => {
-    expect(evaluateValidity.length).toBe(2);
+    // Prefer-A (#5177): worktree + issue + optional repoSlug; never a WIP census arg.
+    expect(evaluateValidity.length).toBe(3);
   });
 
   it("rejects empty issues and non-positive concurrency", async () => {
