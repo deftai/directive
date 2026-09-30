@@ -1,0 +1,474 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5013",
+    "updated": "2026-09-30T19:01:56Z"
+  },
+  "plan": {
+    "title": "deft update renders AGENTS.md from stale content while depositing newer templates, and stamps it with the new sha",
+    "status": "running",
+    "narratives": {
+      "Description": "deft update renders AGENTS.md from stale content while depositing newer templates, and stamps it with the new sha",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5013",
+      "Overview": "\n\n1. **Same-root AGENTS render on update.** In the `deft update` / `runRefreshDeposit` path, make `writeAgentsMd` read `templates/agents-entry.md` from the **same content tree** just reconciled for deposit (engine `resolveInstalledContentRoot()` result and/or post-copy `.deft/core` via explicit `readTemplate` / `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` seams). Do **not** rely on bare `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })`, which still walks `contentRoot()` prefer-package and can hit a stale project `node_modules/@deftai/directive-content`.\n\n2. **Stamp identity of the rendered tree.** Stamp managed-section `sha=` from that same tree's version (headless `collectAgentsMdFile` / `resolveSha: () => version` pattern). Frame P2 as stamp identity MUST equal the content tree used for the managed body in that write. Do not bind primary AC to the `agents:refresh` \"unchanged - sha match\" CLI phrase; that phrase is body-equality currentness after `stripManagedSectionAttrs`, not the attr stamp.\n\n3. **Regression.** Add a fixture that installs divergent engine vs project content-package versions and asserts post-update AGENTS managed body matches deposited `.deft/core/templates/agents-entry.md`, with `sha=` from that same tree.\n\n4. **Companion disclosure only.** `npm ci` / install-ordering messaging may accompany for remaining prefer-package readers (`agents:refresh` default path). It is not Prefer-A alone and must not be an alternate first-ship fix that leaves a green update able to commit deposit/AGENTS disagreement. If an \"installed package is SoT\" branch is kept, it must refuse or warn-fail the AGENTS write when engine content root and project prefer-package root diverge mid-update.\n\n5. **Surfaces.** `packages/core/src/init-deposit/scaffold.ts` (`writeAgentsMd`); `packages/core/src/init-deposit/refresh.ts` (call site); reuse `#4706` helpers in doctor/content-root adjacent modules (`readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate`); headless same-root pointer in `headless-manifest.ts` as the invariant exemplar; tests under init-deposit / content-root; CHANGELOG Unreleased.\n\n6. **Non-goals.** Do not globally recut `contentRoot()` prefer-package (explicitly deferred by #4706). Do not expand into the #5011 clause:N id pattern. Do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency. Do not auto-ingest after ingest-ready.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:ad2b3cde6200b25661d4fb284e10330614958a576a7cff20292136351e1b8995\n\n\n",
+      "Labels": "bug, design, agent-experience, process, source-of-truth, urgent, vendored-deposit, area:installer, area:cli, status:claimed, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "title": "**Same-root AGENTS render on update.** In the `deft update` / `runRefreshDeposit` path, make `writeAgentsMd` read `templates/agents-entry.md` from the **same content tree** just reconciled for deposit (engine `resolveInstalledContentRoot()` result and/or post-copy `.deft/core` via explicit `readTemplate` / `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` seams). Do **not** rely on bare `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })`, which still walks `contentRoot()` prefer-package and can hit a stale project `node_modules/@deftai/directive-content`.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5189 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit b9ef97e32cb0a89f6541a3c81789e671ceb640c9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedVia": "leftover-complete-after-5189"
+          },
+          "recorded_at": "2026-09-30T21:27:28.151Z"
+        }
+      },
+      {
+        "title": "**Stamp identity of the rendered tree.** Stamp managed-section `sha=` from that same tree's version (headless `collectAgentsMdFile` / `resolveSha: () => version` pattern). Frame P2 as stamp identity MUST equal the content tree used for the managed body in that write. Do not bind primary AC to the `agents:refresh` \"unchanged - sha match\" CLI phrase; that phrase is body-equality currentness after `stripManagedSectionAttrs`, not the attr stamp.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5189 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit b9ef97e32cb0a89f6541a3c81789e671ceb640c9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedVia": "leftover-complete-after-5189"
+          },
+          "recorded_at": "2026-09-30T21:27:28.151Z"
+        }
+      },
+      {
+        "title": "**Regression.** Add a fixture that installs divergent engine vs project content-package versions and asserts post-update AGENTS managed body matches deposited `.deft/core/templates/agents-entry.md`, with `sha=` from that same tree.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5189 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit b9ef97e32cb0a89f6541a3c81789e671ceb640c9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedVia": "leftover-complete-after-5189"
+          },
+          "recorded_at": "2026-09-30T21:27:28.151Z"
+        }
+      },
+      {
+        "title": "**Companion disclosure only.** `npm ci` / install-ordering messaging may accompany for remaining prefer-package readers (`agents:refresh` default path). It is not Prefer-A alone and must not be an alternate first-ship fix that leaves a green update able to commit deposit/AGENTS disagreement. If an \"installed package is SoT\" branch is kept, it must refuse or warn-fail the AGENTS write when engine content root and project prefer-package root diverge mid-update.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5189 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit b9ef97e32cb0a89f6541a3c81789e671ceb640c9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedVia": "leftover-complete-after-5189"
+          },
+          "recorded_at": "2026-09-30T21:27:28.151Z"
+        }
+      },
+      {
+        "title": "**Surfaces.** `packages/core/src/init-deposit/scaffold.ts` (`writeAgentsMd`); `packages/core/src/init-deposit/refresh.ts` (call site); reuse `#4706` helpers in doctor/content-root adjacent modules (`readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate`); headless same-root pointer in `headless-manifest.ts` as the invariant exemplar; tests under init-deposit / content-root; CHANGELOG Unreleased.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5189 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit b9ef97e32cb0a89f6541a3c81789e671ceb640c9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedVia": "leftover-complete-after-5189"
+          },
+          "recorded_at": "2026-09-30T21:27:28.151Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Non-goals. Do not globally recut `contentRoot()` prefer-package (explicitly deferred by #4706). Do not expand into the #5011 clause:N id pattern. Do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency. Do not auto-ingest after ingest-ready.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5189 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit b9ef97e32cb0a89f6541a3c81789e671ceb640c9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedVia": "leftover-complete-after-5189"
+          },
+          "recorded_at": "2026-09-30T21:27:28.151Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "vendored-deposit",
+      "area:installer",
+      "area:cli",
+      "status:claimed",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5013",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5013: deft update renders AGENTS.md from stale content while depositing newer templates, and stamps it with the new sha"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/init-deposit/scaffold.test.ts packages/core/src/init-deposit/refresh.test.ts"
+        }
+      ],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "admitted_source_sentences": [
+        "Same-root AGENTS render on update. In the `deft update` / `runRefreshDeposit` path, make `writeAgentsMd` read `templates/agents-entry.md` from the same content tree just reconciled for deposit (engine `resolveInstalledContentRoot()` result and/or post-copy `.deft/core` via explicit `readTemplate` / `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` seams).",
+        "Do not rely on bare `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })`, which still walks `contentRoot()` prefer-package and can hit a stale project `node_modules/@deftai/directive-content`.",
+        "Stamp identity of the rendered tree. Stamp managed-section `sha=` from that same tree's version (headless `collectAgentsMdFile` / `resolveSha: () => version` pattern).",
+        "Frame P2 as stamp identity MUST equal the content tree used for the managed body in that write.",
+        "Do not bind primary AC to the `agents:refresh` \"unchanged - sha match\" CLI phrase; that phrase is body-equality currentness after `stripManagedSectionAttrs`, not the attr stamp.",
+        "Regression. Add a fixture that installs divergent engine vs project content-package versions and asserts post-update AGENTS managed body matches deposited `.deft/core/templates/agents-entry.md`, with `sha=` from that same tree.",
+        "Companion disclosure only. `npm ci` / install-ordering messaging may accompany for remaining prefer-package readers (`agents:refresh` default path).",
+        "It is not Prefer-A alone and must not be an alternate first-ship fix that leaves a green update able to commit deposit/AGENTS disagreement.",
+        "If an \"installed package is SoT\" branch is kept, it must refuse or warn-fail the AGENTS write when engine content root and project prefer-package root diverge mid-update.",
+        "Surfaces. `packages/core/src/init-deposit/scaffold.ts` (`writeAgentsMd`); `packages/core/src/init-deposit/refresh.ts` (call site); reuse `#4706` helpers in doctor/content-root adjacent modules (`readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate`); headless same-root pointer in `headless-manifest.ts` as the invariant exemplar; tests under init-deposit / content-root; CHANGELOG Unreleased.",
+        "Non-goals. Do not globally recut `contentRoot()` prefer-package (explicitly deferred by #4706).",
+        "Do not expand into the #5011 clause:N id pattern.",
+        "Do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency.",
+        "Do not auto-ingest after ingest-ready.",
+        "relieves: P1 relieves: P2 Target-digest: sha256:ad2b3cde6200b25661d4fb284e10330614958a576a7cff20292136351e1b8995"
+      ],
+      "admitted_source_digest": "b2046b12140f5aec7bd945c5d8c46061662bfea93d18b1f9ef789f7a40951f92",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Same-root AGENTS render on update. In the `deft update` / `runRefreshDeposit` path, make `writeAgentsMd` read `templates/agents-entry.md` from the same content tree just reconciled for deposit (engine `resolveInstalledContentRoot()` result and/or post-copy `.deft/core` via explicit `readTemplate` / `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` seams). Do not rely on bare `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })`, which still walks `contentRoot()` prefer-package and can hit a stale project `node_modules/@deftai/directive-content`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Stamp identity of the rendered tree. Stamp managed-section `sha=` from that same tree's version (headless `collectAgentsMdFile` / `resolveSha: () => version` pattern). Frame P2 as stamp identity MUST equal the content tree used for the managed body in that write. Do not bind primary AC to the `agents:refresh` \"unchanged - sha match\" CLI phrase; that phrase is body-equality currentness after `stripManagedSectionAttrs`, not the attr stamp.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Regression. Add a fixture that installs divergent engine vs project content-package versions and asserts post-update AGENTS managed body matches deposited `.deft/core/templates/agents-entry.md`, with `sha=` from that same tree.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Companion disclosure only. `npm ci` / install-ordering messaging may accompany for remaining prefer-package readers (`agents:refresh` default path). It is not Prefer-A alone and must not be an alternate first-ship fix that leaves a green update able to commit deposit/AGENTS disagreement. If an \"installed package is SoT\" branch is kept, it must refuse or warn-fail the AGENTS write when engine content root and project prefer-package root diverge mid-update.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Surfaces. `packages/core/src/init-deposit/scaffold.ts` (`writeAgentsMd`); `packages/core/src/init-deposit/refresh.ts` (call site); reuse `#4706` helpers in doctor/content-root adjacent modules (`readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate`); headless same-root pointer in `headless-manifest.ts` as the invariant exemplar; tests under init-deposit / content-root; CHANGELOG Unreleased.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Non-goals. Do not globally recut `contentRoot()` prefer-package (explicitly deferred by #4706). Do not expand into the #5011 clause:N id pattern. Do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency. Do not auto-ingest after ingest-ready.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "Same-root AGENTS render on update. In the `deft update` / `runRefreshDeposit` path, make `writeAgentsMd` read `templates/agents-entry.md` from the same content tree just reconciled for deposit (engine `resolveInstalledContentRoot()` result and/or post-copy `.deft/core` via explicit `readTemplate` / `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` seams). Do not rely on bare `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })`, which still walks `contentRoot()` prefer-package and can hit a stale project `node_modules/@deftai/directive-content`.",
+        "Stamp identity of the rendered tree. Stamp managed-section `sha=` from that same tree's version (headless `collectAgentsMdFile` / `resolveSha: () => version` pattern). Frame P2 as stamp identity MUST equal the content tree used for the managed body in that write. Do not bind primary AC to the `agents:refresh` \"unchanged - sha match\" CLI phrase; that phrase is body-equality currentness after `stripManagedSectionAttrs`, not the attr stamp.",
+        "Regression. Add a fixture that installs divergent engine vs project content-package versions and asserts post-update AGENTS managed body matches deposited `.deft/core/templates/agents-entry.md`, with `sha=` from that same tree.",
+        "Companion disclosure only. `npm ci` / install-ordering messaging may accompany for remaining prefer-package readers (`agents:refresh` default path). It is not Prefer-A alone and must not be an alternate first-ship fix that leaves a green update able to commit deposit/AGENTS disagreement. If an \"installed package is SoT\" branch is kept, it must refuse or warn-fail the AGENTS write when engine content root and project prefer-package root diverge mid-update.",
+        "Surfaces. `packages/core/src/init-deposit/scaffold.ts` (`writeAgentsMd`); `packages/core/src/init-deposit/refresh.ts` (call site); reuse `#4706` helpers in doctor/content-root adjacent modules (`readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate`); headless same-root pointer in `headless-manifest.ts` as the invariant exemplar; tests under init-deposit / content-root; CHANGELOG Unreleased.",
+        "Non-goals. Do not globally recut `contentRoot()` prefer-package (explicitly deferred by #4706). Do not expand into the #5011 clause:N id pattern. Do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency. Do not auto-ingest after ingest-ready."
+      ],
+      "confessions": [
+        "Same-root AGENTS render on update. In the `deft update` / `runRefreshDeposit` path, make `writeAgentsMd` read `templates/agents-entry.md` from the same content tree just reconciled for deposit (engine `resolveInstalledContentRoot()` result and/or post-copy `.deft/core` via explicit `readTemplate` / `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` seams).",
+        "Do not rely on bare `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })`, which still walks `contentRoot()` prefer-package and can hit a stale project `node_modules/@deftai/directive-content`.",
+        "Stamp identity of the rendered tree. Stamp managed-section `sha=` from that same tree's version (headless `collectAgentsMdFile` / `resolveSha: () => version` pattern).",
+        "Frame P2 as stamp identity MUST equal the content tree used for the managed body in that write.",
+        "Do not bind primary AC to the `agents:refresh` \"unchanged - sha match\" CLI phrase; that phrase is body-equality currentness after `stripManagedSectionAttrs`, not the attr stamp.",
+        "Companion disclosure only. `npm ci` / install-ordering messaging may accompany for remaining prefer-package readers (`agents:refresh` default path).",
+        "It is not Prefer-A alone and must not be an alternate first-ship fix that leaves a green update able to commit deposit/AGENTS disagreement.",
+        "If an \"installed package is SoT\" branch is kept, it must refuse or warn-fail the AGENTS write when engine content root and project prefer-package root diverge mid-update.",
+        "Non-goals. Do not globally recut `contentRoot()` prefer-package (explicitly deferred by #4706).",
+        "Do not expand into the #5011 clause:N id pattern.",
+        "Do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency.",
+        "Do not auto-ingest after ingest-ready.",
+        "relieves: P1 relieves: P2 Target-digest: sha256:ad2b3cde6200b25661d4fb284e10330614958a576a7cff20292136351e1b8995"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Current known state (2026-09-30 Stage A)\n\nStage A `task triage:evaluate -- 5013` on origin/master `fc1363287967`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/fc1363287967/70228efc-d716-41c3-810d-b437a5c303c9`\n\n### Live gap\n\n`deft update` can deposit newer `.deft/core/templates/agents-entry.md` while rendering `AGENTS.md` from a stale installed content package in the same run, then stamp the managed section `sha=<new version>`. Staleness checks pass; consumers who commit the update ship a header that disagrees with the deposit and see unexplained AGENTS.md diffs on later ritual refreshes. Related ordering: `npm install` can leave disk content at the old pin while claiming the tree satisfies the new pin; `npm ci` is what actually replaces files.\n\nFiled alongside #5011 from the same consumer update; independent of the clause:N id pattern.\n\n### Spend recommendation\n\nConcrete update write-set / AGENTS render + sha-stamp consistency defect with a named suggested fix (render from the just-written deposit, or stamp the content actually rendered and surface npm-ci ordering). Recommended Dual-stop **N=1**.\n\nOperator bare `arc` / issue number under **#5111 defaults**: yolo + no-ingest + use recommended Dual-stop (no `n=` ask).\n\nCatalog facets added: bug, design, agent-experience, process, source-of-truth, area:cli, area:installer, vendored-deposit, framework-gap (kept urgent, core-capabilities, promise:lifecycle). Chip: design-critique:mechanism-shaped.\n\n",
+          "id": 5914043523,
+          "html_url": "https://github.com/deftai/directive/issues/5013#issuecomment-5914043523",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:08:17Z",
+          "updated_at": "2026-09-30T15:08:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because deft update can deposit a newer agents-entry template while rendering AGENTS.md from a stale content source in the same run and stamp sha=<new version>, so staleness checks pass and consumers ship a header that disagrees with the deposit.\n\ncharter: open critique\nspend-recommend: N=1\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\n\nOperator directed arc under #5111 defaults. Concrete closed-shape update/AGENTS consistency defect; recommended Dual-stop N=1 applied without a spend ask.\n\npain: P1, P2\n\nP1. Mid-update AGENTS.md managed-section render can come from a stale installed content package while the same run deposits newer templates under .deft/core/templates/.\nP2. The managed-section sha= stamp can advertise the target pin/version even when the rendered body does not match that content, so agents:refresh reports sha match while still rewriting, and nothing flags the disagreement.\n\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-5013-dc\norigin-ref: origin/HEAD\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\npin-kind: origin-default\ntarget-digest: sha256:ad2b3cde6200b25661d4fb284e10330614958a576a7cff20292136351e1b8995\n\nPin reads use git show fc1363287967413846934ecac824c2be1a6e6d51:. Single Grok seat. Not dual-launched. Non-goals: do not auto-ingest after ingest-ready; do not expand into the #5011 clause:N id pattern; do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency.\n\n",
+          "id": 5914043979,
+          "html_url": "https://github.com/deftai/directive/issues/5013#issuecomment-5914043979",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:08:19Z",
+          "updated_at": "2026-09-30T15:08:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5013\ncharter: open critique\nround: 1\nseat: grok\nlauncher: grok (process-only)\nid-ceiling: 5914043979\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\narc-mode: no-ingest\naudit-targets: none\nspend: N=1\n\n## Verdict\n\nStop 1 pains **P1** and **P2** name a real mid-update dual-root defect. The right bind shape is **same-root render + stamp identity of the tree actually rendered**, reusing mechanisms that already exist (headless same-root; #4706 explicit template-root bypass). An OR that lets \"stamp what you rendered + tell the operator to `npm ci`\" stand alone still leaves a successful `deft update` able to commit deposit templates that disagree with AGENTS.md.\n\n## Re-verification at pin `fc1363287967413846934ecac824c2be1a6e6d51`\n\n1. **Deposit source (engine resolve).** `runRefreshDeposit` resolves content via `resolveInstalledContentRoot()` (`import.meta.resolve` of `@deftai/directive-content/package.json` from the engine) and copies/reconciles that tree into `.deft/core` (`packages/core/src/init-deposit/refresh.ts`, `packages/core/src/deposit/resolve-content.ts`).\n\n2. **AGENTS write path.** After deposit work, update calls `writeAgentsMd(projectDir, payloadReadRoot, ...)`. In normal (non-port-record) mode `recordModePayloadRoot` returns `deftDir` (`.deft/core`). `writeAgentsMd` then runs `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })` with **no** `readTemplate` / `resolveSha` seams (`packages/core/src/init-deposit/scaffold.ts`).\n\n3. **Prefer-package hijack.** `agentsTemplatePath` does `join(contentRoot(frameworkRoot), \"templates\", \"agents-entry.md\")`. `contentRoot()` **prefers** an ancestor `node_modules/@deftai/directive-content` over the flattened deposit (`packages/core/src/content-root.ts`). Passing `frameworkRoot: deftDir` therefore does **not** guarantee reading the just-written deposit when the project still has an older content package on disk.\n\n4. **False-fresh `sha=`.** With `frameworkRoot: deftDir`, `resolveFrameworkSha` -> `resolveInventoryFrameworkIdentity` reads `.deft/core/package.json` (just copied -> **new** version) while the managed body can come from the **stale** prefer-package tree. `attributeRenderManagedSection` stamps `sha=<that identity>` onto whatever body was rendered.\n\n5. **`agents:refresh` \"unchanged - sha match\".** At this pin the CLI phrase is emitted only when plan `state === \"current\"`, and currentness is **body equality after `stripManagedSectionAttrs`** — it does **not** consult the managed-section `sha=` attribute (`packages/cli/src/agents-refresh.ts`, `agentsRefreshPlan`). The false-fresh stamp is still harmful for humans and for \"version looks current\" reasoning; the issue's \"sha match while still rewriting\" wording overfits the attr stamp to that CLI phrase.\n\n6. **Existing same-root inventory (do not invent a third).**\n   - Headless init already renders AGENTS from the **SAME** content root as the payload and stamps `resolveSha: () => version` from that root (`packages/core/src/init-deposit/headless-manifest.ts` `collectAgentsMdFile`).\n   - #4706 already added `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` so doctor can read an explicit content tree **without** walking `contentRoot()` prefer-package, and CHANGELOG records that #4706 **did not** recut prefer-package.\n   - #4710 completed as pin/lock reconstitution, not as making walk-root canonical for AGENTS render.\n\nCausal shape matching the filed consumer report: engine-resolved content (new) is deposited into `.deft/core`, while AGENTS render can prefer the project's still-stale `@deftai/directive-content` install; stamp follows deposit package.json. After `npm ci` aligns the project package, a later refresh rewrites the body to match the deposit.\n\n## Findings\n\n### 1. `blocks-the-design` — Prefer-A must require same-root AGENTS render (or fail-closed); npm-ci messaging is not a substitute\n\n**Evidence.** Update already intends \"render against `payloadReadRoot`/`deftDir`\" (`writeAgentsMd(..., payloadReadRoot)`), but `contentRoot()` prefer-package can redirect the template read to a different physical tree than `resolveInstalledContentRoot()` used for the copy. Headless already forbids that drift; update does not reuse the invariant. The issue's OR admits a branch that only stamps the rendered identity and warns about `npm ci`.\n\n**Failure mode.** A green `deft update` deposits newer `.deft/core/templates/agents-entry.md` and writes AGENTS.md from a stale project content package, stamped `sha=<new>`. Consumer commits the pair. Later ritual/`agents:refresh` after real package replace produces an unexplained AGENTS.md diff. Messaging `npm ci` after the fact does not prevent the disagreeing commit from the update that already succeeded.\n\n**Disposition consequence.** Bound remedy must make the AGENTS template bytes come from the **same tree** update just reconciled for deposit (engine `resolveInstalledContentRoot` result and/or post-copy `deftDir` via explicit `readTemplate` / `readAgentsTemplateFromContentTree`, not bare `frameworkRoot: deftDir`). Stamp `sha=` from that same tree's version (headless pattern). `npm ci` / install-ordering disclosure may accompany for surfaces that still prefer-package (`agents:refresh` default path), but must not be Prefer-A alone. If the lean keeps an \"installed package is SoT\" branch, it must **refuse or warn-fail the AGENTS write** when engine content root and project prefer-package root diverge mid-update (#4706 already detects divergence for doctor).\n\n### 2. `sharpens-framing` — P1 is right; state the dual resolver, not \"deposit vs content package\" alone\n\n**Evidence.** Two resolvers: `resolveInstalledContentRoot` (engine module resolve) vs `contentRoot` ancestor prefer-package from `deftDir`. Tests document prefer-package over vendored deposit (`content-root.test.ts` hybrid npm-engine case).\n\n**Failure mode.** A lean that only says \"read deposit templates\" without naming the prefer-package bypass can re-ship today's `frameworkRoot: deftDir` call and leave the bug.\n\n**Disposition consequence.** Prefer-A / AC should cite explicit template-root seams (existing #4706 helpers or equivalent `readTemplate` + `resolveSha`) and a regression that installs divergent engine vs project content package versions and asserts update AGENTS body matches deposited `agents-entry.md`.\n\n### 3. `sharpens-framing` — P2 keep false-fresh stamp; retarget the \"sha match while rewriting\" claim\n\n**Evidence.** Managed-section `sha=` is inventory/framework identity at stamp time; `agents:refresh` no-op phrase is content-body currentness. They are different signals sharing the word \"sha\".\n\n**Failure mode.** Binding P2 to \"make agents:refresh stop saying sha match while rewriting\" can miss the update-time false stamp, or chase CLI copy while leaving deposit/AGENTS disagreement.\n\n**Disposition consequence.** Frame P2 as: stamp identity MUST equal the content tree used for the managed body in that write. Post-update `agents:refresh` body rewrite after package align is a symptom, not the primary gate. Optional footnote: rename/clarify deposit-sha vs managed-section `sha=` in docs later; out of first-ship if same-root+stamp bind holds.\n\n### 4. `footnote` — Injection/swarm lens\n\nInstaller path selection and stamp consistency only; no new authority, envelope, or concurrency surface beyond existing AGENTS refresh lock (#1329). No injection finding.\n\n### 5. `footnote` — Road not taken / steelman\n\n**Road not taken:** Global recut of `contentRoot()` prefer-package (explicitly deferred by #4706). Larger blast across doctor/session/hashDepositTemplates; Stop 1 non-goals already keep this off the dirty-tree/#5096 ledger expansion. Local same-root bind at update/init `writeAgentsMd` is enough for this issue.\n\n**Steelman of stamp+npm-ci-only:** If project `node_modules` were the sole intentional SoT, stamping that tree's version and requiring `npm ci` before trusting AGENTS would be coherent. Flip condition: update must not deposit a **newer** engine content tree beside an AGENTS body from a different tree in the same successful run. Today's copy-from-engine + prefer-package-render violates that; hence same-root (or refuse) wins.\n\n## Bind shape (critic recommendation)\n\nPrefer-A: **same-root render** (reuse headless + #4706 explicit template root) **and** stamp from that root's version. Treat npm-ci ordering as companion disclosure for remaining prefer-package readers, not an alternate first-ship fix.\r\n\n",
+          "id": 5914153317,
+          "html_url": "https://github.com/deftai/directive/issues/5013#issuecomment-5914153317",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:14:33Z",
+          "updated_at": "2026-09-30T15:14:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`deft update` can deposit a new content tree into `.deft/core` while AGENTS.md is still rendered through `contentRoot()` prefer-package from a stale project install, then stamp `sha=` from the deposit package.json. That dual-root path is the real defect. The bind is same-root render plus stamp identity of the tree actually rendered, reusing headless same-root and the #4706 explicit template-root helpers. An OR that only stamps and tells the operator to run `npm ci` is not Prefer-A. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5914043979. Critic 5914153317 checks the findings. Whether the list covers the two pains stays open until a later critic targets those cites.\n\n**Lean:** open critique. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5914043979\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\n\n## Takes\n\n- 5914153317 Prefer-A must require same-root AGENTS render (or fail-closed); npm-ci messaging is not a substitute - accept-into-contract\n- 5914153317 P1 is right; state the dual resolver, not deposit vs content package alone - accept-into-contract\n- 5914153317 P2 keep false-fresh stamp; retarget the sha-match-while-rewriting claim - accept-into-contract\n- 5914153317 Injection/swarm lens N/A - footnote\n- 5914153317 Road not taken / steelman (no global prefer-package recut) - footnote\n\nSpec-path:\n\n## Bound remedy\n\n1. **Same-root AGENTS render on update.** In the `deft update` / `runRefreshDeposit` path, make `writeAgentsMd` read `templates/agents-entry.md` from the **same content tree** just reconciled for deposit (engine `resolveInstalledContentRoot()` result and/or post-copy `.deft/core` via explicit `readTemplate` / `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` seams). Do **not** rely on bare `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })`, which still walks `contentRoot()` prefer-package and can hit a stale project `node_modules/@deftai/directive-content`.\n\n2. **Stamp identity of the rendered tree.** Stamp managed-section `sha=` from that same tree's version (headless `collectAgentsMdFile` / `resolveSha: () => version` pattern). Frame P2 as stamp identity MUST equal the content tree used for the managed body in that write. Do not bind primary AC to the `agents:refresh` \"unchanged - sha match\" CLI phrase; that phrase is body-equality currentness after `stripManagedSectionAttrs`, not the attr stamp.\n\n3. **Regression.** Add a fixture that installs divergent engine vs project content-package versions and asserts post-update AGENTS managed body matches deposited `.deft/core/templates/agents-entry.md`, with `sha=` from that same tree.\n\n4. **Companion disclosure only.** `npm ci` / install-ordering messaging may accompany for remaining prefer-package readers (`agents:refresh` default path). It is not Prefer-A alone and must not be an alternate first-ship fix that leaves a green update able to commit deposit/AGENTS disagreement. If an \"installed package is SoT\" branch is kept, it must refuse or warn-fail the AGENTS write when engine content root and project prefer-package root diverge mid-update.\n\n5. **Surfaces.** `packages/core/src/init-deposit/scaffold.ts` (`writeAgentsMd`); `packages/core/src/init-deposit/refresh.ts` (call site); reuse `#4706` helpers in doctor/content-root adjacent modules (`readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate`); headless same-root pointer in `headless-manifest.ts` as the invariant exemplar; tests under init-deposit / content-root; CHANGELOG Unreleased.\n\n6. **Non-goals.** Do not globally recut `contentRoot()` prefer-package (explicitly deferred by #4706). Do not expand into the #5011 clause:N id pattern. Do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency. Do not auto-ingest after ingest-ready.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:ad2b3cde6200b25661d4fb284e10330614958a576a7cff20292136351e1b8995\n\n## Parent-side substantiation\n\nThe critic blocked Prefer-A that allows stamp+npm-ci alone; items 1-2 bind same-root render and stamp identity, reusing headless and #4706 seams already at the pin. Item 2 accepts the P2 sharpening that separates false-fresh stamp from the agents:refresh CLI phrase. Item 3 is the divergent-package regression. Item 4 keeps npm-ci as companion disclosure only. Item 5 is the write-set; item 6 keeps Stop 1 non-goals and the #4706 prefer-package deferral.\n\naudit:same-root-agents-render sha=fc1363287967413846934ecac824c2be1a6e6d51 pointer=comment:5914153317 reading=asserted\naudit:stamp-identity-of-rendered-tree sha=fc1363287967413846934ecac824c2be1a6e6d51 pointer=comment:5914153317 reading=asserted\naudit:divergent-package-regression sha=fc1363287967413846934ecac824c2be1a6e6d51 pointer=comment:5914153317 reading=asserted\naudit:npm-ci-companion-only sha=fc1363287967413846934ecac824c2be1a6e6d51 pointer=comment:5914153317 reading=asserted\n\n",
+          "id": 5914172832,
+          "html_url": "https://github.com/deftai/directive/issues/5013#issuecomment-5914172832",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:15:40Z",
+          "updated_at": "2026-09-30T15:15:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\r\n```quarantined\nrole: critic\r\n```\n\r\nissue: deftai/directive#5013\r\ncharter: open critique\r\nspend: N=1\r\nround: 4 Pass-4 audit (pain-audit of relieves)\r\nseat: grok\r\nlauncher: grok\r\nid-ceiling: 5914172832\r\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\r\narc-mode: no-ingest\r\naudit-targets: pain-P1, pain-P2\r\n\r\nFresh critic. `git rev-parse HEAD` matched `fc1363287967413846934ecac824c2be1a6e6d51`. Pin reads via `git show` that SHA. In-ceiling inputs: Current-state `5914043523`, Stop 1 `5914043979`, round-1 critic `5914153317`, successor lean `5914172832`.\r\n\r\n## Coverage census\r\n\r\nStop 1 named P1–P2. Lean Prefer-A Bound remedy items 1–6 are the claimed relief. Pin checks at the dispatch SHA:\r\n\r\n- `writeAgentsMd` still calls `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })` with no `readTemplate` / `resolveSha` seams (`packages/core/src/init-deposit/scaffold.ts`).\r\n- `runRefreshDeposit` still deposits via `resolveInstalledContentRoot()` then calls `writeAgentsMd(projectDir, payloadReadRoot, …)` (`packages/core/src/init-deposit/refresh.ts`).\r\n- `contentRoot()` still prefers an ancestor `node_modules/@deftai/directive-content` over the flattened deposit (`packages/core/src/content-root.ts`), so `frameworkRoot: deftDir` does not guarantee same-tree template bytes.\r\n- `#4706` helpers `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` exist at pin (`packages/core/src/doctor/agents-md.ts`) and bypass prefer-package when an explicit template is supplied.\r\n- Headless already same-roots AGENTS render and stamps `resolveSha: () => version` from that tree (`packages/core/src/init-deposit/headless-manifest.ts` `collectAgentsMdFile`).\r\n- CLI `agents:refresh` \"unchanged - sha match\" fires on plan `state === \"current\"` after body equality with managed attrs stripped (`packages/cli/src/agents-refresh.ts`); it does not consult the managed-section `sha=` attribute.\r\n\r\n### pain-P1\r\nLean covers P1. Bound items 1, 3, 4, 5 bind same-root AGENTS render on update via explicit template-root seams (reuse headless + `#4706`), add a divergent engine-vs-project content-package regression, keep `npm ci` messaging companion-only, and name the write-set. Round-1 dual-resolver sharpening is accepted into item 1; Prefer-A that leaves stamp+npm-ci alone is refused.\r\n\r\nfootnote\r\n\r\nEvidence: Pin still shows bare `frameworkRoot: deftDir` under prefer-package hijack; lean names that call site and the existing same-root seams as the fix, plus the divergent-package fixture as the AC lock.\r\nFailure mode: None on the asserted harvest. A later implement that re-ships bare `frameworkRoot: deftDir` without `readTemplate`/`resolveSha` would reintroduce P1; Bound item 1 already forbids that shape.\r\nDisposition: Census only. Bound remedy harvest for P1 unchanged.\r\n\r\n### pain-P2\r\nLean covers P2 under the accepted retarget. Bound item 2 requires stamp identity of the content tree used for the managed body in that write (headless `resolveSha` pattern) and refuses binding primary AC to the `agents:refresh` \"unchanged - sha match\" CLI phrase. False-fresh `sha=<new>` beside a stale body is the Stop 1 warrant; post-align rewrite is framed as symptom.\r\n\r\nfootnote\r\n\r\nEvidence: Pin confirms managed-section `sha=` comes from `resolveFrameworkSha` / inventory identity at stamp time, while the CLI no-op phrase is body-currentness after `stripManagedSectionAttrs`. Lean item 2 separates those signals and binds stamp-to-rendered-tree.\r\nFailure mode: None on the asserted harvest. Chasing CLI copy alone would miss the update-time false stamp; Prefer-A already keeps that chase out of primary AC.\r\nDisposition: Census only. Bound remedy harvest for P2 unchanged.\r\n\r\n## Null-template fallback on #4706 helper\r\nfootnote\r\nEvidence: `agentsRefreshPlanWithInstalledTemplate` falls back to bare `agentsRefreshPlan` when the explicit template read returns null. Lean already requires `readTemplate` / `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` seams on the update path.\r\nFailure mode: An implement that wires the helper name without ensuring the template bytes (or an injected `readTemplate`) could hit the fallback and re-open prefer-package.\r\nDisposition: Census only. Does not change harvested Bound remedy; item 1 already requires same-tree template bytes.\r\n\r\n## Injection / swarm lens\r\nTarget is installer path selection and stamp consistency on AGENTS render during update. No new authority, prompt/envelope, identity-token, concurrency, or shared-state surface beyond the existing AGENTS refresh lock. Lens not triggered.\r\n\r\n## Verdict\r\n\r\nFootnote-only. No `blocks-the-design`. No `sharpens-framing` that changes Bound remedy harvest. Coverage of audit-targets pain-P1, pain-P2 holds on lean `5914172832` as written.",
+          "id": 5914210499,
+          "html_url": "https://github.com/deftai/directive/issues/5013#issuecomment-5914210499",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:17:52Z",
+          "updated_at": "2026-09-30T15:17:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Finding | Class | Disposition | Cite |\n| --- | --- | --- | --- |\n| Prefer-A must require same-root AGENTS render (or fail-closed); npm-ci messaging is not a substitute | blocks-the-design | accept-into-contract — Bound items 1, 3, 4 | 5914153317 |\n| P1 is right; state the dual resolver, not deposit vs content package alone | sharpens-framing | accept-into-contract — Bound item 1 names dual resolver + explicit template-root seams | 5914153317 |\n| P2 keep false-fresh stamp; retarget the sha-match-while-rewriting claim | sharpens-framing | accept-into-contract — Bound item 2 stamps identity of rendered tree; CLI phrase out of primary AC | 5914153317 |\n| Injection/swarm lens N/A | footnote | census only | 5914153317 |\n| Road not taken / steelman (no global prefer-package recut) | footnote | census only — Bound item 6 | 5914153317 |\n\nDisagreement set: empty.\nPain-audit 5914210499 of lean 5914172832: footnote-only for harvest; coverage of pain-P1, pain-P2 holds.\n\n",
+          "id": 5914226360,
+          "html_url": "https://github.com/deftai/directive/issues/5013#issuecomment-5914226360",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:18:45Z",
+          "updated_at": "2026-09-30T15:18:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`deft update` must render AGENTS.md from the same content tree it just deposited (or refuse), and stamp `sha=` from that tree. Prefer-package hijack via bare `frameworkRoot: deftDir` is the live dual-root bug. Bound remedy reuses headless same-root and #4706 explicit template-root helpers, adds a divergent-package regression, and keeps npm-ci messaging companion-only. Pain-audit 5914210499 of lean 5914172832 was footnote-only. The same parent wrote Stop 1 5914043979. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5914172832\n\n",
+          "id": 5914226682,
+          "html_url": "https://github.com/deftai/directive/issues/5013#issuecomment-5914226682",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:18:46Z",
+          "updated_at": "2026-09-30T15:18:46Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Second, separate defect found in the same update, on the same consumer (`3Ci-Consulting/kantata-mcp`, 0.119.2 → 0.119.8, darwin / node 24).\n\n**`deft update` deposits templates and renders AGENTS.md from something else, in the same run.**\n\nAfter `deft update --yes`, the deposited templates and the header it wrote beside them disagreed:\n\n| | `directive doctor --full` | #4821 envelope wording | `project:write-narratives` ⊗ |\n| --- | --- | --- | --- |\n| `.deft/core/templates/agents-entry.md` (just deposited) | present | present | present |\n| `AGENTS.md` (rendered in the same run) | absent — rendered `directive doctor` | absent | absent |\n\nRunning `deft agents:refresh` afterwards — once `npm ci` had brought `node_modules/@deftai/directive-content` to 0.119.8 — produced a header that matches the deposited templates, and repeated refreshes are a no-op. The mid-flight render was not stable: `agents:refresh` reported `unchanged - sha match` against it while still rewriting the body, because the stamp already said `sha=0.119.8`.\n\nThat last part is the sharp edge. The stale header carries a `sha=<new version>` stamp, so the staleness check passes and nothing flags it. A consumer who commits the update as-is ships a header that disagrees with its own deposit, and then sees an unexplained AGENTS.md diff at the start of every subsequent session that runs the ritual.\n\nSuggested fix: render the managed section from the deposit that the same run just wrote, not from the installed content package — or, if the installed package is the intended source, have `deft update` say that `npm ci` is required before the header is correct, and make the sha stamp reflect the content actually rendered rather than the target version.\n\nRelated ordering note from the same update: `npm install` reported the tree as already satisfying the new pin while the files on disk were still 0.119.2. `npm ci` is what replaced them. If the header render does depend on the installed package, that combination means the default update path leaves a stale header silently.\n\nFiled alongside #5011 (the `clause:N` id pattern), which came out of the same update but is independent.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5571072825,
+        "origin": "deftai/directive#5013",
+        "id": "github.issue.5571072825"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ad2b3cde6200b25661d4fb284e10330614958a576a7cff20292136351e1b8995"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/scaffold.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "github": {
+        "issue": 5013
+      },
+      "productPullRequest": 5189
+    },
+    "id": "github.issue.5571072825",
+    "updated": "2026-09-30T19:01:56Z"
+  }
+}
