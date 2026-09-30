@@ -117,7 +117,13 @@
         "origin": "deftai/directive#5171",
         "id": "github.issue.5640216330"
       },
-      "productIssue": 5171
+      "productIssue": 5171,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T06:04:58.758Z",
+        "mergeCommit": "480f72bbe1a44816a48fff29050a3b79afc7dbab",
+        "pr": 5172
+      }
     },
     "acceptance": {
       "commands": [],
