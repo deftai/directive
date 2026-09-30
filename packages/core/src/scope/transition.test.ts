@@ -1704,6 +1704,14 @@ describe("runTransition complete persist-path merge stamp (#5120)", () => {
       pointer: "abcdef1",
       recorded_by: "scope:complete",
     });
+    expect(
+      (data.plan as { metadata?: { completionProvenance?: unknown } }).metadata
+        ?.completionProvenance,
+    ).toMatchObject({
+      mergeCommit: "abcdef1",
+      prNumber: 5120,
+      deliveryBranch: "master",
+    });
   });
 
   it("persists the merge stamp on the active brief when later acceptance refuses", () => {
