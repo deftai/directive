@@ -839,6 +839,10 @@ export function evaluateCompletedTracked(
       continue;
     }
     // Predecessor completed on tip is not enough when a residual identity exists (#5177).
+    // Drive-to DONE (--issue N) must fail closed on unknown GitHub state here — do not
+    // treat null/unresolved as "not orphaned" success (SLizard premature-success class;
+    // locked by residual-unknown --skip-gh test). This path does not reuse
+    // assessOrphanSignature; unknown under --issue or live lookup is terminal debt.
     if (landedKeys.has(key) && !residualLanded) {
       const stateWhenResidual = resolveState(entry.issue);
       if (stateWhenResidual === "open") {
