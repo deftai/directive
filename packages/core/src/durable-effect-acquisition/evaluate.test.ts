@@ -453,7 +453,6 @@ describe("evaluateDurableEffectAcquisition (#5080)", () => {
     expect(result.code).toBe(1);
     expect(result.message).toMatch(/form-method|durable-effect/);
   });
-
 });
 
 /** #4567 share-plus-reset: one git init, hard-reset between cases (#5140). */
@@ -549,33 +548,34 @@ describe("actual git snapshots", () => {
     expect(live).not.toContain("/ok");
   });
 
-  it.each(["unstaged", "staged", "committed"])(
-    "checks new effects and deletions in the %s snapshot",
-    (mode) => {
-      const { root, base, git, write } = sharedSnapshot();
-      write("App.html", UNSAFE_FORM);
-      if (mode !== "unstaged") git("add", ".");
-      if (mode === "committed") git("commit", "--quiet", "-m", "effect");
-      expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
-      unlinkSync(join(root, "App.html"));
-      if (mode !== "unstaged") git("add", ".");
-      if (mode === "committed") git("commit", "--quiet", "-m", "delete");
-      expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(0);
-    },
-  );
+  it.each([
+    "unstaged",
+    "staged",
+    "committed",
+  ])("checks new effects and deletions in the %s snapshot", (mode) => {
+    const { root, base, git, write } = sharedSnapshot();
+    write("App.html", UNSAFE_FORM);
+    if (mode !== "unstaged") git("add", ".");
+    if (mode === "committed") git("commit", "--quiet", "-m", "effect");
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
+    unlinkSync(join(root, "App.html"));
+    if (mode !== "unstaged") git("add", ".");
+    if (mode === "committed") git("commit", "--quiet", "-m", "delete");
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(0);
+  });
 
-  it.each(["unstaged", "staged"])(
-    "does not resurrect newly committed effects deleted %s",
-    (mode) => {
-      const { root, base, git, write } = sharedSnapshot();
-      write("App.html", UNSAFE_FORM);
-      git("add", ".");
-      git("commit", "--quiet", "-m", "effect");
-      unlinkSync(join(root, "App.html"));
-      if (mode === "staged") git("add", ".");
-      expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(0);
-    },
-  );
+  it.each([
+    "unstaged",
+    "staged",
+  ])("does not resurrect newly committed effects deleted %s", (mode) => {
+    const { root, base, git, write } = sharedSnapshot();
+    write("App.html", UNSAFE_FORM);
+    git("add", ".");
+    git("commit", "--quiet", "-m", "effect");
+    unlinkSync(join(root, "App.html"));
+    if (mode === "staged") git("add", ".");
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(0);
+  });
 
   it("reads live bytes over staged bytes and handles unusual renamed paths", () => {
     const { root, base, git, write } = sharedSnapshot();
