@@ -1,0 +1,470 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5106",
+    "updated": "2026-09-30T19:01:50Z"
+  },
+  "plan": {
+    "title": "[framework-gap] scope:complete records provenance but does not move an evidenced active xBRIEF to completed",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] scope:complete records provenance but does not move an evidenced active xBRIEF to completed",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5106",
+      "Overview": "\n\r\n1. **Recut root cause (Prefer-A).** At dispatch SHA `fc1363287`, do not treat exit-0-without-move as the defect. The tip success path already moves. Bind the mid-flight residue: `stampDeliveryProvenance` + optional `atomicWriteBrief(active)` before acceptance/move can leave `completionProvenance` on a `running` active brief when complete later refuses.\r\n\r\n2. **Fail-closed ordering.** Prefer one concrete surface:\r\n   - defer durable `completionProvenance` writes until the completed move commits; or\r\n   - roll back any mid-flight active write (restore prior bytes / strip provenance) on any refuse after that write.\r\n   Lock with a fixture: refused complete after a mid-flight persist leaves no `completionProvenance` on the active source (or restores prior content).\r\n\r\n3. **Keep tip move arm.** Do not weaken `TRANSITIONS.complete` move / `plan.status=completed` on `ok: true`. #2578 stay-out-of-active-on-success stays.\r\n\r\n4. **Consumer skew.** Issue body engine/package pins may explain older exit-0 symptoms off-tree. Cite as packaging/backfill follow-up only; Prefer-A binds the tip residue above.\r\n\r\n5. **Records promise.** After a refused complete, orphan-active / completed-tracked readers must not see a provenance-stamped `running` active as if ship-complete progressed.\r\n\r\n### Non-goals\r\n\r\n- Rewriting delivery-evidence schema\r\n- Cancel-vs-complete abandon semantics beyond #5126 ship-exit clarity\r\n- Claiming tip still allows exit 0 without move\r\n- DevHammer-only oracle fixes without the tip residue bar\r\n\r\n### Coverage asserted for Stop 1 pains (recut)\r\n\r\n- relieves:P1 - active remains `running` after complete attempt: covered for the refuse-path residue (not for tip `ok: true`)\r\n- relieves:P2 - provenance without lifecycle completion: Bound remedy items 1-2 (ordering/rollback); drop the exit-0 conjunct at this pin\r\n- relieves:P3 - records/orphan-active drift after \"complete\": item 5 as consequence of refuse-path residue\r\n\r\nSpec-path: next-build contract is this lean, not the issue body.\r\nTarget-digest sha256:3734213091d97e49bb51b37c8c32794ca91c3dfe93699769ff767ba1aec9abd1\r\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\r\n\n",
+      "Labels": "design, agent-experience, process, source-of-truth, urgent, area:cli, status:claimed, design-critique:ingest-ready, framework-gap, core-capabilities, promise:records"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "status": "completed",
+        "title": "Fail-closed ordering: do not leave durable completionProvenance under active/ with plan.status=running after a refused complete - defer the stamp until the completed move commits, or roll back any mid-flight active write on refuse. Lock with a fixture.",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:10:15.066Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:10:15.066Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "status": "completed",
+        "title": "Keep tip TRANSITIONS.complete move arm: on ok:true still move active/→completed/ and set plan.status=completed (#2578).",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:10:15.066Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:10:15.066Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "status": "completed",
+        "title": "Records promise: after refused complete, orphan-active / completed-tracked readers must not treat a provenance-stamped running active as ship-complete progressed.",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5190 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 99adb2040e1aac48ee10a2df66886a188ae21600.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:10:15.066Z",
+            "mintedVia": "leftover-complete-after-5190"
+          },
+          "recorded_at": "2026-09-30T22:10:15.066Z"
+        }
+      }
+    ],
+    "tags": [
+      "design",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "status:claimed",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:records"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5106",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5106: [framework-gap] scope:complete records provenance but does not move an evidenced active xBRIEF to completed"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/scope/transition.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "derived 14 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Recut root cause (Prefer-A). At dispatch SHA `fc1363287`, do not treat exit-0-without-move as the defect. The tip success path already moves. Bind the mid-flight residue: `stampDeliveryProvenance` + optional `atomicWriteBrief(active)` before acceptance/move can leave `completionProvenance` on a `running` active brief when complete later refuses.",
+        "Fail-closed ordering. Prefer one concrete surface:",
+        "defer durable `completionProvenance` writes until the completed move commits; or",
+        "roll back any mid-flight active write (restore prior bytes / strip provenance) on any refuse after that write.",
+        "Keep tip move arm. Do not weaken `TRANSITIONS.complete` move / `plan.status=completed` on `ok: true`. #2578 stay-out-of-active-on-success stays.",
+        "Consumer skew. Issue body engine/package pins may explain older exit-0 symptoms off-tree. Cite as packaging/backfill follow-up only; Prefer-A binds the tip residue above.",
+        "Records promise. After a refused complete, orphan-active / completed-tracked readers must not see a provenance-stamped `running` active as if ship-complete progressed.",
+        "Rewriting delivery-evidence schema",
+        "Cancel-vs-complete abandon semantics beyond #5126 ship-exit clarity",
+        "Claiming tip still allows exit 0 without move",
+        "DevHammer-only oracle fixes without the tip residue bar",
+        "relieves:P1 - active remains `running` after complete attempt: covered for the refuse-path residue (not for tip `ok: true`)",
+        "relieves:P2 - provenance without lifecycle completion: Bound remedy items 1-2 (ordering/rollback); drop the exit-0 conjunct at this pin",
+        "relieves:P3 - records/orphan-active drift after \"complete\": item 5 as consequence of refuse-path residue"
+      ],
+      "admitted_source_sentences": [
+        "Recut root cause (Prefer-A). At dispatch SHA `fc1363287`, do not treat exit-0-without-move as the defect. The tip success path already moves. Bind the mid-flight residue: `stampDeliveryProvenance` + optional `atomicWriteBrief(active)` before acceptance/move can leave `completionProvenance` on a `running` active brief when complete later refuses.",
+        "Fail-closed ordering. Prefer one concrete surface:",
+        "defer durable `completionProvenance` writes until the completed move commits; or",
+        "roll back any mid-flight active write (restore prior bytes / strip provenance) on any refuse after that write.",
+        "Keep tip move arm. Do not weaken `TRANSITIONS.complete` move / `plan.status=completed` on `ok: true`. #2578 stay-out-of-active-on-success stays.",
+        "Consumer skew. Issue body engine/package pins may explain older exit-0 symptoms off-tree. Cite as packaging/backfill follow-up only; Prefer-A binds the tip residue above.",
+        "Records promise. After a refused complete, orphan-active / completed-tracked readers must not see a provenance-stamped `running` active as if ship-complete progressed.",
+        "Rewriting delivery-evidence schema",
+        "Cancel-vs-complete abandon semantics beyond #5126 ship-exit clarity",
+        "Claiming tip still allows exit 0 without move",
+        "DevHammer-only oracle fixes without the tip residue bar",
+        "relieves:P1 - active remains `running` after complete attempt: covered for the refuse-path residue (not for tip `ok: true`)",
+        "relieves:P2 - provenance without lifecycle completion: Bound remedy items 1-2 (ordering/rollback); drop the exit-0 conjunct at this pin",
+        "relieves:P3 - records/orphan-active drift after \"complete\": item 5 as consequence of refuse-path residue"
+      ],
+      "admitted_source_digest": "cc4286c23a17e44be30d50da5f8f875284490a1dabb98800318af711a56876b5",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut root cause (Prefer-A). At dispatch SHA `fc1363287`, do not treat exit-0-without-move as the defect. The tip success path already moves. Bind the mid-flight residue: `stampDeliveryProvenance` + optional `atomicWriteBrief(active)` before acceptance/move can leave `completionProvenance` on a `running` active brief when complete later refuses.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Fail-closed ordering. Prefer one concrete surface:",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "defer durable `completionProvenance` writes until the completed move commits; or",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "roll back any mid-flight active write (restore prior bytes / strip provenance) on any refuse after that write.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Keep tip move arm. Do not weaken `TRANSITIONS.complete` move / `plan.status=completed` on `ok: true`. #2578 stay-out-of-active-on-success stays.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Consumer skew. Issue body engine/package pins may explain older exit-0 symptoms off-tree. Cite as packaging/backfill follow-up only; Prefer-A binds the tip residue above.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Records promise. After a refused complete, orphan-active / completed-tracked readers must not see a provenance-stamped `running` active as if ship-complete progressed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Rewriting delivery-evidence schema",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Cancel-vs-complete abandon semantics beyond #5126 ship-exit clarity",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Claiming tip still allows exit 0 without move",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "DevHammer-only oracle fixes without the tip residue bar",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "relieves:P1 - active remains `running` after complete attempt: covered for the refuse-path residue (not for tip `ok: true`)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "relieves:P2 - provenance without lifecycle completion: Bound remedy items 1-2 (ordering/rollback); drop the exit-0 conjunct at this pin",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "relieves:P3 - records/orphan-active drift after \"complete\": item 5 as consequence of refuse-path residue",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Current known state (2026-09-30 Stage A)\n\nStage A `task triage:evaluate -- 5106` on origin/master `fc1363287967`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/fc1363287967/856e1eb9-89fd-4539-b132-0c525513a9ed`\n\n### Live gap\n\nConsumer ledgerd (engine 0.119.9 / package pin 0.109.1 / xbrief pin 0.111.0): `scope:complete` exits 0 after stamping `completionProvenance`, but leaves the story in `xbrief/active/` with `plan.status=running` and no `xbrief/completed/` artifact.\n\n### Catalog\n\nApplied `design`, `agent-experience`, `process`, `source-of-truth`, `framework-gap`, `area:cli`; chip `design-critique:mechanism-shaped`. Pre-existing: `urgent`, `core-capabilities`, `promise:records`.",
+          "id": 5913935864,
+          "html_url": "https://github.com/deftai/directive/issues/5106#issuecomment-5913935864",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:02:21Z",
+          "updated_at": "2026-09-30T15:02:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because scope:complete can stamp completionProvenance and exit 0 while leaving an evidenced active xBRIEF in active/ with plan.status=running - a concrete fail-closed lifecycle-move gap on the records promise, not a consumer-misuse essay.\n\ncharter: refutation\nrefutation-target: An evidenced scope:complete may record completionProvenance and exit successfully without moving xbrief/active/<story>.xbrief.json to xbrief/completed/ or setting plan.status=completed.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\npain: P1, P2, P3\n\nP1. After a supported scope:complete on an evidenced active story, the source file remains under xbrief/active/ with plan.status=running.\nP2. completionProvenance can be stamped while the completed/ artifact and plan.status=completed transition never land, so exit 0 lies about lifecycle completion.\nP3. Consumer records promise (xBRIEF as SoT) drifts: active/running briefs accumulate after \"complete\" while orphan-active / completed-tracked gates disagree with the operator's close intent.\n\nOperator directed arc 5106 using #5111 defaults. Concrete closed-AC lifecycle move failure; recommended Dual-stop N=1 applied without a spend ask. Non-goals: delivery-evidence schema redesign; DevHammer oracle-only fixes; cancel-vs-complete abandon semantics (#5126) beyond ensuring complete is the ship exit that moves.\n\nTarget-digest sha256:3734213091d97e49bb51b37c8c32794ca91c3dfe93699769ff767ba1aec9abd1\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5106-dc\npin-kind: origin-default",
+          "id": 5913936303,
+          "html_url": "https://github.com/deftai/directive/issues/5106#issuecomment-5913936303",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:02:23Z",
+          "updated_at": "2026-09-30T15:02:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5106\ncharter: refutation\nspend: N=1\nround: 1 critic\nid-ceiling: 5913936303\nsha-at-dispatch: fc1363287967413846934ecac824c2be1a6e6d51\narc-mode: no-ingest\naudit-targets: none\nseat: grok\nlauncher: grok\n\nHEAD `git rev-parse` equals dispatch SHA `fc1363287967413846934ecac824c2be1a6e6d51` (no fetch/checkout). Pin reads via `git show` of `packages/core/src/scope/transition.ts`, `delivery-evidence.ts`, and `constants.ts`. In-ceiling inputs: issue body; Current-state 5913935864; Stop 1 write-back 5913936303.\n\n## Verdict on Stop 1 refutation-target\n\nRefutation-target under test: an evidenced `scope:complete` may record `completionProvenance` and exit successfully without moving `xbrief/active/<story>.xbrief.json` to `xbrief/completed/` or setting `plan.status=completed`.\n\n**Exit-0 / success-path half does not survive at this pin.** Prefer-A must not bind as if that exact success-path gap still exists in `runTransition` at `fc1363287`.\n\nblocks-the-design\n\nEvidence: `TRANSITIONS.complete` is `{ allowedSources: [\"active\"], targetFolder: \"completed\", targetStatus: \"completed\" }` (`constants.ts`). For an active source, `lifecycleMain` calls `runTransition(\"complete\", …)` (`scope/main.ts`); on `ok: true` the only completing branch is `commitTransition`'s move arm - `planObj.status = \"completed\"`, `atomicWriteBrief(destPath)`, then `unlinkSync(resolvedPath)` (`transition.ts` ~448-537). Stay/`targetFolder === null` is only for block/unblock. Tests at this pin assert the contract: complete removes the active path, lands under `completed/`, and sets `plan.status=completed` (`transition.test.ts` \"completes active to completed with stamp\"; \"does not leave non-terminal status in active/ during complete (#2578)\"). Failure mode if Prefer-A assumes exit-0-without-move: remedy/tests chase a success path the pin already forbids. Disposition: lean cannot bind the Stop 1 target wording as still-true at this SHA.\n\n## Surviving residual (recut the target)\n\n**Provenance can still land on disk under `active/` with `plan.status=running` when complete later refuses** - P2's \"provenance without lifecycle completion\" half survives; the \"exit 0 lies\" conjunct does not at this pin.\n\nsharpens-framing\n\nEvidence: delivery gate success stamps `completionProvenance` onto in-memory `planObj` before acceptance work (`transition.ts` ~357-380 → `stampDeliveryProvenance` in `delivery-evidence.ts`). Then `persistClauseKeyedPendingItems` may `atomicWriteBrief(resolvedPath, data, …)` to the **active** path when clause items are added/rewritten (`transition.ts` ~387-393), still before `evaluateAcceptanceEvidenceGate` / acceptance walk / `commitTransition`. A later refuse returns `ok: false` (CLI exit 1) while the active file can already carry `completionProvenance` and remain `running` with no `completed/` twin. Same shape if persist wrote and a later session-marker / dest-exists / consistency refuse rolls back the move. Failure mode: operators and orphan-active / completed-tracked readers see a provenance-stamped running active after a failed complete; P1-P3 overclaim exit 0. Disposition: recut Prefer-A to fail-closed ordering - do not persist provenance to `active/` until the completed move commits, or roll back the mid-flight active write on any refuse; keep P1/P3 as consequences of that refuse-path residue, not of a successful exit.\n\n## Consumer pin skew\n\nfootnote\n\nIssue body reproduces on consumer engine 0.119.9 / package pin 0.109.1 / xbrief 0.111.0. This seat audited directive source at `fc1363287` only. Skew can explain a consumer-visible exit-0 symptom against an older deposit while tip `runTransition` already moves on success. Does not restore the Stop 1 success-path claim at the dispatch SHA; may inform packaging/backfill follow-ups outside this Prefer-A.\n\n## Road-not-taken\n\nClosing as \"already fixed at tip\" without addressing the mid-flight active write would leave P2's durable half open. Steelman for \"tip success path is enough\": #2578 tests and the move arm are real - flipping condition would be a pin-proven exit-0 path that leaves active+running after `result.ok === true`, which this seat did not find.\r\n\n",
+          "id": 5914631569,
+          "html_url": "https://github.com/deftai/directive/issues/5106#issuecomment-5914631569",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:42:07Z",
+          "updated_at": "2026-09-30T15:42:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\r\n```quarantined\nrole: parent\r\n```\n\r\n## In plain English\r\n\r\nStop 1 said evidenced `scope:complete` can stamp `completionProvenance` and exit 0 while the story stays in `active/` with `plan.status=running`. Critic 5914631569 blocked that success-path claim at tip `fc1363287`: on `ok: true`, `runTransition(\"complete\")` already moves to `completed/` and sets `plan.status=completed`. The surviving residual is mid-flight: delivery provenance can be written onto the still-`running` active file before acceptance/move, then a later refuse leaves that residue with exit 1. Consumer 0.109.1 skew is footnote-only against this pin. The same parent wrote Stop 1 5913936303. Critic 5914631569 checks the findings.\r\n\r\n**Lean:** Prefer-A - fail-closed ordering so `completionProvenance` is not durable under `active/` with `plan.status=running` after a refused complete. This map is the bind.\r\n\r\nsiblings: 1\r\nRound: 1\r\nResidual of critic 5914631569 (blocks-the-design folded into recut; sharpens-framing accepted; footnotes census).\r\n\r\n### Exit-0 / success-path half does not survive at this pin\r\naccept-into-contract\r\n\r\n### Surviving residual (recut the target)\r\naccept-into-contract\r\n\r\n## Bound remedy\r\n\r\n1. **Recut root cause (Prefer-A).** At dispatch SHA `fc1363287`, do not treat exit-0-without-move as the defect. The tip success path already moves. Bind the mid-flight residue: `stampDeliveryProvenance` + optional `atomicWriteBrief(active)` before acceptance/move can leave `completionProvenance` on a `running` active brief when complete later refuses.\r\n\r\n2. **Fail-closed ordering.** Prefer one concrete surface:\r\n   - defer durable `completionProvenance` writes until the completed move commits; or\r\n   - roll back any mid-flight active write (restore prior bytes / strip provenance) on any refuse after that write.\r\n   Lock with a fixture: refused complete after a mid-flight persist leaves no `completionProvenance` on the active source (or restores prior content).\r\n\r\n3. **Keep tip move arm.** Do not weaken `TRANSITIONS.complete` move / `plan.status=completed` on `ok: true`. #2578 stay-out-of-active-on-success stays.\r\n\r\n4. **Consumer skew.** Issue body engine/package pins may explain older exit-0 symptoms off-tree. Cite as packaging/backfill follow-up only; Prefer-A binds the tip residue above.\r\n\r\n5. **Records promise.** After a refused complete, orphan-active / completed-tracked readers must not see a provenance-stamped `running` active as if ship-complete progressed.\r\n\r\n### Non-goals\r\n\r\n- Rewriting delivery-evidence schema\r\n- Cancel-vs-complete abandon semantics beyond #5126 ship-exit clarity\r\n- Claiming tip still allows exit 0 without move\r\n- DevHammer-only oracle fixes without the tip residue bar\r\n\r\n### Coverage asserted for Stop 1 pains (recut)\r\n\r\n- relieves:P1 - active remains `running` after complete attempt: covered for the refuse-path residue (not for tip `ok: true`)\r\n- relieves:P2 - provenance without lifecycle completion: Bound remedy items 1-2 (ordering/rollback); drop the exit-0 conjunct at this pin\r\n- relieves:P3 - records/orphan-active drift after \"complete\": item 5 as consequence of refuse-path residue\r\n\r\nSpec-path: next-build contract is this lean, not the issue body.\r\nTarget-digest sha256:3734213091d97e49bb51b37c8c32794ca91c3dfe93699769ff767ba1aec9abd1\r\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\r\n\n",
+          "id": 5914643238,
+          "html_url": "https://github.com/deftai/directive/issues/5106#issuecomment-5914643238",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:42:56Z",
+          "updated_at": "2026-09-30T19:01:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5106\ncharter: refutation\nspend: N=1\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5914643238\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\nFresh critic. `git rev-parse HEAD` equals `fc1363287967413846934ecac824c2be1a6e6d51` (no fetch/checkout). Pin reads via `git show` that SHA for `packages/core/src/scope/transition.ts` and `delivery-evidence.ts`. In-ceiling inputs: Current-state `5913935864`, Stop 1 `5913936303`, round-1 critic `5914631569`, successor lean `5914643238`.\n\n## Coverage census\n\nStop 1 named P1-P3. Lean Prefer-A Bound remedy items 1-5 recut after critic `5914631569` blocked the tip exit-0-without-move wording. Pin checks at the dispatch SHA:\n\n- `stampDeliveryProvenance` mutates in-memory `plan.metadata.completionProvenance` after delivery gate success (`transition.ts` ~372-379) while `plan.status` is still the active running value.\n- When `persistClauseKeyedPendingItems` adds or rewrites clause ids, `atomicWriteBrief(resolvedPath, …)` persists that stamped plan onto the **active** path before `evaluateAcceptanceEvidenceGate` / acceptance walk (`transition.ts` ~387-422).\n- A later refuse returns `ok: false` with the source still under `active/` and `plan.status=running`; tip `ok: true` still takes `commitTransition`'s move arm to `completed/` with `plan.status=completed` (`TRANSITIONS.complete` + unlink source).\n- Mid-flight durable residue therefore requires the persist arm; memory-only stamp without that write leaves no on-disk provenance after refuse.\n\n### P1 under recut\nCovered. Prefer-A scopes the surviving residue to a refused complete after mid-flight persist: active can remain `running` while already carrying durable `completionProvenance`. Bound items 1-2 (defer durable provenance until the completed move, or roll back the mid-flight active write on refuse) close that residue. Tip `ok: true` stay-in-active is already forbidden at this pin; lean keeps the move arm (item 3).\n\nfootnote\n\n### P2 under recut\nCovered. Provenance-without-lifecycle-completion survives as the refuse-path half; the Stop 1 \"exit 0 lies\" conjunct does not at this pin (round-1 blocks-the-design folded into the recut). Bound items 1-2 plus the refuse-after-persist fixture lock the durable half. Consumer 0.109.1 skew stays packaging footnote (item 4), outside Prefer-A.\n\nfootnote\n\n### P3 under recut\nCovered as consequence of the same refuse-path residue. Bound item 5 requires that after a refused complete, readers must not treat a provenance-stamped `running` active as ship-complete progress. Prefer-A items 1-2 remove that false SoT signal; orphan-active / completed-tracked disagreement with operator close intent after a stamped-but-refused attempt is thereby addressed at the tip residue Prefer-A binds.\n\nfootnote\n\n## Gate-pair naming on item 5\nfootnote\nEvidence: At this pin `listActiveRunningBriefs` / orphan-active key off `active/` + `plan.status=running`; `verify:completed-tracked` keys off closed scoped issues vs tracked `completed/`/`cancelled` twins; `completed-write-guard` documents that it does not read `completionProvenance`. Acceptance-evidence and human SoT readers do read the stamp.\nFailure mode: An implementer could chase orphan-active/completed-tracked parsers for provenance and miss the disk ordering bar already named in items 1-2.\nDisposition: Census only. Does not change Prefer-A harvest (ordering/rollback + keep move arm); item 5 remains the records-promise consequence of that bar.\n\n## Persist-arm precondition\nfootnote\nEvidence: Durable mid-flight write fires only when `persist.addedIds` or `persist.rewrittenIds` is non-empty (`transition.ts` ~389-393). Lean fixture language already says \"after a mid-flight persist.\"\nFailure mode: Tests that refuse without a clause rewrite never exercise the residue Prefer-A binds.\nDisposition: Census only. Fixture scope in Bound item 2 already matches the pin.\n\n## Injection / swarm lens\nTarget is lifecycle write ordering on a local active brief during `scope:complete`. No authority, prompt/envelope, identity-token, concurrency, or shared-state change in the asserted Bound remedy; lens not triggered.\n\n## Verdict\n\nFootnote-only. No `blocks-the-design`. No `sharpens-framing` that changes Bound remedy harvest. Coverage of audit-targets pain-P1, pain-P2, pain-P3 holds on lean `5914643238` under the Prefer-A refuse-path recut.\r\n\n",
+          "id": 5914704481,
+          "html_url": "https://github.com/deftai/directive/issues/5106#issuecomment-5914704481",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:46:25Z",
+          "updated_at": "2026-09-30T15:46:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Tip `TRANSITIONS.complete` moves `active/` → `completed/` with `plan.status=completed` on `ok: true` | pin-read `constants.ts` + `transition.ts` commitTransition move arm; critic 5914631569 | verified |\n| Stop 1 exit-0-without-move wording does not survive at `fc1363287` | critic 5914631569 blocks-the-design; lean 5914643238 recut | verified |\n| Mid-flight `stampDeliveryProvenance` + optional `atomicWriteBrief(active)` can leave provenance on `running` active after refuse | pin-read `transition.ts` ~357-422; critics 5914631569 / 5914704481 | verified |\n| Prefer-A lean 5914643238 covers Stop 1 P1-P3 under refuse-path recut | pain-audit 5914704481 footnote-only | verified |\n| Durable residue requires persist-arm (clause rewrite) | pain-audit 5914704481 census footnote | verified (non-blocking) |\n\nCeiling: lean 5914643238. Pain-audit: 5914704481. Dispatch SHA: fc1363287967413846934ecac824c2be1a6e6d51.",
+          "id": 5914719496,
+          "html_url": "https://github.com/deftai/directive/issues/5106#issuecomment-5914719496",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:47:13Z",
+          "updated_at": "2026-09-30T15:47:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAt tip, evidenced `scope:complete` already moves the brief to `completed/` on success. Stop 1's exit-0-without-move claim does not bind. The accepted build closes the mid-flight residue: do not leave durable `completionProvenance` under `active/` with `plan.status=running` after a refused complete (defer the stamp until the move commits, or roll back the mid-flight active write). Keep the tip move arm. Consumer package skew stays packaging follow-up.\n\nBound contract: successor lean 5914643238\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nRound-1 critic 5914631569 headings accepted into the Prefer-A recut lean. Pain-audit 5914704481 footnote-only; no Bound-remedy harvest change. Verified-claims table posted as the prior comment. Yolo standing confirms the all-accept map.",
+          "id": 5914719926,
+          "html_url": "https://github.com/deftai/directive/issues/5106#issuecomment-5914719926",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:47:14Z",
+          "updated_at": "2026-09-30T15:47:14Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nscope:complete records provenance but does not move an evidenced active xBRIEF to completed\n\n## Context\n\nConsumer project ledgerd; reproduced with Deft engine 0.119.9 against project package pin 0.109.1 and xbrief pin 0.111.0\n\n## Expected behavior\n\nscope:complete moves xbrief/active/<story>.xbrief.json to xbrief/completed/ and sets plan.status=completed\n\n## Actual behavior / gap\n\nscope:complete exits without error after stamping completionProvenance, but leaves the source in xbrief/active/ with plan.status=running and no completed artifact\n\n## Session notes\n\nReproduced after pnpm run check passed, focused close suite passed 27/27, and repeated supported scope:complete invocations.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5617516982,
+        "origin": "deftai/directive#5106",
+        "id": "github.issue.5617516982"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "github": {
+        "issue": 5106
+      },
+      "productPullRequest": 5190
+    },
+    "id": "github.issue.5617516982",
+    "updated": "2026-09-30T19:01:50Z"
+  }
+}
