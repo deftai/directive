@@ -96,7 +96,7 @@
       },
       {
         "uri": "https://github.com/deftai/directive/pull/5161",
-        "type": "x-xbrief/github-pull-request"
+        "type": "x-xbrief/github-pr"
       }
     ],
     "metadata": {
