@@ -467,6 +467,99 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(readOccupancy(root)?.heartbeatAt.toISOString()).toBe(claimedAt.toISOString());
   });
 
+  it("markWrite records Prefer-A product-mutation completion marker (#5176)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(
+      false,
+    );
+
+    const writeAt = new Date(claimedAt.getTime() + 1000);
+    applyWorktreeOccupancy(root, {
+      sessionId: "owner",
+      now: writeAt,
+      markWrite: true,
+    });
+    expect(readOccupancy(root)?.lastWriteAt?.toISOString()).toBe(writeAt.toISOString());
+    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(
+      true,
+    );
+
+    const later = new Date(writeAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1);
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: later,
+      refresh: true,
+    });
+    expect(gate.allow).toBe(true);
+    expect(gate.refreshed).toBe(true);
+    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(
+      true,
+    );
+  });
+
+  it("write-gate markWrite refresh fails closed when Prefer-A marker cannot be written (#5176)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    // Block `.deft/cache/` so containedWrite cannot persist the durable marker.
+    writeFileSync(join(root, ".deft", "cache"), "not-a-directory", "utf8");
+    const later = new Date(claimedAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1);
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: later,
+      refresh: true,
+    });
+    expect(gate.allow).toBe(false);
+    expect(gate.refreshed).toBe(false);
+    expect(gate.message).toMatch(/product-mutation completion marker write failed/i);
+    expect(readOccupancy(root)?.lastWriteAt).toBeNull();
+  });
+
+  it("heartbeat and grant still renew after lastWriteAt when marker rewrite is blocked (#5176)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt, markWrite: true });
+    expect(readOccupancy(root)?.lastWriteAt?.toISOString()).toBe(claimedAt.toISOString());
+    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(
+      true,
+    );
+    // Replace cache dir with a file so a fresh marker rewrite would fail.
+    rmSync(join(root, ".deft", "cache"), { recursive: true, force: true });
+    writeFileSync(join(root, ".deft", "cache"), "not-a-directory", "utf8");
+
+    // Whole-second offsets: occupancy timestampIso drops sub-second fractions.
+    const beatAt = new Date(claimedAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1000);
+    const beat = heartbeatOccupancy(root, { sessionId: "owner", now: beatAt, env: {} });
+    expect(beat.code).toBe(0);
+    expect(beat.action).toBe("heartbeat");
+    expect(beat.record?.heartbeatAt.toISOString()).toBe(beatAt.toISOString());
+    expect(readOccupancy(root)?.lastWriteAt?.toISOString()).toBe(claimedAt.toISOString());
+
+    const grantAt = new Date(beatAt.getTime() + 60_000);
+    const granted = grantOccupancyMembership(root, {
+      sessionId: "owner",
+      childSessionId: "child-1",
+      role: "leaf-implementation",
+      now: grantAt,
+      env: {},
+    });
+    expect(granted.code).toBe(0);
+    expect(granted.action).toBe("granted");
+    expect(readOccupancy(root)?.grants.length).toBe(1);
+
+    // Product-write restamp still fails closed when the marker cannot be written.
+    const writeAt = new Date(grantAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1000);
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: writeAt,
+      refresh: true,
+    });
+    expect(gate.allow).toBe(false);
+    expect(gate.message).toMatch(/product-mutation completion marker write failed/i);
+  });
+
   it("write-gate warns the holder inside its own staleness window (#3599)", () => {
     const root = tempRoot();
     const claimedAt = new Date("2026-08-17T12:00:00Z");

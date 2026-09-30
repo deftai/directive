@@ -61,6 +61,10 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, realpathSync, renameSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import {
+  productMutationCompletionMarkerPath,
+  recordProductMutationCompletion,
+} from "../check/product-mutation-completion.js";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { assertAppendLockOwned, type LockDeps, withAppendLock } from "../slice/lock.js";
@@ -1210,6 +1214,7 @@ export function applyWorktreeOccupancy(
           code: 1,
         };
       }
+      const markWrite = input.markWrite === true;
       const record = writeOccupancyRecord(
         projectRoot,
         {
@@ -1218,7 +1223,7 @@ export function applyWorktreeOccupancy(
           intent: input.intent ?? liveLocked?.intent ?? "mutation",
           claimedAt: liveLocked?.claimedAt ?? now,
           heartbeatAt: now,
-          lastWriteAt: input.markWrite === true ? now : (liveLocked?.lastWriteAt ?? null),
+          lastWriteAt: markWrite ? now : (liveLocked?.lastWriteAt ?? null),
           identityProvenance:
             liveLocked?.identityProvenance ?? input.identityProvenance ?? claim.provenance,
           host: input.host ?? liveLocked?.host ?? occupancyHost(input.env),
@@ -1231,6 +1236,7 @@ export function applyWorktreeOccupancy(
           grants: liveLocked === null ? [] : liveOccupancyGrants(liveLocked, now),
         },
         fence,
+        { persistProductMutationMarker: markWrite },
       );
       const action: OccupancyAction = liveLocked !== null ? "heartbeat" : "claimed";
       if (action === "claimed") {
@@ -2048,6 +2054,20 @@ export function evaluateOccupancyWriteGate(
       input.lockDeps,
       incoming,
     );
+    if (memberOutcome.status === "marker-failed") {
+      return {
+        allow: false,
+        message:
+          "occupancy product-mutation completion marker write failed: " +
+          `${memberOutcome.error}. Retry the gated write; Process-only check ` +
+          "must not treat a lost Prefer-A stamp as success (#5176 / #4544).",
+        occupant: live,
+        refreshed: false,
+        warning: memberWarning,
+        admitted: null,
+        grant: null,
+      };
+    }
     if (memberOutcome.status !== "refreshed") {
       // Same re-decide as the owner path: contention says nothing about who
       // holds the lease now, so ask the file rather than the pre-lock snapshot.
@@ -2078,6 +2098,20 @@ export function evaluateOccupancyWriteGate(
     };
   }
   const outcome = restampOccupancyHeartbeat(projectRoot, live.sessionId, now, true, input.lockDeps);
+  if (outcome.status === "marker-failed") {
+    return {
+      allow: false,
+      message:
+        "occupancy product-mutation completion marker write failed: " +
+        `${outcome.error}. Retry the gated write; Process-only check must not ` +
+        "treat a lost Prefer-A stamp as success (#5176 / #4544).",
+      occupant: live,
+      refreshed: false,
+      warning,
+      admitted: null,
+      grant: null,
+    };
+  }
   if (outcome.status !== "refreshed") {
     // Neither failure leaves the pre-lock record usable. `lost` says the lease
     // changed hands outright. `unavailable` says only that the lock could not
@@ -2112,7 +2146,14 @@ export function evaluateOccupancyWriteGate(
 type RestampOutcome =
   | { readonly status: "refreshed"; readonly record: OccupancyRecord }
   | { readonly status: "lost" }
-  | { readonly status: "unavailable" };
+  | { readonly status: "unavailable" }
+  /** Prefer-A durable marker could not be written; product-write evidence lost. */
+  | { readonly status: "marker-failed"; readonly error: string };
+
+/** Thrown inside the occupancy lock when Prefer-A marker persistence fails. */
+class ProductMutationMarkerWriteError extends Error {
+  override readonly name = "ProductMutationMarkerWriteError";
+}
 
 /**
  * Re-stamp an existing live lease held by `sessionId`. Reports `lost` when the
@@ -2167,12 +2208,18 @@ function restampOccupancyHeartbeat(
             grants: liveOccupancyGrants(current, now),
           },
           fence,
+          // Prefer-A marker only on intentional product-write restamp — not on
+          // ordinary heartbeat that merely preserves lastWriteAt (#5176 / #4544).
+          { persistProductMutationMarker: markWrite },
         );
         return { status: "refreshed", record };
       },
       lockDeps,
     );
-  } catch {
+  } catch (err) {
+    if (err instanceof ProductMutationMarkerWriteError) {
+      return { status: "marker-failed", error: err.message };
+    }
     return { status: "unavailable" };
   }
 }
@@ -2249,8 +2296,11 @@ export function heartbeatOccupancy(
         outcome.status === "lost"
           ? "occupancy:heartbeat could not refresh the lease: it expired or changed owner " +
             "while the refresh was running."
-          : "occupancy:heartbeat could not take the occupancy lock, so the lease is " +
-            "unchanged and still yours. Retry in a moment.",
+          : outcome.status === "marker-failed"
+            ? "occupancy:heartbeat could not write the Prefer-A product-mutation " +
+              `completion marker: ${outcome.error}. Retry; do not treat a lost stamp as Process-only (#5176 / #4544).`
+            : "occupancy:heartbeat could not take the occupancy lock, so the lease is " +
+              "unchanged and still yours. Retry in a moment.",
       code: 1,
     };
   }
@@ -2475,10 +2525,16 @@ function occupancyGrantPayload(grant: OccupancyGrant): Record<string, unknown> {
   };
 }
 
+/**
+ * Persist occupancy.json. Prefer-A durable marker is written only on intentional
+ * product-write (`persistProductMutationMarker`), not when heartbeat/grant/revoke
+ * merely carry an existing lastWriteAt (#5176 / #4544 Class A residual).
+ */
 function writeOccupancyRecord(
   projectRoot: string,
   record: OccupancyWriteFields,
   fence: () => void,
+  opts: { readonly persistProductMutationMarker?: boolean } = {},
 ): OccupancyRecord {
   const root = resolve(projectRoot);
   const target = occupancyPath(root);
@@ -2487,6 +2543,20 @@ function writeOccupancyRecord(
   const tmpName = join(dir, `.occupancy.${process.pid}.occupancy.json.tmp`);
   const payload = occupancyPayload(record);
   const text = `${stableJson(payload, 2)}\n`;
+  let markerWrittenPath: string | null = null;
+  let markerExistedBefore = false;
+  // #5176 / #4544 Prefer-A: durable marker before lease publish on markWrite only
+  // so a marker miss cannot leave product-write without completion proof.
+  // Heartbeat / grant refresh must not require a fresh marker rewrite.
+  if (opts.persistProductMutationMarker === true) {
+    const at = record.lastWriteAt ?? new Date();
+    markerExistedBefore = existsSync(productMutationCompletionMarkerPath(root));
+    const marker = recordProductMutationCompletion(root, at);
+    if (!marker.ok) {
+      throw new ProductMutationMarkerWriteError(marker.error);
+    }
+    markerWrittenPath = marker.path;
+  }
   try {
     containedWrite({ root, target: tmpName, data: text, mode: "create" });
     fence();
@@ -2496,6 +2566,14 @@ function writeOccupancyRecord(
       rmSync(tmpName, { force: true });
     } catch {
       /* best-effort cleanup */
+    }
+    // Orphan Prefer-A marker from this call only (do not erase a prior stamp).
+    if (markerWrittenPath !== null && !markerExistedBefore) {
+      try {
+        containedRemove({ root, target: markerWrittenPath });
+      } catch {
+        /* best-effort cleanup */
+      }
     }
     throw err;
   }
