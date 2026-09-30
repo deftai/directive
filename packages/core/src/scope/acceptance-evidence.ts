@@ -1363,22 +1363,30 @@ function evaluateOneItem(
   // even when already terminal; persist skips creating a second pending row (#4385).
   if (!NON_TERMINAL_ITEM_STATUSES.has(status) && !isClauseBindingItem(item, clauseKeys)) {
     // #4879 Prefer-A: landing-set statuses cannot enter completed/ without typed
-    // evidence. Present namespaced evidence still skips re-validation; empty/done
-    // stay outside this list and remain already_terminal for the folder check.
+    // evidence. Well-formed namespaced evidence still skips suitability re-check;
+    // empty {} / malformed records do not count (Greptile P1). empty/done stay
+    // outside this list and remain already_terminal for the folder check.
     if (COMPLETED_LANDING_WITHOUT_EVIDENCE_STATUSES.has(status)) {
       const landingFields = readNamespacedAcceptanceFields(item);
-      if (!landingFields.hasEvidence) {
+      const landingEvidence = landingFields.hasEvidence
+        ? parseEvidence(landingFields.evidence)
+        : null;
+      if (landingEvidence === null || !landingEvidence.ok) {
         const bareHint =
           landingFields.hasBareEvidence || landingFields.hasBareDisposition
             ? ` bare evidence/disposition ignored — use ${ACCEPTANCE_EVIDENCE_KEY} or ${ACCEPTANCE_DISPOSITION_KEY} (#3305);`
+            : "";
+        const shapeHint =
+          landingEvidence !== null && !landingEvidence.ok
+            ? ` ${ACCEPTANCE_EVIDENCE_KEY} present but malformed (${landingEvidence.message});`
             : "";
         return {
           path,
           title,
           outcome: "missing",
           detail:
-            `status=${status} already terminal but no ${ACCEPTANCE_EVIDENCE_KEY};` +
-            `${bareHint} missing typed evidence blocks completed/ entry (#4879)`,
+            `status=${status} already terminal but no valid ${ACCEPTANCE_EVIDENCE_KEY};` +
+            `${shapeHint}${bareHint} missing typed evidence blocks completed/ entry (#4879)`,
         };
       }
     }

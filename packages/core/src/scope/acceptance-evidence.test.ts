@@ -661,6 +661,22 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
     expect(gate.reports[0]?.detail).toMatch(/typed evidence not re-checked/);
   });
 
+  it("landing-set empty {} evidence does not count as typed evidence (#4879 Greptile P1)", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        {
+          title: "completed empty evidence object",
+          status: "completed",
+          [ACCEPTANCE_EVIDENCE_KEY]: {},
+        },
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.outcome).toBe("missing");
+    expect(gate.reports[0]?.detail).toMatch(/malformed|#4879|blocks completed\/ entry/);
+    expect(gate.reports[0]?.outcome).not.toBe("already_terminal");
+  });
+
   it("empty and done stay outside the landing-set refuse (#4879 clause 3)", () => {
     for (const status of ["", "done"] as const) {
       const gate = evaluateAcceptanceEvidenceGate({
