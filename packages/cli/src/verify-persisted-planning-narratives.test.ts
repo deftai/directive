@@ -1,8 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import { recordProductMutationCompletion } from "@deftai/directive-core/check";
+import { afterEach, describe, expect, it } from "vitest";
 import { parseArgs, run } from "./verify-persisted-planning-narratives.js";
 
 const temps: string[] = [];
