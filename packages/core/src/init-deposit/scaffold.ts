@@ -298,7 +298,8 @@ export function writeAgentsMd(projectDir: string, deftDir: string, io: InitDepos
   // stale project node_modules/@deftai/directive-content (#4706 helpers).
   const templateText = readAgentsTemplateFromContentTree(deftDir);
   if (templateText === null) {
-    throw new Error("AGENTS.md render failed: template-missing");
+    io.printf("AGENTS.md render refused: template-missing in content tree.\n");
+    return false;
   }
   const treeVersion = readContentTreeVersion(deftDir);
   const plan = agentsRefreshPlanWithInstalledTemplate(projectDir, deftDir, {

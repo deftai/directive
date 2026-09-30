@@ -353,6 +353,16 @@ describe("init-deposit scaffold", () => {
     expect(renderManagedSection(agents)).toBe(expectedBody);
   });
 
+  it("returns false without throw when content-tree agents template is missing (#5013)", () => {
+    const project = freshRoot("scaffold-agents-template-missing-");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    const { lines, io } = captureIo();
+    expect(writeAgentsMd(project, deftDir, io)).toBe(false);
+    expect(existsSync(join(project, "AGENTS.md"))).toBe(false);
+    expect(lines.some((line) => line.includes("template-missing"))).toBe(true);
+  });
+
   it("inserts deft include into an existing top-level includes block", () => {
     const project = freshRoot("scaffold-taskfile-includes-");
     writeFileSync(
