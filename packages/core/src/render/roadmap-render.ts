@@ -1,4 +1,11 @@
-import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  readdirSync,
+  readFileSync,
+  type Stats,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import {
@@ -410,7 +417,7 @@ function probeLifecycleFolder(dir: string): FolderProbe {
   } catch {
     return { kind: "unreadable", detail: dir };
   }
-  let st;
+  let st: Stats;
   try {
     st = lstatSync(dir);
   } catch {
@@ -672,7 +679,7 @@ type RootIdentityResult = { ok: true } | { ok: false; message: string };
  */
 function validateNoFlagRootIdentity(cwd: string): RootIdentityResult {
   const markerPath = join(cwd, MIGRATED_ARTIFACT_DIR, "PROJECT-DEFINITION.xbrief.json");
-  let st;
+  let st: Stats;
   try {
     st = lstatSync(markerPath);
   } catch {

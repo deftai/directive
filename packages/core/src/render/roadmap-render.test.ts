@@ -729,8 +729,6 @@ describe("roadmap-render projection containment (#2839)", () => {
   );
 });
 
-
-
 describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
   const tmpDirs: string[] = [];
   afterEach(() => {
@@ -795,7 +793,11 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     const xbrief = join(root, "xbrief");
     const active = join(xbrief, "active");
     mkdirSync(active, { recursive: true });
-    writeFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), JSON.stringify(validProjectDefinition()), "utf8");
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
     writeActiveStory(active, "2026-01-01-story-a.xbrief.json", "Active Story A");
     writeActiveStory(active, "2026-01-01-story-b.xbrief.json", "Active Story B");
 
@@ -814,7 +816,11 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     const xbrief = join(root, "xbrief");
     const active = join(xbrief, "active");
     mkdirSync(active, { recursive: true });
-    writeFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), JSON.stringify(validProjectDefinition()), "utf8");
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
     writeActiveStory(active, "2026-01-01-story.xbrief.json", "Active Story");
 
     expect(withCwd(root, () => roadmapRenderMain([]))).toBe(0);
@@ -834,7 +840,11 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     const xbrief = join(parent, "xbrief");
     const active = join(xbrief, "active");
     mkdirSync(active, { recursive: true });
-    writeFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), JSON.stringify(validProjectDefinition()), "utf8");
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
     writeActiveStory(active, "2026-01-01-story.xbrief.json", "Parent Active");
     const child = join(parent, "child");
     mkdirSync(child);
@@ -851,7 +861,11 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     const xbrief = join(parent, "xbrief");
     const active = join(xbrief, "active");
     mkdirSync(active, { recursive: true });
-    writeFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), JSON.stringify(validProjectDefinition()), "utf8");
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
     writeActiveStory(active, "2026-01-01-story.xbrief.json", "Parent Active");
     const child = join(parent, "pkg");
     mkdirSync(join(child, "xbrief"), { recursive: true });
@@ -867,7 +881,11 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     const xbrief = join(parent, "xbrief");
     const active = join(xbrief, "active");
     mkdirSync(active, { recursive: true });
-    writeFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), JSON.stringify(validProjectDefinition()), "utf8");
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
     writeActiveStory(active, "2026-01-01-story.xbrief.json", "Parent Active");
     const child = join(parent, "nested");
     const evalDir = join(child, "xbrief", ".eval");
@@ -884,7 +902,11 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     const xbrief = join(parent, "xbrief");
     const active = join(xbrief, "active");
     mkdirSync(active, { recursive: true });
-    writeFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), JSON.stringify(validProjectDefinition()), "utf8");
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
     writeActiveStory(active, "2026-01-01-story.xbrief.json", "Parent Active");
     const child = join(parent, "child");
     mkdirSync(join(child, "xbrief"), { recursive: true });
@@ -923,7 +945,11 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     tmpDirs.push(root);
     const xbrief = join(root, "xbrief");
     mkdirSync(xbrief, { recursive: true });
-    writeFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), JSON.stringify(validProjectDefinition()), "utf8");
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
     writeFileSync(join(xbrief, "active"), "not-a-directory", "utf8");
 
     expect(withCwd(root, () => roadmapRenderMain([]))).not.toBe(0);
@@ -937,7 +963,11 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     const xbrief = join(root, "xbrief");
     const active = join(xbrief, "active");
     mkdirSync(active, { recursive: true });
-    writeFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), JSON.stringify(validProjectDefinition()), "utf8");
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
     writeFileSync(join(active, "broken.xbrief.json"), "{broken", "utf8");
 
     expect(withCwd(root, () => roadmapRenderMain([]))).not.toBe(0);
@@ -953,7 +983,11 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     const completed = join(xbrief, "completed");
     mkdirSync(active, { recursive: true });
     mkdirSync(completed, { recursive: true });
-    writeFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), JSON.stringify(validProjectDefinition()), "utf8");
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
     writeFileSync(join(active, "broken.xbrief.json"), "{broken", "utf8");
     writeFileSync(
       join(completed, "2026-01-01-done.xbrief.json"),
