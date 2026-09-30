@@ -32,6 +32,7 @@ import {
   mutationSummaryJson,
   runInPortRecordMode,
 } from "../fs/mutation-ledger.js";
+import { parseManagedSectionAttrs, renderManagedSection } from "../platform/agents-md.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import { runOrgForceOnMigration } from "../policy/org-force-on-migration.js";
 import type { ClassifySeams } from "../resolution/index.js";
@@ -418,6 +419,81 @@ describe("runRefreshDeposit", () => {
       ),
     ).rejects.toThrow(/unique live-invalid helper target/);
     expect(readFileSync(join(deftDir, "main.md"), "utf8")).toBe("prior working deposit\n");
+  });
+
+  it("same-root AGENTS render when project prefer-package is stale (#5013)", async () => {
+    const project = freshRoot("refresh-same-root-");
+    initGitRepo(project);
+
+    const engineRoot = freshRoot("refresh-engine-content-");
+    mkdirSync(join(engineRoot, "templates"), { recursive: true });
+    mkdirSync(join(engineRoot, "vbrief", "schemas"), { recursive: true });
+    mkdirSync(join(engineRoot, ".githooks"), { recursive: true });
+    const depositTemplate = `<!-- deft:managed-section v3 -->\n# Engine-deposit marker 0.119.8\n${AGENTS_MANAGED_CLOSE}\n`;
+    writeFileSync(join(engineRoot, "templates", "agents-entry.md"), depositTemplate, "utf8");
+    writeFileSync(
+      join(engineRoot, "package.json"),
+      JSON.stringify({ name: CONTENT_PACKAGE_NAME, version: "0.119.8" }),
+      "utf8",
+    );
+    writeFileSync(join(engineRoot, "main.md"), "# Deft engine\n", "utf8");
+    writeFileSync(
+      join(engineRoot, "vbrief", "schemas", "xbrief-core-0.8.schema.json"),
+      "current\n",
+      "utf8",
+    );
+    for (const name of ["pre-commit", "pre-push", "_deft-run.sh"] as const) {
+      copyFileSync(join(process.cwd(), ".githooks", name), join(engineRoot, ".githooks", name));
+      if (name !== "_deft-run.sh") {
+        chmodSync(join(engineRoot, ".githooks", name), 0o755);
+      }
+    }
+
+    const stalePkg = join(project, "node_modules", "@deftai", "directive-content");
+    mkdirSync(join(stalePkg, "templates"), { recursive: true });
+    writeFileSync(
+      join(stalePkg, "templates", "agents-entry.md"),
+      `<!-- deft:managed-section v3 -->\n# Stale-prefer-package marker 0.119.2\n${AGENTS_MANAGED_CLOSE}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(stalePkg, "package.json"),
+      JSON.stringify({ name: CONTENT_PACKAGE_NAME, version: "0.119.2" }),
+      "utf8",
+    );
+
+    writeFileSync(
+      join(project, "AGENTS.md"),
+      `# Operator prose\n\n<!-- deft:managed-section v2 -->\nOld body\n${AGENTS_MANAGED_CLOSE}\n`,
+      "utf8",
+    );
+
+    const lines: string[] = [];
+    const result = await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: (text) => lines.push(text) },
+      {
+        resolveContentRoot: async () => engineRoot,
+        readEngineVersion: () => "0.119.8",
+        nowIso: () => "2026-09-30T12:00:00Z",
+        gitPorcelain: () => " M AGENTS.md\n M .deft/core/VERSION\n",
+      },
+    );
+
+    const depositedTemplate = readFileSync(
+      join(result.deftDir, "templates", "agents-entry.md"),
+      "utf8",
+    );
+    expect(depositedTemplate).toContain("Engine-deposit marker 0.119.8");
+    const agents = readFileSync(join(project, "AGENTS.md"), "utf8");
+    expect(agents).toContain("Engine-deposit marker 0.119.8");
+    expect(agents).not.toContain("Stale-prefer-package marker 0.119.2");
+    expect(agents).not.toContain("Old body");
+    expect(parseManagedSectionAttrs(agents)?.sha).toBe("0.119.8");
+    expect(renderManagedSection(agents)).toBe(renderManagedSection(depositedTemplate));
+    expect(result.agentsMdUpdated).toBe(true);
+    expect(lines.join("")).toContain("npm ci");
+    expect(lines.join("")).toContain("#5013");
   });
 
   it("is idempotent on a second run (no AGENTS.md rewrite)", async () => {

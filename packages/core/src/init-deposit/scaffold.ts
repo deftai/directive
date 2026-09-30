@@ -11,6 +11,10 @@ import { readdir, stat } from "node:fs/promises";
 import { platform } from "node:os";
 import { join, relative, resolve } from "node:path";
 import {
+  agentsRefreshPlanWithInstalledTemplate,
+  readAgentsTemplateFromContentTree,
+} from "../doctor/agents-md.js";
+import {
   containedChmod,
   containedDestExec,
   containedMkdir,
@@ -21,7 +25,6 @@ import {
   assertDestinationNotSymlink,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
-import { agentsRefreshPlan } from "../platform/agents-md.js";
 import { renderCoreGuardBranchSyncIfBlock } from "../policy/branch-sync.js";
 import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
@@ -29,6 +32,22 @@ import { CORE_GUARD_PIN_CONTENT_PYTHON } from "./core-guard-pin-content.js";
 import { assertInstallerAllowlistHonors1430, installerManagedGuardErePatterns } from "./hygiene.js";
 import { writeAgentsSkillsFromInventory } from "./skill-discovery-deposit.js";
 import { syncConsumerXbriefSchemas } from "./xbrief-projections.js";
+
+/** package.json version for the content tree used as the AGENTS render root (#5013). */
+function readContentTreeVersion(contentTreeRoot: string): string | null {
+  try {
+    const pkgPath = join(contentTreeRoot, "package.json");
+    if (!existsSync(pkgPath)) return null;
+    const parsed: unknown = JSON.parse(readFileSync(pkgPath, "utf8"));
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const version = (parsed as { version?: unknown }).version;
+    if (typeof version !== "string") return null;
+    const trimmed = version.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
 
 export type { InitDepositIo };
 export { CANONICAL_INSTALL_ROOT };
@@ -273,7 +292,19 @@ export function ensurePackageJsonPin(
 }
 
 export function writeAgentsMd(projectDir: string, deftDir: string, io: InitDepositIo): boolean {
-  const plan = agentsRefreshPlan(projectDir, { frameworkRoot: deftDir }) as Record<string, unknown>;
+  // #5013: same-root — read templates/agents-entry.md from deftDir (deposit /
+  // engine content tree just reconciled). Do not bare frameworkRoot:deftDir
+  // through agentsRefreshPlan; contentRoot() prefer-package can hijack to a
+  // stale project node_modules/@deftai/directive-content (#4706 helpers).
+  const templateText = readAgentsTemplateFromContentTree(deftDir);
+  if (templateText === null) {
+    throw new Error("AGENTS.md render failed: template-missing");
+  }
+  const treeVersion = readContentTreeVersion(deftDir);
+  const plan = agentsRefreshPlanWithInstalledTemplate(projectDir, deftDir, {
+    readTemplate: () => templateText,
+    ...(treeVersion !== null ? { resolveSha: () => treeVersion } : {}),
+  }) as Record<string, unknown>;
   const state = plan.state;
   if (state === "current") {
     io.printf(`AGENTS.md already advertises install root ${CANONICAL_INSTALL_ROOT} — skipping.\n`);

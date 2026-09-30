@@ -25,10 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Unmarked finalize no longer pairs an origin with an unrelated merged PR (#5122).** Tracking unmarked work stays visible and non-blocking until a product PR is stamped (#4864). Duplicate refs to one origin stay unverified; distinct repository-and-number origins still refuse. Closes #5122.
-- **Closeout no longer attests merge evidence that exists only in memory (#5120).** Complete records declared merge evidence on disk so later closeout sees the same file. Closes #5120.
-- **Dest-missing recovery now leads with a paste-ready worktree path (#5184).** Tracking #5184.
-- **Linked-worktree apply_patch now harvests declared string input (#5129).** Closes #5129.
+- **fix(update): same-root AGENTS render + sha stamp on deposit (#5013).** `writeAgentsMd` reads `templates/agents-entry.md` from the content tree just reconciled (via #4706 `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate`) and stamps `sha=` from that tree's version — not bare `frameworkRoot: deftDir` through `contentRoot()` prefer-package. Divergent project `@deftai/directive-content` gets companion `npm ci` disclosure for remaining prefer-package readers; not an alternate first-ship fix. Does not recut global prefer-package (#4706 deferred). Tracking #5013.
+
+- **Closeout no longer attests merge evidence minted only in memory (#5120).** `evaluateAcceptanceEvidenceGate` is read-only over persisted bytes. `scope:complete` stamps declared merge evidence on the persist path (even when later acceptance refuses) so later closeout, `verify:completed-tracked`, and orphan-active triage see the same file. After delivery ancestry already passed on that complete, the stamp reuses it and does not `git fetch` again. Closeout does not mint and does not `git fetch`. Closes #5120.
+
+- **fix(swarm): Grok dest-missing deny leads with `tool_input.cwd` (#5184).** Missing-cwd and non-existing-cwd destination-missing recovery now lead with paste-ready `tool_input.cwd` to an existing unique linked worktree (not primary, not occupied). Critic-CLI lead, reserved jargon, and Cursor-compat refuse leave this path; `git worktree add` stays out of deny text (dest-place remains #4575). Tracking #5184.
+
+- **fix(hooks,codex): harvest declared apply_patch string `input` for linked-worktree targets (#5129).** Canonical `tool_input.input` and top-level `payload.input` now yield mutation targets; raw-string `tool_input` stays unclassified. Non-canonical input cannot select `effectiveRoot` even with a declared path. Closes #5129.
 
 - **Interactive Grok implement spawn dest-place then cwd (#4575).** Parent dest-places a unique linked worktree via `destPlaceImplementSpawn` (same `git worktree add --detach <path> <commit-ish>` argv as createWorktree / ensureArcDest), then sets `tool_input.cwd` before `spawn_subagent`. Reservation mint stays `mintImplementSpawnReservation` after consult; bare `--detach` refused; deny-copy remains on leftover #5184. Tracking #4575.
 

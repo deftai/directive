@@ -13,6 +13,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { platform as osPlatform } from "node:os";
 import { join, relative as pathRelative, resolve } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
+import { resolveContentPackageRoot } from "../content-root.js";
 import { assertDepositContained } from "../deposit/contain.js";
 import {
   discardTreeSnapshot,
@@ -1378,6 +1379,23 @@ export async function runRefreshDeposit(
     });
   }
 
+  // #5013: AGENTS render is same-root against payloadReadRoot. Prefer-package
+  // readers (default agents:refresh) may still see a stale project install —
+  // companion disclosure only; not an alternate first-ship fix.
+  const preferPackageRoot = resolveContentPackageRoot(projectDir);
+  if (preferPackageRoot !== null) {
+    const preferVersion = readContentPackageVersion(preferPackageRoot, () => "");
+    const depositedVersion = readContentPackageVersion(payloadReadRoot, () => contentVersion);
+    if (
+      preferVersion.length > 0 &&
+      depositedVersion.length > 0 &&
+      preferVersion !== depositedVersion
+    ) {
+      io.printf(
+        `Note: project @deftai/directive-content@${preferVersion} differs from deposited ${depositedVersion}. AGENTS.md was rendered from the deposit; run \`npm ci\` (or reinstall) before trusting default \`agents:refresh\` prefer-package reads (#5013).\n`,
+      );
+    }
+  }
   const agentsMdUpdated = writeAgentsMd(projectDir, payloadReadRoot, io);
   writeAgentHookDeposit(projectDir, io);
   // #75 residual: multi-host thin skill discovery (mirror `.agents/skills` inventory).

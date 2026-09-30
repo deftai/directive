@@ -11,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { parseManagedSectionAttrs, renderManagedSection } from "../platform/agents-md.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import { installerManagedGuardErePatterns } from "./hygiene.js";
 import {
@@ -313,6 +314,43 @@ describe("init-deposit scaffold", () => {
     const { io } = captureIo();
     writeAgentsMd(project, deftDir, io);
     expect(writeAgentsMd(project, deftDir, io)).toBe(false);
+  });
+
+  it("renders AGENTS from the deposit tree when prefer-package is stale (#5013)", () => {
+    const project = freshRoot("scaffold-agents-same-root-");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(join(deftDir, "templates"), { recursive: true });
+    const depositTemplate = `<!-- deft:managed-section v3 -->\n# Deposit-new marker 0.119.8\n${AGENTS_MANAGED_CLOSE}\n`;
+    writeFileSync(join(deftDir, "templates", "agents-entry.md"), depositTemplate, "utf8");
+    writeFileSync(
+      join(deftDir, "package.json"),
+      JSON.stringify({ name: "@deftai/directive-content", version: "0.119.8" }),
+      "utf8",
+    );
+
+    const stalePkg = join(project, "node_modules", "@deftai", "directive-content");
+    mkdirSync(join(stalePkg, "templates"), { recursive: true });
+    writeFileSync(
+      join(stalePkg, "templates", "agents-entry.md"),
+      `<!-- deft:managed-section v3 -->\n# Stale-prefer-package marker 0.119.2\n${AGENTS_MANAGED_CLOSE}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(stalePkg, "package.json"),
+      JSON.stringify({ name: "@deftai/directive-content", version: "0.119.2" }),
+      "utf8",
+    );
+
+    const { io } = captureIo();
+    expect(writeAgentsMd(project, deftDir, io)).toBe(true);
+    const agents = readFileSync(join(project, "AGENTS.md"), "utf8");
+    expect(agents).toContain("Deposit-new marker 0.119.8");
+    expect(agents).not.toContain("Stale-prefer-package marker 0.119.2");
+    const attrs = parseManagedSectionAttrs(agents);
+    expect(attrs?.sha).toBe("0.119.8");
+    const expectedBody = renderManagedSection(depositTemplate);
+    expect(expectedBody).not.toBeNull();
+    expect(renderManagedSection(agents)).toBe(expectedBody);
   });
 
   it("inserts deft include into an existing top-level includes block", () => {
