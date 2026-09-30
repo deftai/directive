@@ -289,7 +289,7 @@ describe("showBlobsBatch (#3673)", () => {
     expect(bodies.get("a.json")).toBeNull();
   });
 
-  it("chunk-retry fails loud on persistent cat-file spawn failure without per-path show (#5172)", () => {
+  it("chunk-retry uses one flat show layer on persistent cat-file spawn failure (#5172)", () => {
     const showCalls: string[][] = [];
     const paths = ["one.json", "two.json", "three.json", "four.json"];
     const bodies = showBlobsBatch(
@@ -304,12 +304,12 @@ describe("showBlobsBatch (#3673)", () => {
       },
       { onBatchMiss: "chunk-retry" },
     );
-    // Spawn-fail must not bisect into 2N-1 batches + N shows (#5172 P2).
-    expect(showCalls).toHaveLength(0);
+    // Spawn-fail: exactly one show per path (no 2N-1 batch fan-out) (#5172 P2).
+    expect(showCalls).toHaveLength(paths.length);
+    expect(new Set(showCalls.map((args) => args[1]))).toEqual(
+      new Set(paths.map((path) => `HEAD:${path}`)),
+    );
     expect(bodies.size).toBe(paths.length);
-    for (const path of paths) {
-      expect(bodies.get(path)).toBeNull();
-    }
   });
 
   it("legacy-fallback still shows every path on whole-batch miss", () => {

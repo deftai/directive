@@ -363,7 +363,15 @@ function tryCatFileBatch(
     maxBuffer: GIT_CAT_FILE_BATCH_MAX_BUFFER,
     windowsHide: true,
   });
-  if (result.error !== undefined || result.status !== 0 || result.stdout === undefined) {
+  if (result.error !== undefined) {
+    const code = (result.error as NodeJS.ErrnoException).code;
+    // maxBuffer / ENOBUFS is a size truncate signal — bisect, do not treat as hard spawn death.
+    if (code === "ENOBUFS" || /maxBuffer/i.test(result.error.message)) {
+      return { kind: "parse-fail" };
+    }
+    return { kind: "spawn-fail" };
+  }
+  if (result.status !== 0 || result.stdout === undefined) {
     return { kind: "spawn-fail" };
   }
   const parsed = parseGitCatFileBatch(coerceGitBytes(result.stdout), paths);
@@ -387,10 +395,10 @@ function showBlobsBatchChunkRetry(
   if (attempt.kind === "ok") {
     return attempt.map;
   }
-  // Persistent process/spawn failure: fail loud with nulls — do not bisect into 2N-1 spawns (#5172 P2).
+  // Persistent cat-file spawn failure: one flat show layer — never bisect into 2N-1 batches (#5172 P2).
   if (attempt.kind === "spawn-fail") {
     for (const path of paths) {
-      out.set(path, null);
+      out.set(path, showBlobViaRunner(projectRoot, tip, path, runGit));
     }
     return out;
   }
