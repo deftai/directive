@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Leftover-complete record for GitHub issue #3630 after PR #5161",
-    "updated": "2026-09-30T00:12:30.287Z"
+    "updated": "2026-09-30T00:18:20.172Z"
   },
   "plan": {
     "title": "bug(review-cycle): named zero-reviewer terminal before poll",
@@ -116,6 +116,19 @@
         "product_pr": 5161,
         "recorded_at": "2026-09-30T00:12:30.287Z",
         "recorded_by": "MScottAdams"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T00:18:20.172Z"
+      },
+      "completedAt": "2026-09-30T00:18:20.172Z",
+      "completedSessionId": "host:grok:v1:MDFhMGVkYWItN2U3NC03OGIzLTljM2ItYmMyM2I0NzIyZDM3",
+      "completionProvenance": {
+        "kind": "leftover-complete",
+        "actor": "MScottAdams",
+        "product_pr": 5161,
+        "merge_commit": "da99bfcf159fc1b20bdac3ca5d3e66ebbdcd080a",
+        "leftover_pr": 5166
       }
     }
   }
