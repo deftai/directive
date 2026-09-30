@@ -120,7 +120,11 @@ export function readStoredPlanIdBinding(plan: Record<string, unknown>): StoredPl
     }
     if (source === "github-residual") {
       const residualOk = /^github\.issue\.residual\.\d+(?:\.lean\.\d+)?$/.test(id.trim());
-      if (!residualOk || id.trim() === `github.issue.${restId}`) {
+      if (
+        !residualOk ||
+        id.trim() === `github.issue.${restId}` ||
+        !residualIdMatchesRestIssue(id.trim(), restId)
+      ) {
         return {
           kind: "malformed",
           detail: "stored residual plan-id binding id does not match github_issue_id.",

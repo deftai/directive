@@ -2298,6 +2298,16 @@ export function ingestOne(
           `#${number} residual ingest refused: could not resolve repository origin for mint.`,
         ];
       }
+      // Prefer-A: mint only after Bound leanCommentId is resolved so the same
+      // cited lean always yields a stable lean-scoped residual plan.id.
+      if (leanCommentId === null) {
+        return [
+          "refused",
+          null,
+          `#${number} residual ingest refused: Bound leanCommentId not resolved; ` +
+            `refuse mint without lean-scoped residual plan.id.`,
+        ];
+      }
       const minted = mintResidualIssuePlanId({
         issueId: issue.id,
         owner: origin.owner,

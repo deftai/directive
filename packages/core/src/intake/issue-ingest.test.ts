@@ -2841,6 +2841,39 @@ describe("#4119 plan.id mint, admission, and repair", () => {
 });
 
 describe("ingestOne residual mode (#5177 Prefer-A)", () => {
+  const residualLeanId = 5913432618;
+  const residualTableId = 5913490001;
+  const residualSynthesisId = 5913491364;
+  const residualArcThread = [
+    {
+      id: residualLeanId,
+      body: "**Lean:** Prefer-A residual re-ingest Bound.\n",
+    },
+    {
+      id: residualTableId,
+      body: "## Verified-claims table\n",
+    },
+    {
+      id: residualSynthesisId,
+      body:
+        "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+        `Bound contract: successor lean ${residualLeanId}, verified-claims table ${residualTableId}.\n`,
+    },
+  ];
+
+  function residualIssue(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      id: 5453269518,
+      number: 4544,
+      title: "residual reopen",
+      state: "open",
+      url: "https://github.com/o/r/issues/4544",
+      labels: [],
+      [ISSUE_COMMENT_THREAD_KEY]: residualArcThread,
+      ...overrides,
+    };
+  }
+
   function writeOwnedCompleted(xbriefDir: string, issue: number, restId: number): void {
     const dir = join(xbriefDir, "completed");
     mkdirSync(dir, { recursive: true });
@@ -2909,37 +2942,27 @@ describe("ingestOne residual mode (#5177 Prefer-A)", () => {
     }
   });
 
-  it("mints a distinct residual plan.id beside completed history", () => {
+  it("mints a lean-scoped residual plan.id beside completed history", () => {
     const root = mkdtempSync(join(tmpdir(), "5177-mint-"));
     const xbriefDir = join(root, "xbrief");
     mkdirSync(xbriefDir, { recursive: true });
     try {
       writeOwnedCompleted(xbriefDir, 4544, 5453269518);
-      const [result, path, msg] = ingestOne(
-        {
-          id: 5453269518,
-          number: 4544,
-          title: "residual reopen",
-          state: "open",
-          url: "https://github.com/o/r/issues/4544",
-          labels: [],
-        },
-        {
-          vbriefDir: xbriefDir,
-          status: "proposed",
-          repoUrl: "https://github.com/o/r",
-          cwd: root,
-          residual: true,
-          scmCall: () => completed("[]", "", 0),
-        },
-      );
+      const [result, path, msg] = ingestOne(residualIssue(), {
+        vbriefDir: xbriefDir,
+        status: "proposed",
+        repoUrl: "https://github.com/o/r",
+        cwd: root,
+        residual: true,
+        scmCall: () => completed("[]", "", 0),
+      });
       expect(result).toBe("created");
       expect(path).toBeTruthy();
       const parsed = JSON.parse(readFileSync(path as string, "utf8")) as {
         plan: Record<string, unknown>;
       };
       const plan = parsed.plan;
-      expect(plan.id).toBe("github.issue.residual.5453269518");
+      expect(plan.id).toBe(`github.issue.residual.5453269518.lean.${residualLeanId}`);
       expect(plan.id).not.toBe("github.issue.5453269518");
       const meta = (plan.metadata as Record<string, unknown>)["x-directive/plan-id"] as Record<
         string,
@@ -2950,10 +2973,32 @@ describe("ingestOne residual mode (#5177 Prefer-A)", () => {
         "x-directive/residual-lineage"
       ] as Record<string, unknown>;
       expect(lineage.predecessor_plan_id).toBe("github.issue.5453269518");
+      expect(lineage.bound_lean_comment_id).toBe(residualLeanId);
       expect(String(lineage.predecessor_path)).toContain("completed/");
       expect(msg).toContain("residual plan.id=");
       expect(existsSync(join(xbriefDir, "completed"))).toBe(true);
       expect(readdirSync(join(xbriefDir, "completed")).length).toBeGreaterThan(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses residual mint when Bound leanCommentId is unresolved", () => {
+    const root = mkdtempSync(join(tmpdir(), "5177-no-lean-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      writeOwnedCompleted(xbriefDir, 4544, 5453269518);
+      const [result, , msg] = ingestOne(residualIssue({ [ISSUE_COMMENT_THREAD_KEY]: [] }), {
+        vbriefDir: xbriefDir,
+        status: "proposed",
+        repoUrl: "https://github.com/o/r",
+        cwd: root,
+        residual: true,
+        scmCall: () => completed("[]", "", 0),
+      });
+      expect(result).toBe("refused");
+      expect(msg).toMatch(/leanCommentId not resolved/i);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -2965,43 +3010,23 @@ describe("ingestOne residual mode (#5177 Prefer-A)", () => {
     mkdirSync(xbriefDir, { recursive: true });
     try {
       writeOwnedCompleted(xbriefDir, 4544, 5453269518);
-      const [first] = ingestOne(
-        {
-          id: 5453269518,
-          number: 4544,
-          title: "residual reopen",
-          state: "open",
-          url: "https://github.com/o/r/issues/4544",
-          labels: [],
-        },
-        {
-          vbriefDir: xbriefDir,
-          status: "proposed",
-          repoUrl: "https://github.com/o/r",
-          cwd: root,
-          residual: true,
-          scmCall: () => completed("[]", "", 0),
-        },
-      );
+      const [first] = ingestOne(residualIssue(), {
+        vbriefDir: xbriefDir,
+        status: "proposed",
+        repoUrl: "https://github.com/o/r",
+        cwd: root,
+        residual: true,
+        scmCall: () => completed("[]", "", 0),
+      });
       expect(first).toBe("created");
-      const [second, , msg] = ingestOne(
-        {
-          id: 5453269518,
-          number: 4544,
-          title: "residual reopen again",
-          state: "open",
-          url: "https://github.com/o/r/issues/4544",
-          labels: [],
-        },
-        {
-          vbriefDir: xbriefDir,
-          status: "proposed",
-          repoUrl: "https://github.com/o/r",
-          cwd: root,
-          residual: true,
-          scmCall: () => completed("[]", "", 0),
-        },
-      );
+      const [second, , msg] = ingestOne(residualIssue({ title: "residual reopen again" }), {
+        vbriefDir: xbriefDir,
+        status: "proposed",
+        repoUrl: "https://github.com/o/r",
+        cwd: root,
+        residual: true,
+        scmCall: () => completed("[]", "", 0),
+      });
       expect(second).toBe("duplicate");
       expect(msg).toContain("residual already admitted");
     } finally {
@@ -3049,24 +3074,14 @@ describe("ingestOne residual mode (#5177 Prefer-A)", () => {
         }),
         "utf8",
       );
-      const [result, path] = ingestOne(
-        {
-          id: 5453269518,
-          number: 4544,
-          title: "residual reopen",
-          state: "open",
-          url: "https://github.com/o/r/issues/4544",
-          labels: [],
-        },
-        {
-          vbriefDir: xbriefDir,
-          status: "proposed",
-          repoUrl: "https://github.com/o/r",
-          cwd: root,
-          residual: true,
-          scmCall: () => completed("[]", "", 0),
-        },
-      );
+      const [result, path] = ingestOne(residualIssue(), {
+        vbriefDir: xbriefDir,
+        status: "proposed",
+        repoUrl: "https://github.com/o/r",
+        cwd: root,
+        residual: true,
+        scmCall: () => completed("[]", "", 0),
+      });
       expect(result).toBe("created");
       const parsed = JSON.parse(readFileSync(path as string, "utf8")) as {
         plan: Record<string, unknown>;
@@ -3122,24 +3137,14 @@ describe("ingestOne residual mode (#5177 Prefer-A)", () => {
         }),
         "utf8",
       );
-      const [result, path] = ingestOne(
-        {
-          id: 5453269518,
-          number: 4544,
-          title: "second residual reopen",
-          state: "open",
-          url: "https://github.com/o/r/issues/4544",
-          labels: [],
-        },
-        {
-          vbriefDir: xbriefDir,
-          status: "proposed",
-          repoUrl: "https://github.com/o/r",
-          cwd: root,
-          residual: true,
-          scmCall: () => completed("[]", "", 0),
-        },
-      );
+      const [result, path] = ingestOne(residualIssue({ title: "second residual reopen" }), {
+        vbriefDir: xbriefDir,
+        status: "proposed",
+        repoUrl: "https://github.com/o/r",
+        cwd: root,
+        residual: true,
+        scmCall: () => completed("[]", "", 0),
+      });
       expect(result).toBe("created");
       const parsed = JSON.parse(readFileSync(path as string, "utf8")) as {
         plan: Record<string, unknown>;
@@ -3195,24 +3200,14 @@ describe("ingestOne residual mode (#5177 Prefer-A)", () => {
         }),
         "utf8",
       );
-      const [result, , msg] = ingestOne(
-        {
-          id: 5453269518,
-          number: 4544,
-          title: "residual reopen",
-          state: "open",
-          url: "https://github.com/o/r/issues/4544",
-          labels: [],
-        },
-        {
-          vbriefDir: xbriefDir,
-          status: "proposed",
-          repoUrl: "https://github.com/o/r",
-          cwd: root,
-          residual: true,
-          scmCall: () => completed("[]", "", 0),
-        },
-      );
+      const [result, , msg] = ingestOne(residualIssue(), {
+        vbriefDir: xbriefDir,
+        status: "proposed",
+        repoUrl: "https://github.com/o/r",
+        cwd: root,
+        residual: true,
+        scmCall: () => completed("[]", "", 0),
+      });
       expect(result).toBe("refused");
       expect(msg).toMatch(/no owned completed/i);
     } finally {

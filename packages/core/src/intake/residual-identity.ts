@@ -417,9 +417,10 @@ export function attachResidualLineage(
     readonly boundLeanCommentId: number | null;
   },
 ): void {
+  // Clone before write so shared/frozen plan.metadata is not mutated in place.
   const meta =
     plan.metadata !== null && typeof plan.metadata === "object" && !Array.isArray(plan.metadata)
-      ? (plan.metadata as Record<string, unknown>)
+      ? { ...(plan.metadata as Record<string, unknown>) }
       : {};
   meta[RESIDUAL_LINEAGE_META_KEY] = {
     schema: RESIDUAL_LINEAGE_SCHEMA,

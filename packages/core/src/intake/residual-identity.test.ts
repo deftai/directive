@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  attachResidualLineage,
   briefOwnsIssue,
   findNonterminalResidualHits,
   findOwnedCompletedHits,
@@ -108,6 +109,36 @@ describe("briefOwnsIssue shared ownership", () => {
     expect(briefOwnsIssue(owned, 3739)).toBe(false);
   });
 
+  it("does not own from references-only briefs (Prefer-A Bound)", () => {
+    const refsOnly = {
+      plan: {
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/4544",
+            type: "x-xbrief/github-issue",
+          },
+        ],
+      },
+    };
+    expect(briefOwnsIssue(refsOnly, 4544)).toBe(false);
+    expect(briefOwnsIssue(refsOnly, { owner: "deftai", repo: "directive", number: 4544 })).toBe(
+      false,
+    );
+  });
+
+  it("owns bare Origin #N for number-only targets without reopening cross-repo URL holes", () => {
+    const bare = {
+      plan: {
+        narratives: {
+          Origin: "Ingested from issue #4544",
+        },
+      },
+    };
+    expect(briefOwnsIssue(bare, 4544)).toBe(true);
+    // Repo-scoped targets still require URL Origin or plan-id binding.
+    expect(briefOwnsIssue(bare, { owner: "deftai", repo: "directive", number: 4544 })).toBe(false);
+  });
+
   it("keeps ownership repo-scoped when the same issue number appears across repos", () => {
     const foreign = {
       plan: {
@@ -130,6 +161,26 @@ describe("briefOwnsIssue shared ownership", () => {
       false,
     );
     expect(briefOwnsIssue(foreign, { owner: "other", repo: "repo", number: 4544 })).toBe(true);
+  });
+});
+
+describe("attachResidualLineage", () => {
+  it("clones plan.metadata before writing residual lineage", () => {
+    const sharedMeta: Record<string, unknown> = { kind: "scope" };
+    const plan: Record<string, unknown> = { metadata: sharedMeta };
+    attachResidualLineage(plan, {
+      predecessorPlanId: "github.issue.1",
+      predecessorPath: "completed/a.xbrief.json",
+      boundLeanCommentId: 9,
+    });
+    expect(sharedMeta["x-directive/residual-lineage"]).toBeUndefined();
+    expect(plan.metadata).not.toBe(sharedMeta);
+    expect(
+      (plan.metadata as Record<string, unknown>)["x-directive/residual-lineage"],
+    ).toMatchObject({
+      predecessor_plan_id: "github.issue.1",
+      bound_lean_comment_id: 9,
+    });
   });
 });
 

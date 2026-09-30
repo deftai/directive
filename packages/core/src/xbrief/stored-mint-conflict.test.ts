@@ -186,6 +186,36 @@ describe("readStoredPlanIdBinding (#4963)", () => {
       binding: { id: "github.issue.42", source: "github-rest-id", githubIssueId: 42 },
     });
   });
+
+  it("rejects residual bindings whose id REST segment disagrees with github_issue_id", () => {
+    const mismatched = readStoredPlanIdBinding({
+      metadata: {
+        "x-directive/plan-id": {
+          version: 1,
+          source: "github-residual",
+          github_issue_id: 12,
+          origin: "o/r#1",
+          id: "github.issue.residual.123",
+        },
+      },
+    });
+    expect(mismatched.kind).toBe("malformed");
+    if (mismatched.kind === "malformed") {
+      expect(mismatched.detail).toContain("does not match github_issue_id");
+    }
+    const ok = readStoredPlanIdBinding({
+      metadata: {
+        "x-directive/plan-id": {
+          version: 1,
+          source: "github-residual",
+          github_issue_id: 12,
+          origin: "o/r#1",
+          id: "github.issue.residual.12.lean.99",
+        },
+      },
+    });
+    expect(ok.kind).toBe("ok");
+  });
 });
 
 describe("storedMintIdentityConflict (#4963)", () => {
@@ -305,9 +335,26 @@ describe("storedMintIdentityConflict (#4963)", () => {
   });
 
   it("rejects residual ids that only share a numeric prefix with github_issue_id", () => {
-    const conflict = storedMintIdentityConflict({
-      plan: {
-        id: "github.issue.residual.123",
+    // Mismatched residual REST segment is malformed at readStoredPlanIdBinding,
+    // so storedMintIdentityConflict has no parsed binding to disagree on.
+    expect(
+      storedMintIdentityConflict({
+        plan: {
+          id: "github.issue.residual.123",
+          metadata: {
+            "x-directive/plan-id": {
+              version: 1,
+              source: "github-residual",
+              github_issue_id: 12,
+              origin: "o/r#1",
+              id: "github.issue.residual.123",
+            },
+          },
+        },
+      }),
+    ).toBeNull();
+    expect(
+      readStoredPlanIdBinding({
         metadata: {
           "x-directive/plan-id": {
             version: 1,
@@ -317,10 +364,8 @@ describe("storedMintIdentityConflict (#4963)", () => {
             id: "github.issue.residual.123",
           },
         },
-      },
-    });
-    expect(conflict?.disagree).toBe(false);
-    expect(conflict?.detail).toContain("disagrees with github_issue_id 12");
+      }).kind,
+    ).toBe("malformed");
 
     expect(
       storedMintIdentityConflict({
