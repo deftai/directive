@@ -40,7 +40,6 @@ import {
 } from "./constants.js";
 import { originActiveBriefPresent } from "./origin-active-brief.js";
 import { readinessReport } from "./readiness.js";
-import { runText } from "./subprocess.js";
 import {
   loadRoutingFile,
   resolveDispatchProvider,
@@ -48,6 +47,7 @@ import {
   resolveRoutingPath,
 } from "./routing.js";
 import { dispatchProviderFor, enforceSubagentBackendPolicy } from "./subagent-backend.js";
+import { runText } from "./subprocess.js";
 import {
   ENV_WORKER_CREDENTIAL_DELIVERY_ID,
   FAILURE_MISSING_DELIVERY,
@@ -1280,12 +1280,7 @@ export function swarmLaunch(args: LaunchArgs): {
         return { code: result.returncode, stdout: result.stdout, stderr: result.stderr };
       });
       for (const story of resolved) {
-        const probe = originActiveBriefPresent(
-          projectRoot,
-          delivery.branch,
-          story.relpath,
-          runGit,
-        );
+        const probe = originActiveBriefPresent(projectRoot, delivery.branch, story.relpath, runGit);
         if (!probe.present) {
           return {
             exitCode: EXIT_GATE_FAILED,

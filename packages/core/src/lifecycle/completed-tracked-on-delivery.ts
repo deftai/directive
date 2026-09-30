@@ -888,11 +888,7 @@ export function evaluateCompletedTracked(
     // unscoped corpus scan keeps the offline allowance, since a cold cache
     // legitimately knows nothing about most scoped issues.
     const unknownIsTerminal = !skipGh || issueFilter !== null;
-    if (
-      issueFilter !== null ||
-      state === "closed" ||
-      (state === null && unknownIsTerminal)
-    ) {
+    if (issueFilter !== null || state === "closed" || (state === null && unknownIsTerminal)) {
       missing.push(entry);
     }
   }

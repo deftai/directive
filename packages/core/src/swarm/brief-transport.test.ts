@@ -7,8 +7,8 @@ import {
   readReviewedBriefBlob,
   SOURCE_RECOVERY_REMEDIATION,
 } from "./brief-transport.js";
-import type { TextCaptureResult } from "./subprocess.js";
 import { immutableProjectionDigest, projectionsEqual } from "./immutable-projection.js";
+import type { TextCaptureResult } from "./subprocess.js";
 
 describe("immutable projection (#4714 R2)", () => {
   it("ignores namespaced evidence/disposition slots only", () => {
@@ -107,12 +107,11 @@ describe("brief transport (#4714 R5)", () => {
   });
 
   it("returns source-recovery when no reviewed blob exists", () => {
-    const lookup = readReviewedBriefBlob(
-      "/tmp",
-      "xbrief/active/missing.xbrief.json",
-      null,
-      () => ({ returncode: 1, stdout: "", stderr: "missing" }),
-    );
+    const lookup = readReviewedBriefBlob("/tmp", "xbrief/active/missing.xbrief.json", null, () => ({
+      returncode: 1,
+      stdout: "",
+      stderr: "missing",
+    }));
     expect(lookup.bytes).toBeNull();
     expect(SOURCE_RECOVERY_REMEDIATION).toContain("source-recovery");
   });

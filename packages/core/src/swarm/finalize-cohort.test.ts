@@ -790,9 +790,7 @@ describe("finalizeCohort", () => {
     });
     expect(result.exitCode).not.toBe(0);
     expect(
-      result.result.errors.some(
-        (e) => e.includes("#7777") && e.includes("source-recovery"),
-      ),
+      result.result.errors.some((e) => e.includes("#7777") && e.includes("source-recovery")),
     ).toBe(true);
     rmSync(project, { recursive: true, force: true });
   });
@@ -2076,7 +2074,10 @@ describe("finalizeCohort", () => {
       retainedDests: [project],
       noOpenPr: true,
       runGit: (command, options) => {
-        if (command[1] === "show" && String(command[2] ?? "").includes("xbrief/active/story-4714")) {
+        if (
+          command[1] === "show" &&
+          String(command[2] ?? "").includes("xbrief/active/story-4714")
+        ) {
           return { returncode: 0, stdout: retainedBytes, stderr: "" };
         }
         const out = inner(command, options);

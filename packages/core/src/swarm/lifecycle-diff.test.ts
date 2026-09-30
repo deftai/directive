@@ -23,10 +23,7 @@ describe("lifecycle diff (#4714 R7)", () => {
 
   it("admits selected story active→completed transitions", () => {
     const allowed = expectedLifecycleRels(["xbrief/active/story-1.xbrief.json"]);
-    const staged = [
-      "xbrief/active/story-1.xbrief.json",
-      "xbrief/completed/story-1.xbrief.json",
-    ];
+    const staged = ["xbrief/active/story-1.xbrief.json", "xbrief/completed/story-1.xbrief.json"];
     expect(evaluateLifecycleDiff(staged, allowed).ok).toBe(true);
   });
 

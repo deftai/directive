@@ -4,8 +4,8 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import type { runText } from "./subprocess.js";
 import { projectionsEqual } from "./immutable-projection.js";
+import type { runText } from "./subprocess.js";
 
 export const SOURCE_RECOVERY_REMEDIATION =
   "leftover-complete/source-recovery: no reviewed merged/reachable evidence-bearing active brief " +
@@ -33,10 +33,9 @@ export function readReviewedBriefBlob(
     }
   }
   // Fall back to tip history: last commit that touched the path on origin.
-  const log = runGit(
-    ["git", "log", "-1", "--format=%H", `origin/HEAD`, "--", rel],
-    { cwd: projectRoot },
-  );
+  const log = runGit(["git", "log", "-1", "--format=%H", `origin/HEAD`, "--", rel], {
+    cwd: projectRoot,
+  });
   if (log.returncode === 0 && log.stdout.trim().length > 0) {
     const sha = log.stdout.trim();
     const shown = runGit(["git", "show", `${sha}:${rel}`], { cwd: projectRoot });
@@ -84,9 +83,7 @@ function conflictAt(checkoutRoot: string, relPath: string): string | null {
  * Copy one retained brief into the lifecycle checkout when bytes match a reviewed blob.
  * Never copies a whole xbrief/ tree or completes in the worker dest.
  */
-export function materializeRetainedBrief(
-  args: MaterializeBriefArgs,
-): MaterializeBriefResult {
+export function materializeRetainedBrief(args: MaterializeBriefArgs): MaterializeBriefResult {
   const rel = args.relPath.replace(/\\/g, "/");
   const conflict = conflictAt(args.checkoutRoot, rel);
   if (conflict !== null) {
@@ -117,9 +114,7 @@ export function materializeRetainedBrief(
       retainedBytes = readFileSync(candidate, "utf8");
       retainedFrom = candidate;
       break;
-    } catch {
-      continue;
-    }
+    } catch {}
   }
   if (retainedBytes === null || retainedFrom === null) {
     return {

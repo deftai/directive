@@ -27,10 +27,7 @@ import {
   verifyDeliveryAncestry,
 } from "../scope/delivery-evidence.js";
 import type { GitRunner } from "../session/git.js";
-import {
-  materializeRetainedBrief,
-  SOURCE_RECOVERY_REMEDIATION,
-} from "./brief-transport.js";
+import { materializeRetainedBrief, SOURCE_RECOVERY_REMEDIATION } from "./brief-transport.js";
 import { completeCohort, type SweepResult } from "./complete-cohort.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import { completedBriefReferencesIssue, resolveStories } from "./launch.js";
@@ -1226,8 +1223,7 @@ function remapStoriesToCheckout(
   const paths: string[] = [];
   const evidence = new Map<string, DeliveryEvidenceInput>();
   let landedCount = 0;
-  const retainedRoots =
-    retainedDests.length > 0 ? [...retainedDests] : [projectRoot];
+  const retainedRoots = retainedDests.length > 0 ? [...retainedDests] : [projectRoot];
   for (const storyPath of storyPaths) {
     const rel = posixProjectRel(projectRoot, storyPath);
     let next = resolve(checkout, rel);
@@ -1239,8 +1235,7 @@ function remapStoriesToCheckout(
         continue;
       }
       const boundEvidence = evidenceByPath.get(resolve(storyPath)) ?? evidenceByPath.get(storyPath);
-      const reviewedCommit =
-        boundEvidence?.mergeCommit ?? boundEvidence?.deliveryCommit ?? null;
+      const reviewedCommit = boundEvidence?.mergeCommit ?? boundEvidence?.deliveryCommit ?? null;
       const materialized = materializeRetainedBrief({
         checkoutRoot: checkout,
         projectRoot,
@@ -1710,9 +1705,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
             if (raw === null || typeof raw !== "object" || Array.isArray(raw)) continue;
             const plan = (raw as Record<string, unknown>).plan;
             if (typeof plan !== "object" || plan === null || Array.isArray(plan)) continue;
-            const disposition = classifyStoredDeliveryDisposition(
-              plan as Record<string, unknown>,
-            );
+            const disposition = classifyStoredDeliveryDisposition(plan as Record<string, unknown>);
             dispositionNote = ` deliveryDisposition=${disposition}`;
             break;
           }
