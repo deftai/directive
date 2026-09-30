@@ -1,0 +1,543 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5176",
+    "updated": "2026-09-30T17:37:56Z"
+  },
+  "plan": {
+    "title": "Fail-closed non-empty PROJECT-DEFINITION narratives at first-ship (DCR R.4668 / #5176)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Greenfield must leave persisted planning fields in PROJECT-DEFINITION (DCR R.4668 bar)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5176",
+      "Overview": "Greenfield can finish with a legal empty PROJECT-DEFINITION seed (SKELETON_NARRATIVES all empty; presence gates green; project:write-narratives accepts \"\"). Bound Prefer-A (lean 5913432214): fail-closed non-empty PD narrative bar at greenfield/first-ship completion; reuse project:write-narratives; #4668 Depth and #4544 AGENTS header stay out. DCR R.4668 is the external score.",
+      "Labels": "bug, design, adoption-blocker, agent-experience, process, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:planning"
+    },
+    "items": [
+      {
+        "title": "Root cause (Prefer-A): treat the defect as legal empty SKELETON_NARRATIVES / presence-only routing+validation, with skill skip as a second path — not as missing Phase 2 prose alone.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5179 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 54a42525eb71c9d0d7a5ea273e74cd942d5b9a7e.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T17:36:51.719Z",
+            "mintedVia": "leftover-complete-after-5179"
+          },
+          "recorded_at": "2026-09-30T17:36:51.719Z"
+        }
+      },
+      {
+        "title": "Reuse writer: keep project:write-narratives (#4663) as the write surface. Do not invent a second narrative writer.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5179 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 54a42525eb71c9d0d7a5ea273e74cd942d5b9a7e.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T17:36:51.719Z",
+            "mintedVia": "leftover-complete-after-5179"
+          },
+          "recorded_at": "2026-09-30T17:36:51.719Z"
+        }
+      },
+      {
+        "title": "Fail-closed bar: greenfield / first-ship product completion MUST refuse (or auto-fill via confirmed Overview/strategy then write) while every tracked PD planning narrative value is empty / whitespace. Pick one concrete first-ship surface (session/check/story-ready/setup completion) and lock a fixture — empty Overview+tech stack (or DCR-equivalent bag) fails closed; one non-empty field passes.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5179 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 54a42525eb71c9d0d7a5ea273e74cd942d5b9a7e.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T17:36:51.719Z",
+            "mintedVia": "leftover-complete-after-5179"
+          },
+          "recorded_at": "2026-09-30T17:36:51.719Z"
+        }
+      },
+      {
+        "title": "Accept empty strings at parse, refuse at completion: parsePhase2NarrativeDocument may still accept \"\" for mid-setup; the new bar fires at first-ship / product-mutation completion, not on scaffold-fresh init alone.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5179 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 54a42525eb71c9d0d7a5ea273e74cd942d5b9a7e.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T17:36:51.719Z",
+            "mintedVia": "leftover-complete-after-5179"
+          },
+          "recorded_at": "2026-09-30T17:36:51.719Z"
+        }
+      },
+      {
+        "title": "External score: cite DCR R.4668 / agent.setup_answers_persisted_in_pd as the external score only; do not block bind on in-repo oracle code.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5179 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 54a42525eb71c9d0d7a5ea273e74cd942d5b9a7e.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T17:36:51.719Z",
+            "mintedVia": "leftover-complete-after-5179"
+          },
+          "recorded_at": "2026-09-30T17:36:51.719Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:planning"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5176",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5176: Greenfield must leave persisted planning fields in PROJECT-DEFINITION (DCR R.4668 bar)"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/project/persisted-planning-narratives.test.ts packages/core/src/check/persisted-planning-narratives-gate.test.ts packages/core/src/check/product-mutation-completion.test.ts packages/cli/src/verify-persisted-planning-narratives.test.ts packages/core/src/content-contracts/skills/setup_persisted_planning_narratives_5176.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": null,
+      "sentences": [
+        "Root cause (Prefer-A): treat the defect as legal empty SKELETON_NARRATIVES / presence-only routing+validation, with skill skip as a second path — not as missing Phase 2 prose alone.",
+        "Reuse writer: keep project:write-narratives (#4663) as the write surface. Do not invent a second narrative writer.",
+        "Fail-closed bar: greenfield / first-ship product completion MUST refuse (or auto-fill via confirmed Overview/strategy then write) while every tracked PD planning narrative value is empty / whitespace. Pick one concrete first-ship surface (session/check/story-ready/setup completion) and lock a fixture — empty Overview+tech stack (or DCR-equivalent bag) fails closed; one non-empty field passes.",
+        "Accept empty strings at parse, refuse at completion: parsePhase2NarrativeDocument may still accept \"\" for mid-setup; the new bar fires at first-ship / product-mutation completion, not on scaffold-fresh init alone.",
+        "External score: cite DCR R.4668 / agent.setup_answers_persisted_in_pd as the external score only; do not block bind on in-repo oracle code."
+      ],
+      "admitted_source_sentences": [
+        "Root cause (Prefer-A): treat the defect as legal empty SKELETON_NARRATIVES / presence-only routing+validation, with skill skip as a second path — not as missing Phase 2 prose alone.",
+        "Reuse writer: keep project:write-narratives (#4663) as the write surface. Do not invent a second narrative writer.",
+        "Fail-closed bar: greenfield / first-ship product completion MUST refuse (or auto-fill via confirmed Overview/strategy then write) while every tracked PD planning narrative value is empty / whitespace. Pick one concrete first-ship surface (session/check/story-ready/setup completion) and lock a fixture — empty Overview+tech stack (or DCR-equivalent bag) fails closed; one non-empty field passes.",
+        "Accept empty strings at parse, refuse at completion: parsePhase2NarrativeDocument may still accept \"\" for mid-setup; the new bar fires at first-ship / product-mutation completion, not on scaffold-fresh init alone.",
+        "External score: cite DCR R.4668 / agent.setup_answers_persisted_in_pd as the external score only; do not block bind on in-repo oracle code."
+      ],
+      "admitted_source_digest": "7c2c9a5136d408469ab649cda94cd39428e5e8f9362c2b4b4068ee675caad90e",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Root cause (Prefer-A): treat the defect as legal empty SKELETON_NARRATIVES / presence-only routing+validation, with skill skip as a second path — not as missing Phase 2 prose alone.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Reuse writer: keep project:write-narratives (#4663) as the write surface. Do not invent a second narrative writer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Fail-closed bar: greenfield / first-ship product completion MUST refuse (or auto-fill via confirmed Overview/strategy then write) while every tracked PD planning narrative value is empty / whitespace. Pick one concrete first-ship surface (session/check/story-ready/setup completion) and lock a fixture — empty Overview+tech stack (or DCR-equivalent bag) fails closed; one non-empty field passes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Accept empty strings at parse, refuse at completion: parsePhase2NarrativeDocument may still accept \"\" for mid-setup; the new bar fires at first-ship / product-mutation completion, not on scaffold-fresh init alone.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "External score: cite DCR R.4668 / agent.setup_answers_persisted_in_pd as the external score only; do not block bind on in-repo oracle code.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": null
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Opened from the #4668 / DCR `R.4668` split: Depth/re-ask stays closed on #4668; this issue owns PROJECT-DEFINITION persisted fields after greenfield. Sibling AGENTS header gate residual: #4544.\n\n",
+          "id": 5913036516,
+          "html_url": "https://github.com/deftai/directive/issues/5176#issuecomment-5913036516",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:12:51Z",
+          "updated_at": "2026-09-30T14:12:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Current known state (2026-09-30 Stage A)\n\nStage A `task triage:evaluate -- 5176` on origin/master `fc1363287967`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/fc1363287967/d53b9065-947b-43d4-a994-7a7f91564675`\n\n### Live gap\n\nAfter single-prompt greenfield on Directive 0.119.11 pack corecap-reg-2026-09-30, Sonnet 5.5 leaves `xbrief/PROJECT-DEFINITION.xbrief.json` with empty planning narratives (`persisted_fields=0`). Sol 6 and Grok 4.5 pass the same DCR `R.4668` / `agent.setup_answers_persisted_in_pd` bar. Predecessor #4668 Depth/re-ask shipped via #4938; this number owns the PD persistence surface only. Sibling AGENTS header residual: #4544. Cascade harness: DevHammer #406.\n\n### Spend recommendation\n\nConcrete closed-AC adoption miss adjacent to a landed companion remedy on a different surface. Recommended Dual-stop **N=1**. Bare `arc 5176` applies `#5111` defaults: no-ingest, yolo-standing, spend from this recommend.\n\nTarget-digest sha256:c9031d15641a67a915ad63a055d1d37579dc8caa2e135adeee5dc9acc4a43cfd\n\n",
+          "id": 5913291775,
+          "html_url": "https://github.com/deftai/directive/issues/5176#issuecomment-5913291775",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:26:24Z",
+          "updated_at": "2026-09-30T14:26:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because DCR R.4668 measures PROJECT-DEFINITION narrative persistence after greenfield; Sonnet still ends at persisted_fields=0 while Sol/Grok pass — a concrete fail-closed write/refuse gap, not a redo of #4668 Depth/re-ask.\n\ncharter: refutation\nrefutation-target: Greenfield / first product session may complete while PROJECT-DEFINITION narratives stay empty (persisted_fields=0), treating PD write as hope-only skill compliance rather than a fail-closed setup/session write bar.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\npain: P1, P2, P3\n\nP1. Weaker stacks (Sonnet) finish greenfield with empty PROJECT-DEFINITION narratives while Sol/Grok already clear persisted_fields>=1 on the same pin.\nP2. Setup/session paths lack a deterministic fail-closed write (or refuse) that leaves at least one non-empty PD planning field before first-ship completes.\nP3. DCR R.4668 / agent.setup_answers_persisted_in_pd remains red on Sonnet after #4668 Depth/re-ask shipped, because that remedy does not own this PD surface.\n\nOperator directed arc 5176 using #5111 defaults. Concrete closed-AC PD persistence bar; recommended Dual-stop N=1 applied without a spend ask. Non-goals: USER.md Depth/re-ask (#4668); AGENTS header gate (#4544); DevHammer oracle-only fixes.\n\nTarget-digest sha256:c9031d15641a67a915ad63a055d1d37579dc8caa2e135adeee5dc9acc4a43cfd\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5176-dc\npin-kind: origin-default\n\n",
+          "id": 5913292246,
+          "html_url": "https://github.com/deftai/directive/issues/5176#issuecomment-5913292246",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:26:26Z",
+          "updated_at": "2026-09-30T14:26:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nseat: grok\nlauncher: grok\nround: 1 critic\ncharter: refutation\nissue: deftai/directive#5176\nid-ceiling: 5913292246\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\narc-mode: no-ingest\n\nThe Stop 1 refutation target survives. At `fc1363287967413846934ecac824c2be1a6e6d51`, greenfield / first product session can finish with empty PROJECT-DEFINITION narrative values (`persisted_fields=0` class). Init deposits that empty state; key-presence validation and session routing treat the file as present; the Phase 2 writer exists but no completion bar refuses empty strings.\n\n## Legal empty seed is the primary path\nsharpens-framing\nEvidence: `git show fc136328…:packages/core/src/render/constants.ts` defines `SKELETON_NARRATIVES` with `Overview`, `tech stack`, `Architecture`, `RisksAndUnknowns`, and `Configuration` as `\"\"`. `createSkeleton` / `renderProjectDefinition` persist that bag; `seedMinimalProjectDefinition` (#3013) calls that path on init. Session routing (`content/templates/agents-entry.md`) routes `missing … PROJECT-DEFINITION → setup Phase 1/2`, so a seeded file satisfies presence. Setup skill pins empty narrative strings as not a missing-answers detector (#4668). Re-ran key-presence logic from `validateProjectDefNarratives`: skeleton / empty-string Overview+tech stack → `[]` errors; missing keys → D3 errors.\nFailure mode: A lean that binds only \"hope-only skill compliance\" will under-specify the defect. Weaker stacks never need to skip a writer: init already left a legal empty identity, presence gates are green, and return visits must not re-ask from emptiness.\nDisposition: Keep the target. Sharpen root cause to legal empty seed + presence-only routing/validation, with skill skip as a second path. Bind a refuse/fill bar against empty values (or an equivalent completion refuse), not a new \"agents should remember Phase 2\" essay.\n\n## Write path shipped; empty values still store\nsharpens-framing\nEvidence: `project:write-narratives` (#4663) is live (`packages/core/src/render/phase2-narratives-cli.ts`, `vbrief-build/phase2-narratives.ts`). Setup Phase 2 Output Path MUST call it before completion; Phase 3 waits on that write when Phase 2 ran this session. `parsePhase2NarrativeDocument` requires six string fields and accepts `\"\"`. No session/check/story-ready refuse on non-empty PD narrative values found under `packages/core/src/session` / `check` / `doctor` at this SHA. `#4544` rapid soft warning (`rapid-soft-missing-no-brief.ts`) names missing lifecycle brief after product writes and stays exit 0 — different surface from empty PD narratives.\nFailure mode: Binding a second narrative writer, or treating the gap as \"no write verb,\" thrash against shipped #4663 and miss the DCR bar (non-empty persisted fields).\nDisposition: Reuse `project:write-narratives`. Add the fail-closed empty-value / first-ship completion bar the target names. Keep #4544 (AGENTS header + identity-only mutation Overview join) and #4668 Depth/re-ask out of this lean, as Stop 1 already non-goals.\n\n## DCR predicate not in this tree\nfootnote\nEvidence: `git grep` for `R.4668` / `setup_answers_persisted_in_pd` / `persisted_fields` at the dispatch SHA returned no product implementation in `packages/core` or `content` (oracle lives under DevHammer / DCR packs cited on the issue).\nFailure mode: none for binding the Directive-side empty-narrative bar from in-tree evidence above.\nDisposition: Cite DCR as the external score only; do not block lean on in-repo oracle code.\n\n## Injection / swarm lens\nTarget is setup/session persistence of project identity strings. No authority, prompt, identity-token, concurrency, or shared-state envelope change in the Stop 1 premise; lens not triggered.\n\n",
+          "id": 5913390053,
+          "html_url": "https://github.com/deftai/directive/issues/5176#issuecomment-5913390053",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:31:50Z",
+          "updated_at": "2026-09-30T14:31:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nGreenfield can finish with a legal empty PROJECT-DEFINITION seed: init writes empty narrative strings, presence gates stay green, and `project:write-narratives` already exists but accepts `\"\"`. Critic 5913390053 sharpened Stop 1 away from \"hope-only skill\" toward a fail-closed empty-value / first-ship completion bar that reuses the shipped writer. Sonnet `persisted_fields=0` is occurrence evidence for DCR R.4668; the mechanism is stack-agnostic. Sibling #4544 (AGENTS header) and closed #4668 Depth/re-ask stay out. The same parent wrote Stop 1 5913292246. Critic 5913390053 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** Prefer-A — fail-closed non-empty PD narrative bar on greenfield/first-ship, reusing `project:write-narratives`. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual of critic 5913390053 (sharpens-framing folded; footnotes census).\n\n### Legal empty seed is the primary path\naccept-into-contract\n\n### Write path shipped; empty values still store\naccept-into-contract\n\n### Bound remedy\n\n1. **Root cause (Prefer-A).** Treat the defect as legal empty `SKELETON_NARRATIVES` / presence-only routing+validation, with skill skip as a second path — not as missing Phase 2 prose alone.\n\n2. **Reuse writer.** Keep `project:write-narratives` (#4663) as the write surface. Do not invent a second narrative writer.\n\n3. **Fail-closed bar.** Greenfield / first-ship product completion MUST refuse (or auto-fill via confirmed Overview/strategy then write) while every tracked PD planning narrative value is empty / whitespace. First-ship MUST pick one concrete surface (session/check/story-ready/setup completion) and lock it with a fixture that empty Overview+tech stack (or the DCR-equivalent bag) fails closed and one non-empty field passes.\n\n4. **Accept empty strings at parse, refuse at completion.** `parsePhase2NarrativeDocument` may still accept `\"\"` for mid-setup; the new bar fires at first-ship / product-mutation completion, not on scaffold-fresh init alone.\n\n5. **External score.** Cite DCR R.4668 / `agent.setup_answers_persisted_in_pd` as the external score only; do not block bind on in-repo oracle code.\n\n### Non-goals\n\n- USER.md Depth / do-not-re-ask (#4668 / #4938)\n- AGENTS unmanaged header gate (#4544)\n- DevHammer-only oracle fixes without a Directive empty-value bar\n- Replacing `project:write-narratives`\n- Re-asking Phase 2 from emptiness on return visits (#4668 already)\n\n### Coverage asserted for Stop 1 pains\n\n- relieves:P1 — weaker stacks finishing with empty PD narratives: fail-closed non-empty bar at first-ship; Sonnet occurrence, stack-agnostic mechanism\n- relieves:P2 — deterministic refuse/fill before first-ship completes: Bound remedy items 3–4\n- relieves:P3 — R.4668 remains the external score after #4668 Depth shipped; this lean owns the PD empty-value surface only\n\nTarget-digest sha256:c9031d15641a67a915ad63a055d1d37579dc8caa2e135adeee5dc9acc4a43cfd\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\n\n",
+          "id": 5913432214,
+          "html_url": "https://github.com/deftai/directive/issues/5176#issuecomment-5913432214",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:34:16Z",
+          "updated_at": "2026-09-30T14:34:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5176\ncharter: refutation\nspend: N=1\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5913432214\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\nFresh critic. `git rev-parse HEAD` matched `fc1363287967413846934ecac824c2be1a6e6d51`. Pin reads via `git show` that SHA. In-ceiling inputs: Current-state `5913291775`, Stop 1 `5913292246`, round-1 critic `5913390053`, successor lean `5913432214`.\n\n## Coverage census\n\nStop 1 named P1–P3. Lean Prefer-A Bound remedy items 1–5 plus Non-goals are the claimed relief. Pin checks at the dispatch SHA:\n\n- `packages/core/src/render/constants.ts` still defines `SKELETON_NARRATIVES` with `Overview`, `tech stack`, `Architecture`, `RisksAndUnknowns`, `Configuration` as `\"\"`.\n- `seedMinimalProjectDefinition` / `createSkeleton` still persist that empty bag on init.\n- `project:write-narratives` / `parsePhase2NarrativeDocument` still accept string fields including `\"\"` (six Phase 2 keys; no non-empty refuse in the parser).\n- `git grep` for `R.4668` / `setup_answers_persisted_in_pd` / `persisted_fields` under `packages/core` and `content` returned no product hits (DCR stays external).\n\n- **P1** → Bound items 1 + 3: legal empty seed + presence-only routing as root cause; fail-closed non-empty bar at greenfield/first-ship so weaker stacks cannot finish with every tracked PD planning narrative empty. Sonnet `persisted_fields=0` stays occurrence evidence; mechanism is stack-agnostic. Round-1 sharpening on empty seed accepted into item 1.\n- **P2** → Bound items 3–4: deterministic refuse or confirmed auto-fill+write before first-ship completes; parse may keep `\"\"` mid-setup; bar fires at completion, not scaffold-fresh init alone. Matches Stop 1's missing fail-closed write/refuse.\n- **P3** → Bound item 5 + Non-goals: this lean owns the PD empty-value surface; DCR R.4668 / `agent.setup_answers_persisted_in_pd` is external score only; #4668 Depth/re-ask and #4544 AGENTS header stay out. Addresses why R.4668 stayed red after the Depth remedy.\n\n## First-ship surface pick left to implement\nfootnote\nEvidence: Bound item 3 requires picking one concrete surface among session / check / story-ready / setup completion and locking empty Overview+tech stack (or DCR-equivalent bag) fail-closed with a fixture. The lean does not pre-commit which of those four hosts the bar.\nFailure mode: Implementers may argue surface placement while still shipping the same non-empty completion semantics Stop 1 named.\nDisposition: Census only. Does not change the harvested Bound remedy or reopen P1–P2.\n\n## Narrative key bag vs DCR field names\nfootnote\nEvidence: Skeleton keys use `\"tech stack\"`; Phase 2 writer keys use `TechStack` among six `PHASE2_NARRATIVE_KEYS`; lean fixture language says Overview+tech stack or the DCR-equivalent bag. No in-tree `persisted_fields` oracle at this SHA.\nFailure mode: Fixture authors may need a one-line key-map when wiring the DCR-equivalent bag; Prefer-A already admits that bag as the lock target.\nDisposition: Census only. Bound remedy harvest unchanged.\n\n## Injection / swarm lens\nTarget is setup/session persistence of project identity strings and a completion refuse/fill bar. No authority, prompt, identity-token, concurrency, or shared-state envelope change in the asserted Bound remedy; lens not triggered.\n\n## Verdict\n\nFootnote-only. No `blocks-the-design`. No `sharpens-framing` that changes Bound remedy harvest. Coverage of audit-targets pain-P1, pain-P2, pain-P3 holds on lean `5913432214` as written.\n\n",
+          "id": 5913610168,
+          "html_url": "https://github.com/deftai/directive/issues/5176#issuecomment-5913610168",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:44:20Z",
+          "updated_at": "2026-09-30T14:44:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| # | Claim | Evidence |\n|---|---|---|\n| 1 | Stage A still-open on origin/master `fc1363287967` | triage:evaluate sink `.deft-scratch/issue-eval/fc1363287967/d53b9065-947b-43d4-a994-7a7f91564675` |\n| 2 | Init deposits legal empty `SKELETON_NARRATIVES`; `project:write-narratives` accepts `\"\"`; no first-ship empty-value refuse at pin | critic 5913390053 + pin reads |\n| 3 | Critic 5913390053: refutation survives; two sharpens-framing (legal empty seed; reuse writer) | comment 5913390053 |\n| 4 | Successor lean Prefer-A 5913432214 all-accept + honest pain cites P1–P3 | comment 5913432214 |\n| 5 | Pain 5913610168 footnote-only for pain-P1/P2/P3 harvest | comment 5913610168 |\n| 6 | Target-digest pins live raw issue body | sha256:c9031d15641a67a915ad63a055d1d37579dc8caa2e135adeee5dc9acc4a43cfd (1760 bytes) |\n\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\r\n\n",
+          "id": 5913624441,
+          "html_url": "https://github.com/deftai/directive/issues/5176#issuecomment-5913624441",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:45:10Z",
+          "updated_at": "2026-09-30T14:45:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nGreenfield can finish with a legal empty PROJECT-DEFINITION seed while presence gates stay green. Bound Prefer-A installs a fail-closed non-empty PD narrative bar at greenfield/first-ship completion, reuses `project:write-narratives`, and keeps #4668 / #4544 out. DCR R.4668 stays the external score. The same parent wrote Stop 1 5913292246. Critic 5913390053, lean 5913432214, and pain 5913610168 closed the Dual-stop. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5913432214.\r\n\n",
+          "id": 5913624781,
+          "html_url": "https://github.com/deftai/directive/issues/5176#issuecomment-5913624781",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:45:11Z",
+          "updated_at": "2026-09-30T14:45:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Init deposits legal empty PD narratives (SKELETON_NARRATIVES all \"\") | pin-read packages/core/src/render/constants.ts at \fc1363287967413846934ecac824c2be1a6e6d51; critic 5913390053; pain-audit 5913610168 | verified |\n| Presence gates treat seeded empty PD as present; empty strings are not a missing-answers detector | session routing / setup #4668 pin; critic 5913390053 | verified |\n| project:write-narratives exists and accepts \"\" mid-setup | pin-read phase2 narratives CLI/parser; critic 5913390053; pain-audit 5913610168 | verified |\n| No in-tree DCR persisted_fields / R.4668 oracle in product packages | git grep at dispatch SHA; critics 5913390053 / 5913610168 | verified |\n| Prefer-A Bound remedy on lean 5913432214 covers Stop 1 P1–P3 | pain-audit 5913610168 footnote-only verdict | verified |\n| First-ship surface pick among session/check/story-ready/setup is implement detail | pain-audit 5913610168 footnote | verified (non-blocking) |\n\nCeiling: lean 5913432214. Pain-audit: 5913610168. Dispatch SHA: fc1363287967413846934ecac824c2be1a6e6d51.",
+          "id": 5913630455,
+          "html_url": "https://github.com/deftai/directive/issues/5176#issuecomment-5913630455",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:45:30Z",
+          "updated_at": "2026-09-30T14:45:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nGreenfield can finish on a legal empty PROJECT-DEFINITION seed. Init writes empty narrative strings, presence gates stay green, and the shipped project:write-narratives writer still accepts empty values. The accepted build adds a fail-closed non-empty planning-field bar at first-ship / product completion, reuses that writer, and keeps DCR R.4668 as an external score. Closed #4668 Depth/re-ask and sibling #4544 AGENTS header stay out.\n\nBound contract: successor lean 5913432214\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nRound-1 critic 5913390053 headings accepted into lean. Pain-audit 5913610168 footnote-only; no Bound-remedy harvest change. Verified-claims table posted as the prior comment. Yolo standing confirms the all-accept map. Spec-path: next-build contract is the lean, not this body.",
+          "id": 5913630882,
+          "html_url": "https://github.com/deftai/directive/issues/5176#issuecomment-5913630882",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:45:32Z",
+          "updated_at": "2026-09-30T14:45:32Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5647837617,
+        "origin": "deftai/directive#5176",
+        "id": "github.issue.5647837617"
+      },
+      "kind": "story",
+      "residual_of": {
+        "bound_lean_comment_id": 5913432214,
+        "synthesis_comment_id": 5913624781,
+        "predecessor_closed": 4668,
+        "sibling": 4544
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/render",
+          "packages/core/src/project",
+          "packages/core/src/check",
+          "packages/core/src/session",
+          "packages/core/src/doctor",
+          "packages/core/src/platform",
+          "packages/cli/src",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/templates",
+          "content/docs",
+          "tests/fixtures",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/project/persisted-planning-narratives.test.ts packages/core/src/check/persisted-planning-narratives-gate.test.ts packages/core/src/check/product-mutation-completion.test.ts packages/cli/src/verify-persisted-planning-narratives.test.ts packages/core/src/content-contracts/skills/setup_persisted_planning_narratives_5176.test.ts"
+        ]
+      },
+      "productPullRequest": 5179,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5179,
+        "prBase": null,
+        "mergeCommit": "54a42525eb71c9d0d7a5ea273e74cd942d5b9a7e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "54a42525eb71c9d0d7a5ea273e74cd942d5b9a7e",
+        "verifiedAt": "2026-09-30T17:37:56Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-30T17:37:56Z",
+      "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T17:37:56Z"
+      }
+    },
+    "id": "github.issue.5647837617",
+    "updated": "2026-09-30T17:37:56Z"
+  }
+}
