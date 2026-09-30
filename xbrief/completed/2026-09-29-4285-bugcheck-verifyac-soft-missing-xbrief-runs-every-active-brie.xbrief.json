@@ -1,0 +1,543 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4285",
+    "updated": "2026-09-29T15:22:18Z"
+  },
+  "plan": {
+    "title": "bug(check): verify:ac --soft-missing-xbrief runs every active brief so leftover master WIP poisons worktree task check",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(check): verify:ac --soft-missing-xbrief runs every active brief so leftover master WIP poisons worktree task check",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4285",
+      "Overview": "\n\n1. Under task check / verify:ac --soft-missing-xbrief with more than one active lifecycle artifact, select the dispatched story via DEFT_ACTIVE_SCOPE (reuse ACTIVE_SCOPE_PIN_ENV / inspectActiveScope) or an explicit -- <path>; otherwise fail closed asking for that pin / path. Do not silently skip AC. Do not execute foreign leftover plan.acceptance.commands.\n2. Keep #3284 durable constraint: AC stays hard / never soft-green past stated AC for the selected story. ALL-paths soft-missing is not the product invariant.\n3. task verify:ac -- <one-path> stays single-scope. Keep the AC-first check slot (PRODUCT_FIRST_AC_GATE). Do not weaken vbrief:validate.\n4. Completing or cancelling #3785 and Grok mid-flight steer stay non-goals.\n5. Regression test: two active briefs where only the pinned (or explicit-path) brief's acceptance commands run under soft-missing check composition.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:abb0ea341170f55b604f3374c774254ad4736836c671923a88624b8fe265361d\n\n\n",
+      "Labels": "bug, determinism, adoption-blocker, agent-experience, process, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "Under task check / verify:ac --soft-missing-xbrief with more than one active lifecycle artifact, select the dispatched story via DEFT_ACTIVE_SCOPE (reuse ACTIVE_SCOPE_PIN_ENV / inspectActiveScope) or an explicit -- <path>; otherwise fail closed asking for that pin / path. Do not silently skip AC. Do not execute foreign leftover plan.acceptance.commands.",
+        "status": "proposed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4838d385787db5d2087a69d1db7f1f20ab32724e",
+          "recorded_at": "2026-09-30T01:39:35.500Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5150 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:39:35.500Z",
+            "mintedVia": "leftover-complete-after-5150"
+          },
+          "recorded_at": "2026-09-30T01:39:35.500Z"
+        }
+      },
+      {
+        "title": "Keep #3284 durable constraint: AC stays hard / never soft-green past stated AC for the selected story. ALL-paths soft-missing is not the product invariant.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4838d385787db5d2087a69d1db7f1f20ab32724e",
+          "recorded_at": "2026-09-30T01:39:35.500Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5150 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:39:35.500Z",
+            "mintedVia": "leftover-complete-after-5150"
+          },
+          "recorded_at": "2026-09-30T01:39:35.500Z"
+        }
+      },
+      {
+        "title": "task verify:ac -- <one-path> stays single-scope. Keep the AC-first check slot (PRODUCT_FIRST_AC_GATE). Do not weaken vbrief:validate.",
+        "status": "proposed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4838d385787db5d2087a69d1db7f1f20ab32724e",
+          "recorded_at": "2026-09-30T01:39:35.500Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5150 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:39:35.500Z",
+            "mintedVia": "leftover-complete-after-5150"
+          },
+          "recorded_at": "2026-09-30T01:39:35.500Z"
+        }
+      },
+      {
+        "title": "Completing or cancelling #3785 and Grok mid-flight steer stay non-goals.",
+        "status": "proposed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4838d385787db5d2087a69d1db7f1f20ab32724e",
+          "recorded_at": "2026-09-30T01:39:35.500Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5150 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:39:35.500Z",
+            "mintedVia": "leftover-complete-after-5150"
+          },
+          "recorded_at": "2026-09-30T01:39:35.500Z"
+        }
+      },
+      {
+        "title": "Regression test: two active briefs where only the pinned (or explicit-path) brief's acceptance commands run under soft-missing check composition.",
+        "status": "proposed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4838d385787db5d2087a69d1db7f1f20ab32724e",
+          "recorded_at": "2026-09-30T01:39:35.500Z",
+          "recorded_by": "MScottAdams"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Process/product clause satisfied by product PR #5150 ship; pathless derived clause has no bindable artifact_path (#4986). Delivery attested via merge-commit.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T01:39:35.500Z",
+            "mintedVia": "leftover-complete-after-5150"
+          },
+          "recorded_at": "2026-09-30T01:39:35.500Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4285",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4285: bug(check): verify:ac --soft-missing-xbrief runs every active brief so leftover master WIP poisons worktree task check"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4007",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4007"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(check): verify:ac --soft-missing-xbrief runs every active brief so leftover master WIP poisons worktree task check",
+        "Under task check / verify:ac --soft-missing-xbrief with more than one active lifecycle artifact, select the dispatched story via DEFT_ACTIVE_SCOPE (reuse ACTIVE_SCOPE_PIN_ENV / inspectActiveScope) or an explicit -- <path>; otherwise fail closed asking for that pin / path.",
+        "Do not silently skip AC.",
+        "Do not execute foreign leftover plan.acceptance.commands.",
+        "Keep #3284 durable constraint: AC stays hard / never soft-green past stated AC for the selected story.",
+        "ALL-paths soft-missing is not the product invariant.",
+        "task verify:ac -- <one-path> stays single-scope.",
+        "Keep the AC-first check slot (PRODUCT_FIRST_AC_GATE).",
+        "Do not weaken vbrief:validate.",
+        "Completing or cancelling #3785 and Grok mid-flight steer stay non-goals.",
+        "Regression test: two active briefs where only the pinned (or explicit-path) brief's acceptance commands run under soft-missing check composition.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:abb0ea341170f55b604f3374c774254ad4736836c671923a88624b8fe265361d"
+      ],
+      "admitted_source_sentences": [
+        "Under task check / verify:ac --soft-missing-xbrief with more than one active lifecycle artifact, select the dispatched story via DEFT_ACTIVE_SCOPE (reuse ACTIVE_SCOPE_PIN_ENV / inspectActiveScope) or an explicit -- <path>; otherwise fail closed asking for that pin / path.",
+        "Do not silently skip AC.",
+        "Do not execute foreign leftover plan.acceptance.commands.",
+        "Keep #3284 durable constraint: AC stays hard / never soft-green past stated AC for the selected story.",
+        "ALL-paths soft-missing is not the product invariant.",
+        "task verify:ac -- <one-path> stays single-scope.",
+        "Keep the AC-first check slot (PRODUCT_FIRST_AC_GATE).",
+        "Do not weaken vbrief:validate.",
+        "Completing or cancelling #3785 and Grok mid-flight steer stay non-goals.",
+        "Regression test: two active briefs where only the pinned (or explicit-path) brief's acceptance commands run under soft-missing check composition.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:abb0ea341170f55b604f3374c774254ad4736836c671923a88624b8fe265361d"
+      ],
+      "admitted_source_digest": "2881db390ab8e022dec86817e56f97f4a0d4c627f498aec4c056a18cb01af131",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Under task check / verify:ac --soft-missing-xbrief with more than one active lifecycle artifact, select the dispatched story via DEFT_ACTIVE_SCOPE (reuse ACTIVE_SCOPE_PIN_ENV / inspectActiveScope) or an explicit -- <path>; otherwise fail closed asking for that pin / path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Do not silently skip AC.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not execute foreign leftover plan.acceptance.commands.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep #3284 durable constraint: AC stays hard / never soft-green past stated AC for the selected story.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "ALL-paths soft-missing is not the product invariant.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "task verify:ac -- <one-path> stays single-scope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Keep the AC-first check slot (PRODUCT_FIRST_AC_GATE).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Do not weaken vbrief:validate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Completing or cancelling #3785 and Grok mid-flight steer stay non-goals.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Regression test: two active briefs where only the pinned (or explicit-path) brief's acceptance commands run under soft-missing check composition.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:abb0ea341170f55b604f3374c774254ad4736836c671923a88624b8fe265361d",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(check): verify:ac --soft-missing-xbrief runs every active brief so leftover master WIP poisons worktree task check"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Gates: the check that stands in the doorway before work is called good. A green result should mean Directive actually looked. A red result should say what to do next.\n\nWhat a new person hits: The acceptance check inspects every active piece of work, not just the change they are making. Old leftovers fail the check for the new work.\n\nWhy that ruins the product for them: Their small change looks broken because of files they are not touching. They cannot tell their mistake from the tool's noise.\n\nHow likely: Medium-high once a project has more than one scrap of work in it, which happens quickly.\n\n",
+          "id": 5780293792,
+          "html_url": "https://github.com/deftai/directive/issues/4285#issuecomment-5780293792",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:39:03Z",
+          "updated_at": "2026-09-22T16:39:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because task check always runs verify:ac --soft-missing-xbrief first, and that path evaluates every running xbrief/active brief, so leftover foreign actives (for example tracked #3785 on master) execute their acceptance commands inside an unrelated worktree check even when DEFT_ACTIVE_SCOPE pins the write fence.\n\ncharter: refutation\nrefutation-target: verify:ac --soft-missing-xbrief must evaluate every running active brief (Greptile #3284 multi-active must verify EVERY active scope), and DEFT_ACTIVE_SCOPE is write-fence only (#4007), so task check correctly runs foreign leftover acceptance commands and needs no pin-scoped AC selection or fail-closed ask for DEFT_ACTIVE_SCOPE / explicit -- <path>.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered to use the recommended n for each after the missing-token ask; recommended spend for this class is N=1. This arc is only #4285. Separate from #1883. Not a whole-motion babysit hang. N=1.\n\npain: P1, P2, P3\n\nP1. In a worktree with leftover foreign xbrief/active running briefs plus the dispatched story, task check / verify:ac --soft-missing-xbrief still executes the foreign brief's plan.acceptance.commands (measured: #3785 vitest suites poisoning #4284 / release Step 5).\nP2. DEFT_ACTIVE_SCOPE pins the write fence (#4007) but verify-ac.ts never reads it for soft-missing multi-active selection, so the check polarity is opposite the write fence on the same tree.\nP3. First-ship Bound remedy must select the dispatched story by DEFT_ACTIVE_SCOPE (or fail-closed asking for that pin / explicit -- <path>), keep single-path verify:ac, keep AC-first check slot, and lock a two-running-briefs regression — without completing #3785 or fixing Grok child steer.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4285-dc\norigin-ref: origin/master\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\npin-kind: origin-default\ntarget-digest: sha256:abb0ea341170f55b604f3374c774254ad4736836c671923a88624b8fe265361d\n\nPin reads use git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980:. Completing #3785 and Grok mid-flight steer stay non-goals. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\n\n",
+          "id": 5837329459,
+          "html_url": "https://github.com/deftai/directive/issues/4285#issuecomment-5837329459",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:18:27Z",
+          "updated_at": "2026-09-25T18:18:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nIssue: deftai/directive#4285\nCharter: refutation (N=1, sole seat)\nRound: 1 critic (fresh)\nId ceiling: 5837329459\nSHA at dispatch: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 (HEAD confirmed equal; pin reads via git show)\narc-mode: no-ingest\nseat: grok\nlauncher: grok\n\nRefutation target under test: soft-missing multi-active must evaluate every running active brief (#3284 EVERY), DEFT_ACTIVE_SCOPE is write-fence only (#4007), and therefore task check correctly runs foreign leftover acceptance commands with no pin-scoped AC selection or fail-closed ask.\n\nInventory before judgment (existing seams only): PRODUCT_FIRST_AC_GATE always passes `--soft-missing-xbrief`; `listActiveXbriefs` unions every `*.xbrief.json` / `*.vbrief.json` under `xbrief/active` and `vbrief/active` with no `plan.status` filter and no pin read; standalone many-active already refuses and asks for an explicit `-- <path>`; `inspectActiveScope` / `DEFT_ACTIVE_SCOPE` already fail-closes or binds one eligible running brief for the write fence (#4007); orphan-active is a separate lifecycle gate on the check lists.\n\n## #3284 product-first forbids silent skip, not pin-scoped selection\nblocks-the-design\nEvidence: At `042eea8c`, `packages/cli/src/verify-ac.ts` many-active soft-missing branch comments \"Greptile #3284: multi-active must verify EVERY active scope, not skip\" and takes `[...found.paths]`; the matching test is `evaluates ALL active xbriefs under soft-missing multi-active (#3284)`. CHANGELOG product-first (#3284) states AC runs first and is never skippable, and that `--soft-missing-xbrief` avoids deadlock when no story is active — it does not require foreign leftovers to execute inside another worker's check. Standalone many-active on the same file already refuses and prints \"Pass an explicit path, or use check composition (--soft-missing-xbrief) to evaluate all.\" Issue acceptance (pin or fail-closed ask) still runs AC for the selected story and refuses silent skip.\nFailure mode: Binding the target's \"EVERY active\" clause freezes the Greptile residual as if it were the #3284 product bar, so first-ship pin-or-ask looks like a #3284 regression even though it keeps AC hard and only changes multi-active selection.\nDisposition: Before that clause can bind, drop or rewrite \"must evaluate every running active brief\" down to the durable #3284 constraint (do not soft-green past stated AC). Pin-or-explicit-path selection is compatible with that constraint; ALL-paths soft-missing is one historical implementation, not the product invariant.\n\n## Write-fence-only is current code shape, not a bar against check pin\nblocks-the-design\nEvidence: `git show 042eea8c:packages/cli/src/verify-ac.ts` has no `DEFT_ACTIVE_SCOPE` / `ACTIVE_SCOPE_PIN` token; soft-missing selection never calls `inspectActiveScope`. `packages/core/src/hooks/scope.ts` defines `ACTIVE_SCOPE_PIN_ENV = \"DEFT_ACTIVE_SCOPE\"` and, on multiple eligible briefs, fails closed unless the pin / `boundPath` names one (#4007). `content/contracts/path-write-fence.md` documents that pin as the multi-active story binder for `file_scope`. CHANGELOG #4007 is the same polarity story for writes.\nFailure mode: Reading \"verify-ac never reads the pin today\" as \"check needs no pin-scoped AC selection\" turns the measured polarity gap into its own justification. Same multi-active tree: writes demand a dispatched-story pin; check still executes every active file's acceptance commands.\nDisposition: The \"write-fence only … needs no pin-scoped AC selection\" half cannot bind. Reuse the existing pin / explicit-path seams for soft-missing multi-active selection, or fail closed asking for one; do not invent a second pin name.\n\n## Foreign leftover briefs become check authority on a shared tree\nblocks-the-design\nEvidence: `PRODUCT_FIRST_AC_GATE` in `packages/core/src/check/gate-lists.ts` is always `verify:ac --soft-missing-xbrief` on framework and consumer lists. Soft-missing multi-active evaluates every path from `listActiveXbriefs`, and `evaluateVerifyAcFromPath` / product-first evaluate run each brief's `plan.acceptance.commands` (executable failures fail closed under checkIntegrated). Issue body recurrence at this ceiling: tracked open #3785 running on master inherited into #4284 / release Step 5, so foreign vitest suites ran inside an unrelated check; `DEFT_ACTIVE_SCOPE` to the dispatched story did not isolate AC. Swarm lens: leftover brief text on a shared tree supplies the commands that gate another worker's green/red.\nFailure mode: If \"task check correctly runs foreign leftover acceptance commands\" binds, a tracked leftover (or any second active file) keeps injecting its acceptance oracle into cohort worktrees and release Step 5 until someone lands that leftover — which this issue correctly marks a non-goal.\nDisposition: That correctness claim fails. Soft-missing under check must select the dispatched story via `DEFT_ACTIVE_SCOPE` or an explicit `-- <path>`, or fail closed asking for one, before the target's third clause can stand. Completing #3785 and Grok child steer stay out of scope.\n\n## \"Running\" in the target overstates the scanner\nfootnote\nEvidence: `listActiveXbriefs` at the dispatch SHA filters only by filename suffix under `active/`; it does not read `plan.status`. `inspectActiveScope` is the seam that filters preflight-eligible / running candidates.\nFailure mode: Mild wording drift only; does not by itself change disposition if the EVERY and pin clauses already fall.\nDisposition: When restating the defect, say every active lifecycle artifact file soft-missing currently evaluates, unless a later lean deliberately narrows to eligible-running only via the existing preflight helper.\n\n## Road-not-taken\nStrongest steelman for the target: the #3284 multi-active test locks ALL-paths behavior, and verifying every active before merge is cohort hygiene. What flips it: (1) product-first's durable rule is never-skippable AC, already satisfied by pin-or-ask; (2) standalone already refuses many without evaluating all; (3) orphan-active / leftover completion are separate lifecycle tools and do not make foreign AC a correct oracle for the dispatched story's check; (4) measured release/worktree poisoning is the cost of keeping ALL under soft-missing.\n\n## Verdict\nThe refutation target does not survive. Soft-missing multi-active ALL-paths is an implementation residual beside #3284's never-skip bar; `DEFT_ACTIVE_SCOPE` being unread by verify-ac is the gap to close with existing pin/path seams, not a reason to keep foreign leftover acceptance commands inside task check.\n\n",
+          "id": 5837381552,
+          "html_url": "https://github.com/deftai/directive/issues/4285#issuecomment-5837381552",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:21:59Z",
+          "updated_at": "2026-09-25T18:21:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nSoft-missing multi-active ALL-paths is an implementation residual beside #3284's never-skip AC bar, not a product rule that forces foreign leftover acceptance commands into another worker's task check. DEFT_ACTIVE_SCOPE unread by verify-ac is the polarity gap versus the #4007 write fence. Confirming this map means soft-missing under check selects the dispatched story via DEFT_ACTIVE_SCOPE or explicit -- <path>, or fail-closes asking for one, while keeping AC hard and single-path verify:ac unchanged.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.5 parent authored Stop 1 and these takes. Takes accept critic headings.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: pain-P1 / pain-P2 / pain-P3 asserted until a pain-audit critic targets them\nsupersedes: 5837329459\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\n\n## Takes\n\nRound 1 dispatched siblings: 1. Leaning over critic 5837381552. Supersedes Stop 1 write-back 5837329459.\n\n- #3284 product-first forbids silent skip, not pin-scoped selection (5837381552): accept-into-contract\n- Write-fence-only is current code shape, not a bar against check pin (5837381552): accept-into-contract\n- Foreign leftover briefs become check authority on a shared tree (5837381552): accept-into-contract\n\nFootnote census (not denominator): \"running\" overstates the scanner on 5837381552.\n\nSpec-path: next-build is not this body.\n\n## Bound remedy\n\n1. Under task check / verify:ac --soft-missing-xbrief with more than one active lifecycle artifact, select the dispatched story via DEFT_ACTIVE_SCOPE (reuse ACTIVE_SCOPE_PIN_ENV / inspectActiveScope) or an explicit -- <path>; otherwise fail closed asking for that pin / path. Do not silently skip AC. Do not execute foreign leftover plan.acceptance.commands.\n2. Keep #3284 durable constraint: AC stays hard / never soft-green past stated AC for the selected story. ALL-paths soft-missing is not the product invariant.\n3. task verify:ac -- <one-path> stays single-scope. Keep the AC-first check slot (PRODUCT_FIRST_AC_GATE). Do not weaken vbrief:validate.\n4. Completing or cancelling #3785 and Grok mid-flight steer stay non-goals.\n5. Regression test: two active briefs where only the pinned (or explicit-path) brief's acceptance commands run under soft-missing check composition.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:abb0ea341170f55b604f3374c774254ad4736836c671923a88624b8fe265361d\n\n## Parent-side substantiation\n\nThe critic blocked EVERY-as-product-bar, write-fence-only-as-no-check-pin, and foreign-leftover-as-correct. Items 1–3 discharge those headings. Pain coverage of P1–P3 stays asserted until a pain-audit critic targets the cites.\n\naudit:pain-P1 sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837381552 reading=asserted\naudit:pain-P2 sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837381552 reading=asserted\naudit:pain-P3 sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837381552 reading=asserted\n\n",
+          "id": 5837445764,
+          "html_url": "https://github.com/deftai/directive/issues/4285#issuecomment-5837445764",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:26:32Z",
+          "updated_at": "2026-09-25T18:26:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\r\n```quarantined\nrole: critic\r\n```\n\r\naudit-targets: pain-P1, pain-P2, pain-P3\r\n\r\nIssue: deftai/directive#4285\r\nCharter: refutation (N=1)\r\nRound: 4 Pass-4 audit (pain-audit of relieves)\r\nCritic role: fresh\r\nId ceiling (inclusive): 5837445764\r\nSHA at dispatch: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 (HEAD confirmed equal; pin reads via git show)\r\narc-mode: no-ingest\r\nseat: grok\r\nlauncher: grok\r\n\r\nPain-audit of successor lean 5837445764 Bound remedy cites `relieves: P1` / `relieves: P2` / `relieves: P3` against Stop 1 5837329459. Anchors re-verified at `042eea8c`: `PRODUCT_FIRST_AC_GATE` always passes `--soft-missing-xbrief`; soft-missing many takes `[...found.paths]` from `listActiveXbriefs` (filename scan, no `DEFT_ACTIVE_SCOPE` / `inspectActiveScope` import in `verify-ac.ts`); standalone many already refuses with explicit-path ask; `ACTIVE_SCOPE_PIN_ENV` / `inspectActiveScope` already pin-or-fail for the write fence (#4007) across `xbrief/active` and `vbrief/active`.\r\n\r\n## Bound remedy covers P1\r\nfootnote\r\nEvidence: Stop 1 P1 is foreign leftover `plan.acceptance.commands` still executing under check / soft-missing multi-active. Lean item 1 requires pin (`DEFT_ACTIVE_SCOPE` / `ACTIVE_SCOPE_PIN_ENV` / `inspectActiveScope`) or explicit `-- <path>`, else fail closed asking for one, and forbids executing foreign leftover acceptance commands; item 5 locks the two-active regression. That is direct coverage of the measured #3785-into-#4284 / release Step 5 poisoning class.\r\nFailure mode: None for the cite; the asserted `relieves: P1` matches the harvest.\r\nDisposition: Treat `relieves: P1` as true coverage.\r\n\r\n## Bound remedy covers P2\r\nfootnote\r\nEvidence: Stop 1 P2 is the polarity gap — write fence reads `DEFT_ACTIVE_SCOPE`, soft-missing selection does not. Lean item 1 reuses the existing pin / `inspectActiveScope` seam for soft-missing multi-active selection (or fail-closed ask). At this SHA `git show` of `packages/cli/src/verify-ac.ts` still has zero `DEFT_ACTIVE_SCOPE` / `inspectActiveScope` tokens, so the gap the lean closes is the live one.\r\nFailure mode: None for the cite; reading the same pin closes the opposite-polarity claim.\r\nDisposition: Treat `relieves: P2` as true coverage.\r\n\r\n## Bound remedy covers P3\r\nfootnote\r\nEvidence: Stop 1 P3 requires pin-or-ask selection, keep single-path `verify:ac`, keep AC-first (`PRODUCT_FIRST_AC_GATE`), lock a two-brief regression, and leave #3785 completion / Grok mid-flight steer as non-goals. Lean items 1–5 state each of those clauses in order, including item 2's never-skip AC bar for the selected story and item 3's keep of the AC-first slot / single-path / no weaken of `vbrief:validate`.\r\nFailure mode: None for the cite; first-ship shape is already the Bound remedy list.\r\nDisposition: Treat `relieves: P3` as true coverage.\r\n\r\n## File-count many vs eligible-count when reusing inspectActiveScope\r\nfootnote\r\nEvidence: Soft-missing many today is `listActiveXbriefs` file presence; `inspectActiveScope` filters preflight-eligible and auto-binds when exactly one eligible remains. Lean item 1 says both \"more than one active lifecycle artifact\" and \"reuse … inspectActiveScope\". Round-1 already footnoted that \"running\" overstates the scanner (5837381552).\r\nFailure mode: Implementers could disagree whether a second ineligible leftover still forces a pin ask, or whether single-eligible auto-bind is enough; either reading still stops eligible foreign leftovers from becoming the check oracle when a pin or path is required for multiple eligibles (the measured case).\r\nDisposition: Census only. Does not retract `relieves: P1`–`P3` and does not change the harvested Bound remedy.\r\n\r\n## Coverage verdict\r\nBound remedy on 5837445764 covers P1, P2, and P3 as asserted. No blocking gap. No harvest-changing sharpening. Footnote-only.",
+          "id": 5837485722,
+          "html_url": "https://github.com/deftai/directive/issues/4285#issuecomment-5837485722",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:29:01Z",
+          "updated_at": "2026-09-25T18:29:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Soft-missing must evaluate EVERY active brief as the #3284 product bar | false | Round-1 critic 5837381552; #3284 is never-skip AC |\n| DEFT_ACTIVE_SCOPE write-fence-only means check needs no pin-scoped AC selection | false | Same critic; polarity gap vs #4007 |\n| Bound remedy on lean 5837445764 covers Stop 1 P1–P3 | true | Pain-audit 5837485722; footnote-only |\n\n## Takes on pain-audit\n\n- Bound remedy covers P1 (5837485722): accept-into-contract\n- Bound remedy covers P2 (5837485722): accept-into-contract\n- Bound remedy covers P3 (5837485722): accept-into-contract\n\n",
+          "id": 5837533798,
+          "html_url": "https://github.com/deftai/directive/issues/4285#issuecomment-5837533798",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:32:14Z",
+          "updated_at": "2026-09-25T18:32:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nSoft-missing ALL-paths is not the #3284 product bar. Bound remedy selects the dispatched story via DEFT_ACTIVE_SCOPE or explicit -- <path> (or fail-closed ask), keeps AC hard, and stops foreign leftover acceptance commands from poisoning task check. Pain-audit 5837485722 covered P1–P3 with footnote cites only.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5837445764.\n\n",
+          "id": 5837534133,
+          "html_url": "https://github.com/deftai/directive/issues/4285#issuecomment-5837534133",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:32:16Z",
+          "updated_at": "2026-09-25T18:32:16Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n`task check` always runs `verify:ac --soft-missing-xbrief` first (`PRODUCT_FIRST_AC_GATE` in `packages/core/src/check/gate-lists.ts`).\n\nWhen `xbrief/active/` has more than one running brief, `packages/cli/src/verify-ac.ts` treats `--soft-missing-xbrief` as \"evaluate every active scope\" (comment: Greptile #3284, multi-active must verify EVERY active scope, not skip). Standalone `verify:ac` without a path refuses many-active. Check composition does the opposite: it runs them all.\n\n`DEFT_ACTIVE_SCOPE` does not change that. It pins the write fence (#4007). `verify-ac.ts` never reads it.\n\nSo a worker on story B inherits every `running` brief that is tracked on the base branch, then `task check` executes story A's stated `plan.acceptance.commands` (vitest, encoding, …) before B's own AC.\n\n## Recurrence (measured 2026-09-09)\n\n- `xbrief/active/2026-08-28-3785-bughooks-fail-closed-hook-registration-travels-without-a-hos.xbrief.json` is **tracked on master**, `plan.status: running`, issue #3785 still **open**. Four stated commands including two `pnpm exec vitest run` suites.\n- v0.113.2 `task release` Step 5 already walked those 3785 commands (and banked an AC-pass for 3785) while cutting an unrelated release.\n- #4284 worktree from `a00773ec` inherited 3785, then activated 4284 → two actives. Worker `task check` hung/looked broken on 3785 vitest. `DEFT_ACTIVE_SCOPE` to 4284 did not isolate check.\n- Parent could not steer the live Grok `spawn_subagent` (no child input field; `resume_from` is terminal-only). Separate host/orchestration residue; do not block this issue on a Grok UI fix.\n\n## Why #4007 is not this close\n\n#4007 fail-closes **writes** when multiple preflight-eligible briefs exist unless `DEFT_ACTIVE_SCOPE` names one. Check / `verify:ac --soft-missing-xbrief` still **runs all**. Opposite polarity on the same multi-active tree.\n\n## Acceptance\n\n- `task check` / `verify:ac --soft-missing-xbrief` in a worktree with leftover foreign `xbrief/active/` plus the dispatched story does **not** execute the foreign brief's `plan.acceptance.commands`.\n- The dispatched story is selected by `DEFT_ACTIVE_SCOPE` (same pin as the write fence) or check fail-closes asking for that pin / an explicit `-- <path>`. Do not silently skip AC.\n- `task verify:ac -- <one-path>` stays single-scope.\n- Do not weaken `vbrief:validate` or drop the AC-first check slot to go green.\n- A regression test covers two running briefs where only the pinned path's commands run.\n\n## Non-goals\n\n- Completing or cancelling #3785 (lifecycle land of that leftover brief).\n- Grok child-window input / mid-flight `spawn_subagent` steer (file separately if wanted).\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5401158924,
+        "origin": "deftai/directive#4285",
+        "id": "github.issue.5401158924"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "abb0ea341170f55b604f3374c774254ad4736836c671923a88624b8fe265361d"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
+          "packages/core/src/product-first-done-gate/product-first-done-gate.test.ts",
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/scope.test.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/hooks/scope.test.ts packages/core/src/product-first-done-gate/product-first-done-gate.test.ts packages/cli/src/verify-ac.test.ts"
+        ],
+        "expected_outputs": [
+          "open Tracking PR"
+        ],
+        "depends_on": [],
+        "conflict_group": "through-merge-4285",
+        "size": "M",
+        "model_tier": "default",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "productPullRequest": 5150,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5150,
+        "prBase": "master",
+        "mergeCommit": "4838d385787db5d2087a69d1db7f1f20ab32724e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4838d385787db5d2087a69d1db7f1f20ab32724e",
+        "verifiedAt": "2026-09-30T01:39:35.500Z",
+        "verifier": "leftover-complete",
+        "disposition": "delivered",
+        "handoffState": "delivered"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-30T01:39:35.500Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T01:39:35.500Z"
+      }
+    },
+    "id": "github.issue.5401158924",
+    "updated": "2026-09-29T15:22:18Z"
+  }
+}
