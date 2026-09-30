@@ -16,6 +16,17 @@ interface ParsedArgs {
   error?: string;
 }
 
+function takeProjectRootValue(
+  argv: readonly string[],
+  index: number,
+): { readonly value?: string; readonly error?: string; readonly next: number } {
+  const next = argv[index + 1];
+  if (next === undefined || next.length === 0 || next.startsWith("-")) {
+    return { error: "argument --project-root: expected one argument", next: index };
+  }
+  return { value: next, next: index + 1 };
+}
+
 /** Parse verify-consumer-header-placeholder CLI args. */
 export function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = {
@@ -27,14 +38,18 @@ export function parseArgs(argv: string[]): ParsedArgs {
     if (arg === "--quiet") {
       parsed.quiet = true;
     } else if (arg === "--project-root") {
-      const value = argv[i + 1];
-      if (value === undefined) {
+      const taken = takeProjectRootValue(argv, i);
+      if (taken.error !== undefined) {
+        return { ...parsed, error: taken.error };
+      }
+      parsed.projectRoot = taken.value ?? parsed.projectRoot;
+      i = taken.next;
+    } else if (arg?.startsWith("--project-root=")) {
+      const value = arg.slice("--project-root=".length);
+      if (value.length === 0 || value.startsWith("-")) {
         return { ...parsed, error: "argument --project-root: expected one argument" };
       }
       parsed.projectRoot = value;
-      i += 1;
-    } else if (arg?.startsWith("--project-root=")) {
-      parsed.projectRoot = arg.slice("--project-root=".length);
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }

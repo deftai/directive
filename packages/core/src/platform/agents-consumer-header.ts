@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { contentRoot } from "../content-root.js";
 import { type AgentsMdSeams, frameworkRoot } from "./agents-md.js";
+import { findManagedOpenMarker } from "./linear-scan.js";
 
 /** Rot-prone unmanaged-header sections retired by Option A (#2065). */
 export const RETIRED_UNMANAGED_HEADER_SECTIONS = ["## Status", "## Known Issues"] as const;
@@ -32,6 +33,28 @@ export function oneLinerFromConfirmedOverview(overview: string): string {
   return "";
 }
 
+/** Unmanaged region above the managed-section open marker (or whole file). */
+export function unmanagedHeaderRegion(agentsMd: string): string {
+  const normalized = agentsMd.replace(/\r\n/g, "\n");
+  const open = findManagedOpenMarker(normalized, 0);
+  return open === null ? normalized : normalized.slice(0, open.start);
+}
+
+/**
+ * Unmanaged header one-liner: first non-empty, non-heading, non-HTML-comment
+ * line in the unmanaged region (#4544 Prefer-A / Greptile).
+ */
+export function unmanagedHeaderOneLiner(agentsMd: string): string | null {
+  for (const raw of unmanagedHeaderRegion(agentsMd).split("\n")) {
+    const line = raw.trim();
+    if (line.length === 0) continue;
+    if (line.startsWith("#")) continue;
+    if (line.startsWith("<!--")) continue;
+    return line;
+  }
+  return null;
+}
+
 /**
  * Placeholder-only compare-and-set of the unmanaged AGENTS.md one-liner from
  * user-confirmed Overview. Leaves a custom header untouched. Overview is not
@@ -50,7 +73,7 @@ export function compareAndSetConsumerHeaderOneLiner(input: {
     return { agentsMd: input.agentsMd, changed: false, reason: "empty-overview" };
   }
   const normalized = input.agentsMd.replace(/\r\n/g, "\n");
-  if (!normalized.includes(CONSUMER_HEADER_PLACEHOLDER_ONELINER)) {
+  if (unmanagedHeaderOneLiner(normalized) !== CONSUMER_HEADER_PLACEHOLDER_ONELINER) {
     return { agentsMd: input.agentsMd, changed: false, reason: "not-placeholder" };
   }
   if (oneLiner === CONSUMER_HEADER_PLACEHOLDER_ONELINER) {
@@ -117,9 +140,9 @@ export function containsRetiredUnmanagedHeaderPatterns(text: string): boolean {
   return RETIRED_NEXT_LABEL_PATTERN.test(normalized);
 }
 
-/** Exact scaffold edit-me still present in AGENTS.md (#4544 Prefer-A). */
+/** Exact scaffold edit-me still present as the unmanaged header one-liner (#4544 Prefer-A). */
 export function agentsMdContainsExactPlaceholder(agentsMd: string): boolean {
-  return agentsMd.replace(/\r\n/g, "\n").includes(CONSUMER_HEADER_PLACEHOLDER_ONELINER);
+  return unmanagedHeaderOneLiner(agentsMd) === CONSUMER_HEADER_PLACEHOLDER_ONELINER;
 }
 
 export const FIRST_SHIP_HEADER_PLACEHOLDER_CAUSE =
@@ -132,7 +155,8 @@ export type FirstShipHeaderPlaceholderReason =
   | "no-agents-md"
   | "not-placeholder"
   | "process-only"
-  | "placeholder-with-product-mutation";
+  | "placeholder-with-product-mutation"
+  | "agents-md-unreadable";
 
 export interface FirstShipHeaderPlaceholderResult {
   readonly ok: boolean;
@@ -149,7 +173,17 @@ export interface FirstShipHeaderPlaceholderResult {
 export function evaluateFirstShipHeaderPlaceholderGate(input: {
   readonly agentsMd: string | null;
   readonly productMutationCompletion: boolean;
+  readonly agentsMdUnreadable?: boolean;
 }): FirstShipHeaderPlaceholderResult {
+  if (input.agentsMdUnreadable === true) {
+    return {
+      ok: false,
+      reason: "agents-md-unreadable",
+      message:
+        "consumer-header-placeholder FAIL: AGENTS.md exists but is unreadable; " +
+        "remedy: fix file permissions or encoding, then re-run verify:consumer-header-placeholder",
+    };
+  }
   if (input.agentsMd === null) {
     return {
       ok: true,
@@ -168,8 +202,7 @@ export function evaluateFirstShipHeaderPlaceholderGate(input: {
     return {
       ok: true,
       reason: "process-only",
-      message:
-        "consumer-header-placeholder: placeholder allowed (no product-mutation completion)",
+      message: "consumer-header-placeholder: placeholder allowed (no product-mutation completion)",
     };
   }
   return {

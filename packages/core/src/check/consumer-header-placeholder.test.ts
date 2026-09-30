@@ -4,6 +4,10 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CONSUMER_HEADER_PLACEHOLDER_ONELINER } from "../platform/agents-consumer-header.js";
 import { evaluateConsumerHeaderPlaceholderAtRoot } from "./consumer-header-placeholder.js";
+import {
+  productMutationCompletionMarkerPath,
+  recordProductMutationCompletion,
+} from "./product-mutation-completion.js";
 
 const tempDirs: string[] = [];
 afterEach(() => {
@@ -81,5 +85,28 @@ describe("evaluateConsumerHeaderPlaceholderAtRoot (#4544 Prefer-A)", () => {
     const pass = evaluateConsumerHeaderPlaceholderAtRoot(processOnly);
     expect(pass.ok).toBe(true);
     expect(pass.reason).toBe("process-only");
+  });
+
+  it("refuses placeholder after occupancy release when durable product-mutation marker remains", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    recordProductMutationCompletion(root, new Date("2026-09-30T12:00:00Z"));
+    expect(productMutationCompletionMarkerPath(root)).toContain("product-mutation-completion.json");
+    const fail = evaluateConsumerHeaderPlaceholderAtRoot(root);
+    expect(fail.ok).toBe(false);
+    expect(fail.reason).toBe("placeholder-with-product-mutation");
+  });
+
+  it("fails closed when AGENTS.md exists but the read seam reports unreadable", () => {
+    const fail = evaluateConsumerHeaderPlaceholderAtRoot("/fixture-unused", {
+      readAgentsMd: () => ({ kind: "unreadable", detail: "EACCES" }),
+      sessionChangedProductFiles: true,
+    });
+    expect(fail.ok).toBe(false);
+    expect(fail.reason).toBe("agents-md-unreadable");
   });
 });

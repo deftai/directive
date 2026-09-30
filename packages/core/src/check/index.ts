@@ -25,6 +25,7 @@ export {
   taskDefinedInTaskfileYaml,
 } from "./consumer-gate-integrity.js";
 export {
+  type AgentsMdReadResult,
   CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
   type ConsumerHeaderPlaceholderSeams,
   evaluateConsumerHeaderPlaceholderAtRoot,

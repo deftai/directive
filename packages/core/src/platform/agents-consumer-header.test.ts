@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  CONSUMER_HEADER_PLACEHOLDER_ONELINER,
   agentsMdContainsExactPlaceholder,
+  CONSUMER_HEADER_PLACEHOLDER_ONELINER,
   compareAndSetConsumerHeaderOneLiner,
   composeGreenfieldAgentsMd,
   containsRetiredUnmanagedHeaderPatterns,
   evaluateFirstShipHeaderPlaceholderGate,
   RETIRED_UNMANAGED_HEADER_SECTIONS,
   renderConsumerHeader,
+  unmanagedHeaderOneLiner,
 } from "./agents-consumer-header.js";
 import { AGENTS_MANAGED_OPEN_V3_LITERAL } from "./constants.js";
 
@@ -130,5 +131,28 @@ describe("agents-consumer-header", () => {
     });
     expect(missing.ok).toBe(true);
     expect(missing.reason).toBe("no-agents-md");
+  });
+
+  it("does not treat a quoted placeholder in managed body as the header one-liner (#4544)", () => {
+    const managed = `${AGENTS_MANAGED_OPEN_V3_LITERAL}\nQuote: ${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n<!-- /deft:managed-section -->`;
+    const customHeader = `# Garden Notes\n\nCustom one-liner.\n\n## Session orientation\n\n${managed}\n`;
+    expect(unmanagedHeaderOneLiner(customHeader)).toBe("Custom one-liner.");
+    expect(agentsMdContainsExactPlaceholder(customHeader)).toBe(false);
+    const leaveCustom = evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: customHeader,
+      productMutationCompletion: true,
+    });
+    expect(leaveCustom.ok).toBe(true);
+    expect(leaveCustom.reason).toBe("not-placeholder");
+  });
+
+  it("fails closed when AGENTS.md is unreadable (#4544)", () => {
+    const unreadable = evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: null,
+      productMutationCompletion: true,
+      agentsMdUnreadable: true,
+    });
+    expect(unreadable.ok).toBe(false);
+    expect(unreadable.reason).toBe("agents-md-unreadable");
   });
 });

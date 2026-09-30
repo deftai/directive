@@ -1,9 +1,10 @@
 /**
  * Check-surface runner for the first-ship AGENTS header placeholder gate (#4544).
  *
- * Product-mutation completion is occupancy last_write_at (same signal as the
- * adjacent rapid soft-missing warning). Exact placeholder only; Process-only
- * and custom headers pass. Returned failure — no throw.
+ * Product-mutation completion is occupancy last_write_at or the durable
+ * `.deft/cache/product-mutation-completion.json` marker (survives release).
+ * Exact unmanaged-header one-liner only; Process-only and custom headers pass.
+ * Returned failure — no throw.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -11,23 +12,35 @@ import {
   evaluateFirstShipHeaderPlaceholderGate,
   type FirstShipHeaderPlaceholderResult,
 } from "../platform/agents-consumer-header.js";
-import { sessionRecordedProductWrite } from "./rapid-soft-missing-no-brief.js";
+import { productMutationCompletionAtRoot } from "./product-mutation-completion.js";
 
 export const CONSUMER_HEADER_PLACEHOLDER_GATE_ID = "verify:consumer-header-placeholder";
 
+export type AgentsMdReadResult =
+  | { readonly kind: "missing" }
+  | { readonly kind: "ok"; readonly text: string }
+  | { readonly kind: "unreadable"; readonly detail: string };
+
 export interface ConsumerHeaderPlaceholderSeams {
-  readonly readAgentsMd?: () => string | null;
+  readonly readAgentsMd?: () => AgentsMdReadResult | string | null;
   readonly sessionChangedProductFiles?: boolean;
 }
 
-function readAgentsMdOrNull(projectRoot: string): string | null {
+function readAgentsMdAtRoot(projectRoot: string): AgentsMdReadResult {
   const path = join(projectRoot, "AGENTS.md");
-  if (!existsSync(path)) return null;
+  if (!existsSync(path)) return { kind: "missing" };
   try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return null;
+    return { kind: "ok", text: readFileSync(path, "utf8") };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { kind: "unreadable", detail };
   }
+}
+
+function normalizeAgentsMdSeam(value: AgentsMdReadResult | string | null): AgentsMdReadResult {
+  if (value === null) return { kind: "missing" };
+  if (typeof value === "string") return { kind: "ok", text: value };
+  return value;
 }
 
 /** Evaluate the Prefer-A first-ship placeholder gate at a project root. */
@@ -35,13 +48,22 @@ export function evaluateConsumerHeaderPlaceholderAtRoot(
   projectRoot: string,
   seams: ConsumerHeaderPlaceholderSeams = {},
 ): FirstShipHeaderPlaceholderResult {
-  const agentsMd = seams.readAgentsMd ? seams.readAgentsMd() : readAgentsMdOrNull(projectRoot);
+  const agentsRead = seams.readAgentsMd
+    ? normalizeAgentsMdSeam(seams.readAgentsMd())
+    : readAgentsMdAtRoot(projectRoot);
   const productMutationCompletion =
     seams.sessionChangedProductFiles !== undefined
       ? seams.sessionChangedProductFiles
-      : sessionRecordedProductWrite(projectRoot);
+      : productMutationCompletionAtRoot(projectRoot);
+  if (agentsRead.kind === "unreadable") {
+    return evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: null,
+      productMutationCompletion,
+      agentsMdUnreadable: true,
+    });
+  }
   return evaluateFirstShipHeaderPlaceholderGate({
-    agentsMd,
+    agentsMd: agentsRead.kind === "ok" ? agentsRead.text : null,
     productMutationCompletion,
   });
 }

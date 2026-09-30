@@ -514,6 +514,7 @@ tasks:
       - task: verify:persisted-planning-narratives
         vars:
           CLI_ARGS: "--check-conjunct"
+      - verify:consumer-header-placeholder
       - verify:branch
       - verify:cache-fresh
       - verify:wip-cap

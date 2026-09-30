@@ -692,6 +692,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:persisted-planning-narratives --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  consumer-header-placeholder:
+    desc: "Fail-closed first-ship AGENTS header placeholder gate (#4544 Prefer-A). Refuses when product-mutation completion still leaves the unmanaged header on the exact scaffold edit-me one-liner; Process-only and custom headers pass. Three-state exit (0 pass / 1 refuse / 2 config)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:consumer-header-placeholder --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   completed-tracked:
     desc: "Fail-closed completed-tracked land guard (#3264 / #1358 / #3476). Closed scoped GitHub issues with a known lifecycle xBRIEF origin must have a tracked xbrief/completed/ or xbrief/cancelled/ artifact on the delivery tip. --issue N is the drive-to DONE form. Remediation: task swarm:finalize-cohort or a lifecycle PR. Three-state exit (0 clean / 1 missing land / 2 config). Pass --skip-gh to rely on triage cache only; --tip to override delivery tip."
     dir: '{{.USER_WORKING_DIR}}'

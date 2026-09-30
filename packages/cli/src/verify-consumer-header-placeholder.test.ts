@@ -66,4 +66,10 @@ describe("verify-consumer-header-placeholder CLI (#4544)", () => {
     );
     expect(run(["--project-root", custom, "--quiet"])).toBe(0);
   });
+
+  it("rejects option-like --project-root values", () => {
+    expect(parseArgs(["--project-root", "--quiet"]).error).toMatch(/expected one argument/);
+    expect(parseArgs(["--project-root="]).error).toMatch(/expected one argument/);
+    expect(parseArgs(["--project-root=--quiet"]).error).toMatch(/expected one argument/);
+  });
 });

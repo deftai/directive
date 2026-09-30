@@ -24,6 +24,10 @@ import {
   evaluateConsumerGateIntegrity,
   formatConsumerGateIntegrityFailure,
 } from "./consumer-gate-integrity.js";
+import {
+  CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
+  evaluateConsumerHeaderPlaceholderAtRoot,
+} from "./consumer-header-placeholder.js";
 import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
 import { CONSUMER_CHECK_GATES, checkGateId, FRAMEWORK_CHECK_GATES } from "./gate-lists.js";
 import { listCompositionGatesMissingSpecificRemedies } from "./named-cause.js";
@@ -97,6 +101,19 @@ export function dispatchTaskCheck(
       `check: gate ${CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID} failed (exit 1)\n` +
         `  cause: ${planning.narratives.cause}\n` +
         `  remedy: ${planning.narratives.remedy}\n`,
+    );
+    return 1;
+  }
+
+  // #4544 Prefer-A: fail closed on uncached / Taskfile path too (cached
+  // orchestrator already runs this before composition).
+  const headerPlaceholder = evaluateConsumerHeaderPlaceholderAtRoot(resolvedProject);
+  if (!headerPlaceholder.ok) {
+    process.stderr.write(`${headerPlaceholder.message}\n`);
+    process.stderr.write(
+      `check: gate ${CONSUMER_HEADER_PLACEHOLDER_GATE_ID} failed (exit 1)\n` +
+        `  cause: ${headerPlaceholder.reason}\n` +
+        `  remedy: ${headerPlaceholder.message}\n`,
     );
     return 1;
   }
