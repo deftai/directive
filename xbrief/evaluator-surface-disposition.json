@@ -1,19 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5056,
+  "issue": 4285,
   "surfaces": [
-    "Taskfile.yml",
-    "tasks/verify.yml",
     "packages/core/src/check/gate-lists.ts",
-    "packages/core/src/consumer-check-contract/evaluate.ts",
-    "packages/core/src/evaluator-surface/**",
-    "packages/core/src/presentation-ceiling/**",
-    "packages/core/src/durable-effect-acquisition/**",
-    "packages/core/src/observable-scope/parity/own-corpus.compare.test.ts",
-    "packages/core/src/observable-scope/pack-smoke.test.ts",
-    "packages/cli/src/verify-presentation-ceiling.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5056: verify:presentation-ceiling sibling gate wiring. The observable-scope pack smoke replaces its package-wide TypeScript ban with a real no-eager-load check; the ceiling owns the lazy runtime parser while observable extraction retains consumer-root parser resolution. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #4285 soft-missing DEFT_ACTIVE_SCOPE pin: gate-lists.ts touch for soft-missing multi-active path. Disclosure only; not #3164 authorization."
 }
