@@ -44,7 +44,16 @@ export type PersistedPlanningNarrativesResult =
     }
   | {
       readonly ok: false;
-      readonly code: 1 | 2;
+      readonly code: 1;
+      readonly message: string;
+      readonly cause: string;
+      readonly remedy: string;
+      readonly persistedFields: number;
+      readonly artifactLabel: string;
+    }
+  | {
+      readonly ok: false;
+      readonly code: 2;
       readonly message: string;
       readonly cause: string;
       readonly remedy: string;

@@ -134,6 +134,38 @@ describe("dispatchTaskCheck", () => {
     expect(calls[0]?.cwd).toBe(resolve(project));
   });
 
+  it("refuses empty Overview+tech stack on the uncached path before Taskfile spawn (#5176)", () => {
+    const project = mkdtempSync(join(tmpdir(), "deft-5176-empty-pd-"));
+    tempDirs.push(project);
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "demo", narratives: { Overview: "", "tech stack": "  " } },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const calls: unknown[] = [];
+    const spawnFn = () => {
+      calls.push("spawned");
+      return { status: 0 };
+    };
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = dispatchTaskCheck(project, project, { spawnFn, useTaskCache: false });
+    expect(code).toBe(1);
+    expect(calls).toHaveLength(0);
+    const errText = errWrite.mock.calls.map((c) => String(c[0])).join("");
+    expect(errText).toMatch(/verify:persisted-planning-narratives/);
+    expect(errText).toMatch(/project:write-narratives/);
+    errWrite.mockRestore();
+  });
+
   it("fails with deposit-repair guidance when consumer deposit lacks verify.yml (#3070)", () => {
     const framework = mkdtempSync(join(tmpdir(), "deft-3070-fw-"));
     tempDirs.push(framework);

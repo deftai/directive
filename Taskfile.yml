@@ -420,6 +420,7 @@ tasks:
     deps:
       - ts:check-lane
       - toolchain:check
+      - verify:persisted-planning-narratives
       - verify:stubs
       - verify:links
       - verify:rule-ownership
@@ -503,6 +504,7 @@ tasks:
     deps:
       - doctor
       - toolchain:check-consumer
+      - verify:persisted-planning-narratives
       - verify:branch
       - verify:cache-fresh
       - verify:wip-cap
