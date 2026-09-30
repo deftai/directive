@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "bug(check): verify:ac --soft-missing-xbrief runs every active brief so leftover master WIP poisons worktree task check",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(check): verify:ac --soft-missing-xbrief runs every active brief so leftover master WIP poisons worktree task check",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4285",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Under task check / verify:ac --soft-missing-xbrief with more than one active lifecycle artifact, select the dispatched story via DEFT_ACTIVE_SCOPE (reuse ACTIVE_SCOPE_PIN_ENV / inspectActiveScope) or an explicit -- <path>; otherwise fail closed asking for that pin / path. Do not silently skip AC. Do not execute foreign leftover plan.acceptance.commands.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/evidence": {
           "kind": "merge",
@@ -38,7 +38,7 @@
       },
       {
         "title": "Keep #3284 durable constraint: AC stays hard / never soft-green past stated AC for the selected story. ALL-paths soft-missing is not the product invariant.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/evidence": {
           "kind": "merge",
@@ -60,7 +60,7 @@
       },
       {
         "title": "task verify:ac -- <one-path> stays single-scope. Keep the AC-first check slot (PRODUCT_FIRST_AC_GATE). Do not weaken vbrief:validate.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/evidence": {
           "kind": "merge",
@@ -82,7 +82,7 @@
       },
       {
         "title": "Completing or cancelling #3785 and Grok mid-flight steer stay non-goals.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/evidence": {
           "kind": "merge",
@@ -104,7 +104,7 @@
       },
       {
         "title": "Regression test: two active briefs where only the pinned (or explicit-path) brief's acceptance commands run under soft-missing check composition.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/evidence": {
           "kind": "merge",
