@@ -5,7 +5,7 @@
  * and discoverable recovery verb naming. Keeps findParentsByPlanId uniqueness
  * (no multi-match under github.issue.N).
  */
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { extractPlanId } from "../scope/parent-lineage.js";
@@ -282,7 +282,9 @@ export function listOwnedLifecycleHits(
     }
     let files: string[];
     try {
-      files = readdirSync(folderPath).filter((f) => hasArtifactSuffix(f)).sort();
+      files = readdirSync(folderPath)
+        .filter((f) => hasArtifactSuffix(f))
+        .sort();
     } catch {
       continue;
     }
@@ -318,8 +320,7 @@ export function findNonterminalResidualHits(
   issueNumber: number,
 ): OwnedLifecycleHit[] {
   return listOwnedLifecycleHits(vbriefDir, issueNumber).filter(
-    (hit) =>
-      hit.residual && (NONTERMINAL_FOLDERS as readonly string[]).includes(hit.folder),
+    (hit) => hit.residual && (NONTERMINAL_FOLDERS as readonly string[]).includes(hit.folder),
   );
 }
 
@@ -351,10 +352,7 @@ export function attachResidualLineage(
   plan.metadata = meta;
 }
 
-export function formatResidualAlreadyAdmittedMessage(
-  issueNumber: number,
-  relPath: string,
-): string {
+export function formatResidualAlreadyAdmittedMessage(issueNumber: number, relPath: string): string {
   return (
     `#${issueNumber} residual already admitted at ${relPath}; ` +
     `refuse second mint (use lifecycle of that residual, not another ${RESIDUAL_RECOVERY_VERB})`

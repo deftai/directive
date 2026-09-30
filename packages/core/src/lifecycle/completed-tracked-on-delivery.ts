@@ -13,10 +13,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
-import {
-  briefOwnsIssue,
-  isResidualPlanId,
-} from "../intake/residual-identity.js";
+import { briefOwnsIssue, isResidualPlanId } from "../intake/residual-identity.js";
 import {
   hasArtifactSuffix,
   LEGACY_ARTIFACT_DIR,
@@ -819,8 +816,7 @@ export function evaluateCompletedTracked(
   for (const [key, entry] of originMap) {
     const residual = scanLocalResidualPlanIds(root, entry.issue.number);
     const residualLanded =
-      residual.planIds.length === 0 ||
-      residual.planIds.some((id) => tipTerminalPlanIds.has(id));
+      residual.planIds.length === 0 || residual.planIds.some((id) => tipTerminalPlanIds.has(id));
     if (landedKeys.has(key) && residualLanded) {
       continue;
     }

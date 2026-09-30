@@ -89,8 +89,8 @@ import {
   isTerminalRelPath,
   mintResidualIssuePlanId,
   predecessorPlanIdForRestIssue,
-  residualIdMatchesRestIssue,
   RESIDUAL_PLAN_ID_SOURCE,
+  residualIdMatchesRestIssue,
 } from "./residual-identity.js";
 
 /** Reference type pointing at the canonical current-shape comment permalink (#1870). */
@@ -2179,11 +2179,7 @@ export function ingestOne(
       const liveResiduals = findNonterminalResidualHits(options.vbriefDir, number);
       if (liveResiduals.length > 0) {
         const hit = liveResiduals[0] as (typeof liveResiduals)[number];
-        return [
-          "duplicate",
-          hit.path,
-          formatResidualAlreadyAdmittedMessage(number, hit.relPath),
-        ];
+        return ["duplicate", hit.path, formatResidualAlreadyAdmittedMessage(number, hit.relPath)];
       }
       const ownedCompleted = findOwnedCompletedHits(options.vbriefDir, number);
       if (ownedCompleted.length === 0) {
@@ -2313,11 +2309,7 @@ export function ingestOne(
       const sameIdOccupants = findParentsByPlanId(options.vbriefDir, minted.id);
       if (sameIdOccupants.length > 0) {
         const occupying = sameIdOccupants[0]?.path ?? minted.id;
-        return [
-          "duplicate",
-          occupying,
-          formatResidualAlreadyAdmittedMessage(number, occupying),
-        ];
+        return ["duplicate", occupying, formatResidualAlreadyAdmittedMessage(number, occupying)];
       }
       const ownedCompleted = findOwnedCompletedHits(options.vbriefDir, number);
       const predecessor = ownedCompleted[0] as (typeof ownedCompleted)[number];

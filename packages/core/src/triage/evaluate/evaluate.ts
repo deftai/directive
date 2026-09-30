@@ -16,11 +16,7 @@ import {
   ORIGIN_MASTER,
   type SessionStartFn,
 } from "./types.js";
-import {
-  applyLiveResidualOverlay,
-  evaluateValidity,
-  joinValidityWithGithub,
-} from "./validity.js";
+import { applyLiveResidualOverlay, evaluateValidity, joinValidityWithGithub } from "./validity.js";
 import { buildValueAdvice } from "./value.js";
 import { collectWipCensus, wipHitsForIssue } from "./wip-census.js";
 import { addEvaluatorWorktree, removeEvaluatorWorktree } from "./worktrees.js";

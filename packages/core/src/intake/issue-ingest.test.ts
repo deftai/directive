@@ -2840,7 +2840,6 @@ describe("#4119 plan.id mint, admission, and repair", () => {
   );
 });
 
-
 describe("ingestOne residual mode (#5177 Prefer-A)", () => {
   function writeOwnedCompleted(xbriefDir: string, issue: number, restId: number): void {
     const dir = join(xbriefDir, "completed");

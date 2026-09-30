@@ -186,7 +186,10 @@ export function applyLiveResidualOverlay(
   }
   if (lifecycleRoot !== null) {
     const liveResiduals = findNonterminalResidualHits(lifecycleRoot, issueNumber);
-    if (liveResiduals.length > 0 && (validity.state === "needs-re-scope" || validity.state === "likely-shipped")) {
+    if (
+      liveResiduals.length > 0 &&
+      (validity.state === "needs-re-scope" || validity.state === "likely-shipped")
+    ) {
       const completed = findOwnedCompletedHits(lifecycleRoot, issueNumber);
       const completedPath = completed[0]?.relPath ?? "completed/(owned)";
       const residualPath = liveResiduals[0]?.relPath ?? "proposed/(residual)";
