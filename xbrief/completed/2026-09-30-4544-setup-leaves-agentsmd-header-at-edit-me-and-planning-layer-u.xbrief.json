@@ -1251,13 +1251,6 @@
           "author_association": "MEMBER"
         }
       ],
-      "x-directive/plan-id": {
-        "version": 1,
-        "source": "github-rest-id",
-        "github_issue_id": 5453269518,
-        "origin": "deftai/directive#4544",
-        "id": "github.issue.5453269518"
-      },
       "kind": "story",
       "residual_of": {
         "completed_brief": "xbrief/completed/2026-09-23-4544-setup-leaves-agentsmd-header-at-edit-me-and-planning-layer-u.xbrief.json",
@@ -1290,7 +1283,8 @@
       "lifecycleWrite": {
         "action": "complete",
         "writtenAt": "2026-09-30T22:28:06Z"
-      }
+      },
+      "residual_plan_of": "github.issue.5453269518"
     },
     "acceptance": {
       "commands": [
@@ -1356,7 +1350,7 @@
       "ambiguity_attestation": "none_found",
       "quality_notice": null
     },
-    "id": "github.issue.5453269518",
-    "updated": "2026-09-30T22:28:06Z"
+    "id": "github.issue.5453269518.residual.5178",
+    "updated": "2026-09-30T22:40:17.393Z"
   }
 }
