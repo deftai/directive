@@ -1,6 +1,7 @@
 export * from "./complete-cohort.js";
 export { completeCohortMain } from "./complete-cohort-cli.js";
 export * from "./constants.js";
+export * from "./dest-place.js";
 export * from "./finalize-cohort.js";
 export { finalizeCohortMain, parseFinalizeCohortArgv } from "./finalize-cohort-cli.js";
 export * from "./finalize-owed.js";
@@ -20,6 +21,5 @@ export * from "./subagent-status-dir.js";
 export * from "./subprocess.js";
 export * from "./verify-review-clean.js";
 export { verifyReviewCleanMain } from "./verify-review-clean-cli.js";
-export * from "./dest-place.js";
 export * from "./worktrees.js";
 export { parseWorktreesArgv, worktreesMain } from "./worktrees-cli.js";

@@ -4,10 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { consultImplementSpawnOccupancy } from "../session/spawn-occupancy.js";
-import {
-  destPlaceImplementSpawn,
-  suggestImplementSpawnDestPath,
-} from "./dest-place.js";
+import { destPlaceImplementSpawn, suggestImplementSpawnDestPath } from "./dest-place.js";
 import type { TextCaptureResult } from "./subprocess.js";
 
 const created: string[] = [];

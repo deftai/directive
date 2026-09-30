@@ -12,6 +12,7 @@ import { dirname, isAbsolute, join, resolve as pathResolve } from "node:path";
 import { reconstituteLinkedWorktreeDeposit } from "../init-deposit/gitignore.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
+import type { TextCaptureResult } from "./subprocess.js";
 import { defaultGitRunner, type GitRunner } from "./worktrees.js";
 
 export type DestPlaceFailureCode =
@@ -144,11 +145,7 @@ export function destPlaceImplementSpawn(input: DestPlaceImplementSpawnInput): De
     } catch {
       /* fall through to mismatch refuse */
     }
-    if (
-      requestedOid.length === 0 ||
-      actualOid.length === 0 ||
-      requestedOid !== actualOid
-    ) {
+    if (requestedOid.length === 0 || actualOid.length === 0 || requestedOid !== actualOid) {
       return {
         ok: false,
         code: "revision-mismatch",
@@ -170,7 +167,7 @@ export function destPlaceImplementSpawn(input: DestPlaceImplementSpawnInput): De
   }
 
   mkdirSync(dirname(worktreePath), { recursive: true });
-  let proc;
+  let proc: TextCaptureResult;
   try {
     proc = git(["worktree", "add", "--detach", worktreePath, commitIsh], repoRoot);
   } catch (exc: unknown) {
