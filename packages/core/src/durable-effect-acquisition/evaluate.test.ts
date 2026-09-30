@@ -591,6 +591,18 @@ describe("actual git snapshots", () => {
     expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
   });
 
+  it.skipIf(process.platform === "win32")("handles POSIX newline pathname renames (#5140)", () => {
+    const { root, base, git, write } = sharedSnapshot();
+    write("App.html", UNSAFE_FORM);
+    git("add", ".");
+    write("App.html", SAFE_FORM);
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(0);
+    const unusual = "Space\nand ünicode.html";
+    renameSync(join(root, "App.html"), join(root, unusual));
+    write(unusual, UNSAFE_FORM);
+    expect(evaluateDurableEffectAcquisition({ projectRoot: root, mergeBase: base }).code).toBe(1);
+  });
+
   it.each([
     ["xbrief/active/a.xbrief.json", { plan: { "x-directive/changeClass": "presentation" } }],
     [

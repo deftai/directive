@@ -8,6 +8,7 @@ import {
   loadFileDurationsFromPath,
   normalizeDurationPathKey,
   parseFileDurationsDocument,
+  sortSpecsByDurationSequence,
 } from "./duration-sequencer.js";
 
 const repoRoot = join(import.meta.dirname, "..", "..", "..", "..");
@@ -69,7 +70,8 @@ describe("loadFileDurationsFromPath (#5028)", () => {
     expect(loaded.kind).toBe("ok");
     if (loaded.kind !== "ok") return;
     expect(loaded.durations.size).toBeGreaterThan(0);
-    // #5140 refreshed fixture from Step 5 tee; assert measured hang-tail keys.
+    // #5140 refreshed fixture from Step 5 tee; assert measured hang-tail keys
+    // plus prior ≥30s timings preserved when the tee was incomplete.
     expect(
       loaded.durations.has("packages/core/src/durable-effect-acquisition/evaluate.test.ts"),
     ).toBe(true);
@@ -79,6 +81,7 @@ describe("loadFileDurationsFromPath (#5028)", () => {
     expect(loaded.durations.has("packages/core/src/vbrief-validate/landed-filename.test.ts")).toBe(
       true,
     );
+    expect(loaded.durations.has("packages/core/src/session/spawn-occupancy.test.ts")).toBe(true);
   });
 
   it("returns missing for absent paths", () => {
@@ -126,11 +129,22 @@ describe("compareSpecsByCommittedDuration (#5028)", () => {
 });
 
 describe("DurationSequencer project-name tiebreak (#5140)", () => {
-  it("documents lexicographic spawn-heavy before unit when groupOrder matches", () => {
-    // Settled from DurationSequencer.sort + config refusal of sequence.groupOrder:
-    // equal groupOrder → name compare only; "spawn-heavy" < "unit". That is not
-    // a groupOrder serial drain; cheapen unit git tails in-place (#5140).
-    expect("spawn-heavy" < "unit").toBe(true);
+  it("orders spawn-heavy before unit when groupOrder matches", () => {
+    // Equivalent to DurationSequencer.sort comparator (no Vitest ctx): equal
+    // groupOrder → name compare; "spawn-heavy" < "unit". Not a groupOrder
+    // serial drain — cheapen unit git tails in-place (#5140).
+    const ordered = sortSpecsByDurationSequence(
+      [
+        { projectName: "unit", groupOrder: 0, relativePath: "packages/core/src/a.test.ts" },
+        {
+          projectName: "spawn-heavy",
+          groupOrder: 0,
+          relativePath: "packages/core/src/b.test.ts",
+        },
+      ],
+      new Map(),
+    );
+    expect(ordered.map((s) => s.projectName)).toEqual(["spawn-heavy", "unit"]);
     const source = readFileSync(configPath, "utf8");
     expect(source).not.toMatch(/groupOrder\s*:/);
     expect(source).toMatch(/sequencer:\s*DurationSequencer/);

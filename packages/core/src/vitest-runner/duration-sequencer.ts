@@ -108,6 +108,39 @@ export function compareSpecsByCommittedDuration(
   return 0;
 }
 
+/** Spec fields DurationSequencer.sort uses after BaseSequencer order. */
+export type DurationSequenceSpec = {
+  readonly projectName: string;
+  readonly groupOrder: number;
+  readonly relativePath: string;
+};
+
+/**
+ * Same comparator DurationSequencer.sort applies (groupOrder, then project
+ * name, then committed duration). Exported so unit tests assert returned order
+ * without constructing a Vitest ctx (#5140).
+ */
+export function compareSpecsForDurationSequence(
+  a: DurationSequenceSpec,
+  b: DurationSequenceSpec,
+  durations: ReadonlyMap<string, number>,
+): number {
+  const groupOrderDiff = a.groupOrder - b.groupOrder;
+  if (groupOrderDiff !== 0) return groupOrderDiff;
+  if (a.projectName !== b.projectName) {
+    return a.projectName < b.projectName ? -1 : 1;
+  }
+  return compareSpecsByCommittedDuration(a.relativePath, b.relativePath, durations);
+}
+
+/** Stable sort using {@link compareSpecsForDurationSequence}; returns a new array. */
+export function sortSpecsByDurationSequence<T extends DurationSequenceSpec>(
+  specs: readonly T[],
+  durations: ReadonlyMap<string, number>,
+): T[] {
+  return [...specs].sort((a, b) => compareSpecsForDurationSequence(a, b, durations));
+}
+
 /**
  * Cold-worktree sequencer: committed durations + BaseSequencer fallback (#5028).
  * Does not bind host-global cache.dir. Keep unit and spawn-heavy on the same
@@ -139,17 +172,13 @@ export class DurationSequencer extends BaseSequencer {
     const durations = this.#resolvedDurations();
     if (durations.size === 0) return baseOrdered;
 
-    return [...baseOrdered].sort((a, b) => {
-      const groupOrderDiff =
-        a.project.config.sequence.groupOrder - b.project.config.sequence.groupOrder;
-      if (groupOrderDiff !== 0) return groupOrderDiff;
-      if (a.project.name !== b.project.name) {
-        return a.project.name < b.project.name ? -1 : 1;
-      }
-      const aRel = relative(this.ctx.config.root, a.moduleId).replace(/\\/g, "/");
-      const bRel = relative(this.ctx.config.root, b.moduleId).replace(/\\/g, "/");
-      return compareSpecsByCommittedDuration(aRel, bRel, durations);
-    });
+    const keyed = baseOrdered.map((spec) => ({
+      spec,
+      projectName: spec.project.name,
+      groupOrder: spec.project.config.sequence.groupOrder,
+      relativePath: relative(this.ctx.config.root, spec.moduleId).replace(/\\/g, "/"),
+    }));
+    return sortSpecsByDurationSequence(keyed, durations).map((row) => row.spec);
   }
 }
 
