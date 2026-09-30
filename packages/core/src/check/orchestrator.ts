@@ -86,15 +86,17 @@ export function dispatchTaskCheck(
     }
   }
 
-  // #5176 Prefer-A: fail closed on uncached / Taskfile path too (cached
-  // orchestrator already runs this before composition).
-  const planningNarratives = evaluateCheckPersistedPlanningNarratives(resolvedProject);
-  if (checkRejectsEmptyPlanningNarratives(planningNarratives)) {
-    process.stderr.write(`check: ${planningNarratives.message}\n`);
+  // #5176 Prefer-A: refuse empty PD narratives only with product-mutation
+  // completion (mirror #4544). Missing PD and scaffold-empty stay legal here;
+  // setup Phase 2 verify stays unconditional. Do not shell the verify task
+  // from Taskfile check deps — that exits 2 on missing PD.
+  const planning = evaluateCheckPersistedPlanningNarratives(resolvedProject);
+  if (checkRejectsEmptyPlanningNarratives(planning.narratives, planning.productMutation)) {
+    process.stderr.write(`check: ${planning.narratives.message}\n`);
     process.stderr.write(
       `check: gate ${CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID} failed (exit 1)\n` +
-        `  cause: ${planningNarratives.cause}\n` +
-        `  remedy: ${planningNarratives.remedy}\n`,
+        `  cause: ${planning.narratives.cause}\n` +
+        `  remedy: ${planning.narratives.remedy}\n`,
     );
     return 1;
   }

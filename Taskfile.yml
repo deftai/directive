@@ -420,7 +420,9 @@ tasks:
     deps:
       - ts:check-lane
       - toolchain:check
-      - verify:persisted-planning-narratives
+      # #5176: empty-PD bar is in-process on deft check (product-mutation conjunct).
+      # Do not shell verify:persisted-planning-narratives here — missing PD is
+      # exit 2 on that CLI and must not redden uncached check (cached allows it).
       - verify:stubs
       - verify:links
       - verify:rule-ownership
@@ -504,7 +506,9 @@ tasks:
     deps:
       - doctor
       - toolchain:check-consumer
-      - verify:persisted-planning-narratives
+      # #5176: empty-PD bar is in-process on deft check (product-mutation conjunct).
+      # Do not shell verify:persisted-planning-narratives here — missing PD is
+      # exit 2 on that CLI and must not redden uncached check (cached allows it).
       - verify:branch
       - verify:cache-fresh
       - verify:wip-cap

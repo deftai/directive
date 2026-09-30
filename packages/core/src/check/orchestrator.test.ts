@@ -11,6 +11,7 @@ import {
   isFrameworkSourceContext,
   resolveCheckTarget,
 } from "./orchestrator.js";
+import { recordProductMutationCompletion } from "./product-mutation-completion.js";
 import { RAPID_ZERO_VERIFIED_CHECK_NOTICE } from "./rapid-zero-verified.js";
 
 const repoRoot = join(import.meta.dirname, "..", "..", "..", "..");
@@ -134,36 +135,67 @@ describe("dispatchTaskCheck", () => {
     expect(calls[0]?.cwd).toBe(resolve(project));
   });
 
-  it("refuses empty Overview+tech stack on the uncached path before Taskfile spawn (#5176)", () => {
-    const project = mkdtempSync(join(tmpdir(), "deft-5176-empty-pd-"));
-    tempDirs.push(project);
-    mkdirSync(join(project, "xbrief"), { recursive: true });
-    writeFileSync(
-      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
-      `${JSON.stringify(
-        {
-          xBRIEFInfo: { version: "0.8" },
-          plan: { title: "demo", narratives: { Overview: "", "tech stack": "  " } },
-        },
-        null,
-        2,
-      )}\n`,
-      "utf8",
-    );
+  it("allows scaffold-empty PD on the uncached path; refuses only with product-mutation (#5176)", () => {
+    const scaffold = mkdtempSync(join(tmpdir(), "deft-5176-empty-pd-"));
+    tempDirs.push(scaffold);
+    mkdirSync(join(scaffold, "xbrief"), { recursive: true });
+    const emptyPd = `${JSON.stringify(
+      {
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "demo", narratives: { Overview: "", "tech stack": "  " } },
+      },
+      null,
+      2,
+    )}\n`;
+    writeFileSync(join(scaffold, "xbrief", "PROJECT-DEFINITION.xbrief.json"), emptyPd, "utf8");
 
+    const scaffoldCalls: unknown[] = [];
+    const scaffoldSpawn = () => {
+      scaffoldCalls.push("spawned");
+      return { status: 0 };
+    };
+    const scaffoldCode = dispatchTaskCheck(scaffold, scaffold, {
+      spawnFn: scaffoldSpawn,
+      useTaskCache: false,
+    });
+    expect(scaffoldCode).toBe(0);
+    expect(scaffoldCalls).toHaveLength(1);
+
+    const mutated = mkdtempSync(join(tmpdir(), "deft-5176-mutated-pd-"));
+    tempDirs.push(mutated);
+    mkdirSync(join(mutated, "xbrief"), { recursive: true });
+    writeFileSync(join(mutated, "xbrief", "PROJECT-DEFINITION.xbrief.json"), emptyPd, "utf8");
+    recordProductMutationCompletion(mutated, new Date("2026-09-30T12:00:00Z"));
+
+    const mutatedCalls: unknown[] = [];
+    const mutatedSpawn = () => {
+      mutatedCalls.push("spawned");
+      return { status: 0 };
+    };
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const mutatedCode = dispatchTaskCheck(mutated, mutated, {
+      spawnFn: mutatedSpawn,
+      useTaskCache: false,
+    });
+    expect(mutatedCode).toBe(1);
+    expect(mutatedCalls).toHaveLength(0);
+    const errText = errWrite.mock.calls.map((c) => String(c[0])).join("");
+    expect(errText).toMatch(/verify:persisted-planning-narratives/);
+    expect(errText).toMatch(/project:write-narratives/);
+    errWrite.mockRestore();
+  });
+
+  it("does not refuse missing PROJECT-DEFINITION on the uncached check path (#5176)", () => {
+    const project = mkdtempSync(join(tmpdir(), "deft-5176-missing-pd-"));
+    tempDirs.push(project);
     const calls: unknown[] = [];
     const spawnFn = () => {
       calls.push("spawned");
       return { status: 0 };
     };
-    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = dispatchTaskCheck(project, project, { spawnFn, useTaskCache: false });
-    expect(code).toBe(1);
-    expect(calls).toHaveLength(0);
-    const errText = errWrite.mock.calls.map((c) => String(c[0])).join("");
-    expect(errText).toMatch(/verify:persisted-planning-narratives/);
-    expect(errText).toMatch(/project:write-narratives/);
-    errWrite.mockRestore();
+    expect(code).toBe(0);
+    expect(calls).toHaveLength(1);
   });
 
   it("fails with deposit-repair guidance when consumer deposit lacks verify.yml (#3070)", () => {

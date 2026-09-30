@@ -2,9 +2,11 @@
  * Fail-closed non-empty PROJECT-DEFINITION planning narratives (#5176).
  *
  * Init may still seed empty SKELETON_NARRATIVES; parsePhase2NarrativeDocument
- * may still accept "". This bar fires at first-ship / product-mutation
- * completion (check + setup Phase 2 completion verify), not on scaffold-fresh
- * init alone. External score: DCR R.4668 / agent.setup_answers_persisted_in_pd.
+ * may still accept "". This evaluator is the unconditional empty-bag bar used
+ * by setup Phase 2 verify. Check applies the same bag only with a durable
+ * product-mutation completion conjunct (mirror #4544) — scaffold-fresh empty
+ * seeds stay legal on check. External score: DCR R.4668 /
+ * agent.setup_answers_persisted_in_pd.
  */
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join, resolve } from "node:path";

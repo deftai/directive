@@ -288,16 +288,17 @@ export function dispatchCachedTaskCheck(
     return finish(2, false);
   }
 
-  // #5176 Prefer-A: first-ship check refuses all-empty tracked PD planning
-  // narratives. Missing PD stays out (init/setup presence); empty seed fails.
-  const planningNarratives = evaluateCheckPersistedPlanningNarratives(resolvedProject);
-  if (checkRejectsEmptyPlanningNarratives(planningNarratives)) {
-    process.stderr.write(`check: ${planningNarratives.message}\n`);
+  // #5176 Prefer-A: refuse empty PD narratives only with product-mutation
+  // completion (mirror #4544). Missing PD and scaffold-empty stay legal;
+  // setup Phase 2 verify stays unconditional.
+  const planning = evaluateCheckPersistedPlanningNarratives(resolvedProject);
+  if (checkRejectsEmptyPlanningNarratives(planning.narratives, planning.productMutation)) {
+    process.stderr.write(`check: ${planning.narratives.message}\n`);
     gateOutcomes.push({
       id: CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID,
       status: "failed",
-      cause: planningNarratives.cause,
-      remedy: planningNarratives.remedy,
+      cause: planning.narratives.cause,
+      remedy: planning.narratives.remedy,
     });
     return finish(1, false);
   }
