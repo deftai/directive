@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,6 +9,7 @@ import {
   finalizeOwed,
   formatFinalizeOwedInventoryLines,
   inventoryHasBlockingOwed,
+  loadTipPlanBodies,
 } from "./finalize-owed.js";
 import { parseFinalizeOwedArgv } from "./finalize-owed-cli.js";
 
@@ -136,6 +138,99 @@ describe("discoverFinalizeOwed twin identity (#4919)", () => {
     const lines = formatFinalizeOwedInventoryLines(inventory);
     expect(lines.some((l) => l.includes("owed"))).toBe(true);
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("discoverFinalizeOwed tip batch inventory (#5171)", () => {
+  it("reads tip plans via chunked showBlobsBatch without per-path git show", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-batch-"));
+    execFileSync("git", ["init", "-q"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["config", "user.email", "t@t.dev"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: root, stdio: "ignore" });
+    writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 5171, {
+      productPullRequest: 5200,
+      title: "story-a",
+    });
+    writeTipBrief(root, "xbrief/completed/story-b.xbrief.json", 5171, {
+      productPullRequest: 5201,
+      title: "story-b",
+    });
+    execFileSync("git", ["add", "xbrief"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["commit", "-q", "-m", "tip"], { cwd: root, stdio: "ignore" });
+    const tip = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+
+    const showCalls: string[][] = [];
+    const runGit = (cwd: string, args: readonly string[]) => {
+      if (args[0] === "show") {
+        showCalls.push([...args]);
+      }
+      if (args[0] === "ls-tree") {
+        const result = execFileSync("git", [...args], { cwd, encoding: "utf8" });
+        return { code: 0, stdout: result, stderr: "" };
+      }
+      if (args[0] === "ls-remote") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "merge-base") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const runGh = (cmd: readonly string[]) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/pulls?")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
+      if (joined.includes("/pulls/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            merged_at: "2026-09-27T00:00:00Z",
+            merge_commit_sha: tip,
+            base: { ref: "master" },
+          }),
+          stderr: "",
+        };
+      }
+      if (joined.includes("/issues/")) {
+        return { returncode: 0, stdout: JSON.stringify({ state: "open", labels: [] }), stderr: "" };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip,
+      runGit,
+      runGh,
+    });
+    expect(showCalls).toEqual([]);
+    expect(inventory.stories.some((s) => s.relPath.includes("story-a"))).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("loadTipPlanBodies uses chunk-retry and never whole-N show on batch miss", () => {
+    const showCalls: string[][] = [];
+    const paths = ["a.json", "b.json", "c.json", "d.json"];
+    const bodies = loadTipPlanBodies(
+      "/definitely-not-a-git-repo-5171",
+      "HEAD",
+      paths,
+      (_cwd, args) => {
+        if (args[0] === "show") {
+          showCalls.push([...args]);
+        }
+        return { code: 1, stdout: "", stderr: "fail" };
+      },
+    );
+    // Chunk-retry may show size-1 paths only; never one silent whole-N fan-out wave.
+    expect(showCalls.length).toBe(paths.length);
+    expect(showCalls.every((args) => args[0] === "show")).toBe(true);
+    expect(bodies.size).toBe(paths.length);
+    for (const path of paths) {
+      expect(bodies.get(path)).toBeNull();
+    }
   });
 });
 

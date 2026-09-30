@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(session): batch finalize-owed tip inventory; reverse Prefer-A defer skip (#5171).** Tip plan reads use chunked `showBlobsBatch` (bisect on truncate/parse miss; whole-N `git show` is not a green inventory path) with one list→Map for twin/completed lookups. `--defer-owed` / dest inherit only clear blocks after a real inventory; mutation `session:start` / `--rearm` keep scanning every time (no first-ship day-cache). Closes #5171. Refs #5145 #4919.
+
 - **process(review-cycle): propagate sticky tip-rot + blank-reviewers doctor (#5162 / #5165).** Mirror GREPTILE_SHA_STALL ask-first recovery into agents-entry (#1309); sync skills pack source; doctor fails closed on blank-only plan.policy.review.reviewers. Raise agentsMdBudget managedMaxLines 186→187 / absoluteMaxBytes 21497→21854.
 - **process(review-cycle): sticky tip-rot sha_match escalates to greptile-sha-stall (#5162).** After sticky `sha_match` + non-HEAD Last-reviewed + no in-flight Greptile Review on HEAD past the sticky-sha clock (~10 min), `pr:watch` fails loud with `BLOCKED: greptile-sha-stall`; ask once (#564) before `@greptileai review`, then re-enter native `pr:watch`. Tracking #5162.
 - **fix(swarm): refuse finalize-owed FP on proposed historical cites (#5143).** Tip `proposed`/`draft` unmarked briefs that only cite a merged github-pr/prRefs without `metadata.productPullRequest` are not admitted as owed/blocks; owed protected skip shares finalize-cohort `PROTECTED_STAYING_OPEN_LABELS` / `isProtectedStayingOpenUmbrella` (epic/meta/tracker/status:tracker/umbrella). True unmarked active/pending Tracking leftovers with open non-protected origin still block. Refs #4919 #635 #401.

@@ -19,7 +19,12 @@ import {
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
-import { defaultGitRunner, type GitRunner, timedGitRunner } from "../session/git.js";
+import {
+  defaultGitRunner,
+  type GitRunner,
+  showBlobsBatch,
+  timedGitRunner,
+} from "../session/git.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
   type FinalizeCohortResult,
@@ -140,18 +145,12 @@ function listTipPaths(
     .filter((line) => line.length > 0 && hasArtifactSuffix(line));
 }
 
-function readTipPlan(
-  projectRoot: string,
-  tip: string,
-  relPath: string,
-  runGit: GitRunner,
-): Record<string, unknown> | null {
-  const shown = runGit(projectRoot, ["show", `${tip}:${relPath}`]);
-  if (shown.code !== 0) {
+function planFromTipBody(body: string | null | undefined): Record<string, unknown> | null {
+  if (body === null || body === undefined || body.length === 0) {
     return null;
   }
   try {
-    const raw: unknown = JSON.parse(shown.stdout);
+    const raw: unknown = JSON.parse(body);
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
       return null;
     }
@@ -163,6 +162,36 @@ function readTipPlan(
   } catch {
     return null;
   }
+}
+
+function readTipPlan(
+  projectRoot: string,
+  tip: string,
+  relPath: string,
+  runGit: GitRunner,
+  tipBodies?: ReadonlyMap<string, string | null>,
+): Record<string, unknown> | null {
+  if (tipBodies !== undefined) {
+    return planFromTipBody(tipBodies.get(relPath));
+  }
+  const shown = runGit(projectRoot, ["show", `${tip}:${relPath}`]);
+  if (shown.code !== 0) {
+    return null;
+  }
+  return planFromTipBody(shown.stdout);
+}
+
+/**
+ * One list → one chunked `showBlobsBatch` → Map. Truncate/parse miss bisects;
+ * whole-N `git show` fallback is not a green inventory path (#5171).
+ */
+export function loadTipPlanBodies(
+  projectRoot: string,
+  tip: string,
+  paths: readonly string[],
+  runGit: GitRunner,
+): Map<string, string | null> {
+  return showBlobsBatch(projectRoot, tip, paths, runGit, { onBatchMiss: "chunk-retry" });
 }
 
 function issueFromPlan(plan: Record<string, unknown>, expectedRepo: string | null): number | null {
@@ -202,12 +231,13 @@ function tipHasTwin(
   plan: Record<string, unknown>,
   completedPaths: ReadonlySet<string>,
   runGit: GitRunner,
+  tipBodies?: ReadonlyMap<string, string | null>,
 ): boolean {
   const twinRel = completedTwinRelPath(relPath);
   const key = briefPairingKey(relPath);
   const identity = briefPlanIdentity(plan);
   if (twinRel !== null && completedPaths.has(twinRel)) {
-    const twinPlan = readTipPlan(projectRoot, tip, twinRel, runGit);
+    const twinPlan = readTipPlan(projectRoot, tip, twinRel, runGit, tipBodies);
     if (twinPlan !== null) {
       const twinKey = briefPairingKey(twinRel);
       if (key !== null && twinKey === key && briefPlanIdentity(twinPlan) === identity) {
@@ -221,7 +251,7 @@ function tipHasTwin(
     if (key === null || cKey !== key) {
       continue;
     }
-    const twinPlan = readTipPlan(projectRoot, tip, completed, runGit);
+    const twinPlan = readTipPlan(projectRoot, tip, completed, runGit, tipBodies);
     if (twinPlan !== null && briefPlanIdentity(twinPlan) === identity) {
       return true;
     }
@@ -482,10 +512,17 @@ export function discoverFinalizeOwed(
   const nonterminal = listTipPaths(projectRoot, options.tip, NONTERMINAL_PREFIXES, runGit);
   const completed = listTipPaths(projectRoot, options.tip, COMPLETED_PREFIXES, runGit);
   const completedSet = new Set(completed);
+  // One tip inventory: list → chunked batch → Map; loops are map lookups (#5171).
+  const tipBodies = loadTipPlanBodies(
+    projectRoot,
+    options.tip,
+    [...nonterminal, ...completed],
+    runGit,
+  );
   const stories: FinalizeOwedStory[] = [];
 
   for (const relPath of nonterminal) {
-    const plan = readTipPlan(projectRoot, options.tip, relPath, runGit);
+    const plan = readTipPlan(projectRoot, options.tip, relPath, runGit, tipBodies);
     if (plan === null) {
       continue;
     }
@@ -550,7 +587,7 @@ export function discoverFinalizeOwed(
       });
       continue;
     }
-    if (tipHasTwin(projectRoot, options.tip, relPath, plan, completedSet, runGit)) {
+    if (tipHasTwin(projectRoot, options.tip, relPath, plan, completedSet, runGit, tipBodies)) {
       // Active+completed twin anomaly: list, do not touch (#4863).
       stories.push({
         issue,
@@ -664,7 +701,7 @@ export function discoverFinalizeOwed(
   }
 
   for (const relPath of completed) {
-    const plan = readTipPlan(projectRoot, options.tip, relPath, runGit);
+    const plan = readTipPlan(projectRoot, options.tip, relPath, runGit, tipBodies);
     if (plan === null) {
       continue;
     }

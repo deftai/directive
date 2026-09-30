@@ -288,6 +288,49 @@ describe("showBlobsBatch (#3673)", () => {
     expect(calls).toEqual([["show", "HEAD:a.json"]]);
     expect(bodies.get("a.json")).toBeNull();
   });
+
+  it("chunk-retry bisects on batch miss and only shows size-1 paths (#5171)", () => {
+    const showCalls: string[][] = [];
+    const paths = ["one.json", "two.json", "three.json", "four.json"];
+    const bodies = showBlobsBatch(
+      "/definitely-not-a-git-repo-5171-chunk",
+      "HEAD",
+      paths,
+      (_cwd, args) => {
+        if (args[0] === "show") {
+          showCalls.push([...args]);
+        }
+        return { code: 1, stdout: "", stderr: "fail" };
+      },
+      { onBatchMiss: "chunk-retry" },
+    );
+    expect(showCalls).toHaveLength(paths.length);
+    expect(new Set(showCalls.map((args) => args[1]))).toEqual(
+      new Set(paths.map((path) => `HEAD:${path}`)),
+    );
+    expect(bodies.size).toBe(paths.length);
+  });
+
+  it("legacy-fallback still shows every path on whole-batch miss", () => {
+    const showCalls: string[][] = [];
+    const paths = ["one.json", "two.json"];
+    showBlobsBatch(
+      "/definitely-not-a-git-repo-5171-legacy",
+      "HEAD",
+      paths,
+      (_cwd, args) => {
+        if (args[0] === "show") {
+          showCalls.push([...args]);
+        }
+        return { code: 1, stdout: "", stderr: "fail" };
+      },
+      { onBatchMiss: "legacy-fallback" },
+    );
+    expect(showCalls).toEqual([
+      ["show", "HEAD:one.json"],
+      ["show", "HEAD:two.json"],
+    ]);
+  });
 });
 
 describe("linked worktree git-common-dir (#3794)", () => {

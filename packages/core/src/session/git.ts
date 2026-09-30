@@ -332,21 +332,25 @@ function showBlobViaRunner(
 }
 
 /**
- * Read many `tip:path` blobs in one `git cat-file --batch` process.
- * Falls back to per-path `git show` only when the batch stream cannot be
- * parsed, so verdicts stay content-authoritative.
+ * How `showBlobsBatch` recovers when `git cat-file --batch` misses.
+ * - `legacy-fallback`: per-path `git show` for every requested path (historical).
+ * - `chunk-retry`: bisect the path list and retry; only a size-1 miss may
+ *   use one `git show`. Whole-N show fallback is forbidden (#5171).
  */
-export function showBlobsBatch(
+export type ShowBlobsBatchOnMiss = "legacy-fallback" | "chunk-retry";
+
+export interface ShowBlobsBatchOptions {
+  readonly onBatchMiss?: ShowBlobsBatchOnMiss;
+}
+
+function tryCatFileBatch(
   projectRoot: string,
   tip: string,
   paths: readonly string[],
-  runGit: GitRunner = defaultGitRunner,
-): Map<string, string | null> {
-  const out = new Map<string, string | null>();
+): Map<string, string | null> | null {
   if (paths.length === 0) {
-    return out;
+    return new Map();
   }
-
   const input = Buffer.from(`${paths.map((path) => `${tip}:${path}`).join("\n")}\n`, "utf8");
   const result = spawnSync("git", ["cat-file", "--batch"], {
     cwd: projectRoot,
@@ -354,11 +358,69 @@ export function showBlobsBatch(
     maxBuffer: GIT_CAT_FILE_BATCH_MAX_BUFFER,
     windowsHide: true,
   });
-  if (result.error === undefined && result.status === 0 && result.stdout !== undefined) {
-    const parsed = parseGitCatFileBatch(coerceGitBytes(result.stdout), paths);
-    if (parsed !== null) {
-      return parsed;
-    }
+  if (result.error !== undefined || result.status !== 0 || result.stdout === undefined) {
+    return null;
+  }
+  return parseGitCatFileBatch(coerceGitBytes(result.stdout), paths);
+}
+
+function showBlobsBatchChunkRetry(
+  projectRoot: string,
+  tip: string,
+  paths: readonly string[],
+  runGit: GitRunner,
+): Map<string, string | null> {
+  const out = new Map<string, string | null>();
+  if (paths.length === 0) {
+    return out;
+  }
+  const parsed = tryCatFileBatch(projectRoot, tip, paths);
+  if (parsed !== null) {
+    return parsed;
+  }
+  if (paths.length === 1) {
+    const only = paths[0]!;
+    out.set(only, showBlobViaRunner(projectRoot, tip, only, runGit));
+    return out;
+  }
+  const mid = Math.floor(paths.length / 2);
+  const left = showBlobsBatchChunkRetry(projectRoot, tip, paths.slice(0, mid), runGit);
+  const right = showBlobsBatchChunkRetry(projectRoot, tip, paths.slice(mid), runGit);
+  for (const [path, body] of left) {
+    out.set(path, body);
+  }
+  for (const [path, body] of right) {
+    out.set(path, body);
+  }
+  return out;
+}
+
+/**
+ * Read many `tip:path` blobs in one `git cat-file --batch` process.
+ * Default recovers with per-path `git show` when the batch stream cannot be
+ * parsed. Pass `onBatchMiss: "chunk-retry"` for finalize-owed inventory so a
+ * truncate/parse miss bisects instead of silently reintroducing O(n) show (#5171).
+ */
+export function showBlobsBatch(
+  projectRoot: string,
+  tip: string,
+  paths: readonly string[],
+  runGit: GitRunner = defaultGitRunner,
+  options: ShowBlobsBatchOptions = {},
+): Map<string, string | null> {
+  const out = new Map<string, string | null>();
+  if (paths.length === 0) {
+    return out;
+  }
+
+  const onMiss: ShowBlobsBatchOnMiss = options.onBatchMiss ?? "legacy-fallback";
+  if (onMiss === "chunk-retry") {
+    return showBlobsBatchChunkRetry(projectRoot, tip, paths, runGit);
+  }
+
+  const parsed = tryCatFileBatch(projectRoot, tip, paths);
+  if (parsed !== null) {
+    return parsed;
   }
 
   for (const path of paths) {
