@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5106",
-    "updated": "2026-09-30T19:01:50Z"
+    "updated": "2026-09-30T22:15:22Z"
   },
   "plan": {
     "title": "[framework-gap] scope:complete records provenance but does not move an evidenced active xBRIEF to completed",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] scope:complete records provenance but does not move an evidenced active xBRIEF to completed",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5106",
@@ -647,7 +647,7 @@
         "mergeCommit": "99adb2040e1aac48ee10a2df66886a188ae21600",
         "deliveryBranch": "master",
         "deliveryCommit": "8067ba6313361b0de78f5048c93804c98999283b",
-        "verifiedAt": "2026-09-30T22:12:57Z",
+        "verifiedAt": "2026-09-30T22:15:22Z",
         "verifier": "scope:complete",
         "disposition": "delivered",
         "handoffState": "delivered",
@@ -656,9 +656,16 @@
         "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm"
       },
       "deliveryDisposition": "delivered",
-      "handoffState": "delivered"
+      "handoffState": "delivered",
+      "completedAt": "2026-09-30T22:15:22Z",
+      "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm",
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-30T22:15:22Z"
+      }
     },
     "id": "github.issue.5617516982",
-    "updated": "2026-09-30T19:01:50Z"
+    "updated": "2026-09-30T22:15:22Z"
   }
 }
