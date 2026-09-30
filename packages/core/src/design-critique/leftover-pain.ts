@@ -425,23 +425,35 @@ export function verificationPathRecordLine(input: VerificationPathRecord): strin
   return `${VERIFICATION_PATH_FIELD} provisioned ${input.path}`;
 }
 
-const VERIFICATION_PATH_LINE_RE = /^verification-path:\s+\S/;
+/** Closed forms only — matches `verificationPathRecordLine` output. */
+const VERIFICATION_PATH_CLOSED_RE =
+  /^verification-path:\s+(?:pin-read|provisioned)\s+\S/;
+const VERIFICATION_PATH_ANY_RE = /^verification-path:\s+\S/;
 
 /**
  * Fixture over parent-claimed process-only dest + recorded line.
- * Default pin-read; launch-probe is not method-verification. Returned refusal
- * only — no throw.
+ * Accepts only closed `pin-read` / `provisioned` lines from
+ * `verificationPathRecordLine`. Launch-probe and other junk →
+ * `invalid-verification-path`. Returned refusal only — no throw.
  */
 export function evaluateVerificationPathBeforePanelDeposit(input: {
   readonly processOnlyDest: boolean;
   readonly recordedLine: string | null;
-}): { readonly ok: true } | { readonly ok: false; readonly reason: "missing-verification-path" } {
+}):
+  | { readonly ok: true }
+  | {
+      readonly ok: false;
+      readonly reason: "missing-verification-path" | "invalid-verification-path";
+    } {
   if (!input.processOnlyDest) {
     return { ok: true };
   }
   const line = input.recordedLine?.trim() ?? "";
-  if (VERIFICATION_PATH_LINE_RE.test(line)) {
+  if (VERIFICATION_PATH_CLOSED_RE.test(line)) {
     return { ok: true };
+  }
+  if (VERIFICATION_PATH_ANY_RE.test(line)) {
+    return { ok: false, reason: "invalid-verification-path" };
   }
   return { ok: false, reason: "missing-verification-path" };
 }

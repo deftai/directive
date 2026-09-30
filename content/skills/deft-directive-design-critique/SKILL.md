@@ -53,8 +53,6 @@ Parent chip write: scm:issue:design-critique-chip. Stale ingest-ready query: scm
 Chip apply miss is non-blocking convenience; do not halt. Ingest waits on the completed-arc record, not a catalog chip.
 Run posture: missing defaults to no-ingest via resolveArcRunPostureForHost; ingest resolves checkout; closed collisions ask. Field lives in the contract.
 Spend: closed n= or spend-recommend; else ask. Field lives in the contract. Consume parseOperatorSpend.
-N≥3 + pain Dual-stop reserved-slot literacy: Stop 1 / parent records `dual-stop-reserved:`; raise after reserved spent. Second pain-audit stays raise-by-design. Field lives in Dual stop.
-Process-only verification-path before panel-deposit: default pin-read; provision only when runnable checks required. Launch-probe stays launchability. Field lives in Run posture / Critic method.
 Yolo standing: default on; noyolo clears; yolo affirms. Confirm conjunct only. Not ingest.
 Widget apply-set lives in the contract. Consume parseOperatorRunPosture / parseOperatorYoloStanding.
 Widgets: numbered Discuss and Back. Plain English first in main-chat. `## Plain-language summary`.

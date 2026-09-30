@@ -709,6 +709,12 @@ describe("reserved-slot literacy + verification-path (#5188)", () => {
     ).toEqual({ ok: false, reason: "missing-verification-path" });
     expect(
       evaluateVerificationPathBeforePanelDeposit({
+        processOnlyDest: true,
+        recordedLine: "   ",
+      }),
+    ).toEqual({ ok: false, reason: "missing-verification-path" });
+    expect(
+      evaluateVerificationPathBeforePanelDeposit({
         processOnlyDest: false,
         recordedLine: null,
       }),
@@ -724,5 +730,32 @@ describe("reserved-slot literacy + verification-path (#5188)", () => {
         recordedLine: provisioned,
       }),
     ).toEqual({ ok: true });
+  });
+
+  it("refuses launch-probe and other non-closed verification-path junk", () => {
+    expect(
+      evaluateVerificationPathBeforePanelDeposit({
+        processOnlyDest: true,
+        recordedLine: "verification-path: launch-probe",
+      }),
+    ).toEqual({ ok: false, reason: "invalid-verification-path" });
+    expect(
+      evaluateVerificationPathBeforePanelDeposit({
+        processOnlyDest: true,
+        recordedLine: "verification-path: junk-token",
+      }),
+    ).toEqual({ ok: false, reason: "invalid-verification-path" });
+    expect(
+      evaluateVerificationPathBeforePanelDeposit({
+        processOnlyDest: true,
+        recordedLine: "verification-path: pin-read",
+      }),
+    ).toEqual({ ok: false, reason: "invalid-verification-path" });
+    expect(
+      evaluateVerificationPathBeforePanelDeposit({
+        processOnlyDest: true,
+        recordedLine: "verification-path: provisioned",
+      }),
+    ).toEqual({ ok: false, reason: "invalid-verification-path" });
   });
 });
