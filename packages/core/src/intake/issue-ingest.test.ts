@@ -3008,4 +3008,141 @@ describe("ingestOne residual mode (#5177 Prefer-A)", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("records the selected completed brief's actual planId in residual lineage", () => {
+    const root = mkdtempSync(join(tmpdir(), "5177-lineage-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      const dir = join(xbriefDir, "completed");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "2026-09-23-4544-fallback.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: {
+            version: "0.8",
+            description: "Scope xBRIEF ingested from GitHub issue #4544",
+          },
+          plan: {
+            title: "shipped fallback",
+            id: "github.issue.fallback.o.r.4544",
+            status: "completed",
+            narratives: {
+              Origin: "Ingested from https://github.com/o/r/issues/4544",
+            },
+            metadata: {
+              "x-directive/plan-id": {
+                version: 1,
+                source: "github-repo-fallback",
+                github_issue_id: null,
+                origin: "o/r#4544",
+                id: "github.issue.fallback.o.r.4544",
+              },
+            },
+            references: [
+              {
+                uri: "https://github.com/o/r/issues/4544",
+                type: "x-xbrief/github-issue",
+              },
+            ],
+          },
+        }),
+        "utf8",
+      );
+      const [result, path] = ingestOne(
+        {
+          id: 5453269518,
+          number: 4544,
+          title: "residual reopen",
+          state: "open",
+          url: "https://github.com/o/r/issues/4544",
+          labels: [],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          residual: true,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(result).toBe("created");
+      const parsed = JSON.parse(readFileSync(path as string, "utf8")) as {
+        plan: Record<string, unknown>;
+      };
+      const lineage = (parsed.plan.metadata as Record<string, unknown>)[
+        "x-directive/residual-lineage"
+      ] as Record<string, unknown>;
+      expect(lineage.predecessor_plan_id).toBe("github.issue.fallback.o.r.4544");
+      expect(lineage.predecessor_plan_id).not.toBe("github.issue.5453269518");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses residual mint when only a foreign-repo same-number completed brief exists", () => {
+    const root = mkdtempSync(join(tmpdir(), "5177-cross-repo-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      const dir = join(xbriefDir, "completed");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "2026-09-23-4544-foreign.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: {
+            version: "0.8",
+            description: "Scope xBRIEF ingested from GitHub issue #4544",
+          },
+          plan: {
+            title: "foreign shipped",
+            id: "github.issue.99",
+            status: "completed",
+            narratives: {
+              Origin: "Ingested from https://github.com/other/repo/issues/4544",
+            },
+            metadata: {
+              "x-directive/plan-id": {
+                version: 1,
+                source: "github-rest-id",
+                github_issue_id: 99,
+                origin: "other/repo#4544",
+                id: "github.issue.99",
+              },
+            },
+            references: [
+              {
+                uri: "https://github.com/other/repo/issues/4544",
+                type: "x-xbrief/github-issue",
+              },
+            ],
+          },
+        }),
+        "utf8",
+      );
+      const [result, , msg] = ingestOne(
+        {
+          id: 5453269518,
+          number: 4544,
+          title: "residual reopen",
+          state: "open",
+          url: "https://github.com/o/r/issues/4544",
+          labels: [],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          residual: true,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(result).toBe("refused");
+      expect(msg).toMatch(/no owned completed/i);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

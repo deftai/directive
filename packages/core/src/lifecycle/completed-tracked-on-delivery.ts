@@ -13,7 +13,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
-import { briefOwnsIssue, isResidualPlanId } from "../intake/residual-identity.js";
+import {
+  briefOwnsIssue,
+  isResidualPlanId,
+  issueOriginFromRepoSlug,
+} from "../intake/residual-identity.js";
 import {
   hasArtifactSuffix,
   LEGACY_ARTIFACT_DIR,
@@ -525,7 +529,9 @@ function planIdsFromBlobBodies(
 function scanLocalResidualPlanIds(
   projectRoot: string,
   issueNumber: number,
+  repoSlug: string | null,
 ): { readonly planIds: readonly string[]; readonly origins: readonly string[] } {
+  const ownershipTarget = issueOriginFromRepoSlug(repoSlug, issueNumber) ?? issueNumber;
   const planIds: string[] = [];
   const origins: string[] = [];
   const roots: string[] = [];
@@ -542,8 +548,10 @@ function scanLocalResidualPlanIds(
   if (existsSync(migrated) && !roots.includes(migrated)) {
     roots.push(migrated);
   }
+  // cancelled/ is abandon-only — do not treat it as residual land debt or evidence.
+  const residualFolders = ["proposed", "pending", "active", "completed"] as const;
   for (const root of roots) {
-    for (const folder of LOCAL_ORIGIN_FOLDERS) {
+    for (const folder of residualFolders) {
       const dir = join(root, folder);
       if (!existsSync(dir)) {
         continue;
@@ -560,7 +568,7 @@ function scanLocalResidualPlanIds(
         }
         const path = join(dir, name);
         const data = readJson(path);
-        if (data === null || !briefOwnsIssue(data, issueNumber)) {
+        if (data === null || !briefOwnsIssue(data, ownershipTarget)) {
           continue;
         }
         const id = extractPlanId(data);
@@ -750,7 +758,15 @@ export function evaluateCompletedTracked(
     `tip:${tip}`,
   );
   const landedKeys = new Set(tipTerminalHits.map((h) => issueKey(h.issue)));
-  const tipTerminalPlanIds = planIdsFromBlobBodies(tipTerminalPaths, tipBodies);
+  // Residual land evidence is completed-only — cancelled/ must not certify (#5177).
+  const tipCompletedPaths = tipTerminalPaths.filter((path) => {
+    const normalized = path.replace(/\\/g, "/");
+    return (
+      normalized.includes(`${MIGRATED_ARTIFACT_DIR}/completed/`) ||
+      normalized.includes(`${LEGACY_ARTIFACT_DIR}/completed/`)
+    );
+  });
+  const tipCompletedPlanIds = planIdsFromBlobBodies(tipCompletedPaths, tipBodies);
 
   const issueFilter = options.issue ?? null;
   if (issueFilter !== null) {
@@ -814,9 +830,11 @@ export function evaluateCompletedTracked(
 
   const missing: MissingCompletedLand[] = [];
   for (const [key, entry] of originMap) {
-    const residual = scanLocalResidualPlanIds(root, entry.issue.number);
+    const residual = scanLocalResidualPlanIds(root, entry.issue.number, entry.issue.repo);
+    // Every current residual identity must appear on completed tip — an earlier
+    // residual landing must not certify a later lean reopen (#5177).
     const residualLanded =
-      residual.planIds.length === 0 || residual.planIds.some((id) => tipTerminalPlanIds.has(id));
+      residual.planIds.length === 0 || residual.planIds.every((id) => tipCompletedPlanIds.has(id));
     if (landedKeys.has(key) && residualLanded) {
       continue;
     }

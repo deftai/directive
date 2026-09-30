@@ -40,7 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(scope): no durable completionProvenance on refused complete (#5106).** Mid-flight active clause-item persists during `scope:complete` omit `completionProvenance` so a later acceptance refuse cannot leave provenance on a still-`running` active brief; in-memory stamp still feeds acceptance/commit, and `ok: true` still moves to `completed/` (#2578). Tracking #5106.
 - **fix(hooks,codex): harvest declared apply_patch string `input` for linked-worktree targets (#5129).** Canonical `tool_input.input` and top-level `payload.input` now yield mutation targets; raw-string `tool_input` stays unclassified. Non-canonical input cannot select `effectiveRoot` even with a declared path. Closes #5129.
 
+<<<<<<< HEAD
 - **Interactive Grok implement spawn dest-place then cwd (#4575).** Parent dest-places a unique linked worktree via `destPlaceImplementSpawn` (same `git worktree add --detach <path> <commit-ish>` argv as createWorktree / ensureArcDest), then sets `tool_input.cwd` before `spawn_subagent`. Reservation mint stays `mintImplementSpawnReservation` after consult; bare `--detach` refused; deny-copy remains on leftover #5184. Tracking #4575.
+=======
+- **Residual re-ingest Greptile residuals (#5177).** Ownership stays repo-scoped; residual lineage records the selected completed brief's actual `planId`; `verify:completed-tracked` requires every current residual identity on completed tip (not cancelled, not an earlier residual alone); residual stored-mint match is exact REST-id segment; Stage A ownership hits include Origin/plan-id briefs when `plan.references` omits the issue.
+>>>>>>> d052dcfd8 (fix(intake): Greptile Class A residuals for residual re-ingest (#5177))
 
 ### Removed
 

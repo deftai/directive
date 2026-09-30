@@ -85,6 +85,6 @@ describe("issue-eval isolation contract", () => {
     expect(text).toContain("session:start");
     expect(text).toContain("--read-only");
     expect(text).toContain("collectWipCensus");
-    expect(text).toContain("evaluateValidity(worktreePath, issue)");
+    expect(text).toContain("evaluateValidity(worktreePath, issue, options.repo)");
   });
 });

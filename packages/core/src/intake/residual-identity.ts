@@ -170,22 +170,38 @@ function originsFromText(text: string): IssueOrigin[] {
   return found;
 }
 
-function ownedIssueNumbersFromProvenance(data: Record<string, unknown>): number[] {
+function originsFromProvenance(data: Record<string, unknown>): {
+  readonly origins: IssueOrigin[];
+  readonly bareNumbers: number[];
+} {
   const texts = ingestOwnerTexts(data);
-  const numbers = new Set<number>();
+  const origins: IssueOrigin[] = [];
+  const bareNumbers: number[] = [];
+  const seenOrigin = new Set<string>();
+  const seenBare = new Set<number>();
   for (const text of texts) {
     for (const origin of originsFromText(text)) {
-      numbers.add(origin.number);
+      const key = issueOriginKey(origin);
+      if (!seenOrigin.has(key)) {
+        seenOrigin.add(key);
+        origins.push(origin);
+      }
     }
     const bare = ORIGIN_BARE_RE.exec(text);
     if (bare?.[1]) {
-      numbers.add(Number.parseInt(bare[1], 10));
+      const n = Number.parseInt(bare[1], 10);
+      if (Number.isSafeInteger(n) && n > 0 && !seenBare.has(n)) {
+        seenBare.add(n);
+        bareNumbers.push(n);
+      }
     }
   }
-  return [...numbers];
+  return { origins, bareNumbers };
 }
 
-function planIdBindingOriginNumber(data: Record<string, unknown>): number | null {
+const BINDING_ORIGIN_RE = /^([^/]+)\/([^#]+)#(\d+)$/;
+
+function planIdBindingOrigin(data: Record<string, unknown>): IssueOrigin | null {
   const plan =
     data.plan !== null && typeof data.plan === "object" && !Array.isArray(data.plan)
       ? (data.plan as Record<string, unknown>)
@@ -207,42 +223,83 @@ function planIdBindingOriginNumber(data: Record<string, unknown>): number | null
   const rec = binding as Record<string, unknown>;
   const origin = rec.origin;
   if (typeof origin === "string") {
-    const match = /#(\d+)$/.exec(origin);
-    if (match?.[1]) {
-      const n = Number.parseInt(match[1], 10);
+    const match = BINDING_ORIGIN_RE.exec(origin.trim());
+    if (match?.[1] && match[2] && match[3]) {
+      const n = Number.parseInt(match[3], 10);
       if (Number.isSafeInteger(n) && n > 0) {
-        return n;
+        return { owner: match[1], repo: match[2], number: n };
       }
     }
   }
-  const fromId = typeof rec.id === "string" ? residualPlanIdRestIssueId(rec.id) : null;
-  if (fromId !== null) {
-    return fromId;
+  return null;
+}
+
+function ownershipTargetNumber(target: number | IssueOrigin): number {
+  return typeof target === "number" ? target : target.number;
+}
+
+function ownershipMatchesOrigin(origin: IssueOrigin, target: number | IssueOrigin): boolean {
+  if (typeof target === "number") {
+    return origin.number === target;
   }
-  if (typeof rec.id === "string") {
-    const primary = /^github\.issue\.(\d+)$/.exec(rec.id.trim());
-    if (primary?.[1]) {
-      const n = Number.parseInt(primary[1], 10);
-      if (Number.isSafeInteger(n) && n > 0) {
-        return n;
-      }
-    }
-  }
-  return parsePositiveId(rec.github_issue_id);
+  return issueOriginKey(origin) === issueOriginKey(target);
 }
 
 /**
  * Shared ownership predicate (#5177 Prefer-A item 2): ingest-owner Origin and/or
- * plan.id binding — not bare plan.references.
+ * plan.id binding — not bare plan.references. When `target` carries owner/repo,
+ * ownership stays repo-scoped (same issue number in another repo does not match).
  */
-export function briefOwnsIssue(data: Record<string, unknown>, issueNumber: number): boolean {
+export function briefOwnsIssue(
+  data: Record<string, unknown>,
+  target: number | IssueOrigin,
+): boolean {
+  const issueNumber = ownershipTargetNumber(target);
   if (!Number.isSafeInteger(issueNumber) || issueNumber <= 0) {
     return false;
   }
-  if (ownedIssueNumbersFromProvenance(data).includes(issueNumber)) {
+  const { origins, bareNumbers } = originsFromProvenance(data);
+  for (const origin of origins) {
+    if (ownershipMatchesOrigin(origin, target)) {
+      return true;
+    }
+  }
+  // Bare "#N" Origin has no repository; only admit when the caller did not
+  // supply a repo scope (number-only target).
+  if (typeof target === "number" && bareNumbers.includes(issueNumber)) {
     return true;
   }
-  return planIdBindingOriginNumber(data) === issueNumber;
+  const bindingOrigin = planIdBindingOrigin(data);
+  if (bindingOrigin !== null && ownershipMatchesOrigin(bindingOrigin, target)) {
+    return true;
+  }
+  return false;
+}
+
+/** Parse `owner/repo` (+ issue number) into an IssueOrigin when well-formed. */
+export function issueOriginFromRepoSlug(
+  repoSlug: string | null | undefined,
+  issueNumber: number,
+): IssueOrigin | null {
+  if (repoSlug === null || repoSlug === undefined) {
+    return null;
+  }
+  const trimmed = repoSlug.trim();
+  const slash = trimmed.indexOf("/");
+  if (slash <= 0 || slash === trimmed.length - 1) {
+    return null;
+  }
+  const owner = trimmed.slice(0, slash);
+  const repo = trimmed.slice(slash + 1);
+  if (
+    owner.includes("/") ||
+    repo.includes("/") ||
+    !Number.isSafeInteger(issueNumber) ||
+    issueNumber <= 0
+  ) {
+    return null;
+  }
+  return { owner, repo, number: issueNumber };
 }
 
 export interface OwnedLifecycleHit {
@@ -268,7 +325,7 @@ function readBrief(path: string): Record<string, unknown> | null {
 
 export function listOwnedLifecycleHits(
   vbriefDir: string,
-  issueNumber: number,
+  target: number | IssueOrigin,
 ): OwnedLifecycleHit[] {
   const hits: OwnedLifecycleHit[] = [];
   for (const folder of LIFECYCLE_FOLDERS) {
@@ -291,7 +348,7 @@ export function listOwnedLifecycleHits(
     for (const filename of files) {
       const full = join(folderPath, filename);
       const data = readBrief(full);
-      if (data === null || !briefOwnsIssue(data, issueNumber)) {
+      if (data === null || !briefOwnsIssue(data, target)) {
         continue;
       }
       const planId = extractPlanId(data);
@@ -310,25 +367,25 @@ export function listOwnedLifecycleHits(
 
 export function findOwnedCompletedHits(
   vbriefDir: string,
-  issueNumber: number,
+  target: number | IssueOrigin,
 ): OwnedLifecycleHit[] {
-  return listOwnedLifecycleHits(vbriefDir, issueNumber).filter((hit) => hit.folder === "completed");
+  return listOwnedLifecycleHits(vbriefDir, target).filter((hit) => hit.folder === "completed");
 }
 
 export function findNonterminalResidualHits(
   vbriefDir: string,
-  issueNumber: number,
+  target: number | IssueOrigin,
 ): OwnedLifecycleHit[] {
-  return listOwnedLifecycleHits(vbriefDir, issueNumber).filter(
+  return listOwnedLifecycleHits(vbriefDir, target).filter(
     (hit) => hit.residual && (NONTERMINAL_FOLDERS as readonly string[]).includes(hit.folder),
   );
 }
 
 export function findResidualHitsForIssue(
   vbriefDir: string,
-  issueNumber: number,
+  target: number | IssueOrigin,
 ): OwnedLifecycleHit[] {
-  return listOwnedLifecycleHits(vbriefDir, issueNumber).filter((hit) => hit.residual);
+  return listOwnedLifecycleHits(vbriefDir, target).filter((hit) => hit.residual);
 }
 
 export function attachResidualLineage(

@@ -106,6 +106,30 @@ describe("briefOwnsIssue shared ownership", () => {
     expect(briefOwnsIssue(owned, 3736)).toBe(true);
     expect(briefOwnsIssue(owned, 3739)).toBe(false);
   });
+
+  it("keeps ownership repo-scoped when the same issue number appears across repos", () => {
+    const foreign = {
+      plan: {
+        narratives: {
+          Origin: "Ingested from https://github.com/other/repo/issues/4544",
+        },
+        metadata: {
+          "x-directive/plan-id": {
+            version: 1,
+            source: "github-rest-id",
+            github_issue_id: 99,
+            origin: "other/repo#4544",
+            id: "github.issue.99",
+          },
+        },
+      },
+    };
+    expect(briefOwnsIssue(foreign, 4544)).toBe(true);
+    expect(briefOwnsIssue(foreign, { owner: "deftai", repo: "directive", number: 4544 })).toBe(
+      false,
+    );
+    expect(briefOwnsIssue(foreign, { owner: "other", repo: "repo", number: 4544 })).toBe(true);
+  });
 });
 
 describe("owned lifecycle census", () => {

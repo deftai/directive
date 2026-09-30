@@ -17,6 +17,7 @@ import {
   resolveIngestProvenanceOwner,
 } from "../intake/issue-ingest.js";
 import { type IssueOrigin, issueOriginKey } from "../intake/reconcile-issues.js";
+import { residualIdMatchesRestIssue } from "../intake/residual-identity.js";
 import { extractPlanId } from "../scope/parent-lineage.js";
 
 export const ADOPT_STORED_PLAN_ID_VERB = "xbrief:adopt-stored-plan-id";
@@ -180,10 +181,12 @@ function bindingConflictDetail(
   if (binding.source === "github-residual") {
     const residualOk = /^github\.issue\.residual\.\d+(?:\.lean\.\d+)?$/.test(binding.id);
     const rest = binding.githubIssueId;
-    if (!residualOk || rest === null || binding.id === `github.issue.${rest}`) {
-      return `stored residual plan-id ${binding.id} disagrees with github_issue_id ${binding.githubIssueId}.`;
-    }
-    if (!binding.id.startsWith(`github.issue.residual.${rest}`)) {
+    if (
+      !residualOk ||
+      rest === null ||
+      binding.id === `github.issue.${rest}` ||
+      !residualIdMatchesRestIssue(binding.id, rest)
+    ) {
       return `stored residual plan-id ${binding.id} disagrees with github_issue_id ${binding.githubIssueId}.`;
     }
     return null;

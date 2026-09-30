@@ -1,17 +1,24 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { IssueOrigin } from "../../intake/reconcile-issues.js";
 import {
   briefOwnsIssue,
   findNonterminalResidualHits,
   findOwnedCompletedHits,
+  issueOriginFromRepoSlug,
   residualRecoveryCommand,
 } from "../../intake/residual-identity.js";
 import { resolveLifecycleRoot } from "../../layout/resolve.js";
 import type { ValidityVerdict } from "./types.js";
-import { listXbriefHits } from "./xbrief-refs.js";
 
 const ADR_DIR = join("docs", "decisions");
 const CONTRACT_DIR = join("content", "contracts");
+
+interface OwnedValidityHit {
+  readonly issue: number;
+  readonly path: string;
+  readonly folder: "active" | "pending" | "proposed" | "completed";
+}
 
 function filesMentionIssue(dir: string, issue: number): string[] {
   if (!existsSync(dir)) {
@@ -34,20 +41,41 @@ function filesMentionIssue(dir: string, issue: number): string[] {
   return hits;
 }
 
+function ownershipTargetFor(
+  issue: number,
+  repoSlug: string | null | undefined,
+): number | IssueOrigin {
+  return issueOriginFromRepoSlug(repoSlug, issue) ?? issue;
+}
+
+/**
+ * Ownership hits include Origin / plan-id owned briefs even when
+ * plan.references omits the issue number (#5177).
+ */
 function ownedHitsInFolder(
   worktreeRoot: string,
   folder: "completed" | "pending" | "active" | "proposed",
-  issue: number,
-): ReturnType<typeof listXbriefHits> {
-  const hits = listXbriefHits(worktreeRoot, folder).filter((hit) => hit.issue === issue);
-  return hits.filter((hit) => {
-    try {
-      const data = JSON.parse(readFileSync(hit.path, "utf8")) as Record<string, unknown>;
-      return briefOwnsIssue(data, issue);
-    } catch {
-      return false;
+  target: number | IssueOrigin,
+): OwnedValidityHit[] {
+  const dir = join(worktreeRoot, "xbrief", folder);
+  if (!existsSync(dir)) {
+    return [];
+  }
+  const issueNumber = typeof target === "number" ? target : target.number;
+  const hits: OwnedValidityHit[] = [];
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith(".xbrief.json") && !name.endsWith(".vbrief.json")) {
+      continue;
     }
-  });
+    const path = join(dir, name);
+    try {
+      const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+      if (briefOwnsIssue(data, target)) {
+        hits.push({ issue: issueNumber, path, folder });
+      }
+    } catch {}
+  }
+  return hits;
 }
 
 /**
@@ -57,11 +85,16 @@ function ownedHitsInFolder(
  * Completed / needs-re-scope ownership uses ingest-owner Origin and/or plan.id
  * (#5177 Prefer-A) — not bare plan.references.
  */
-export function evaluateValidity(worktreeRoot: string, issue: number): ValidityVerdict {
-  const completed = ownedHitsInFolder(worktreeRoot, "completed", issue);
-  const pending = ownedHitsInFolder(worktreeRoot, "pending", issue);
-  const active = ownedHitsInFolder(worktreeRoot, "active", issue);
-  const proposed = ownedHitsInFolder(worktreeRoot, "proposed", issue);
+export function evaluateValidity(
+  worktreeRoot: string,
+  issue: number,
+  repoSlug?: string | null,
+): ValidityVerdict {
+  const target = ownershipTargetFor(issue, repoSlug);
+  const completed = ownedHitsInFolder(worktreeRoot, "completed", target);
+  const pending = ownedHitsInFolder(worktreeRoot, "pending", target);
+  const active = ownedHitsInFolder(worktreeRoot, "active", target);
+  const proposed = ownedHitsInFolder(worktreeRoot, "proposed", target);
   const adrHits = filesMentionIssue(join(worktreeRoot, ADR_DIR), issue);
   const contractHits = filesMentionIssue(join(worktreeRoot, CONTRACT_DIR), issue);
 
@@ -174,6 +207,7 @@ export function applyLiveResidualOverlay(
   validity: ValidityVerdict,
   projectRoot: string,
   issueNumber: number,
+  repoSlug?: string | null,
 ): ValidityVerdict {
   if (validity.state === "residual-in-flight") {
     return validity;
@@ -185,12 +219,13 @@ export function applyLiveResidualOverlay(
     lifecycleRoot = null;
   }
   if (lifecycleRoot !== null) {
-    const liveResiduals = findNonterminalResidualHits(lifecycleRoot, issueNumber);
+    const target = ownershipTargetFor(issueNumber, repoSlug);
+    const liveResiduals = findNonterminalResidualHits(lifecycleRoot, target);
     if (
       liveResiduals.length > 0 &&
       (validity.state === "needs-re-scope" || validity.state === "likely-shipped")
     ) {
-      const completed = findOwnedCompletedHits(lifecycleRoot, issueNumber);
+      const completed = findOwnedCompletedHits(lifecycleRoot, target);
       const completedPath = completed[0]?.relPath ?? "completed/(owned)";
       const residualPath = liveResiduals[0]?.relPath ?? "proposed/(residual)";
       return {

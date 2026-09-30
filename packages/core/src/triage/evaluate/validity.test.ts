@@ -95,6 +95,15 @@ describe("evaluateValidity", () => {
     expect(evaluateValidity(root, 3736).state).toBe("likely-shipped");
   });
 
+  it("finds Origin-owned completed briefs even when references omit the issue", () => {
+    const root = mkdtempSync(join(tmpdir(), "val-noref-"));
+    temps.push(root);
+    writeOwnedBrief(join(root, "xbrief", "completed"), 4544, { refs: [] });
+    expect(evaluateValidity(root, 4544).state).toBe("likely-shipped");
+    expect(evaluateValidity(root, 4544, "deftai/directive").state).toBe("likely-shipped");
+    expect(evaluateValidity(root, 4544, "other/repo").state).toBe("still-open");
+  });
+
   it("retires sticky needs-re-scope when a live residual exists", () => {
     const root = mkdtempSync(join(tmpdir(), "val-residual-"));
     temps.push(root);

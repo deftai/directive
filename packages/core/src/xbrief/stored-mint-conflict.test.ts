@@ -303,6 +303,42 @@ describe("storedMintIdentityConflict (#4963)", () => {
       }),
     ).toBeNull();
   });
+
+  it("rejects residual ids that only share a numeric prefix with github_issue_id", () => {
+    const conflict = storedMintIdentityConflict({
+      plan: {
+        id: "github.issue.residual.123",
+        metadata: {
+          "x-directive/plan-id": {
+            version: 1,
+            source: "github-residual",
+            github_issue_id: 12,
+            origin: "o/r#1",
+            id: "github.issue.residual.123",
+          },
+        },
+      },
+    });
+    expect(conflict?.disagree).toBe(false);
+    expect(conflict?.detail).toContain("disagrees with github_issue_id 12");
+
+    expect(
+      storedMintIdentityConflict({
+        plan: {
+          id: "github.issue.residual.12.lean.99",
+          metadata: {
+            "x-directive/plan-id": {
+              version: 1,
+              source: "github-residual",
+              github_issue_id: 12,
+              origin: "o/r#1",
+              id: "github.issue.residual.12.lean.99",
+            },
+          },
+        },
+      }),
+    ).toBeNull();
+  });
 });
 
 describe("xbrief:verify stored mint (#4963)", () => {

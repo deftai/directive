@@ -154,11 +154,12 @@ export async function evaluateIssues(options: EvaluateOptions): Promise<Evaluate
     try {
       worktreePath = addEvaluatorWorktree(options.projectRoot, issue, invocationId, originSha, git);
       sessionStart(worktreePath);
-      const validity = evaluateValidity(worktreePath, issue);
+      const validity = evaluateValidity(worktreePath, issue, options.repo);
       const joined = applyLiveResidualOverlay(
         joinValidityWithGithub(validity, snap?.state ?? null),
         options.projectRoot,
         issue,
+        options.repo,
       );
       const duplicates =
         snap?.duplicateOf !== null && snap?.duplicateOf !== undefined ? [snap.duplicateOf] : [];

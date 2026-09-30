@@ -2176,12 +2176,13 @@ export function ingestOne(
         }
       }
     } else {
-      const liveResiduals = findNonterminalResidualHits(options.vbriefDir, number);
+      const ownershipTarget = origin ?? number;
+      const liveResiduals = findNonterminalResidualHits(options.vbriefDir, ownershipTarget);
       if (liveResiduals.length > 0) {
         const hit = liveResiduals[0] as (typeof liveResiduals)[number];
         return ["duplicate", hit.path, formatResidualAlreadyAdmittedMessage(number, hit.relPath)];
       }
-      const ownedCompleted = findOwnedCompletedHits(options.vbriefDir, number);
+      const ownedCompleted = findOwnedCompletedHits(options.vbriefDir, ownershipTarget);
       if (ownedCompleted.length === 0) {
         return [
           "refused",
@@ -2311,14 +2312,18 @@ export function ingestOne(
         const occupying = sameIdOccupants[0]?.path ?? minted.id;
         return ["duplicate", occupying, formatResidualAlreadyAdmittedMessage(number, occupying)];
       }
-      const ownedCompleted = findOwnedCompletedHits(options.vbriefDir, number);
+      const ownedCompleted = findOwnedCompletedHits(options.vbriefDir, origin);
       const predecessor = ownedCompleted[0] as (typeof ownedCompleted)[number];
+      const predecessorPlanId =
+        predecessor.planId !== null && predecessor.planId.trim().length > 0
+          ? predecessor.planId
+          : predecessorPlanIdForRestIssue(minted.githubIssueId);
       residualMintOption = {
         id: minted.id,
         source: minted.source,
         githubIssueId: minted.githubIssueId,
         originKey: minted.originKey,
-        predecessorPlanId: predecessorPlanIdForRestIssue(minted.githubIssueId),
+        predecessorPlanId,
         predecessorPath: predecessor.relPath,
         leanCommentId: minted.leanCommentId,
       };

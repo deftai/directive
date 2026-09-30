@@ -701,6 +701,33 @@ describe("evaluateCompletedTracked (#3264)", () => {
 });
 
 describe("residual-honest completed-tracked (#5177)", () => {
+  const residualOwnedPlan = (
+    id: string,
+    opts: { status?: string; lean?: boolean } = {},
+  ): Record<string, unknown> => ({
+    status: opts.status ?? "proposed",
+    title: "residual",
+    id,
+    narratives: {
+      Origin: "Ingested from https://github.com/deftai/directive/issues/4544",
+    },
+    metadata: {
+      "x-directive/plan-id": {
+        version: 1,
+        source: "github-residual",
+        github_issue_id: 5453269518,
+        origin: "deftai/directive#4544",
+        id,
+      },
+    },
+    references: [
+      {
+        uri: "https://github.com/deftai/directive/issues/4544",
+        type: "x-xbrief/github-issue",
+      },
+    ],
+  });
+
   it("does not certify residual delivery from predecessor completed alone", () => {
     const root = makeGitRepo();
     const predecessorPlan = {
@@ -729,20 +756,39 @@ describe("residual-honest completed-tracked (#5177)", () => {
     writeBrief(root, "completed", "2026-09-23-4544-shipped.xbrief.json", predecessorPlan);
     git(root, ["add", "xbrief/completed/2026-09-23-4544-shipped.xbrief.json"]);
     git(root, ["commit", "-q", "-m", "land predecessor"]);
-    writeBrief(root, "proposed", "2026-09-30-4544-residual.xbrief.json", {
-      status: "proposed",
-      title: "residual",
-      id: "github.issue.residual.5453269518",
+    writeBrief(
+      root,
+      "proposed",
+      "2026-09-30-4544-residual.xbrief.json",
+      residualOwnedPlan("github.issue.residual.5453269518"),
+    );
+    writeCachedIssue(root, "deftai/directive", 4544, "closed");
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      issue: 4544,
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/residual/i);
+  });
+
+  it("does not let an earlier residual certify a later lean residual", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "completed", "2026-09-23-4544-shipped.xbrief.json", {
+      status: "completed",
+      title: "shipped predecessor",
+      id: "github.issue.5453269518",
       narratives: {
         Origin: "Ingested from https://github.com/deftai/directive/issues/4544",
       },
       metadata: {
         "x-directive/plan-id": {
           version: 1,
-          source: "github-residual",
+          source: "github-rest-id",
           github_issue_id: 5453269518,
           origin: "deftai/directive#4544",
-          id: "github.issue.residual.5453269518",
+          id: "github.issue.5453269518",
         },
       },
       references: [
@@ -752,6 +798,70 @@ describe("residual-honest completed-tracked (#5177)", () => {
         },
       ],
     });
+    writeBrief(
+      root,
+      "completed",
+      "2026-09-24-4544-earlier-residual.xbrief.json",
+      residualOwnedPlan("github.issue.residual.5453269518", { status: "completed" }),
+    );
+    git(root, ["add", "xbrief/completed"]);
+    git(root, ["commit", "-q", "-m", "land predecessor and earlier residual"]);
+    writeBrief(
+      root,
+      "proposed",
+      "2026-09-30-4544-lean-residual.xbrief.json",
+      residualOwnedPlan("github.issue.residual.5453269518.lean.5913432618"),
+    );
+    writeCachedIssue(root, "deftai/directive", 4544, "closed");
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      issue: 4544,
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/residual/i);
+  });
+
+  it("does not treat cancelled residual tip as completed land evidence", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "completed", "2026-09-23-4544-shipped.xbrief.json", {
+      status: "completed",
+      title: "shipped predecessor",
+      id: "github.issue.5453269518",
+      narratives: {
+        Origin: "Ingested from https://github.com/deftai/directive/issues/4544",
+      },
+      metadata: {
+        "x-directive/plan-id": {
+          version: 1,
+          source: "github-rest-id",
+          github_issue_id: 5453269518,
+          origin: "deftai/directive#4544",
+          id: "github.issue.5453269518",
+        },
+      },
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/4544",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeBrief(
+      root,
+      "cancelled",
+      "2026-09-25-4544-residual-cancelled.xbrief.json",
+      residualOwnedPlan("github.issue.residual.5453269518", { status: "cancelled" }),
+    );
+    git(root, ["add", "xbrief/completed", "xbrief/cancelled"]);
+    git(root, ["commit", "-q", "-m", "land predecessor; cancel residual"]);
+    writeBrief(
+      root,
+      "proposed",
+      "2026-09-30-4544-residual-again.xbrief.json",
+      residualOwnedPlan("github.issue.residual.5453269518.lean.2"),
+    );
     writeCachedIssue(root, "deftai/directive", 4544, "closed");
     const result = evaluateCompletedTracked(root, {
       repo: "deftai/directive",
