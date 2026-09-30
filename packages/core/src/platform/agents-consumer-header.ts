@@ -56,6 +56,32 @@ export function unmanagedHeaderOneLiner(agentsMd: string): string | null {
 }
 
 /**
+ * Replace the unmanaged-header one-liner only (same locus as
+ * {@link unmanagedHeaderOneLiner}). Skips headings and HTML-comment lines so a
+ * quoted scaffold sentence in a leading comment cannot steal the CAS (#4544).
+ */
+function replaceUnmanagedHeaderOneLiner(agentsMd: string, from: string, to: string): string | null {
+  const normalized = agentsMd.replace(/\r\n/g, "\n");
+  const region = unmanagedHeaderRegion(normalized);
+  const lines = region.split("\n");
+  let offset = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i] ?? "";
+    const line = raw.trim();
+    if (line.length === 0 || line.startsWith("#") || line.startsWith("<!--")) {
+      offset += raw.length + (i < lines.length - 1 ? 1 : 0);
+      continue;
+    }
+    if (line !== from) return null;
+    const idxInRaw = raw.indexOf(from);
+    if (idxInRaw < 0) return null;
+    const start = offset + idxInRaw;
+    return normalized.slice(0, start) + to + normalized.slice(start + from.length);
+  }
+  return null;
+}
+
+/**
  * Placeholder-only compare-and-set of the unmanaged AGENTS.md one-liner from
  * user-confirmed Overview. Leaves a custom header untouched. Overview is not
  * identity source of truth (#4544).
@@ -79,9 +105,16 @@ export function compareAndSetConsumerHeaderOneLiner(input: {
   if (oneLiner === CONSUMER_HEADER_PLACEHOLDER_ONELINER) {
     return { agentsMd: input.agentsMd, changed: false, reason: "already-matches" };
   }
-  // Function replacer: string replacement expands $&, $`, $', $$ in Overview.
+  const replaced = replaceUnmanagedHeaderOneLiner(
+    normalized,
+    CONSUMER_HEADER_PLACEHOLDER_ONELINER,
+    oneLiner,
+  );
+  if (replaced === null) {
+    return { agentsMd: input.agentsMd, changed: false, reason: "not-placeholder" };
+  }
   return {
-    agentsMd: normalized.replace(CONSUMER_HEADER_PLACEHOLDER_ONELINER, () => oneLiner),
+    agentsMd: replaced,
     changed: true,
     reason: "replaced-placeholder",
   };

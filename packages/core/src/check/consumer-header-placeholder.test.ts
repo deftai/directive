@@ -59,22 +59,22 @@ describe("evaluateConsumerHeaderPlaceholderAtRoot (#4544 Prefer-A)", () => {
     expect(custom.reason).toBe("not-placeholder");
   });
 
-  it("reads AGENTS.md and occupancy last_write_at from disk", () => {
-    const wrote = tempRoot();
+  it("treats last_write_at alone as Process-only; durable marker fails closed", () => {
+    const staleLease = tempRoot();
     writeFileSync(
-      join(wrote, "AGENTS.md"),
+      join(staleLease, "AGENTS.md"),
       `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
       "utf8",
     );
-    mkdirSync(join(wrote, ".deft"), { recursive: true });
+    mkdirSync(join(staleLease, ".deft"), { recursive: true });
     writeFileSync(
-      join(wrote, ".deft", "occupancy.json"),
+      join(staleLease, ".deft", "occupancy.json"),
       JSON.stringify({ last_write_at: "2026-09-30T12:00:00Z" }),
       "utf8",
     );
-    const fail = evaluateConsumerHeaderPlaceholderAtRoot(wrote);
-    expect(fail.ok).toBe(false);
-    expect(fail.reason).toBe("placeholder-with-product-mutation");
+    const stalePass = evaluateConsumerHeaderPlaceholderAtRoot(staleLease);
+    expect(stalePass.ok).toBe(true);
+    expect(stalePass.reason).toBe("process-only");
 
     const processOnly = tempRoot();
     writeFileSync(
@@ -85,6 +85,17 @@ describe("evaluateConsumerHeaderPlaceholderAtRoot (#4544 Prefer-A)", () => {
     const pass = evaluateConsumerHeaderPlaceholderAtRoot(processOnly);
     expect(pass.ok).toBe(true);
     expect(pass.reason).toBe("process-only");
+
+    const marked = tempRoot();
+    writeFileSync(
+      join(marked, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    recordProductMutationCompletion(marked, new Date("2026-09-30T12:00:00Z"));
+    const fail = evaluateConsumerHeaderPlaceholderAtRoot(marked);
+    expect(fail.ok).toBe(false);
+    expect(fail.reason).toBe("placeholder-with-product-mutation");
   });
 
   it("refuses placeholder after occupancy release when durable product-mutation marker remains", () => {

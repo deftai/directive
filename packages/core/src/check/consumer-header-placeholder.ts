@@ -1,8 +1,9 @@
 /**
  * Check-surface runner for the first-ship AGENTS header placeholder gate (#4544).
  *
- * Product-mutation completion is occupancy last_write_at or the durable
- * `.deft/cache/product-mutation-completion.json` marker (survives release).
+ * Product-mutation completion is the durable
+ * `.deft/cache/product-mutation-completion.json` marker written on intentional
+ * markWrite (survives release). Occupancy last_write_at alone is not enough.
  * Exact unmanaged-header one-liner only; Process-only and custom headers pass.
  * Returned failure — no throw.
  */

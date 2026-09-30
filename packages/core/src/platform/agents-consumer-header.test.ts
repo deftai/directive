@@ -89,6 +89,33 @@ describe("agents-consumer-header", () => {
     expect(skipEmpty.reason).toBe("empty-overview");
   });
 
+  it("compare-and-set replaces the header one-liner, not a leading HTML comment quote (#4544)", () => {
+    const managed = `${AGENTS_MANAGED_OPEN_V3_LITERAL}\n# Deft\n<!-- /deft:managed-section -->`;
+    const agentsMd = [
+      `<!-- scaffold said: ${CONSUMER_HEADER_PLACEHOLDER_ONELINER} -->`,
+      "# Project",
+      "",
+      CONSUMER_HEADER_PLACEHOLDER_ONELINER,
+      "",
+      "## Session orientation",
+      "",
+      managed,
+      "",
+    ].join("\n");
+    expect(unmanagedHeaderOneLiner(agentsMd)).toBe(CONSUMER_HEADER_PLACEHOLDER_ONELINER);
+    const cas = compareAndSetConsumerHeaderOneLiner({
+      agentsMd,
+      confirmedOverview: "Garden notes CRUD.",
+    });
+    expect(cas.changed).toBe(true);
+    expect(cas.reason).toBe("replaced-placeholder");
+    expect(cas.agentsMd).toContain(
+      `<!-- scaffold said: ${CONSUMER_HEADER_PLACEHOLDER_ONELINER} -->`,
+    );
+    expect(unmanagedHeaderOneLiner(cas.agentsMd)).toBe("Garden notes CRUD.");
+    expect(agentsMdContainsExactPlaceholder(cas.agentsMd)).toBe(false);
+  });
+
   it("fallback header (no template) has no extra blank line before the managed section", () => {
     const managed = `${AGENTS_MANAGED_OPEN_V3_LITERAL}\n# Deft\n<!-- /deft:managed-section -->`;
     const composed = composeGreenfieldAgentsMd(managed, { readTemplate: () => null });
