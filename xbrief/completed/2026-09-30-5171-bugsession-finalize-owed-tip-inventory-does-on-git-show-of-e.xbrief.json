@@ -1,0 +1,175 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5171",
+    "updated": "2026-09-30T03:37:28Z"
+  },
+  "plan": {
+    "title": "bug(session): finalize-owed tip inventory does O(n) git show of every completed xBRIEF; --defer-owed still scans (~10min)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Batch finalize-owed tip inventory (#5171)",
+      "Origin": "Ingested from GitHub issue #5171",
+      "Overview": "Bound from design-critique #5171. Batch finalize-owed tip inventory via showBlobsBatch; reverse Prefer-A inventory skip; keep scan on every mutation session start.",
+      "Labels": "bug",
+      "AcceptanceCriteria": "finalize-owed tip plan reads use showBlobsBatch (chunked under 64MiB); silent whole-N git show fallback is not a green path\ndiscoverFinalizeOwed uses one list -> batch -> Map; tipHasTwin/completed loop do not re-spawn git show for mapped paths\nevaluateFinalizeOwedSessionGate no longer skips discoverFinalizeOwed when --defer-owed is set; defer only clears blocks\nfocused tests lock batch/chunk inventory and deferred-still-inventories behavior\nCHANGELOG [Unreleased] entry for the fix"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Chunked showBlobsBatch for finalize-owed tip plan reads; forbid silent whole-N git show fallback",
+        "status": "done",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/git.test.ts + session-start-finalize-owed.test.ts + swarm/finalize-owed.test.ts (vitest 57 passed); PR #5172 Greptile CLEAN sha 187ea192bd93",
+          "recorded_at": "2026-09-30T05:20:53.231Z",
+          "recorded_by": "host:grok:v1:MDFhMGYwMTktZTkzNS03N2MyLTg2NjUtOTRiMjA5NjA2NzQ3"
+        }
+      },
+      {
+        "id": "2",
+        "title": "Map-backed twin/completed loops after one tip inventory batch",
+        "status": "done",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/git.test.ts + session-start-finalize-owed.test.ts + swarm/finalize-owed.test.ts (vitest 57 passed); PR #5172 Greptile CLEAN sha 187ea192bd93",
+          "recorded_at": "2026-09-30T05:20:53.231Z",
+          "recorded_by": "host:grok:v1:MDFhMGYwMTktZTkzNS03N2MyLTg2NjUtOTRiMjA5NjA2NzQ3"
+        }
+      },
+      {
+        "id": "3",
+        "title": "Reverse Prefer-A #5145 inventory-skip early return; defer = block-suppress after inventory",
+        "status": "done",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/git.test.ts + session-start-finalize-owed.test.ts + swarm/finalize-owed.test.ts (vitest 57 passed); PR #5172 Greptile CLEAN sha 187ea192bd93",
+          "recorded_at": "2026-09-30T05:20:53.231Z",
+          "recorded_by": "host:grok:v1:MDFhMGYwMTktZTkzNS03N2MyLTg2NjUtOTRiMjA5NjA2NzQ3"
+        }
+      },
+      {
+        "id": "4",
+        "title": "Keep inventory on every mutation session:start/--rearm; no first-ship day-cache",
+        "status": "done",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/git.test.ts + session-start-finalize-owed.test.ts + swarm/finalize-owed.test.ts (vitest 57 passed); PR #5172 Greptile CLEAN sha 187ea192bd93",
+          "recorded_at": "2026-09-30T05:20:53.231Z",
+          "recorded_by": "host:grok:v1:MDFhMGYwMTktZTkzNS03N2MyLTg2NjUtOTRiMjA5NjA2NzQ3"
+        }
+      },
+      {
+        "id": "5",
+        "title": "Regression tests for batch/chunk path and deferred-still-runs-inventory",
+        "status": "done",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/git.test.ts + session-start-finalize-owed.test.ts + swarm/finalize-owed.test.ts (vitest 57 passed); PR #5172 Greptile CLEAN sha 187ea192bd93",
+          "recorded_at": "2026-09-30T05:20:53.231Z",
+          "recorded_by": "host:grok:v1:MDFhMGYwMTktZTkzNS03N2MyLTg2NjUtOTRiMjA5NjA2NzQ3"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5171",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5171: bug(session): finalize-owed tip inventory does O(n) git show of every completed xBRIEF; --defer-owed still scans (~10min)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/swarm/finalize-owed.test.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start-finalize-owed.test.ts",
+          "packages/core/src/session/git.ts",
+          "packages/core/src/session/git.test.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "size": "S",
+        "verify_commands": [],
+        "depends_on": [],
+        "expected_outputs": [
+          "PR fixing #5171 tip inventory batch path"
+        ],
+        "conflict_group": "session-finalize-owed",
+        "model_tier": "standard"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5640216330,
+        "origin": "deftai/directive#5171",
+        "id": "github.issue.5640216330"
+      },
+      "productIssue": 5171
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "stated",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Wire finalize-owed tip plan reads through chunked showBlobsBatch in packages/core/src/swarm/finalize-owed.ts",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Map-backed twin and completed loops in packages/core/src/swarm/finalize-owed.ts",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Reverse Prefer-A inventory skip in packages/core/src/session/session-start.ts so defer only clears blocks",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Add regression tests in packages/core/src/swarm/finalize-owed.test.ts and packages/core/src/session/session-start-finalize-owed.test.ts",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Document the fix in CHANGELOG.md",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "sentences": [
+        "Wire finalize-owed tip plan reads through chunked showBlobsBatch in packages/core/src/swarm/finalize-owed.ts",
+        "Map-backed twin and completed loops in packages/core/src/swarm/finalize-owed.ts",
+        "Reverse Prefer-A inventory skip in packages/core/src/session/session-start.ts so defer only clears blocks",
+        "Add regression tests in packages/core/src/swarm/finalize-owed.test.ts and packages/core/src/session/session-start-finalize-owed.test.ts",
+        "Document the fix in CHANGELOG.md"
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5640216330",
+    "updated": "2026-09-30T03:37:28Z"
+  }
+}
