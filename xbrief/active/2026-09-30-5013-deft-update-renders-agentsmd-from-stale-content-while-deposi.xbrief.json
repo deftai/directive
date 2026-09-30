@@ -24,10 +24,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedAt": "2026-09-30T21:33:03.835Z",
             "mintedVia": "leftover-complete-after-5189"
           },
-          "recorded_at": "2026-09-30T21:27:28.151Z"
+          "recorded_at": "2026-09-30T21:33:03.835Z"
         }
       },
       {
@@ -40,10 +40,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedAt": "2026-09-30T21:33:03.835Z",
             "mintedVia": "leftover-complete-after-5189"
           },
-          "recorded_at": "2026-09-30T21:27:28.151Z"
+          "recorded_at": "2026-09-30T21:33:03.835Z"
         }
       },
       {
@@ -56,10 +56,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedAt": "2026-09-30T21:33:03.835Z",
             "mintedVia": "leftover-complete-after-5189"
           },
-          "recorded_at": "2026-09-30T21:27:28.151Z"
+          "recorded_at": "2026-09-30T21:33:03.835Z"
         }
       },
       {
@@ -72,10 +72,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedAt": "2026-09-30T21:33:03.835Z",
             "mintedVia": "leftover-complete-after-5189"
           },
-          "recorded_at": "2026-09-30T21:27:28.151Z"
+          "recorded_at": "2026-09-30T21:33:03.835Z"
         }
       },
       {
@@ -88,10 +88,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedAt": "2026-09-30T21:33:03.835Z",
             "mintedVia": "leftover-complete-after-5189"
           },
-          "recorded_at": "2026-09-30T21:27:28.151Z"
+          "recorded_at": "2026-09-30T21:33:03.835Z"
         }
       },
       {
@@ -104,10 +104,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T21:27:28.151Z",
+            "mintedAt": "2026-09-30T21:33:03.835Z",
             "mintedVia": "leftover-complete-after-5189"
           },
-          "recorded_at": "2026-09-30T21:27:28.151Z"
+          "recorded_at": "2026-09-30T21:33:03.835Z"
         }
       }
     ],
@@ -140,27 +140,18 @@
           "command": "pnpm exec vitest run packages/core/src/init-deposit/scaffold.test.ts packages/core/src/init-deposit/refresh.test.ts"
         }
       ],
-      "none_stated": true,
-      "source_rung": "derived",
+      "none_stated": false,
+      "source_rung": "stated",
       "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
       "admitted_source_sentences": [
-        "Same-root AGENTS render on update. In the `deft update` / `runRefreshDeposit` path, make `writeAgentsMd` read `templates/agents-entry.md` from the same content tree just reconciled for deposit (engine `resolveInstalledContentRoot()` result and/or post-copy `.deft/core` via explicit `readTemplate` / `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` seams).",
-        "Do not rely on bare `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })`, which still walks `contentRoot()` prefer-package and can hit a stale project `node_modules/@deftai/directive-content`.",
-        "Stamp identity of the rendered tree. Stamp managed-section `sha=` from that same tree's version (headless `collectAgentsMdFile` / `resolveSha: () => version` pattern).",
-        "Frame P2 as stamp identity MUST equal the content tree used for the managed body in that write.",
-        "Do not bind primary AC to the `agents:refresh` \"unchanged - sha match\" CLI phrase; that phrase is body-equality currentness after `stripManagedSectionAttrs`, not the attr stamp.",
+        "Same-root AGENTS render on update. In the `deft update` / `runRefreshDeposit` path, make `writeAgentsMd` read `templates/agents-entry.md` from the same content tree just reconciled for deposit (engine `resolveInstalledContentRoot()` result and/or post-copy `.deft/core` via explicit `readTemplate` / `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` seams). Do not rely on bare `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })`, which still walks `contentRoot()` prefer-package and can hit a stale project `node_modules/@deftai/directive-content`.",
+        "Stamp identity of the rendered tree. Stamp managed-section `sha=` from that same tree's version (headless `collectAgentsMdFile` / `resolveSha: () => version` pattern). Frame P2 as stamp identity MUST equal the content tree used for the managed body in that write. Do not bind primary AC to the `agents:refresh` \"unchanged - sha match\" CLI phrase; that phrase is body-equality currentness after `stripManagedSectionAttrs`, not the attr stamp.",
         "Regression. Add a fixture that installs divergent engine vs project content-package versions and asserts post-update AGENTS managed body matches deposited `.deft/core/templates/agents-entry.md`, with `sha=` from that same tree.",
-        "Companion disclosure only. `npm ci` / install-ordering messaging may accompany for remaining prefer-package readers (`agents:refresh` default path).",
-        "It is not Prefer-A alone and must not be an alternate first-ship fix that leaves a green update able to commit deposit/AGENTS disagreement.",
-        "If an \"installed package is SoT\" branch is kept, it must refuse or warn-fail the AGENTS write when engine content root and project prefer-package root diverge mid-update.",
+        "Companion disclosure only. `npm ci` / install-ordering messaging may accompany for remaining prefer-package readers (`agents:refresh` default path). It is not Prefer-A alone and must not be an alternate first-ship fix that leaves a green update able to commit deposit/AGENTS disagreement. If an \"installed package is SoT\" branch is kept, it must refuse or warn-fail the AGENTS write when engine content root and project prefer-package root diverge mid-update.",
         "Surfaces. `packages/core/src/init-deposit/scaffold.ts` (`writeAgentsMd`); `packages/core/src/init-deposit/refresh.ts` (call site); reuse `#4706` helpers in doctor/content-root adjacent modules (`readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate`); headless same-root pointer in `headless-manifest.ts` as the invariant exemplar; tests under init-deposit / content-root; CHANGELOG Unreleased.",
-        "Non-goals. Do not globally recut `contentRoot()` prefer-package (explicitly deferred by #4706).",
-        "Do not expand into the #5011 clause:N id pattern.",
-        "Do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency.",
-        "Do not auto-ingest after ingest-ready.",
-        "relieves: P1 relieves: P2 Target-digest: sha256:ad2b3cde6200b25661d4fb284e10330614958a576a7cff20292136351e1b8995"
+        "Non-goals. Do not globally recut `contentRoot()` prefer-package (explicitly deferred by #4706). Do not expand into the #5011 clause:N id pattern. Do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency. Do not auto-ingest after ingest-ready."
       ],
-      "admitted_source_digest": "b2046b12140f5aec7bd945c5d8c46061662bfea93d18b1f9ef789f7a40951f92",
+      "admitted_source_digest": "acdb9d1f69bfb0cf8edf56ef8d1874db6ce6b8df8d117927f959579ed63f85fc",
       "clauses": [
         {
           "id": 1,
@@ -213,21 +204,6 @@
         "Companion disclosure only. `npm ci` / install-ordering messaging may accompany for remaining prefer-package readers (`agents:refresh` default path). It is not Prefer-A alone and must not be an alternate first-ship fix that leaves a green update able to commit deposit/AGENTS disagreement. If an \"installed package is SoT\" branch is kept, it must refuse or warn-fail the AGENTS write when engine content root and project prefer-package root diverge mid-update.",
         "Surfaces. `packages/core/src/init-deposit/scaffold.ts` (`writeAgentsMd`); `packages/core/src/init-deposit/refresh.ts` (call site); reuse `#4706` helpers in doctor/content-root adjacent modules (`readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate`); headless same-root pointer in `headless-manifest.ts` as the invariant exemplar; tests under init-deposit / content-root; CHANGELOG Unreleased.",
         "Non-goals. Do not globally recut `contentRoot()` prefer-package (explicitly deferred by #4706). Do not expand into the #5011 clause:N id pattern. Do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency. Do not auto-ingest after ingest-ready."
-      ],
-      "confessions": [
-        "Same-root AGENTS render on update. In the `deft update` / `runRefreshDeposit` path, make `writeAgentsMd` read `templates/agents-entry.md` from the same content tree just reconciled for deposit (engine `resolveInstalledContentRoot()` result and/or post-copy `.deft/core` via explicit `readTemplate` / `readAgentsTemplateFromContentTree` / `agentsRefreshPlanWithInstalledTemplate` seams).",
-        "Do not rely on bare `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })`, which still walks `contentRoot()` prefer-package and can hit a stale project `node_modules/@deftai/directive-content`.",
-        "Stamp identity of the rendered tree. Stamp managed-section `sha=` from that same tree's version (headless `collectAgentsMdFile` / `resolveSha: () => version` pattern).",
-        "Frame P2 as stamp identity MUST equal the content tree used for the managed body in that write.",
-        "Do not bind primary AC to the `agents:refresh` \"unchanged - sha match\" CLI phrase; that phrase is body-equality currentness after `stripManagedSectionAttrs`, not the attr stamp.",
-        "Companion disclosure only. `npm ci` / install-ordering messaging may accompany for remaining prefer-package readers (`agents:refresh` default path).",
-        "It is not Prefer-A alone and must not be an alternate first-ship fix that leaves a green update able to commit deposit/AGENTS disagreement.",
-        "If an \"installed package is SoT\" branch is kept, it must refuse or warn-fail the AGENTS write when engine content root and project prefer-package root diverge mid-update.",
-        "Non-goals. Do not globally recut `contentRoot()` prefer-package (explicitly deferred by #4706).",
-        "Do not expand into the #5011 clause:N id pattern.",
-        "Do not redesign the full update dirty-tree / write-class ledger (#5096 class) beyond AGENTS render source + sha stamp consistency.",
-        "Do not auto-ingest after ingest-ready.",
-        "relieves: P1 relieves: P2 Target-digest: sha256:ad2b3cde6200b25661d4fb284e10330614958a576a7cff20292136351e1b8995"
       ]
     },
     "metadata": {
