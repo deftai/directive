@@ -1,0 +1,601 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5177",
+    "updated": "2026-09-30T15:48:43Z"
+  },
+  "plan": {
+    "title": "Residual re-ingest verb for needs-re-scope reopeneds (Prefer-A / #5177)",
+    "status": "running",
+    "narratives": {
+      "Description": "framework-gap: reopened shipped issues (DCR/regression) have needs-re-scope but no residual re-ingest verb",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5177",
+      "Overview": "Reopened shipped issues have needs-re-scope but no residual re-ingest path. Bound Prefer-A (lean 5914510206): distinct residual plan.id + lineage; shared ownership for detect/admit; residual ingest mode keeping completed-arc/Target-digest gates; retire sticky needs-re-scope once residual is live; residual-honest completed-tracked. Occurrence #4544; adjacent #3717/#3857 insufficient.",
+      "Labels": "bug, design, adoption-blocker, agent-experience, process, source-of-truth, urgent, area:cli, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities, promise:records"
+    },
+    "items": [
+      {
+        "title": "Distinct residual identity (Prefer-A): residual brief MUST NOT reuse github.issue.<REST_ID> while that id occupies any lifecycle folder including completed/. Mint unique residual plan.id (PLAN_ID_FORMAT / parseStoredPlanIdBinding compatible) with lineage to predecessor github.issue.<REST_ID> / completed path. Reject generic --force or admission exemption allowing two live artifacts under one github.issue.N. Second residual mint for the same admitted residual returns/refuses rather than double-writing.",
+        "status": "completed",
+        "id": "clause-1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5180 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 9013e229c8de371f4ed95ac130169a01d17a864c.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:29:48.546Z",
+            "mintedVia": "leftover-complete-after-5180"
+          },
+          "recorded_at": "2026-09-30T22:29:48.546Z"
+        }
+      },
+      {
+        "title": "One shared ownership predicate: Detect (Stage A / validity) and Admit (ingest residual mode) MUST key on the same identity - ingest-owner origin and/or plan.id - not the bare references scan that false-positives needs-re-scope on cross-mentioned open issues. evaluateValidity completed hits for this class resolve through that ownership predicate before printing recovery.",
+        "status": "completed",
+        "id": "clause-2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5180 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 9013e229c8de371f4ed95ac130169a01d17a864c.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:29:48.546Z",
+            "mintedVia": "leftover-complete-after-5180"
+          },
+          "recorded_at": "2026-09-30T22:29:48.546Z"
+        }
+      },
+      {
+        "title": "Admit residual verb/mode: supported issue:ingest residual/re-scope mode (or sibling verb) that, given GitHub open + owned completed history + ingest-ready residual Bound, writes a new proposed residual xBRIEF without hand-quarantining completed/. Keep assertCompletedArcAllowsIngest / Bound-remedy harvest / evaluateTargetDigestAdmission after identity is solved.",
+        "status": "completed",
+        "id": "clause-3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5180 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 9013e229c8de371f4ed95ac130169a01d17a864c.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:29:48.546Z",
+            "mintedVia": "leftover-complete-after-5180"
+          },
+          "recorded_at": "2026-09-30T22:29:48.546Z"
+        }
+      },
+      {
+        "title": "Retire sticky needs-re-scope: once a non-terminal residual for that ownership exists, Stage A MUST NOT keep printing the mint recovery as if admission failed. Successor state and/or evidence names completed history path + live residual path; recovery verb prints only when no non-terminal residual exists.",
+        "status": "completed",
+        "id": "clause-4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5180 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 9013e229c8de371f4ed95ac130169a01d17a864c.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:29:48.546Z",
+            "mintedVia": "leftover-complete-after-5180"
+          },
+          "recorded_at": "2026-09-30T22:29:48.546Z"
+        }
+      },
+      {
+        "title": "Residual-honest completion: verify:completed-tracked (or successor) for a residual ship MUST require completion evidence for the admitted residual identity; predecessor completed alone MUST NOT certify residual delivery. Preserve prior completed/ on disk.",
+        "status": "completed",
+        "id": "clause-5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5180 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 9013e229c8de371f4ed95ac130169a01d17a864c.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:29:48.546Z",
+            "mintedVia": "leftover-complete-after-5180"
+          },
+          "recorded_at": "2026-09-30T22:29:48.546Z"
+        }
+      },
+      {
+        "title": "Discoverable recovery: duplicate ingest message for this class and Stage A needs-re-scope (pre-admit only) name the same residual verb. Guidance in pack/commands + CHANGELOG [Unreleased] when shipped.",
+        "status": "completed",
+        "id": "clause-6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5180 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 9013e229c8de371f4ed95ac130169a01d17a864c.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:29:48.546Z",
+            "mintedVia": "leftover-complete-after-5180"
+          },
+          "recorded_at": "2026-09-30T22:29:48.546Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:records"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5177",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5177: framework-gap: reopened shipped issues (DCR/regression) have needs-re-scope but no residual re-ingest verb"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/lifecycle/completed-tracked-on-delivery.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": null,
+      "sentences": [
+        "Distinct residual identity (Prefer-A): residual brief MUST NOT reuse github.issue.<REST_ID> while that id occupies any lifecycle folder including completed/. Mint unique residual plan.id (PLAN_ID_FORMAT / parseStoredPlanIdBinding compatible) with lineage to predecessor github.issue.<REST_ID> / completed path. Reject generic --force or admission exemption allowing two live artifacts under one github.issue.N. Second residual mint for the same admitted residual returns/refuses rather than double-writing.",
+        "One shared ownership predicate: Detect (Stage A / validity) and Admit (ingest residual mode) MUST key on the same identity - ingest-owner origin and/or plan.id - not the bare references scan that false-positives needs-re-scope on cross-mentioned open issues. evaluateValidity completed hits for this class resolve through that ownership predicate before printing recovery.",
+        "Admit residual verb/mode: supported issue:ingest residual/re-scope mode (or sibling verb) that, given GitHub open + owned completed history + ingest-ready residual Bound, writes a new proposed residual xBRIEF without hand-quarantining completed/. Keep assertCompletedArcAllowsIngest / Bound-remedy harvest / evaluateTargetDigestAdmission after identity is solved.",
+        "Retire sticky needs-re-scope: once a non-terminal residual for that ownership exists, Stage A MUST NOT keep printing the mint recovery as if admission failed. Successor state and/or evidence names completed history path + live residual path; recovery verb prints only when no non-terminal residual exists.",
+        "Residual-honest completion: verify:completed-tracked (or successor) for a residual ship MUST require completion evidence for the admitted residual identity; predecessor completed alone MUST NOT certify residual delivery. Preserve prior completed/ on disk.",
+        "Discoverable recovery: duplicate ingest message for this class and Stage A needs-re-scope (pre-admit only) name the same residual verb. Guidance in pack/commands + CHANGELOG [Unreleased] when shipped."
+      ],
+      "admitted_source_sentences": [
+        "Distinct residual identity (Prefer-A): residual brief MUST NOT reuse github.issue.<REST_ID> while that id occupies any lifecycle folder including completed/. Mint unique residual plan.id (PLAN_ID_FORMAT / parseStoredPlanIdBinding compatible) with lineage to predecessor github.issue.<REST_ID> / completed path. Reject generic --force or admission exemption allowing two live artifacts under one github.issue.N. Second residual mint for the same admitted residual returns/refuses rather than double-writing.",
+        "One shared ownership predicate: Detect (Stage A / validity) and Admit (ingest residual mode) MUST key on the same identity - ingest-owner origin and/or plan.id - not the bare references scan that false-positives needs-re-scope on cross-mentioned open issues. evaluateValidity completed hits for this class resolve through that ownership predicate before printing recovery.",
+        "Admit residual verb/mode: supported issue:ingest residual/re-scope mode (or sibling verb) that, given GitHub open + owned completed history + ingest-ready residual Bound, writes a new proposed residual xBRIEF without hand-quarantining completed/. Keep assertCompletedArcAllowsIngest / Bound-remedy harvest / evaluateTargetDigestAdmission after identity is solved.",
+        "Retire sticky needs-re-scope: once a non-terminal residual for that ownership exists, Stage A MUST NOT keep printing the mint recovery as if admission failed. Successor state and/or evidence names completed history path + live residual path; recovery verb prints only when no non-terminal residual exists.",
+        "Residual-honest completion: verify:completed-tracked (or successor) for a residual ship MUST require completion evidence for the admitted residual identity; predecessor completed alone MUST NOT certify residual delivery. Preserve prior completed/ on disk.",
+        "Discoverable recovery: duplicate ingest message for this class and Stage A needs-re-scope (pre-admit only) name the same residual verb. Guidance in pack/commands + CHANGELOG [Unreleased] when shipped."
+      ],
+      "admitted_source_digest": "d5b04c4f8364f4def3f5152d0ae736c4f09e9e1af3295e0e9fa4f96a473fa9b3",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Distinct residual identity (Prefer-A): residual brief MUST NOT reuse github.issue.<REST_ID> while that id occupies any lifecycle folder including completed/. Mint unique residual plan.id (PLAN_ID_FORMAT / parseStoredPlanIdBinding compatible) with lineage to predecessor github.issue.<REST_ID> / completed path. Reject generic --force or admission exemption allowing two live artifacts under one github.issue.N. Second residual mint for the same admitted residual returns/refuses rather than double-writing.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "One shared ownership predicate: Detect (Stage A / validity) and Admit (ingest residual mode) MUST key on the same identity - ingest-owner origin and/or plan.id - not the bare references scan that false-positives needs-re-scope on cross-mentioned open issues. evaluateValidity completed hits for this class resolve through that ownership predicate before printing recovery.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Admit residual verb/mode: supported issue:ingest residual/re-scope mode (or sibling verb) that, given GitHub open + owned completed history + ingest-ready residual Bound, writes a new proposed residual xBRIEF without hand-quarantining completed/. Keep assertCompletedArcAllowsIngest / Bound-remedy harvest / evaluateTargetDigestAdmission after identity is solved.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Retire sticky needs-re-scope: once a non-terminal residual for that ownership exists, Stage A MUST NOT keep printing the mint recovery as if admission failed. Successor state and/or evidence names completed history path + live residual path; recovery verb prints only when no non-terminal residual exists.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Residual-honest completion: verify:completed-tracked (or successor) for a residual ship MUST require completion evidence for the admitted residual identity; predecessor completed alone MUST NOT certify residual delivery. Preserve prior completed/ on disk.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 6,
+          "text": "Discoverable recovery: duplicate ingest message for this class and Stage A needs-re-scope (pre-admit only) name the same residual verb. Guidance in pack/commands + CHANGELOG [Unreleased] when shipped.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": null
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Current known state (2026-09-30 Stage A)\n\nStage A `task triage:evaluate -- 5177` on origin/master `fc1363287967`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/fc1363287967/5e552011-fd3a-431b-a068-6c46a5f5c3fa`\n\n### Live gap\n\nDCR/regression reopeners leave GitHub **open** after a completed xBRIEF already landed on origin/master. Stage A correctly names `needs-re-scope`, but `issue:ingest` duplicate-refuses against `completed/` with no residual / re-scope mode. Occurrence: #4544 residual Bound Prefer-A (lean 5913432618 / synth 5913491364) blocked at ingest. Adjacent #3717 (pre-complete scaffold re-ingest) and #3857 (origin divergence bump) do not mint a new residual proposed brief after completed. Outcomes fixed; remedy shape open.\n\n### Spend recommendation\n\nOpen remedy shape + lifecycle/ingest/provenance blast. Recommended Dual-stop **N≥3**. Operator utterance `label and arc 5177 n=3` resolves spend to **N≥3** (`spend-ask: resolved`). `#5111` defaults: no-ingest, yolo-standing.\n\nTarget-digest sha256:8e1a1c32c6f5e102539344688e7bb61df0cf045d3c4889fcc871aec50b338905\n\n",
+          "id": 5913865310,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5913865310",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:58:25Z",
+          "updated_at": "2026-09-30T14:58:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Stage A needs-re-scope plus ingest-ready residual Bound still has no supported admit path into proposed/ - operators hit completed/ duplicate refuse and fall to quarantine dances; occurrence #4544 Bound Prefer-A stalled at ingest.\n\ncharter: open critique\nrefutation-target: When GitHub is open, a completed brief already sits on origin/<deliveryBranch>, and an ingest-ready residual Bound exists, Directive may leave operators without a supported residual re-ingest/re-scope verb - so duplicate refuse against completed/ plus hand-quarantine or hand-authored briefs remains an acceptable path.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N≥3\nspend-ask: resolved\nspend-recommend: N≥3\npain: P1, P2, P3, P4\n\nP1. Operators with ingest-ready residual Bound on a DCR-reopened issue cannot mint a new proposed residual brief without hand-quarantining completed/.\nP2. Stage A needs-re-scope is discoverable but does not name a recovery verb in operator-visible evaluate/queue output.\nP3. issue:ingest duplicate message for this class says only already-ingested; it does not point at residual re-scope recovery.\nP4. Any remedy must preserve completed/ history and must not silently re-bind the old completed lean/synthesis when a newer Bound exists.\n\nOperator directed label and arc 5177 n=3 using #5111 defaults (no-ingest, yolo) with explicit Dual-stop N≥3. Outcomes fixed; shape open. Non-goals: auto-closing reopened issues; auto-implement; weakening design-critique ingest admission (stale-target / pain-audit); absorbing #4544 product residual into this process issue; treating #3717/#3857 as sufficient.\n\nTarget-digest sha256:8e1a1c32c6f5e102539344688e7bb61df0cf045d3c4889fcc871aec50b338905\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5177-dc\npin-kind: origin-default\n\n",
+          "id": 5913865725,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5913865725",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:58:26Z",
+          "updated_at": "2026-09-30T14:58:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Launch probe (N≥3) - Claude not launchable\n\nBefore panel-deposit, critic-bypass pong probes at dest `issue-5177-dc` / dispatch-sha `fc1363287967413846934ecac824c2be1a6e6d51`:\n\n| Family | Result |\n|---|---|\n| codex | ok (rc0, pong) |\n| grok | ok (rc0, pong) |\n| claude | **fail** - `claude auth status` loggedIn=false; probe: OAuth session expired and could not be refreshed |\n\nNo panel-deposit posted. No sibling critics launched. Stop 1 `5913865725` still records `spend: N≥3` / `spend-ask: resolved` from operator `n=3`.\n\nContract recovery: **amend-the-spend-down** with this reason, or **dispatch-fail halt** until Claude is re-authed (`claude auth login`) and the three-family probe is re-run.\n\nPaste-ready is not admitted while `claude` resolves on PATH (`evaluatePanelSeatComposition` paste-ready-first refuse).\r\n\n",
+          "id": 5913880583,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5913880583",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T14:59:18Z",
+          "updated_at": "2026-09-30T14:59:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Launch probe resumed - all three families ok\n\nClaude OAuth restored (`loggedIn: true`, team). Re-ran critic-bypass pong at dest `issue-5177-dc`:\n\n| Family | Result |\n|---|---|\n| claude | ok (rc0, pong; tools disabled + probe system-prompt to avoid dest AGENTS hijack) |\n| codex | ok (rc0, pong) |\n| grok | ok (rc0, pong) |\n\nContinuing from Stop 1 5913865725 with spend N≥3. Panel-deposit next.\n\n",
+          "id": 5914221762,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5914221762",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:18:30Z",
+          "updated_at": "2026-09-30T15:18:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5914222143\nfamilies: grok, claude, codex\n\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\n\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\nstop1: 5913865725\nprobe-resume: 5914221762\nLaunch probes: claude/codex/grok critic-bypass pong rc0 after Claude re-auth.\n\n",
+          "id": 5914222143,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5914222143",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:18:31Z",
+          "updated_at": "2026-09-30T15:18:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nOpen critique, round 1. Read issue #5177 and comments only through 5914222143; HEAD equals dispatch SHA `fc1363287967413846934ecac824c2be1a6e6d51`. All code below was read with `git show` at that SHA. No fetch, checkout, ingest, or product edits.\n\nThe missing admission path is real. The open remedy should distinguish an issue's identity from each residual contract's identity, and carry that distinction through detection and completion.\n\n## A new filename does not clear the second identity gate\nsharpens-framing\nEvidence: `ingestOne` first refuses provenance duplicates, but later calls `evaluateIssuePlanIdAdmission`. `mintIssuePlanId` mints `github.issue.<REST_ID>`; `findParentsByPlanId` searches completed and cancelled as well as nonterminal folders. I executed the SHA-extracted admission function with a completed-occupant census seam: a proposed artifact using `github.issue.123` returned `code: duplicate`. Stored mint validation also requires the REST-derived ID to match, so merely suffixing plan.id while retaining its current binding conflicts.\nFailure mode: ignoring completed provenance or changing the filename still cannot admit the residual. Bypassing both identity checks instead makes parent recovery by plan.id ambiguous and risks treating retries or concurrent invocations as distinct work.\nDisposition: retain the outcome, but specify a unique residual contract identity with predecessor and admitted-arc lineage, compatible identity metadata, and repeat behavior. Keep the existing identity lock and no-overwrite checks; under that lock, an already admitted residual must be returned/refused rather than minted again. A generic force flag is the rejected alternative: it is smaller, but would need these same constraints to preserve history and uniqueness.\n\n## Historical completion must not keep prescribing admission after admission\nsharpens-framing\nEvidence: I executed SHA-extracted `evaluateValidity` and `listXbriefHits` against an OS-temp fixture containing both completed and proposed briefs referencing #4544, then called `joinValidityWithGithub(..., \"open\")`. Result: `needs-re-scope`. The completed branch precedes all nonterminal branches. The reference scanner also counts referenced issue numbers without distinguishing own origin from related references.\nFailure mode: adding a recovery command to the existing state makes the successful residual admission continue to look like missing scope. Repeated recovery suggestions can send the operator back to duplicate refusal; a related reference alone can also overstate eligibility.\nDisposition: make the recovery conditional on absence of an already admitted current residual, or distinguish historical shipment from current residual coverage in the rendered state. Treat Stage A as a discovery signal, not authorization: the admission operation must verify repository-scoped own origin and completed history itself. Cover completed-only, completed-plus-proposed/active, and related-reference-only fixtures.\n\n## Old shipped history is already sufficient for the completion verifier\nsharpens-framing\nEvidence: `evaluateCompletedTracked` builds `landedKeys` from terminal artifacts using repo plus issue number, then skips a matching origin before looking up issue state. I executed the SHA-extracted evaluator with mocked filesystem/git collection seams representing an old completed artifact and a new proposed residual for the same issue. It returned code 0, missing=[], and made zero calls to the supplied closed-state resolver. This is a targeted evaluator probe, not a live end-to-end lifecycle run.\nFailure mode: after the reopened issue closes again, the old completed brief can satisfy `verify:completed-tracked --issue 4544` even while the residual completion has not landed. Preserving the old file is necessary but does not itself keep this check honest.\nDisposition: explicitly require completion evidence for the admitted residual identity, without deleting or rewriting prior history. Include a regression where only the predecessor is tracked completed and the residual is still proposed or completed only locally; that must not certify residual delivery. Keep separate orphan-active enforcement, which does not establish that a locally completed residual landed.\n\n## Reuse the existing contract selector\nfootnote\nEvidence: `ingestOne` already uses completed-arc admission, latest-lean evaluation, Bound-remedy harvest, target-digest admission, scanning, containment, identity locking, and no-overwrite checks. The CLI parser has no residual mode. `evaluateCompletedArcRecord` already refuses an older completed record when a newer successor lean lacks matching completion.\nFailure mode: a parallel residual importer that trusts the ingest-ready label or copies issue-body acceptance would discard existing wrong-contract protection.\nDisposition: preserve this pipeline and persist its selected arc identity on the new residual. This supports the issue's stated non-goal; it does not require another semantic parser or another critique protocol.",
+          "id": 5914306146,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5914306146",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:23:01Z",
+          "updated_at": "2026-09-30T15:23:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\ncharter: open critique\nround: 1\nseat: grok\nlauncher: grok\nid-ceiling: 5914222143\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\narc-mode: no-ingest\naudit-targets: none\ntarget: https://github.com/deftai/directive/issues/5177\n\nOpen critique of the residual re-ingest / re-scope design space against the fixed outcomes (detect, admit residual, preserve history, refuse wrong contract, discoverable recovery). Stop 1 refutation-target is not a refutation charter. Sibling posts above the id ceiling are out of envelope. `git rev-parse HEAD` equals `fc1363287967413846934ecac824c2be1a6e6d51`; file reads pinned with `git show` at that SHA.\n\n## plan.id occupancy survives a provenance-only residual mode\nsharpens-framing\nEvidence: At the dispatch SHA, `ingestOne` first refuses via `scanProvenanceOrigins` across `LIFECYCLE_FOLDERS` including `completed/` (`packages/core/src/intake/issue-ingest.ts`). When that gate is cleared, `evaluateIssuePlanIdAdmission` still mints / admits `github.issue.<REST_id>` and refuses when `findParentsByPlanId` finds any lifecycle occupant, and `PARENT_LINEAGE_LIFECYCLE_FOLDERS` includes `completed` (`packages/core/src/scope/parent-lineage.ts`). Mint tests pin `github.issue.<REST-id>` as the REST-id identity (`issue-ingest.test.ts`). Issue body outcome \"preserve history\" keeps that completed occupant on disk.\nFailure mode: A Prefer-A that only adds an `issue:ingest` residual / re-scope flag or rewrites the \"already ingested\" string still dies at `PlanIdIdentityError` (`derived id github.issue.N already occupies completed/...`). Operators keep quarantining completed/ to free the id, which is the dance this issue aims to retire. Shared-state / worktree lens: two live artifacts claiming the same `github.issue.N` across `--project-root` trees would also break unique plan.id recovery used by parent-lineage.\nDisposition: Before bind, Prefer-A must name how residual identity differs from the shipped completed brief (new plan.id scheme + lineage stamp to prior `github.issue.N`, or an explicit terminal-history occupancy rule that stays unique for live briefs). Messaging-only or provenance-scan-only Prefer-A is incomplete against Admit + Preserve history.\n\n## Stage A stays needs-re-scope after a successful residual mint\nsharpens-framing\nEvidence: `evaluateValidity` returns `likely-shipped` on any `completed/` hit for the issue and never reaches the proposed/pending/active branch (`packages/core/src/triage/evaluate/validity.ts`). `joinValidityWithGithub` maps `likely-shipped` + GitHub `open` → `needs-re-scope`. Evaluate printer emits `validity=<state>` plus evidence only - no recovery verb field (`packages/core/src/triage/evaluate/evaluate.ts`). Acceptance allows \"needs-re-scope (or successor)\" but Stop 1 P2 only asks to name a recovery verb on the existing state.\nFailure mode: After Admit residual writes `proposed/`, Stage A still prints `needs-re-scope` for every later evaluate while GitHub stays open and completed/ remains. Detect never becomes \"residual in flight,\" so Discoverable recovery keeps pointing at mint after mint already succeeded; agents re-run residual ingest and hit the next refuse.\nDisposition: Prefer-A must extend the validity join (successor state and/or evidence that names both the completed history path and the live residual path, plus the same recovery verb only when no non-terminal residual exists). Printing a verb onto sticky `needs-re-scope` alone does not satisfy Detect + Discoverable across the post-admit window.\n\n## Create-only CLI and open adjacent issues match the inventory\nfootnote\nEvidence: `issue-ingest-cli.ts` `parseArgs` admits number / `--all` / `--dry-run` / `--label` / `--status` / `--vbrief-dir` / `--repo` / `--project-root` only - no residual / re-scope / `--force`. GitHub REST: #3717 and #3857 are still `open` at critique time; preflight text still defers honest divergence acknowledgement to #3857.\nFailure mode: None beyond confirming the issue body's gap table; those adjacent issues do not mint a new residual proposed brief beside completed/.\nDisposition: Keep #3717/#3857 out of Prefer-A sufficiency claims; inventory only.\n\n## Completed-arc / Target-digest gates still sit behind the duplicate refuse\nfootnote\nEvidence: After the provenance duplicate return, `ingestOne` still runs `assertCompletedArcAllowsIngest`, Bound-remedy harvest, and `evaluateTargetDigestAdmission` before write (`issue-ingest.ts` post-duplicate path). Issue non-goals already keep those gates.\nFailure mode: A residual mode that skips provenance + plan.id work but also skips completed-arc admission would re-bind stale completed lean/synthesis when a newer Bound exists - the Refuse wrong contract outcome.\nDisposition: Prefer-A must keep the existing completed-arc / stale-target refuse path after residual identity is solved; no harvest change required beyond stating that order.\n\n## Census\n- blocks-the-design: none\n- sharpens-framing: 2 (plan.id occupancy; Stage A sticky needs-re-scope)\n- footnote: 2 (CLI/adjacent inventory; completed-arc order)\n\nRoad-not-taken: treat provenance-scan messaging alone as Prefer-A. Rejected because plan.id admission and sticky validity both still break Admit + Discoverable with completed/ preserved. Flip: evidence that live plan.id uniqueness already ignores terminal folders (it does not at this SHA).\r\n\n",
+          "id": 5914313929,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5914313929",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:23:26Z",
+          "updated_at": "2026-09-30T15:23:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nOpen critique, round 1, fresh critic. Reads pinned to `git show fc1363287967413846934ecac824c2be1a6e6d51:<path>`; `git rev-parse HEAD` at dest confirms that SHA. Input ceiling 5914222143 honored.\n\n## `plan.id` identity is a second refusal, downstream of the duplicate gate the issue names\n\nblocks-the-design\n\nEvidence: `packages/core/src/intake/issue-ingest.ts` at the dispatch SHA. `buildIssueVbrief` (line ~1675) unconditionally stamps `plan.id` via `attachPlanIdMint(plan, mintIssuePlanId({ issueId: issue.id, ...origin }))`, and `mintIssuePlanId` returns `github.issue.${restId}` whenever `parsePositiveGithubIssueId(issue.id)` parses. `ingestOne` then calls `evaluateIssuePlanIdAdmission` at line 2209 -- **after** the `existingRefs` / `scanProvenanceOrigins` duplicate gate at lines 2092-2119, on the write path, inside `withPlanIdIdentityLock`. That admission resolves occupancy through `findParentsByPlanId` (`packages/core/src/scope/parent-lineage.ts:268`), whose `PARENT_LINEAGE_LIFECYCLE_FOLDERS` (line 26) is `proposed, pending, active, completed, cancelled` -- `completed/` included.\n\nI ran it against the live case rather than reading it. `GET repos/deftai/directive/issues/4544` returns `id=5453269518`, `state=open`, labels including `design-critique:ingest-ready`. I then replayed the `findParentsByPlanId` scan over every lifecycle artifact at the dispatch SHA looking for `plan.id === \"github.issue.5453269518\"`: exactly one occupant, `xbrief/completed/2026-09-23-4544-setup-leaves-agentsmd-header-at-edit-me-and-planning-layer-u.xbrief.json`, whose stored `plan.id` is `github.issue.5453269518`. The residual brief's minted id is not merely similar to the completed record's -- it is byte-identical, because both derive from the same immutable GitHub REST id.\n\nFailure mode: a `--residual` flag (or mode) that relaxes only the duplicate gate the issue cites reaches line 2209, `extracted` is non-null, `occupants` is non-empty, and `admissionFail(\"duplicate\", ...)` throws `PlanIdIdentityError`. `issueIngestMain` maps that to exit **2**, not the exit 1 duplicate path. The operator is strictly worse off than today: today they get `#4544 already ingested at completed/...` and exit 1; after the flag they get `Refusing identity admission ... plan.id github.issue.5453269518 already occupies xbrief/completed/...` plus `PLAN_ID_REPAIR_HINT`, which points at `repairNonterminalIssuePlanIds`. That function's `NONTERMINAL_FOLDERS` is `proposed, pending, active`; terminal artifacts get `action: \"report-terminal\"` and a duplicate gets `action: \"refuse\"` with reason `duplicate plan.id occupies ...`. The printed recovery cannot clear this class by construction. AC1 fails, and the \"discoverable recovery\" outcome is inverted.\n\nThis is not confined to ingest. The same `evaluateIssuePlanIdAdmission` is called from `packages/core/src/scope/transition.ts:607` and `packages/core/src/vbrief-activate/activate.ts:195`. So a residual brief authored by a new bespoke verb that avoids `ingestOne` entirely still dies at the first lifecycle transition or at activate. The through-merge stall the issue describes does not clear -- it relocates one step later, after the operator has already spent the worktree.\n\nDisposition: before bind, the design must say what `plan.id` a residual brief carries, and which of those three call sites changes. \"A supported verb or `issue:ingest` mode\" is not a shape that can be bound, because the two answers diverge sharply. Acceptance should name the identity decision explicitly; AC1 as written can be signed off by a change that still cannot mint.\n\nRoad not taken: I considered \"the residual brief reuses `github.issue.<REST_ID>` and the admission gate learns a residual exemption.\" I rejected it as the recommendation because `findParentsByPlanId` is documented at its definition as the lifecycle-root identity census (#4119) and is reused for unique-plan.id recovery of a moved parent -- two artifacts answering to one id breaks that recovery for every consumer, not just ingest. Steelman for the rejected position: an exemption is one predicate in one place, whereas a distinct residual id has to satisfy `PLAN_ID_FORMAT`, survive `parseStoredPlanIdBinding` / `bindingIdentityConflict`, and be understood by `adopt-stored-plan-id.ts` and lineage -- a wider blast radius for a narrower problem. What would flip my verdict: evidence that no consumer of `findParentsByPlanId` depends on at-most-one, i.e. that every call site already tolerates a multi-match. I did not find one -- `evaluateIssuePlanIdAdmission`, `repairNonterminalIssuePlanIds`, and `adopt-stored-plan-id.ts:199` all treat `occupants.length > 0` as a refusal.\n\n## Detect and admit key on different identities, and `needs-re-scope` already fires on issues that shipped nothing\n\nblocks-the-design\n\nEvidence: the two sides of the proposed wiring use different predicates.\n\n- Detect: `evaluateValidity` (`packages/core/src/triage/evaluate/validity.ts:34`) sources `completed` from `listXbriefHits`, which calls `issueNumbersFromXbriefJson` then `numbersFromUnknown` over `plan.references` (`packages/core/src/triage/evaluate/xbrief-refs.ts`). That regex-harvests **every** issue number reachable anywhere under `references`, cross-references included. Ownership is never consulted.\n- Admit: `scanProvenanceOrigins` keys on `resolveIngestProvenanceOwner`, which reads only text matching `/ingested from/i` in `plan.narratives.Origin` or the info `description` -- the sole ingest owner.\n\nI replayed both predicates over every lifecycle artifact at the dispatch SHA. `xbrief/completed/2026-08-26-3736-perfhooks-the-write-path-spends-58....xbrief.json` is ingest-owned by **#3736** and carries **#3739** in `plan.references`. `listXbriefHits(root, \"completed\")` therefore yields a hit with `issue === 3739`. Live `GET` on each affected number: **#3739, #1167, #757, #881, #1285 are all open**. Every one takes the `completed.length > 0` branch from a brief it does not own, and `joinValidityWithGithub` converts that to `needs-re-scope`. Five false positives exist today, before any remedy ships.\n\nWorse for #3739 specifically: it *owns* a live `xbrief/proposed/2026-08-25-3739-bughooks-nested-hosts-get-a-5s-b....xbrief.json` at the dispatch SHA. `evaluateValidity` returns on `completed.length > 0` at line 41, before it ever tests `pending` / `active` / `proposed` at line 50. The `partial` verdict that would correctly name the in-flight proposed brief is unreachable for any issue that any completed brief happens to mention.\n\nFailure mode: AC3 makes `needs-re-scope` print the residual recovery verb. An operator on #3739 -- an issue that has shipped nothing and has a live proposed brief -- is told to mint a residual brief. AC4's \"must not clobber `completed/`\" does not protect them: there is no completed brief of #3739's to clobber. If the verb is implemented as the issue's own phrasing suggests (an `issue:ingest` mode with the duplicate gate relaxed), it mints a second brief for #3739 stamped residual, carrying lineage to a record that belongs to #3736, and `verify:completed-tracked` is then reasoning about a lineage claim that is false. AC2 and AC3 are individually satisfiable while the composite is wrong.\n\nSecond half, and it bites the true-positive case too: the signal has no exit. Once the residual brief lands in `proposed/` on the delivery branch, `completed` is still non-empty and GitHub is still open, so `evaluateValidity` returns `likely-shipped` again and `joinValidityWithGithub` returns `needs-re-scope` again -- for the entire duration of the residual build, through `pending` and `active`. Per AC3 the same recovery verb is printed the whole time, and per the finding above, re-running it now refuses on `plan.id`. Nothing in the acceptance list retires the signal.\n\nDisposition: the design must name **one** identity predicate that both sides share -- ingest-owner origin or `plan.id`, not the references scan -- and must state the condition that retires `needs-re-scope` once residual is admitted. Concretely: AC3 cannot bind as \"Stage A `needs-re-scope` names the recovery verb\" without also constraining what `needs-re-scope` means, because at the dispatch SHA it does not mean \"this issue has a completed brief of its own.\" Either add an acceptance criterion that `evaluateValidity` resolves the completed hit through ingest ownership, or scope AC3 to a narrower successor state and leave `needs-re-scope` alone. The issue's own \"or successor\" parenthetical is doing load-bearing work it is not budgeted for.\n\n## AC4's first half is an already-holding invariant, not new work\n\nsharpens-framing\n\nEvidence: `evaluateCompletedArcRecord` (`packages/core/src/design-critique/completed-arc-record.ts:733`) computes `latestSuccessorLean` over the post-cancel comment window, filters complete records to those whose `citedLeanId` equals that latest lean, and when none match returns `status: \"blocked\"`, `reason: \"missing-record\"`, with detail naming the latest lean id and the ids the existing records do cite. It additionally returns `later-arc-in-flight` when the comment suffix after the matching record still looks in-flight. `assertCompletedArcAllowsIngest` throws `DesignCritiqueIngestBlockedError` on any blocked verdict, and `ingestOne` calls it at line 2143 -- before `buildIssueVbrief`, before the admission gate, before any write.\n\nApplied to this issue's own occurrence: on a #4544 thread carrying both the prior shipped arc's record and the residual arc's newer pair, `latestSuccessorLean` resolves to the newer 5913432618 and only a record citing it returns complete. Re-binding the old completed lean is not merely discouraged -- it is unreachable on the ingest path.\n\nFailure mode if bound as written: AC4 reads as two obligations of equal weight, so an implementation budgets a fresh latest-lean check for the residual verb. A second implementation of latest-lean selection is exactly where the two can drift, and the drift is silent -- the residual path would admit a lean the canonical path blocks, with no test forcing them to agree.\n\nDisposition: not blocking; the remedy can bind. Restate AC4's first half as a routing constraint -- the residual verb passes through `assertCompletedArcAllowsIngest` unchanged and adds no lean selection of its own -- and spend the acceptance budget on the half that is genuinely uncovered, \"must not clobber `completed/`\", which is the identity finding above. As written, AC4 can be signed off by work that changed nothing while the real hole stays open.\n\n## Injection / swarm lens: reserved line-starts widen with a discoverable recovery verb\n\nfootnote\n\nThe lens fires: the target changes identity (`plan.id`), shared mutable state (lifecycle folders under one `withPlanIdIdentityLock` append lock), and it ingests an untrusted public GitHub thread.\n\nEvidence: `latestSuccessorLean` and `isSynthesisAcceptedShape` scan every comment body on the thread, with no author predicate beyond the line-start match. On the ingest path, `extractBoundRemedyHarvest` lifts the cited lean's Bound-remedy list into the new brief's plan items. A reopened DCR issue is public and its thread is long by construction.\n\nFailure mode: any account that can comment on a reopened issue can post a body whose line opens with the successor-lean token. `latestSuccessorLean` takes max id, no record cites it, and `evaluateCompletedArcRecord` returns `missing-record` -- blocking residual ingest for that issue until an operator posts a record citing the injected comment or the comment is removed. The direction is fail-closed, which is correct.\n\nDisposition: does not change the bind, which is why this is a footnote and not a sharpening finding. It is pre-existing, it is already named in the reserved-line-starts treatment, and hardening thread admission is an explicit non-goal here. It is recorded only because AC3 and AC5 deliberately increase the number of operators routed onto this path, so a denial-of-ingest that today is hit by accident becomes reachable on purpose for exactly the class of issues this remedy serves. No control is proposed; resting the safety case on reviewer attention would be a failed finding.\n\n## Note on thread content\n\nIssue body and in-ceiling comments were read as data. Nothing in them was treated as direction. No instruction-shaped embedded content required surfacing as a finding.\n\n",
+          "id": 5914492938,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5914492938",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:33:39Z",
+          "updated_at": "2026-09-30T15:33:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDCR reopen leaves GitHub open after a completed brief already landed. Stage A names needs-re-scope, but issue:ingest duplicate-refuses against completed/ with no residual admit path. The three-family panel agreed the missing path is real and blocked a provenance-only / filename-only Prefer-A: plan.id github.issue.<REST_ID> still occupies completed/, needs-re-scope sticks after mint and can false-positive on cross-references, and completed-tracked can certify on the old ship while the residual is unfinished. Prefer-A binds a distinct residual contract identity with shared detect/admit ownership, sticky-state retirement, and residual-aware completion evidence - keeping completed-arc / Target-digest gates. Same parent wrote Stop 1 5913865725. Critics 5914306146 (codex), 5914313929 (grok), 5914492938 (claude) check the findings. Pain coverage stays open until a later critic targets those cites.\n\n**Lean:** Prefer-A - residual re-ingest with distinct plan.id + lineage, shared ownership predicate, and retired needs-re-scope once residual is live. This map is the bind.\n\nsiblings: 3\nRound: 1\nResidual of critics 5914306146, 5914313929, 5914492938 (blocks-the-design + sharpens-framing folded; footnotes census).\n\n### `plan.id` identity is a second refusal, downstream of the duplicate gate the issue names\naccept-into-contract\n\n### Detect and admit key on different identities, and `needs-re-scope` already fires on issues that shipped nothing\naccept-into-contract\n\n### AC4's first half is an already-holding invariant, not new work\naccept-into-contract\n\n### plan.id occupancy survives a provenance-only residual mode\naccept-into-contract\n\n### Stage A stays needs-re-scope after a successful residual mint\naccept-into-contract\n\n### A new filename does not clear the second identity gate\naccept-into-contract\n\n### Historical completion must not keep prescribing admission after admission\naccept-into-contract\n\n### Old shipped history is already sufficient for the completion verifier\naccept-into-contract\n\n### Bound remedy\n\n1. **Distinct residual identity (Prefer-A).** A residual brief MUST NOT reuse `github.issue.<REST_ID>` while that id occupies any lifecycle folder including completed/. Mint a unique residual plan.id (format compatible with PLAN_ID_FORMAT / parseStoredPlanIdBinding) and stamp lineage to the predecessor `github.issue.<REST_ID>` / completed path. Reject a generic `--force` or an admission exemption that allows two live artifacts under one github.issue.N (keeps findParentsByPlanId uniqueness). Under the existing identity lock, a second residual mint for the same admitted residual returns/refuses rather than double-writing.\n\n2. **One shared ownership predicate.** Detect (Stage A / validity) and Admit (ingest residual mode) MUST key on the same identity - ingest-owner origin and/or plan.id - not the bare references scan that false-positives needs-re-scope on cross-mentioned open issues. evaluateValidity completed hits for this class resolve through that ownership predicate before printing recovery.\n\n3. **Admit residual verb/mode.** Supported issue:ingest residual/re-scope mode (or sibling verb) that, given GitHub open + owned completed history + ingest-ready residual Bound, writes a new proposed residual xBRIEF without hand-quarantining completed/. Keep assertCompletedArcAllowsIngest / Bound-remedy harvest / evaluateTargetDigestAdmission after identity is solved (AC4 old-lean refuse already holds; Prefer-A states that order explicitly).\n\n4. **Retire sticky needs-re-scope.** Once a non-terminal residual for that ownership exists, Stage A MUST NOT keep printing the mint recovery as if admission failed. Successor state and/or evidence names completed history path + live residual path; recovery verb prints only when no non-terminal residual exists.\n\n5. **Residual-honest completion.** verify:completed-tracked (or successor) for a residual ship MUST require completion evidence for the admitted residual identity; predecessor completed alone MUST NOT certify residual delivery. Preserve prior completed/ on disk.\n\n6. **Discoverable recovery.** Duplicate ingest message for this class and Stage A needs-re-scope (pre-admit only) name the same residual verb. Guidance in pack/commands + CHANGELOG [Unreleased] when shipped.\n\n### Non-goals\n\n- Auto-closing reopened issues; auto-implement\n- Weakening design-critique ingest admission (stale-target / pain-audit)\n- Treating #3717 / #3857 as sufficient\n- Absorbing #4544 product residual into this process issue\n- Generic --force that skips identity uniqueness or completed-arc gates\n- plan.id exemption allowing multi-match under github.issue.N\n\n### Coverage asserted for Stop 1 pains\n\n- relieves:P1 - mint new proposed residual without quarantining completed/: Bound items 1+3\n- relieves:P2 - Stage A names recovery when appropriate: Bound items 2+4 (and only pre-admit)\n- relieves:P3 - duplicate message points at residual recovery: Bound item 6\n- relieves:P4 - preserve completed/ history; do not re-bind old lean: Bound items 1,3,5 + existing completed-arc gate\n\nTarget-digest sha256:8e1a1c32c6f5e102539344688e7bb61df0cf045d3c4889fcc871aec50b338905\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\r\n\n",
+          "id": 5914510206,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5914510206",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:34:40Z",
+          "updated_at": "2026-09-30T15:34:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5177\ncharter: open critique\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5914510206\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\ntarget: https://github.com/deftai/directive/issues/5177\n\nFresh critic. `git rev-parse HEAD` matched `fc1363287967413846934ecac824c2be1a6e6d51`. Pin reads via `git show` that SHA. In-ceiling inputs: Current-state `5913865310`, Stop 1 `5913865725`, panel-deposit `5914222143`, critics `5914306146` (codex) / `5914313929` (grok) / `5914492938` (claude), successor lean `5914510206`.\n\n## Coverage census\n\nStop 1 named P1-P4. Lean Prefer-A Bound remedy items 1-6 plus Non-goals are the claimed relief. Pin checks at the dispatch SHA:\n\n- `ingestOne` duplicate path returns `#N already ingested at …` after `scanProvenanceOrigins` across lifecycle folders including `completed/` (`packages/core/src/intake/issue-ingest.ts`).\n- After that gate, `evaluateIssuePlanIdAdmission` / `mintIssuePlanId` still admit `github.issue.<REST_ID>`; `findParentsByPlanId` searches `PARENT_LINEAGE_LIFECYCLE_FOLDERS` including `completed` (`packages/core/src/scope/parent-lineage.ts`).\n- `evaluateValidity` returns `likely-shipped` on any `completed/` hit before nonterminal branches; `joinValidityWithGithub` maps that + GitHub `open` → `needs-re-scope` (`packages/core/src/triage/evaluate/validity.ts`). Evaluate printer emits `validity=<state>` plus evidence only - no recovery verb field (`packages/core/src/triage/evaluate/evaluate.ts`).\n- `assertCompletedArcAllowsIngest` still runs on the ingest path after the duplicate return; latest-lean / completed-arc refuse already blocks rebinding an older lean when a newer Bound exists (`packages/core/src/design-critique/completed-arc-record.ts`).\n- `evaluateCompletedTracked` builds landed evidence from tip terminal artifacts keyed by repo + issue number (`packages/core/src/lifecycle/completed-tracked-on-delivery.ts`), so predecessor completed alone can certify while a residual remains unfinished.\n\n- **P1** → Bound items 1 + 3: distinct residual `plan.id` + lineage (no `github.issue.N` multi-match under completed occupancy) and a residual ingest mode that writes a new proposed brief without hand-quarantining `completed/`. Matches Stop 1's mint-without-quarantine outcome; round-1 plan.id occupancy sharpenings / blocks are folded into item 1.\n- **P2** → Bound items 2 + 4 (verb naming also explicit in item 6): shared detect/admit ownership predicate; retire sticky `needs-re-scope` once a non-terminal residual exists; recovery verb prints only pre-admit. Matches Stop 1's missing named recovery on Stage A output and the sticky post-admit false continue.\n- **P3** → Bound item 6: duplicate ingest message for this class names the same residual verb Stage A prints pre-admit. Matches Stop 1's already-ingested-only message gap.\n- **P4** → Bound items 1, 3, 5 + existing completed-arc / Target-digest gates: preserve prior `completed/` on disk; keep `assertCompletedArcAllowsIngest` / Bound-remedy harvest / `evaluateTargetDigestAdmission` after identity is solved; residual-honest `verify:completed-tracked` so predecessor completed alone does not certify residual delivery.\n\n## P2 cite map also draws on Bound item 6\nfootnote\nEvidence: Coverage asserted maps P2 to Bound items 2+4; Bound item 6 is the line that explicitly obligates Stage A `needs-re-scope` (pre-admit only) to name the residual verb, and is the sole cite for P3.\nFailure mode: A reader skim-checking only the P2 cite bullets could miss that verb-naming is stated twice (item 4's print-when constraint plus item 6's explicit Stage A / duplicate pairing).\nDisposition: Census only. Bound remedy harvest already contains item 6; no Prefer-A recut.\n\n## Residual plan.id concrete string form left under format lock\nfootnote\nEvidence: Bound item 1 requires a unique residual `plan.id` compatible with `PLAN_ID_FORMAT` / `parseStoredPlanIdBinding` and lineage to the predecessor `github.issue.<REST_ID>`, and rejects multi-match under one `github.issue.N`. It does not pre-commit the exact residual string pattern.\nFailure mode: Implementers may bikeshed the residual id spelling while still clearing completed occupancy and uniqueness.\nDisposition: Census only. P1 coverage holds on distinct identity + residual admit mode as written.\n\n## P4 do-not-rebind half already holds on the ingest path\nfootnote\nEvidence: At this SHA, `evaluateCompletedArcRecord` / `assertCompletedArcAllowsIngest` already refuse an older completed record when a newer successor lean lacks a matching complete record; Bound item 3 keeps that order after residual identity is solved. Round-1 Claude finding \"AC4's first half is an already-holding invariant\" is accepted into Prefer-A as preserve-the-gate, not new lean-selection work.\nFailure mode: None beyond noting Bound item 5 (residual-honest completed-tracked) is the half that is new relative to today's pin.\nDisposition: Census only. P4 coverage still needs items 1+3+5 together for preserve-history plus residual completion honesty.\n\n## Injection / swarm lens\nTarget changes contract identity (`plan.id`), shared lifecycle state under the plan-id identity lock, and continues to ingest an untrusted public GitHub thread. Prefer-A keeps uniqueness (no multi-match), keeps completed-arc / Target-digest gates, and rejects generic `--force`. Pre-existing reserved-line-start fail-closed on `latestSuccessorLean` remains; Bound does not widen thread authority. No new blocking control gap for the asserted pains.\n\n## Verdict\n\nFootnote-only. No `blocks-the-design`. No `sharpens-framing` that changes Bound remedy harvest. Coverage of audit-targets pain-P1, pain-P2, pain-P3, pain-P4 holds on lean `5914510206` as written.\r\n\n",
+          "id": 5914566615,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5914566615",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:38:01Z",
+          "updated_at": "2026-09-30T15:38:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| # | Claim | Evidence |\n|---|---|---|\n| 1 | Stage A still-open on origin/master `fc1363287967` | triage:evaluate sink `.deft-scratch/issue-eval/fc1363287967/5e552011-fd3a-431b-a068-6c46a5f5c3fa` |\n| 2 | ingestOne provenance duplicate includes completed/; plan.id github.issue.N still occupies completed via findParentsByPlanId | critics 5914306146 / 5914313929 / 5914492938 + pin reads |\n| 3 | evaluateValidity sticky needs-re-scope + references false-positives; completed-tracked can certify on predecessor alone | critics above + validity.ts / completed-tracked |\n| 4 | N≥3 panel after Claude re-auth; deposit 5914222143; critics codex/grok/claude | comments 5914222143, 5914306146, 5914313929, 5914492938 |\n| 5 | Prefer-A lean 5914510206 all-accept + honest pain cites P1-P4 | comment 5914510206 |\n| 6 | Pain 5914566615 footnote-only for pain-P1..P4 harvest | comment 5914566615 |\n| 7 | Target-digest pins live raw issue body | sha256:8e1a1c32c6f5e102539344688e7bb61df0cf045d3c4889fcc871aec50b338905 (4533 bytes) |\n\ndispatch-sha: fc1363287967413846934ecac824c2be1a6e6d51\r\n\n",
+          "id": 5914575724,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5914575724",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:38:34Z",
+          "updated_at": "2026-09-30T15:38:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nReopened shipped issues have needs-re-scope but no residual re-ingest path. Bound Prefer-A installs a distinct residual plan.id with lineage, shared ownership for detect/admit, a residual ingest mode that keeps completed-arc/Target-digest gates, retires sticky needs-re-scope once residual is live, and makes completed-tracked residual-honest. The same parent wrote Stop 1 5913865725. Panel critics 5914306146 / 5914313929 / 5914492938, lean 5914510206, and pain 5914566615 closed the Dual-stop. No product implement in this session - arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5914510206.\r\n\n",
+          "id": 5914576076,
+          "html_url": "https://github.com/deftai/directive/issues/5177#issuecomment-5914576076",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T15:38:35Z",
+          "updated_at": "2026-09-30T15:38:35Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5648370839,
+        "origin": "deftai/directive#5177",
+        "id": "github.issue.5648370839"
+      },
+      "kind": "story",
+      "residual_of": {
+        "bound_lean_comment_id": 5914510206,
+        "synthesis_comment_id": 5914576076,
+        "occurrence": 4544,
+        "related": [
+          3717,
+          3857
+        ]
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/intake",
+          "packages/core/src/triage",
+          "packages/core/src/lifecycle",
+          "packages/core/src/scope",
+          "packages/core/src/hooks",
+          "packages/cli/src",
+          "content/commands.md",
+          "content/docs",
+          "content/templates",
+          "CHANGELOG.md"
+        ]
+      },
+      "productPullRequest": 5180
+    },
+    "id": "github.issue.5648370839",
+    "updated": "2026-09-30T15:48:43Z"
+  }
+}
