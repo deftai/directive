@@ -24,10 +24,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T22:22:58.295Z",
+            "mintedAt": "2026-09-30T22:27:55.233Z",
             "mintedVia": "leftover-complete-after-5178"
           },
-          "recorded_at": "2026-09-30T22:22:58.295Z"
+          "recorded_at": "2026-09-30T22:27:55.233Z"
         }
       },
       {
@@ -40,10 +40,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T22:22:58.295Z",
+            "mintedAt": "2026-09-30T22:27:55.233Z",
             "mintedVia": "leftover-complete-after-5178"
           },
-          "recorded_at": "2026-09-30T22:22:58.295Z"
+          "recorded_at": "2026-09-30T22:27:55.233Z"
         }
       },
       {
@@ -56,10 +56,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T22:22:58.295Z",
+            "mintedAt": "2026-09-30T22:27:55.233Z",
             "mintedVia": "leftover-complete-after-5178"
           },
-          "recorded_at": "2026-09-30T22:22:58.295Z"
+          "recorded_at": "2026-09-30T22:27:55.233Z"
         }
       },
       {
@@ -72,10 +72,10 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T22:22:58.295Z",
+            "mintedAt": "2026-09-30T22:27:55.233Z",
             "mintedVia": "leftover-complete-after-5178"
           },
-          "recorded_at": "2026-09-30T22:22:58.295Z"
+          "recorded_at": "2026-09-30T22:27:55.233Z"
         }
       },
       {
@@ -88,10 +88,90 @@
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
-            "mintedAt": "2026-09-30T22:22:58.295Z",
+            "mintedAt": "2026-09-30T22:27:55.233Z",
             "mintedVia": "leftover-complete-after-5178"
           },
-          "recorded_at": "2026-09-30T22:22:58.295Z"
+          "recorded_at": "2026-09-30T22:27:55.233Z"
+        }
+      },
+      {
+        "id": "clause.1",
+        "title": "clause.1",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5178 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f195e22e90248f8cff507f49fff46522f0ea257a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:27:55.233Z",
+            "mintedVia": "leftover-complete-after-5178"
+          },
+          "recorded_at": "2026-09-30T22:27:55.233Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "clause.2",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5178 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f195e22e90248f8cff507f49fff46522f0ea257a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:27:55.233Z",
+            "mintedVia": "leftover-complete-after-5178"
+          },
+          "recorded_at": "2026-09-30T22:27:55.233Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5178 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f195e22e90248f8cff507f49fff46522f0ea257a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:27:55.233Z",
+            "mintedVia": "leftover-complete-after-5178"
+          },
+          "recorded_at": "2026-09-30T22:27:55.233Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5178 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f195e22e90248f8cff507f49fff46522f0ea257a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:27:55.233Z",
+            "mintedVia": "leftover-complete-after-5178"
+          },
+          "recorded_at": "2026-09-30T22:27:55.233Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5178 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit f195e22e90248f8cff507f49fff46522f0ea257a.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-30T22:27:55.233Z",
+            "mintedVia": "leftover-complete-after-5178"
+          },
+          "recorded_at": "2026-09-30T22:27:55.233Z"
         }
       }
     ],
@@ -1185,7 +1265,25 @@
         "synthesis_comment_id": 5913491364,
         "process_gap": 5177
       },
-      "productPullRequest": 5178
+      "productPullRequest": 5178,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5178,
+        "prBase": null,
+        "mergeCommit": "f195e22e90248f8cff507f49fff46522f0ea257a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0e7cd6b50479dfdbe4ac6c349029844fec18ebd9",
+        "verifiedAt": "2026-09-30T22:27:35Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered"
     },
     "acceptance": {
       "commands": [
