@@ -426,8 +426,7 @@ export function verificationPathRecordLine(input: VerificationPathRecord): strin
 }
 
 /** Closed forms only — matches `verificationPathRecordLine` output. */
-const VERIFICATION_PATH_CLOSED_RE =
-  /^verification-path:\s+(?:pin-read|provisioned)\s+\S/;
+const VERIFICATION_PATH_CLOSED_RE = /^verification-path:\s+(?:pin-read|provisioned)\s+\S/;
 const VERIFICATION_PATH_ANY_RE = /^verification-path:\s+\S/;
 
 /**
