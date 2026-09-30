@@ -1872,8 +1872,12 @@ function inspectMutationGates(
   // the exact ritual owner above (never adopt a later ritual file here).
   // #3599: the owner's lease is only kept alive here, on the last evaluation
   // before an allowed write, so the stamp records a write that really happened.
+  // #5176 / #4544 Prefer-A: product allows opt into the durable marker; Process-only
+  // / proposed-lifecycle exempt renew lastWriteAt without arming first-ship refuse.
   let occupancyWarning: string | null = null;
-  const recheckOccupancyBeforeWriteAllow = (): HookDecision | null => {
+  const recheckOccupancyBeforeWriteAllow = (
+    persistProductMutationMarker: boolean,
+  ): HookDecision | null => {
     if (actor === null) return null;
     const finalOccupancy = applyCursorNurseryOccupancy(
       effectiveRoot,
@@ -1881,6 +1885,7 @@ function inspectMutationGates(
         sessionId: actor.sessionId,
         env: actor.hostAuthoritative ? {} : environ,
         refresh: true,
+        persistProductMutationMarker,
       }),
       actor.sessionId ?? "",
       undefined,
@@ -1965,7 +1970,8 @@ function inspectMutationGates(
         effectiveRoot,
       );
       if (runtimeDeny !== null) return runtimeDeny;
-      const occupancyDeny = recheckOccupancyBeforeWriteAllow();
+      // Process-only / lifecycle-exempt: renew lease, do not Prefer-A stamp (#5176).
+      const occupancyDeny = recheckOccupancyBeforeWriteAllow(false);
       if (occupancyDeny !== null) return occupancyDeny;
       return {
         verdict: "allow",
@@ -2124,7 +2130,8 @@ function inspectMutationGates(
       effectiveRoot,
     );
     if (runtimeDeny !== null) return runtimeDeny;
-    const occupancyDeny = recheckOccupancyBeforeWriteAllow();
+    // Intentional product-write allow: Prefer-A durable marker (#5176 / #4544).
+    const occupancyDeny = recheckOccupancyBeforeWriteAllow(true);
     if (occupancyDeny !== null) return occupancyDeny;
   }
   const allowMessage = withOccupancyWarning(

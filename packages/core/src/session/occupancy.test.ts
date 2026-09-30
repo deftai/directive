@@ -482,9 +482,7 @@ describe("worktree occupancy lease (#3433)", () => {
       markWrite: true,
     });
     expect(readOccupancy(root)?.lastWriteAt?.toISOString()).toBe(writeAt.toISOString());
-    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(
-      true,
-    );
+    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(true);
 
     const later = new Date(writeAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1);
     const gate = evaluateOccupancyWriteGate(root, {
@@ -494,12 +492,10 @@ describe("worktree occupancy lease (#3433)", () => {
     });
     expect(gate.allow).toBe(true);
     expect(gate.refreshed).toBe(true);
-    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(
-      true,
-    );
+    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(true);
   });
 
-  it("write-gate markWrite refresh fails closed when Prefer-A marker cannot be written (#5176)", () => {
+  it("write-gate product refresh fails closed when Prefer-A marker cannot be written (#5176)", () => {
     const root = tempRoot();
     const claimedAt = new Date("2026-08-17T12:00:00Z");
     applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
@@ -510,6 +506,7 @@ describe("worktree occupancy lease (#3433)", () => {
       sessionId: "owner",
       now: later,
       refresh: true,
+      persistProductMutationMarker: true,
     });
     expect(gate.allow).toBe(false);
     expect(gate.refreshed).toBe(false);
@@ -517,14 +514,33 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(readOccupancy(root)?.lastWriteAt).toBeNull();
   });
 
+  it("Process-only write-gate refresh renews without Prefer-A marker (#5176)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    writeFileSync(join(root, ".deft", "cache"), "not-a-directory", "utf8");
+    // Whole-second offset: occupancy timestampIso drops sub-second fractions.
+    const later = new Date(claimedAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1000);
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: later,
+      refresh: true,
+      // omit persistProductMutationMarker — Process-only / proposed-lifecycle
+    });
+    expect(gate.allow).toBe(true);
+    expect(gate.refreshed).toBe(true);
+    expect(readOccupancy(root)?.lastWriteAt?.toISOString()).toBe(later.toISOString());
+    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(
+      false,
+    );
+  });
+
   it("heartbeat and grant still renew after lastWriteAt when marker rewrite is blocked (#5176)", () => {
     const root = tempRoot();
     const claimedAt = new Date("2026-08-17T12:00:00Z");
     applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt, markWrite: true });
     expect(readOccupancy(root)?.lastWriteAt?.toISOString()).toBe(claimedAt.toISOString());
-    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(
-      true,
-    );
+    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(true);
     // Replace cache dir with a file so a fresh marker rewrite would fail.
     rmSync(join(root, ".deft", "cache"), { recursive: true, force: true });
     writeFileSync(join(root, ".deft", "cache"), "not-a-directory", "utf8");
@@ -555,6 +571,7 @@ describe("worktree occupancy lease (#3433)", () => {
       sessionId: "owner",
       now: writeAt,
       refresh: true,
+      persistProductMutationMarker: true,
     });
     expect(gate.allow).toBe(false);
     expect(gate.message).toMatch(/product-mutation completion marker write failed/i);
