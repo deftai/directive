@@ -248,6 +248,35 @@ describe("evaluateReviewMonitorGate", () => {
     expect(result.exitCode).toBe(0);
   });
 
+  it("rejects Approach 3 when sticky Tier-1 lease exists despite bare env (#5229)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-a3-lease-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 5229,
+      projectRoot: root,
+      repo: "deftai/directive",
+      headSha: "abc123",
+      approach3: true,
+      approach3Warned: true,
+      now: NOW,
+      environ: {},
+      seams: {
+        fetchComments: () => [
+          {
+            id: 5229,
+            body: activeLeaseComment("owner", "babysitter-5229", "spawn_subagent"),
+            htmlUrl: "",
+            updatedAt: "2026-07-24T12:00:00.000Z",
+            authorLogin: "owner",
+            authorAssociation: "MEMBER",
+          },
+        ],
+      },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.tier.descriptor).toBe("lease-elevated");
+    expect(result.message).toContain("Approach 3 blocking poll is forbidden");
+  });
+
   it("rejects Approach 3 on Tier 3 without warning ack", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-gate-a3warn-"));
     const result = evaluateReviewMonitorGate({

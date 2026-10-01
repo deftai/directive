@@ -191,7 +191,7 @@ export function probeMonitoringTier(
   if (options.hostCapabilityStamp !== undefined) {
     stamp = options.hostCapabilityStamp;
   } else if (typeof options.projectRoot === "string" && options.projectRoot.trim().length > 0) {
-    stamp = readHostCapabilityStamp(options.projectRoot);
+    stamp = readHostCapabilityStamp(options.projectRoot, { environ });
   }
   const effective = mergeHostCapabilityStampIntoEnviron(environ, stamp);
 

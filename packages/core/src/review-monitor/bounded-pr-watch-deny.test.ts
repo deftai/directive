@@ -46,6 +46,23 @@ describe("bounded-pr-watch-deny (#5229)", () => {
     expect(result.hasMonitorAgentId).toBe(true);
   });
 
+  it("treats empty --monitor-agent-id= / DEFT_MONITOR_AGENT_ID= as missing (#5229)", () => {
+    const emptyFlag = evaluateBoundedPrWatchDeny({
+      command: "task pr:watch -- 1 --monitor-agent-id=",
+      tier: { tier: 1, primitive: "spawn_subagent", descriptor: "grok-build" },
+      pr: 1,
+    });
+    expect(emptyFlag.hasMonitorAgentId).toBe(false);
+    expect(emptyFlag.deny).toBe(true);
+    const emptyEnv = evaluateBoundedPrWatchDeny({
+      command: "DEFT_MONITOR_AGENT_ID= task pr:watch -- 1",
+      tier: { tier: 1, primitive: "spawn_subagent", descriptor: "grok-build" },
+      pr: 1,
+    });
+    expect(emptyEnv.hasMonitorAgentId).toBe(false);
+    expect(emptyEnv.deny).toBe(true);
+  });
+
   it("does not deny unrecognized %TEMP% forms (named residual)", () => {
     const result = evaluateBoundedPrWatchDeny({
       command: "pwsh -File $env:TEMP/watch-pr.ps1",

@@ -22,8 +22,8 @@ import {
 import {
   isTier1,
   isTier1PlatformPrimitive,
-  OVERRIDE_TIER3_DESCRIPTOR,
   type MonitoringTierProbe,
+  OVERRIDE_TIER3_DESCRIPTOR,
   type PlatformPrimitive,
   probeMonitoringTier,
 } from "./tier-detection.js";
@@ -399,7 +399,40 @@ export function evaluateReviewMonitorGate(
   // Legacy `.deft/review-monitor.json` is obsolete (#2814); explicit no-op read documents migration.
   readReviewMonitorFile(reviewMonitorPath(projectRoot));
 
+  const repo = resolveRepo(args.repo ?? null, projectRoot);
+
+  // Approach 3: consult sticky lease BEFORE READY so a Tier-1 lease cannot be
+  // bypassed when the subprocess lacks host env (#5229 Greptile).
   if (args.approach3 === true) {
+    if (!isTier1(tier) && repo !== null) {
+      const leaseConsult = fetchActiveMonitorFromGithub(repo, args.pr, {
+        now,
+        headSha: args.headSha ?? null,
+        seams: args.seams,
+      });
+      if (leaseConsult !== null && typeof leaseConsult === "object" && "error" in leaseConsult) {
+        return {
+          exitCode: EXIT_CONFIG_ERROR,
+          message: `verify_review_monitor: ${leaseConsult.error}`,
+          tier,
+          monitorRecord: null,
+          heartbeatActive: false,
+          callSite,
+        };
+      }
+      if (
+        leaseConsult !== null &&
+        typeof leaseConsult === "object" &&
+        !("error" in leaseConsult) &&
+        isTier1PlatformPrimitive(leaseConsult.platform_primitive)
+      ) {
+        tier = {
+          tier: MONITORING_TIER_1,
+          primitive: leaseConsult.platform_primitive,
+          descriptor: "lease-elevated",
+        };
+      }
+    }
     if (isTier1(tier)) {
       return {
         exitCode: EXIT_NOT_READY,
@@ -438,8 +471,6 @@ export function evaluateReviewMonitorGate(
       callSite,
     };
   }
-
-  const repo = resolveRepo(args.repo ?? null, projectRoot);
 
   // !isTier1: consult sticky lease before READY (#5229 Prefer-A). Do not greenlight
   // "no active review-monitor required" when a Tier-1 lease platform_primitive exists.
@@ -493,11 +524,7 @@ export function evaluateReviewMonitorGate(
           callSite,
         };
       }
-      if (
-        leaseConsult !== null &&
-        typeof leaseConsult === "object" &&
-        "error" in leaseConsult
-      ) {
+      if (leaseConsult !== null && typeof leaseConsult === "object" && "error" in leaseConsult) {
         return {
           exitCode: EXIT_CONFIG_ERROR,
           message: `verify_review_monitor: ${leaseConsult.error}`,

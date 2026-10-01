@@ -7,8 +7,8 @@ import {
   evaluateBoundedPrWatchDeny,
   formatApproach1BabysitterOneLiner,
   isApproach1CheapestVs,
-  writeHostCapabilityStamp,
   type PlatformPrimitive,
+  writeHostCapabilityStamp,
 } from "../review-monitor/index.js";
 
 export {
@@ -66,4 +66,26 @@ export function formatApproach1BabysitterCard(
   platformPrimitive: PlatformPrimitive = "spawn_subagent",
 ): string {
   return formatApproach1CheapestAdmissionCard(pr, monitorAgentId, platformPrimitive);
+}
+
+/**
+ * Production write path for the durable host→CLI stamp before CLI verify/watch (#5229).
+ * Prefer calling this (or `review-monitor:register`, which also stamps) before spawning
+ * a bare CLI subprocess that lacks GROK_BUILD / DEFT_HAS_SPAWN_SUBAGENT.
+ */
+export function ensureHostCapabilityStampForBabysit(
+  projectRoot: string,
+  input: {
+    readonly primitive?: PlatformPrimitive;
+    readonly hostSessionId?: string | null;
+    readonly source?: string;
+    readonly now?: Date;
+  } = {},
+): ReturnType<typeof writeHostCapabilityStamp> {
+  return writeHostCapabilityStamp(projectRoot, {
+    primitive: input.primitive ?? "spawn_subagent",
+    hostSessionId: input.hostSessionId ?? null,
+    source: input.source ?? "approach1-babysitter",
+    now: input.now,
+  });
 }

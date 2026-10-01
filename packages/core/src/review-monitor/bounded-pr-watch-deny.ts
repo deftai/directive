@@ -37,12 +37,7 @@ export function isApproach1CheapestVs(kind: BabysitPathKind): boolean {
  * whitespace, strip common PowerShell wrappers).
  */
 export function normalizeWatchCommandForm(command: string): string {
-  return command
-    .replace(/`/g, "")
-    .replace(/\r?\n/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
+  return command.replace(/`/g, "").replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 /**
@@ -65,7 +60,13 @@ export function isDirectivePrWatchForm(command: string): boolean {
 
 export function directivePrWatchHasMonitorAgentId(command: string): boolean {
   const n = normalizeWatchCommandForm(command);
-  return /--monitor-agent-id(?:\s|=)/.test(n) || /\bdeft_monitor_agent_id=/.test(n);
+  // Require a non-empty value — `--monitor-agent-id=` / `DEFT_MONITOR_AGENT_ID=` alone fail (#5229).
+  const fromFlag = n.match(/--monitor-agent-id(?:\s+|=)(\S+)/);
+  if (fromFlag?.[1] !== undefined && fromFlag[1].length > 0) {
+    return true;
+  }
+  const fromEnv = n.match(/\bdeft_monitor_agent_id=(\S+)/);
+  return fromEnv?.[1] !== undefined && fromEnv[1].length > 0;
 }
 
 export interface BoundedPrWatchDenyInput {
@@ -102,8 +103,7 @@ export function evaluateBoundedPrWatchDeny(
       deny: false,
       recognizedForm: false,
       hasMonitorAgentId,
-      message:
-        "bounded-pr-watch-deny: command is not a Directive pr:watch form — " + residual,
+      message: `bounded-pr-watch-deny: command is not a Directive pr:watch form — ${residual}`,
       residualNamed: residual,
     };
   }

@@ -15,6 +15,7 @@ import {
   resolveGitHubLogin,
   updateReviewOwnerComment,
 } from "./github-lease.js";
+import { type StampPlatformPrimitive, writeHostCapabilityStamp } from "./host-capability-stamp.js";
 import {
   computeExpiresAt,
   findActiveLeaseComment,
@@ -26,7 +27,25 @@ import {
   renderReviewOwnerComment,
   selectWinningReviewOwnerComment,
 } from "./lease-comment.js";
-import type { PlatformPrimitive } from "./tier-detection.js";
+import { isTier1PlatformPrimitive, type PlatformPrimitive } from "./tier-detection.js";
+
+/** Durable host→CLI stamp on successful register so verify stays Tier 1 (#5229). */
+function stampHostCapabilityAfterRegister(
+  projectRoot: string,
+  platformPrimitive: PlatformPrimitive,
+  hostSessionId: string | null,
+  now: Date,
+): void {
+  if (!isTier1PlatformPrimitive(platformPrimitive)) {
+    return;
+  }
+  writeHostCapabilityStamp(projectRoot, {
+    primitive: platformPrimitive as StampPlatformPrimitive,
+    source: "review-monitor:register",
+    hostSessionId,
+    now,
+  });
+}
 
 export { parseIso8601Utc };
 
@@ -316,6 +335,12 @@ export function registerReviewMonitor(
           priorOwner: null,
         };
       }
+      stampHostCapabilityAfterRegister(
+        worktreePath,
+        input.platformPrimitive,
+        input.parentSessionId ?? monitorAgentId,
+        startedAt,
+      );
       return {
         exitCode: EXIT_READY,
         message: `review_monitor_register: renewed PR #${input.pr} review-owner lease for ${monitorAgentId} (comment ${active.id}).`,
@@ -368,6 +393,12 @@ export function registerReviewMonitor(
         : isLeaseExpired(holder, startedAt)
           ? " (expired lease takeover)"
           : "";
+    stampHostCapabilityAfterRegister(
+      worktreePath,
+      input.platformPrimitive,
+      input.parentSessionId ?? monitorAgentId,
+      startedAt,
+    );
     return {
       exitCode: EXIT_READY,
       message:
@@ -419,6 +450,12 @@ export function registerReviewMonitor(
     if (verified !== null) {
       return verified;
     }
+    stampHostCapabilityAfterRegister(
+      worktreePath,
+      input.platformPrimitive,
+      input.parentSessionId ?? monitorAgentId,
+      startedAt,
+    );
     return {
       exitCode: EXIT_READY,
       message: `review_monitor_register: claimed PR #${input.pr} review-owner lease for ${monitorAgentId} (comment ${anchor.id}).`,
@@ -451,6 +488,12 @@ export function registerReviewMonitor(
     return race;
   }
 
+  stampHostCapabilityAfterRegister(
+    worktreePath,
+    input.platformPrimitive,
+    input.parentSessionId ?? monitorAgentId,
+    startedAt,
+  );
   return {
     exitCode: EXIT_READY,
     message: `review_monitor_register: claimed PR #${input.pr} review-owner lease for ${monitorAgentId} (comment ${created.id}).`,
