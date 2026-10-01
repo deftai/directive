@@ -84,9 +84,7 @@ export function resolveDeclaredWaitBudget(
 }
 
 /** True when CLI or env declared a wall-clock budget (#3153 row gate). */
-export function hasDeclaredWallClockBudget(
-  input: ResolveDeclaredWaitBudgetInput = {},
-): boolean {
+export function hasDeclaredWallClockBudget(input: ResolveDeclaredWaitBudgetInput = {}): boolean {
   const r = resolveDeclaredWaitBudget(input);
   return r.ok && r.declared;
 }

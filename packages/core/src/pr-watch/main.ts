@@ -15,10 +15,7 @@ import {
   VERDICT_GREPTILE_SHA_STALL,
   WATCH_HELP,
 } from "./constants.js";
-import {
-  type DeclaredWaitBudgetSource,
-  resolveDeclaredWaitBudget,
-} from "./declared-budget.js";
+import { type DeclaredWaitBudgetSource, resolveDeclaredWaitBudget } from "./declared-budget.js";
 import type { SleepFn, WatchOptions, WatchResult } from "./types.js";
 import {
   REFRESHER_DONE_INDEX,
