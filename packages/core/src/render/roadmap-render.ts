@@ -13,7 +13,7 @@ import {
   MIGRATED_ARTIFACT_DIR,
   resolveLayoutRootOrCanonical,
 } from "../layout/resolve.js";
-import { parseProjectDefinitionAt } from "../vbrief-build/project-definition-io.js";
+import { readProjectDefinitionAt } from "../vbrief-build/project-definition-io.js";
 import { validateProjectDefinition } from "../vbrief-validate/project-definition.js";
 import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 import {
@@ -720,7 +720,7 @@ function validateNoFlagRootIdentity(cwd: string): RootIdentityResult {
   }
   let data: JsonObject;
   try {
-    data = parseProjectDefinitionAt(markerPath);
+    data = readProjectDefinitionAt(markerPath);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { ok: false, message: `✗ ${msg}` };

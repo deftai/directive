@@ -478,6 +478,18 @@ export function loadProjectDefinitionForMutation(projectRoot: string): [JsonObje
 }
 
 /**
+ * Read-only load of PROJECT-DEFINITION at an already-captured path.
+ *
+ * Production callers outside the mutation protocol / capability modules must
+ * use this (or {@link withProjectDefinitionMutation}) instead of
+ * {@link parseProjectDefinitionAt}, which the #3796 boundary treats as a raw
+ * primitive (#4756 residual).
+ */
+export function readProjectDefinitionAt(path: string): JsonObject {
+  return parseProjectDefinitionAt(path);
+}
+
+/**
  * Load and parse the PROJECT-DEFINITION at an already-captured path (#3796).
  * Diagnostics name the artifact through {@link projectDefinitionArtifactLabel}
  * so a configured path is never interpolated raw.

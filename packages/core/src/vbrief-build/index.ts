@@ -46,6 +46,7 @@ export {
   projectDefinitionArtifactLabel,
   projectDefinitionMutationLock,
   projectDefinitionPath,
+  readProjectDefinitionAt,
 } from "./project-definition-io.js";
 export {
   type ProjectDefinitionMutation,
