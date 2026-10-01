@@ -217,12 +217,10 @@ tasks:
   ownership:
     desc: "Fail closed on harm-capable WSL root vs project-owner mismatch unless DEFT_ALLOW_ROOT_WSL_RUNTIME=1 (#1617)."
     dir: '{{.USER_WORKING_DIR}}'
-    # Prefer existing CLI; ownership:_ensure-cli builds only when safe (#1617).
+    # Prefer existing CLI; ownership:_ensure-cli builds outside project when root (#1617).
     cmds:
       - task: :ownership:_ensure-cli
-      - task: :engine:invoke
-        vars:
-          ENGINE_CMD: 'verify:ownership --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+      - node "{{.TASKFILE_DIR}}/ownership-run.cjs" "{{.DEFT_ROOT}}" "{{.USER_WORKING_DIR}}" verify:ownership {{.CLI_ARGS}}
 
   gh-auth:
     # Worker-envelope GitHub auth validation (#1557). Thin task wrapper over the

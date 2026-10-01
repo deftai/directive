@@ -21,9 +21,7 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - task: _ensure-cli
-      - task: :engine:invoke
-        vars:
-          ENGINE_CMD: 'ownership:doctor --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+      - node "{{.TASKFILE_DIR}}/ownership-run.cjs" "{{.DEFT_ROOT}}" "{{.USER_WORKING_DIR}}" ownership:doctor {{.CLI_ARGS}}
 
   fix:
     desc: "Scoped repair of root-owned objects under approved project roots (#1617)."
@@ -32,6 +30,4 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - task: _ensure-cli
-      - task: :engine:invoke
-        vars:
-          ENGINE_CMD: 'ownership:fix --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+      - node "{{.TASKFILE_DIR}}/ownership-run.cjs" "{{.DEFT_ROOT}}" "{{.USER_WORKING_DIR}}" ownership:fix {{.CLI_ARGS}}

@@ -1,20 +1,27 @@
 #!/usr/bin/env node
 /**
- * Ensure a CLI with ownership recovery verbs exists (#1617 / Greptile P1).
+ * Ensure a CLI with ownership recovery verbs exists (#1617).
  *
- * Prefer order: vendored packages/cli/dist/bin.js → global deft/directive that
- * actually runs ownership:doctor --help → npm i -g @deftai/directive when
- * uid===0 (re-probe verbs) → local engine:_ts-build (including root fallback
- * when the published CLI predates these verbs).
+ * Prefer order:
+ * 1. vendored packages/cli/dist/bin.js
+ * 2. global `deft` that runs ownership:doctor --help (engine prefers deft)
+ * 3. global `directive` only when `deft` is absent from PATH
+ * 4. non-root: local engine:_ts-build
+ * 5. root: build in a detached temp git worktree (outside the project tree),
+ *    write the temp bin path for ownership.yml — never create root-owned
+ *    project dist
  */
 "use strict";
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 const root = path.resolve(process.argv[2] || process.cwd());
 const bin = path.join(root, "packages", "cli", "dist", "bin.js");
+const markerDir = path.join(root, ".deft-scratch");
+const markerPath = path.join(markerDir, "ownership-bin-path");
 const isWin = process.platform === "win32";
 
 function run(cmd, args, opts = {}) {
@@ -26,18 +33,39 @@ function run(cmd, args, opts = {}) {
   });
 }
 
-function hasOwnershipDoctor(cmd) {
-  // Require the recovery verb itself — --version alone can pass on a published
-  // CLI that predates ownership:doctor (#1617 Greptile P1).
-  const probe = run(cmd, ["ownership:doctor", "--help"]);
-  return probe.status === 0;
+function hasVersion(cmd) {
+  return run(cmd, ["--version"]).status === 0;
 }
+
+function hasOwnershipDoctor(cmd) {
+  return run(cmd, ["ownership:doctor", "--help"]).status === 0;
+}
+
+function clearMarker() {
+  try {
+    fs.unlinkSync(markerPath);
+  } catch {
+    /* absent */
+  }
+}
+
+function writeMarker(absBin) {
+  fs.mkdirSync(markerDir, { recursive: true });
+  fs.writeFileSync(markerPath, `${absBin}\n`, "utf8");
+}
+
+clearMarker();
 
 if (fs.existsSync(bin)) {
   process.exit(0);
 }
 
-if (hasOwnershipDoctor("deft") || hasOwnershipDoctor("directive")) {
+// Align with engine:invoke: deft is preferred when present.
+if (hasVersion("deft")) {
+  if (hasOwnershipDoctor("deft")) process.exit(0);
+  // Stale deft on PATH — do not claim success via directive (engine would
+  // still pick deft). Fall through to build / temp-worktree recovery.
+} else if (hasOwnershipDoctor("directive")) {
   process.exit(0);
 }
 
@@ -50,48 +78,66 @@ try {
   uid = null;
 }
 
-function isLikelyWsl() {
-  if (
-    process.env.WSL_DISTRO_NAME ||
-    process.env.WSL_INTEROP ||
-    process.env.WSLENV ||
-    process.env.WSL_INTEROP_PATH
-  ) {
-    return true;
-  }
-  try {
-    return /microsoft|wsl/i.test(fs.readFileSync("/proc/version", "utf8"));
-  } catch {
-    return false;
-  }
-}
-
-if (uid === 0) {
-  const wslBit = isLikelyWsl() ? " (WSL detected)" : "";
-  process.stderr.write(
-    `deft ownership: no local CLI with ownership verbs${wslBit}; trying ` +
-      "global @deftai/directive install (#1617).\n",
-  );
-  const install = run("npm", ["i", "-g", "@deftai/directive"], {
+if (uid !== 0) {
+  const build = run("task", [":engine:_ts-build"], {
+    cwd: root,
     stdio: "inherit",
     shell: true,
   });
-  if (
-    install.status === 0 &&
-    (hasOwnershipDoctor("deft") || hasOwnershipDoctor("directive"))
-  ) {
-    process.exit(0);
-  }
-  process.stderr.write(
-    "deft ownership: published global CLI missing or lacks ownership verbs; " +
-      "building local CLI so recovery can start. " +
-      "ownership:fix can repair any root-owned dist afterward (#1617).\n",
-  );
+  process.exit(build.status === 0 ? 0 : (build.status ?? 1));
 }
 
-const build = run("task", [":engine:_ts-build"], {
+// Root: build outside the project tree so recovery verbs exist without
+// creating root-owned project dist (#1617 Greptile oscillation).
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "deft-own-wt-"));
+process.stderr.write(
+  `deft ownership: root session — building ownership CLI in temp worktree ${tmp} (#1617).\n`,
+);
+const add = run("git", ["worktree", "add", "--detach", tmp, "HEAD"], {
   cwd: root,
   stdio: "inherit",
-  shell: true,
 });
-process.exit(build.status === 0 ? 0 : (build.status ?? 1));
+if (add.status !== 0) {
+  process.stderr.write(
+    "deft ownership: temp worktree add failed. Install a CLI with ownership verbs as non-root, or upgrade global deft.\n",
+  );
+  try {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  } catch {
+    /* ignore */
+  }
+  process.exit(2);
+}
+
+let ok = false;
+try {
+  const build = run("task", [":engine:_ts-build"], {
+    cwd: tmp,
+    stdio: "inherit",
+    shell: true,
+  });
+  const tmpBin = path.join(tmp, "packages", "cli", "dist", "bin.js");
+  if (build.status === 0 && fs.existsSync(tmpBin)) {
+    writeMarker(tmpBin);
+    ok = true;
+  } else {
+    process.stderr.write(
+      "deft ownership: temp worktree build failed; ownership recovery cannot start (#1617).\n",
+    );
+  }
+} finally {
+  // Keep temp tree when marker points into it; remove only on failure.
+  if (!ok) {
+    run("git", ["worktree", "remove", "--force", tmp], {
+      cwd: root,
+      stdio: "inherit",
+    });
+    try {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+process.exit(ok ? 0 : 2);
