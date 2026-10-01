@@ -627,7 +627,8 @@ describe("roadmap-render", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-rr-"));
     const pending = join(dir, "xbrief", "pending");
     mkdirSync(pending, { recursive: true });
-    const content = generateRoadmapContent(pending);
+    const [ok, content] = generateRoadmapContent(pending);
+    expect(ok).toBe(true);
     expect(content).toContain("# Roadmap");
     expect(content).toContain("No pending work items.");
     rmSync(dir, { recursive: true, force: true });
@@ -650,7 +651,8 @@ describe("roadmap-render", () => {
       }),
       "utf8",
     );
-    const content = generateRoadmapContent(pending);
+    const [ok, content] = generateRoadmapContent(pending);
+    expect(ok).toBe(true);
     expect(content).toContain("## Phase 1");
     expect(content).toContain("Foundation");
     expect(content).toContain("**#42**");
