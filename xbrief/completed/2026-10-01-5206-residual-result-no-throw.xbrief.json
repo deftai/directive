@@ -1184,10 +1184,10 @@
       "issueBody": "**Tester 3 · focused-test-pass-1**\n\n## Summary\nAfter running `deft roadmap:render` in a project with two active xBRIEFs under `xbrief/active/`, `ROADMAP.md` is generated with the body \"No pending work items.\" Active work is not reflected.\n\n## Steps to reproduce\n1. In an initialized Directive project, create two GitHub issues and turn each into an xBRIEF promoted to `xbrief/active/` (standard `scope:promote` / `scope:activate` flow).\n2. Verify both files exist under `xbrief/active/`.\n3. Run:\n   ```\n   deft project:render\n   deft roadmap:render\n   ```\n4. Open `ROADMAP.md`.\n\n## Expected\n`ROADMAP.md` lists the two active items (and any proposed items per the roadmap's rules).\n\n## Actual\n`ROADMAP.md` contains only \"No pending work items\" even though `xbrief/active/` is non-empty and `deft project:render` succeeded (3 scope items visible in `PROJECT-DEFINITION.xbrief.json`).\n\n## Environment\n- Directive: `@deftai/directive-core@0.119.1`\n- OS: macOS\n\n",
       "x-directive/plan-id": {
         "version": 1,
-        "source": "github-rest-id",
+        "source": "github-residual",
         "github_issue_id": 5501284941,
         "origin": "deftai/directive#4756",
-        "id": "github.issue.5501284941"
+        "id": "github.issue.residual.5501284941.lean.5839624008"
       },
       "x-directive/admitted-target-digest": {
         "schema": "deft.scope.admitted-target-digest.v1",
@@ -1294,7 +1294,7 @@
       "confessions": [],
       "ambiguity_attestation": "none_found"
     },
-    "id": "github.issue.residual.5501284941.lean.result-no-throw",
+    "id": "github.issue.residual.5501284941.lean.5839624008",
     "updated": "2026-10-01T02:34:38Z"
   }
 }
