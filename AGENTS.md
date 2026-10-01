@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=f699902b5841 refreshed=2026-10-01T16:50:20Z session=b5011ed30da3 -->
+<!-- deft:managed-section v3 sha=0.0.0 refreshed=2026-10-01T17:01:25Z session=4869ce705255 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -265,6 +265,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Envelope selection SLA (#3153)
 
 ! Default story / through-merge unit of work is `drive-to: merge-ready`. Deliberate `stop-at: pr-open` only with a **partner merge-path owner** (review-cycle babysit / Approach 1 lease / parent-retained) for Greptile + CI + post-merge `scope:complete` — capacity stall, wall-clock, large multi-gate, host nest limits (#4130; swarm Phase 0). Depth: `deft-directive-swarm` + `deft-directive-review-cycle`.
+! **Declared wall-clock (#3984):** wall-clock row fires only on a declared budget (`--max-wait-minutes` / `DEFT_PR_WATCH_MAX_WAIT_MINUTES` / xBRIEF); 30m `pr:watch` default is a poll cap, not that declaration. Prefer Approach 1 dispatch over parent-as-leaf implement for multi-hour babysit — partner merge-path owner must keep a live wait (`pr:watch` + `verify:review-monitor --merge-path-arm --live-wait`); sticky lease alone is unarmed (#4882). Durable human-merge owner rules stay with that partner through merge + `scope:complete`. ⊗ Parent-turn-shape detector on #3984; ⊗ absorb #5219.
 ! **Grok through-merge (#4529 / #4821):** implement MUST be `stop-at: pr-open`. Dest class A residual, then Approach 1 wait, then parent-retained closer after CLEAN. Not a global SLA recut. ⊗ Harvest option 2 / `merge-release` / parent-inline residual.
 ! After stop-at:pr-open (#4882), merge-path owner MUST keep a still-running phase-correct wait (pre-CLEAN: blocking `pr:watch` / Approach 1; post-CLEAN: `pr:wait-mergeable-and-merge`) until CLEAN or explicit option-C finish; under human-merge also remain for post-merge `scope:complete`. Sticky lease alone or Path B promise without a live wait is unarmed; CLEAN alone is not lifecycle complete. Probe: `deft verify:review-monitor -- --pr <N> --merge-path-arm` (`--live-wait` / `--explicit-finish`). `pr:watch --json` wrappers MUST parse full stdout JSON (pretty multi-line valid); line-split misses CLEAN (#5015). Prefer native `pr:watch`.
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`. ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261). ⊗ Stand down unarmed, or treat lease-only / line-parsed `pr-watch --json` as armed (#4882).
