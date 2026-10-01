@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **process(swarm,review): bind multi-hour babysit via envelope + declared budgets (#3984).** No parent-turn-shape detector on this number. Approach 1 / review-monitor dispatch is the cheaper ownership path vs parent-as-leaf implement. `pr:watch` resolves declared wait via `--max-wait-minutes` / `DEFT_PR_WATCH_MAX_WAIT_MINUTES` (`resolveDeclaredWaitBudget`); #3153 wall-clock row fires only when a budget is declared (30m default stays a poll cap). agentsMdBudget managedMaxLines 189→190 / absoluteMaxBytes 22886→23600 for the agents-entry pin. #5219 stays separate. Tracking #3984.
 - **Windows Step 5 cold-worktree sequencing + unit git-tail cheapen (#5140).** Refresh committed Vitest file durations from a retained Step 5 tee; keep prior ≥30s timings the incomplete tee omitted; share-plus-reset the durable-effect unit git tail; keep unit/spawn-heavy overlapping (no `groupOrder` serial drain). Host probe and fixture notes: `docs/RELEASING.md`. Keep 60m hang detector and #5026 no-coverage host lane; first ship tracks reliable sub-60m without `--skip-ci`. Refs #5022, #5026, #5027, #5028, #4567. Tracking #5140.
 
 ### Fixed

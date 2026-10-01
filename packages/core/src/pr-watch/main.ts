@@ -15,6 +15,10 @@ import {
   VERDICT_GREPTILE_SHA_STALL,
   WATCH_HELP,
 } from "./constants.js";
+import {
+  type DeclaredWaitBudgetSource,
+  resolveDeclaredWaitBudget,
+} from "./declared-budget.js";
 import type { SleepFn, WatchOptions, WatchResult } from "./types.js";
 import {
   REFRESHER_DONE_INDEX,
@@ -52,6 +56,10 @@ export interface ParsedWatchArgs {
   readonly prNumber: number | null;
   readonly repo: string | null;
   readonly maxWaitMinutes: number;
+  /** How maxWaitMinutes was chosen (#3984 declared-budget). */
+  readonly budgetSource: DeclaredWaitBudgetSource;
+  /** True when CLI or DEFT_PR_WATCH_MAX_WAIT_MINUTES declared a budget. */
+  readonly budgetDeclared: boolean;
   readonly pollSeconds: number;
   readonly oneShot: boolean;
   readonly emitJson: boolean;
@@ -69,6 +77,8 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
     prNumber: null,
     repo: null,
     maxWaitMinutes: DEFAULT_MAX_WAIT_MINUTES,
+    budgetSource: "default",
+    budgetDeclared: false,
     pollSeconds: DEFAULT_POLL_SECONDS,
     oneShot: false,
     emitJson: false,
@@ -77,7 +87,7 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
   };
   let prNumber: number | null = null;
   let repo: string | null = null;
-  let maxWaitMinutes = DEFAULT_MAX_WAIT_MINUTES;
+  let cliMaxWait: number | null = null;
   let pollSeconds = DEFAULT_POLL_SECONDS;
   let oneShot = false;
   let emitJson = false;
@@ -118,12 +128,12 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
     } else if (arg === "--max-wait-minutes") {
       const r = takePositive("--max-wait-minutes", argv[i + 1]);
       if ("error" in r) return fail(acc, r.error);
-      maxWaitMinutes = r.value;
+      cliMaxWait = r.value;
       i += 1;
     } else if (arg?.startsWith("--max-wait-minutes=")) {
       const r = takePositive("--max-wait-minutes", arg.slice("--max-wait-minutes=".length));
       if ("error" in r) return fail(acc, r.error);
-      maxWaitMinutes = r.value;
+      cliMaxWait = r.value;
     } else if (arg === "--poll-seconds") {
       const r = takePositive("--poll-seconds", argv[i + 1]);
       if ("error" in r) return fail(acc, r.error);
@@ -155,8 +165,27 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
     }
   }
 
+  const budget = resolveDeclaredWaitBudget({ cliMinutes: cliMaxWait });
+  if (!budget.ok) {
+    return fail(acc, budget.reason);
+  }
+  const maxWaitMinutes = budget.minutes;
+  const budgetSource = budget.source;
+  const budgetDeclared = budget.declared;
+
   if (help) {
-    return { prNumber, repo, maxWaitMinutes, pollSeconds, oneShot, emitJson, projectRoot, help };
+    return {
+      prNumber,
+      repo,
+      maxWaitMinutes,
+      budgetSource,
+      budgetDeclared,
+      pollSeconds,
+      oneShot,
+      emitJson,
+      projectRoot,
+      help,
+    };
   }
   if (prNumber === null) {
     return fail(acc, "the following arguments are required: pr_number");
@@ -165,6 +194,8 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
     prNumber,
     repo,
     maxWaitMinutes,
+    budgetSource,
+    budgetDeclared,
     pollSeconds,
     oneShot,
     emitJson,

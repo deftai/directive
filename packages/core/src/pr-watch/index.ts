@@ -1,4 +1,14 @@
 export * from "./constants.js";
+export {
+  ENV_PR_WATCH_MAX_WAIT_MINUTES,
+  type DeclaredWaitBudgetErr,
+  type DeclaredWaitBudgetOk,
+  type DeclaredWaitBudgetResult,
+  type DeclaredWaitBudgetSource,
+  type ResolveDeclaredWaitBudgetInput,
+  hasDeclaredWallClockBudget,
+  resolveDeclaredWaitBudget,
+} from "./declared-budget.js";
 // parsePrWatchJsonStdoutLineSplit stays test-local in ./main.js (#5015) — not a public API.
 export {
   evaluateGreptileShaStallRemedy,

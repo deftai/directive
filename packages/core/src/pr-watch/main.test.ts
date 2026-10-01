@@ -81,6 +81,8 @@ describe("parseWatchArgs", () => {
     expect(a.error).toBeUndefined();
     expect(a.prNumber).toBe(1056);
     expect(a.maxWaitMinutes).toBe(DEFAULT_MAX_WAIT_MINUTES);
+    expect(a.budgetSource).toBe("default");
+    expect(a.budgetDeclared).toBe(false);
     expect(a.pollSeconds).toBe(DEFAULT_POLL_SECONDS);
     expect(a.oneShot).toBe(false);
     expect(a.emitJson).toBe(false);
@@ -102,9 +104,37 @@ describe("parseWatchArgs", () => {
     expect(a.oneShot).toBe(true);
     expect(a.emitJson).toBe(true);
     expect(a.maxWaitMinutes).toBe(10);
+    expect(a.budgetSource).toBe("cli");
+    expect(a.budgetDeclared).toBe(true);
     expect(a.pollSeconds).toBe(15);
     expect(a.repo).toBe("deftai/directive");
     expect(a.projectRoot).toBe("/tmp/x");
+  });
+
+  it("honors DEFT_PR_WATCH_MAX_WAIT_MINUTES when CLI omits max-wait (#3984)", () => {
+    const prev = process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+    process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = "18";
+    try {
+      const a = parseWatchArgs(["7"]);
+      expect(a.error).toBeUndefined();
+      expect(a.maxWaitMinutes).toBe(18);
+      expect(a.budgetSource).toBe("env");
+      expect(a.budgetDeclared).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+      else process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = prev;
+    }
+  });
+
+  it("rejects invalid DEFT_PR_WATCH_MAX_WAIT_MINUTES without throw (#3984)", () => {
+    const prev = process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+    process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = "abc";
+    try {
+      expect(parseWatchArgs(["7"]).error).toContain("DEFT_PR_WATCH_MAX_WAIT_MINUTES");
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+      else process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = prev;
+    }
   });
 
   it("rejects invalid numeric flag values", () => {
