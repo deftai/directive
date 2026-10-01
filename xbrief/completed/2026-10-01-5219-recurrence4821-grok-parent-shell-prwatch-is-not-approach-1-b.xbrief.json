@@ -1,0 +1,562 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5219",
+    "updated": "2026-10-01T18:16:33Z"
+  },
+  "plan": {
+    "title": "recurrence(#4821): Grok parent shell pr:watch is not Approach 1 babysit when spawn_subagent is available",
+    "status": "completed",
+    "narratives": {
+      "Description": "recurrence(#4821): Grok parent shell pr:watch is not Approach 1 babysit when spawn_subagent is available",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5219",
+      "Overview": "## Summary\n\nSee also: #3984 (adjacent \"rule did not bind\" portfolio — keep separate; do not fold this recurrence into that Bound).\n\nRecurrence of #4821 after its prose/skill remediations shipped (#4825 / #4829 / #4833).\n\nOn Grok Build through-merge, with `spawn_subagent` available, the parent conversation again treated a background shell `node … pr:watch` (plus parent-driven residual spins) as the Approach 1 babysit. Operator correction: the PR needs a **babysitter**, not a watch.\n\n## Evidence (2026-10-01 cohort)\n\nThrough-merge cohort for #3884 / #3749 / #1617 (Tracking PRs #5216 / #5215 / #5217):\n\n- Implement leaves correctly stopped at `pr-open`.\n- Parent retained merge-path ownership, then armed **parent-process** `pr:watch` loops that exit on NEW_P0_P1 / STALL / confidence holdout and wait for the parent turn to react.\n- Residuals were parent-orchestrated one-shots; the review→fix→re-review loop was not owned by a dest Approach 1 review-monitor child.\n- Operator called out that #5215 was not clear and needed a babysitter, and asked why watches were used instead of babysitters.\n\nThis is the same improper-babysit shape as the #4821 specimen (PR 4809): parent as fixer/waiter while dest review-cycle worker is skipped.\n\n## Why existing remediations did not bind\n\n- **#4821 Bound / #4825:** recut parent-retained so dest class A residual + Approach 1 wait come before parent closer. That is skill/prose. This session still chose the cheaper wrong path (shell watch in parent).\n- **#4882 / #5020 / #5018 / #5072:** lease + `--live-wait` attestation / process-liveness for *claimed* review-monitors. They do not stop a parent from never spawning the babysitter and calling a shell `pr:watch` \"armed.\"\n- **#4529:** implement is `stop-at: pr-open`; named partner is Approach 1 **or** parent-retained. Parent-retained is still being read as license to *be* the poller/fixer.\n- **#3984:** related \"rule did not bind\" portfolio item; its Bound explicitly rejects shipping a parent-turn-shape detector on that number. Do not fold this recurrence into #3984.\n\n## Desired outcome (mechanism-shaped)\n\nPrefer enforcement that makes the wrong path fail closed or expensive, not another AGENTS.md restatement.\n\n1. **Fail closed when merge-path claims Approach 1 / armed babysit but the only wait is a parent-owned shell/`bash` `pr:watch`** with no `spawn_subagent` (or other Tier-1) review-monitor child id visible to `verify:review-monitor --merge-path-arm --live-wait` (extend #5020 process-liveness so parent shell waits do not count).\n2. **Grok host adapter / post-`pr-open` gate:** when `spawn_subagent` is available, require `review-monitor:register` with `platform-primitive spawn_subagent` (or equivalent) **and** a still-running child before the parent may yield on a Tracking PR that still needs Greptile/CI shepherding.\n3. **Make spawning the babysitter the default one-liner cheaper than starting a parent watch** (swarm / review-cycle / host-grok-build card): one dispatch envelope that owns watch → class A residual → re-watch until CLEAN, then hand CLEAN to parent closer.\n\nNon-goals: reopening #4529 implement envelope; parent-turn-shape detectors on #3984; treating confidence-only holdouts as proof that watches are sufficient.\n\n## Related\n\n- Recurrence of: #4821 (primary)\n- Envelope: #4529\n- Live-wait attestation chain: #4882, #5020\n- Related open binding issue (do **not** absorb / do **not** reopen its Bound detector path): #3984\n\n",
+      "Labels": "bug, design, swarm, agent-experience, process, grok-build, source-of-truth, urgent, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities, promise:tickets, promise:swarm"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Fail closed when merge-path claims Approach 1 / armed babysit but the only wait is a parent-owned shell/bash pr:watch wi",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5221 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit bfb83a1912c19e71859fd9053c5b6c204f1d8e0f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T18:11:13.207Z",
+            "mintedVia": "leftover-complete-after-5221"
+          },
+          "recorded_at": "2026-10-01T18:11:13.207Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Grok host adapter / post-pr-open gate: when spawn_subagent is available, require review-monitor:register with platform-p",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5221 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit bfb83a1912c19e71859fd9053c5b6c204f1d8e0f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T18:11:13.207Z",
+            "mintedVia": "leftover-complete-after-5221"
+          },
+          "recorded_at": "2026-10-01T18:11:13.207Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Make spawning the babysitter the default one-liner cheaper than starting a parent watch (swarm / review-cycle / host-gro",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5221 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit bfb83a1912c19e71859fd9053c5b6c204f1d8e0f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T18:11:13.207Z",
+            "mintedVia": "leftover-complete-after-5221"
+          },
+          "recorded_at": "2026-10-01T18:11:13.207Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Non-goals: do not reopen #4529 implement envelope; do not ship parent-turn-shape detectors on #3984; do not treat confid",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5221 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit bfb83a1912c19e71859fd9053c5b6c204f1d8e0f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T18:11:13.207Z",
+            "mintedVia": "leftover-complete-after-5221"
+          },
+          "recorded_at": "2026-10-01T18:11:13.207Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "swarm",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "source-of-truth",
+      "urgent",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:tickets",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5219",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5219: recurrence(#4821): Grok parent shell pr:watch is not Approach 1 babysit when spawn_subagent is available"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "verify:review-monitor --merge-path-arm --live-wait",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L33"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/review-monitor",
+          "packages/core/src/swarm",
+          "content/skills/deft-directive-review-cycle",
+          "content/skills/deft-directive-swarm",
+          "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "content/templates/agent-prompt-preamble.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/review-monitor packages/core/src/swarm"
+        ],
+        "expected_outputs": [
+          "parent shell pr:watch does not satisfy merge-path-arm live-wait",
+          "post-pr-open requires spawn_subagent review-monitor when available",
+          "babysitter dispatch cheaper than parent watch",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "conflict_group": "review-monitor-babysit-arm",
+        "size": "M",
+        "file_scope_confidence": "bound-surfaces",
+        "model_tier": "default"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Cross-linked from #3984. This issue stays the recurrence/#4821 enforcement track; #3984 stays the adjacent binding/portfolio item and is not the edit target for a turn-shape detector.",
+          "id": 5933964348,
+          "html_url": "https://github.com/deftai/directive/issues/5219#issuecomment-5933964348",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-01T14:51:55Z",
+          "updated_at": "2026-10-01T14:51:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Current state\n\nBare arc 5219 under #5111 defaults (no-ingest, yolo). Recurrence of #4821: Grok parent shell pr:watch is not Approach 1 babysit when spawn_subagent is available.\n\n- Stage A: validity=still-open; critique-recommend false (operator-directed bare arc)\n- Labels: catalog + design / source-of-truth / core-capabilities / promise:swarm; chip mechanism-shaped\n- Thread: cross-link comment 5933964348 (#3984 stays separate)\n- Dest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5219-dc\n- dispatch-sha: 18e3706de2f8d8b53302cc96228c5f6c3c4d273c\n- Target-digest: sha256:8f4297cf7789f109095fd4ed9cc03026defeba5d23d1f4bb7d9fc6306080a864\n- Launch probe: claude+codex critic-bypass pong rc0 (N≥3 launchable)\n- Dual-stop spend: N≥3 (whole-motion babysit/action-loop hang + open enforcement shape among three remedies)\n\narc-mode: no-ingest\nyolo-standing: yes\nspend-recommend: N≥3\r\n\n",
+          "id": 5934016378,
+          "html_url": "https://github.com/deftai/directive/issues/5219#issuecomment-5934016378",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-01T14:54:51Z",
+          "updated_at": "2026-10-01T14:54:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because after #4821/#4825 prose remediations a Grok through-merge parent still treated background shell pr:watch as Approach 1 babysit while spawn_subagent was available, so the merge-path arm can claim armed without a Tier-1 review-monitor child and the wrong path stays cheaper than spawning the babysitter.\n\ncharter: refutation\nrefutation-target: With spawn_subagent available on Grok Build, a parent-owned shell/bash pr:watch (plus parent-driven residual one-shots) already satisfies Approach 1 babysit / merge-path arm requirements under #4529 parent-retained and #4882/#5020 live-wait attestation, so no new fail-closed enforcement is required beyond existing skill prose.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N≥3\nspend-ask: resolved\nspend-recommend: N≥3\ndual-stop-reserved: pain-audit\npain: P1, P2, P3\n\nP1. Merge-path can claim Approach 1 / armed babysit while the only wait is a parent-owned shell pr:watch with no spawn_subagent (or Tier-1) review-monitor child id visible to verify:review-monitor --merge-path-arm --live-wait.\n\nP2. Parent-retained (#4529) is still read as license for the parent to be the poller/fixer, so dest class A residual + Approach 1 wait are skipped even when spawn_subagent is available.\n\nP3. Spawning the babysitter is not the default cheaper one-liner versus starting a parent watch; skill/prose remediations (#4825/#4829/#4833) did not make the wrong path fail closed or expensive.\n\ndispatch-sha: 18e3706de2f8d8b53302cc96228c5f6c3c4d273c\nTarget-digest: sha256:8f4297cf7789f109095fd4ed9cc03026defeba5d23d1f4bb7d9fc6306080a864\nrelated: #4821 #4529 #4882 #5020 #3984 (do not fold)\r\n\n",
+          "id": 5934020516,
+          "html_url": "https://github.com/deftai/directive/issues/5219#issuecomment-5934020516",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-01T14:55:05Z",
+          "updated_at": "2026-10-01T14:55:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5934020516\nfamilies: grok, claude, codex\nlaunchers: spawn_subagent|grok-cli, claude, codex\ndispatch-sha: 18e3706de2f8d8b53302cc96228c5f6c3c4d273c\narc-mode: no-ingest\nspend: N≥3\nlaunch-probe: claude=pong rc0; codex=pong rc0\r\n\n",
+          "id": 5934024152,
+          "html_url": "https://github.com/deftai/directive/issues/5219#issuecomment-5934024152",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-01T14:55:17Z",
+          "updated_at": "2026-10-01T14:55:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nissue: #5219\ncharter: refutation\nspend: N>=3\nround: 1\nseat: codex\nlauncher: codex\nid-ceiling: 5934024152\ndispatch-sha: 18e3706de2f8d8b53302cc96228c5f6c3c4d273c\narc-mode: no-ingest\naudit-targets: none\n\n## Verdict\n\nRefute the Stop 1 target. A parent shell watch does not satisfy Approach 1 under the pinned skills. But #5219 must distinguish an already-rejected lease-less watch from the real remaining hole: an unrelated live wait can satisfy the heartbeat half of a claimed monitor's lease. Requiring a child-shaped string would not close that hole, and requiring a live wait during every fix phase would create a new one.\n\nVerification: confirmed checkout HEAD equals dispatch SHA; repository evidence below was read through `git show` at that SHA. This is source-path verification, not an executed integration reproduction. Read #5219 body and non-critic comments only through the ceiling; read #4821's historical parent disposition and synthesis, not critic posts. No product implementation or ingest.\n\n## 1. Existing rejection is real; the missing join is child identity -- sharpens-framing\n\nEvidence: [verify.ts](https://github.com/deftai/directive/blob/18e3706de2f8d8b53302cc96228c5f6c3c4d273c/packages/core/src/review-monitor/verify.ts) rejects Tier 1 without an active GitHub lease. [verify-review-monitor.ts](https://github.com/deftai/directive/blob/18e3706de2f8d8b53302cc96228c5f6c3c4d273c/packages/cli/src/verify-review-monitor.ts) passes lease presence and heartbeat activity separately to `bindLivePhaseCorrectWait`. [main.ts](https://github.com/deftai/directive/blob/18e3706de2f8d8b53302cc96228c5f6c3c4d273c/packages/core/src/pr-watch/main.ts) requires both on Tier 1. Therefore shell watch plus no lease already fails when this gate is invoked with correct tier detection.\n\nThe narrower counterexample is an active lease naming child A plus a live native parent watch for the same PR. `hasActivePollingHeartbeat` tests PR number, freshness, phase and optional PID liveness; it does not join the heartbeat to `monitorRecord.monitor_agent_id`. The bind consumes booleans, so it cannot establish that the leased child exists or owns the wait. A missing PID also does not disqualify a fresh compatible heartbeat. This is source-derived acceptance, not a claim that the incident supplied exactly these inputs.\n\nDisposition: retain enforcement work, but state the failing invariant precisely. Prefer extending this existing gate to bind the leased monitor to host-observed child/run identity and its wait, rather than adding another lease or treating `--platform-primitive spawn_subagent` as proof of an actual spawn. Test unrelated same-PR parent heartbeat, dead child with live shell, and matching live child separately.\n\n## 2. A stronger optional verifier does not enforce parent yield -- blocks-the-design\n\nEvidence: the CLI only evaluates the arm under `args.mergePathArm`; tier detection in [tier-detection.ts](https://github.com/deftai/directive/blob/18e3706de2f8d8b53302cc96228c5f6c3c4d273c/packages/core/src/review-monitor/tier-detection.ts) uses environment signals/overrides. Unknown runtime falls through to a non-Tier-1 path. The [Grok adapter](https://github.com/deftai/directive/blob/18e3706de2f8d8b53302cc96228c5f6c3c4d273c/content/skills/deft-directive-swarm/references/host-grok-build.md) instructs same-turn registration and verification before returning, but that instruction is not itself a host stop interceptor.\n\nFailure mode: a parent can omit the verifier, omit the arm flag, or invoke from a shell whose environment loses the Grok capability signal. Adding validation inside the optional call does not make such a parent return fail closed.\n\nDisposition: before binding the proposed post-PR-open gate, name the executable transition that obligatorily calls it and the source of host capability/child evidence. Prefer one existing handoff/stop integration invoking the strengthened verifier with explicit host context. If the host cannot intercept that transition or report child state, publish that limitation and scope the guarantee to checked handoffs; do not claim enforcement of every conversational yield. A one-line launch helper is useful ergonomics, not that enforcement boundary.\n\n## 3. Whole-motion babysit needs a fix-state handoff, not perpetual polling -- blocks-the-design\n\nEvidence: the [accepted #4821 remedy](https://github.com/deftai/directive/issues/4821#issuecomment-5751061274), still reflected in pinned [swarm SKILL](https://github.com/deftai/directive/blob/18e3706de2f8d8b53302cc96228c5f6c3c4d273c/content/skills/deft-directive-swarm/SKILL.md), assigns dest class-A one-shot residual, stop after push, then Approach 1 wait, then parent closer after CLEAN. Meanwhile the [canonical poller template](https://github.com/deftai/directive/blob/18e3706de2f8d8b53302cc96228c5f6c3c4d273c/content/templates/swarm-greptile-poller-prompt.md) already describes a combined poll/fix role. The proposed one-envelope remedy therefore crosses an existing role boundary; it is not merely a missing prompt.\n\nFailure mode: `pr:watch` exits on a finding, and the current heartbeat gate admits only starting/polling, not a legitimate residual-edit phase. Requiring a still-running wait throughout watch -> fix -> re-watch either rejects legitimate work or encourages keeping an irrelevant wait alive to pass. Giving a Grok leaf responsibility to spawn its own residual also collides with the leaf nesting boundary. Conversely, a live poll-only child still does not prove somebody can act on its terminal finding.\n\nDisposition: explicitly choose whether the bound remedy preserves #4821's separate one-shot residual or deliberately recuts review-monitor responsibility. Name who consumes NEW_P0_P1/CI/confidence residuals, how control and the single lease transfer during fixing, and who re-arms after push. Preserve bounded failure exits and the post-CLEAN parent closer. Child liveness alone cannot substantiate the whole-motion action-loop claim.\n\n## 4. Scope the new requirement to the pre-CLEAN owner -- sharpens-framing\n\nEvidence: pinned [review-cycle SKILL](https://github.com/deftai/directive/blob/18e3706de2f8d8b53302cc96228c5f6c3c4d273c/content/skills/deft-directive-review-cycle/SKILL.md), Approach 1 and Grok through-merge named partner, requires background child ownership of pre-CLEAN polling and retains parent/Phase 6 closing after CLEAN. `MergePathArmInput` explicitly covers both pre-CLEAN watch and post-CLEAN wait-merge; its binder currently has no phase input.\n\nFailure mode: a global requirement for `spawn_subagent` in every merge-path arm rejects the intentionally retained parent closer after CLEAN and can force unnecessary second monitors. Blanket parent-shell rejection also mistakes the execution substrate for ownership: a real child can legitimately run the native wait in a shell.\n\nDisposition: qualify by verified phase and owner role. Preserve post-CLEAN closer, explicit BLOCKED/FAILED finish, non-Tier-1 fallback and single-owner recovery. Under the swarm/injection lens, lease text and primitive names are claims, not host authority; shared same-PR heartbeat files must not substitute for the identified child's run. Scope identity joins to repository/PR/run and require evidence from the launch/runtime boundary, not reviewer prose.\n\n## 5. Panel deposit records a different ceiling -- sharpens-framing\n\nEvidence: [panel deposit 5934024152](https://github.com/deftai/directive/issues/5219#issuecomment-5934024152) records `input-ceiling: 5934020516`, while this envelope sets 5934024152. Pinned design-critique contract, Envelope and ceiling, expressly calls this mismatch a finding and keeps the envelope authoritative.\n\nFailure mode: a later reader could incorrectly reconstruct this seat's allowed inputs using the earlier write-back ceiling. Disposition: parent records the mismatch/correction in the arc bookkeeping. I did not re-ceiling and make no claim about sibling completeness.\n\n## Preferred direction and strongest alternative\n\nPrefer the existing verifier plus one mandatory handoff integration, with actual child identity binding and an explicit bounded wait/fix/closer ownership transition. Reuse the lease, native watch and closer; do not add a parallel poller or absorb #3984.\n\nThe strongest argument for no new mechanism is that compliant callers already reject lease-less watches and the skills already require a child. That would suffice if the reported recurrence were solely a missing invocation and the host obligatorily invoked the existing check with trustworthy ownership evidence. The current source shows neither that compulsory boundary nor the child/heartbeat join. Conversely, a demonstrated host integration providing those guarantees would narrow this issue to routing that integration and reconciling the residual envelope; another AGENTS restatement would not.\n\n",
+          "id": 5934098928,
+          "html_url": "https://github.com/deftai/directive/issues/5219#issuecomment-5934098928",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-01T14:59:28Z",
+          "updated_at": "2026-10-01T14:59:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5219\ncharter: refutation\nspend: N≥3\nround: 1 critic\nseat: grok\nlauncher: grok\nid-ceiling: 5934024152\ndispatch-sha: 18e3706de2f8d8b53302cc96228c5f6c3c4d273c\narc-mode: no-ingest\naudit-targets: none\ncritic-role: fresh\nverification-path: git show 18e3706de2f8d8b53302cc96228c5f6c3c4d273c: (dest cwd-without-occupy pin-reads)\n\n## Verdict\n\n**REFUTE** Stop 1 `refutation-target:` (comment 5934020516).\n\nWith `spawn_subagent` available on Grok Build, a parent-owned shell/`bash` `pr:watch` (plus parent-driven residual one-shots) does **not** satisfy Approach 1 babysit under tip review-cycle / swarm / host-grok-build. Tip `verify:review-monitor --merge-path-arm --live-wait` can still arm on lease + any native `pr:watch` heartbeat for that PR, so the specimen path stays cheaper than spawning the babysitter. Existing #4821/#4882/#5020 surfaces do not close that hole; Prefer-A needs mechanism-shaped fail-closed (or cost inversion), not another prose restatement.\n\n## Re-verification (pin SHA 18e3706)\n\n1. **Approach 1 is not parent shell wait.** Tip `content/skills/deft-directive-review-cycle/SKILL.md` Owner Continuity Gate A requires a live Approach 1 monitor + sticky lease; Gate B parent-retained is closer after a dest worker / engine wait when dest spawn is available (#4821). Grok through-merge named partner (#4529/#4821): dest class A residual then Approach 1 wait owner (`pr:watch` + `verify:review-monitor` / `review-monitor:register`) then parent-retained squash after CLEAN. `content/skills/deft-directive-swarm/references/host-grok-build.md` Gap D completion-owner ack for Approach 1 sibling is `review-monitor:register ... --platform-primitive spawn_subagent` + `verify:review-monitor` exit 0 — not a parent shell watch.\n\n2. **merge-path-arm arms without Tier-1 child identity.** `bindLivePhaseCorrectWait` / `evaluateMergePathArm` in `packages/core/src/pr-watch/main.ts` (Tier 1): `--live-wait` + lease evidence + `hasActivePollingHeartbeat` for the PR. Heartbeat id is `pr-watch-${pr}-${pid}` from `writePrWatchWaitHeartbeat`; native `pr:watch` always writes it in the wait path. Gate/arm code does **not** require lease `platform_primitive=spawn_subagent`, does **not** bind heartbeat pid/agent_id to lease `monitor_agent_id`, and does **not** prove a still-running `spawn_subagent` child. Parent-owned native `pr:watch` therefore supplies the same live-wait evidence an Approach 1 child would.\n\n3. **#4882/#5020 close a different defect.** They refuse lease-only / dead-wait stand-down. They do not refuse armed babysit when the only wait is parent-shell `pr:watch` while Tier 1 `spawn_subagent` is available. CHANGELOG #4821/#4825 is skill/prose dest-residual ownership; no machine refuse of parent-as-poller.\n\n4. **Approach-3 forbid does not catch the specimen.** `evaluateReviewMonitorGate` fails closed on `--approach3` when Tier 1 is available. Parent shell `pr:watch` claimed as merge-path live-wait does not take that flag, so the forbid never fires.\n\n5. **Injection / swarm lens.** Target changes spawn ownership, concurrency, and shared merge-path state. Untrusted claim surface is parent self-attestation that a shell wait is Approach 1 / armed babysit.\n\n## Findings\n\n### F1 — Parent shell `pr:watch` is not Approach 1; status-quo arm accepts it anyway\nclassification: `blocks-the-design`\n\n- **Evidence:** Pin-read items 1–3 above; Stop 1 pains P1/P3; issue body specimen (parent process watches on #5215/#5216/#5217 after `pr-open`).\n- **Failure mode:** Parent registers (or narrates) ownership, backgrounds native `pr:watch`, exits NEW_P0_P1/STALL into the parent turn, and treats that as Approach 1 babysit. `verify:review-monitor --merge-path-arm --live-wait` can green on lease + parent wait heartbeat with no `spawn_subagent` child. Wrong path stays operationally cheaper than spawning the babysitter; #4825 prose did not bind.\n- **Disposition:** Prefer-A MUST bind a mechanism that fails closed (or makes spawn the cheaper default) when Tier 1 primitive is `spawn_subagent` and the only wait identity is parent-owned `pr-watch-*` with no lease-bound Approach 1 child. Do not bind that existing #4882/#5020 already suffice.\n\n### F2 — Three predicates tip operators conflate\nclassification: `sharpens-framing`\n\n- **Evidence:** Gate A vs Gate B vs `evaluateMergePathArm` reasons `live_wait` | `explicit_finish` | `unarmed_stand_down`; host-grok-build Approach 1 sibling ack vs parent-retained occupancy holder.\n- **Failure mode:** Armed (2) is treated as proof of Approach 1 babysit (1). Parent-retained closer (3) is read as license to be the poller/fixer (P2).\n- **Disposition:** Prefer-A / Bound language MUST keep (1) Approach 1 = Tier-1 child + `review-monitor:register` with matching primitive, (2) merge-path armed = live phase-correct wait or explicit finish, (3) parent-retained = closer after dest worker — as separate predicates. Binding may tighten (2) so it cannot green without (1) when `spawn_subagent` is available pre-CLEAN.\n\n### F3 — Prefer-A surface (mechanism-shaped)\nclassification: `sharpens-framing`\n\n- **Evidence:** `bindLivePhaseCorrectWait` inputs; lease fields already carry `platform_primitive` / `monitor_agent_id`; `spawnRedirect` already emits register argv; host-grok-build already names the one-liner register path.\n- **Failure mode:** Another AGENTS/`SKILL.md` restatement (#4825-class) leaves the cheaper wrong path open; #3984 Bound already rejects shipping a parent-turn-shape detector on that number.\n- **Disposition:** Prefer inventory extension over new detector family: when `probeMonitoringTier` is Tier 1 / `spawn_subagent`, require lease `platform_primitive=spawn_subagent` **and** still-running wait identity bound to that `monitor_agent_id` (or equivalent child liveness) before `--merge-path-arm --live-wait` arms pre-CLEAN. Parent-shell-only yields unarmed + spawn redirect. Optional: one dispatch envelope that owns watch then class A residual then re-watch until CLEAN, then hands CLEAN to parent closer (issue desired outcome 3). Keep #3984 separate.\n\n### F4 — #3984 portfolio boundary\nclassification: `footnote`\n\nCross-link 5933964348 / Stop 1 `related:` already keep #3984 out of this edit target. Do not fold Prefer-A into a turn-shape detector on #3984.\n\n### F5 — Deposit / ceiling bookkeeping\nclassification: `footnote`\n\nPanel-deposit 5934024152 records `input-ceiling: 5934020516`; this envelope id-ceiling is 5934024152 (deposit inclusive). Contract puts authority on the envelope snapshot for N≥2; not a #5219 product finding.\n\n## Road-not-taken\n\n**Uphold** the target (parent shell already satisfies Approach 1 / arm; no new enforcement). Rejected: tip skills define Approach 1 as spawn+register; pin-read arm accepts parent native wait without child binding; specimen recurrence after #4825 shows prose non-binding.\n\n**Steelman (rejected):** #4882 phase-correct wait literally includes any native `pr:watch`, so parent shell is intentionally sufficient and Approach 1 is preference-only for Gap D interactivity. **Flip condition:** tip would have to redefine Approach 1 wait-owner as any native `pr:watch` process (including parent) and reclassify the 2026-10-01 cohort as residual-ownership-only, against operator babysitter-not-watch and Gate A / host-grok-build sibling ack. Tip text does not make that flip.\n\n## Prefer-A lean (critic recommendation)\n\nBind fail-closed on the existing merge-path / register / live-wait chain: Tier-1 `spawn_subagent` implies pre-CLEAN arm requires lease primitive + child-bound live wait; parent shell alone is unarmed. Pair with a cheaper babysitter one-liner if needed for P3. Do not reopen #4529 implement envelope; do not ship #3984 turn-shape detector; do not treat confidence holdouts as proof watches suffice.\n\n",
+          "id": 5934107199,
+          "html_url": "https://github.com/deftai/directive/issues/5219#issuecomment-5934107199",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-01T14:59:55Z",
+          "updated_at": "2026-10-01T14:59:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5219\ncharter: refutation\nspend: N≥3\nround: 1 (critic role: fresh)\nseat: claude\nlauncher: claude\nid-ceiling: 5934024152\ndispatch-sha: 18e3706de2f8d8b53302cc96228c5f6c3c4d273c\narc-mode: no-ingest\naudit-targets: none\n\nRe-verification path used: pin-read `git show 18e3706de2f8d8b53302cc96228c5f6c3c4d273c:<path>` from the process-only dest, cwd-without-occupy. No fixtures or tests executed; every claim below is a read of the pinned tree, not a line cite taken on trust.\n\n## In plain English\n\nThe premise under refutation is half right, and the half that is right is the bug. A parent that runs `pr:watch` in its own background shell really does make `verify:review-monitor --merge-path-arm --live-wait` say **armed** today — I traced it end to end in the pinned tree. But it says armed for a reason that has nothing to do with who owns the review cycle: the gate asks \"is some `pr:watch` process alive in this project root for this PR, and does some lease comment exist on this PR\", and it never asks whether those two facts are about the same agent. So \"the existing attestation chain already covers it\" is backwards. The chain passes precisely because it cannot see the distinction the operator is asking about.\n\nThat also means the issue's own remedy #1 cannot be built the way it is written. \"Extend #5020 process-liveness so parent shell waits do not count\" asks a liveness predicate to classify process ownership, and the heartbeat `pr:watch` writes carries no field that distinguishes a parent shell from a spawned child. The identity seam has to be added before any fail-closed arm can exist.\n\n## Verdict on the refutation target\n\nRecorded target (5934020516): *\"a parent-owned shell/bash `pr:watch` (plus parent-driven residual one-shots) already satisfies Approach 1 babysit / merge-path arm requirements under #4529 parent-retained and #4882/#5020 live-wait attestation, so no new fail-closed enforcement is required beyond existing skill prose.\"*\n\n**Refuted**, with its descriptive conjunct conceded.\n\n- **Conceded:** a parent-owned shell `pr:watch` *does* satisfy the merge-path arm as implemented. Confirmed below, not assumed.\n- **Refuted:** that satisfaction is not evidence that the requirement is met, and the appeal to #4529 parent-retained is a scope error. Parent-retained is the post-CLEAN closer role in the pinned prose, not the review-cycle wait role.\n\nThe target therefore fails on its load-bearing inference (\"already satisfies → no new enforcement required\"), while being literally true about current gate behaviour. P1 in the Stop 1 pain list is confirmed as written; P2 is confirmed but mis-sited; P3 I could not substantiate from the tree and treat as unverified.\n\n---\n\n## F1 — No identity join across claim → lease → liveness · `blocks-the-design`\n\nThree gates each validate a *shape*. None validates *who*. The arm is the product of two unjoined booleans.\n\n**Evidence (pinned reads):**\n\n1. `packages/cli/src/review-monitor-register.ts:65-73` — `--monitor-agent-id` is accepted as a free string. `--platform-primitive` is checked against a closed set only (`:74-89`), so `--platform-primitive spawn_subagent` asserts a *word*, not a spawn. Nothing in `registerReviewMonitor` probes that the id names a live child.\n2. `packages/core/src/pr-watch/main.ts:403-405, 418-463` — the wait heartbeat is written by the `pr:watch` binary itself. `agent_id` is `pr-watch-<pr>-<pid>` and `parent_id` defaults to the literal string `\"pr-watch\"` (`:452`). Nothing in the payload records who started the process.\n3. `packages/core/src/pr-watch/main.ts:706, 712-714, 743-748` — `runWatch` writes that heartbeat unconditionally on the ordinary CLI path, before any flag is consulted. A background shell `node … pr:watch 5215` arms `hasActivePollingHeartbeat` exactly as a spawned child does.\n4. `packages/core/src/review-monitor/verify.ts:144-160` — `hasActivePollingHeartbeat` filters on `pr_number`, `failures`, `is_stale`, `is_terminal`, `phase`, and pid liveness. It never reads `agent_id` or `parent_id`.\n5. `packages/core/src/review-monitor/verify.ts:254-274` — `monitorRecord` (the GitHub lease) and `heartbeatActive` are computed independently and never compared.\n6. `packages/core/src/review-monitor/record.ts:621-639` — the lease fetch has no caller-identity check, and `owner` is the GitHub login (`gh api user`), which is identical for a parent and its spawned child. Owner cannot discriminate.\n7. `packages/cli/src/verify-review-monitor.ts:191-220` → `packages/core/src/pr-watch/main.ts:334-367` — `bindLivePhaseCorrectWait` requires `liveWaitFlag && leaseEvidence && heartbeatActive` on Tier 1. All three are satisfiable by the parent alone.\n8. `packages/core/src/review-monitor/l4-owner.ts:246-259` — same gap in the L4 owner gate: when a lease exists it returns `EXIT_READY` / `path: \"lease\"` **without** comparing the caller's `in_progress:<pr>#<ref>` to `githubMonitor.monitor_agent_id`. `in_progress:5215#parent-retained` plus any lease is green, even though `L4_OWNER_HELP:28-29` states parent-retained does not satisfy this gate.\n\n**Concrete failure mode** — the #5219 cohort shape, reproduced from the pinned tree. Parent backgrounds `node … pr:watch 5215` in its own shell, which writes `pr-watch-5215-<pid>.json` at `phase: \"polling\"`. Parent then runs `task review-monitor:register -- --pr 5215 --monitor-agent-id babysitter-5215 --platform-primitive spawn_subagent`, where the id is a free string naming nothing and the primitive is a closed-set word asserting a spawn that never happened. Parent then runs `task verify:review-monitor -- --pr 5215 --merge-path-arm --live-wait`: `leaseEvidence=true`, `heartbeatActive=true`, so `livePhaseCorrectWait=true` and the result is **armed**. No `spawn_subagent` call is made and no review-monitor child exists. Both the issue's Evidence section and the #4821 specimen describe this exact configuration.\n\n**Disposition consequence.** Desired outcome #1 as written (\"extend #5020 process-liveness so parent shell waits do not count\") cannot be implemented on the current substrate: the heartbeat has no field that differs between the two cases. Any remedy must first create the identity seam, and #1 should be restated as that.\n\n**Prefer-A (reuse, not a new mechanism).** The join material already exists and is already persisted: `ReviewMonitorRecord` carries `monitor_agent_id` and `parent_session_id` (`packages/core/src/review-monitor/record.ts:39, 44`). Two narrow edits close the loop without a new poller family:\n\n- Add `--monitor-agent-id` (or `DEFT_MONITOR_AGENT_ID`) to `parseWatchArgs` (`packages/core/src/pr-watch/main.ts:67-148`, which today accepts only `--repo` / `--max-wait-minutes` / `--poll-seconds` / `--one-shot` / `--json` / `--project-root`) and stamp it into the heartbeat's `parent_id` instead of the constant `\"pr-watch\"`.\n- Give `hasActivePollingHeartbeat` an expected-id parameter and have `evaluateReviewMonitorGate` pass `monitorRecord.monitor_agent_id`, requiring `rec.parent_id === monitor_agent_id`. Mirror the same comparison in `evaluateL4OwnerGate` for the `in_progress:<pr>#<ref>` ref.\n\nThis does not make lying impossible — a parent can still register its own shell watch as the monitor. It makes lying *attributable*: the false claim lands in the sticky `<!-- deft:review-owner -->` comment on the PR under the parent's login, where it is readable after the fact, instead of being the silent default. That is the right bar for this threat model, which is a parent taking the cheaper path, not an adversary.\n\n---\n\n## F2 — `pid` is optional, so #5020 process-liveness is writer-opt-in · `sharpens-framing`\n\n`REQUIRED_FIELDS` (`packages/core/src/orchestration/subagent-monitor.ts:33-39`) is `agent_id, parent_id, last_heartbeat_at, last_message, phase`. `pid` is absent. `readWaitHeartbeatPid` returns `null` for a payload without it (`packages/core/src/review-monitor/verify.ts:37-50`), and the liveness check is then skipped outright: `if (pid !== null && !alive(pid)) return false` (`:155-158`). Separately, the pid embedded in the filename stem `pr-watch-<pr>-<pid>` is never cross-checked against the `pid` field — `subagent-monitor.ts:172-177` only compares `agent_id` to the basename.\n\n**Failure mode.** A fresh `phase: \"polling\"` record for the PR with no `pid` key counts as a still-running wait with no process behind it. A record naming any live pid on the box passes equally.\n\n**Disposition consequence.** This does not change F1's reproduction — a real `pr:watch` does publish its pid. It bounds what remedy #1 may claim: a control whose liveness evidence is an optional field is a speed bump, not fail-closed. If #1 lands, it should also make `pid` required for PR-scoped wait heartbeats and enforce stem/pid agreement, or drop the words \"fail closed\" from its own acceptance criterion.\n\n---\n\n## F3 — The arm observer is sited at the wrong moment · `sharpens-framing`\n\n`--merge-path-arm` is a point-in-time liveness check consulted when the parent wants to yield. The difference between a watch and a babysitter is not observable there, because it is not a property of the process — it is what happens when the wait *returns*. A babysitter fixes the class-A residual and re-enters the loop; a watch hands the turn back.\n\n**Evidence.** `runWatch`'s `finally` writes `phase: \"terminal\", terminal_state: \"exited\"` (`packages/core/src/pr-watch/main.ts:740-748`), and `hasActivePollingHeartbeat` excludes terminal records (`verify.ts:148-150`). So the instant a parent-owned watch returns `NEW_P0_P1` / `STALL` / a confidence holdout, the arm is already unarmed. The cohort's parent was not defeating the gate at that moment — the gate was simply never consulted there, because the parent went on to fix residuals itself rather than yield.\n\n**Disposition consequence.** Remedy #1 targets the yield-time arm, which is the one moment the cohort's behaviour was arguably already fine. The enforceable moment is the non-CLEAN return in a process whose heartbeat identity is not the registered monitor: at that point the deterministic control is a required handback (BLOCKED / explicit finish) rather than a parent-owned fix. Re-site #1 there and it becomes checkable; leave it at the arm and it mostly re-states F1.\n\n---\n\n## F4 — The #4529 parent-retained appeal is a scope error, and the prose names commands rather than an owner · `sharpens-framing`\n\n**Evidence.** `content/skills/deft-directive-swarm/references/host-grok-build.md:93` (`#4529 / #4821`) orders Grok through-merge as: implement MUST use `(b) stop-at: pr-open` → dest-cwd one-shot residual → \"then Approach 1 wait (`pr:watch` + `verify:review-monitor` / `review-monitor:register`); then Phase 6 / parent-retained squash-merges via `pr:wait-mergeable-and-merge` only after CLEAN.\" Parent-retained is scoped there to the **closer after CLEAN**, not to the review-cycle wait. The refutation target's appeal to \"#4529 parent-retained\" borrows a post-CLEAN role to license a pre-CLEAN one.\n\nTwo prose properties explain why the #4825 recut did not bind:\n\n- `host-grok-build.md:37-38` offers \"Approach 1 sibling\" and \"Parent-retained on this dest-proven occupancy-lease holder\" as co-equal partners, and the parent-retained row says \"This session MAY pull-wait.\" Read alone, that row licenses exactly the observed behaviour. The ordering constraint that would forbid it lives 55 lines away at `:93`.\n- The obligation at `:93` is spelled as a **command list** — `pr:watch` + `verify:review-monitor` / `review-monitor:register`. A parent that runs all three commands in its own process has, on a literal reading, performed \"the Approach 1 wait.\" The sentence never names an owner distinct from the parent.\n\n**Disposition consequence.** This is the cheapest of the three levers and the only one needing no code: restate `:93` and `:38` so the obligation is an ownership predicate (\"a review-monitor whose `monitor_agent_id` is the registered sibling\"), not a list of verbs the parent may run. Per the issue's own prefer-mechanism-over-restatement stance it will not bind alone — #4825 is the control experiment for that. Ship it with F1, not instead of F1.\n\n---\n\n## Injection / swarm lens (fires)\n\nThe target changes authority, concurrency, and shared state, so this is not an N/A recital.\n\nThe merge-path arm consumes `.deft-scratch/subagent-status/` as an **authority** signal while treating it as a **telemetry** directory. It is an unauthenticated sink in a shared dest: any process with write access to the project root can create `pr-watch-<pr>-<pid>.json`, and per F2 the only liveness field is optional. `hasActivePollingHeartbeat` scopes by `pr_number` alone (`verify.ts:144-151`), so any producer in that root claiming that PR arms the gate, including a non-`pr:watch` family that happens to write the same shape. Combined with F1 — an unverified free-string `monitor_agent_id` on the lease side — the arm's whole evidentiary basis is parent-authored and parent-writable on both sides. Any remedy that keeps this directory as the liveness substrate is placing an authority decision on a sink the constrained party controls. That is the structural reason F1's Prefer-A aims at *attributability* (a GitHub-side claim under a login) rather than at unforgeability.\n\n## Road not taken\n\nI considered proposing that the arm shell out to the host to enumerate live subagents and confirm `monitor_agent_id` is among them. Rejected: `host-grok-build.md:124` records that `spawn_subagent` workers are observed terminal and that `agent_id` is not a general message-later inbox, and the tier probe is env-variable-based (`packages/core/src/review-monitor/tier-detection.ts:63-156`), so there is no portable live-child enumeration to join against. A host-specific prober would also be a fourth poller family, which #5020's own Overview explicitly refuses. The heartbeat-identity join in F1 reuses seams that already exist.\n\n## Steelman of the position I am refuting\n\nThe strongest version is not \"a shell watch is as good as a babysitter.\" It is: *the gate is behaving correctly, because `--merge-path-arm` was only ever scoped to answer \"is anything still waiting on this PR,\" and loading an ownership question onto it will produce false BLOCKEDs on the legitimate parent-retained closer path — `pr:wait-mergeable-and-merge` is explicitly a parent-retained post-CLEAN wait (`host-grok-build.md:93`) that writes the same heartbeat shape (`packages/core/src/pr-wait-mergeable/main.ts:201, 264`) and would newly fail an owner-identity check.* That is a real cost and F1's Prefer-A must carry it: the identity join has to be scoped to the **pre-CLEAN review-cycle wait** and must leave the post-CLEAN closer path armed, or the remedy breaks the one parent-retained role the prose actually grants.\n\n**What would flip my verdict:** a surface in the pinned tree that joins the heartbeat's producer to the registered `monitor_agent_id`, or that otherwise distinguishes a parent-owned `pr:watch` from a spawned one, at any of the three gates. I read `verify.ts`, `l4-owner.ts`, `record.ts`, `tier-detection.ts`, `pr-watch/main.ts`, `review-monitor-register.ts`, and `verify-review-monitor.ts` at the dispatch SHA and found none. If one exists elsewhere, F1 collapses and the refutation target survives.\n\n## Footnotes\n\n- `footnote` — **Deposit/envelope ceiling mismatch.** Panel-deposit 5934024152 records `input-ceiling: 5934020516`, which is the Stop 1 write-back id posted before the deposit. The envelope's authoritative ceiling is 5934024152. Per `content/contracts/design-critique.md` § Envelope and ceiling, a pre-POST write-back id in `input-ceiling:` is not the matching default and the mismatch is a finding, never a re-ceiling. I honoured 5934024152 and read no comment above it. No disposition weight.\n- `footnote` — **No `verification-path:` line before panel-deposit.** Neither 5934016378 nor 5934024152 carries the closed `verification-path:` line the contract requires on a process-only dest. I defaulted to path (a), pin-reads at the dispatch SHA, which is the contract's default, so nothing was lost here. Recording the absence only.\n\n",
+          "id": 5934188016,
+          "html_url": "https://github.com/deftai/directive/issues/5219#issuecomment-5934188016",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-01T15:04:08Z",
+          "updated_at": "2026-10-01T15:04:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A\n\n## In plain English\n\nA parent shell `pr:watch` is not an Approach 1 babysitter. Tip merge-path-arm can still green on a lease plus any same-PR native watch heartbeat, with no child identity join — so the cheaper wrong path survived #4821 prose. The next-build contract is mechanism-shaped: join the leased `monitor_agent_id` to the live wait for pre-CLEAN when Tier 1 is `spawn_subagent`, put that check on a mandatory handoff (not an optional flag), keep wait/fix/re-arm ownership explicit, leave the post-CLEAN parent closer alone, and keep #3984 out.\n\n## Disposition map\n\n| Heading | Critic | Class | Take |\n|---|---|---|---|\n| Parent shell pr:watch is not Approach 1; arm accepts it anyway | grok | blocks | accept-into-contract |\n| Stronger optional verifier does not enforce parent yield | codex | blocks | accept-into-contract |\n| Whole-motion babysit needs fix-state handoff, not perpetual polling | codex | blocks | accept-into-contract |\n| No identity join across claim → lease → liveness | claude | blocks | accept-into-contract |\n| Three predicates tip operators conflate | grok | sharpens | accept-into-contract |\n| Prefer-A surface on existing arm/register/live-wait chain | grok | sharpens | accept-into-contract |\n| Existing rejection real; missing join is child identity | codex | sharpens | accept-into-contract |\n| Scope new requirement to pre-CLEAN owner | codex | sharpens | accept-into-contract |\n| pid optional → #5020 liveness writer-opt-in | claude | sharpens | accept-into-contract |\n| Arm observer sited at wrong moment | claude | sharpens | accept-into-contract |\n| #4529 parent-retained appeal is scope error / prose names commands | claude | sharpens | accept-into-contract |\n| Panel-deposit input-ceiling mismatch vs envelope | all | sharpens/footnote | accept-into-contract (bookkeeping) |\n| #3984 portfolio boundary | grok | footnote | accept-into-contract |\n| No verification-path before panel-deposit | claude | footnote | accept-into-contract |\n\nDisagreement set: empty.\n\nBookkeeping: panel-deposit 5934024152 recorded `input-ceiling: 5934020516` (Stop 1); envelope authority was 5934024152 inclusive. Critics honored the envelope. Not a product limb.\n\n## Bound remedy\n\n1. **Identity join (pre-CLEAN).** When monitoring tier is Tier 1 / `spawn_subagent`, `verify:review-monitor --merge-path-arm --live-wait` arms only if the lease carries `platform_primitive=spawn_subagent` **and** the live wait is bound to that lease's `monitor_agent_id` (reuse already-persisted record fields; stamp into heartbeat/`parent_id` as needed). Parent-shell-only `pr-watch-*` with no child-bound wait → unarmed + spawn redirect. Tests: unrelated same-PR parent heartbeat; dead child + live shell; matching live child.\n\n2. **Mandatory handoff integration.** Name the executable transition that obligatorily invokes the strengthened verifier with host capability/child evidence (not only when a parent remembers `--merge-path-arm`). If the host cannot intercept every conversational yield, publish that limitation and scope the guarantee to checked handoffs — do not claim enforcement of every yield via prose.\n\n3. **Wait / fix / re-arm ownership.** Explicitly preserve #4821's separate dest class-A one-shot residual + Approach 1 wait + parent closer after CLEAN, **or** deliberately recut review-monitor responsibility. Name who consumes NEW_P0_P1/CI/confidence residuals, how the single lease transfers during fixing, and who re-arms after push. Do not require a perpetual poller through residual edits; do not invent a parallel poller family.\n\n4. **Phase scope.** Identity-join / spawn_subagent requirement is pre-CLEAN review-cycle wait only. Preserve post-CLEAN parent-retained `pr:wait-mergeable-and-merge` closer, explicit BLOCKED/FAILED finish, and non-Tier-1 fallback.\n\n5. **Cheaper babysitter path (P3).** Make the Approach 1 one-liner (register + verify + still-running child) the default cheaper dispatch than starting a parent watch (swarm / review-cycle / host-grok-build card). Ergonomics alone is not the enforcement boundary in limb 2.\n\n6. **Non-goals.** Do not reopen #4529 implement envelope. Do not fold into #3984 or ship a parent-turn-shape detector on that number. Do not treat confidence-only holdouts as proof watches suffice. Keep Approach 1 / merge-path armed / parent-retained closer as separate predicates.\n\n## Pain coverage (honest cites)\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n- **P1:** Bound limbs 1–2 (identity join + mandatory handoff so parent shell wait cannot arm alone).\n- **P2:** Bound limbs 3–4 (parent-retained stays closer; pre-CLEAN wait ownership is Approach 1 child).\n- **P3:** Bound limb 5 (+ limbs 1–2 make wrong path fail closed / expensive).\n\naudit-targets: pain-P1, pain-P2, pain-P3\n\nTarget-digest: sha256:8f4297cf7789f109095fd4ed9cc03026defeba5d23d1f4bb7d9fc6306080a864\ndispatch-sha: 18e3706de2f8d8b53302cc96228c5f6c3c4d273c\ncritics: 5934107199 (grok), 5934098928 (codex/gpt-6), 5934188016 (claude-opus-5)\npanel-deposit: 5934024152\nStop 1: 5934020516\narc-mode: no-ingest\nyolo-standing: yes\nspend: N≥3\r\n\n",
+          "id": 5934202689,
+          "html_url": "https://github.com/deftai/directive/issues/5219#issuecomment-5934202689",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-01T15:04:56Z",
+          "updated_at": "2026-10-01T15:04:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5219\ncharter: refutation\nspend: N≥3 (reserved Dual-stop pain-audit slot)\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5934202689\ndispatch-sha: 18e3706de2f8d8b53302cc96228c5f6c3c4d273c\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\ncritic-role: fresh\nverification-path: git show 18e3706de2f8d8b53302cc96228c5f6c3c4d273c: (dest cwd-without-occupy pin-reads)\n\n## Verdict\n\nPrefer-A lean 5934202689 **covers** Stop 1 pains P1–P3. Bound limbs 1–5 match the named pains. Census is **footnote-only**. Coverage holds.\n\n## Method\n\nPin-reads at dispatch-sha for `packages/core/src/pr-watch/main.ts` (`bindLivePhaseCorrectWait`, `evaluateMergePathArm`, `prWatchHeartbeatAgentId`), `packages/core/src/review-monitor/verify.ts` (`hasActivePollingHeartbeat`), and tip `content/skills/deft-directive-swarm/references/host-grok-build.md` Approach 1 sibling ack. In-ceiling only: Stop 1 5934020516, Prefer-A 5934202689 (ceiling), panel critics 5934107199 / 5934098928 / 5934188016 as evidence cites for Bound absorption. No re-argument of the panel. Injection / swarm lens applies (spawn ownership, shared merge-path lease/heartbeat, worktrees).\n\n## Findings\n\n### pain-P1 — Prefer-A coverage — `footnote`\n\n**Evidence.** Stop 1 P1: merge-path can claim Approach 1 / armed babysit while the only wait is a parent-owned shell `pr:watch` with no Tier-1 / `spawn_subagent` child id visible to `verify:review-monitor --merge-path-arm --live-wait`. Tip `bindLivePhaseCorrectWait` arms Tier 1 on `liveWaitFlag` + lease evidence + `hasActivePollingHeartbeat(pr)` alone; heartbeat stem is `pr-watch-${pr}-${pid}` with no join to lease `monitor_agent_id` / `platform_primitive`. Prefer-A Bound limbs 1–2 require pre-CLEAN arm only when lease `platform_primitive=spawn_subagent` **and** live wait is bound to that lease's `monitor_agent_id`, with parent-shell-only → unarmed + spawn redirect, plus a mandatory handoff that invokes the strengthened verifier (honest publish if a host cannot intercept every conversational yield). Named tests: unrelated same-PR parent heartbeat; dead child + live shell; matching live child.\n\n**Failure mode.** None for under-coverage: limbs 1–2 close the tip identity hole P1 names and site the check on a handoff rather than optional flag memory.\n\n**Disposition consequence.** Coverage holds. No Bound recut for P1.\n\n### pain-P2 — Prefer-A coverage — `footnote`\n\n**Evidence.** Stop 1 P2: parent-retained (#4529) is read as license for the parent to be the poller/fixer, skipping dest class A residual + Approach 1 wait when `spawn_subagent` is available. Prefer-A Bound limbs 3–4 preserve #4821's separate dest class-A one-shot residual + Approach 1 wait + parent closer after CLEAN (or deliberately recut with named residual/lease/re-arm ownership), and scope the identity-join / `spawn_subagent` requirement to pre-CLEAN review-cycle wait only while keeping post-CLEAN parent-retained `pr:wait-mergeable-and-merge`, explicit finish, and non-Tier-1 fallback. Disposition map already accepts the three-predicate split and the parent-retained scope error as accept-into-contract.\n\n**Failure mode.** None for under-coverage: limbs 3–4 keep Approach 1 as the pre-CLEAN wait owner and parent-retained as closer, which is the P2 misread Stop 1 named.\n\n**Disposition consequence.** Coverage holds. No Bound recut for P2.\n\n### pain-P3 — Prefer-A coverage — `footnote`\n\n**Evidence.** Stop 1 P3: spawning the babysitter is not the default cheaper one-liner versus starting a parent watch; #4825/#4829/#4833 prose did not make the wrong path fail closed or expensive. Prefer-A Bound limb 5 makes the Approach 1 one-liner (register + verify + still-running child) the default cheaper dispatch on swarm / review-cycle / host-grok-build surfaces, and Prefer-A's own cite correctly subordinates ergonomics to limbs 1–2 (wrong path unarmed + spawn redirect). Tip host-grok-build already names the register/`verify:review-monitor` sibling ack; Prefer-A binds cost inversion on top of that, not another prose-only restatement.\n\n**Failure mode.** None for under-coverage: fail-closed (limbs 1–2) plus cheaper correct path (limb 5) is the P3 pair Stop 1 asked for.\n\n**Disposition consequence.** Coverage holds. No Bound recut for P3.\n\n### Closed cite form on Prefer-A — `footnote`\n\n**Evidence.** Prefer-A \"## Pain coverage (honest cites)\" already carries operative `relieves: P1` / `relieves: P2` / `relieves: P3` with limb maps. Closed cite forms are present.\n\n**Failure mode.** None for cite-form residual.\n\n**Disposition consequence.** Census only. No lean edit required for cite shape.\n\n## Census\n\n| Target | Class | One-line |\n|---|---|---|\n| pain-P1 | footnote | Limbs 1–2 identity join + mandatory handoff close parent-shell arm hole |\n| pain-P2 | footnote | Limbs 3–4 keep Approach 1 wait owner; parent-retained stays closer |\n| pain-P3 | footnote | Limb 5 + limbs 1–2 invert cost; wrong path fail-closed |\n| cite-form | footnote | Closed `relieves: P1\\|P2\\|P3` already on Prefer-A |\n\nFootnote-only across pain-P1, pain-P2, pain-P3. Coverage holds. Bind map stays Prefer-A 5934202689.\r\n\n",
+          "id": 5934242747,
+          "html_url": "https://github.com/deftai/directive/issues/5219#issuecomment-5934242747",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-01T15:07:19Z",
+          "updated_at": "2026-10-01T15:07:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| # | Claim | Status | Basis |\n|---|---|---|---|\n| 1 | Stop 1 target falls: parent shell pr:watch is not Approach 1 | verified | 3/3 panel refute |\n| 2 | Tip merge-path-arm can green without child-bound wait identity | verified | grok F1; claude F1; codex §1 |\n| 3 | Optional verifier alone does not enforce parent yield | verified | codex §2 |\n| 4 | Wait/fix/re-arm ownership must be explicit; perpetual poller wrong | verified | codex §3 |\n| 5 | Identity join must be pre-CLEAN scoped; preserve post-CLEAN closer | verified | codex §4; claude steelman |\n| 6 | Prefer-A Bound limbs 1–5 cover Stop 1 P1–P3 | verified | pain-audit 5934242747 footnote-only |\n| 7 | #3984 stays out; #4529 implement envelope stays closed | verified | panel footnotes / Bound non-goals |\n\nCeiling: Prefer-A lean 5934202689. Pain-audit: 5934242747. Dispatch SHA: 18e3706de2f8d8b53302cc96228c5f6c3c4d273c.\r\n\n",
+          "id": 5934249843,
+          "html_url": "https://github.com/deftai/directive/issues/5219#issuecomment-5934249843",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-01T15:07:46Z",
+          "updated_at": "2026-10-01T15:07:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA parent shell `pr:watch` is not a babysitter. Tip can still call that path armed because lease and heartbeat are not joined to a Tier-1 child. The next-build contract joins the leased `monitor_agent_id` to the pre-CLEAN live wait when `spawn_subagent` is available, puts that check on a mandatory handoff, keeps wait/fix/re-arm ownership explicit, leaves the post-CLEAN closer alone, and keeps #3984 out.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5934202689\nverified-claims table comment 5934249843\nround-1 critics: 5934107199 (grok), 5934098928 (codex/gpt-6), 5934188016 (claude-opus-5)\npain-audit: 5934242747\npanel-deposit: 5934024152\nStop 1: 5934020516\ncurrent-state: 5934016378\ndispatch-sha: 18e3706de2f8d8b53302cc96228c5f6c3c4d273c\narc-mode: no-ingest\nyolo-standing: yes\nspend: N≥3\n\nDisagreement set: empty.\r\n\n",
+          "id": 5934252508,
+          "html_url": "https://github.com/deftai/directive/issues/5219#issuecomment-5934252508",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-01T15:07:55Z",
+          "updated_at": "2026-10-01T15:07:55Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5664139033,
+        "origin": "deftai/directive#5219",
+        "id": "github.issue.5664139033"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "8f4297cf7789f109095fd4ed9cc03026defeba5d23d1f4bb7d9fc6306080a864"
+      },
+      "productPullRequest": 5221,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5221,
+        "prBase": null,
+        "mergeCommit": "bfb83a1912c19e71859fd9053c5b6c204f1d8e0f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "bfb83a1912c19e71859fd9053c5b6c204f1d8e0f",
+        "verifiedAt": "2026-10-01T18:16:33Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGY3NjktZGI4Yi03MmMyLTlhNjktMTA2ZTZmNmU3ZDVl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-01T18:16:33Z",
+      "completedSessionId": "host:grok:v1:MDFhMGY3NjktZGI4Yi03MmMyLTlhNjktMTA2ZTZmNmU3ZDVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-01T18:16:33Z"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/swarm packages/core/src/review-monitor"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Derived from #5219 Desired outcome mechanism-shaped remediation list",
+      "sentences": [
+        "Fail closed when merge-path claims Approach 1 / armed babysit but the only wait is a parent-owned shell/bash pr:watch with no spawn_subagent (or other Tier-1) review-monitor child id visible to verify:review-monitor --merge-path-arm --live-wait (extend #5020 process-liveness so parent shell waits do not count).",
+        "Grok host adapter / post-pr-open gate: when spawn_subagent is available, require review-monitor:register with platform-primitive spawn_subagent (or equivalent) and a still-running child before the parent may yield on a Tracking PR that still needs Greptile/CI shepherding.",
+        "Make spawning the babysitter the default one-liner cheaper than starting a parent watch (swarm / review-cycle / host-grok-build card): one dispatch envelope that owns watch → class A residual → re-watch until CLEAN, then hand CLEAN to parent closer.",
+        "Non-goals: do not reopen #4529 implement envelope; do not ship parent-turn-shape detectors on #3984; do not treat confidence-only holdouts as proof that watches are sufficient."
+      ],
+      "admitted_source_sentences": [
+        "Fail closed when merge-path claims Approach 1 / armed babysit but the only wait is a parent-owned shell/bash pr:watch with no spawn_subagent (or other Tier-1) review-monitor child id visible to verify:review-monitor --merge-path-arm --live-wait (extend #5020 process-liveness so parent shell waits do not count).",
+        "Grok host adapter / post-pr-open gate: when spawn_subagent is available, require review-monitor:register with platform-primitive spawn_subagent (or equivalent) and a still-running child before the parent may yield on a Tracking PR that still needs Greptile/CI shepherding.",
+        "Make spawning the babysitter the default one-liner cheaper than starting a parent watch (swarm / review-cycle / host-grok-build card): one dispatch envelope that owns watch → class A residual → re-watch until CLEAN, then hand CLEAN to parent closer.",
+        "Non-goals: do not reopen #4529 implement envelope; do not ship parent-turn-shape detectors on #3984; do not treat confidence-only holdouts as proof that watches are sufficient."
+      ],
+      "admitted_source_digest": "b0f7b3dcc9ce603c06c873127d2f30699ab0c39e274432e6db42fe237872eaac",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Fail closed when merge-path claims Approach 1 / armed babysit but the only wait is a parent-owned shell/bash pr:watch with no spawn_subagent (or other Tier-1) review-monitor child id visible to verify:review-monitor --merge-path-arm --live-wait (extend #5020 process-liveness so parent shell waits do not count).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "issue-desired-outcome"
+        },
+        {
+          "id": 2,
+          "text": "Grok host adapter / post-pr-open gate: when spawn_subagent is available, require review-monitor:register with platform-primitive spawn_subagent (or equivalent) and a still-running child before the parent may yield on a Tracking PR that still needs Greptile/CI shepherding.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "issue-desired-outcome"
+        },
+        {
+          "id": 3,
+          "text": "Make spawning the babysitter the default one-liner cheaper than starting a parent watch (swarm / review-cycle / host-grok-build card): one dispatch envelope that owns watch → class A residual → re-watch until CLEAN, then hand CLEAN to parent closer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "issue-desired-outcome"
+        },
+        {
+          "id": 4,
+          "text": "Non-goals: do not reopen #4529 implement envelope; do not ship parent-turn-shape detectors on #3984; do not treat confidence-only holdouts as proof that watches are sufficient.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "issue-desired-outcome"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5664139033",
+    "updated": "2026-10-01T18:16:33Z"
+  }
+}
