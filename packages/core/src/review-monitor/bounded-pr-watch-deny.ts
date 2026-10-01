@@ -58,15 +58,22 @@ export function isDirectivePrWatchForm(command: string): boolean {
   );
 }
 
+function isPlausibleMonitorAgentId(value: string): boolean {
+  const v = value.trim();
+  // Reject empty and flag-shaped tokens (`--json` consumed as ID) (#5229 Greptile).
+  return v.length > 0 && !v.startsWith("-");
+}
+
 export function directivePrWatchHasMonitorAgentId(command: string): boolean {
   const n = normalizeWatchCommandForm(command);
-  // Require a non-empty value — `--monitor-agent-id=` / `DEFT_MONITOR_AGENT_ID=` alone fail (#5229).
+  // Require a non-empty, non-flag value — `--monitor-agent-id=` / `DEFT_MONITOR_AGENT_ID=`
+  // alone, or `--monitor-agent-id --json`, fail closed (#5229).
   const fromFlag = n.match(/--monitor-agent-id(?:\s+|=)(\S+)/);
-  if (fromFlag?.[1] !== undefined && fromFlag[1].length > 0) {
+  if (fromFlag?.[1] !== undefined && isPlausibleMonitorAgentId(fromFlag[1])) {
     return true;
   }
   const fromEnv = n.match(/\bdeft_monitor_agent_id=(\S+)/);
-  return fromEnv?.[1] !== undefined && fromEnv[1].length > 0;
+  return fromEnv?.[1] !== undefined && isPlausibleMonitorAgentId(fromEnv[1]);
 }
 
 export interface BoundedPrWatchDenyInput {

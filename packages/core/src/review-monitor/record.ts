@@ -29,20 +29,29 @@ import {
 } from "./lease-comment.js";
 import { isTier1PlatformPrimitive, type PlatformPrimitive } from "./tier-detection.js";
 
-/** Durable host→CLI stamp on successful register so verify stays Tier 1 (#5229). */
+/**
+ * Durable host→CLI stamp on successful register so verify stays Tier 1 (#5229).
+ * Bind `host_session_id` only when `--parent-session-id` is explicit — never to
+ * the monitor-agent id (parent verify often lacks DEFT_MONITOR_AGENT_ID and would
+ * ignore a monitor-bound stamp, #5229 Greptile).
+ */
 function stampHostCapabilityAfterRegister(
   projectRoot: string,
   platformPrimitive: PlatformPrimitive,
-  hostSessionId: string | null,
+  parentSessionId: string | null,
   now: Date,
 ): void {
   if (!isTier1PlatformPrimitive(platformPrimitive)) {
     return;
   }
+  const bound =
+    typeof parentSessionId === "string" && parentSessionId.trim().length > 0
+      ? parentSessionId.trim()
+      : null;
   writeHostCapabilityStamp(projectRoot, {
     primitive: platformPrimitive as StampPlatformPrimitive,
     source: "review-monitor:register",
-    hostSessionId,
+    hostSessionId: bound,
     now,
   });
 }
@@ -338,7 +347,7 @@ export function registerReviewMonitor(
       stampHostCapabilityAfterRegister(
         worktreePath,
         input.platformPrimitive,
-        input.parentSessionId ?? monitorAgentId,
+        input.parentSessionId ?? null,
         startedAt,
       );
       return {
@@ -396,7 +405,7 @@ export function registerReviewMonitor(
     stampHostCapabilityAfterRegister(
       worktreePath,
       input.platformPrimitive,
-      input.parentSessionId ?? monitorAgentId,
+      input.parentSessionId ?? null,
       startedAt,
     );
     return {
@@ -453,7 +462,7 @@ export function registerReviewMonitor(
     stampHostCapabilityAfterRegister(
       worktreePath,
       input.platformPrimitive,
-      input.parentSessionId ?? monitorAgentId,
+      input.parentSessionId ?? null,
       startedAt,
     );
     return {
@@ -491,7 +500,7 @@ export function registerReviewMonitor(
   stampHostCapabilityAfterRegister(
     worktreePath,
     input.platformPrimitive,
-    input.parentSessionId ?? monitorAgentId,
+    input.parentSessionId ?? null,
     startedAt,
   );
   return {

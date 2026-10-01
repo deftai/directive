@@ -46,7 +46,7 @@ describe("bounded-pr-watch-deny (#5229)", () => {
     expect(result.hasMonitorAgentId).toBe(true);
   });
 
-  it("treats empty --monitor-agent-id= / DEFT_MONITOR_AGENT_ID= as missing (#5229)", () => {
+  it("treats empty / flag-shaped monitor ids as missing (#5229)", () => {
     const emptyFlag = evaluateBoundedPrWatchDeny({
       command: "task pr:watch -- 1 --monitor-agent-id=",
       tier: { tier: 1, primitive: "spawn_subagent", descriptor: "grok-build" },
@@ -61,6 +61,13 @@ describe("bounded-pr-watch-deny (#5229)", () => {
     });
     expect(emptyEnv.hasMonitorAgentId).toBe(false);
     expect(emptyEnv.deny).toBe(true);
+    const flagAsId = evaluateBoundedPrWatchDeny({
+      command: "pr:watch 12 --monitor-agent-id --json",
+      tier: { tier: 1, primitive: "spawn_subagent", descriptor: "grok-build" },
+      pr: 12,
+    });
+    expect(flagAsId.hasMonitorAgentId).toBe(false);
+    expect(flagAsId.deny).toBe(true);
   });
 
   it("does not deny unrecognized %TEMP% forms (named residual)", () => {

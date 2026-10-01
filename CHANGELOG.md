@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Entry-path babysit no longer fail-opens as Tier 3 when spawn_subagent exists (#5229).** `evaluateReviewMonitorGate` consults sticky lease `platform_primitive` before READY on `!isTier1` and before Approach 3 READY; durable `.deft-scratch/host-capability-stamp.json` (written by `review-monitor:register` / `ensureHostCapabilityStampForBabysit`, age- and session-bound) keeps CLI verify Tier 1 / `spawn_subagent`; `DEFT_MONITOR_TIER=3` is labeled `override-tier3` (refused when stamp/env already proves Tier 1); Approach 1 is the cheapest admitted babysit with bounded deny enforced at `pr:watch` entry without `--monitor-agent-id`; bespoke `%TEMP%` pollers remain a named residual. Keeps #3984 / #4529 implement / shipped #5219 join untouched. Tracking #5229.
+- **Entry-path babysit no longer fail-opens as Tier 3 when spawn_subagent exists (#5229).** Sticky lease is consulted before READY (including Approach 3); register writes a durable host→CLI capability stamp (age-bound; session-bound only with explicit parent session); bare / flag-shaped `--monitor-agent-id` is refused at `pr:watch` when Tier 1 is provable; Approach 1 stays the cheapest admitted babysit. Keeps #3984 / #4529 implement / shipped #5219 join untouched. Tracking #5229.
 - **External writes to the inventoried authz store are denied (#4709).** Write, Edit, and Shell cannot plant grant files on the inactive path. Closes #4709.
 - **Shell store writes resolve against the named payload project (#4709 residual).** Tracking #4709.
 - **Denied store writes do not spend a single-use grant (#4709 residual).** Tracking #4709.
