@@ -9,7 +9,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 ## Overview
 
 - **Rules:** 24 groupings, 282 documents
-- **Tasks:** 63 namespaces, 269 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Tasks:** 63 namespaces, 270 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (704 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -415,7 +415,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | lifecycle | Emit behavioral framework events (review-cycle plan:approved recorder). -- task lifecycle:event -- emit plan:approved --plan-ref <url>… | 2 |
 | migrate | Migration tasks for moving projects between framework versions. | 3 |
 | occupancy | Lease-only confirmed steal (#3433/#3611). Flags: --confirm --occupant <reported-session-id>; manual/Grok owner: --session-id… | 4 |
-| ownership | WSL root-runtime ownership doctor/fix (#1617). | 2 |
+| ownership | WSL root-runtime ownership doctor/fix (#1617). | 3 |
 | packs | Pack-slicing surface (#1283 design, #1294 lessons pilot, #1295 skills pack, | 8 |
 | plan-sequence | Set the active ordered-plan sequence from --file JSON (#2402) | 4 |
 | policy | Inspect every registered typed-policy field on vbrief/PROJECT-DEFINITION.vbrief.json (#1148 / N8). -- task policy:show [--… | 11 |
