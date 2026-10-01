@@ -1,0 +1,275 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Through-merge Bound Prefer-A for #5229 (hand-stamped; lean harvest had no ## Bound remedy).",
+    "updated": "2026-10-01T21:47:26Z"
+  },
+  "plan": {
+    "id": "github.issue.5667880002",
+    "title": "recurrence(#5219): host monitor/shell watch still bypasses Approach 1 after merge-path-arm ship",
+    "status": "completed",
+    "updated": "2026-10-01T21:47:26Z",
+    "narratives": {
+      "Overview": "Prefer-A lean 5939264383 / synthesis 5939399619. Target-digest sha256:a7b852fbc61ee215ace2ff758976ba8bde8c61be6737161f052272e6a455a6ec. Entry-path residual after #5219/#5221."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Entry-path fail-closed for host monitor / shell pr:watch sole babysit when spawn_subagent available",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5234 ship; pathless leftover-complete. Delivery attested via merge-commit bd6ce95ec0fd291d354f8c3cc87d738375289e11.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T21:47:09.794Z",
+            "mintedVia": "leftover-complete-after-5234"
+          },
+          "recorded_at": "2026-10-01T21:47:09.794Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "!isTier1 consults sticky lease before READY; no fail-open no-monitor-required with Tier-1 lease",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5234 ship; pathless leftover-complete. Delivery attested via merge-commit bd6ce95ec0fd291d354f8c3cc87d738375289e11.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T21:47:09.794Z",
+            "mintedVia": "leftover-complete-after-5234"
+          },
+          "recorded_at": "2026-10-01T21:47:09.794Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Label or refuse DEFT_MONITOR_TIER=3 downgrade override vs honest generic-terminal",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5234 ship; pathless leftover-complete. Delivery attested via merge-commit bd6ce95ec0fd291d354f8c3cc87d738375289e11.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T21:47:09.794Z",
+            "mintedVia": "leftover-complete-after-5234"
+          },
+          "recorded_at": "2026-10-01T21:47:09.794Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Durable Grok Build host→CLI Tier-1 capability stamp",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5234 ship; pathless leftover-complete. Delivery attested via merge-commit bd6ce95ec0fd291d354f8c3cc87d738375289e11.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T21:47:09.794Z",
+            "mintedVia": "leftover-complete-after-5234"
+          },
+          "recorded_at": "2026-10-01T21:47:09.794Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Make Approach 1 cheapest admitted babysit; bounded-form deny on Directive pr:watch without monitor-agent-id",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5234 ship; pathless leftover-complete. Delivery attested via merge-commit bd6ce95ec0fd291d354f8c3cc87d738375289e11.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T21:47:09.794Z",
+            "mintedVia": "leftover-complete-after-5234"
+          },
+          "recorded_at": "2026-10-01T21:47:09.794Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Named residual for bespoke %TEMP% pollers; portfolio fences #3984/#4529/#5219 join",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5234 ship; pathless leftover-complete. Delivery attested via merge-commit bd6ce95ec0fd291d354f8c3cc87d738375289e11.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T21:47:09.794Z",
+            "mintedVia": "leftover-complete-after-5234"
+          },
+          "recorded_at": "2026-10-01T21:47:09.794Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Keep #3984, #4529 and #5219 scope boundaries separate",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5234 ship; pathless leftover-complete. Delivery attested via merge-commit bd6ce95ec0fd291d354f8c3cc87d738375289e11.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T21:47:09.794Z",
+            "mintedVia": "leftover-complete-after-5234"
+          },
+          "recorded_at": "2026-10-01T21:47:09.794Z"
+        }
+      }
+    ],
+    "tags": [
+      "recurrence",
+      "review-monitor",
+      "approach-1",
+      "grok-build",
+      "through-merge"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5229",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5229"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5219",
+        "type": "x-xbrief/github-issue",
+        "title": "Predecessor #5219"
+      }
+    ],
+    "acceptance": {
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "hand-stamped from Prefer-A lean 5939264383 Preferred composition + Accept-into-contract",
+      "sentences": [
+        "When Tier-1 spawn_subagent is available, a Grok Build parent long PR wait via host monitor or shell pr:watch without a registered Approach 1 child fails closed or is redirected to Approach 1 admission.",
+        "evaluateReviewMonitorGate on !isTier1 consults sticky lease platform_primitive before EXIT_READY and does not greenlight no-monitor-required when a Tier-1 lease exists.",
+        "DEFT_MONITOR_TIER=3 override is labeled or refused so it is not byte-identical to honest generic-terminal READY.",
+        "Host/CLI subprocesses under Grok Build carry a durable Tier-1 capability stamp so verify cannot default to generic-terminal while spawn_subagent exists.",
+        "Approach 1 babysit-intent dispatch is the cheapest admitted path relative to recognized wrong forms; bounded-form deny covers deft/task pr:watch without --monitor-agent-id when Tier-1 is provable.",
+        "Bespoke unsanctioned %TEMP% pollers remain a named residual unless routed through deft-hook; do not claim total coverage without host admission.",
+        "Keep #3984 separate (no parent-turn-shape detector). Do not reopen #4529 implement stop-at:pr-open. Do not reopen the shipped #5219 false-claim join."
+      ],
+      "admitted_source_sentences": [
+        "When Tier-1 spawn_subagent is available, a Grok Build parent long PR wait via host monitor or shell pr:watch without a registered Approach 1 child fails closed or is redirected to Approach 1 admission.",
+        "evaluateReviewMonitorGate on !isTier1 consults sticky lease platform_primitive before EXIT_READY and does not greenlight no-monitor-required when a Tier-1 lease exists.",
+        "DEFT_MONITOR_TIER=3 override is labeled or refused so it is not byte-identical to honest generic-terminal READY.",
+        "Host/CLI subprocesses under Grok Build carry a durable Tier-1 capability stamp so verify cannot default to generic-terminal while spawn_subagent exists.",
+        "Approach 1 babysit-intent dispatch is the cheapest admitted path relative to recognized wrong forms; bounded-form deny covers deft/task pr:watch without --monitor-agent-id when Tier-1 is provable.",
+        "Bespoke unsanctioned %TEMP% pollers remain a named residual unless routed through deft-hook; do not claim total coverage without host admission.",
+        "Keep #3984 separate (no parent-turn-shape detector). Do not reopen #4529 implement stop-at:pr-open. Do not reopen the shipped #5219 false-claim join."
+      ],
+      "admitted_source_digest": "05afd0966d585fd4160ff7e3f5078c00ec1bfba2e263a937648dd37d14ee861d",
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "When Tier-1 spawn_subagent is available, a Grok Build parent long PR wait via host monitor or shell pr:watch without a registered Approach 1 child fails closed or is redirected to Approach 1 admission.",
+          "artifact_path": null
+        },
+        {
+          "id": "clause.2",
+          "text": "evaluateReviewMonitorGate on !isTier1 consults sticky lease platform_primitive before EXIT_READY and does not greenlight no-monitor-required when a Tier-1 lease exists.",
+          "artifact_path": null
+        },
+        {
+          "id": "clause.3",
+          "text": "DEFT_MONITOR_TIER=3 override is labeled or refused so it is not byte-identical to honest generic-terminal READY.",
+          "artifact_path": null
+        },
+        {
+          "id": "clause.4",
+          "text": "Host/CLI subprocesses under Grok Build carry a durable Tier-1 capability stamp so verify cannot default to generic-terminal while spawn_subagent exists.",
+          "artifact_path": null
+        },
+        {
+          "id": "clause.5",
+          "text": "Approach 1 babysit-intent dispatch is the cheapest admitted path relative to recognized wrong forms; bounded-form deny covers deft/task pr:watch without --monitor-agent-id when Tier-1 is provable.",
+          "artifact_path": null
+        },
+        {
+          "id": "clause.6",
+          "text": "Bespoke unsanctioned %TEMP% pollers remain a named residual unless routed through deft-hook; do not claim total coverage without host admission.",
+          "artifact_path": null
+        },
+        {
+          "id": "clause.7",
+          "text": "Keep #3984 separate (no parent-turn-shape detector). Do not reopen #4529 implement stop-at:pr-open. Do not reopen the shipped #5219 false-claim join.",
+          "artifact_path": null
+        }
+      ],
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/review-monitor packages/core/src/swarm --reporter=dot"
+        }
+      ]
+    },
+    "metadata": {
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/review-monitor",
+          "packages/core/src/swarm",
+          "content/skills/deft-directive-review-cycle",
+          "content/skills/deft-directive-swarm",
+          "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "content/templates/agent-prompt-preamble.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/review-monitor packages/core/src/swarm --reporter=dot"
+        ],
+        "expected_outputs": [
+          "entry-path fail-closed or Approach 1 redirect for host/shell sole babysit",
+          "Tier gate lease-aware before READY on !isTier1",
+          "Tier-3 override labeled or refused",
+          "Grok Build capability stamp reaches CLI verify",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "conflict_group": "review-monitor-babysit-entry",
+        "size": "M",
+        "file_scope_confidence": "bound-surfaces",
+        "model_tier": "default"
+      },
+      "x-directive/bound": {
+        "prefer_a_lean_comment_id": 5939264383,
+        "target_digest": "sha256:a7b852fbc61ee215ace2ff758976ba8bde8c61be6737161f052272e6a455a6ec",
+        "synthesis_comment_id": 5939399619
+      },
+      "productPullRequest": 5234,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5234,
+        "prBase": null,
+        "mergeCommit": "bd6ce95ec0fd291d354f8c3cc87d738375289e11",
+        "deliveryBranch": "master",
+        "deliveryCommit": "bd6ce95ec0fd291d354f8c3cc87d738375289e11",
+        "verifiedAt": "2026-10-01T21:47:26Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGY3NjktZGI4Yi03MmMyLTlhNjktMTA2ZTZmNmU3ZDVl"
+      },
+      "completedAt": "2026-10-01T21:47:26Z",
+      "completedSessionId": "host:grok:v1:MDFhMGY3NjktZGI4Yi03MmMyLTlhNjktMTA2ZTZmNmU3ZDVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-01T21:47:26Z"
+      }
+    }
+  }
+}
