@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=0b071d00ee9c refreshed=2026-10-01T03:58:46Z session=f0035307f797 -->
+<!-- deft:managed-section v3 sha=ca1b02e7af7b refreshed=2026-10-01T04:02:22Z session=2d9c27fa746d -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -257,7 +257,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Through-merge worker dispatch (#3032)
 
-! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. **#3032 solo path** = interactive swarm skill (Phase 0; Mode B; `dispatch_kind: solo`; #3669). Headless `swarm:launch` concurrent-gated; N=1 sequential declined. Default `drive-to: merge-ready`. **Grok (#4529 / #4821):** `stop-at: pr-open` — not Gap C silent handback; Envelope SLA names dest residual then closer. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C). Spawn dest (#4066 / #4295): dest-place before occupancy. Cursor local is dest-placing (nursery inherit or dest-rooted `@cursor/sdk` `Agent.create`); ⊗ Task dest keys.
+! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. **#3032 solo path** = interactive swarm skill (Phase 0; Mode B; `dispatch_kind: solo`; #3669). Headless `swarm:launch` concurrent-gated; N=1 sequential declined. Default `drive-to: merge-ready`. **Grok (#4529 / #4821):** `stop-at: pr-open` — not Gap C silent handback; Envelope SLA names dest residual then closer. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C). Spawn dest (#4066/#4295/#4575): dest-place then cwd before occupancy. Cursor local is dest-placing (nursery inherit or dest-rooted `@cursor/sdk` `Agent.create`); ⊗ Task dest keys.
 ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032). ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner (#4529).
 ! After leaf announce: tool-first / yield / one short non-repeated answer; ⊗ N>2 near-identical zero-tool (FC14 / #3131). Machine: `evaluateParentTurnShape` (`parent-turn-shape`). Depth: preamble §11 + `docs/openclaw-agent-host.md`.
 ! **Dest Prefer-A (#5145):** linked dest worktrees inherit primary finalize-owed (deferred/ok); prefer `session:start --rearm` when dest ritual exists. ⊗ Stampede N dest cold tip inventories before primary records finalize-owed. Depth: swarm SKILL Dest leaf ceremony.
@@ -269,6 +269,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ! After stop-at:pr-open (#4882), merge-path owner MUST keep a still-running phase-correct wait (pre-CLEAN: blocking `pr:watch` / Approach 1; post-CLEAN: `pr:wait-mergeable-and-merge`) until CLEAN or explicit option-C finish; under human-merge also remain for post-merge `scope:complete`. Sticky lease alone or Path B promise without a live wait is unarmed; CLEAN alone is not lifecycle complete. Probe: `deft verify:review-monitor -- --pr <N> --merge-path-arm` (`--live-wait` / `--explicit-finish`). `pr:watch --json` wrappers MUST parse full stdout JSON (pretty multi-line valid); line-split misses CLEAN (#5015). Prefer native `pr:watch`.
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`. ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261). ⊗ Stand down unarmed, or treat lease-only / line-parsed `pr-watch --json` as armed (#4882).
 ! After merge of issue `#N`, `deft verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429). After `scope:complete` (cancel≠ship exit #5126), `deft verify:completed-tracked -- --issue N` MUST exit 0 on `origin/<deliveryBranch>` before `DONE` (#3476). Exit 1 shipped → printed `scope:complete`; missing tracked land → `swarm:finalize-cohort` or a lifecycle PR; unresolved lookup → retry / `BLOCKED` (⊗ complete unfinished scope). **Grok leftover (#4529):** Phase 6 `swarm:finalize-cohort`, not the implement dest.
+! **Fresh-clone completed land (#4714):** Before `swarm:launch`, each selected active brief MUST exist on fetched `origin/<deliveryBranch>` (human-reviewed activation PR). After product merge, Phase 6 `swarm:finalize-cohort` lands terminal briefs via a lifecycle PR; if the isolated delivery checkout lacks the active brief, it may materialize only exact bytes that match a reachable reviewed product/evidence blob from a retained dest — otherwise fail closed with source-recovery. Expected scoped closing refs without active/terminal records are not #2247 incidental skips. `verify:completed-tracked -- --issue N` on the fetched delivery tip is the close proof. ⊗ Treat GitHub-closed alone as DONE. ⊗ Copy a whole `xbrief/` tree into the lifecycle checkout.
 ⊗ Emit `ISSUE: closed` while that brief is still in `active/`.
 
 ## Nuclear-family A2A topology (#3155)
@@ -283,7 +284,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Parent-steer inbox (#4286)
 
-! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json` on each pollable slice. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: preamble §10.5; `docs/subagent-heartbeat.md`. ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
+! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json`. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: content/docs/subagent-heartbeat.md (.deft/core/docs). ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
 
 ## Review-surface precedence (#2308)
 
