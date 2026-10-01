@@ -1,0 +1,521 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4879",
+    "updated": "2026-10-01T02:30:34Z"
+  },
+  "plan": {
+    "title": "Already-terminal plan items skip the evidence gate and still reach completed/ — Greptile P1 requirePointerShape uat-only",
+    "status": "completed",
+    "narratives": {
+      "Description": "Already-terminal plan items skip the evidence gate and still reach completed/",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4879",
+      "Overview": "\n\n1. On scope:complete, a non-clause item whose status is completed, complete, failed, cancelled, blocked, draft, approved, or auto stays out of completed/ when typed evidence is missing. Missing typed evidence blocks the move for those rows, including when the gate would otherwise return already_terminal.\n2. A clause-bound row, including one whose status is completed, stays on the evidence path and is refused when typed evidence and disposition are both absent.\n3. An empty status and status done stay outside this list. The completed-folder check already refuses those moves.\r\n\n",
+      "Labels": "bug, agent-experience, process, urgent, area:vbrief, dogfood, status:child, status:claimed, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "On scope:complete, a non-clause item whose status is completed, complete, failed, cancelled, blocked, draft, approved, or auto stays out of completed/ when typed evidence is missing. Missing typed evidence blocks the move for those rows, including when the gate would otherwise return already_terminal.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5205 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 1b35abcf7c878807e249d8ed90ada54e89ecb514.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T02:30:24.064Z",
+            "mintedVia": "leftover-complete-after-5205"
+          },
+          "recorded_at": "2026-10-01T02:30:24.064Z"
+        }
+      },
+      {
+        "title": "A clause-bound row, including one whose status is completed, stays on the evidence path and is refused when typed evidence and disposition are both absent.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5205 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 1b35abcf7c878807e249d8ed90ada54e89ecb514.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T02:30:24.064Z",
+            "mintedVia": "leftover-complete-after-5205"
+          },
+          "recorded_at": "2026-10-01T02:30:24.064Z"
+        }
+      },
+      {
+        "title": "An empty status and status done stay outside this list. The completed-folder check already refuses those moves.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5205 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 1b35abcf7c878807e249d8ed90ada54e89ecb514.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T02:30:24.064Z",
+            "mintedVia": "leftover-complete-after-5205"
+          },
+          "recorded_at": "2026-10-01T02:30:24.064Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "urgent",
+      "area:vbrief",
+      "dogfood",
+      "status:child",
+      "status:claimed",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4879",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4879: Already-terminal plan items skip the evidence gate and still reach completed/"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/scope"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "leftover-complete pathless Prefer-A after product merge",
+      "sentences": [
+        "On scope:complete, a non-clause item whose status is completed, complete, failed, cancelled, blocked, draft, approved, or auto stays out of completed/ when typed evidence is missing. Missing typed evidence blocks the move for those rows, including when the gate would otherwise return already_terminal.",
+        "A clause-bound row, including one whose status is completed, stays on the evidence path and is refused when typed evidence and disposition are both absent.",
+        "An empty status and status done stay outside this list. The completed-folder check already refuses those moves."
+      ],
+      "admitted_source_sentences": [
+        "On scope:complete, a non-clause item whose status is completed, complete, failed, cancelled, blocked, draft, approved, or auto stays out of completed/ when typed evidence is missing. Missing typed evidence blocks the move for those rows, including when the gate would otherwise return already_terminal.",
+        "A clause-bound row, including one whose status is completed, stays on the evidence path and is refused when typed evidence and disposition are both absent.",
+        "An empty status and status done stay outside this list. The completed-folder check already refuses those moves."
+      ],
+      "admitted_source_digest": "efbf8382eae3189db77df0d0a8b39d81bb89e222db8d4cab028c9abdbf302064",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On scope:complete, a non-clause item whose status is completed, complete, failed, cancelled, blocked, draft, approved, or auto stays out of completed/ when typed evidence is missing. Missing typed evidence blocks the move for those rows, including when the gate would otherwise return already_terminal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A clause-bound row, including one whose status is completed, stays on the evidence path and is refused when typed evidence and disposition are both absent.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "An empty status and status done stay outside this list. The completed-folder check already refuses those moves.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "confessions": [],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because already-terminal plan items skip the evidence re-check, so pre-marking them complete lets scope:complete enter completed/ without that evidence.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4879-dc\norigin-ref: origin/HEAD\ndispatch-sha: aba2407f86bbef9b21f1b07d85ce396886d6bef5\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said appropriate n, which is the asked N-pick; Desired is one named failure, not an open RFC, so N=1.\n\nrefutation-target: scope:complete still re-checks evidence on already-terminal items before completed/, so pre-marking cannot skip the gate.\n\ntarget: #4879\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the already-terminal skip on the way into completed/. Parent #4842 stays the tracker.\n\nPin-read at dispatch-sha aba2407f86bbef9b21f1b07d85ce396886d6bef5: packages/core/src/scope/acceptance-evidence.ts says already-terminal complete does not re-validate typed evidence (#3240 / #3305). The test already-terminal items skip typed evidence re-check expects outcome already_terminal. The adjacent comment calls that skip intentional for fail/cancel and historical terminals. No implement and no ingest from this parent.\n\nCensus: still-open, 0 comments, wip active=0 pending=0. Unreleased on origin/master does not name #4879.",
+          "id": 5779054068,
+          "html_url": "https://github.com/deftai/directive/issues/4879#issuecomment-5779054068",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:15:33Z",
+          "updated_at": "2026-09-22T15:15:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nround: 1\nceiling: 5779054068\nsha: aba2407f86bbef9b21f1b07d85ce396886d6bef5\ncharter: refutation\n\n## Verdict\n\nThe refutation-target fails. On scope:complete, a non-clause plan item whose status is already completed does not have its typed evidence read. The evidence gate returns ok, and the verb moves the brief into completed/ and reports that transition.\n\n## Pre-marked completed rows skip the typed-evidence read\n\nblocks-the-design\n\nEvidence. At aba2407f86bbef9b21f1b07d85ce396886d6bef5, evaluateOneItem in packages/core/src/scope/acceptance-evidence.ts returns already_terminal before readNamespacedAcceptanceFields when status is outside {pending, proposed, running} and the row is not a clause binding. The detail string is \"typed evidence not re-checked\". evaluateAcceptanceEvidenceGate counts only missing and invalid as blockers, so an all-already_terminal report is ok: true.\n\nrunTransition on action complete calls that gate, then evaluateScopeCompleteAcceptanceWalk, then commitTransition. The walk passes when plan.acceptance is unstamped (\"Acceptance walk not required\"). evaluateDeliveryGate returns ok with \"non-code-bearing scope; delivery evidence not required\" when the plan has no github-issue reference, no file_scope, and no code-bearing tag. advanceNonTerminalOwnItems leaves a status outside {pending, proposed, running} unchanged. evaluateCompletedPlanConsistency accepts item status completed. The move to completed/ follows.\n\nExecuted at this SHA: \"already-terminal items skip typed evidence re-check\" and \"acceptance walk is not required when plan.acceptance is unstamped\" passed. A runTransition(\"complete\") on an active brief with one item (status completed, narrative Result/Verification, no x-directive/evidence) returned ok, with a message matching \"active/ -> completed/\", report outcome already_terminal, and detail matching \"typed evidence not re-checked\". The file under completed/ had plan.status completed, the same item status, and no x-directive/evidence key.\n\nFailure mode. A caller writes plan.items[].status = completed with narrative fields and no typed evidence. On a non-code-bearing brief with no stamped plan.acceptance, scope:complete skips the item-evidence read and still reports the move into completed/. A code-bearing delivery check and the acceptance walk are separate gates. When they pass, they still do not read x-directive/evidence on that row. The same status predicate is what the gate uses for every status outside {pending, proposed, running}. The executed case is completed.\n\nDisposition. A successor lean that accepts the refutation-target cannot bind. The named failure stands for non-clause rows: pre-marking completed skips the typed-evidence gate, and the transition is still reported.\n\nRoad not taken. Counting evaluateDeliveryGate or evaluateScopeCompleteAcceptanceWalk as the re-check that keeps the target. Delivery evidence is code-bearing ancestry or a non-delivery disposition, and a non-code plan returns before that check. The walk runs plan.acceptance commands and passes when acceptance is unstamped. Neither reads namespaced item evidence on an already-terminal row. This verdict flips if the complete path reads that evidence and refuses a pre-marked row that lacks it, before the folder move.\n\nSteelman. The strongest rejected reading is that invoking evaluateAcceptanceEvidenceGate is the re-check, and the success listing names the skip so the move is an explicit already-terminal outcome rather than an evidence success. The already-terminal branch returns before the evidence fields are read, blockers ignore already_terminal, and the executed complete wrote completed/ with ok true. The listing records the skip. It does not perform the re-check the target names.\n\n## Clause-bound rows stay on the evidence path\n\nsharpens-framing\n\nEvidence. isClauseBindingItem keeps a row on the evidence parser when its id is a clause key, including when status is completed. Executed: \"refuses a terminal clause-keyed row without evidence or disposition\" passed (status completed, clause id, gate ok false, outcome missing).\n\nFailure mode. A statement that every already-terminal item skips the gate covers clause-bound rows, which scope:complete still refuses when typed evidence and disposition are both absent.\n\nDisposition. The lean can bind the failed refutation-target only if the skip is scoped to rows that are not clause bindings. That scope change is required. It does not put the refutation-target back in force.\n\n## Empty and unknown statuses\n\nfootnote\n\nevaluateOneItem treats an empty status as already_terminal because the empty string is outside {pending, proposed, running}. collectOpenPlanItems treats empty and unknown statuses as open, so evaluateCompletedPlanConsistency refuses the move. The alias \"complete\" is rewritten to completed only after the evidence gate, inside commitTransition. Those edges were not executed in this pass. They do not carry the named failure.\n\n## Untrusted status before the shared folder write\n\nItem status is caller-written brief content. scope:complete treats a terminal non-clause status as authority to skip the evidence read, then writes completed/. The control that decides the skip is evaluateOneItem's early return on the complete action. Delivery and the acceptance walk do not replace that read.",
+          "id": 5779287775,
+          "html_url": "https://github.com/deftai/directive/issues/4879#issuecomment-5779287775",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:30:58Z",
+          "updated_at": "2026-09-22T15:30:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA plan item already marked completed skips the typed-evidence read, and scope:complete still moves the brief into completed/. Clause-bound rows are still refused when that evidence is missing. Confirming this map means a non-clause completed row does not enter completed/ on that skip, and clause-bound rows stay on the evidence path. The same parent wrote the opening triage and these takes.\n\n**Lean:** round 1, critic 5779287775. Supersedes 5779054068.\n\nSpec-path: next-build contract is the bound-remedy list, not the issue body.\n\nTarget-digest: sha256:655a515cf8c83bd9a11948006efa3f61398ac22520e817827e54890581d8ca16\n\naccept-into-contract: Pre-marked completed rows skip the typed-evidence read\naccept-into-contract: Clause-bound rows stay on the evidence path\n\nrelieves: P1\n\n## Bound remedy\n\n1. On scope:complete, a non-clause item whose status is completed does not enter completed/ without the typed-evidence read.\n2. A clause-bound row, including one whose status is completed, stays on that evidence path and is refused when typed evidence and disposition are both absent.\r\n\n",
+          "id": 5779345265,
+          "html_url": "https://github.com/deftai/directive/issues/4879#issuecomment-5779345265",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:34:52Z",
+          "updated_at": "2026-09-22T15:34:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nround: pain-audit\nceiling: 5779345265\nsha: aba2407f86bbef9b21f1b07d85ce396886d6bef5\n\n## Verdict\n\nP1 on the Stop 1 write-back (5779054068) is the already-terminal skip on the way into completed/. The bound remedy on 5779345265 requires a typed-evidence read for a non-clause item whose status is completed, and it restates the clause-bound refusal the gate already applies. That harvest leaves the stamped skip in force.\n\n## Statuses outside completed still skip the read and enter completed/\n\nblocks-the-design\n\nEvidence. Pin aba2407f86bbef9b21f1b07d85ce396886d6bef5. In packages/core/src/scope/acceptance-evidence.ts, evaluateOneItem returns already_terminal, detail \"typed evidence not re-checked\", before readNamespacedAcceptanceFields, when status is outside {pending, proposed, running} and the row is not a clause binding. evaluateAcceptanceEvidenceGate counts only missing and invalid as blockers. In packages/core/src/scope/transition.ts, normalizeItemStatusAliases rewrites the spelling complete to completed after that gate returns, inside commitTransition. evaluateCompletedPlanConsistency then accepts every valid item status outside {pending, proposed, running}.\n\nExecuted runTransition(\"complete\") on an active brief with one non-clause item, narrative Result and Verification, and no x-directive/evidence key. Each row below returned transition ok, report outcome already_terminal, and a file under completed/ whose item still had no x-directive/evidence key:\n\n- status completed stayed completed\n- status complete was already_terminal while the gate saw the spelling complete, then landed as completed\n- status failed, cancelled, blocked, draft, approved, and auto each landed with that same status\n\nstatus pending was outcome missing and did not land. A clause-keyed row id clause.1, status completed, with plan.acceptance clause id 1 and no typed evidence, was outcome missing and did not land.\n\nFailure mode. Item status is caller-written brief content. The skip treats every status outside the three open values as authority to skip the typed-evidence read, then scope:complete writes the brief into completed/. A caller sets a non-clause status that completed-folder consistency accepts. The read is skipped and the verb reports active/ -> completed/. Harvest item 1 names the spelling completed. The same path still admits failed, cancelled, blocked, draft, approved, and auto. The alias complete is already_terminal at the gate, and the commit rewrites it to completed afterward, so a gate comparison with the spelling completed misses the spelling that lands as completed. Harvest item 1 also stops at the read. readNamespacedAcceptanceFields returns the fields. The missing and invalid outcomes, the only gate blockers, are emitted only after the early return is not taken. A call that still returns already_terminal meets the harvested sentence. The stamped pain is entry into completed/ without evidence.\n\nDisposition. The relief cite for P1 cannot stand on this harvest. The lean cannot bind as written.\n\nRoad not taken. Scoring every landed status other than completed as a footnote, and treating the because-clause's pre-marking-complete sentence as the whole denominator. That reading follows the comment in evaluateOneItem, which calls the skip intentional for fail/cancel and historical terminals, and which Stop 1 quoted. It loses because the same write-back stamps P1 as the already-terminal skip on the way into completed/, and the run is that skip.\n\nSteelman. The strongest rejected reading is that round 1 scoped the named failure to status completed, the successor accepted that heading, and fail/cancel remain the intentional terminals named in the comment. The verdict flips if scope:complete refuses those statuses before the folder move, or if the stamp names only the completed spelling. The run lands them in completed/. The stamp names the already-terminal skip.\n\n## Clause-bound refusal\n\nfootnote\n\nHarvest item 2 matches the live gate. The clause.1 run above refused with outcome missing and wrote no completed/ file. That sentence records the clause path. The early return still skips the non-clause rows listed above.\n\n## Empty and unknown statuses\n\nfootnote\n\nAn empty status and status done were already_terminal at the gate. evaluateCompletedPlanConsistency then refused the move, so neither landed. They sit outside the skip that reaches completed/.",
+          "id": 5779532468,
+          "html_url": "https://github.com/deftai/directive/issues/4879#issuecomment-5779532468",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:47:23Z",
+          "updated_at": "2026-09-22T15:47:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe harvest only requires a typed-evidence read when a non-clause item is already marked completed. Other statuses that the completed folder accepts still skip that read and still enter completed/. This map does not bind. The same parent wrote the opening triage and these takes.\n\n**Lean:** retraction after pain-audit 5779532468. Supersedes 5779345265.\n\nSpec-path: next-build contract is not this issue body, and this map does not bind.\n\nTarget-digest: sha256:655a515cf8c83bd9a11948006efa3f61398ac22520e817827e54890581d8ca16\n\naccept-into-contract: Pre-marked completed rows skip the typed-evidence read\naccept-into-contract: Clause-bound rows stay on the evidence path\naccept-into-contract: Statuses outside completed still skip the read and enter completed/\n\ndoes-not-relieve: P1\r\n\n",
+          "id": 5779559770,
+          "html_url": "https://github.com/deftai/directive/issues/4879#issuecomment-5779559770",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:49:06Z",
+          "updated_at": "2026-09-22T15:49:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nHandoff\n\nThe retraction 5779559770 records does-not-relieve for P1. The pain-audit 5779532468 found that statuses other than completed still skip the typed-evidence read and still enter completed/. The recommended path is halt. A second issue would repeat this pain, and no split is filed.\n\nopen-question: Should this arc halt with the already-terminal skip unbound, rather than filing a second issue that repeats this pain?\r\n\n",
+          "id": 5779564032,
+          "html_url": "https://github.com/deftai/directive/issues/4879#issuecomment-5779564032",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:49:24Z",
+          "updated_at": "2026-09-22T15:49:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe prior harvest only stops a non-clause item already marked completed. The statuses failed, cancelled, blocked, draft, approved, auto, and the spelling complete still skip the typed-evidence read and still enter completed/. Confirming this map means those statuses stay out of completed/ when typed evidence is missing. Clause-bound rows stay on the refusal they already have. Empty and unknown statuses stay outside this list. The operator chose this wide set. The same parent wrote the opening triage and these takes.\n\n**Lean:** operator widen after Handoff. Supersedes 5779559770.\n\nSpec-path: next-build contract is the bound-remedy list, not the issue body.\n\nTarget-digest: sha256:655a515cf8c83bd9a11948006efa3f61398ac22520e817827e54890581d8ca16\n\naccept-into-contract: Pre-marked completed rows skip the typed-evidence read\naccept-into-contract: Clause-bound rows stay on the evidence path\naccept-into-contract: Statuses outside completed still skip the read and enter completed/\n\nrelieves: P1\n\n## Bound remedy\n\n1. On scope:complete, a non-clause item whose status is completed, complete, failed, cancelled, blocked, draft, approved, or auto stays out of completed/ when typed evidence is missing. Missing typed evidence blocks the move for those rows, including when the gate would otherwise return already_terminal.\n2. A clause-bound row, including one whose status is completed, stays on the evidence path and is refused when typed evidence and disposition are both absent.\n3. An empty status and status done stay outside this list. The completed-folder check already refuses those moves.\r\n\n",
+          "id": 5781675816,
+          "html_url": "https://github.com/deftai/directive/issues/4879#issuecomment-5781675816",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:19:21Z",
+          "updated_at": "2026-09-22T18:19:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nround: pain-audit after the widened bind lean\nceiling: 5781675816\nsha: aba2407f86bbef9b21f1b07d85ce396886d6bef5\n\n## Verdict\n\nP1 on the Stop 1 write-back (5779054068) is the already-terminal skip on the way into completed/. The Bound remedy on 5781675816 covers that pain. Harvest item 1 names every non-clause status that scope:complete currently lands in completed/ with no typed evidence, and it blocks that move when typed evidence is missing, including an already_terminal return. Harvest item 2 matches the live clause refusal. Harvest item 3 matches the empty and done refusals. The relieves cite can stand. The findings below are footnotes. This bind map stays bindable.\n\n## Landing set\n\nfootnote\n\nEvidence. Pin aba2407f86bbef9b21f1b07d85ce396886d6bef5. Ran runTransition(\"complete\") on an active brief with one non-clause item, narrative Result and Verification, and no x-directive/evidence key.\n\n- completed, failed, cancelled, blocked, draft, approved, and auto returned already_terminal, transition ok, and a file under completed/ with no x-directive/evidence key.\n- The spelling complete returned already_terminal while the gate saw complete, then landed as completed, with no typed evidence key.\n- pending, proposed, and running returned missing and wrote no completed/ file.\n- done, canceled, closed, skipped, Completed, COMPLETE, Complete, an empty status, and an omitted status returned already_terminal. evaluateCompletedPlanConsistency refused the move. The source stayed in active/.\n- completed, cancelled, and auto with a leading space, a trailing space, or a trailing tab returned already_terminal. Consistency trim treated them as terminal. validateBriefForPersist rejected the untrimmed spelling before the write. The source stayed in active/.\n- A nested subItem with status failed under a pending parent that carried typed evidence landed with the child still lacking a typed evidence key.\n- A completed row with bare evidence, not the namespaced key, returned already_terminal and landed with no x-directive/evidence key.\n- A clause-keyed row id clause.1, status completed, plan.acceptance clause id 1, and no typed evidence returned missing and wrote no completed/ file.\n\nFailure mode. None for this set. The statuses that enter completed/ without typed evidence are the harvest item 1 list. Nested rows use that same list, and evaluateOneItem already walks subItems. Item status is caller-written brief content. The closed terminal set in evaluateCompletedPlanConsistency, together with the persist schema, refuses a spelling outside that list before the folder holds the brief.\n\nDisposition. No change to the harvest.\n\n## Present stamps stay on the skip\n\nfootnote\n\nEvidence. Same pin and runner. These rows returned already_terminal and landed in completed/: a completed row whose x-directive/evidence kind was merge while the title required smoke and deploy; a failed row whose x-directive/evidence object was malformed; a completed row that carried both x-directive/evidence and x-directive/disposition. A completed row with a well-formed typed evidence object also returned already_terminal and landed. A failed row with only a human-origin disposition and no typed evidence also landed.\n\nFailure mode. A present typed-evidence object still skips parseEvidence and still enters completed/, including when that object would be invalid on a non-terminal row. The harvest refuses the move when typed evidence is missing. Those present-object rows sit outside that sentence. The bare-evidence row and the disposition-only row have no typed evidence, so harvest item 1 refuses them.\n\nDisposition. The cite stays on the missing-evidence block. The Stop 1 because-clause harms entry without evidence. The pin-read test expects a namespaced stamp on an already-terminal row to stay already_terminal. The confirmed sentence on 5781675816 is that block for the landing statuses.\n\nRoad not taken. Scoring the skipped re-check of a present stamp as blocks-the-design. That reading treats any already_terminal entry as uncovered P1. It loses because the write-back's because-clause names entry without evidence, pain-audit 5779532468 named that harm, and this harvest blocks that entry for every status the run landed.\n\nSteelman. The strongest rejected reading is that the skip remains P1 whenever parseEvidence never runs, so an unsuitable stamp still falsifies the cite. The verdict flips if the stamp's harm line is the skipped re-check of a present stamp, or if the confirmed sentence requires that re-check. The run lands those rows. The sentence on 5781675816 blocks the missing-evidence move.\r\n\n",
+          "id": 5781826918,
+          "html_url": "https://github.com/deftai/directive/issues/4879#issuecomment-5781826918",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:30:29Z",
+          "updated_at": "2026-09-22T18:30:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nSame parent wrote the opening triage and the successor lean. The round-1 critic and the pain-audit critics were separate posts. Rows are the widened pain-audit runs at aba2407f86bbef9b21f1b07d85ce396886d6bef5. They are not marked verified: this parent did not re-run the transition, and the second seat was the same model family.\n\n| Claim | Evidence | Method | Mark |\n| --- | --- | --- | --- |\n| The landing statuses enter completed/ with no typed evidence | completed, failed, cancelled, blocked, draft, approved, auto, and the spelling complete landed; pending, proposed, and running did not | Critic runTransition at the dispatch SHA | not verified |\n| Empty, done, and unknown spellings do not land | already_terminal at the gate, then the folder check refused the move | Critic runTransition at the dispatch SHA | not verified |\n| A clause-bound completed row is refused | clause.1 with no typed evidence returned missing and wrote no completed/ file | Critic runTransition at the dispatch SHA | not verified |\n| The bound remedy covers the missing-evidence entry | Harvest item 1 names that landing set and blocks the move when typed evidence is missing | Pain-audit footnote at the dispatch SHA | not verified |\r\n\n",
+          "id": 5781838216,
+          "html_url": "https://github.com/deftai/directive/issues/4879#issuecomment-5781838216",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:31:20Z",
+          "updated_at": "2026-09-22T18:31:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA non-clause plan item that is already terminal can skip the typed-evidence read and still enter completed/. The record accepts blocking that move for completed, complete, failed, cancelled, blocked, draft, approved, and auto when typed evidence is missing. Clause-bound rows stay on the refusal they already have. The same parent wrote the opening triage and this record.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5781675816\nverified-claims table 5781838216\r\n\n",
+          "id": 5781840066,
+          "html_url": "https://github.com/deftai/directive/issues/4879#issuecomment-5781840066",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:31:29Z",
+          "updated_at": "2026-09-22T18:31:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "DCR still fails `R.4879` on Directive 0.119.11.\n\nPack: `corecap-reg-2026-09-29`.\nStacks that failed: Scripted (det).\n\nWhat we saw:\n- Scripted (det): `pending_blocked=True skip_bypass=True outcome='already_terminal'`\n\nFailure mode key: 8a398e59470d\n<!-- dcr-failure-mode: 8a398e59470d -->\n\nRefs deftai/DevHammer#340\n\n",
+          "id": 5900478071,
+          "html_url": "https://github.com/deftai/directive/issues/4879#issuecomment-5900478071",
+          "user": {
+            "login": "Shinran7",
+            "id": 268619852,
+            "node_id": "U_kgDOEALQTA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/268619852?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/Shinran7",
+            "html_url": "https://github.com/Shinran7",
+            "followers_url": "https://api.github.com/users/Shinran7/followers",
+            "following_url": "https://api.github.com/users/Shinran7/following{/other_user}",
+            "gists_url": "https://api.github.com/users/Shinran7/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/Shinran7/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/Shinran7/subscriptions",
+            "organizations_url": "https://api.github.com/users/Shinran7/orgs",
+            "repos_url": "https://api.github.com/users/Shinran7/repos",
+            "events_url": "https://api.github.com/users/Shinran7/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/Shinran7/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:42:45Z",
+          "updated_at": "2026-09-29T22:42:45Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Parent: #4842\n\n## Finding\n\nEntering completed/ requires every plan item to be terminal, and the evidence gate does not re-check items that are already terminal. Pre-marking items complete therefore bypasses the evidence gate, and scope:complete still reports the transition.\n\nSplit out of #4842 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: GATES\n- Priority: Urgent (audit scale S1)\n- Source: #4842\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540571864,
+        "origin": "deftai/directive#4879",
+        "id": "github.issue.5540571864"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "655a515cf8c83bd9a11948006efa3f61398ac22520e817827e54890581d8ca16"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope"
+        ],
+        "expected_outputs": [
+          "tests pass",
+          "terminal statuses refused without typed evidence"
+        ],
+        "depends_on": [],
+        "conflict_group": "scope-complete-evidence",
+        "size": "S",
+        "file_scope_confidence": "bound-surfaces",
+        "model_tier": "default"
+      },
+      "productPullRequest": 5205,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5205,
+        "prBase": null,
+        "mergeCommit": "1b35abcf7c878807e249d8ed90ada54e89ecb514",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1b35abcf7c878807e249d8ed90ada54e89ecb514",
+        "verifiedAt": "2026-10-01T02:30:34Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGY0Y2MtY2U2Ni03MGExLTkzMmEtMTA3NzJmNWVlOTBl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-01T02:30:34Z",
+      "completedSessionId": "host:grok:v1:MDFhMGY0Y2MtY2U2Ni03MGExLTkzMmEtMTA3NzJmNWVlOTBl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-01T02:30:34Z"
+      }
+    },
+    "id": "github.issue.residual.5540571864.lean.4150461381",
+    "updated": "2026-10-01T02:30:34Z"
+  }
+}
