@@ -134,7 +134,7 @@ export interface DanglingNodeModulesLinksSeams extends CheckSeams {
   readonly readdirWithFileTypes?: (path: string) => readonly DanglingLinkDirent[];
   readonly lstat?: (path: string) => { isSymbolicLink(): boolean } | null;
   readonly readlink?: (path: string) => string;
-  /** True when the resolved link target exists (no follow-mutate). */
+  /** True when the ultimate resolved link target exists (follows; no walk-mutate). */
   readonly targetExists?: (path: string) => boolean;
   readonly packageManager?: PackageManager;
   readonly platform?: NodeJS.Platform;
@@ -148,14 +148,14 @@ export const DANGLING_NODE_MODULES_LINKS_CHECK = "dangling-node-modules-links" a
 const DANGLING_WALK_MAX_ENTRIES_DEFAULT = 10_000;
 const DANGLING_WALK_MAX_DEPTH_DEFAULT = 8;
 
-/** PM-aware recovery one-liner; Windows pnpm keeps the CI=true TTY note (#3749). */
+/** PM-aware recovery one-liner; Windows pnpm keeps the CI=true TTY note in shell-honest form (#3749). */
 export function danglingNodeModulesRecoveryCommand(
   pm: PackageManager,
   platform: NodeJS.Platform = process.platform,
 ): string {
   if (pm === "pnpm") {
     return platform === "win32"
-      ? "CI=true pnpm install --frozen-lockfile"
+      ? "$env:CI='true'; pnpm install --frozen-lockfile (PowerShell; POSIX: CI=true pnpm install --frozen-lockfile)"
       : "pnpm install --frozen-lockfile";
   }
   return "npm ci";
@@ -196,10 +196,27 @@ function resolveDanglingPackageManager(
   });
 }
 
+type DanglingScanResult = {
+  readonly dangling: DanglingNodeModulesLink[];
+  readonly incomplete: boolean;
+};
+
+function lstatDanglingPath(
+  path: string,
+  seams: DanglingNodeModulesLinksSeams,
+): { isSymbolicLink(): boolean } | null {
+  if (seams.lstat) return seams.lstat(path);
+  try {
+    return lstatSync(path);
+  } catch {
+    return null;
+  }
+}
+
 function scanDanglingNodeModulesLinks(
   nodeModulesRoot: string,
   seams: DanglingNodeModulesLinksSeams,
-): DanglingNodeModulesLink[] {
+): DanglingScanResult {
   const maxEntries = seams.maxEntries ?? DANGLING_WALK_MAX_ENTRIES_DEFAULT;
   const maxDepth = seams.maxDepth ?? DANGLING_WALK_MAX_DEPTH_DEFAULT;
   const readdirWithTypes =
@@ -210,7 +227,8 @@ function scanDanglingNodeModulesLinks(
     seams.targetExists ??
     ((path: string) => {
       try {
-        lstatSync(path);
+        // Follow to the ultimate target; an intermediate symlink entry alone is not enough.
+        statSync(path);
         return true;
       } catch {
         return false;
@@ -220,6 +238,7 @@ function scanDanglingNodeModulesLinks(
   const dangling: DanglingNodeModulesLink[] = [];
   const queue: Array<{ dir: string; depth: number }> = [{ dir: nodeModulesRoot, depth: 0 }];
   let examined = 0;
+  let incomplete = false;
 
   while (queue.length > 0 && examined < maxEntries) {
     const next = queue.shift();
@@ -229,10 +248,14 @@ function scanDanglingNodeModulesLinks(
     try {
       entries = readdirWithTypes(dir);
     } catch {
+      incomplete = true;
       continue;
     }
     for (const ent of entries) {
-      if (examined >= maxEntries) break;
+      if (examined >= maxEntries) {
+        incomplete = true;
+        break;
+      }
       examined += 1;
       const full = join(dir, ent.name);
       let isLink = false;
@@ -275,18 +298,25 @@ function scanDanglingNodeModulesLinks(
       } catch {
         continue;
       }
-      if (isDir && depth < maxDepth) {
-        queue.push({ dir: full, depth: depth + 1 });
+      if (isDir) {
+        if (depth < maxDepth) {
+          queue.push({ dir: full, depth: depth + 1 });
+        } else {
+          incomplete = true;
+        }
       }
     }
   }
-  return dangling;
+  if (queue.length > 0) {
+    incomplete = true;
+  }
+  return { dangling, incomplete };
 }
 
 /**
  * Read-only dangling junction/symlink probe under node_modules (#3749).
- * Hard-fails when dangling entries exist; skips cleanly when node_modules is absent.
- * Does not auto-repair under doctor --fix.
+ * Hard-fails when dangling entries exist, the root link is dangling, or the probe is incomplete;
+ * skips cleanly when node_modules is absent. Does not auto-repair under doctor --fix.
  */
 export function checkDanglingNodeModulesLinks(
   projectRoot: string,
@@ -294,18 +324,51 @@ export function checkDanglingNodeModulesLinks(
 ): CheckResult {
   const name = DANGLING_NODE_MODULES_LINKS_CHECK;
   const nodeModulesRoot = join(projectRoot, "node_modules");
-  if (!isDirectoryPath(nodeModulesRoot, seams)) {
+  const pm = resolveDanglingPackageManager(projectRoot, seams);
+  const platform = seams.platform ?? process.platform;
+  const recovery = danglingNodeModulesRecoveryCommand(pm, platform);
+  const rootIsDir = isDirectoryPath(nodeModulesRoot, seams);
+  if (!rootIsDir) {
+    const rootLstat = lstatDanglingPath(nodeModulesRoot, seams);
+    if (rootLstat?.isSymbolicLink()) {
+      return {
+        name,
+        status: "fail",
+        detail:
+          `node_modules is a dangling junction/symlink — broken install. ` +
+          `Recover with \`${recovery}\`. ` +
+          "Discovery: throttle-skip / always-cheap path when node_modules exists, or `deft doctor --full`.",
+        data: {
+          recovery,
+          package_manager: pm,
+          dangling_root: true,
+          discovery: "throttle-skip-or-doctor-full",
+        },
+      };
+    }
     return {
       name,
       status: "skip",
       detail: "node_modules absent — dangling link probe skipped.",
     };
   }
-  const dangling = scanDanglingNodeModulesLinks(nodeModulesRoot, seams);
-  const pm = resolveDanglingPackageManager(projectRoot, seams);
-  const platform = seams.platform ?? process.platform;
-  const recovery = danglingNodeModulesRecoveryCommand(pm, platform);
+  const { dangling, incomplete } = scanDanglingNodeModulesLinks(nodeModulesRoot, seams);
   if (dangling.length === 0) {
+    if (incomplete) {
+      return {
+        name,
+        status: "fail",
+        detail:
+          "Incomplete dangling-link probe under node_modules (entry/depth limit or unreadable directory) — " +
+          `cannot certify clean. Recover with \`${recovery}\` if the install looks broken, or re-run \`deft doctor --full\`.`,
+        data: {
+          recovery,
+          package_manager: pm,
+          incomplete: true,
+          discovery: "throttle-skip-or-doctor-full",
+        },
+      };
+    }
     return {
       name,
       status: "pass",
@@ -319,17 +382,21 @@ export function checkDanglingNodeModulesLinks(
     worktreeHits.length > 0
       ? ` ${worktreeHits.length} target(s) resolve under an agent scratch worktree path (AGENT_SCRATCH_DIRS/worktrees).`
       : "";
+  const incompleteNote = incomplete
+    ? " Probe also hit an entry/depth limit or unreadable directory (incomplete)."
+    : "";
   return {
     name,
     status: "fail",
     detail:
-      `Dangling junction/symlink under node_modules: ${named}.${worktreeNote} ` +
+      `Dangling junction/symlink under node_modules: ${named}.${worktreeNote}${incompleteNote} ` +
       `Broken install — recover with \`${recovery}\`. ` +
       "Discovery: throttle-skip / always-cheap path when node_modules exists, or `deft doctor --full`.",
     data: {
       dangling,
       recovery,
       package_manager: pm,
+      ...(incomplete ? { incomplete: true } : {}),
       discovery: "throttle-skip-or-doctor-full",
     },
   };

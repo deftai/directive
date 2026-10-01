@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -1262,10 +1262,13 @@ describe("checkDanglingNodeModulesLinks (#3749)", () => {
       });
       expect(result.status).toBe("fail");
       expect(result.detail).toContain(linkRel);
+      expect(result.detail).toContain("$env:CI='true'; pnpm install --frozen-lockfile");
       expect(result.detail).toContain("CI=true pnpm install --frozen-lockfile");
       expect(result.detail).toMatch(/agent scratch worktree/i);
       expect(result.detail).toContain("deft doctor --full");
-      expect(result.data?.recovery).toBe("CI=true pnpm install --frozen-lockfile");
+      expect(result.data?.recovery).toBe(
+        "$env:CI='true'; pnpm install --frozen-lockfile (PowerShell; POSIX: CI=true pnpm install --frozen-lockfile)",
+      );
       expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(false);
       expect(deriveExitCode([result], [])).toBe(1);
       const dangling = result.data?.dangling as Array<{ agentScratchWorktreeTarget: boolean }>;
@@ -1281,8 +1284,86 @@ describe("checkDanglingNodeModulesLinks (#3749)", () => {
       "pnpm install --frozen-lockfile",
     );
     expect(danglingNodeModulesRecoveryCommand("pnpm", "win32")).toBe(
-      "CI=true pnpm install --frozen-lockfile",
+      "$env:CI='true'; pnpm install --frozen-lockfile (PowerShell; POSIX: CI=true pnpm install --frozen-lockfile)",
     );
+  });
+
+  it("hard-fails when node_modules itself is a dangling root link", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-root-"));
+    try {
+      const nm = join(root, "node_modules");
+      const result = checkDanglingNodeModulesLinks(root, {
+        packageManager: "npm",
+        isDir: () => false,
+        lstat: (p) => (p === nm ? { isSymbolicLink: () => true } : null),
+      });
+      expect(result.status).toBe("fail");
+      expect(result.detail).toMatch(/dangling junction\/symlink/i);
+      expect(result.data?.dangling_root).toBe(true);
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("hard-fails incomplete probes instead of reporting a clean pass", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-incomplete-"));
+    try {
+      const nm = join(root, "node_modules");
+      mkdirSync(nm, { recursive: true });
+      const result = checkDanglingNodeModulesLinks(root, {
+        packageManager: "npm",
+        isDir: (p) => p === nm || p === root,
+        maxEntries: 1,
+        readdirWithFileTypes: (dir) => {
+          if (dir === nm) {
+            return [
+              {
+                name: "a",
+                isDirectory: () => true,
+                isSymbolicLink: () => false,
+              },
+              {
+                name: "b",
+                isDirectory: () => true,
+                isSymbolicLink: () => false,
+              },
+            ];
+          }
+          return [];
+        },
+      });
+      expect(result.status).toBe("fail");
+      expect(result.detail).toMatch(/incomplete/i);
+      expect(result.data?.incomplete).toBe(true);
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("treats broken link chains as dangling via ultimate target resolution", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-chain-"));
+    try {
+      const nm = join(root, "node_modules");
+      mkdirSync(nm, { recursive: true });
+      const finalGone = join(root, "gone-final");
+      const mid = join(root, "mid-link");
+      try {
+        // Intermediate symlink exists; ultimate destination does not. Default
+        // targetExists must follow (stat), not stop at lstat of the intermediate.
+        symlinkSync(finalGone, mid);
+        symlinkSync(mid, join(nm, "pkg"));
+      } catch {
+        // Host cannot create symlinks — skip without failing the suite.
+        return;
+      }
+      const result = checkDanglingNodeModulesLinks(root, { packageManager: "npm" });
+      expect(result.status).toBe("fail");
+      expect(result.detail).toContain("pkg");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("matches AGENT_SCRATCH_DIRS worktrees including legacy swarm-worktrees", () => {
