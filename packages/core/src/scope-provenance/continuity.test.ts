@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   censusFromBaseMap,
   continuityExemptPaths,
-  resolveStoryContinuity,
   preMoveSameBasenameLifecyclePaths,
+  resolveStoryContinuity,
   sameBasenameLifecyclePaths,
 } from "./continuity.js";
 

@@ -1339,7 +1339,6 @@ export function evaluateScopeProvenance(
             headPlanIds,
           });
           const otherFence = resolveMergeBaseBriefRead(other.rel, otherContinuity, readAtBase);
-          const otherFenceRel = otherFence.baseRel;
           const otherBaseRead = otherFence.read;
           if (otherBaseRead.kind === "error") {
             peerBaseFailure = {

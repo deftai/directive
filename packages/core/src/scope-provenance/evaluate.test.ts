@@ -893,9 +893,7 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
     expect(result.exitCode).toBe(1);
     expect(result.findings.some((f) => /mismatched planId/i.test(f.detail))).toBe(true);
     // Mismatched mint must not become the allowlist (evil.ts would otherwise pass).
-    expect(result.findings.some((f) => f.kind === "change-set-outside-approved-scope")).toBe(
-      false,
-    );
+    expect(result.findings.some((f) => f.kind === "change-set-outside-approved-scope")).toBe(false);
   });
 
   it("injected active map does not re-bind a new pending brief over an active story (#5192)", () => {
