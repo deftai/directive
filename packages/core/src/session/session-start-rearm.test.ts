@@ -70,9 +70,10 @@ function fakeGit(
      * Tip→ritual reflog path shape for discontinuous continuity (#3884).
      * - rebase: ritual present with a rebase subject (admit)
      * - soft-reset: ritual present but tip subject is reset (fail closed)
+     * - amend-after-rebase: amend tip above an earlier rebase (fail closed)
      * - absent: ritual not on this branch reflog (fail closed)
      */
-    reflogPath?: "rebase" | "soft-reset" | "absent";
+    reflogPath?: "rebase" | "soft-reset" | "amend-after-rebase" | "absent";
     /** Shared first parent (amend-shaped). */
     amendShaped?: boolean;
     ritualHead?: string;
@@ -103,6 +104,8 @@ function fakeGit(
         lines = `${head} rebase (finish): refs/heads/${branchName} onto eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n${ritualHead} commit: feat\n`;
       } else if (reflogPath === "soft-reset") {
         lines = `${head} reset: moving to ${head}\n${ritualHead} commit: feat\n`;
+      } else if (reflogPath === "amend-after-rebase") {
+        lines = `${head} commit (amend): tweak\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa rebase (finish): refs/heads/${branchName} onto eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n${ritualHead} commit: feat\n`;
       } else {
         lines = `${head} commit: other\nffffffffffffffffffffffffffffffffffffffff commit: prior\n`;
       }
@@ -548,6 +551,37 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
         reflogPath: "soft-reset",
         amendShaped: false,
         ritualHead: prior,
+      }),
+      now,
+    });
+    expect(eligibility.eligible).toBe(false);
+    if (!eligibility.eligible) {
+      expect(eligibility.reason).toContain("discontinuously");
+    }
+  });
+
+  it("re-arm refuses amend after rebase even when earlier rebase is in reflog (#3884)", () => {
+    const root = tempRoot();
+    const prior = "cccccccccccccccccccccccccccccccccccccccc";
+    const current = "dddddddddddddddddddddddddddddddddddddddd";
+    const now = new Date("2026-07-20T12:00:00Z");
+    seedRitual(root, { head: prior, startedAt: now });
+    applyWorktreeOccupancy(root, {
+      sessionId: "seed-session",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    const eligibility = assessRearmEligibility(root, {
+      runGit: fakeGit(root, {
+        head: current,
+        ancestorOk: false,
+        reflogPath: "amend-after-rebase",
+        // Distinct parents (rebase-shaped) — must still refuse because amend
+        // sits between tip and ritual.
+        amendShaped: false,
+        ritualHead: prior,
+        branchName: "feature",
       }),
       now,
     });

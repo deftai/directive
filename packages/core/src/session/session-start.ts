@@ -495,11 +495,12 @@ export function liveSameOwnerOccupancyAdmits(
  * Live-same-owner alone is not enough: branch-switch, amend, and soft/hard reset
  * to unrelated history stay fail-closed. Admit only a same-branch rebase tip
  * rewrite: walking the current branch reflog from tip back to the ritual SHA
- * must see a rebase subject and must not see reset/checkout. Mere reflog
- * membership is not enough (soft-reset keeps the old SHA in the reflog).
- * Backup branches that still contain the old SHA must not block; dangling
- * ritual on an unrelated checkout must not admit. FF continuity is handled by
- * the caller via ancestor checks before this helper runs.
+ * must see a rebase subject and must not see reset/checkout/amend before the
+ * ritual. Mere reflog membership is not enough (soft-reset keeps the old SHA
+ * in the reflog). Amend after rebase must not skip past the amend to an earlier
+ * rebase subject. Backup branches that still contain the old SHA must not
+ * block; dangling ritual on an unrelated checkout must not admit. FF continuity
+ * is handled by the caller via ancestor checks before this helper runs.
  */
 export function sameOwnerRebaseHeadContinuity(
   projectRoot: string,
@@ -517,7 +518,8 @@ export function sameOwnerRebaseHeadContinuity(
   const branchName = branch.stdout.trim();
   if (branchName.length === 0) return false;
   // Same-branch rebase path only — ignores backup branches; rejects switches /
-  // reset-to-unrelated that still leave ritual SHA in the reflog.
+  // reset-to-unrelated / amend-after-rebase that still leave ritual SHA in the
+  // reflog.
   const reflog = runGit(projectRoot, ["reflog", "show", branchName, "--format=%H %gs"]);
   if (reflog.code !== 0) return false;
   let seenRebase = false;
@@ -532,7 +534,11 @@ export function sameOwnerRebaseHeadContinuity(
       foundRitual = true;
       break;
     }
-    if (/^(reset|checkout)(:|\s)/i.test(subject)) return false;
+    // Amend after rebase must fail closed — do not walk past amend to an
+    // earlier rebase subject (#3884 Greptile residual).
+    if (/^(reset|checkout)(:|\s)/i.test(subject) || /^commit \(amend\)/i.test(subject)) {
+      return false;
+    }
     if (/rebase/i.test(subject)) seenRebase = true;
   }
   if (!foundRitual || !seenRebase) return false;
