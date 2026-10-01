@@ -1,0 +1,581 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4288",
+    "updated": "2026-10-01T07:09:23Z"
+  },
+  "plan": {
+    "title": "bug(pr:watch): merged or closed PR is not a terminal verdict; workers wait out SHA-match after squash-merge",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(pr:watch): merged or closed PR is not a terminal verdict; workers wait out SHA-match after squash-merge",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4288",
+      "Overview": "\n\n1. Extend pr:watch so probe/watch fetch REST repos/.../pulls/<N> state and merged (reuse the existing pulls REST surface; no GraphQL gh pr view --json). Place that lifecycle short-circuit ahead of Greptile-body fetch and SHA-match holdout, so a missing Greptile body or sha_match false cannot keep a merged/closed PR in PENDING/TIMEOUT.\n2. Named verdict MERGED when merged=true: terminal success, exit 0 (same finish-success family as CLEAN for wait owners proceeding to scope:complete / leftover finalize). SHA-match / missing Last reviewed commit must not hold a merged PR.\n3. Named verdict CLOSED_UNMERGED when state=closed and merged=false: terminal non-success, exit 2. Not CLEAN. Workers must treat it as not shipped.\n4. Open PRs keep today's SHA-match stale-review guard and the intentional exclusion of sha_match from STALL (#1259 / #2313).\n5. Regression tests: merged + sha_match false → MERGED exit 0 immediately; closed unmerged → CLOSED_UNMERGED exit 2; open + sha_match false → still PENDING/poll.\n6. Do not invent a third poller outside pr:watch. Do not claim pr:wait-mergeable-and-merge already discharges #4288. Through-merge (#4529 / #4821) mitigation of the Grok implement leaf is context only and is not clearance.\n7. Non-goals stay: Greptile thin-HTML Last reviewed parsing (#4289 shipped), #4285 / #4286.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:4791ed185cb3b315601f8687b27c39a226cae9cc203fd681a9a94feaa79d2e3b\n\n\n",
+      "Labels": "bug, determinism, adoption-blocker, agent-experience, review-cycle, process, source-of-truth, scm, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:tickets"
+    },
+    "items": [
+      {
+        "title": "Extend pr:watch so probe/watch fetch REST repos/.../pulls/<N> state and merged (reuse the existing pulls REST surface; no GraphQL gh pr view --json). Place that lifecycle short-circuit ahead of Greptile-body fetch and SHA-match holdout, so a missing Greptile body or sha_match false cannot keep a merged/closed PR in PENDING/TIMEOUT.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-watch/probe.test.ts",
+          "recorded_at": "2026-10-01T07:09:22.401Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Named verdict MERGED when merged=true: terminal success, exit 0 (same finish-success family as CLEAN for wait owners proceeding to scope:complete / leftover finalize). SHA-match / missing Last reviewed commit must not hold a merged PR.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-watch/probe.test.ts",
+          "recorded_at": "2026-10-01T07:09:22.401Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Named verdict CLOSED_UNMERGED when state=closed and merged=false: terminal non-success, exit 2. Not CLEAN. Workers must treat it as not shipped.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-watch/probe.test.ts",
+          "recorded_at": "2026-10-01T07:09:22.401Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Open PRs keep today's SHA-match stale-review guard and the intentional exclusion of sha_match from STALL (#1259 / #2313).",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-watch/probe.test.ts",
+          "recorded_at": "2026-10-01T07:09:22.401Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Regression tests: merged + sha_match false → MERGED exit 0 immediately; closed unmerged → CLOSED_UNMERGED exit 2; open + sha_match false → still PENDING/poll.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-watch/probe.test.ts",
+          "recorded_at": "2026-10-01T07:09:22.401Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Do not invent a third poller outside pr:watch. Do not claim pr:wait-mergeable-and-merge already discharges #4288. Through-merge (#4529 / #4821) mitigation of the Grok implement leaf is context only and is not clearance.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound non-goal / fence; no product change required for this clause.",
+          "recorded_at": "2026-10-01T07:09:22.401Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T07:09:22.401Z",
+            "mintedVia": "leftover-complete-4288"
+          }
+        }
+      },
+      {
+        "title": "Non-goals stay: Greptile thin-HTML Last reviewed parsing (#4289 shipped), #4285 / #4286.",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound non-goal / fence; no product change required for this clause.",
+          "recorded_at": "2026-10-01T07:09:22.401Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T07:09:22.401Z",
+            "mintedVia": "leftover-complete-4288"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "adoption-blocker",
+      "agent-experience",
+      "review-cycle",
+      "process",
+      "source-of-truth",
+      "scm",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:tickets"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4288",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4288: bug(pr:watch): merged or closed PR is not a terminal verdict; workers wait out SHA-match after squash-merge"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/pr-watch/probe.test.ts packages/core/src/pr-watch/watch.test.ts packages/core/src/finish-loop/finish-loop.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "leftover-complete Prefer-A pathless clauses from Bound plan.items after product PR merge",
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Extend pr:watch so probe/watch fetch REST repos/.../pulls/<N> state and merged (reuse the existing pulls REST surface; no GraphQL gh pr view --json). Place that lifecycle short-circuit ahead of Greptile-body fetch and SHA-match holdout, so a missing Greptile body or sha_match false cannot keep a merged/closed PR in PENDING/TIMEOUT.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Named verdict MERGED when merged=true: terminal success, exit 0 (same finish-success family as CLEAN for wait owners proceeding to scope:complete / leftover finalize). SHA-match / missing Last reviewed commit must not hold a merged PR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Named verdict CLOSED_UNMERGED when state=closed and merged=false: terminal non-success, exit 2. Not CLEAN. Workers must treat it as not shipped.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Open PRs keep today's SHA-match stale-review guard and the intentional exclusion of sha_match from STALL (#1259 / #2313).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Regression tests: merged + sha_match false → MERGED exit 0 immediately; closed unmerged → CLOSED_UNMERGED exit 2; open + sha_match false → still PENDING/poll.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 6,
+          "text": "Do not invent a third poller outside pr:watch. Do not claim pr:wait-mergeable-and-merge already discharges #4288. Through-merge (#4529 / #4821) mitigation of the Grok implement leaf is context only and is not clearance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 7,
+          "text": "Non-goals stay: Greptile thin-HTML Last reviewed parsing (#4289 shipped), #4285 / #4286.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "sentences": [
+        "Extend pr:watch so probe/watch fetch REST repos/.../pulls/<N> state and merged (reuse the existing pulls REST surface; no GraphQL gh pr view --json). Place that lifecycle short-circuit ahead of Greptile-body fetch and SHA-match holdout, so a missing Greptile body or sha_match false cannot keep a merged/closed PR in PENDING/TIMEOUT.",
+        "Named verdict MERGED when merged=true: terminal success, exit 0 (same finish-success family as CLEAN for wait owners proceeding to scope:complete / leftover finalize). SHA-match / missing Last reviewed commit must not hold a merged PR.",
+        "Named verdict CLOSED_UNMERGED when state=closed and merged=false: terminal non-success, exit 2. Not CLEAN. Workers must treat it as not shipped.",
+        "Open PRs keep today's SHA-match stale-review guard and the intentional exclusion of sha_match from STALL (#1259 / #2313).",
+        "Regression tests: merged + sha_match false → MERGED exit 0 immediately; closed unmerged → CLOSED_UNMERGED exit 2; open + sha_match false → still PENDING/poll.",
+        "Do not invent a third poller outside pr:watch. Do not claim pr:wait-mergeable-and-merge already discharges #4288. Through-merge (#4529 / #4821) mitigation of the Grok implement leaf is context only and is not clearance.",
+        "Non-goals stay: Greptile thin-HTML Last reviewed parsing (#4289 shipped), #4285 / #4286."
+      ],
+      "admitted_source_digest": "06c6085811e661bb1eb070bec993125927ad4b25054b6f37df40801dd1380cfe",
+      "admitted_source_sentences": [
+        "Extend pr:watch so probe/watch fetch REST repos/.../pulls/<N> state and merged (reuse the existing pulls REST surface; no GraphQL gh pr view --json). Place that lifecycle short-circuit ahead of Greptile-body fetch and SHA-match holdout, so a missing Greptile body or sha_match false cannot keep a merged/closed PR in PENDING/TIMEOUT.",
+        "Named verdict MERGED when merged=true: terminal success, exit 0 (same finish-success family as CLEAN for wait owners proceeding to scope:complete / leftover finalize). SHA-match / missing Last reviewed commit must not hold a merged PR.",
+        "Named verdict CLOSED_UNMERGED when state=closed and merged=false: terminal non-success, exit 2. Not CLEAN. Workers must treat it as not shipped.",
+        "Open PRs keep today's SHA-match stale-review guard and the intentional exclusion of sha_match from STALL (#1259 / #2313).",
+        "Regression tests: merged + sha_match false → MERGED exit 0 immediately; closed unmerged → CLOSED_UNMERGED exit 2; open + sha_match false → still PENDING/poll.",
+        "Do not invent a third poller outside pr:watch. Do not claim pr:wait-mergeable-and-merge already discharges #4288. Through-merge (#4529 / #4821) mitigation of the Grok implement leaf is context only and is not clearance.",
+        "Non-goals stay: Greptile thin-HTML Last reviewed parsing (#4289 shipped), #4285 / #4286."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "SHA-parse non-goal from this issue is now filed as #4289 (new Greptile HTML omits `Last reviewed commit:`; shared detector / pr:watch / merge-ready / review-cycle / swarm poller). This issue stays merged/closed terminal only.",
+          "id": 5604543929,
+          "html_url": "https://github.com/deftai/directive/issues/4288#issuecomment-5604543929",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-09T15:37:52Z",
+          "updated_at": "2026-09-09T15:37:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Tickets: using GitHub issues to drive the work. A change is supposed to live on its own branch, and the pull request is supposed to point back at the issue that asked for it.\n\nWhat a new person hits: Merging or closing the pull request is not treated as the end. Workers keep waiting for a match that will not come.\n\nWhy that ruins the product for them: They merged, which in GitHub means done, and Directive keeps working as if it were not. The issue tracker and the product disagree about the finish.\n\nHow likely: Medium. It shows up at the end of the first pull request, which is late in day one and very visible if they get there.\n\n",
+          "id": 5780301755,
+          "html_url": "https://github.com/deftai/directive/issues/4288#issuecomment-5780301755",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:39:33Z",
+          "updated_at": "2026-09-22T16:39:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Current known state (2026-09-27 Stage A + workflow compare)\n\nStage A `task triage:evaluate -- 4288` on origin/master `650ab1a614cd`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before this chip)\n- sink: `.deft-scratch/issue-eval/650ab1a614cd/33d885e2-65e9-45a0-9084-ce8b5ca45cd3`\n\n### Live product gap (unchanged)\n\n`packages/core/src/pr-watch/probe.ts` still does not fetch PR `state` / `merged`. `watch()` terminals remain CLEAN / NEW_P0_P1 / ERRORED / CI_* / STALL / TIMEOUT / PENDING. No `MERGED` (exit 0) or `CLOSED_UNMERGED` (exit 2) arm. Open-PR SHA-match guard is intact and must stay intact.\n\nCompanion #4289 (thin HTML SHA pin) shipped; skills still say keep #4288 as the merged/closed terminal. #4286 closed. #4285 open and unrelated.\n\n### Against current Grok through-merge skill (#4529 / #4821)\n\nThrough-merge **mitigates** the original recurrence (Grok `drive-to: merge-ready` implement leaf blocked on `pr:watch` after human squash-merge of PR #4287) by requiring implement = `stop-at: pr-open`. That leaf no longer owns `pr:watch`. Approach 1 owns the pre-CLEAN wait; parent-retained / Phase 6 closer uses `pr:wait-mergeable-and-merge` after CLEAN (that closer already has MERGED exit 0); post-merge `scope:complete` / leftover finalize stays on parent / Phase 6.\n\nThrough-merge does **not** satisfy #4288 acceptance:\n\n1. Approach 1 wait still calls `pr:watch` until CLEAN — human squash-merge during `clean_gate_holdout=sha_match` still polls to TIMEOUT.\n2. Non-Grok `drive-to: merge-ready` leaves that block on in-process `pr:watch` remain fully exposed.\n3. Review-cycle human-merge post-CLEAN observe prose already names REST `pulls/<N>` `merged`/`state`; that is not yet a deterministic `pr:watch` terminal.\n\n### Bound harvest direction (for upcoming arc)\n\nShip named `pr:watch` terminals from REST `repos/.../pulls/<N>` (not GraphQL): merged → MERGED exit 0 immediately even when sha_match is false; closed unmerged → CLOSED_UNMERGED exit 2; open PRs keep today's SHA-match stale-review guard. Regression tests as in the issue Acceptance.\n\nCatalog facets after evaluate: process, source-of-truth, area:cli, framework-gap (plus prior bug / adoption-blocker / agent-experience / review-cycle / scm / core-capabilities / promise:tickets). Chip stamped `design-critique:mechanism-shaped` for the arc.\r\n\n",
+          "id": 5857750642,
+          "html_url": "https://github.com/deftai/directive/issues/4288#issuecomment-5857750642",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:39:31Z",
+          "updated_at": "2026-09-27T16:39:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because pr:watch never reads PR state/merged, so after a human or sibling squash-merge the SHA-match holdout keeps polling to TIMEOUT/PENDING and merge-path owners cannot treat the wait as finished for scope:complete.\n\ncharter: refutation\nrefutation-target: After a squash-merge (or close), pr:watch has no terminal arm for merged/closed PR state, so clean_gate_holdout=sha_match keeps polling until max-wait even though the PR is gone from the merge queue.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered n=1 after the missing-token Dual-stop ask. This is a concrete pr:watch terminal-verdict defect adjacent to shipped #4289, not a whole-motion babysit hang. Recommended spend N=1.\n\npain: P1, P2, P3\n\nP1. probeOnce/watch never fetch REST pulls/<N> state+merged, so a merged PR with sha_match false stays PENDING/TIMEOUT instead of a named MERGED exit 0.\nP2. Approach 1 wait and non-Grok drive-to:merge-ready leaves that block on pr:watch burn wall-clock after human/sibling squash-merge instead of proceeding to scope:complete / leftover finalize.\nP3. Closed unmerged (state=closed, merged=false) is not a named CLOSED_UNMERGED exit 2, so workers cannot fail closed as not shipped.\n\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4288-dc\norigin-ref: origin/HEAD\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\npin-kind: origin-default\nTarget-digest: sha256:4791ed185cb3b315601f8687b27c39a226cae9cc203fd681a9a94feaa79d2e3b\n\nPin reads use git show 650ab1a614cd6049b4c70c2b48fa181ffef5455e. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\n\n",
+          "id": 5857777796,
+          "html_url": "https://github.com/deftai/directive/issues/4288#issuecomment-5857777796",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:43:17Z",
+          "updated_at": "2026-10-01T06:18:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because pr:watch never reads PR merged/closed state, so after a human squash-merge a drive-to: merge-ready leaf can keep polling under clean_gate_holdout=sha_match until TIMEOUT while scope:complete must run from the parent.\n\ncharter: refutation\nrefutation-target: pr:watch may keep polling under clean_gate_holdout=sha_match after a PR is already squash-merged or closed-unmerged, because merged/closed are outside the wait's terminal set and SHA-match holdout must stay excluded from STALL for open re-review.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator directed pick recommended N for each. This is a concrete wait-verb terminal-verdict defect on pr:watch (merged/closed), not a whole-motion babysit hang. Recommended spend N=1.\n\npain: P1, P2, P3\n\nP1. After squash-merge (merged=true, state=closed), pr:watch can remain PENDING with clean_gate_holdout=sha_match and wait out --max-wait-minutes instead of terminating success.\nP2. Closed-unmerged has no named terminal non-success; workers can treat absence of CLEAN as keep-waiting rather than not-shipped.\nP3. Open-PR SHA-match stale-review guard must stay; the hole is missing merged/closed arms on REST pulls/<N>, not GraphQL gh pr view --json and not Greptile HTML Last-reviewed parsing (#4285/#4286 stay non-goals).\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4288-dc\norigin-ref: origin/HEAD\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\npin-kind: origin-default\nTarget-digest: sha256:4791ed185cb3b315601f8687b27c39a226cae9cc203fd681a9a94feaa79d2e3b\n\nPin reads use git show 650ab1a614cd6049b4c70c2b48fa181ffef5455e. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\r\n\n",
+          "id": 5857783919,
+          "html_url": "https://github.com/deftai/directive/issues/4288#issuecomment-5857783919",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:44:08Z",
+          "updated_at": "2026-10-01T06:18:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#4288\nCharter: refutation\nRound: 1 critic\nId ceiling (inclusive): 5857777796\nSHA at dispatch: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\narc-mode: no-ingest\naudit-targets: none\nSeat: grok. Launcher: grok.\n\nRefutation target survives.\n\n## Early REST state/merged short-circuit\nsharpens-framing\nEvidence: At `650ab1a614cd`, `probeOnce` (`packages/core/src/pr-watch/probe.ts`) hard-requires HEAD SHA then a Greptile body; either miss returns `errorProbe` before any clean-gate fields. `WatchProbe` (`types.ts`) carries no `merged` / `pr_state`. `watch()` (`watch.ts`) terminals only CLEAN / NEW_P0_P1 / ERRORED / CI_* / STALL / TIMEOUT / PENDING / CONFIG. `fetchPrHeadShaRest` already GETs `repos/.../pulls/<N>` but returns only `head.sha`. `watch.test.ts` locks `clean_gate_holdout=sha_match` through to TIMEOUT (no early STALL).\nFailure mode: A bind that only adds named verdict arms after a successful Greptile/SHA probe still fails when post-merge Greptile fetch errors or sha_match stays false — the measured hang path never reaches MERGED/CLOSED_UNMERGED.\nDisposition: Successor lean must place REST `state`+`merged` ahead of (or independent from) Greptile-body and SHA-match holdout, reusing the existing pulls/<N> REST surface, and keep the open-PR SHA-match guard unchanged.\n\n## Finish consumers must treat MERGED as lifecycle success\nsharpens-framing\nEvidence: Review-cycle / swarm at this SHA: Approach 1 wait is `pr:watch` to CLEAN; Grok through-merge implement is `stop-at: pr-open` with Approach 1 owning `pr:watch`; Phase 6 closer is `pr:wait-mergeable-and-merge` only after CLEAN (`deft-directive-swarm` Envelope selection SLA; review-cycle Partner merge-path / Keep #4288). `pr-wait-mergeable/classify.ts` already maps `partial.merged===true` → exit 0 (`merged-by-sibling`) on that closer verb. Issue acceptance wants `pr:watch` MERGED exit 0 and CLOSED_UNMERGED exit 2.\nFailure mode: If callers key only on verdict string `CLEAN`, a correct MERGED exit 0 still leaves merge-path owners parked instead of `scope:complete` / leftover finalize; CLOSED_UNMERGED must remain non-success (exit 2), not CLEAN-equivalent.\nDisposition: Bound remedy names MERGED as finish-success for wait owners (same exit 0 family as CLEAN for lifecycle proceed) and CLOSED_UNMERGED as fail-closed not-shipped; do not invent a third poller outside `pr:watch`.\n\n## Through-merge mitigates Grok implement leaf only\nfootnote\nEvidence: In-ceiling current-state 5857750642 and Stop 1 5857777796 already record that #4529/#4821 moves Grok implement off `pr:watch`, while Approach 1 and non-Grok `drive-to: merge-ready` leaves still block on it. Pin inventory confirms `pr:watch` still lacks MERGED/CLOSED_UNMERGED; skills still say Keep #4288 as the merged/closed terminal.\nFailure mode: Treating through-merge alone as clearance would leave the SHA-match holdout hang on every remaining `pr:watch` owner.\nDisposition: Context only — does not weaken the refutation target.\n\n## Existing closer MERGED is a different verb\nfootnote\nEvidence: `packages/core/src/pr-wait-mergeable/constants.ts` exports `EXIT_MERGED = 0`; `classify.ts` reads `partial_data.merged` for sibling-merge / closed paths on the squash-after-CLEAN closer. `pr-watch/constants.ts` has no `VERDICT_MERGED` / `VERDICT_CLOSED_UNMERGED`.\nFailure mode: Harvesting only the closer leaves pre-CLEAN `pr:watch` waits exposed after human/sibling squash-merge.\nDisposition: Inventory note — extend `pr:watch`; do not claim `pr:wait-mergeable` already discharges #4288.\n\nRoad-not-taken: Routing Approach 1 / human-merge observe to ad-hoc `pulls/<N>` outside `pr:watch` while leaving the verb unchanged. Rejected because skills pin Keep #4288 on `pr:watch`, non-Grok `drive-to: merge-ready` leaves block in-process on that verb, and `--one-shot` / JSON consumers would stay broken. Flip would require every wait owner to stop using `pr:watch` for finish — not observed at this SHA.\r\n\n",
+          "id": 5857798562,
+          "html_url": "https://github.com/deftai/directive/issues/4288#issuecomment-5857798562",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:46:08Z",
+          "updated_at": "2026-09-27T16:46:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#4288\ncharter: refutation\nround: 1\nseat: grok\nlauncher: grok\nid-ceiling: 5857783919\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\narc-mode: no-ingest\naudit-targets: none\n\nRefutation target (Stop 1 5857783919) survives.\n\nRe-verified at pin `650ab1a614cd6049b4c70c2b48fa181ffef5455e` (`git rev-parse HEAD` matched; reads via `git show <sha>:<path>`). `probeOnce` resolves HEAD, Greptile body, and CI only — no `state`/`merged` fields on `WatchProbe`. `watch()` terminals in `constants.ts` are CLEAN / NEW_P0_P1 / ERRORED / CI_* / STALL / TIMEOUT / PENDING / CONFIG — no MERGED or CLOSED_UNMERGED. STALL advances only when `cleanGateHoldout !== \"sha_match\"` (#1259 / #2313), so an open re-review under `sha_match` correctly keeps polling; after squash-merge that same holdout still has no terminal arm and drains `--max-wait-minutes`.\n\n## Early REST merged/closed before Greptile arms\nsharpens-framing\nEvidence: At the pin, `probeOnce` returns `errorProbe` when Greptile body fetch fails, before any terminal wait arm can fire. `fetchPrHeadShaRest` already `GET`s `repos/<owner>/<repo>/pulls/<N>` and parses only `head.sha`, discarding `state`/`merged` present on that payload. `pr-wait-mergeable/classify.ts` already splits `merged===true` → success vs closed-unmerged → non-success from the same forge facts.\nFailure mode: A lean that adds MERGED/CLOSED_UNMERGED only after a successful Greptile score can still exit CONFIG on a merged/closed PR when the comment body path fails, so merge-path owners keep treating the wait as a probe fault instead of a finished PR.\nDisposition: Bind the REST `state`+`merged` read early (extend the existing pulls/<N> parse; prefer one REST read). Named MERGED / CLOSED_UNMERGED must win over Greptile/SHA-match incompleteness and over Greptile-body CONFIG when the PR is already finished.\n\n## Exit-0 MERGED is not CLEAN for squash start\nsharpens-framing\nEvidence: Issue Acceptance wants MERGED exit 0 (same numeric code as CLEAN) so drive-to / Approach 1 can proceed to `scope:complete`. Review-cycle / swarm skills at the pin require `pr:wait-mergeable-and-merge` only after CLEAN (`Wait-merge is squash-after-CLEAN`). `pr-wait-mergeable` already names MERGED and handles sibling-merged; `pr:watch` consumers that key only on exit code would not.\nFailure mode: Shared merge-path wait authority changes: an exit-0-only consumer can treat human squash during `sha_match` holdout as CLEAN and start the squash closer, or claim Greptile CLEAN when only the PR finished.\nDisposition: Keep the named verdict in the bind. MERGED finishes the wait for lifecycle (`scope:complete` / leftover finalize). CLEAN remains the only green light to start wait-merge squash. CLOSED_UNMERGED stays exit 2 on `pr:watch` (`EXIT_TERMINAL_ERROR`), matching Acceptance — do not copy wait-merge's closed-unmerged exit 1 mapping.\n\n## Through-merge mitigation does not clear the hole\nfootnote\nEvidence: Comment 5857750642 and Stop 1 already record that Grok through-merge (#4529/#4821) moves implement to `stop-at: pr-open`, while Approach 1 and non-Grok `drive-to: merge-ready` leaves still block on `pr:watch`. Pin code still lacks the terminals.\nFailure mode: Treating through-merge as satisfaction would leave the measured hang on every remaining `pr:watch` owner.\nDisposition: No change to the refutation target; harvest stays the named `pr:watch` arms.\n\n## Open-PR sha_match holdout stays\nfootnote\nEvidence: `watch.ts` STALL comment and streak gate at the pin explicitly exclude `clean_gate_holdout=sha_match`. Acceptance and Stop 1 P3 require keeping that open-PR guard; #4289 / Greptile HTML Last-reviewed stay non-goals.\nFailure mode: Collapsing sha_match into STALL would false-terminal open re-review.\nDisposition: Bind as keep-invariant beside the new arms; do not recut STALL exclusion.\r\n\n",
+          "id": 5857804860,
+          "html_url": "https://github.com/deftai/directive/issues/4288#issuecomment-5857804860",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:47:00Z",
+          "updated_at": "2026-09-27T16:47:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\npr:watch still never reads REST pulls/<N> state or merged. After squash-merge or close, SHA-match holdout keeps polling to TIMEOUT/PENDING. Grok through-merge moves the implement leaf off that wait, but Approach 1 and non-Grok drive-to:merge-ready leaves still block on pr:watch. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 warrant 5857777796 and this map. Critic 5857798562 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target survives in sharpened form. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5857783919\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\n\n## Takes\n\n- 5857798562 Early REST state/merged short-circuit — accept-into-contract\n- 5857798562 Finish consumers must treat MERGED as lifecycle success — accept-into-contract\n- 5857798562 Through-merge mitigates Grok implement leaf only — accept-into-contract\n- 5857798562 Existing closer MERGED is a different verb — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Extend pr:watch so probe/watch fetch REST repos/.../pulls/<N> state and merged (reuse the existing pulls REST surface; no GraphQL gh pr view --json). Place that lifecycle short-circuit ahead of Greptile-body fetch and SHA-match holdout, so a missing Greptile body or sha_match false cannot keep a merged/closed PR in PENDING/TIMEOUT.\n2. Named verdict MERGED when merged=true: terminal success, exit 0 (same finish-success family as CLEAN for wait owners proceeding to scope:complete / leftover finalize). SHA-match / missing Last reviewed commit must not hold a merged PR.\n3. Named verdict CLOSED_UNMERGED when state=closed and merged=false: terminal non-success, exit 2. Not CLEAN. Workers must treat it as not shipped.\n4. Open PRs keep today's SHA-match stale-review guard and the intentional exclusion of sha_match from STALL (#1259 / #2313).\n5. Regression tests: merged + sha_match false → MERGED exit 0 immediately; closed unmerged → CLOSED_UNMERGED exit 2; open + sha_match false → still PENDING/poll.\n6. Do not invent a third poller outside pr:watch. Do not claim pr:wait-mergeable-and-merge already discharges #4288. Through-merge (#4529 / #4821) mitigation of the Grok implement leaf is context only and is not clearance.\n7. Non-goals stay: Greptile thin-HTML Last reviewed parsing (#4289 shipped), #4285 / #4286.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:4791ed185cb3b315601f8687b27c39a226cae9cc203fd681a9a94feaa79d2e3b\n\n## Parent-side substantiation\n\nThe critic kept the missing pr:watch merged/closed terminals and sharpened two bind requirements: lifecycle short-circuit must run before Greptile/SHA-match, and MERGED must be finish-success for wait owners while CLOSED_UNMERGED stays fail-closed. Footnotes keep through-merge and the closer verb as inventory, not substitute harvest. Items 1–5 are the first-ship product surface; items 6–7 fence scope.\n\naudit:pr-watch-early-state-merged sha=650ab1a614cd6049b4c70c2b48fa181ffef5455e pointer=comment:5857798562 reading=asserted\naudit:merged-finish-success-closed-fail-closed sha=650ab1a614cd6049b4c70c2b48fa181ffef5455e pointer=comment:5857798562 reading=asserted\n\nNote: parallel Stop 1 5857783919 landed on the same dest after 5857777796 with matching P1–P3 and a mismatched Target-digest; this lean supersedes that latest Stop 1 and pins the verified live-body digest above. Critic ceiling remained 5857777796.\n\n",
+          "id": 5857805129,
+          "html_url": "https://github.com/deftai/directive/issues/4288#issuecomment-5857805129",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:47:02Z",
+          "updated_at": "2026-10-01T06:18:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#4288\nCharter: refutation. Pain-audit of asserted coverage on bind lean 5857805129. Spend N=1.\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nId ceiling (inclusive): 5857805129\nSHA at dispatch: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nSeat: grok. Launcher: grok.\n\nPain-audit of successor lean 5857805129 (`relieves: P1` / `relieves: P2` / `relieves: P3`) against Stop 1 pains from 5857783919 (lean supersedes; earlier Stop 1 5857777796 also named P1–P3). Critic 5857798562 is in envelope as the Takes source. `git rev-parse HEAD` matched the dispatch SHA; pin reads via `git show 650ab1a614cd6049b4c70c2b48fa181ffef5455e:<path>`.\n\n## Re-verified anchors\nfootnote\nEvidence: At the pin, `probeOnce` still hard-requires HEAD then a Greptile body and returns `errorProbe` before clean-gate fields when either miss; `WatchProbe` carries no `merged` / `pr_state`; `constants.ts` has CLEAN / NEW_P0_P1 / ERRORED / CI_* / STALL / TIMEOUT / PENDING / CONFIG only — no MERGED or CLOSED_UNMERGED; `fetchPrHeadShaRest` already `GET`s `repos/.../pulls/<N>` and returns only `head.sha`; `watch()` STALL advances only when `cleanGateHoldout !== \"sha_match\"` (#1259 / #2313). `pr-wait-mergeable/classify.ts` already maps `partial.merged===true` → exit 0 on that closer verb.\nFailure mode: None for this audit — inventory matches the lean's Bound-remedy premises.\nDisposition: Context for the coverage checks below.\n\n## Bound remedy covers P1 (merged hang under sha_match)\nfootnote\nEvidence: Stop 1 5857783919 P1 is post-squash-merge PENDING / `clean_gate_holdout=sha_match` through `--max-wait-minutes`. Lean Bound remedy items 1–2 place REST `state`+`merged` ahead of Greptile-body fetch and SHA-match holdout, and name MERGED (`merged=true`) as terminal success exit 0 so SHA-match / missing Last-reviewed cannot hold a merged PR. Item 5 locks the regression (merged + sha_match false → MERGED exit 0 immediately). Item 6 keeps the fix on `pr:watch` and refuses treating `pr:wait-mergeable-and-merge` as discharge.\nFailure mode: If early short-circuit were omitted, Greptile-body CONFIG / sha_match false would still recreate the measured hang — the lean already binds that order.\nDisposition: Asserted `relieves: P1` matches the Bound remedy as written; no harvest change.\n\n## Bound remedy covers P2 (closed-unmerged terminal)\nfootnote\nEvidence: Stop 1 5857783919 P2 is absence of a named closed-unmerged non-success so workers can keep waiting. Lean item 3 names CLOSED_UNMERGED when `state=closed` and `merged=false`, exit 2, not CLEAN, treat as not shipped. Item 5 locks closed-unmerged → CLOSED_UNMERGED exit 2.\nFailure mode: Exit-code-only consumers that ignore the named verdict could still mis-handle closed-unmerged; the lean keeps the named verdict and exit 2, matching Acceptance and critic 5857798562's fail-closed disposition.\nDisposition: Asserted `relieves: P2` matches; no harvest change.\n\n## Bound remedy covers P3 (keep open-PR SHA-match; hole is missing arms)\nfootnote\nEvidence: Stop 1 5857783919 P3 requires keeping the open-PR SHA-match stale-review guard and scopes the hole to missing merged/closed arms on REST `pulls/<N>` (GraphQL `gh pr view --json` and Greptile HTML Last-reviewed / #4285 / #4286 stay non-goals). Lean items 1 and 4 keep today's open-PR SHA-match guard and the intentional sha_match exclusion from STALL; item 5 keeps open + sha_match false → PENDING/poll; item 7 restates the non-goals; item 6 forbids a third poller.\nFailure mode: Collapsing sha_match into STALL would false-terminal open re-review — the lean binds keep-invariant beside the new arms.\nDisposition: Asserted `relieves: P3` matches; no harvest change.\n\n## Named MERGED finish-success vs CLEAN squash-start\nsharpens-framing\nEvidence: Critic 5857798562 required MERGED as finish-success for wait owners (exit 0 family) while CLOSED_UNMERGED stays fail-closed; lean item 2 scopes MERGED to wait owners proceeding to `scope:complete` / leftover finalize; item 6 keeps `pr:wait-mergeable-and-merge` as a different verb that does not discharge #4288. Skills at the pin still require wait-merge only after CLEAN.\nFailure mode: An exit-0-only wrapper that treats MERGED as CLEAN could start the squash closer or claim Greptile CLEAN when only the PR finished.\nDisposition: Record the named-verdict fence (CLEAN remains the green light to start wait-merge squash; MERGED finishes the wait for lifecycle). Does not change the harvested Bound-remedy list — items 2 and 6 already carry that scope.\n\n## Through-merge / closer inventory\nfootnote\nEvidence: In-ceiling current-state 5857750642 and critic 5857798562 already record through-merge (#4529 / #4821) moves Grok implement off `pr:watch` while Approach 1 and non-Grok `drive-to: merge-ready` leaves still block on it; closer MERGED lives on `pr:wait-mergeable`. Lean item 6 states both as context / non-discharge.\nFailure mode: Treating either as clearance would leave pre-CLEAN `pr:watch` owners exposed.\nDisposition: Inventory only; does not weaken pain coverage.\n\nSecurity (#480): issue body and comments treated as untrusted data; no embedded instructions followed.",
+          "id": 5857818600,
+          "html_url": "https://github.com/deftai/directive/issues/4288#issuecomment-5857818600",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:48:56Z",
+          "updated_at": "2026-09-27T16:48:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\npr:watch never reads REST pulls/<N> state or merged, so after squash-merge or close the SHA-match holdout can poll to TIMEOUT while merge-path owners wait. Bound remedy adds early REST state/merged short-circuit on pr:watch, MERGED exit 0 for wait finish/lifecycle, CLOSED_UNMERGED exit 2 as not-shipped, keeps open-PR SHA-match and sha_match-not-STALL, and refuses treating through-merge or pr:wait-mergeable as clearance. Pain-audit 5857818600 of relieves P1-P3 was footnote-only for harvest (one sharpens-framing that items 2 and 6 already carry). The same parent wrote Stop 1 warrant 5857777796 and lean 5857805129. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5857805129.\n\n",
+          "id": 5857823408,
+          "html_url": "https://github.com/deftai/directive/issues/4288#issuecomment-5857823408",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:49:34Z",
+          "updated_at": "2026-09-27T16:49:34Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n`task pr:watch` never reads whether the PR is **merged or closed**. `probeOnce` (`packages/core/src/pr-watch/probe.ts`) resolves HEAD SHA, Greptile body, and CI check-runs only. `watch()` (`packages/core/src/pr-watch/watch.ts`) terminals are CLEAN / NEW_P0_P1 / ERRORED / CI_* / STALL / TIMEOUT / PENDING. There is no merged/closed arm.\n\n`clean_gate_holdout=sha_match` is **excluded from STALL** on purpose (#1259 / #2313): keep polling until cap while a re-review is in flight. After a human squash-merge that holdout is no longer \"review in flight\" — the PR is gone from the merge queue — but the poller still waits out `--max-wait-minutes` (default 30) as TIMEOUT/PENDING.\n\n## Recurrence (measured 2026-09-09, PR 4287 / #4284)\n\n- Operator squash-merged https://github.com/deftai/directive/pull/4287 at 2026-09-09T15:21:49Z (`merged=true`, `state=closed`, merge `0af0df41`).\n- Greptile summary was 5/5, P0=0 P1=0, CI green. `pr:watch --one-shot` still printed:\n  `PENDING` / `last_reviewed=<none>` / `sha_match=false` / `clean_gate_holdout=sha_match`\n  because the thinner Greptile HTML comment has no `Last reviewed commit: <sha>` line (related detector gap; not this close).\n- The `drive-to: merge-ready` Grok worker kept `pr:watch` until the parent killed it (~100 min). Merge was already done. `scope:complete` had to run from the parent.\n\n## Acceptance\n\n- `pr:watch` fetches PR `state` + `merged` (REST `repos/.../pulls/<N>`, not GraphQL `gh pr view --json`).\n- **Merged** (`merged=true`) is a **terminal success** for the wait: named verdict (e.g. `MERGED`) that does **not** keep polling. Exit 0 (same as CLEAN) so a `drive-to: merge-ready` leaf proceeds to `scope:complete` instead of waiting out the cap. SHA-match / missing `Last reviewed commit` MUST NOT hold a merged PR.\n- **Closed unmerged** (`state=closed` and `merged=false`) is a **terminal non-success** (exit 2, named e.g. `CLOSED_UNMERGED`). Not CLEAN. Worker must not treat it as shipped.\n- Open PRs keep today's SHA-match stale-review guard.\n- Regression tests: merged + sha_match false → MERGED exit 0 immediately; closed unmerged → exit 2; open + sha_match false → still PENDING/poll.\n- Do not weaken the SHA-match guard on **open** PRs. Do not use GraphQL `gh pr view --json`.\n\n## Non-goals\n\n- Parsing Greptile's new HTML summary for `Last reviewed commit` (thinner reports since ~yesterday). File separately if needed.\n- #4285 / #4286.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5401497960,
+        "origin": "deftai/directive#4288",
+        "id": "github.issue.5401497960"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4791ed185cb3b315601f8687b27c39a226cae9cc203fd681a9a94feaa79d2e3b"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pr-watch/main.ts",
+          "packages/core/src/pr-watch/main.test.ts",
+          "packages/core/src/pr-watch/watch.ts",
+          "packages/core/src/pr-watch/watch.test.ts",
+          "packages/core/src/pr-watch/probe.ts",
+          "packages/core/src/pr-watch/probe.test.ts",
+          "packages/core/src/pr-watch/types.ts",
+          "packages/cli/src/pr-watch.ts",
+          "packages/cli/src/pr-watch.test.ts",
+          "CHANGELOG.md",
+          "packages/core/src/pr-watch/constants.ts",
+          "packages/core/src/pr-watch/constants.test.ts",
+          "packages/core/src/finish-loop/finish-loop.test.ts",
+          "packages/core/src/finish-loop/pr-finish-loop.ts",
+          "packages/core/src/finish-loop/types.ts"
+        ],
+        "file_scope_confidence": "bound-surfaces",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/pr-watch/probe.test.ts packages/core/src/pr-watch/watch.test.ts packages/core/src/finish-loop/finish-loop.test.ts"
+        ],
+        "expected_outputs": [
+          "open Tracking PR"
+        ],
+        "depends_on": [],
+        "conflict_group": "through-merge-4288",
+        "size": "M",
+        "model_tier": "default",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "productPullRequest": 5213,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5213,
+        "prBase": null,
+        "mergeCommit": "89231eea26543df50853ede37b42141464dc49d2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "89231eea26543df50853ede37b42141464dc49d2",
+        "verifiedAt": "2026-10-01T07:09:23Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-01T07:09:23Z",
+      "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-01T07:09:23Z"
+      }
+    },
+    "id": "github.issue.5401497960",
+    "updated": "2026-10-01T07:09:23Z"
+  }
+}
