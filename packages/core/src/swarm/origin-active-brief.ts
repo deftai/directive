@@ -27,8 +27,10 @@ export function originActiveBriefPresent(
     };
   }
   const tip = `origin/${deliveryBranch}`;
-  const probe = runGit(["git", "cat-file", "-e", `${tip}:${rel}`], { cwd: projectRoot });
-  if (probe.returncode === 0) {
+  // Require a blob. `cat-file -e` also succeeds for trees, which would false-present
+  // a directory path and then fail later on `git show` (#4714 SLizard P1).
+  const probe = runGit(["git", "cat-file", "-t", `${tip}:${rel}`], { cwd: projectRoot });
+  if (probe.returncode === 0 && probe.stdout.trim() === "blob") {
     return { present: true, error: null };
   }
   return {

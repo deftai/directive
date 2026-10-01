@@ -5,7 +5,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
-import { projectionsEqual } from "./immutable-projection.js";
 import type { runText } from "./subprocess.js";
 
 export const SOURCE_RECOVERY_REMEDIATION =
@@ -185,27 +184,16 @@ export function materializeRetainedBrief(args: MaterializeBriefArgs): Materializ
     retainedFrom = firstReadable.from;
   }
 
+  // Prefer-A transport admission is exact reviewed bytes only. Immutable
+  // projection equality is not a substitute for full-byte match (#4714 R5 /
+  // SLizard dead-branch class).
   if (retainedBytes !== reviewed.bytes) {
-    // Allow evidence-only divergence when immutable projection matches AND
-    // retained is a strict superset path — Prefer-A still requires exact full
-    // bytes including evidence for transport admission.
-    try {
-      const retainedJson = JSON.parse(retainedBytes) as unknown;
-      const reviewedJson = JSON.parse(reviewed.bytes) as unknown;
-      if (!projectionsEqual(retainedJson, reviewedJson) || retainedBytes !== reviewed.bytes) {
-        return {
-          ok: false,
-          error:
-            `${SOURCE_RECOVERY_REMEDIATION} (retained bytes do not exactly match reviewed ` +
-            `blob ${reviewed.source ?? rel})`,
-        };
-      }
-    } catch {
-      return {
-        ok: false,
-        error: `${SOURCE_RECOVERY_REMEDIATION} (retained/reviewed brief JSON unreadable)`,
-      };
-    }
+    return {
+      ok: false,
+      error:
+        `${SOURCE_RECOVERY_REMEDIATION} (retained bytes do not exactly match reviewed ` +
+        `blob ${reviewed.source ?? rel})`,
+    };
   }
 
   const dest = join(args.checkoutRoot, ...rel.split("/"));
