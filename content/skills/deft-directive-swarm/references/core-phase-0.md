@@ -57,7 +57,7 @@ Cross-links: Phase 3 Worker-owns-lifecycle (`references/core-phase-3.md`), revie
 
 ### Proceed and scope ceremony (#4956)
 
-! After in-harness **proceed** on a cohort, there is **no scope ceremony to schedule**. Do not stop for `scope:record-approved-scope` / typed mint per story. Proceed writes no `.deft/approved-scope` digest. The path fence is each active brief's `file_scope` on the merge base (drift check); test roots are free; production extras use allowance floor 2 / cap 5; over budget splits with no remint prompt. Class checks: #4980. Depth: `docs/scope-provenance.md`.
+! After in-harness **proceed** on a cohort, there is **no scope ceremony to schedule**. Do not stop for `scope:record-approved-scope` / typed mint per story. Proceed writes no `.deft/approved-scope` digest. The **production fence** is each active brief's `file_scope` on the merge base (drift check); test roots are free on that fence only; production extras use allowance floor 2 / cap 5; over budget splits with no remint prompt. Membership (#5192) uses a continuity-resolved human mint when present, else concrete merge-base `file_scope` precommitment; undeclared tests/fixtures are not free in membership; missing-mint remediation is split or land a widened concrete brief. Class checks: #4980. Depth: `docs/scope-provenance.md`.
 ⊗ Ask the operator to leave the harness mid-cohort to mint or remint approved-scope for proceed or for declared-list growth (#4956).
 
 ### Ordered-plan / cohort exhaustion (#2402)

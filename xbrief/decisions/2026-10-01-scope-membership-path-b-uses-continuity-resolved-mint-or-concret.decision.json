@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "scope-membership-path-b-uses-continuity-resolved-mint-or-concret",
+  "decision": "Scope membership Path B uses continuity-resolved mint or concrete merge-base precommitment (#5192)",
+  "governingRule": {
+    "description": "Prefer-A Bound remedy lean 5939278061 Target-digest sha256:f5461bb1547538cc7f0b48b8747b6aa082ed00d62c08615bac0ec6db061e0a4b",
+    "path": null,
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep fail-closed missing-mint requiring human approved-scope on every Path B product PR",
+      "whyNot": "Contradicts shipped no-mint proceed when a concrete merge-base brief already matches"
+    },
+    {
+      "option": "Free test/fixture roots in membership to match the production fence",
+      "whyNot": "Named residual / Bound exclude for this P1"
+    }
+  ],
+  "whyWinner": "Bound Prefer-A admits concrete merge-base file_scope when no mint exists, keeps present mint on the continuity-resolved story, and refuses undeclared tests without restoring proceed mint",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-10-01T20:21:46Z",
+  "revisitTrigger": "If Path B consumer proceed still hard-stops after this land with a concrete base brief present, reopen membership admission",
+  "tags": [
+    "scope-provenance",
+    "membership",
+    "5192"
+  ],
+  "relatedIssues": [
+    5192,
+    4956,
+    4774
+  ]
+}

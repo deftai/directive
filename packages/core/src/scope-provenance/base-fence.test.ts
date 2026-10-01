@@ -109,18 +109,16 @@ describe("evaluateApprovedScopeMembership (#4774)", () => {
     expect(hit).toBeNull();
   });
 
-  it("fails closed when file_scope is empty/omitted (no declared allowlist)", () => {
+  it("allows xBRIEF-only change set when allowlist is missing (#5192)", () => {
     const hit = evaluateApprovedScopeMembership({
       xbriefRelPath: "xbrief/active/story.xbrief.json",
       planId: "story-1",
       xbriefModifiedInChangeSet: true,
       baseApprovedFileScope: null,
+      allowlistAuthority: "missing",
       changedFiles: ["xbrief/active/story.xbrief.json", "CHANGELOG.md"],
     });
-    expect(hit?.kind).toBe("active-xbrief-modified-without-digest");
-    expect(hit?.remediation).toMatch(/approved-scope/i);
-    expect(hit?.remediation).toMatch(/not undeclared-by-design attestation/i);
-    expect(hit?.remediation).not.toMatch(/undeclared-by-design skip/i);
+    expect(hit).toBeNull();
   });
 
   it("fails closed when non-exempt product paths ride with no declared allowlist", () => {
@@ -129,6 +127,7 @@ describe("evaluateApprovedScopeMembership (#4774)", () => {
       planId: "story-1",
       xbriefModifiedInChangeSet: true,
       baseApprovedFileScope: null,
+      allowlistAuthority: "missing",
       changedFiles: ["xbrief/active/story.xbrief.json", "packages/core/src/a.ts", ".gitignore"],
     });
     expect(hit?.kind).toBe("active-xbrief-modified-without-digest");
@@ -137,6 +136,7 @@ describe("evaluateApprovedScopeMembership (#4774)", () => {
     );
     expect(hit?.remediation).toMatch(/not undeclared-by-design attestation/i);
     expect(hit?.remediation).toMatch(/Same-PR approval rewrite stays fail-closed/i);
+    expect(hit?.remediation).not.toMatch(/renewed merge-base approval/i);
   });
 
   it("peer coverage does not clear a missing own allowlist", () => {
@@ -182,15 +182,74 @@ describe("evaluateApprovedScopeMembership (#4774)", () => {
       planId: "story-a",
       xbriefModifiedInChangeSet: true,
       baseApprovedFileScope: ["packages/core/src/a.ts"],
+      allowlistAuthority: "mint",
       peerXbriefRelPaths: ["xbrief/active/story-b.xbrief.json"],
       peerApprovedFileScopes: [["packages/core/src/b.ts"]],
       changedFiles: [
         "xbrief/active/story-a.xbrief.json",
         "packages/core/src/a.ts",
         "packages/core/src/orphan.ts",
+        ".gitignore",
       ],
     });
     expect(hit?.kind).toBe("change-set-outside-approved-scope");
-    expect(hit?.expandedPaths).toEqual(["packages/core/src/orphan.ts"]);
+    expect(hit?.expandedPaths).toContain(".gitignore");
+    expect(hit?.remediation).not.toMatch(/renewed merge-base approval/i);
+  });
+
+  it("admits one in-allowance concrete source-root extra under a mint (#5192)", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      allowlistAuthority: "mint",
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "packages/core/src/a.ts",
+        "packages/core/src/b.ts",
+      ],
+    });
+    expect(hit).toBeNull();
+  });
+
+  it("refuses undeclared test paths even when source-root extras are in allowance (#5192)", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      allowlistAuthority: "precommitment",
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "packages/core/src/a.ts",
+        "tests/helpers/probe.ts",
+      ],
+    });
+    expect(hit?.kind).toBe("change-set-outside-approved-scope");
+    expect(hit?.expandedPaths).toContain("tests/helpers/probe.ts");
+    expect(hit?.remediation).toMatch(/widened concrete brief|follow-up story/i);
+    expect(hit?.remediation).not.toMatch(/renewed merge-base approval/i);
+  });
+
+  it("does not admit glob-only precommitment matches without a mint (#5192 F4)", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/**"],
+      allowlistAuthority: "precommitment",
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "packages/core/src/a.ts",
+        "packages/core/src/b.ts",
+        "packages/core/src/c.ts",
+        "packages/core/src/d.ts",
+        "packages/core/src/e.ts",
+        "packages/core/src/f.ts",
+      ],
+    });
+    // Glob filtered out → no concrete allowlist → C24-style missing declaration.
+    expect(hit?.kind).toBe("active-xbrief-modified-without-digest");
   });
 });

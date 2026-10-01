@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Scope membership Path B no longer hard-requires a human mint when a concrete merge-base brief already matches (#5192).** Continuity-resolved mint still wins (stale `xbriefRelPath` ok; same-path `plan.id` relabel refuses); missing mint uses concrete base `file_scope` precommitment with source-root allowance; tests/fixtures stay refused without allowlist match; missing-mint remediation is split or land a widened concrete brief. Tracking #5192.
 - **External writes to the inventoried authz store are denied (#4709).** Write, Edit, and Shell cannot plant grant files on the inactive path. Closes #4709.
 - **Shell store writes resolve against the named payload project (#4709 residual).** Tracking #4709.
 - **Denied store writes do not spend a single-use grant (#4709 residual).** Tracking #4709.
