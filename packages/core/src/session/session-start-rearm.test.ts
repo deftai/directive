@@ -60,13 +60,23 @@ function tempRoot(): string {
 
 function fakeGit(
   root: string,
-  options: { head?: string; worktree?: string; ancestorOk?: boolean } = {},
+  options: {
+    head?: string;
+    worktree?: string;
+    ancestorOk?: boolean;
+    /** Ritual SHA still listed by `git branch --contains` (branch-switch). */
+    branchContainsRitual?: boolean;
+    /** Shared first parent (amend-shaped). */
+    amendShaped?: boolean;
+    ritualHead?: string;
+  } = {},
 ): (r: string, args: readonly string[]) => GitRunResult {
   const head = options.head ?? "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
   const worktree = options.worktree ?? root;
   const ancestorOk = options.ancestorOk ?? true;
+  const ritualHead = options.ritualHead ?? "cccccccccccccccccccccccccccccccccccccccc";
   return (_r, args) => {
-    if (args[0] === "rev-parse" && args.includes("HEAD")) {
+    if (args[0] === "rev-parse" && args.includes("HEAD") && !String(args[2] ?? "").includes("^")) {
       return { code: 0, stdout: head, stderr: "" };
     }
     if (args[0] === "rev-parse" && args.includes("--show-toplevel")) {
@@ -74,6 +84,38 @@ function fakeGit(
     }
     if (args[0] === "merge-base" && args.includes("--is-ancestor")) {
       return { code: ancestorOk ? 0 : 1, stdout: "", stderr: "" };
+    }
+    if (args[0] === "branch" && args[1] === "--contains") {
+      if (options.branchContainsRitual) {
+        return { code: 0, stdout: "  main\n", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    }
+    if (args[0] === "rev-parse" && args[1] === "--verify" && typeof args[2] === "string") {
+      const target = args[2];
+      if (target.endsWith("^")) {
+        const base = target.slice(0, -1);
+        if (options.amendShaped) {
+          return {
+            code: 0,
+            stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            stderr: "",
+          };
+        }
+        // Distinct parents for ritual vs current ⇒ rebase-shaped.
+        if (base === ritualHead) {
+          return {
+            code: 0,
+            stdout: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            stderr: "",
+          };
+        }
+        return {
+          code: 0,
+          stdout: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          stderr: "",
+        };
+      }
     }
     return { code: 1, stdout: "", stderr: "" };
   };
@@ -415,7 +457,7 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
     }
   });
 
-  it("re-arm allows discontinuous HEAD when live same-owner occupancy admits (#3884)", () => {
+  it("re-arm allows discontinuous HEAD for same-owner rebase tip rewrite (#3884)", () => {
     const root = tempRoot();
     const prior = "cccccccccccccccccccccccccccccccccccccccc";
     const current = "dddddddddddddddddddddddddddddddddddddddd";
@@ -428,12 +470,45 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
       env: {},
     });
     const eligibility = assessRearmEligibility(root, {
-      runGit: fakeGit(root, { head: current, ancestorOk: false }),
+      runGit: fakeGit(root, {
+        head: current,
+        ancestorOk: false,
+        branchContainsRitual: false,
+        amendShaped: false,
+        ritualHead: prior,
+      }),
       now,
     });
     expect(eligibility.eligible).toBe(true);
     if (eligibility.eligible) {
       expect(eligibility.currentHead).toBe(current);
+    }
+  });
+
+  it("re-arm refuses same-owner branch switch even with a live lease (#2782)", () => {
+    const root = tempRoot();
+    const prior = "cccccccccccccccccccccccccccccccccccccccc";
+    const current = "dddddddddddddddddddddddddddddddddddddddd";
+    const now = new Date("2026-07-20T12:00:00Z");
+    seedRitual(root, { head: prior, startedAt: now });
+    applyWorktreeOccupancy(root, {
+      sessionId: "seed-session",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    const eligibility = assessRearmEligibility(root, {
+      runGit: fakeGit(root, {
+        head: current,
+        ancestorOk: false,
+        branchContainsRitual: true,
+        ritualHead: prior,
+      }),
+      now,
+    });
+    expect(eligibility.eligible).toBe(false);
+    if (!eligibility.eligible) {
+      expect(eligibility.reason).toContain("discontinuously");
     }
   });
 

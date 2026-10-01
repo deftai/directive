@@ -11,6 +11,7 @@ import {
 } from "./active-cli.js";
 import { defaultGitRunner, type GitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
 import { pythonJsonDump } from "./json.js";
+import { evaluateOccupancyCeremonyEligibility } from "./occupancy.js";
 import {
   type DirectivePosture,
   ENV_SESSION_POSTURE,
@@ -31,9 +32,9 @@ import {
   formatSessionStartRecoveryCommand,
   GATED_STEPS,
   type GatedStepName,
-  liveSameOwnerOccupancyAdmits,
   QUICK_STEPS,
   type SessionCeremonyTier,
+  sameOwnerRebaseHeadContinuity,
   WRITE_GATED_EXECUTE_STEPS,
   WRITE_GATED_REQUIRED_STEPS,
 } from "./session-start.js";
@@ -341,14 +342,30 @@ function evaluateLoadedState(
         recoveryTier: "cold",
       };
     }
-    // Forward FF always continues; discontinuous only under live-same-owner (#3884 / #2782).
+    // Forward FF always continues; discontinuous only for same-owner rebase tip moves
+    // (#3884). Branch-switch / amend / stranger stay fail-closed (#2782).
     const sameOwnerContinuity =
-      !forward && liveSameOwnerOccupancyAdmits(projectRoot, state.sessionId, { now: input.now });
+      !forward &&
+      sameOwnerRebaseHeadContinuity(projectRoot, state.sessionId, state.gitHead, currentHead, {
+        now: input.now,
+        runGit,
+      });
     if (!forward && !sameOwnerContinuity) {
       const recoveryTier: SessionCeremonyTier = "cold";
+      const eligibility = evaluateOccupancyCeremonyEligibility(projectRoot, {
+        sessionId: state.sessionId,
+        now: input.now,
+      });
+      // #4290: do not advertise ready/re-arm/cold when occupancy refuses the actor.
+      const message = eligibility.admitCeremony
+        ? headDriftRecoveryMessage(recoveryTier)
+        : `session ritual state is stale because git HEAD changed discontinuously. ${
+            eligibility.denialMessage?.trim() ||
+            "Occupancy does not admit ceremony recovery for this actor."
+          }`;
       return {
         code: 1,
-        message: headDriftRecoveryMessage(recoveryTier),
+        message,
         recoveryTier,
         boundSessionId: state.sessionId,
       };
@@ -368,7 +385,19 @@ function evaluateLoadedState(
         };
       }
     } else if (!forward && sameOwnerContinuity) {
-      // Inspect path: no rewrite; same-owner can re-arm under the live lease (#3884).
+      // Inspect path: no rewrite. Prefer cold when a quick step already failed so
+      // re-arm advice cannot bounce off assessRearmEligibility (#3884 P2).
+      for (const stepName of QUICK_STEPS) {
+        const step = state.quickSteps[stepName];
+        if (!stepPasses(step)) {
+          return {
+            code: 1,
+            message: failedStepMessage("quick", stepName, step),
+            recoveryTier: "cold",
+            boundSessionId: state.sessionId,
+          };
+        }
+      }
       return {
         code: 1,
         message: headDriftRecoveryMessage("rearm"),

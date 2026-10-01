@@ -491,10 +491,40 @@ export function liveSameOwnerOccupancyAdmits(
 }
 
 /**
+ * Same-owner discontinuous HEAD continuity for rebase tip moves (#3884 / #2782).
+ * Live-same-owner alone is not enough: branch-switch and amend stay fail-closed.
+ * Admit only when ritual HEAD is no longer on any local branch (rewritten tip)
+ * and the move is not amend-shaped (shared first parent).
+ */
+export function sameOwnerRebaseHeadContinuity(
+  projectRoot: string,
+  sessionId: string | undefined,
+  ritualHead: string,
+  currentHead: string,
+  input: { now?: Date; runGit?: GitRunner } = {},
+): boolean {
+  if (!liveSameOwnerOccupancyAdmits(projectRoot, sessionId, { now: input.now })) {
+    return false;
+  }
+  const runGit = input.runGit ?? defaultGitRunner;
+  const contains = runGit(projectRoot, ["branch", "--contains", ritualHead]);
+  if (contains.code !== 0) return false;
+  // Still on a local branch ⇒ checkout/divergent tip, not a rewritten tip.
+  if (contains.stdout.trim().length > 0) return false;
+  const ritualParent = runGit(projectRoot, ["rev-parse", "--verify", `${ritualHead}^`]);
+  const currentParent = runGit(projectRoot, ["rev-parse", "--verify", `${currentHead}^`]);
+  // Fail closed when parents cannot be resolved (root / error).
+  if (ritualParent.code !== 0 || currentParent.code !== 0) return false;
+  // Amend keeps the same first parent; rebase onto a moved base does not.
+  if (ritualParent.stdout.trim() === currentParent.stdout.trim()) return false;
+  return true;
+}
+
+/**
  * Whether a prior ritual can be re-armed without a full cold ceremony (#2992).
  * Requires valid state, same worktree, continuous (or identical) HEAD — or
- * same-owner discontinuous HEAD under a live lease (#3884) — and
- * previously-passing quick steps.
+ * same-owner rebase tip rewrite under a live lease (#3884) — and
+ * previously-passing quick steps. Branch-switch / amend stay fail-closed (#2782).
  */
 export function assessRearmEligibility(
   projectRoot: string,
@@ -526,7 +556,10 @@ export function assessRearmEligibility(
     }
     if (
       !forward &&
-      !liveSameOwnerOccupancyAdmits(projectRoot, state.sessionId, { now: options.now })
+      !sameOwnerRebaseHeadContinuity(projectRoot, state.sessionId, state.gitHead, currentHead, {
+        now: options.now,
+        runGit,
+      })
     ) {
       return {
         eligible: false,
