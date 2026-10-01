@@ -88,13 +88,15 @@ describe("verify-review-monitor CLI", () => {
   });
 
   it("run exits 0 on Tier 3 with no monitor required", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-cli-t3-"));
     vi.stubEnv("CURSOR_COMPOSER", "");
     vi.stubEnv("CURSOR_AGENT", "");
     vi.stubEnv("GROK_BUILD", "");
     vi.stubEnv("DEFT_MONITOR_TIER", "3");
     vi.spyOn(process.stdout, "write").mockReturnValue(true);
     vi.spyOn(process.stderr, "write").mockReturnValue(true);
-    expect(run(["--pr", "9", "--project-root", "."])).toBe(0);
+    // Temp root has no origin — avoids live sticky-lease consult (#5229).
+    expect(run(["--pr", "9", "--project-root", root])).toBe(0);
   });
 
   it("run emits json and fails closed on Tier 1 without monitor", () => {
@@ -135,26 +137,29 @@ describe("verify-review-monitor CLI", () => {
   });
 
   it("merge-path-arm refuses lease-only unarmed stand-down (#4882)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-cli-arm-"));
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
-    expect(run(["--pr", "88", "--merge-path-arm", "--sticky-lease", "--project-root", "."])).toBe(
+    expect(run(["--pr", "88", "--merge-path-arm", "--sticky-lease", "--project-root", root])).toBe(
       1,
     );
     expect(err.mock.calls.join("")).toMatch(/unarmed stand-down/);
   });
 
   it("merge-path-arm passes when live-wait is attested then defers to gate", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-cli-arm-live-"));
     vi.stubEnv("DEFT_MONITOR_TIER", "3");
     vi.spyOn(process.stdout, "write").mockReturnValue(true);
     vi.spyOn(process.stderr, "write").mockReturnValue(true);
-    expect(run(["--pr", "88", "--merge-path-arm", "--live-wait", "--project-root", "."])).toBe(0);
+    expect(run(["--pr", "88", "--merge-path-arm", "--live-wait", "--project-root", root])).toBe(0);
   });
 
   it("merge-path-arm passes on explicit-finish without live-wait", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-cli-arm-fin-"));
     vi.stubEnv("DEFT_MONITOR_TIER", "3");
     vi.spyOn(process.stdout, "write").mockReturnValue(true);
     vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(
-      run(["--pr", "88", "--merge-path-arm", "--explicit-finish", "--project-root", "."]),
+      run(["--pr", "88", "--merge-path-arm", "--explicit-finish", "--project-root", root]),
     ).toBe(0);
   });
 
@@ -169,11 +174,12 @@ describe("verify-review-monitor CLI", () => {
   });
 
   it("merge-path-arm unarmed JSON aligns ready/exit_code with process exit", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-cli-arm-json-"));
     vi.stubEnv("DEFT_MONITOR_TIER", "3");
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(
-      run(["--pr", "88", "--merge-path-arm", "--sticky-lease", "--project-root", ".", "--json"]),
+      run(["--pr", "88", "--merge-path-arm", "--sticky-lease", "--project-root", root, "--json"]),
     ).toBe(1);
     const payload = JSON.parse(out.mock.calls.join("")) as Record<string, unknown>;
     expect(payload.ready).toBe(false);

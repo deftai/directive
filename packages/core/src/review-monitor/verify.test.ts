@@ -141,6 +141,50 @@ describe("evaluateReviewMonitorGate", () => {
     });
     expect(result.exitCode).toBe(0);
     expect(result.message).toContain("Tier 3");
+    expect(result.tier.descriptor).toBe("generic-terminal");
+  });
+
+  it("labels DEFT_MONITOR_TIER=3 READY distinctly from honest generic-terminal (#5229)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-override-t3-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 99,
+      projectRoot: root,
+      environ: { DEFT_MONITOR_TIER: "3" },
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.tier.descriptor).toBe("override-tier3");
+    expect(result.message).toContain("override-tier3");
+    expect(result.message).toContain("not honest generic-terminal");
+  });
+
+  it("!isTier1 consults sticky lease before READY and elevates on Tier-1 primitive (#5229)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-lease-elevate-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 5229,
+      projectRoot: root,
+      repo: "deftai/directive",
+      headSha: "abc123",
+      now: NOW,
+      environ: {},
+      seams: {
+        fetchComments: () => [
+          {
+            id: 5229,
+            body: activeLeaseComment("owner", "babysitter-5229", "spawn_subagent"),
+            htmlUrl: "",
+            updatedAt: "2026-07-24T12:00:00.000Z",
+            authorLogin: "owner",
+            authorAssociation: "MEMBER",
+          },
+        ],
+      },
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.tier.descriptor).toBe("lease-elevated");
+    expect(result.tier.primitive).toBe("spawn_subagent");
+    expect(result.monitorRecord?.monitor_agent_id).toBe("babysitter-5229");
+    expect(result.message).toContain("elevated via sticky lease");
+    expect(result.message).not.toContain("no active review-monitor required");
   });
 
   it("rejects Approach 3 on Tier 1", () => {
@@ -202,6 +246,35 @@ describe("evaluateReviewMonitorGate", () => {
       environ: {},
     });
     expect(result.exitCode).toBe(0);
+  });
+
+  it("rejects Approach 3 when sticky Tier-1 lease exists despite bare env (#5229)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-a3-lease-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 5229,
+      projectRoot: root,
+      repo: "deftai/directive",
+      headSha: "abc123",
+      approach3: true,
+      approach3Warned: true,
+      now: NOW,
+      environ: {},
+      seams: {
+        fetchComments: () => [
+          {
+            id: 5229,
+            body: activeLeaseComment("owner", "babysitter-5229", "spawn_subagent"),
+            htmlUrl: "",
+            updatedAt: "2026-07-24T12:00:00.000Z",
+            authorLogin: "owner",
+            authorAssociation: "MEMBER",
+          },
+        ],
+      },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.tier.descriptor).toBe("lease-elevated");
+    expect(result.message).toContain("Approach 3 blocking poll is forbidden");
   });
 
   it("rejects Approach 3 on Tier 3 without warning ack", () => {

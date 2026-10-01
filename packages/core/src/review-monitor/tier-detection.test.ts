@@ -143,4 +143,21 @@ describe("tier-detection", () => {
     ).toBe("sessions_spawn");
     expect(probeMonitoringTier({ DEFT_MONITOR_TIER: "tier3" }).tier).toBe(3);
   });
+
+  it("labels DEFT_MONITOR_TIER=3 as override-tier3 not honest generic-terminal (#5229)", () => {
+    const probe = probeMonitoringTier({ DEFT_MONITOR_TIER: "3" });
+    expect(probe.tier).toBe(3);
+    expect(probe.descriptor).toBe("override-tier3");
+    expect(probe.descriptor).not.toBe("generic-terminal");
+  });
+
+  it("refuses Tier-3 override when spawn_subagent env already proves Tier 1 (#5229)", () => {
+    const probe = probeMonitoringTier({
+      DEFT_MONITOR_TIER: "3",
+      DEFT_HAS_SPAWN_SUBAGENT: "1",
+    });
+    expect(probe.tier).toBe(1);
+    expect(probe.primitive).toBe("spawn_subagent");
+    expect(probe.descriptor).toBe("grok-build");
+  });
 });

@@ -5,7 +5,9 @@ import { Worker } from "node:worker_threads";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import { platformStatusUrlsForWeather } from "../pr-merge-readiness/platform-status.js";
+import { evaluateBoundedPrWatchDeny } from "../review-monitor/bounded-pr-watch-deny.js";
 import { defaultSubagentStatusDir } from "../review-monitor/record.js";
+import { probeMonitoringTier } from "../review-monitor/tier-detection.js";
 import { writeMergePathCleanAttestation } from "../review-monitor/verify.js";
 import {
   DEFAULT_MAX_WAIT_MINUTES,
@@ -818,6 +820,30 @@ export function runWatch(argv: readonly string[], options: RunWatchOptions = {})
   // Stamp child identity into heartbeat parent_id for #5219 join — env/session bound
   // so a parent shell cannot impersonate via `--monitor-agent-id <leased child id>` alone.
   const heartbeatParentId = resolveMergePathHeartbeatParentId(args.monitorAgentId, process.env);
+
+  // Bounded-form deny: Tier-1 hosts cannot run bare Directive pr:watch (#5229).
+  {
+    const envId = (process.env.DEFT_MONITOR_AGENT_ID ?? "").trim();
+    const commandParts: string[] = [];
+    if (envId.length > 0) {
+      commandParts.push(`DEFT_MONITOR_AGENT_ID=${envId}`);
+    }
+    commandParts.push("pr:watch", ...argv);
+    const deny = evaluateBoundedPrWatchDeny({
+      command: commandParts.join(" "),
+      tier: probeMonitoringTier(process.env, { projectRoot }),
+      pr: prNumber,
+      monitorAgentId: heartbeatParentId ?? args.monitorAgentId ?? undefined,
+    });
+    if (deny.deny) {
+      process.stderr.write(`${deny.message}\n`);
+      if (restoreCwd !== null) {
+        process.chdir(restoreCwd);
+      }
+      return EXIT_TERMINAL_ERROR;
+    }
+  }
+
   // Arm hasActivePollingHeartbeat for this PR while the wait is alive (#5020).
   reportWaitHeartbeatWrite(
     writePrWatchWaitHeartbeat(projectRoot, prNumber, {

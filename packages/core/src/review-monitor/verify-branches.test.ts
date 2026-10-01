@@ -91,6 +91,8 @@ describe("review-monitor verify branch coverage (#2666)", () => {
         repo: "deftai/directive",
         approach3: true,
         environ: {},
+        // Avoid live GitHub on Approach 3 lease consult (#5229).
+        seams: { fetchComments: () => [] },
       }).message,
     ).toContain("explicit user warning acknowledgment");
 
@@ -102,6 +104,7 @@ describe("review-monitor verify branch coverage (#2666)", () => {
         approach3: true,
         approach3Warned: true,
         environ: {},
+        seams: { fetchComments: () => [] },
       }).exitCode,
     ).toBe(0);
 
