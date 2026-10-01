@@ -1,0 +1,441 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1883",
+    "updated": "2026-10-01T06:04:13Z"
+  },
+  "plan": {
+    "title": "feat(coding,tooling): agent-legible gate failures — lint/error messages must inject remediation into agent context",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(coding,tooling): agent-legible gate failures — lint/error messages must inject remediation into agent context",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1883",
+      "Overview": "\n\n1. Drop the absolute \"already sufficiently agent-actionable … need nothing\" claim. First ship extends packages/core/src/check/named-cause.ts (#3282) and consumer-gate-integrity (#3070): widen GATE_REMEDIES / cause extraction so composition gates stop landing on empty-diagnostic cause + generic re-run-only remedy where a concrete remediation is known.\n2. Treat opaque failures and generic-only remedies on the check-orchestrator path as bugs on that seam (audit residual against FRAMEWORK_CHECK_GATES / CONSUMER_CHECK_GATES), not as acceptable steady state.\n3. Prefer extending the landed #3282/#3070 mechanism over inventing a parallel coding/tools/patterns trilogy. A consumer custom-lint message patterns/ mirror is optional separate grain, not required to relieve P1–P3 on Directive's own check path.\n4. Related #1638 / #1580 / #1310 stay out unless a later pain names them.\n5. Tests lock at least one previously generic-fallback gate gaining a concrete remedy, and empty-diagnostic / generic-only cases remaining fail-visible as the bug class.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:ec6eb5784752a92fb87fcb215b3bc1570b49a52fe46cb3f2dd309321372d39f7\n\n\n",
+      "Labels": "design, coding-standards, determinism, adoption-blocker, agent-experience, process, source-of-truth, tooling, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Drop the absolute \"already sufficiently agent-actionable … need nothing\" claim. First ship extends packages/core/src/check/named-cause.ts (#3282) and consumer-gate-integrity (#3070): widen GATE_REMEDIES / cause extraction so composition gates stop landing on empty-diagnostic cause + generic re-run-only remedy where a concrete remediation is known.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/check/named-cause.ts",
+          "recorded_at": "2026-09-29T17:46:25.520Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Treat opaque failures and generic-only remedies on the check-orchestrator path as bugs on that seam (audit residual against FRAMEWORK_CHECK_GATES / CONSUMER_CHECK_GATES), not as acceptable steady state.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/check/named-cause.ts",
+          "recorded_at": "2026-09-29T17:46:25.520Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Prefer extending the landed #3282/#3070 mechanism over inventing a parallel coding/tools/patterns trilogy. A consumer custom-lint message patterns/ mirror is optional separate grain, not required to relieve P1–P3 on Directive's own check path.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/check/named-cause.ts",
+          "recorded_at": "2026-09-29T17:46:25.520Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Related #1638 / #1580 / #1310 stay out unless a later pain names them.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Related issues stay out of first ship per Bound non-goals; no product change required.",
+          "recorded_at": "2026-09-29T17:46:25.520Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-29T17:46:25.520Z",
+            "mintedVia": "leftover-complete-1883"
+          }
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Tests lock at least one previously generic-fallback gate gaining a concrete remedy, and empty-diagnostic / generic-only cases remaining fail-visible as the bug class.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/check/named-cause.test.ts",
+          "recorded_at": "2026-09-29T17:46:25.520Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "design",
+      "coding-standards",
+      "determinism",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "tooling",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1883",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1883: feat(coding,tooling): agent-legible gate failures — lint/error messages must inject remediation into agent context"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/check/named-cause.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "leftover-complete Prefer-A pathless clauses from Bound plan.items after product PR merge",
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Drop the absolute \"already sufficiently agent-actionable … need nothing\" claim. First ship extends packages/core/src/check/named-cause.ts (#3282) and consumer-gate-integrity (#3070): widen GATE_REMEDIES / cause extraction so composition gates stop landing on empty-diagnostic cause + generic re-run-only remedy where a concrete remediation is known.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Treat opaque failures and generic-only remedies on the check-orchestrator path as bugs on that seam (audit residual against FRAMEWORK_CHECK_GATES / CONSUMER_CHECK_GATES), not as acceptable steady state.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Prefer extending the landed #3282/#3070 mechanism over inventing a parallel coding/tools/patterns trilogy. A consumer custom-lint message patterns/ mirror is optional separate grain, not required to relieve P1–P3 on Directive's own check path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Related #1638 / #1580 / #1310 stay out unless a later pain names them.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Tests lock at least one previously generic-fallback gate gaining a concrete remedy, and empty-diagnostic / generic-only cases remaining fail-visible as the bug class.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "sentences": [
+        "Drop the absolute \"already sufficiently agent-actionable … need nothing\" claim. First ship extends packages/core/src/check/named-cause.ts (#3282) and consumer-gate-integrity (#3070): widen GATE_REMEDIES / cause extraction so composition gates stop landing on empty-diagnostic cause + generic re-run-only remedy where a concrete remediation is known.",
+        "Treat opaque failures and generic-only remedies on the check-orchestrator path as bugs on that seam (audit residual against FRAMEWORK_CHECK_GATES / CONSUMER_CHECK_GATES), not as acceptable steady state.",
+        "Prefer extending the landed #3282/#3070 mechanism over inventing a parallel coding/tools/patterns trilogy. A consumer custom-lint message patterns/ mirror is optional separate grain, not required to relieve P1–P3 on Directive's own check path.",
+        "Related #1638 / #1580 / #1310 stay out unless a later pain names them.",
+        "Tests lock at least one previously generic-fallback gate gaining a concrete remedy, and empty-diagnostic / generic-only cases remaining fail-visible as the bug class."
+      ],
+      "admitted_source_digest": "8a9dc302c1524b9621982149742af5aac31d5214facd21558ad546951535d819",
+      "admitted_source_sentences": [
+        "Drop the absolute \"already sufficiently agent-actionable … need nothing\" claim. First ship extends packages/core/src/check/named-cause.ts (#3282) and consumer-gate-integrity (#3070): widen GATE_REMEDIES / cause extraction so composition gates stop landing on empty-diagnostic cause + generic re-run-only remedy where a concrete remediation is known.",
+        "Treat opaque failures and generic-only remedies on the check-orchestrator path as bugs on that seam (audit residual against FRAMEWORK_CHECK_GATES / CONSUMER_CHECK_GATES), not as acceptable steady state.",
+        "Prefer extending the landed #3282/#3070 mechanism over inventing a parallel coding/tools/patterns trilogy. A consumer custom-lint message patterns/ mirror is optional separate grain, not required to relieve P1–P3 on Directive's own check path.",
+        "Related #1638 / #1580 / #1310 stay out unless a later pain names them.",
+        "Tests lock at least one previously generic-fallback gate gaining a concrete remedy, and empty-diagnostic / generic-only cases remaining fail-visible as the bug class."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Gates: the check that stands in the doorway before work is called good. A green result should mean Directive actually looked. A red result should say what to do next.\n\nWhat a new person hits: When a check fails, the message does not tell the agent, or the person, how to fix it.\n\nWhy that ruins the product for them: They are stopped, and the stop sign has no instruction. That is where a first session gets abandoned.\n\nHow likely: High the first time any check fails, which is likely during a first project.\n\n",
+          "id": 5780292879,
+          "html_url": "https://github.com/deftai/directive/issues/1883#issuecomment-5780292879",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:38:59Z",
+          "updated_at": "2026-09-22T16:38:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Directive has many deterministic gates whose failure output is the agent's only self-correction channel, yet there is no standard requiring agent-actionable remediation (what failed / why / how to fix / where), so opaque gate failures still halt agents without teaching them.\n\ncharter: refutation\nrefutation-target: Existing verify:* / lint / check failure messages are already sufficiently agent-actionable in practice, so Directive needs no gate-failure output contract (what failed / why / how to fix / where), no audit of opaque failures as bugs, and no patterns/ mirror for consumer projects.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered to use the recommended n for each after the missing-token ask; recommended spend for this class is N=1. This arc is only #1883. Separate from #4285. Not a whole-motion babysit hang. N=1.\n\npain: P1, P2, P3\n\nP1. Gate/lint failure messages across Directive vary and often omit remediation, so an agent (or first-session human) that hits a red check cannot fix-and-retry from the message alone.\nP2. There is no coding/tools standard (and no patterns/ mirror) that requires agent-actionable remediation structure in deterministic gate output.\nP3. Opaque failures are not treated as bugs via an audit of directive's own gates (verify:*, encoding, branch-policy, vBRIEF, capacity, forward-coverage, and peers).\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-1883-dc\norigin-ref: origin/master\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\npin-kind: origin-default\ntarget-digest: sha256:ec6eb5784752a92fb87fcb215b3bc1570b49a52fe46cb3f2dd309321372d39f7\n\nPin reads use git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980:. Related #1638 / #1580 / #1310 stay out unless they change this grain. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\n\n",
+          "id": 5837329065,
+          "html_url": "https://github.com/deftai/directive/issues/1883#issuecomment-5837329065",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:18:25Z",
+          "updated_at": "2026-09-25T18:18:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#1883\ncharter: refutation\nspend: N=1\nround: 1 critic\nfresh-critic: true\nid-ceiling: 5837329065\nsha-at-dispatch: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\ntarget: https://github.com/deftai/directive/issues/1883\naudit-targets: none\nseat: grok\nlauncher: grok\n\nHEAD at start: `git rev-parse HEAD` = `042eea8c31f5629b1fc0cfa2f75e4cb967af7980` (matches dispatch SHA). Pin reads via `git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980:<path>`. Thread input honored through comment `5837329065` only.\n\n## Absolute sufficiency claim fails against named-cause fallbacks\nblocks-the-design\nEvidence: At the dispatch SHA, `packages/core/src/check/named-cause.ts` `#3282` already formats check failures as `gate` / `cause` / `remedy`, but `GATE_REMEDIES` covers only a minority of `FRAMEWORK_CHECK_GATES` / `CONSUMER_CHECK_GATES` ids (22 specific keys; most composition gates hit the generic fallback). Live `formatNamedCauseFailure` against empty stderr for `verify:closing-keywords` and `docs:rule-map:check` produced `cause: gate exited 1 without a diagnostic message` and `remedy: Re-run the gate for details: task <id> …`. The same formatter for `verify:stubs` with cause `stub leftover in foo.ts` still attached only that generic re-run remedy. `formatNamedCauseFailure` call sites are the check orchestrators (`cached-orchestrator.ts` / exports), not every direct `task verify:*` path.\nFailure mode: Binding the recorded refutation target as written (“already sufficiently agent-actionable … needs no gate-failure output contract … no audit … no patterns/ mirror”) would close #1883 while the swarm correction channel still often receives only “re-run the gate” or an empty-diagnostic cause. Under the injection / swarm lens, that text is the agent’s only self-correction channel on a red check, so the absolute sufficiency premise does not hold.\nDisposition: Do not bind the refutation target verbatim. A successor lean must drop or narrow the “already sufficiently … so need nothing” claim before bind.\n\n## Existing #3282 / #3070 mechanisms are the inventory base\nsharpens-framing\nEvidence: `named-cause.ts` header states gate failures must report gate name, cause, and remedy (not bare exit 1). `cached-orchestrator.ts` wraps hard and advisory hygiene failures with `formatNamedCauseFailure`, emits degraded skip reports with cause/remedy, and preflights consumer deposits via `formatConsumerGateIntegrityFailure` (`consumer-gate-integrity.ts` `#3070`) instead of opaque go-task “Task does not exist” exits. Per-gate remediation constants already exist (`INTENT_CONSTRAINT_REMEDIATION`, `OBSERVABLE_SCOPE_REMEDIATION`, `EMPTY_AC_REMEDY`, hang-detector / CLI-missing branches). Live `task verify:branch` / `verify:encoding` / `verify:closing-keywords` at this dest exited 0 with clear status lines; closing-keywords core FAIL strings at the SHA already name rewrite / Tracking / `--allow-close` recovery. No `content/coding/*` or `content/patterns/*` file at this SHA defines a gate-failure output contract; `gate-integrity.md` and Fail Loud `#1006` are adjacent different grains.\nFailure mode: A lean that either pretends no agent-actionable gate-output machinery exists (issue body / Stop 1 warrant) or that invents a greenfield `coding/`+`tools/`+`patterns/` trilogy without extending `#3282` will mis-scope the harvest: duplicate a landed seam, or erase real residual gaps on that seam.\nDisposition: Before bind, inventory `#3282` named-cause + `#3070` integrity as the existing mechanism. Prefer extending `GATE_REMEDIES` / cause extraction / treating empty-diagnostic or generic-only remedies as bugs on that seam over a parallel docs trilogy, unless the lean explicitly scopes consumer custom-lint message guidance as a separate optional grain.\n\n## Road-not-taken\nfootnote\nEvidence: Fork considered after the inventory above: (A) refute by claiming current messages are already enough and refuse all three proposal legs; (B) refute only the greenfield trilogy while keeping `#3282` gap-audit as residual; (C) accept the issue’s coding/tools/patterns package as written.\nFailure mode: Choosing (A) without narrowing recreates the blocking finding. Choosing (C) ignores landed `#3282`/`#3070` and risks docs-without-enforcement.\nDisposition: Census only. Steelman for (A): many product FAIL strings (e.g. closing-keywords intent/FP modes) are already fix-and-retry quality, and a patterns mirror alone does not improve Directive verify output. What would flip this seat toward sustaining (A) unchanged: measured evidence that agents already recover from generic-remedy / empty-cause check failures without human translation. No such measurement was in envelope through id ceiling `5837329065`.\n\n## Refutation target survival\nThe recorded refutation target does not survive as written. Absolute “already sufficiently agent-actionable … needs no contract / audit / patterns mirror” is blocked by the `#3282` generic-fallback and empty-diagnostic evidence above. A narrowed refutation that refuses a greenfield coding/tools/patterns trilogy while naming `#3282`/`#3070` as the mechanism to extend, and treating opaque or remedy-free failures on that seam as bugs, could still be the charter path after a successor lean recut.\n\n",
+          "id": 5837434023,
+          "html_url": "https://github.com/deftai/directive/issues/1883#issuecomment-5837434023",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:25:44Z",
+          "updated_at": "2026-09-25T18:25:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nGate failures are not already sufficiently agent-actionable across Directive. #3282 named-cause and #3070 integrity exist, but most composition gates still fall through to generic re-run remedies or empty-diagnostic causes. Confirming this map means the next-build extends that seam (GATE_REMEDIES / cause extraction / opaque-as-bug), not a greenfield coding/tools/patterns trilogy that pretends no machinery exists. A consumer patterns mirror may be a separate optional grain.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.5 parent authored Stop 1 and these takes. Takes accept critic headings.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: pain-P1 / pain-P2 / pain-P3 asserted until a pain-audit critic targets them\nsupersedes: 5837329065\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\n\n## Takes\n\nRound 1 dispatched siblings: 1. Leaning over critic 5837434023. Supersedes Stop 1 write-back 5837329065.\n\n- Absolute sufficiency claim fails against named-cause fallbacks (5837434023): accept-into-contract\n- Existing #3282 / #3070 mechanisms are the inventory base (5837434023): accept-into-contract\n\nFootnote census (not denominator): road-not-taken on 5837434023.\n\nSpec-path: next-build is not this body.\n\n## Bound remedy\n\n1. Drop the absolute \"already sufficiently agent-actionable … need nothing\" claim. First ship extends packages/core/src/check/named-cause.ts (#3282) and consumer-gate-integrity (#3070): widen GATE_REMEDIES / cause extraction so composition gates stop landing on empty-diagnostic cause + generic re-run-only remedy where a concrete remediation is known.\n2. Treat opaque failures and generic-only remedies on the check-orchestrator path as bugs on that seam (audit residual against FRAMEWORK_CHECK_GATES / CONSUMER_CHECK_GATES), not as acceptable steady state.\n3. Prefer extending the landed #3282/#3070 mechanism over inventing a parallel coding/tools/patterns trilogy. A consumer custom-lint message patterns/ mirror is optional separate grain, not required to relieve P1–P3 on Directive's own check path.\n4. Related #1638 / #1580 / #1310 stay out unless a later pain names them.\n5. Tests lock at least one previously generic-fallback gate gaining a concrete remedy, and empty-diagnostic / generic-only cases remaining fail-visible as the bug class.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:ec6eb5784752a92fb87fcb215b3bc1570b49a52fe46cb3f2dd309321372d39f7\n\n## Parent-side substantiation\n\nThe critic blocked absolute sufficiency and required inventorying #3282/#3070 as the base. Items 1–3 discharge those headings. Pain coverage of P1–P3 stays asserted until a pain-audit critic targets the cites.\n\naudit:pain-P1 sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837434023 reading=asserted\naudit:pain-P2 sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837434023 reading=asserted\naudit:pain-P3 sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837434023 reading=asserted\n\n",
+          "id": 5837445414,
+          "html_url": "https://github.com/deftai/directive/issues/1883#issuecomment-5837445414",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:26:30Z",
+          "updated_at": "2026-09-25T18:26:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nseat: grok\nlauncher: grok\n\nissue: deftai/directive#1883\ncharter: refutation\nspend: N=1\nround: 4 Pass-4 audit (pain-audit of relieves)\nfresh-critic: true\nid-ceiling: 5837445414\nsha-at-dispatch: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\ntarget: https://github.com/deftai/directive/issues/1883\n\nPain-audit of successor lean 5837445414 asserted `relieves: P1` / `relieves: P2` / `relieves: P3` against Stop 1 pains in 5837329065 and Bound remedy items 1–5. Round-1 critic 5837434023 is in envelope. `git rev-parse HEAD` = `042eea8c31f5629b1fc0cfa2f75e4cb967af7980`. Pin reads via `git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980:<path>`. Thread input honored through comment id 5837445414 only.\n\n**Coverage verdict:** Bound remedy covers P1, P2, and P3 as asserted.\n\n**P1** (Stop 1): Gate/lint failure messages across Directive vary and often omit remediation, so an agent (or first-session human) that hits a red check cannot fix-and-retry from the message alone.\n**P2** (Stop 1): There is no coding/tools standard (and no patterns/ mirror) that requires agent-actionable remediation structure in deterministic gate output.\n**P3** (Stop 1): Opaque failures are not treated as bugs via an audit of directive's own gates (verify:*, encoding, branch-policy, vBRIEF, capacity, forward-coverage, and peers).\n\n## Bound remedy items 1, 2, and 5 cover P1\nfootnote\nEvidence: At the pin SHA, `packages/core/src/check/named-cause.ts` `#3282` formats `gate` / `cause` / `remedy`, but `GATE_REMEDIES` has 23 keys while `FRAMEWORK_CHECK_GATES` (26) ∪ `CONSUMER_CHECK_GATES` (16) is 35 unique ids with 16 list gates missing a specific remedy (including `verify:closing-keywords`, `verify:stubs`, `verify:completed-write-guard`, `verify:contract-drift`, and peers). `remedyForGate` falls through to `Re-run the gate for details: task <id> …`; empty stdout/stderr yields `gate exited <n> without a diagnostic message`. `cached-orchestrator.ts` is the `formatNamedCauseFailure` / `formatConsumerGateIntegrityFailure` call surface. Lean items 1–2 widen `GATE_REMEDIES` / cause extraction on that seam and treat empty-diagnostic plus generic-only remedies as bugs; item 5 locks at least one former generic-fallback gate gaining a concrete remedy and keeps empty-diagnostic / generic-only fail-visible as the bug class.\nFailure mode: None under this Bound remedy for the Stop 1 P1 residual the round-1 critic measured. First-ship on the check-orchestrator named-cause path closes the omit-remediation channel agents actually consume on `task check`.\nDisposition: No harvest change. Asserted `relieves: P1` matches items 1/2/5.\n\n## P2 cite honesty rests on item 3's #3282-as-requirement reading\nsharpens-framing\nEvidence: Stop 1 P2 names absence of a coding/tools standard and a patterns/ mirror. At this SHA, `content/coding/*`, `content/tools/*`, and `content/patterns/*` still have no gate-failure output contract (hygiene/toolchain/goal-gate-determinism/gate-integrity scans do not define what-failed / why / how-to-fix / where). Bound remedy items 1–2/5 extend `named-cause.ts` / `#3070` and never add those content files. Item 3 already prefers extending `#3282`/`#3070` over a parallel trilogy and states a consumer patterns/ mirror is optional separate grain, not required to relieve P1–P3 on Directive's own check path. Round-1 heading \"Existing #3282 / #3070 mechanisms are the inventory base\" is accept-into-contract on this lean.\nFailure mode: Reading P2 as \"create coding/tools + patterns files\" would make `relieves: P2` false while those files stay absent. Reading P2 as \"no requirement-bearing agent-actionable gate-output mechanism\" makes the cite true because items 1–2/5 strengthen the landed `#3282` requirement (`gate` / `cause` / `remedy`, opaque-as-bug) on the Directive check path — which is the reading item 3 already records.\nDisposition: No harvest change. Keep `relieves: P2` under item 3's already-written mechanism reading. Do not fold an optional patterns/coding docs grain into this cite unless a later pain names it.\n\n## Bound remedy items 2 and 5 cover P3\nfootnote\nEvidence: Stop 1 P3 requires treating opaque failures as bugs via an audit of Directive's own gates. Lean item 2 binds opaque failures and generic-only remedies on the check-orchestrator path as bugs, with audit residual against `FRAMEWORK_CHECK_GATES` / `CONSUMER_CHECK_GATES` (the live inventory that includes branch / forward-coverage / vBRIEF / wip-cap peers and the 16 remedy-miss ids above). Item 5 requires tests that keep empty-diagnostic / generic-only cases fail-visible as that bug class. Round-1 already showed empty-diagnostic and generic-remedy outputs on unlisted composition gates at this SHA.\nFailure mode: None under this Bound remedy for P3. Opaque-as-acceptable-steady-state is exactly what items 2/5 forbid.\nDisposition: No harvest change. Asserted `relieves: P3` matches items 2/5.\n\n## Injection / swarm lens stays on the named-cause correction channel\nfootnote\nEvidence: The target changes the agent's only self-correction text on a red check. Bound remedy keeps authority on the existing `#3282`/`#3070` formatter path (widen remedies / opaque-as-bug) rather than inventing a parallel docs trilogy or a new prompt envelope. Round-1 already applied this lens to block absolute sufficiency; this lean's items 1–3 follow that disposition.\nFailure mode: None residual for P1–P3 beyond what Bound remedy already binds.\nDisposition: No harvest change. Census only.\r\n\n",
+          "id": 5837520735,
+          "html_url": "https://github.com/deftai/directive/issues/1883#issuecomment-5837520735",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:31:20Z",
+          "updated_at": "2026-09-25T18:31:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Existing verify/check failure messages are already sufficiently agent-actionable so #1883 needs nothing | false | Round-1 critic 5837434023; GATE_REMEDIES minority coverage; empty-diagnostic + generic re-run |\n| #3282 named-cause / #3070 integrity are the inventory base to extend | true | Same critic + pain-audit 5837520735 |\n| Bound remedy on lean 5837445414 covers Stop 1 P1–P3 | true | Pain-audit 5837520735; footnote coverage; sharpening with no harvest rewrite |\n\n## Takes on pain-audit\n\n- Bound remedy items 1, 2, and 5 cover P1 (5837520735): accept-into-contract\n- P2 cite honesty rests on item 3's #3282-as-requirement reading (5837520735): accept-into-contract\n- Bound remedy items 2 and 5 cover P3 (5837520735): accept-into-contract\n\n",
+          "id": 5837533048,
+          "html_url": "https://github.com/deftai/directive/issues/1883#issuecomment-5837533048",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:32:11Z",
+          "updated_at": "2026-09-25T18:32:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nGate failures are not already sufficiently agent-actionable. Bound remedy extends #3282/#3070 named-cause (widen GATE_REMEDIES / opaque-as-bug) rather than a greenfield coding/tools/patterns trilogy. Pain-audit 5837520735 covered P1–P3 with footnote cites and one sharpens-framing that needs no harvest rewrite.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5837445414.\n\n",
+          "id": 5837533390,
+          "html_url": "https://github.com/deftai/directive/issues/1883#issuecomment-5837533390",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:32:13Z",
+          "updated_at": "2026-09-25T18:32:13Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\nExternal signal: OpenAI's [Harness engineering](https://openai.com/index/harness-engineering/) report. A precise, cheap, broadly-applicable practice: **\"Because the lints are custom, we write the error messages to inject remediation instructions into agent context.\"** Reviewed via the `deft-directive-article-review` skill.\n\n## The principle\nWhen a deterministic gate fails, its output is the agent's *only* feedback channel for self-correction. So every gate/lint failure message MUST be **agent-actionable**:\n- name the violation,\n- name the **remediation** (what to change),\n- carry the location (path/line) and, ideally, a machine-parseable structure,\n\nso an agent can fix and retry without a human translating the failure. The article frames this as a force multiplier: \"once encoded, they apply everywhere at once.\"\n\n## Directive status\nDirective has many deterministic gates (`verify:*`, encoding, branch-policy, vBRIEF, capacity, forward-coverage). Their failure messages vary in quality, and there is **no standard requiring agent-actionable remediation** in gate output. This is the difference between a gate that halts an agent and a gate that *teaches* it.\n\n## Proposal\n- A `coding/` + `tools/` standard: a **gate-failure output contract** — what failed / why / how to fix / where.\n- Audit directive's own gates (`scripts/verify_*.py`, lints) for compliance; treat opaque failures as bugs.\n- Mirror it as a `patterns/` entry for directive-created projects: custom lint/CI messages carry remediation for the agents that will consume them.\n\n## Consumer-value note\nHigh, cheap, universal — turns every gate into a self-healing loop for agents at any throughput/scale. One of the two broadly-valuable lessons from this article (with the AGENTS.md-as-map issue).\n\n## Related\n- #1638 (interface-hygiene rules); #1580 (fact vs judgment labeling); #1310 (forward-coverage gate prose → deterministic).\n\nSource quality: practitioner engineering report (OpenAI, single team), directional — no independent eval.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 4719094783,
+        "origin": "deftai/directive#1883",
+        "id": "github.issue.4719094783"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ec6eb5784752a92fb87fcb215b3bc1570b49a52fe46cb3f2dd309321372d39f7"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/named-cause.test.ts",
+          "packages/core/src/check/consumer-gate-integrity.ts",
+          "packages/core/src/check/consumer-gate-integrity.test.ts",
+          "packages/core/src/check/orchestrator.ts",
+          "packages/core/src/check/cached-orchestrator.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/check/named-cause.test.ts"
+        ],
+        "expected_outputs": [
+          "open Tracking PR"
+        ],
+        "depends_on": [],
+        "conflict_group": "through-merge-1883",
+        "size": "M",
+        "model_tier": "default",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "productPullRequest": 5146,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5146,
+        "prBase": null,
+        "mergeCommit": "ace50f8be1b9a574139bf3a6ece0040046be7684",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f699902b5841bc6f9338c6125b595297d96b07de",
+        "verifiedAt": "2026-10-01T06:04:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-01T06:04:13Z",
+      "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-01T06:04:13Z"
+      }
+    },
+    "id": "github.issue.4719094783",
+    "updated": "2026-10-01T06:04:13Z"
+  }
+}
