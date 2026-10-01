@@ -61,8 +61,8 @@ import {
   resolveDoctorAgentsTemplateRootSync,
 } from "./agents-md.js";
 import {
-  checkWslOwnershipGuard,
   checkDanglingNodeModulesLinks,
+  checkWslOwnershipGuard,
   checkXbriefEnvelopeMajorVersion,
   DANGLING_NODE_MODULES_LINKS_CHECK,
   DOCTOR_ADVISORY_FAIL_CHECKS,
