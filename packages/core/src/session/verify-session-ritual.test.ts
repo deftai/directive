@@ -359,6 +359,38 @@ describe("same-owner discontinuous HEAD continuity (#3884)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("verify fails closed on soft-reset to unrelated tip despite ritual remaining in reflog (#3884)", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const { ritualHead, base } = prepareRebaseOntoMovedBase(root);
+    const unrelatedTip = execFileSync("git", ["rev-parse", base], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    writeRitualState(root, freshPayload(root, ritualHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    execFileSync("git", ["reset", "--soft", unrelatedTip], {
+      cwd: root,
+      encoding: "utf8",
+      env: gitEnv(),
+    });
+    expect(execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim()).toBe(
+      unrelatedTip,
+    );
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("discontinuously");
+    expect(readRitualState(root)[0]?.gitHead).toBe(ritualHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("verify fails closed when ritual branch is deleted then an unrelated tip is checked out (#3884)", () => {
     const { root } = initRepo();
     const now = new Date("2026-07-23T12:00:00Z");

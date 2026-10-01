@@ -492,11 +492,14 @@ export function liveSameOwnerOccupancyAdmits(
 
 /**
  * Same-owner discontinuous HEAD continuity for rebase tip moves (#3884 / #2782).
- * Live-same-owner alone is not enough: branch-switch and amend stay fail-closed.
- * Admit only for a same-branch tip rewrite (ritual SHA in the current branch
- * reflog) that is not amend-shaped (shared first parent). Backup / other local
- * branches that still contain the old SHA must not block; dangling ritual on an
- * unrelated checkout must not admit.
+ * Live-same-owner alone is not enough: branch-switch, amend, and soft/hard reset
+ * to unrelated history stay fail-closed. Admit only a same-branch rebase tip
+ * rewrite: walking the current branch reflog from tip back to the ritual SHA
+ * must see a rebase subject and must not see reset/checkout. Mere reflog
+ * membership is not enough (soft-reset keeps the old SHA in the reflog).
+ * Backup branches that still contain the old SHA must not block; dangling
+ * ritual on an unrelated checkout must not admit. FF continuity is handled by
+ * the caller via ancestor checks before this helper runs.
  */
 export function sameOwnerRebaseHeadContinuity(
   projectRoot: string,
@@ -513,14 +516,26 @@ export function sameOwnerRebaseHeadContinuity(
   if (branch.code !== 0) return false;
   const branchName = branch.stdout.trim();
   if (branchName.length === 0) return false;
-  // Same-branch tip rewrite only — ignores backup branches; rejects switches.
-  const reflog = runGit(projectRoot, ["reflog", "show", branchName, "--format=%H"]);
+  // Same-branch rebase path only — ignores backup branches; rejects switches /
+  // reset-to-unrelated that still leave ritual SHA in the reflog.
+  const reflog = runGit(projectRoot, ["reflog", "show", branchName, "--format=%H %gs"]);
   if (reflog.code !== 0) return false;
-  const onBranchReflog = reflog.stdout
-    .split(/[\r\n]+/)
-    .map((line) => line.trim())
-    .some((sha) => sha === ritualHead);
-  if (!onBranchReflog) return false;
+  let seenRebase = false;
+  let foundRitual = false;
+  for (const raw of reflog.stdout.split(/[\r\n]+/)) {
+    const line = raw.trim();
+    if (line.length === 0) continue;
+    const sp = line.indexOf(" ");
+    const sha = sp === -1 ? line : line.slice(0, sp);
+    const subject = sp === -1 ? "" : line.slice(sp + 1);
+    if (sha === ritualHead) {
+      foundRitual = true;
+      break;
+    }
+    if (/^(reset|checkout)(:|\s)/i.test(subject)) return false;
+    if (/rebase/i.test(subject)) seenRebase = true;
+  }
+  if (!foundRitual || !seenRebase) return false;
   const ritualParent = runGit(projectRoot, ["rev-parse", "--verify", `${ritualHead}^`]);
   const currentParent = runGit(projectRoot, ["rev-parse", "--verify", `${currentHead}^`]);
   // Fail closed when parents cannot be resolved (root / error).
