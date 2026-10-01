@@ -1,0 +1,416 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3884",
+    "updated": "2026-10-01T18:48:57Z"
+  },
+  "plan": {
+    "title": "bug(session,hooks): rebasing onto a moved master revokes a worker's edit authority, and the printed recovery requires a lease it must not take",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(session,hooks): rebasing onto a moved master revokes a worker's edit authority, and the printed recovery requires a lease it must not take",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3884",
+      "Overview": "\n\n1. For the same-owner rebase path (session id, worktree, and scope unchanged; actor already owns the live lease): extend the existing owner-gated ritual HEAD continuity seam so a legitimate rebase / discontinuous HEAD does not permanently revoke write/search_replace for the remainder of the run. Prefer extending evaluateLoadedState / rebindForwardHead / assessRearmEligibility / writeRitualStateIfStillOwned under live-same-owner admit — not a greenfield --rebind-head verb and not #3117 freshness:bind (generation/payload, not git_head).\n2. Keep discontinuous HEAD fail-closed for foreign history rewrite (branch-switch / amend / stranger HEAD) per #2782. Continuity is for the same-owner rebase/ff case the merge path requires, not unbound ritual rewrite.\n3. Split occupancy limbs: same-owner cold / session:ready is already envelope-legal occupancy-wise (live-same-owner admit + heartbeat). Foreign live owner, granted-member, and cancelled-predecessor residue stay parent-owned lease hygiene or owner rebind — not worker steal/impersonation. Do not bind \"no occupancy touch ever\" as the sole universal remedy.\n4. Denial / recovery copy: re-anchor operator-facing discontinuous-HEAD recovery on current #4290 composition (unauthorized ceremony verbs stripped when occupancy refuses; same-owner names a recovery the owner can run). Do not leave Stop 1 P2 wording that assumes every discontinuous-HEAD denial still advertises session:start when the actor cannot claim.\n5. Tests + CHANGELOG: HEAD-discontinuity rebind / continuity for unchanged session+worktree+same-owner lease; keep #2782 fail-closed cases. Distinct from #3873 / #3877 / #3861 / #4291.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:89e67a5cd2151406cc418dbbc53245083003f931e3fb65efa2e903a703fc4f96\n\n\n",
+      "Labels": "bug, swarm, adoption-blocker, agent-experience, process, harness, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:continuity"
+    },
+    "items": [
+      {
+        "title": "For the same-owner rebase path (session id, worktree, and scope unchanged; actor already owns the live lease): extend the existing owner-gated ritual HEAD continuity seam so a legitimate rebase / discontinuous HEAD does not permanently revoke write/search_replace for the remainder of the run. Prefer extending evaluateLoadedState / rebindForwardHead / assessRearmEligibility / writeRitualStateIfStillOwned under live-same-owner admit — not a greenfield --rebind-head verb and not #3117 freshness:bind (generation/payload, not git_head).",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product shipped via Tracking PR #5216; leftover-complete pathless Prefer-A (#5188).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "operator@deft.ai"
+          },
+          "recorded_at": "2026-10-01T16:38:15.618Z"
+        }
+      },
+      {
+        "title": "Keep discontinuous HEAD fail-closed for foreign history rewrite (branch-switch / amend / stranger HEAD) per #2782. Continuity is for the same-owner rebase/ff case the merge path requires, not unbound ritual rewrite.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product shipped via Tracking PR #5216; leftover-complete pathless Prefer-A (#5188).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "operator@deft.ai"
+          },
+          "recorded_at": "2026-10-01T16:38:15.618Z"
+        }
+      },
+      {
+        "title": "Split occupancy limbs: same-owner cold / session:ready is already envelope-legal occupancy-wise (live-same-owner admit + heartbeat). Foreign live owner, granted-member, and cancelled-predecessor residue stay parent-owned lease hygiene or owner rebind — not worker steal/impersonation. Do not bind \"no occupancy touch ever\" as the sole universal remedy.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product shipped via Tracking PR #5216; leftover-complete pathless Prefer-A (#5188).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "operator@deft.ai"
+          },
+          "recorded_at": "2026-10-01T16:38:15.618Z"
+        }
+      },
+      {
+        "title": "Denial / recovery copy: re-anchor operator-facing discontinuous-HEAD recovery on current #4290 composition (unauthorized ceremony verbs stripped when occupancy refuses; same-owner names a recovery the owner can run). Do not leave Stop 1 P2 wording that assumes every discontinuous-HEAD denial still advertises session:start when the actor cannot claim.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product shipped via Tracking PR #5216; leftover-complete pathless Prefer-A (#5188).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "operator@deft.ai"
+          },
+          "recorded_at": "2026-10-01T16:38:15.618Z"
+        }
+      },
+      {
+        "title": "Tests + CHANGELOG: HEAD-discontinuity rebind / continuity for unchanged session+worktree+same-owner lease; keep #2782 fail-closed cases. Distinct from #3873 / #3877 / #3861 / #4291.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product shipped via Tracking PR #5216; leftover-complete pathless Prefer-A (#5188).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "operator@deft.ai"
+          },
+          "recorded_at": "2026-10-01T16:38:15.618Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "harness",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:continuity"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3884",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3884: bug(session,hooks): rebasing onto a moved master revokes a worker's edit authority, and the printed recovery requires a lease it must not take"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3873",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3873"
+      }
+    ],
+    "acceptance": {
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "leftover Prefer-A pathless after #5216",
+      "sentences": [
+        "For the same-owner rebase path (session id, worktree, and scope unchanged; actor already owns the live lease): extend the existing owner-gated ritual HEAD continuity seam so a legitimate rebase / discontinuous HEAD does not permanently revoke write/search_replace for the remainder of the run. Prefer extending evaluateLoadedState / rebindForwardHead / assessRearmEligibility / writeRitualStateIfStillOwned under live-same-owner admit — not a greenfield --rebind-head verb and not #3117 freshness:bind (generation/payload, not git_head).",
+        "Keep discontinuous HEAD fail-closed for foreign history rewrite (branch-switch / amend / stranger HEAD) per #2782. Continuity is for the same-owner rebase/ff case the merge path requires, not unbound ritual rewrite.",
+        "Split occupancy limbs: same-owner cold / session:ready is already envelope-legal occupancy-wise (live-same-owner admit + heartbeat). Foreign live owner, granted-member, and cancelled-predecessor residue stay parent-owned lease hygiene or owner rebind — not worker steal/impersonation. Do not bind \"no occupancy touch ever\" as the sole universal remedy.",
+        "Denial / recovery copy: re-anchor operator-facing discontinuous-HEAD recovery on current #4290 composition (unauthorized ceremony verbs stripped when occupancy refuses; same-owner names a recovery the owner can run). Do not leave Stop 1 P2 wording that assumes every discontinuous-HEAD denial still advertises session:start when the actor cannot claim.",
+        "Tests + CHANGELOG: HEAD-discontinuity rebind / continuity for unchanged session+worktree+same-owner lease; keep #2782 fail-closed cases. Distinct from #3873 / #3877 / #3861 / #4291."
+      ],
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/session/session-start-rearm.test.ts packages/core/src/session/verify-session-ritual.test.ts packages/core/src/session/branches.test.ts packages/core/src/session/ritual-sentinel.test.ts --reporter=dot"
+        }
+      ],
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "For the same-owner rebase path (session id, worktree, and scope unchanged; actor already owns the live lease): extend the existing owner-gated ritual HEAD continuity seam so a legitimate rebase / discontinuous HEAD does not permanently revoke write/search_replace for the remainder of the run. Prefer extending evaluateLoadedState / rebindForwardHead / assessRearmEligibility / writeRitualStateIfStillOwned under live-same-owner admit — not a greenfield --rebind-head verb and not #3117 freshness:bind (generation/payload, not git_head).",
+          "artifact_path": null
+        },
+        {
+          "id": "clause.2",
+          "text": "Keep discontinuous HEAD fail-closed for foreign history rewrite (branch-switch / amend / stranger HEAD) per #2782. Continuity is for the same-owner rebase/ff case the merge path requires, not unbound ritual rewrite.",
+          "artifact_path": null
+        },
+        {
+          "id": "clause.3",
+          "text": "Split occupancy limbs: same-owner cold / session:ready is already envelope-legal occupancy-wise (live-same-owner admit + heartbeat). Foreign live owner, granted-member, and cancelled-predecessor residue stay parent-owned lease hygiene or owner rebind — not worker steal/impersonation. Do not bind \"no occupancy touch ever\" as the sole universal remedy.",
+          "artifact_path": null
+        },
+        {
+          "id": "clause.4",
+          "text": "Denial / recovery copy: re-anchor operator-facing discontinuous-HEAD recovery on current #4290 composition (unauthorized ceremony verbs stripped when occupancy refuses; same-owner names a recovery the owner can run). Do not leave Stop 1 P2 wording that assumes every discontinuous-HEAD denial still advertises session:start when the actor cannot claim.",
+          "artifact_path": null
+        },
+        {
+          "id": "clause.5",
+          "text": "Tests + CHANGELOG: HEAD-discontinuity rebind / continuity for unchanged session+worktree+same-owner lease; keep #2782 fail-closed cases. Distinct from #3873 / #3877 / #3861 / #4291.",
+          "artifact_path": null
+        }
+      ],
+      "admitted_source_digest": "e0670a2095b14ad4282a398dee5f6062f0c21d3941678ec0ba0be07bde8c9d42",
+      "admitted_source_sentences": [
+        "For the same-owner rebase path (session id, worktree, and scope unchanged; actor already owns the live lease): extend the existing owner-gated ritual HEAD continuity seam so a legitimate rebase / discontinuous HEAD does not permanently revoke write/search_replace for the remainder of the run. Prefer extending evaluateLoadedState / rebindForwardHead / assessRearmEligibility / writeRitualStateIfStillOwned under live-same-owner admit — not a greenfield --rebind-head verb and not #3117 freshness:bind (generation/payload, not git_head).",
+        "Keep discontinuous HEAD fail-closed for foreign history rewrite (branch-switch / amend / stranger HEAD) per #2782. Continuity is for the same-owner rebase/ff case the merge path requires, not unbound ritual rewrite.",
+        "Split occupancy limbs: same-owner cold / session:ready is already envelope-legal occupancy-wise (live-same-owner admit + heartbeat). Foreign live owner, granted-member, and cancelled-predecessor residue stay parent-owned lease hygiene or owner rebind — not worker steal/impersonation. Do not bind \"no occupancy touch ever\" as the sole universal remedy.",
+        "Denial / recovery copy: re-anchor operator-facing discontinuous-HEAD recovery on current #4290 composition (unauthorized ceremony verbs stripped when occupancy refuses; same-owner names a recovery the owner can run). Do not leave Stop 1 P2 wording that assumes every discontinuous-HEAD denial still advertises session:start when the actor cannot claim.",
+        "Tests + CHANGELOG: HEAD-discontinuity rebind / continuity for unchanged session+worktree+same-owner lease; keep #2782 fail-closed cases. Distinct from #3873 / #3877 / #3861 / #4291."
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Continuity: closing the laptop and coming back, or handing the work to another session, using only what was written down. When something gets stuck, the recovery on screen should work.\n\nWhat a new person hits: Updating a branch onto a moved main branch takes away the agent's permission to edit. The recovery printed on screen requires a lock the agent is not allowed to take.\n\nWhy that ruins the product for them: A normal git update locks the work, and the suggested fix is illegal. They are stuck for doing the right git thing.\n\nHow likely: Medium. It needs a branch that has moved, which is common as soon as they pull or rebase.\n\n",
+          "id": 5780303740,
+          "html_url": "https://github.com/deftai/directive/issues/3884#issuecomment-5780303740",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:39:41Z",
+          "updated_at": "2026-09-22T16:39:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because a required rebase onto moved master invalidates ritual HEAD binding and kills write/search_replace for the same worker, while the printed recovery (session:start / session:ready) claims occupancy the envelope forbids the worker to take or steal.\n\ncharter: refutation\nrefutation-target: After a legitimate rebase that moves git HEAD, it is acceptable that the worker lose edit authority for the rest of the run, because the printed recovery is a full session:start / session:ready cold ceremony that claims occupancy — even when session id, worktree, and scope are unchanged and the envelope forbids lease take/steal.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator directed pick recommended N for each after the missing-token pattern. This is a concrete session/ritual continuity defect on rebase HEAD discontinuity (not a whole-motion open design). Recommended spend N=1. Eval noted needs-re-scope against completed #4291 brief; #4291 is a different primary-checkout/branch-signal defect and does not close this rebase/rebind hole.\n\npain: P1, P2, P3\n\nP1. A drive-to: merge-ready worker that rebases onto moved master loses write / search_replace for the remainder of the run (ritual HEAD discontinuity / stale ritual state denial).\nP2. The printed recovery names session:start / session:ready, which claim the worktree occupancy lease; the dispatch envelope forbids taking, releasing, or impersonating a lease the worker does not own, so the denied actor has no envelope-legal recovery.\nP3. Compliant edits are blocked while an equivalent uncontrolled path (e.g. PowerShell WriteAllText) stays open — same shape as neighboring gate-bypass reports.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-3884-dc\norigin-ref: origin/HEAD\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\npin-kind: origin-default\ntarget-digest: sha256:89e67a5cd2151406cc418dbbc53245083003f931e3fb65efa2e903a703fc4f96\n\nPin reads use git show 650ab1a614cd6049b4c70c2b48fa181ffef5455e. Distinct from #3873 / #3877 / #3861 / #4291. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\r\n\n",
+          "id": 5857783794,
+          "html_url": "https://github.com/deftai/directive/issues/3884#issuecomment-5857783794",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:44:06Z",
+          "updated_at": "2026-09-27T16:44:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#3884\ncharter: refutation\nround: 1 critic\nseat: grok\nlauncher: grok\nid-ceiling: 5857783794\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\narc-mode: no-ingest\naudit-targets: none\n\nRefutation target does not survive.\n\nInventory at the pin (before any new mechanism): `verify-session-ritual.ts` `headDriftRecoveryMessage` + `gitIsAncestor` forward rebind (`rebindForwardHead`); `session-start.ts` `assessRearmEligibility` refuses discontinuous HEAD; `branches.test.ts` locks forward-commit stay-fresh and branch-switch/amend fail-closed (#2782); `occupancy.ts` `evaluateOccupancyCeremonyEligibility` (`live-same-owner` admits; `live-foreign-owner` / `granted-member` refuse owner claim); `occupancy-recovery.ts` #4290 strips unauthorized `session:ready` / `session:start` when ceremony is refused; hook path occupancy-before-ritual (#3769) with `writeRitualStateIfStillOwned`; `freshness:bind` is generation/payload (#3117), not git HEAD. No `--rebind-head` verb. Related #4291 is a different primary-checkout/branch-signal defect.\n\nInjection / swarm lens: ritual-state and worktree occupancy are shared authority. Any discontinuous-HEAD rebind must stay under the live owner write path (`writeRitualStateIfStillOwned` after occupancy admit). An unbound HEAD rewrite would reopen the #3769 class where a denied actor retitles the owner's ritual.\n\n## Same-owner cold recovery does not require steal\nsharpens-framing\nEvidence: At `650ab1a614cd6049b4c70c2b48fa181ffef5455e`, `evaluateOccupancyCeremonyEligibility` returns `admitCeremony: true` for `live-same-owner`; `applyWorktreeOccupancy` heartbeats the same session id rather than stealing. Hook denials that reach `headDriftRecoveryMessage` already passed occupancy; `#4290` then appends `formatRitualRecoveryInstruction(\"cold\")` naming `session:ready`. Foreign live owner and granted-member cases refuse ceremony and strip those verbs (`occupancy-stale-ritual-recovery.test.ts`).\nFailure mode: Binding the target as one package — permanent mid-run loss is fine because recovery always claims a lease the envelope forbids — overfits the cancelled-predecessor story onto the same-owner rebase path, where cold / `session:ready` is already envelope-legal occupancy-wise without take/steal.\nDisposition: Split occupancy limbs before bind. Same-owner: owner-gated ritual HEAD refresh under the existing lease. Foreign / member / cancelled-predecessor residue: parent-owned lease hygiene or owner rebind, not a worker steal. Do not treat \"no occupancy touch ever\" as the sole universal remedy.\n\n## Discontinuous HEAD fail-closed already has a continuity seam\nsharpens-framing\nEvidence: Pin `assessRearmEligibility` reason `git HEAD changed discontinuously (full cold session:start required)`; `evaluateLoadedState` only rebinds when `gitIsAncestor(pinned, current)`; `#2782` test title and body keep rebase/amend/branch-switch fail-closed while forward commits stay fresh. `freshness:bind` compares deposit generation, not `git_head`.\nFailure mode: A greenfield `--rebind-head` or a freshness-axis patch would ignore the existing forward-rebind / re-arm refusal seam and risk unbound ritual authority on rewritten history.\nDisposition: Prefer extending the owner-gated ritual HEAD continuity path (when session id + worktree + scope are unchanged and the actor already owns the lease) rather than inventing a parallel verb or routing through `#3117` freshness.\n\n## Pre-#4290 denial text is not the pin-SHA printed recovery for illegal ceremony\nfootnote\nEvidence: Issue body quotes the bare `headDriftRecoveryMessage`. At this SHA, `applyOccupancyEligibilityToDenial` rewrites unauthorized ceremony commands for `live-foreign-owner` / `granted-member` and substitutes occupancy remediation plus `SHELL_COVERAGE_HONESTY`.\nFailure mode: None for bind anatomy; the Stop 1 P2 narrative can overstate that discontinuous-HEAD denials still advertise `session:start` when the actor cannot claim.\nDisposition: Re-anchor P2 wording on current `#4290` composition when the successor lean cites denial text.\r\n\n",
+          "id": 5857812979,
+          "html_url": "https://github.com/deftai/directive/issues/3884#issuecomment-5857812979",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:48:08Z",
+          "updated_at": "2026-09-27T16:48:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA required rebase that moves HEAD still kills write/search_replace for the same worker under discontinuous-HEAD ritual fail-closed. The Stop 1 package that treated permanent mid-run loss as fine because recovery always claims a forbidden lease does not survive: same-owner cold / session:ready already admits without steal, and a forward-rebind / re-arm refusal seam already exists. Confirming this map means the Bound remedy list is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5857812979 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5857783794\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\n\n## Takes\n\n- 5857812979 Same-owner cold recovery does not require steal — accept-into-contract\n- 5857812979 Discontinuous HEAD fail-closed already has a continuity seam — accept-into-contract\n- 5857812979 Pre-#4290 denial text is not the pin-SHA printed recovery for illegal ceremony — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. For the same-owner rebase path (session id, worktree, and scope unchanged; actor already owns the live lease): extend the existing owner-gated ritual HEAD continuity seam so a legitimate rebase / discontinuous HEAD does not permanently revoke write/search_replace for the remainder of the run. Prefer extending evaluateLoadedState / rebindForwardHead / assessRearmEligibility / writeRitualStateIfStillOwned under live-same-owner admit — not a greenfield --rebind-head verb and not #3117 freshness:bind (generation/payload, not git_head).\n2. Keep discontinuous HEAD fail-closed for foreign history rewrite (branch-switch / amend / stranger HEAD) per #2782. Continuity is for the same-owner rebase/ff case the merge path requires, not unbound ritual rewrite.\n3. Split occupancy limbs: same-owner cold / session:ready is already envelope-legal occupancy-wise (live-same-owner admit + heartbeat). Foreign live owner, granted-member, and cancelled-predecessor residue stay parent-owned lease hygiene or owner rebind — not worker steal/impersonation. Do not bind \"no occupancy touch ever\" as the sole universal remedy.\n4. Denial / recovery copy: re-anchor operator-facing discontinuous-HEAD recovery on current #4290 composition (unauthorized ceremony verbs stripped when occupancy refuses; same-owner names a recovery the owner can run). Do not leave Stop 1 P2 wording that assumes every discontinuous-HEAD denial still advertises session:start when the actor cannot claim.\n5. Tests + CHANGELOG: HEAD-discontinuity rebind / continuity for unchanged session+worktree+same-owner lease; keep #2782 fail-closed cases. Distinct from #3873 / #3877 / #3861 / #4291.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:89e67a5cd2151406cc418dbbc53245083003f931e3fb65efa2e903a703fc4f96\n\n## Parent-side substantiation\n\nThe critic rejected the packaged \"loss is fine because recovery always steals\" target. Item 1 discharges the continuity product surface on the existing seam. Items 2–3 accept the sharpenings (keep #2782 fail-closed; split same-owner vs foreign occupancy). Item 4 accepts the #4290 denial-text footnote. Item 5 is verification scope.\n\naudit:same-owner-head-continuity sha=650ab1a614cd6049b4c70c2b48fa181ffef5455e pointer=comment:5857812979 reading=asserted\naudit:split-occupancy-limbs sha=650ab1a614cd6049b4c70c2b48fa181ffef5455e pointer=comment:5857812979 reading=asserted\r\n\n",
+          "id": 5857817394,
+          "html_url": "https://github.com/deftai/directive/issues/3884#issuecomment-5857817394",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:48:45Z",
+          "updated_at": "2026-09-27T16:48:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#3884\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5857817394\ndispatch-sha: 650ab1a614cd6049b4c70c2b48fa181ffef5455e\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\nPain-audit of successor lean 5857817394 asserted coverage for Stop 1 pains from 5857783794. Fresh critic. Critic 5857812979 is in envelope. git rev-parse HEAD equals 650ab1a614cd6049b4c70c2b48fa181ffef5455e.\n\nRe-verified at the pin (no fetch/checkout; reads via git show):\n- `evaluateLoadedState` rebinds only when `gitIsAncestor(pinned, current)` and `rebindForwardHead` is set, via `writeRitualStateIfStillOwned`; otherwise discontinuous HEAD returns `headDriftRecoveryMessage` (cold `session:start`).\n- `inspectSessionRitual` passes `rebindForwardHead: false`; write dispatch uses `verifySessionRitual` + `writeGateRitualOptions` only after occupancy admit (#3769).\n- `assessRearmEligibility` refuses discontinuous HEAD with full cold required.\n- `evaluateOccupancyCeremonyEligibility`: `live-same-owner` admits (`admitCeremony: true`); `live-foreign-owner` / `granted-member` refuse.\n- `#4290` `applyOccupancyEligibilityToDenial` strips unauthorized `session:ready` / `session:start` when ceremony is refused and appends `SHELL_COVERAGE_HONESTY`.\n- `#2782` `branches.test.ts`: forward commit stays fresh; branch-switch and amend fail closed (title also names rebase; body exercises amend as discontinuous).\n- `freshness:bind` (#3117) is generation/payload, not `git_head`. No `--rebind-head` verb.\n\nInjection / swarm lens: ritual-state and worktree occupancy remain shared authority. Bound remedy keeps rebind under `writeRitualStateIfStillOwned` after live-same-owner admit and does not reopen unbound #3769 ritual rewrite.\n\n## Item 1 covers P1 on the same-owner rebase path\nfootnote\nEvidence: Lean Bound remedy item 1 extends the owner-gated HEAD continuity seam (`evaluateLoadedState` / `rebindForwardHead` / `assessRearmEligibility` / `writeRitualStateIfStillOwned`) so a same-owner rebase (session id, worktree, scope unchanged; actor owns the live lease) does not permanently revoke write/search_replace. Item 2 keeps foreign rewrite fail-closed per #2782. Item 5 requires the HEAD-discontinuity continuity test. At this SHA the seam is forward-only; the carve-out is the product surface Stop 1 P1 named.\nFailure mode: None for bind anatomy under the accepted same-owner continuity frame.\nDisposition: Coverage of P1 holds; no harvest change.\n\n## Items 3 and 4 cover P2 under the occupancy-limb split and #4290 re-anchor\nfootnote\nEvidence: Critic 5857812979 and lean items 3–4 split limbs: same-owner cold / `session:ready` already admits without steal; foreign live owner, granted-member, and cancelled-predecessor residue stay parent-owned lease hygiene; denial copy re-anchors on current #4290 composition so unauthorized ceremony verbs are not advertised when occupancy refuses. Pin code matches that split (`live-same-owner` admit; strip path for refuse cases).\nFailure mode: None for bind. The cancelled-predecessor dogfood story remains parent lease hygiene outside item 1's \"already owns the live lease\" precondition, which is the accepted split rather than a silent P2 hole.\nDisposition: Coverage of P2 holds under the accepted split; no harvest change.\n\n## P3 is covered consequentially by restoring the gated write path\nfootnote\nEvidence: Stop 1 P3 is the dual shape (compliant edits blocked; uncontrolled shell such as WriteAllText still open). Item 1 restores the gated write/search_replace path for the same-owner rebase case. Item 4's #4290 re-anchor already surfaces `SHELL_COVERAGE_HONESTY` (\"Dedicated Write/Edit and recognized in-repository shell forms are gated; unrecognized shell forms remain outside that coverage\"). Acceptance does not require closing the uncontrolled path.\nFailure mode: None for bind. P3 has no separate Bound-remedy bullet; discharge is consequence of item 1 plus ambient #4290 honesty, which matches the neighboring gate-bypass shape without inventing a bypass-close mandate.\nDisposition: Coverage of P3 holds; no harvest change.\n\n## gitIsAncestor alone does not discriminate rebase from amend\nfootnote\nEvidence: Pin discontinuous detection is `!gitIsAncestor`. Item 1 carves legitimate same-owner rebase/ff; item 2 keeps amend / branch-switch / stranger HEAD fail-closed. Both rebase and amend yield `!forward` today; #2782 title names rebase while the discontinuous case in-body is amend.\nFailure mode: Implementer must choose a discrimination signal inside the named seams. The lean already states the English scope (rebase/ff continuity vs amend/branch-switch fail-closed) without inventing `--rebind-head` or unbound rewrite.\nDisposition: Inventory only; does not change Bound remedy scope or pain coverage.\r\n\n",
+          "id": 5857843431,
+          "html_url": "https://github.com/deftai/directive/issues/3884#issuecomment-5857843431",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:52:18Z",
+          "updated_at": "2026-09-27T16:52:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA required same-owner rebase that moves HEAD still permanently kills write/search_replace under discontinuous-HEAD ritual fail-closed, while the packaged \"loss is fine because recovery always steals\" story does not survive. Bound remedy extends the existing owner-gated HEAD continuity seam for same-owner rebase/ff, keeps #2782 fail-closed for foreign rewrite, splits occupancy limbs, and re-anchors denial copy on #4290. Pain-audit 5857843431 of relieves P1-P3 was footnote-only. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5857817394.\r\n\n",
+          "id": 5857846232,
+          "html_url": "https://github.com/deftai/directive/issues/3884#issuecomment-5857846232",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T16:52:43Z",
+          "updated_at": "2026-09-27T16:52:43Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nA `drive-to: merge-ready` worker must rebase when master moves under it. Rebasing revokes its own file-edit tools, and the printed recovery is unavailable to it.\n\nFrom ~19:55Z on 2026-08-28, every `write` / `search_replace` from a worker in its own worktree was denied:\n\n```text\nDirective denied write: session ritual state is stale because git HEAD changed\ndiscontinuously. Run `deft session:start` again (full cold ceremony required).\n```\n\nMaster moved twice during that run. The worker rebased both times -- which the merge path requires -- and after each rebase its edit tools were dead for the remainder of the run.\n\n## Why the recovery is not available\n\nThe denial names `session:start` / `session:ready`. Running either **claims the worktree occupancy lease**. In the observed case the lease was held by the worker's own cancelled predecessor, and every dispatch envelope forbids taking, releasing or impersonating a lease it does not own. A worker that follows its envelope therefore has no recovery, and a worker that recovers has violated it.\n\nThe result is that the framework's own required action -- rebase before merge -- revokes the actor's authority, and the documented remedy is closed to the actor.\n\n## Distinct from the neighbouring issues\n\n- **#3873** is about actor resolution: the gate cannot determine who is calling. Here the actor resolves fine; a HEAD change invalidates the ritual binding.\n- **#3877** is the ambient `DEFT_SESSION_ID` contradiction. Unrelated; this fires with the variable unset.\n- **#3861** is release-lag verification for a different denial class.\n\n## Observed twice, by different workers\n\nBoth workers finished their runs by routing every edit through PowerShell `[System.IO.File]::WriteAllText`, which the hook does not intercept. That is the same shape recorded on #3873: the gate blocks the compliant path and leaves an equivalent uncontrolled path open.\n\n## Direction (not prescriptive)\n\nA ritual binding invalidated by a legitimate rebase needs a re-bind that does not require a lease transition -- the worker still holds the same worktree, the same identity, and the same scope; only `git_head` moved. Options seen from outside: re-bind on HEAD change when the session id and worktree are unchanged; treat a fast-forward or rebase of the same branch as continuity rather than discontinuity; or provide a `--rebind-head` verb that refreshes the binding without touching occupancy.\n\nWhatever the mechanism, a worker doing what the merge path requires should not end up with fewer capabilities than when it started.\n\n## Acceptance\n\n- [ ] A worker that rebases its own worktree onto a moved master keeps its edit authority\n- [ ] If a re-bind is required, it is available without claiming, releasing or stealing an occupancy lease\n- [ ] The denial text names a recovery the denied actor can actually perform\n- [ ] A test covers HEAD-discontinuity re-bind for an unchanged session and worktree\n- [ ] CHANGELOG `[Unreleased]` entry\n\n## Refs\n\n#3873, #3877, #3861, #3613, and the 2026-08-28 worker reports on #3768 and #3607.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5282191830,
+        "origin": "deftai/directive#3884",
+        "id": "github.issue.5282191830"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "89e67a5cd2151406cc418dbbc53245083003f931e3fb65efa2e903a703fc4f96"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/session/verify-session-ritual.test.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start-rearm.test.ts",
+          "packages/core/src/session/ritual-sentinel.ts",
+          "packages/core/src/session/branches.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/session-start-rearm.test.ts packages/core/src/session/verify-session-ritual.test.ts packages/core/src/session/branches.test.ts packages/core/src/session/ritual-sentinel.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "same-owner rebase/ff keeps write authority",
+          "foreign discontinuous HEAD still fail-closed",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "conflict_group": "session-head-continuity",
+        "size": "M",
+        "file_scope_confidence": "bound-surfaces",
+        "model_tier": "default"
+      },
+      "productPullRequest": 5216,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5216,
+        "prBase": null,
+        "mergeCommit": "1a93dac38c4c93dd1dc2166eff1b4550ccacbe9a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "13d01fa8c284af79d2847baf1792948cdf903714",
+        "verifiedAt": "2026-10-01T18:48:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGY3NjktZGI4Yi03MmMyLTlhNjktMTA2ZTZmNmU3ZDVl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-01T18:48:57Z",
+      "completedSessionId": "host:grok:v1:MDFhMGY3NjktZGI4Yi03MmMyLTlhNjktMTA2ZTZmNmU3ZDVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-01T18:48:57Z"
+      }
+    },
+    "id": "github.issue.5282191830",
+    "updated": "2026-10-01T18:48:57Z"
+  }
+}
