@@ -81,6 +81,7 @@ describe("real-git leftover land (#4714 R9)", () => {
         relPath: briefRel,
         retainedRoots: [retained],
         reviewedCommitIsh: mergeSha,
+        deliveryBranch: "master",
         runGit: (cmd, opts) => runText(cmd, opts),
       });
       expect(moved.ok).toBe(true);

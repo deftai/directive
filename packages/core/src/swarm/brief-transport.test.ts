@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  deliveryHistoryRef,
   materializeRetainedBrief,
   readReviewedBriefBlob,
   SOURCE_RECOVERY_REMEDIATION,
@@ -68,6 +69,7 @@ describe("brief transport (#4714 R5)", () => {
       relPath: rel,
       retainedRoots: [root],
       reviewedCommitIsh: "deadbeef",
+      deliveryBranch: "trunk",
       runGit,
     });
     expect(result.ok).toBe(true);
@@ -96,6 +98,7 @@ describe("brief transport (#4714 R5)", () => {
       relPath: rel,
       retainedRoots: [root],
       reviewedCommitIsh: "deadbeef",
+      deliveryBranch: "trunk",
       runGit,
     });
     expect(result.ok).toBe(false);
@@ -107,23 +110,36 @@ describe("brief transport (#4714 R5)", () => {
   });
 
   it("returns source-recovery when no reviewed blob exists", () => {
-    const lookup = readReviewedBriefBlob("/tmp", "xbrief/active/missing.xbrief.json", null, () => ({
-      returncode: 1,
-      stdout: "",
-      stderr: "missing",
-    }));
+    const lookup = readReviewedBriefBlob(
+      "/tmp",
+      "xbrief/active/missing.xbrief.json",
+      null,
+      () => ({
+        returncode: 1,
+        stdout: "",
+        stderr: "missing",
+      }),
+      "trunk",
+    );
     expect(lookup.bytes).toBeNull();
     expect(SOURCE_RECOVERY_REMEDIATION).toContain("source-recovery");
   });
 
-  it("walks past a deletion tip to recover an earlier readable blob", () => {
+  it("walks past a deletion tip on the delivery branch, not origin/HEAD", () => {
     const rel = "xbrief/active/story-1.xbrief.json";
     const bytes = '{"plan":{"id":"story-1"}}\n';
+    const seenRefs: string[] = [];
     const runGit = (cmd: readonly string[]): TextCaptureResult => {
       if (cmd[1] === "show" && String(cmd[2]) === `deadbeef:${rel}`) {
         return { returncode: 1, stdout: "", stderr: "deleted at merge" };
       }
       if (cmd[1] === "log" && cmd.includes("--diff-filter=ACMR")) {
+        const tip = cmd[5];
+        if (typeof tip === "string") {
+          seenRefs.push(tip);
+        }
+        expect(cmd).toContain("origin/trunk");
+        expect(cmd).not.toContain("origin/HEAD");
         return { returncode: 0, stdout: "abc123\n", stderr: "" };
       }
       if (cmd[1] === "show" && String(cmd[2]) === `abc123:${rel}`) {
@@ -131,9 +147,11 @@ describe("brief transport (#4714 R5)", () => {
       }
       return { returncode: 1, stdout: "", stderr: "no" };
     };
-    const lookup = readReviewedBriefBlob("/tmp", rel, "deadbeef", runGit);
+    const lookup = readReviewedBriefBlob("/tmp", rel, "deadbeef", runGit, "trunk");
     expect(lookup.bytes).toBe(bytes);
     expect(lookup.source).toBe(`abc123:${rel}`);
+    expect(seenRefs).toEqual(["origin/trunk"]);
+    expect(deliveryHistoryRef("trunk")).toBe("origin/trunk");
   });
 
   it("skips an unreadable deletion commit when diff-filter log is empty", () => {
@@ -141,9 +159,13 @@ describe("brief transport (#4714 R5)", () => {
     const bytes = '{"plan":{"id":"story-1"}}\n';
     const runGit = (cmd: readonly string[]): TextCaptureResult => {
       if (cmd[1] === "log" && cmd.includes("--diff-filter=ACMR")) {
+        expect(cmd).toContain("origin/main");
+        expect(cmd).not.toContain("origin/HEAD");
         return { returncode: 0, stdout: "", stderr: "" };
       }
       if (cmd[1] === "log") {
+        expect(cmd).toContain("origin/main");
+        expect(cmd).not.toContain("origin/HEAD");
         return { returncode: 0, stdout: "delete-sha\nearlier-sha\n", stderr: "" };
       }
       if (cmd[1] === "show" && String(cmd[2]) === `delete-sha:${rel}`) {
@@ -154,8 +176,22 @@ describe("brief transport (#4714 R5)", () => {
       }
       return { returncode: 1, stdout: "", stderr: "no" };
     };
-    const lookup = readReviewedBriefBlob("/tmp", rel, null, runGit);
+    const lookup = readReviewedBriefBlob("/tmp", rel, null, runGit, "main");
     expect(lookup.bytes).toBe(bytes);
     expect(lookup.source).toBe(`earlier-sha:${rel}`);
+  });
+
+  it("refuses history recovery without a validated delivery branch", () => {
+    const lookup = readReviewedBriefBlob(
+      "/tmp",
+      "xbrief/active/story-1.xbrief.json",
+      null,
+      () => {
+        throw new Error("git must not run without a delivery branch");
+      },
+      null,
+    );
+    expect(lookup.bytes).toBeNull();
+    expect(lookup.error).toContain("no validated delivery branch");
   });
 });

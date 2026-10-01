@@ -18,12 +18,28 @@ export interface ReviewedBriefLookup {
   readonly error: string | null;
 }
 
-/** Read brief bytes from a commit-ish path (merge SHA or origin tip history). */
+/**
+ * History tip for reviewed-blob recovery. Must be the validated delivery branch
+ * (origin/<deliveryBranch>), never remote default HEAD alone (#4714 Greptile P1).
+ */
+export function deliveryHistoryRef(deliveryBranch: string | null | undefined): string | null {
+  if (typeof deliveryBranch !== "string") {
+    return null;
+  }
+  const branch = deliveryBranch.trim();
+  if (branch.length === 0) {
+    return null;
+  }
+  return `origin/${branch}`;
+}
+
+/** Read brief bytes from a commit-ish path (merge SHA or delivery-branch history). */
 export function readReviewedBriefBlob(
   projectRoot: string,
   relPath: string,
   commitIsh: string | null | undefined,
   runGit: typeof runText,
+  deliveryBranch: string | null | undefined,
 ): ReviewedBriefLookup {
   const rel = relPath.replace(/\\/g, "/");
   if (typeof commitIsh === "string" && commitIsh.trim().length > 0) {
@@ -33,10 +49,18 @@ export function readReviewedBriefBlob(
       return { bytes: shown.stdout, source: `${tip}:${rel}`, error: null };
     }
   }
-  // Walk tip history for a readable blob. Prefer non-deletion touches; a merge
-  // that deleted the active brief must not become the recovery tip (#4714 R5).
+  const historyRef = deliveryHistoryRef(deliveryBranch);
+  if (historyRef === null) {
+    return {
+      bytes: null,
+      source: null,
+      error: `no validated delivery branch for reviewed-blob recovery of ${rel}`,
+    };
+  }
+  // Walk delivery-branch history for a readable blob. Prefer non-deletion touches;
+  // a merge that deleted the active brief must not become the recovery tip (#4714 R5).
   const log = runGit(
-    ["git", "log", "-20", "--format=%H", "--diff-filter=ACMR", "origin/HEAD", "--", rel],
+    ["git", "log", "-20", "--format=%H", "--diff-filter=ACMR", historyRef, "--", rel],
     { cwd: projectRoot },
   );
   let shas: string[] =
@@ -47,8 +71,8 @@ export function readReviewedBriefBlob(
           .filter((line) => line.length > 0)
       : [];
   if (shas.length === 0) {
-    // Fallback without diff-filter: walk recent tips and skip unreadable (deleted) tips.
-    const anyLog = runGit(["git", "log", "-20", "--format=%H", "origin/HEAD", "--", rel], {
+    // Fallback without diff-filter: walk recent delivery tips and skip unreadable (deleted) tips.
+    const anyLog = runGit(["git", "log", "-20", "--format=%H", historyRef, "--", rel], {
       cwd: projectRoot,
     });
     if (anyLog.returncode === 0) {
@@ -77,6 +101,8 @@ export interface MaterializeBriefArgs {
   readonly relPath: string;
   readonly retainedRoots: readonly string[];
   readonly reviewedCommitIsh: string | null | undefined;
+  /** Validated plan/policy delivery branch (not remote default HEAD). */
+  readonly deliveryBranch: string | null | undefined;
   readonly runGit: typeof runText;
 }
 
@@ -116,6 +142,7 @@ export function materializeRetainedBrief(args: MaterializeBriefArgs): Materializ
     rel,
     args.reviewedCommitIsh,
     args.runGit,
+    args.deliveryBranch,
   );
   if (reviewed.bytes === null) {
     return {

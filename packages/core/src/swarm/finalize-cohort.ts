@@ -1289,6 +1289,7 @@ function remapStoriesToCheckout(
         relPath: rel,
         retainedRoots,
         reviewedCommitIsh: reviewedCommit,
+        deliveryBranch,
         runGit,
       });
       if (!materialized.ok) {
