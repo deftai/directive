@@ -22,9 +22,7 @@ describe("ownership task Prefer-B wiring (#1617)", () => {
   });
 
   it("routes verify:ownership through :engine:invoke without build dep", () => {
-    const block = verifyYml.match(
-      /(?:^|\n) {2}ownership:\n[\s\S]*?(?=\n {2}[a-z]|\n[a-z]|\z)/,
-    );
+    const block = verifyYml.match(/(?:^|\n) {2}ownership:\n[\s\S]*?(?=\n {2}[a-z]|\n[a-z]|$)/);
     const text = block?.[0] ?? "";
     const cmds = text.match(/\n {4}cmds:\n[\s\S]*/)?.[0] ?? text;
     expect(cmds).toMatch(/task:\s*:engine:invoke/);
