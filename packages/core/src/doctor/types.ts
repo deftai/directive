@@ -24,6 +24,14 @@ export interface CheckResult {
   readonly data?: Readonly<Record<string, unknown>>;
 }
 
+/** One dangling junction/symlink under node_modules (#3749). */
+export interface DanglingNodeModulesLink {
+  readonly relativePath: string;
+  readonly target: string;
+  /** Target path matches AGENT_SCRATCH_DIRS + worktrees/ (P2 bonus). */
+  readonly agentScratchWorktreeTarget: boolean;
+}
+
 export interface DoctorResult {
   readonly projectRoot: string;
   readonly installRoot: string | null;
@@ -203,6 +211,19 @@ export interface DoctorSeams {
       readonly isDir?: (path: string) => boolean;
     },
   ) => Record<string, unknown>;
+  /**
+   * Override dangling node_modules probe for tests (#3749). Used by throttle
+   * and the framework-only full-doctor carve-in (`reportDanglingNodeModulesLinksCheck`).
+   */
+  readonly checkDanglingNodeModulesLinks?: (
+    projectRoot: string,
+    seams?: {
+      readonly readText?: (path: string) => string | null;
+      readonly isFile?: (path: string) => boolean;
+      readonly isDir?: (path: string) => boolean;
+      readonly packageManager?: string;
+    },
+  ) => CheckResult;
   /** Read-only agent-host hook registration probe (#2438). */
   readonly evaluateAgentHooks?: (projectRoot: string) => AgentHookHealthResult;
   /** Per-host SessionStart registration probe for kill-switch agent notice (#4884). */

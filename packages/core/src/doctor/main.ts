@@ -62,8 +62,11 @@ import {
 } from "./agents-md.js";
 import {
   checkWslOwnershipGuard,
+  checkDanglingNodeModulesLinks,
   checkXbriefEnvelopeMajorVersion,
+  DANGLING_NODE_MODULES_LINKS_CHECK,
   DOCTOR_ADVISORY_FAIL_CHECKS,
+  isDoctorAdvisoryFail,
   prefixCanonicalVendoredSignpostWarn,
   runChecks,
   SIGNPOST_ADVISORY_LABEL,
@@ -523,6 +526,41 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         },
         seams,
       );
+      // #3749: always-cheap dangling probe when node_modules exists (incl. framework repo).
+      const danglingProbe = seams.checkDanglingNodeModulesLinks ?? checkDanglingNodeModulesLinks;
+      const danglingThrottle = danglingProbe(projectRoot, {
+        packageManager: resolveDoctorPackageManager(projectRoot, seams),
+        ...(seams.isDir ? { isDir: seams.isDir } : {}),
+        ...(seams.isFile ? { isFile: seams.isFile } : {}),
+        ...(seams.readText ? { readText: seams.readText } : {}),
+      });
+      if (danglingThrottle.status === "fail") {
+        const danglingAdvisory = isDoctorAdvisoryFail(danglingThrottle.name, danglingThrottle.data);
+        if (danglingAdvisory) {
+          throttleSink.warn(`${danglingThrottle.name}: ${danglingThrottle.detail}`);
+          throttleFindings.push({
+            severity: "warning",
+            message: danglingThrottle.detail,
+            check: danglingThrottle.name,
+            status: danglingThrottle.status,
+            data: danglingThrottle.data ?? {},
+          });
+        } else {
+          throttleSink.error(`${danglingThrottle.name}: fail -- ${danglingThrottle.detail}`);
+          throttleFindings.push({
+            severity: "error",
+            message: danglingThrottle.detail,
+            check: danglingThrottle.name,
+            status: danglingThrottle.status,
+            data: danglingThrottle.data ?? {},
+          });
+        }
+      } else if (danglingThrottle.status === "pass" && !jsonMode && !quietMode) {
+        throttleSink.success(`${danglingThrottle.name}: pass`);
+      }
+      const danglingHardFail =
+        danglingThrottle.status === "fail" &&
+        !isDoctorAdvisoryFail(danglingThrottle.name, danglingThrottle.data);
       const hint = decision.dirty ? dirtyDoctorHint() : "--full forces";
       const hygieneFailed = depositHygieneFailed(seams);
       const hygieneJson = depositHygieneJson(seams);
@@ -537,7 +575,10 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
           hint,
           ...(throttleFindings.length > 0 ? { signpost_findings: throttleFindings } : {}),
           ...(hygieneJson
-            ? { deposit_hygiene: hygieneJson, ok: !hygieneFailed && !decision.dirty }
+            ? {
+                deposit_hygiene: hygieneJson,
+                ok: !hygieneFailed && !decision.dirty && !danglingHardFail,
+              }
             : {}),
         };
         process.stdout.write(`${pythonJsonDump(payload)}\n`);
@@ -550,14 +591,18 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         throttleSink.info(throttleLeaseTip);
       }
       const signpostWarnings = throttleFindings.filter((f) => f.severity === "warning").length;
-      if (hygieneFailed && !jsonMode) {
-        throttleSink.finalError("System check failed with 1 error(s) including deposit hygiene.");
+      if ((hygieneFailed || danglingHardFail) && !jsonMode) {
+        throttleSink.finalError(
+          danglingHardFail
+            ? `System check failed with dangling node_modules link(s) (${DANGLING_NODE_MODULES_LINKS_CHECK}).`
+            : "System check failed with 1 error(s) including deposit hygiene.",
+        );
       } else if (signpostWarnings > 0 && !jsonMode) {
         throttleSink.finalWarn(
           `${SIGNPOST_ADVISORY_LABEL} ${signpostWarnings} local configuration / layout note(s) above (throttle-skipped full probe).`,
         );
       }
-      return hygieneFailed || decision.dirty ? 1 : 0;
+      return hygieneFailed || decision.dirty || danglingHardFail ? 1 : 0;
     }
   }
 
@@ -1128,6 +1173,51 @@ export function runAgentHooksLiveProbeCheck(
   }
 }
 
+function reportDanglingNodeModulesLinksCheck(
+  projectRoot: string,
+  sink: ReturnType<typeof createPlainSink>,
+  addFinding: (f: Finding) => void,
+  seams: DoctorSeams,
+): void {
+  const probe = seams.checkDanglingNodeModulesLinks ?? checkDanglingNodeModulesLinks;
+  const result = probe(projectRoot, {
+    packageManager: resolveDoctorPackageManager(projectRoot, seams),
+    ...(seams.isDir ? { isDir: seams.isDir } : {}),
+    ...(seams.isFile ? { isFile: seams.isFile } : {}),
+    ...(seams.readText ? { readText: seams.readText } : {}),
+  });
+  if (result.status === "pass") {
+    sink.success(`${result.name}: pass`);
+    return;
+  }
+  if (result.status === "skip") {
+    sink.info(`${result.name}: skip -- ${result.detail}`);
+    return;
+  }
+  if (result.status === "fail") {
+    // Framework-only full-doctor path (#3749): same advisory mapping as throttle/consumer.
+    if (isDoctorAdvisoryFail(result.name, result.data)) {
+      sink.warn(`${result.name}: ${result.detail}`);
+      addFinding({
+        severity: "warning",
+        message: result.detail,
+        check: result.name,
+        status: result.status,
+        data: result.data ?? {},
+      });
+      return;
+    }
+    sink.error(`${result.name}: fail -- ${result.detail}`);
+    addFinding({
+      severity: "error",
+      message: result.detail,
+      check: result.name,
+      status: result.status,
+      data: result.data ?? {},
+    });
+  }
+}
+
 function runInstallIntegrityChecks(
   projectRoot: string,
   sink: ReturnType<typeof createPlainSink>,
@@ -1138,6 +1228,8 @@ function runInstallIntegrityChecks(
     sink.info(
       "Skipping install-integrity checks -- running inside the deft framework repo (no install manifest in the source checkout).",
     );
+    // #3749 carve-in: dangling links still run for framework source when node_modules exists.
+    reportDanglingNodeModulesLinksCheck(projectRoot, sink, addFinding, seams);
     return;
   }
   try {

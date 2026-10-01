@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ResolutionFacts } from "../resolution/index.js";
+import { DANGLING_NODE_MODULES_LINKS_CHECK } from "./checks.js";
 import { LAYOUT_TREE } from "./constants.js";
 import { parseDoctorFlags } from "./flags.js";
 import {
@@ -18,7 +19,7 @@ import {
   runXbriefEnvelopeVersionCheck,
 } from "./main.js";
 import { createPlainSink } from "./output.js";
-import type { DoctorSeams, Finding } from "./types.js";
+import type { CheckResult, DoctorSeams, Finding } from "./types.js";
 
 describe("cmdDoctor", () => {
   it("returns 2 for unknown flags", () => {
@@ -1097,6 +1098,130 @@ describe("cmdDoctor completed-open-items advisory mapping (#3372)", () => {
     const ritual = runDoctorJson(root, framework, ["--json", "--project-root", root], seams);
     expect(ritual.exit).toBe(0);
     expect(ritual.lastErrorCount).toBe(0);
+  });
+});
+
+describe("framework-only full-doctor dangling advisory (#3749)", () => {
+  function runFrameworkFullDoctor(dangling: CheckResult): {
+    exit: number;
+    lastErrorCount: number;
+    payload: {
+      ok?: boolean;
+      findings?: Array<Record<string, unknown>>;
+      summary?: { errors?: number; warnings?: number };
+    };
+  } {
+    const stdout: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array): boolean => {
+      stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
+      return true;
+    }) as typeof process.stdout.write;
+    let lastErrorCount = -1;
+    let exit: number;
+    try {
+      exit = cmdDoctor(["--full", "--json"], {
+        whichFn: () => "/usr/bin/x",
+        checkDanglingNodeModulesLinks: () => dangling,
+        writeState: (_projectRoot, payload) => {
+          lastErrorCount = payload.errorCount;
+          return null;
+        },
+      });
+    } finally {
+      process.stdout.write = origWrite;
+    }
+    const parsed: unknown = JSON.parse(stdout.join(""));
+    expect(parsed).not.toBeNull();
+    expect(typeof parsed).toBe("object");
+    return {
+      exit,
+      lastErrorCount,
+      payload: parsed as {
+        ok?: boolean;
+        findings?: Array<Record<string, unknown>>;
+        summary?: { errors?: number; warnings?: number };
+      },
+    };
+  }
+
+  it("maps bounded incomplete (zero dangling) to warning on framework full-doctor — not exit 1", () => {
+    const detail =
+      "Dangling-link probe truncated at entry/depth bound under node_modules — " +
+      "scanned portion has no dangling links (not a certified full pass). " +
+      "Re-run `deft doctor --full` if you need a deeper scan.";
+    const { exit, lastErrorCount, payload } = runFrameworkFullDoctor({
+      name: DANGLING_NODE_MODULES_LINKS_CHECK,
+      status: "fail",
+      detail,
+      data: {
+        advisory: true,
+        incomplete: true,
+        incomplete_reason: "bounded",
+        recovery: "npm ci",
+        package_manager: "npm",
+        discovery: "throttle-skip-or-doctor-full",
+      },
+    });
+    expect(exit).toBe(0);
+    expect(lastErrorCount).toBe(0);
+    expect(payload.ok).toBe(true);
+    expect(payload.summary?.errors).toBe(0);
+    const finding = payload.findings?.find((f) => f.check === DANGLING_NODE_MODULES_LINKS_CHECK);
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("warning");
+    expect(String(finding?.message)).toMatch(/truncated|entry\/depth bound/i);
+    expect(String(finding?.message)).not.toMatch(/^No dangling/i);
+  });
+
+  it("still hard-fails unreadable incomplete on framework full-doctor", () => {
+    const detail =
+      "Incomplete dangling-link probe under node_modules (unreadable directory) — " +
+      "cannot certify clean. Recover with `npm ci` if the install looks broken, or re-run `deft doctor --full`.";
+    const { exit, lastErrorCount, payload } = runFrameworkFullDoctor({
+      name: DANGLING_NODE_MODULES_LINKS_CHECK,
+      status: "fail",
+      detail,
+      data: {
+        incomplete: true,
+        incomplete_reason: "unreadable",
+        recovery: "npm ci",
+        package_manager: "npm",
+        discovery: "throttle-skip-or-doctor-full",
+      },
+    });
+    expect(exit).toBe(1);
+    expect(lastErrorCount).toBeGreaterThan(0);
+    const finding = payload.findings?.find((f) => f.check === DANGLING_NODE_MODULES_LINKS_CHECK);
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("error");
+    expect(String(finding?.message)).toMatch(/unreadable/i);
+  });
+
+  it("still hard-fails real dangling links on framework full-doctor", () => {
+    const detail =
+      "Dangling junction/symlink under node_modules: broken-pkg. " +
+      "Broken install — recover with `npm ci`. " +
+      "Discovery: throttle-skip / always-cheap path when node_modules exists, or `deft doctor --full`.";
+    const { exit, lastErrorCount, payload } = runFrameworkFullDoctor({
+      name: DANGLING_NODE_MODULES_LINKS_CHECK,
+      status: "fail",
+      detail,
+      data: {
+        dangling: [
+          { relativePath: "broken-pkg", target: "/missing", agentScratchWorktreeTarget: false },
+        ],
+        recovery: "npm ci",
+        package_manager: "npm",
+        discovery: "throttle-skip-or-doctor-full",
+      },
+    });
+    expect(exit).toBe(1);
+    expect(lastErrorCount).toBeGreaterThan(0);
+    const finding = payload.findings?.find((f) => f.check === DANGLING_NODE_MODULES_LINKS_CHECK);
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("error");
+    expect(String(finding?.message)).toMatch(/dangling junction\/symlink/i);
   });
 });
 

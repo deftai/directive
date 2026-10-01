@@ -38,6 +38,26 @@
 export const AGENT_SCRATCH_DIRS: readonly string[] = [".deft-scratch", "swarm-worktrees"] as const;
 
 /**
+ * True when `candidate` looks like an agent scratch worktree path
+ * (`<scratch>/worktrees/...` for any `AGENT_SCRATCH_DIRS` entry). Used by the
+ * doctor dangling-link probe (#3749) so reports name legacy scratch roots too.
+ */
+export function isAgentScratchWorktreePath(candidate: string): boolean {
+  const normalized = candidate.replace(/\\/g, "/").toLowerCase();
+  for (const scratch of AGENT_SCRATCH_DIRS) {
+    const marker = `${scratch.toLowerCase()}/worktrees/`;
+    if (
+      normalized.includes(`/${marker}`) ||
+      normalized.startsWith(marker) ||
+      normalized.includes(marker)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Agent-host directories that hold host *working* state rather than product
  * source (#3487).
  *

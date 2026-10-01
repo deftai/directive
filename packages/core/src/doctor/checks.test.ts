@@ -1,7 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
+import { isAgentScratchWorktreePath } from "../fs/non-product-dirs.js";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import { MIGRATE_COMPLETION_NUDGE } from "../init-deposit/migrate.js";
 import { renderXbriefMigrationLine } from "../xbrief-migrate/signpost.js";
@@ -12,6 +13,7 @@ import {
   checkCompletedUnguardedWrite,
   checkCoverageCheckResumePolicy,
   checkCursorSdkAuth,
+  checkDanglingNodeModulesLinks,
   checkGitignoreCoverage,
   checkInstallPathConsistency,
   checkLegacyLayout,
@@ -22,7 +24,9 @@ import {
   checkStaleXbriefSchemaDeposit,
   checkTypescript7SideBySide,
   checkXbriefEnvelopeMajorVersion,
+  DANGLING_NODE_MODULES_LINKS_CHECK,
   DOCTOR_ADVISORY_FAIL_CHECKS,
+  danglingNodeModulesRecoveryCommand,
   deriveExitCode,
   isDoctorAdvisoryFail,
   prefixCanonicalVendoredSignpostWarn,
@@ -1191,5 +1195,275 @@ describe("checkCursorSdkAuth (#4295)", () => {
     expect(result.status).toBe("fail");
     expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(true);
     expect(deriveExitCode([result], [])).toBe(0);
+  });
+});
+
+describe("checkDanglingNodeModulesLinks (#3749)", () => {
+  it("skips cleanly when node_modules is absent", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-absent-"));
+    try {
+      const result = checkDanglingNodeModulesLinks(root);
+      expect(result.name).toBe(DANGLING_NODE_MODULES_LINKS_CHECK);
+      expect(result.status).toBe("skip");
+      expect(result.detail).toMatch(/node_modules absent/i);
+      expect(DOCTOR_ADVISORY_FAIL_CHECKS.has(result.name)).toBe(false);
+      expect(deriveExitCode([result], [])).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("passes when node_modules has no dangling links", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-pass-"));
+    try {
+      mkdirSync(join(root, "node_modules", "left-pad"), { recursive: true });
+      writeFileSync(join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
+      const result = checkDanglingNodeModulesLinks(root, { packageManager: "pnpm" });
+      expect(result.status).toBe("pass");
+      expect(result.data?.package_manager).toBe("pnpm");
+      expect(deriveExitCode([result], [])).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("hard-fails with named recovery and worktree-path bonus via seams", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-fail-"));
+    try {
+      const nm = join(root, "node_modules");
+      mkdirSync(nm, { recursive: true });
+      const linkRel = "readable-stream";
+      const target = join(
+        root,
+        ".deft-scratch",
+        "worktrees",
+        "b3738",
+        "node_modules",
+        "readable-stream",
+      );
+      const result = checkDanglingNodeModulesLinks(root, {
+        packageManager: "pnpm",
+        platform: "win32",
+        isDir: (p) => p === nm || p === root,
+        readdirWithFileTypes: (dir) => {
+          if (dir === nm) {
+            return [
+              {
+                name: linkRel,
+                isDirectory: () => false,
+                isSymbolicLink: () => true,
+              },
+            ];
+          }
+          return [];
+        },
+        readlink: () => target,
+        targetExists: () => false,
+      });
+      expect(result.status).toBe("fail");
+      expect(result.detail).toContain(linkRel);
+      expect(result.detail).toContain("$env:CI='true'; pnpm install --frozen-lockfile");
+      expect(result.detail).toContain("CI=true pnpm install --frozen-lockfile");
+      expect(result.detail).toMatch(/agent scratch worktree/i);
+      expect(result.detail).toContain("deft doctor --full");
+      expect(result.data?.recovery).toBe(
+        "$env:CI='true'; pnpm install --frozen-lockfile (PowerShell; POSIX: CI=true pnpm install --frozen-lockfile)",
+      );
+      expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(false);
+      expect(deriveExitCode([result], [])).toBe(1);
+      const dangling = result.data?.dangling as Array<{ agentScratchWorktreeTarget: boolean }>;
+      expect(dangling?.[0]?.agentScratchWorktreeTarget).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("emits npm ci recovery when package manager is npm", () => {
+    expect(danglingNodeModulesRecoveryCommand("npm", "linux")).toBe("npm ci");
+    expect(danglingNodeModulesRecoveryCommand("pnpm", "linux")).toBe(
+      "pnpm install --frozen-lockfile",
+    );
+    expect(danglingNodeModulesRecoveryCommand("pnpm", "win32")).toBe(
+      "$env:CI='true'; pnpm install --frozen-lockfile (PowerShell; POSIX: CI=true pnpm install --frozen-lockfile)",
+    );
+  });
+
+  it("hard-fails when node_modules itself is a dangling root link", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-root-"));
+    try {
+      const nm = join(root, "node_modules");
+      const result = checkDanglingNodeModulesLinks(root, {
+        packageManager: "npm",
+        isDir: () => false,
+        lstat: (p) => (p === nm ? { isSymbolicLink: () => true } : null),
+      });
+      expect(result.status).toBe("fail");
+      expect(result.detail).toMatch(/dangling junction\/symlink/i);
+      expect(result.data?.dangling_root).toBe(true);
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("advisory-fails bounded truncation with zero dangling (not silent clean pass)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-incomplete-"));
+    try {
+      const nm = join(root, "node_modules");
+      mkdirSync(nm, { recursive: true });
+      const result = checkDanglingNodeModulesLinks(root, {
+        packageManager: "npm",
+        isDir: (p) => p === nm || p === root,
+        maxEntries: 1,
+        readdirWithFileTypes: (dir) => {
+          if (dir === nm) {
+            return [
+              {
+                name: "a",
+                isDirectory: () => true,
+                isSymbolicLink: () => false,
+              },
+              {
+                name: "b",
+                isDirectory: () => true,
+                isSymbolicLink: () => false,
+              },
+            ];
+          }
+          return [];
+        },
+      });
+      expect(result.status).toBe("fail");
+      expect(result.detail).toMatch(/truncated|entry\/depth bound/i);
+      expect(result.detail).not.toMatch(/^No dangling/i);
+      expect(result.data?.incomplete).toBe(true);
+      expect(result.data?.incomplete_reason).toBe("bounded");
+      expect(result.data?.advisory).toBe(true);
+      expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(true);
+      expect(deriveExitCode([result], [])).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("hard-fails incomplete probes when a directory is unreadable", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-unreadable-"));
+    try {
+      const nm = join(root, "node_modules");
+      mkdirSync(nm, { recursive: true });
+      const result = checkDanglingNodeModulesLinks(root, {
+        packageManager: "npm",
+        isDir: (p) => p === nm || p === root,
+        readdirWithFileTypes: () => {
+          throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+        },
+      });
+      expect(result.status).toBe("fail");
+      expect(result.detail).toMatch(/unreadable/i);
+      expect(result.data?.incomplete).toBe(true);
+      expect(result.data?.incomplete_reason).toBe("unreadable");
+      expect(result.data?.advisory).not.toBe(true);
+      expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(false);
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not treat EACCES on a link target as dangling", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-eacces-target-"));
+    try {
+      const nm = join(root, "node_modules");
+      mkdirSync(nm, { recursive: true });
+      const deniedTarget = join(root, "denied-target");
+      const result = checkDanglingNodeModulesLinks(root, {
+        packageManager: "npm",
+        isDir: (p) => p === nm || p === root,
+        readdirWithFileTypes: (dir) => {
+          if (dir === nm) {
+            return [
+              {
+                name: "pkg",
+                isDirectory: () => false,
+                isSymbolicLink: () => true,
+              },
+            ];
+          }
+          return [];
+        },
+        readlink: () => deniedTarget,
+        targetExists: () => {
+          throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+        },
+      });
+      expect(result.status).toBe("pass");
+      expect(result.detail).toMatch(/No dangling/i);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("treats broken link chains as dangling via ultimate target resolution", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-chain-"));
+    try {
+      const nm = join(root, "node_modules");
+      mkdirSync(nm, { recursive: true });
+      const finalGone = join(root, "gone-final");
+      const mid = join(root, "mid-link");
+      try {
+        // Intermediate symlink exists; ultimate destination does not. Default
+        // targetExists must follow (stat), not stop at lstat of the intermediate.
+        symlinkSync(finalGone, mid);
+        symlinkSync(mid, join(nm, "pkg"));
+      } catch {
+        // Host cannot create symlinks — skip without failing the suite.
+        return;
+      }
+      const result = checkDanglingNodeModulesLinks(root, { packageManager: "npm" });
+      expect(result.status).toBe("fail");
+      expect(result.detail).toContain("pkg");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("matches AGENT_SCRATCH_DIRS worktrees including legacy swarm-worktrees", () => {
+    expect(isAgentScratchWorktreePath("/repo/.deft-scratch/worktrees/x")).toBe(true);
+    expect(isAgentScratchWorktreePath("C:\\repo\\swarm-worktrees\\worktrees\\y")).toBe(true);
+    expect(isAgentScratchWorktreePath("/repo/node_modules/.pnpm/foo")).toBe(false);
+  });
+
+  it("runChecksImpl includes dangling check and hard-fails (#3749)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-impl-"));
+    try {
+      writeFileSync(join(root, "AGENTS.md"), "Deft is installed in .deft/core/.\n", "utf8");
+      mkdirSync(join(root, "node_modules"), { recursive: true });
+      const nm = join(root, "node_modules");
+      const result = runChecksImpl(root, {
+        isDir: (p) => p === root || p === nm,
+        isFile: () => false,
+        readText: (p) => (p.endsWith("AGENTS.md") ? "Deft is installed in .deft/core/.\n" : null),
+        readdirWithFileTypes: (dir) => {
+          if (dir === nm) {
+            return [
+              {
+                name: "broken-pkg",
+                isDirectory: () => false,
+                isSymbolicLink: () => true,
+              },
+            ];
+          }
+          return [];
+        },
+        readlink: () => "/missing/target",
+        targetExists: () => false,
+        packageManager: "npm",
+      });
+      const dangling = result.checks.find((c) => c.name === DANGLING_NODE_MODULES_LINKS_CHECK);
+      expect(dangling?.status).toBe("fail");
+      expect(result.exitCode).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
