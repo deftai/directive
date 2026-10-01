@@ -208,6 +208,8 @@ export function watchResultToJson(result: WatchResult): Record<string, unknown> 
     clean_gate_holdout: p.cleanGateHoldout,
     reviewer_ready_state: p.reviewerReadyState,
     review_cycle_handback: p.reviewCycleHandback,
+    pr_state: p.prState,
+    pr_merged: p.prMerged,
     elapsed_seconds: result.elapsedSeconds,
     poll_count: result.pollCount,
   };
@@ -657,6 +659,11 @@ export function printWatchHuman(result: WatchResult): string {
   }
   if (p.reviewCycleHandback !== null) {
     lines.push(`  Review-cycle:       ${p.reviewCycleHandback}`);
+  }
+  if (p.prState !== null || p.prMerged !== null) {
+    lines.push(
+      `  PR lifecycle:       state=${p.prState ?? "<unknown>"} merged=${p.prMerged ?? "<unknown>"}`,
+    );
   }
   if (result.verdict === VERDICT_GREPTILE_SHA_STALL) {
     lines.push(`  Remedy:             ${GREPTILE_SHA_STALL_REMEDY}`);

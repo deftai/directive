@@ -40,6 +40,17 @@ export interface WatchProbe {
   readonly reviewerReadyState: string | null;
   /** Canonical handback when reviewerReadyState is no_reviewer_installed. */
   readonly reviewCycleHandback: string | null;
+  /**
+   * REST `repos/.../pulls/<N>` `state` (#4288). Null when lifecycle was not
+   * resolved (repo unresolved / pulls REST failed). Open PRs keep polling.
+   */
+  readonly prState: string | null;
+  /**
+   * REST `repos/.../pulls/<N>` `merged` (#4288). True → MERGED terminal
+   * success ahead of Greptile/SHA-match; false + closed → CLOSED_UNMERGED.
+   * Null when lifecycle was not resolved.
+   */
+  readonly prMerged: boolean | null;
   /** Non-null when the probe hit an external/config fault (unresolvable repo/HEAD, gh down). */
   readonly error: string | null;
 }

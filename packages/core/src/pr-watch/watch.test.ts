@@ -7,9 +7,11 @@ import {
   VERDICT_CI_CANCELLED_NO_FAILOVER,
   VERDICT_CI_NEVER_SCHEDULED,
   VERDICT_CLEAN,
+  VERDICT_CLOSED_UNMERGED,
   VERDICT_CONFIG,
   VERDICT_ERRORED,
   VERDICT_GREPTILE_SHA_STALL,
+  VERDICT_MERGED,
   VERDICT_NEW_P0_P1,
   VERDICT_NO_REVIEWER_INSTALLED,
   VERDICT_PENDING,
@@ -43,6 +45,8 @@ function makeProbe(overrides: Partial<WatchProbe> = {}): WatchProbe {
     cleanGateHoldout: null,
     reviewerReadyState: "expected",
     reviewCycleHandback: null,
+    prState: "open",
+    prMerged: false,
     error: null,
     ...overrides,
   };
@@ -122,6 +126,53 @@ describe("watch verdict matrix (one-shot, single probe)", () => {
       }),
     );
     // Review present but stuck on a stale commit, single probe -> PENDING, not NEW_P0_P1.
+    expect(r.verdict).toBe(VERDICT_PENDING);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+  });
+
+  it("merged + sha_match false → MERGED exit 0 immediately (#4288)", () => {
+    const r = runOneShot(
+      makeProbe({
+        prState: "closed",
+        prMerged: true,
+        shaMatch: false,
+        lastReviewedSha: STALE,
+        cleanGateHoldout: "sha_match",
+        isClean: false,
+        found: false,
+      }),
+    );
+    expect(r.verdict).toBe(VERDICT_MERGED);
+    expect(r.exitCode).toBe(EXIT_CLEAN);
+  });
+
+  it("closed unmerged → CLOSED_UNMERGED exit 2 (#4288)", () => {
+    const r = runOneShot(
+      makeProbe({
+        prState: "closed",
+        prMerged: false,
+        shaMatch: false,
+        lastReviewedSha: null,
+        found: false,
+        isClean: false,
+        cleanGateHoldout: null,
+      }),
+    );
+    expect(r.verdict).toBe(VERDICT_CLOSED_UNMERGED);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+  });
+
+  it("open + sha_match false → still PENDING (#4288 / #1259 / #2313)", () => {
+    const r = runOneShot(
+      makeProbe({
+        prState: "open",
+        prMerged: false,
+        shaMatch: false,
+        lastReviewedSha: STALE,
+        cleanGateHoldout: "sha_match",
+        isClean: false,
+      }),
+    );
     expect(r.verdict).toBe(VERDICT_PENDING);
     expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
   });

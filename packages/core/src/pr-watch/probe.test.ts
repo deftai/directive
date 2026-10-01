@@ -11,7 +11,7 @@ import {
 } from "../content-contracts/skills/greptile-detector.js";
 import { GREPTILE_ERRORED_SENTINEL } from "../pr-merge-readiness/constants.js";
 import type { RunGhResult } from "../pr-merge-readiness/types.js";
-import { probeOnce } from "./probe.js";
+import { fetchPrLifecycleRest, probeOnce } from "./probe.js";
 
 /** The last_reviewed sha embedded in the BODY_AC4_* / BODY_TIER2_P1_ONLY fixtures. */
 const FIXTURE_SHA = "abcdef1234567";
@@ -24,6 +24,12 @@ interface FakeGhConfig {
   pullComments?: unknown[];
   pullCommentsError?: boolean;
   headError?: boolean;
+  /** REST pulls `state` (#4288). Default open so existing Greptile cases fall through. */
+  prState?: string;
+  /** REST pulls `merged` (#4288). Default false. */
+  prMerged?: boolean;
+  /** Force pulls REST failure (lifecycle unresolved → continue / HEAD error). */
+  pullsRestError?: boolean;
 }
 
 /** Route the canonical pr-merge-readiness gh calls to canned responses. */
@@ -41,9 +47,17 @@ function makeFakeGh(cfg: FakeGhConfig) {
       return ok(JSON.stringify(cfg.pullComments ?? []));
     }
     if (joined.includes("/pulls/")) {
-      // REST HEAD fallback.
-      if (cfg.headError === true) return fail("no such PR (REST)");
-      return ok(JSON.stringify({ head: { sha: cfg.headSha ?? FIXTURE_SHA } }));
+      // REST HEAD + lifecycle (#4288).
+      if (cfg.headError === true || cfg.pullsRestError === true) {
+        return fail("no such PR (REST)");
+      }
+      return ok(
+        JSON.stringify({
+          head: { sha: cfg.headSha ?? FIXTURE_SHA },
+          state: cfg.prState ?? "open",
+          merged: cfg.prMerged ?? false,
+        }),
+      );
     }
     if (joined.includes("/issues/") && joined.includes("/comments") && joined.includes("--jq")) {
       return ok(cfg.body ?? "");
@@ -85,6 +99,96 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
     expect(probe.hasBlocking).toBe(false);
     expect(probe.confidence).toBe(5);
     expect(probe.ciReadyState).toBe("ready");
+    expect(probe.prState).toBe("open");
+    expect(probe.prMerged).toBe(false);
+  });
+
+  it("merged PR short-circuits before Greptile body even when sha would not match (#4288)", () => {
+    const probe = probeOnce(
+      4288,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: OTHER_SHA,
+        prState: "closed",
+        prMerged: true,
+        // Deliberately omit body — lifecycle must not require Greptile fetch.
+      }),
+    );
+    expect(probe.error).toBeNull();
+    expect(probe.prMerged).toBe(true);
+    expect(probe.prState).toBe("closed");
+    expect(probe.shaMatch).toBe(false);
+    expect(probe.found).toBe(false);
+    expect(probe.isClean).toBe(false);
+  });
+
+  it("closed unmerged PR short-circuits before Greptile body (#4288)", () => {
+    const probe = probeOnce(
+      4288,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: FIXTURE_SHA,
+        prState: "closed",
+        prMerged: false,
+      }),
+    );
+    expect(probe.error).toBeNull();
+    expect(probe.prMerged).toBe(false);
+    expect(probe.prState).toBe("closed");
+    expect(probe.found).toBe(false);
+    expect(probe.isClean).toBe(false);
+  });
+
+  it("open PR with stale review still reaches Greptile path (#4288)", () => {
+    const probe = probeOnce(
+      4288,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: OTHER_SHA,
+        prState: "open",
+        prMerged: false,
+        body: BODY_AC4_MARKDOWN_LINK_CLEAN,
+        checkRuns: GREEN_CI,
+      }),
+    );
+    expect(probe.error).toBeNull();
+    expect(probe.prState).toBe("open");
+    expect(probe.prMerged).toBe(false);
+    expect(probe.shaMatch).toBe(false);
+    expect(probe.found).toBe(true);
+    expect(probe.isClean).toBe(false);
+    expect(probe.cleanGateHoldout).toBe("sha_match");
+  });
+
+  it("lifecycle REST failure does not invent CLOSED; Greptile path continues (#4288)", () => {
+    // HEAD comes from `gh pr view`; pulls REST fails for lifecycle only.
+    const ok = (stdout: string): RunGhResult => ({ returncode: 0, stdout, stderr: "" });
+    const fail = (stderr: string): RunGhResult => ({ returncode: 1, stdout: "", stderr });
+    const runGh = (cmd: readonly string[]): RunGhResult => {
+      const joined = cmd.join(" ");
+      if (cmd[1] === "pr" && cmd[2] === "view") {
+        return ok(`${FIXTURE_SHA}\n`);
+      }
+      if (joined.includes("/pulls/") && joined.includes("/comments")) {
+        return ok("[]");
+      }
+      if (joined.includes("/pulls/")) {
+        return fail("pulls unavailable");
+      }
+      if (joined.includes("/issues/") && joined.includes("/comments")) {
+        return ok(BODY_AC4_MARKDOWN_LINK_CLEAN);
+      }
+      if (joined.includes("/check-runs")) {
+        return ok(JSON.stringify({ check_runs: GREEN_CI }));
+      }
+      return fail(`unexpected: ${joined}`);
+    };
+    const probe = probeOnce(4288, "deftai/directive", runGh);
+    expect(probe.error).toBeNull();
+    expect(probe.prState).toBeNull();
+    expect(probe.prMerged).toBeNull();
+    expect(probe.shaMatch).toBe(true);
+    expect(probe.isClean).toBe(true);
   });
 
   it("empty check-runs with clean Greptile -> ci_never_scheduled, not CLEAN (#3167)", () => {
@@ -423,5 +527,67 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
     expect(probe.error).toBeNull();
     expect(probe.hasBlocking).toBe(false);
     expect(probe.isClean).toBe(true);
+  });
+});
+
+describe("fetchPrLifecycleRest (#4288)", () => {
+  it("returns state/merged from pulls JSON", () => {
+    const life = fetchPrLifecycleRest(1, "o/r", () => ({
+      returncode: 0,
+      stdout: JSON.stringify({ state: "closed", merged: true, head: { sha: "abc" } }),
+      stderr: "",
+    }));
+    expect(life.error).toBeNull();
+    expect(life.state).toBe("closed");
+    expect(life.merged).toBe(true);
+  });
+
+  it("returns error on non-zero gh", () => {
+    const life = fetchPrLifecycleRest(1, "o/r", () => ({
+      returncode: 1,
+      stdout: "",
+      stderr: "boom",
+    }));
+    expect(life.state).toBeNull();
+    expect(life.merged).toBeNull();
+    expect(life.error).toContain("failed");
+  });
+
+  it("returns error on empty body", () => {
+    const life = fetchPrLifecycleRest(1, "o/r", () => ({
+      returncode: 0,
+      stdout: "   ",
+      stderr: "",
+    }));
+    expect(life.error).toContain("empty body");
+  });
+
+  it("returns error on invalid JSON", () => {
+    const life = fetchPrLifecycleRest(1, "o/r", () => ({
+      returncode: 0,
+      stdout: "not-json",
+      stderr: "",
+    }));
+    expect(life.error).toContain("could not parse");
+  });
+
+  it("returns error on non-object JSON", () => {
+    const life = fetchPrLifecycleRest(1, "o/r", () => ({
+      returncode: 0,
+      stdout: "[]",
+      stderr: "",
+    }));
+    expect(life.error).toContain("unexpected PR JSON shape");
+  });
+
+  it("leaves merged null when key is not boolean", () => {
+    const life = fetchPrLifecycleRest(1, "o/r", () => ({
+      returncode: 0,
+      stdout: JSON.stringify({ state: "open", merged: "yes" }),
+      stderr: "",
+    }));
+    expect(life.error).toBeNull();
+    expect(life.state).toBe("open");
+    expect(life.merged).toBeNull();
   });
 });

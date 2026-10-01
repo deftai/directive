@@ -29,6 +29,10 @@ function makeProbe(overrides: Partial<WatchProbe> = {}): WatchProbe {
     greptileReviewInFlight: false,
     isClean: false,
     cleanGateHoldout: "sha_match",
+    reviewerReadyState: "expected",
+    reviewCycleHandback: null,
+    prState: "open",
+    prMerged: false,
     error: null,
     ...overrides,
   };

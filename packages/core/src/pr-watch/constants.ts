@@ -54,6 +54,17 @@ export const VERDICT_PENDING = "PENDING";
 export const VERDICT_CONFIG = "CONFIG";
 /** Sticky tip-rot sha_match with no in-flight Greptile Review (#5162). Exit 2. */
 export const VERDICT_GREPTILE_SHA_STALL = "GREPTILE_SHA_STALL";
+/**
+ * PR already squash-/merge-landed (`merged=true` on REST pulls) (#4288).
+ * Terminal success, exit 0 — same finish-success family as CLEAN for wait owners.
+ * SHA-match / missing Last reviewed must not hold a merged PR.
+ */
+export const VERDICT_MERGED = "MERGED";
+/**
+ * PR closed without merge (`state=closed` and `merged=false`) (#4288).
+ * Terminal non-success, exit 2 — not CLEAN; workers treat as not shipped.
+ */
+export const VERDICT_CLOSED_UNMERGED = "CLOSED_UNMERGED";
 /** Fail-loud remedy string for Prefer-A Recut greptile-sha-stall (#5162). */
 export const GREPTILE_SHA_STALL_REMEDY = "BLOCKED: greptile-sha-stall";
 /** Prefer-A sticky-sha clock: elapsed since first sticky tip-rot (borrow ~10 min). */
@@ -94,11 +105,17 @@ export const WATCH_HELP =
   "  package when wrapping --json in-process.\n" +
   "\n" +
   "exit codes:\n" +
-  "  0  CLEAN       SHA-matched review, confidence >= policy min (default 4; dogfood 5), no P0/P1, CI green\n" +
+  "  0  CLEAN | MERGED  SHA-matched clean review, or REST pulls merged=true (#4288)\n" +
   "  1  NEW_P0_P1   Blocking findings on the current (SHA-matched) review\n" +
   "  2  ERRORED | STALL | TIMEOUT | CI_BLOCKED | RUNNER_CAPACITY_STALL |\n" +
   "     CI_NEVER_SCHEDULED | CI_CANCELLED_NO_FAILOVER | NO_REVIEWER_INSTALLED |\n" +
-  "     GREPTILE_SHA_STALL | config / usage error\n" +
+  "     GREPTILE_SHA_STALL | CLOSED_UNMERGED | config / usage error\n" +
+  "\n" +
+  "PR lifecycle short-circuit (#4288):\n" +
+  "  REST repos/.../pulls/<N> state/merged is checked before Greptile body and\n" +
+  "  SHA-match holdout. merged=true → MERGED (exit 0). state=closed and\n" +
+  "  merged=false → CLOSED_UNMERGED (exit 2). Open PRs keep the sha_match\n" +
+  "  stale-review guard (#1259 / #2313).\n" +
   "\n" +
   "sha_match sticky tip-rot (#5162 Prefer-A Recut):\n" +
   "  After sticky sha_match + non-HEAD Last-reviewed + no in-flight Greptile\n" +

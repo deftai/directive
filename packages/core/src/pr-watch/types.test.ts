@@ -28,6 +28,8 @@ describe("pr-watch types", () => {
       cleanGateHoldout: null,
       reviewerReadyState: "expected",
       reviewCycleHandback: null,
+      prState: "open",
+      prMerged: false,
       error: null,
     };
     expect(probe.isClean).toBe(true);
@@ -57,6 +59,8 @@ describe("pr-watch types", () => {
         cleanGateHoldout: null,
         reviewerReadyState: "expected",
         reviewCycleHandback: null,
+        prState: "open",
+        prMerged: false,
         error: null,
       },
       elapsedSeconds: 0,

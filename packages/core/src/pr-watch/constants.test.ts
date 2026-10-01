@@ -10,9 +10,11 @@ import {
   GREPTILE_SHA_STALL_REMEDY,
   VERDICT_CI_BLOCKED,
   VERDICT_CLEAN,
+  VERDICT_CLOSED_UNMERGED,
   VERDICT_CONFIG,
   VERDICT_ERRORED,
   VERDICT_GREPTILE_SHA_STALL,
+  VERDICT_MERGED,
   VERDICT_NEW_P0_P1,
   VERDICT_NO_REVIEWER_INSTALLED,
   VERDICT_PENDING,
@@ -31,6 +33,7 @@ describe("pr-watch constants", () => {
 
   it("all non-CLEAN/NEW_P0_P1 verdicts collapse onto the terminal-error exit", () => {
     // The AC-1 contract: ERRORED | STALL | TIMEOUT | CI_BLOCKED | CONFIG | PENDING all exit 2.
+    // MERGED is exit 0 (finish-success with CLEAN); CLOSED_UNMERGED is exit 2 (#4288).
     for (const verdict of [
       VERDICT_ERRORED,
       VERDICT_STALL,
@@ -40,12 +43,15 @@ describe("pr-watch constants", () => {
       VERDICT_PENDING,
       VERDICT_NO_REVIEWER_INSTALLED,
       VERDICT_GREPTILE_SHA_STALL,
+      VERDICT_CLOSED_UNMERGED,
     ]) {
       expect(typeof verdict).toBe("string");
       expect(verdict.length).toBeGreaterThan(0);
     }
     expect(VERDICT_CLEAN).toBe("CLEAN");
     expect(VERDICT_NEW_P0_P1).toBe("NEW_P0_P1");
+    expect(VERDICT_MERGED).toBe("MERGED");
+    expect(VERDICT_CLOSED_UNMERGED).toBe("CLOSED_UNMERGED");
   });
 
   it("exposes the documented flag defaults", () => {
@@ -54,6 +60,12 @@ describe("pr-watch constants", () => {
     expect(DEFAULT_STALL_THRESHOLD).toBe(3);
     expect(DEFAULT_STICKY_SHA_STALL_SECONDS).toBe(600);
     expect(GREPTILE_SHA_STALL_REMEDY).toBe("BLOCKED: greptile-sha-stall");
+  });
+
+  it("documents MERGED / CLOSED_UNMERGED lifecycle short-circuit (#4288)", () => {
+    expect(WATCH_HELP).toContain("MERGED");
+    expect(WATCH_HELP).toContain("CLOSED_UNMERGED");
+    expect(WATCH_HELP).toContain("PR lifecycle short-circuit (#4288)");
   });
 
   it("documents NO_REVIEWER_INSTALLED on the exit-2 help line (#3630)", () => {

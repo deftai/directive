@@ -61,6 +61,8 @@ function cleanWatch(pr: number): WatchResult {
       cleanGateHoldout: null,
       reviewerReadyState: "expected",
       reviewCycleHandback: null,
+      prState: "open",
+      prMerged: false,
       error: null,
     },
   };

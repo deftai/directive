@@ -12,9 +12,11 @@ import {
   VERDICT_CI_CANCELLED_NO_FAILOVER,
   VERDICT_CI_NEVER_SCHEDULED,
   VERDICT_CLEAN,
+  VERDICT_CLOSED_UNMERGED,
   VERDICT_CONFIG,
   VERDICT_ERRORED,
   VERDICT_GREPTILE_SHA_STALL,
+  VERDICT_MERGED,
   VERDICT_NEW_P0_P1,
   VERDICT_NO_REVIEWER_INSTALLED,
   VERDICT_PENDING,
@@ -120,6 +122,16 @@ export function watch(
     lastProbe = probe;
     const elapsed = Math.round(clockFn.now() - startedAt);
     process.stderr.write(`${formatWatchStatus(poll, maxPolls, probe, elapsed)}\n`);
+
+    // #4288: PR lifecycle terminals ahead of Greptile error / SHA-match holdout.
+    // merged=true → MERGED exit 0 (finish-success family with CLEAN).
+    // closed+!merged → CLOSED_UNMERGED exit 2 (not shipped).
+    if (probe.prMerged === true) {
+      return build(VERDICT_MERGED, EXIT_CLEAN, probe, poll);
+    }
+    if (probe.prState === "closed" && probe.prMerged === false) {
+      return build(VERDICT_CLOSED_UNMERGED, EXIT_TERMINAL_ERROR, probe, poll);
+    }
 
     if (probe.error !== null) {
       return build(VERDICT_CONFIG, EXIT_TERMINAL_ERROR, probe, poll);
@@ -249,6 +261,8 @@ export function watch(
     cleanGateHoldout: null,
     reviewerReadyState: null,
     reviewCycleHandback: null,
+    prState: null,
+    prMerged: null,
     error: null,
   };
   return build(VERDICT_TIMEOUT, EXIT_TERMINAL_ERROR, probe, maxPolls);

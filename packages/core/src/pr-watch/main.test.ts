@@ -59,6 +59,8 @@ function makeProbe(overrides: Partial<WatchProbe> = {}): WatchProbe {
     cleanGateHoldout: null,
     reviewerReadyState: "expected",
     reviewCycleHandback: null,
+    prState: "open",
+    prMerged: false,
     error: null,
     ...overrides,
   };
@@ -168,6 +170,8 @@ describe("watchResultToJson (AC-4 shape)", () => {
       "clean_gate_holdout",
       "reviewer_ready_state",
       "review_cycle_handback",
+      "pr_state",
+      "pr_merged",
       "elapsed_seconds",
       "poll_count",
     ]);

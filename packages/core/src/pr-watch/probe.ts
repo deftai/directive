@@ -33,6 +33,52 @@ import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { isGreptileReviewInFlight } from "./greptile-sha-stall.js";
 import type { WatchProbe } from "./types.js";
 
+/** REST pulls lifecycle fields (#4288) — same `/pulls/<N>` surface as HEAD/mergeability. */
+export interface PrLifecycleRest {
+  readonly state: string | null;
+  readonly merged: boolean | null;
+  readonly error: string | null;
+}
+
+/**
+ * Fetch PR `state` / `merged` via REST `repos/.../pulls/<N>` (#4288).
+ * Returned failures only (no throw). Reuses the existing pulls REST path —
+ * not GraphQL `gh pr view --json`.
+ */
+export function fetchPrLifecycleRest(
+  prNumber: number,
+  repo: string,
+  runGh: RunGhFn,
+): PrLifecycleRest {
+  const rc = runGh(["gh", "api", `repos/${repo}/pulls/${prNumber}`]);
+  if (rc.returncode !== 0) {
+    return {
+      state: null,
+      merged: null,
+      error: `gh api /pulls/${prNumber} failed: ${rc.stderr.trim()}`,
+    };
+  }
+  if (!rc.stdout.trim()) {
+    return { state: null, merged: null, error: "empty body from gh api /pulls/<N>" };
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rc.stdout) as unknown;
+  } catch (exc: unknown) {
+    const message = exc instanceof Error ? exc.message : String(exc);
+    return { state: null, merged: null, error: `could not parse PR JSON: ${message}` };
+  }
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+    return { state: null, merged: null, error: "unexpected PR JSON shape (not a dict)" };
+  }
+  const pr = payload as Record<string, unknown>;
+  const rawState = pr.state;
+  const state = typeof rawState === "string" ? rawState : null;
+  // GitHub emits boolean `merged`; coerce only when the key is present as boolean.
+  const merged = typeof pr.merged === "boolean" ? pr.merged : null;
+  return { state, merged, error: null };
+}
+
 function errorProbe(headSha: string | null, message: string): WatchProbe {
   return {
     found: false,
@@ -53,7 +99,40 @@ function errorProbe(headSha: string | null, message: string): WatchProbe {
     cleanGateHoldout: null,
     reviewerReadyState: null,
     reviewCycleHandback: null,
+    prState: null,
+    prMerged: null,
     error: message,
+  };
+}
+
+/** Lifecycle-terminal probe: skip Greptile body / SHA-match holdout (#4288). */
+function lifecycleProbe(
+  headSha: string | null,
+  state: string | null,
+  merged: boolean | null,
+): WatchProbe {
+  return {
+    found: false,
+    headSha,
+    lastReviewedSha: null,
+    shaMatch: false,
+    confidence: null,
+    p0Count: 0,
+    p1Count: 0,
+    hasBlocking: false,
+    errored: false,
+    ciFailures: 0,
+    ciFailedChecks: [],
+    ciReadyState: null,
+    ciCapacityStalledChecks: [],
+    terminalCheckRun: false,
+    isClean: false,
+    cleanGateHoldout: null,
+    reviewerReadyState: null,
+    reviewCycleHandback: null,
+    prState: state,
+    prMerged: merged,
+    error: null,
   };
 }
 
@@ -87,6 +166,26 @@ export function probeOnce(
         ? `could not resolve repo (${resolved.error}); run inside a repo or pass --repo OWNER/REPO`
         : "could not resolve PR HEAD sha (gh pr view + REST both failed)";
     return errorProbe(null, detail);
+  }
+
+  // 1b. PR lifecycle short-circuit (#4288) — ahead of Greptile body / SHA-match.
+  // merged=true → MERGED (exit 0); closed+!merged → CLOSED_UNMERGED (exit 2).
+  // Open PRs (or unresolved lifecycle) fall through to today's Greptile path.
+  let prState: string | null = null;
+  let prMerged: boolean | null = null;
+  if (repo !== null) {
+    const lifecycle = fetchPrLifecycleRest(prNumber, repo, runGh);
+    if (lifecycle.error === null) {
+      prState = lifecycle.state;
+      prMerged = lifecycle.merged;
+      if (prMerged === true) {
+        return lifecycleProbe(headSha, prState ?? "closed", true);
+      }
+      if (prState === "closed" && prMerged === false) {
+        return lifecycleProbe(headSha, "closed", false);
+      }
+    }
+    // Lifecycle REST failure: continue; do not invent CLOSED/MERGED.
   }
 
   // 2. Latest Greptile body -- primary jq path, then REST fallback.
@@ -233,6 +332,8 @@ export function probeOnce(
     cleanGateHoldout,
     reviewerReadyState: expectation.state,
     reviewCycleHandback: expectation.handback,
+    prState,
+    prMerged,
     error: null,
   };
 }
