@@ -561,6 +561,30 @@ describe("same-owner discontinuous HEAD continuity (#3884)", () => {
     expect(readRitualState(root)[0]?.gitHead).toBe(ritualHead);
     rmSync(root, { recursive: true, force: true });
   });
+
+  it("inspect prefers re-arm when legacy ritual omits verify_tools after same-owner rebase (#3884)", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const { ritualHead, base } = prepareRebaseOntoMovedBase(root);
+    const payload = freshPayload(root, ritualHead, now);
+    const quick = payload.quick_steps as Record<string, unknown>;
+    delete quick.verify_tools;
+    writeRitualState(root, payload);
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    rebaseFeature(root, base);
+
+    const result = inspectSessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+    });
+    expect(result.code).toBe(1);
+    expect(result.recoveryTier).toBe("rearm");
+    expect(result.message).toContain("session:ready");
+    expect(result.message).not.toContain("verify_tools");
+    expect(readRitualState(root)[0]?.gitHead).toBe(ritualHead);
+    rmSync(root, { recursive: true, force: true });
+  });
 });
 
 describe("verify session ritual", () => {

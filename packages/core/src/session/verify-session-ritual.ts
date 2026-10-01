@@ -387,8 +387,13 @@ function evaluateLoadedState(
     } else if (!forward && sameOwnerContinuity) {
       // Inspect path: no rewrite. Prefer cold when a quick step already failed so
       // re-arm advice cannot bounce off assessRearmEligibility (#3884 P2).
+      // Mirror assessRearmEligibility: legacy ritual may omit verify_tools; re-arm
+      // re-runs tools, so missing must not force cold here.
       for (const stepName of QUICK_STEPS) {
         const step = state.quickSteps[stepName];
+        if (stepName === "verify_tools" && (step === undefined || step === null)) {
+          continue;
+        }
         if (!stepPasses(step)) {
           return {
             code: 1,
