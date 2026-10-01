@@ -122,6 +122,33 @@ describe("story continuity (#5192)", () => {
     expect(exempt).toEqual(expect.arrayContaining(["xbrief/pending/story.xbrief.json"]));
   });
 
+  it("refuses moves when two HEAD briefs claim the same plan.id (#5192)", () => {
+    const census = censusFromBaseMap(
+      new Map([
+        [
+          "xbrief/pending/old.xbrief.json",
+          JSON.stringify({
+            plan: { id: "story-1", metadata: { swarm: { file_scope: ["a.ts"] } } },
+          }),
+        ],
+      ]),
+    );
+    const dup = resolveStoryContinuity({
+      headRel: "xbrief/active/new.xbrief.json",
+      headPlanId: "story-1",
+      headLifecycleRels: [
+        "xbrief/active/new.xbrief.json",
+        "xbrief/completed/also.xbrief.json",
+      ],
+      census,
+      headPlanIds: new Map([
+        ["xbrief/active/new.xbrief.json", "story-1"],
+        ["xbrief/completed/also.xbrief.json", "story-1"],
+      ]),
+    });
+    expect(dup.kind).toBe("ambiguous-refuse");
+  });
+
   it("does not basename-fan-out exempts for plan.id stories (#5192)", () => {
     const payload = {
       plan: { id: "story-1", metadata: { swarm: { file_scope: ["a.ts"] } } },

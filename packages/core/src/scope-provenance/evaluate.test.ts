@@ -684,6 +684,91 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
     expect(result.exitCode).toBe(1);
   });
 
+  it("peer completed move uses continuity baseRel so it does not exhaust another allowance (#5192)", () => {
+    const approvedA = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/a.xbrief.json",
+      payload: xbrief("story-a", ["packages/core/src/a.ts"]),
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+    const approvedB = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/b.xbrief.json",
+      payload: xbrief("story-b", [
+        "packages/core/src/b1.ts",
+        "packages/core/src/b2.ts",
+        "packages/core/src/b3.ts",
+        "packages/core/src/b4.ts",
+        "packages/core/src/b5.ts",
+      ]),
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+    // A stays active (narrow). B completes with five in-scope product files.
+    // Without peer continuity, A's fence would miss B's base claim and fail.
+    const result = evaluateScopeProvenance("/tmp/proj-peer-completed-move", {
+      changedFiles: [
+        "xbrief/active/b.xbrief.json",
+        "xbrief/completed/b.xbrief.json",
+        "packages/core/src/b1.ts",
+        "packages/core/src/b2.ts",
+        "packages/core/src/b3.ts",
+        "packages/core/src/b4.ts",
+        "packages/core/src/b5.ts",
+      ],
+      activeXbriefs: new Map([
+        [
+          "xbrief/active/a.xbrief.json",
+          JSON.stringify(xbrief("story-a", ["packages/core/src/a.ts"])),
+        ],
+        [
+          "xbrief/completed/b.xbrief.json",
+          JSON.stringify(
+            xbrief("story-b", [
+              "packages/core/src/b1.ts",
+              "packages/core/src/b2.ts",
+              "packages/core/src/b3.ts",
+              "packages/core/src/b4.ts",
+              "packages/core/src/b5.ts",
+            ]),
+          ),
+        ],
+      ]),
+      approvedRecords: [approvedA, approvedB],
+      baseApprovedRecords: new Map([
+        ["story-a", approvedA],
+        ["story-b", approvedB],
+      ]),
+      baseXbriefs: new Map([
+        [
+          "xbrief/active/a.xbrief.json",
+          JSON.stringify(xbrief("story-a", ["packages/core/src/a.ts"])),
+        ],
+        [
+          "xbrief/active/b.xbrief.json",
+          JSON.stringify(
+            xbrief("story-b", [
+              "packages/core/src/b1.ts",
+              "packages/core/src/b2.ts",
+              "packages/core/src/b3.ts",
+              "packages/core/src/b4.ts",
+              "packages/core/src/b5.ts",
+            ]),
+          ),
+        ],
+      ]),
+      sourceRoots: ["packages"],
+      testRoots: ["tests"],
+      fixtureRoots: ["fixtures"],
+    });
+    expect(result.findings.some((f) => f.kind === "production-scope-over-budget")).toBe(false);
+  });
+
   it("uses continuity baseRel for production fence after active→completed move (#5192)", () => {
     const approved = buildApprovedScopeRecord({
       xbriefRelPath: "xbrief/active/story.xbrief.json",

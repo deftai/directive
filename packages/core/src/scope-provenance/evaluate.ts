@@ -724,6 +724,15 @@ export function evaluateScopeProvenance(
           }
         })();
 
+  const headPlanIds = new Map<string, string | null>();
+  for (const e of activeEntries) {
+    try {
+      headPlanIds.set(e.rel, extractPlanId(JSON.parse(e.raw) as unknown));
+    } catch {
+      headPlanIds.set(e.rel, null);
+    }
+  }
+
   let reportedPeerFailure = false;
   for (const { rel, raw } of activeEntries) {
     const modifiedEarly = changedSetHasPath(changedSet, rel);
@@ -923,6 +932,7 @@ export function evaluateScopeProvenance(
       headPlanId: planId,
       headLifecycleRels,
       census,
+      headPlanIds,
     });
 
     if (continuity.kind === "relabel-refuse" && membershipTrigger) {
@@ -1248,7 +1258,22 @@ export function evaluateScopeProvenance(
         let peerBaseFailure: { readonly peerRel: string; readonly detail: string } | null = null;
         for (const other of activeEntries) {
           if (other.rel === rel) continue;
-          const otherBaseRead = readAtBase(other.rel);
+          let otherPlanId: string | null = null;
+          try {
+            otherPlanId = extractPlanId(JSON.parse(other.raw) as unknown);
+          } catch {
+            otherPlanId = null;
+          }
+          const otherContinuity = resolveStoryContinuity({
+            headRel: other.rel,
+            headPlanId: otherPlanId,
+            headLifecycleRels,
+            census,
+            headPlanIds,
+          });
+          const otherFenceRel =
+            otherContinuity.kind === "resolved" ? otherContinuity.baseRel : other.rel;
+          const otherBaseRead = readAtBase(otherFenceRel);
           if (otherBaseRead.kind === "error") {
             peerBaseFailure = {
               peerRel: other.rel,

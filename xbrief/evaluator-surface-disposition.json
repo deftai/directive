@@ -1,10 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4244,
+  "issue": 5192,
   "surfaces": [
-    "vitest.config.ts",
+    "packages/core/src/presentation-coverage/gates.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #4244 json coverage reporter on vitest.config.ts. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5192 presentation-coverage lifecycle brief selection on gates.ts. Disclosure only; not #3164 authorization."
 }

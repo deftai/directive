@@ -221,13 +221,19 @@ export function runComposedGates(
         { code: 2, message: "invalid approved-scope record in pinned snapshot" },
         [],
       );
-    // Head: active/ plus changed lifecycle briefs (completed moves must still
-    // run membership + production fence). Base: full lifecycle census for
-    // continuity (#5192 Greptile P1 — active-only maps skipped completed/).
+    // Head: active/ plus changed completed/cancelled moves (not new pending/).
+    // New pending briefs must not bind membership over an unrelated active
+    // story's product paths. Base: full lifecycle census for continuity.
     const headXbriefs = readTexts(head, (p) => {
       if (!p.endsWith(".xbrief.json") && !p.endsWith(".vbrief.json")) return false;
       if (p.startsWith("xbrief/active/")) return true;
-      return isLifecycleXbriefPath(p) && changed.includes(p);
+      if (
+        (p.startsWith("xbrief/completed/") || p.startsWith("xbrief/cancelled/")) &&
+        changed.includes(p)
+      ) {
+        return true;
+      }
+      return false;
     });
     const baseXbriefs = readTexts(base, (p) => isLifecycleXbriefPath(p));
     return outcome(
