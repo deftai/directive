@@ -645,7 +645,7 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
       items: [
         withEvidence({ title: "terminal namespaced", status: "failed" }),
         withEvidence(
-          { title: "unsuitable kind still skipped", status: "completed" },
+          { title: "valid merge pointer shape", status: "completed" },
           {
             kind: "merge",
             pointer: "abc1234",
@@ -659,6 +659,64 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
     expect(gate.reports.every((r) => r.outcome === "already_terminal")).toBe(true);
     expect(gate.reports.some((r) => r.outcome === "evidence")).toBe(false);
     expect(gate.reports[0]?.detail).toMatch(/typed evidence not re-checked/);
+  });
+
+  it("landing-set kind:uat historical test pointer still lands (#4563 / Greptile P1)", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          { title: "historical uat stamp", status: "completed" },
+          {
+            kind: "uat",
+            pointer: "packages/core/src/authz/classify.test.ts",
+            recorded_at: "2026-08-10T12:00:00Z",
+            recorded_by: "vitest",
+          },
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(true);
+    expect(gate.reports[0]?.outcome).toBe("already_terminal");
+  });
+
+  it("landing-set kind:test markdown pointer is refused (Greptile P1)", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          { title: "test points at markdown", status: "completed" },
+          {
+            kind: "test",
+            pointer: "docs/notes.md",
+            recorded_at: "2026-08-10T12:00:00Z",
+            recorded_by: "vitest",
+          },
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.outcome).toBe("missing");
+    expect(gate.reports[0]?.detail).toMatch(TEST_POINTER_SHAPE_REMEDIATION);
+    expect(gate.reports[0]?.detail).toMatch(/#4879|blocks completed\/ entry/);
+  });
+
+  it("landing-set kind:merge non-commit pointer is refused (Greptile P1)", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          { title: "merge points at PR prose", status: "completed" },
+          {
+            kind: "merge",
+            pointer: "PR #5205",
+            recorded_at: "2026-08-10T12:00:00Z",
+            recorded_by: "vitest",
+          },
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.outcome).toBe("missing");
+    expect(gate.reports[0]?.detail).toMatch(MERGE_POINTER_SHAPE_REMEDIATION);
+    expect(gate.reports[0]?.detail).toMatch(/#4879|blocks completed\/ entry/);
   });
 
   it("landing-set empty {} evidence does not count as typed evidence (#4879 Greptile P1)", () => {

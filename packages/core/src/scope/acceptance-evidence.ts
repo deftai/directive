@@ -418,9 +418,10 @@ export function isEvidenceKindSuitable(
 }
 
 /**
- * Structural x-directive/evidence parse. Pointer-shape is optional so landing-set
- * already_terminal can accept historical kind:uat test pointers (#4563) while still
- * refusing empty {} / missing fields (Greptile P1 / #4879).
+ * Structural x-directive/evidence parse. Landing-set may pass
+ * requirePointerShape:false only for historical kind:uat (#4563); other kinds keep
+ * the default pointer-shape check. Empty {} / missing fields still refuse
+ * (Greptile P1 / #4879).
  */
 function parseEvidence(
   raw: unknown,
@@ -1374,14 +1375,25 @@ function evaluateOneItem(
   // even when already terminal; persist skips creating a second pending row (#4385).
   if (!NON_TERMINAL_ITEM_STATUSES.has(status) && !isClauseBindingItem(item, clauseKeys)) {
     // #4879 Prefer-A: landing-set statuses cannot enter completed/ without typed
-    // evidence. Structural namespaced evidence still skips suitability / pointer-
-    // shape re-check (#4563 historical kind:uat); empty {} / malformed do not
-    // count (Greptile P1). empty/done stay outside this list.
+    // evidence. Only historical kind:uat may skip pointer-shape (#4563); other
+    // kinds keep requirePointerShape. Empty {} / malformed do not count
+    // (Greptile P1). empty/done stay outside this list.
     if (COMPLETED_LANDING_WITHOUT_EVIDENCE_STATUSES.has(status)) {
       const landingFields = readNamespacedAcceptanceFields(item);
-      const landingEvidence = landingFields.hasEvidence
-        ? parseEvidence(landingFields.evidence, { requirePointerShape: false })
-        : null;
+      let landingEvidence: ReturnType<typeof parseEvidence> | null = null;
+      if (landingFields.hasEvidence) {
+        const structural = parseEvidence(landingFields.evidence, {
+          requirePointerShape: false,
+        });
+        if (!structural.ok) {
+          landingEvidence = structural;
+        } else if (structural.record.kind === "uat") {
+          // #4563 historical kind:uat test pointers stay already_terminal.
+          landingEvidence = structural;
+        } else {
+          landingEvidence = parseEvidence(landingFields.evidence);
+        }
+      }
       if (landingEvidence === null || !landingEvidence.ok) {
         const bareHint =
           landingFields.hasBareEvidence || landingFields.hasBareDisposition
