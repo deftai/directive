@@ -24,6 +24,14 @@ export interface CheckResult {
   readonly data?: Readonly<Record<string, unknown>>;
 }
 
+/** One dangling junction/symlink under node_modules (#3749). */
+export interface DanglingNodeModulesLink {
+  readonly relativePath: string;
+  readonly target: string;
+  /** Target path matches AGENT_SCRATCH_DIRS + worktrees/ (P2 bonus). */
+  readonly agentScratchWorktreeTarget: boolean;
+}
+
 export interface DoctorResult {
   readonly projectRoot: string;
   readonly installRoot: string | null;

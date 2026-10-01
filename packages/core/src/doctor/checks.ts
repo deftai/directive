@@ -1,7 +1,12 @@
-import { readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, lstatSync, readdirSync, readlinkSync, statSync } from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve as resolvePath } from "node:path";
 import { VBRIEF_VERSION } from "@deftai/directive-types";
+import { isAgentScratchWorktreePath } from "../fs/non-product-dirs.js";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
+import {
+  detectPackageManager,
+  type PackageManager,
+} from "../resolution/package-manager.js";
 import {
   detectDualLayout,
   detectLegacyLayout,
@@ -60,7 +65,7 @@ import {
   parseManifest,
 } from "./manifest.js";
 import { readTextSafe } from "./paths.js";
-import type { CheckResult } from "./types.js";
+import type { CheckResult, DanglingNodeModulesLink } from "./types.js";
 
 /** Remediation verb for project envelope behind-major (#2971 / #3243 / #3236). */
 export const XBRIEF_ENVELOPE_MIGRATE_COMMAND = "deft migrate:xbrief" as const;
@@ -115,6 +120,223 @@ export interface CheckSeams {
   readonly isDir?: (path: string) => boolean;
   /** List directory entries; throws on enum failure (fail-closed for live lifecycle dirs). */
   readonly readdir?: (path: string) => string[];
+}
+
+/** Dirent-like entry for the bounded dangling-link walk (#3749). */
+export interface DanglingLinkDirent {
+  readonly name: string;
+  isDirectory(): boolean;
+  isSymbolicLink(): boolean;
+}
+
+/**
+ * Injectable seams for the read-only dangling junction/symlink probe (#3749).
+ * Walk uses lstat/readlink only — never follows links into sibling worktrees.
+ */
+export interface DanglingNodeModulesLinksSeams extends CheckSeams {
+  readonly readdirWithFileTypes?: (path: string) => readonly DanglingLinkDirent[];
+  readonly lstat?: (path: string) => { isSymbolicLink(): boolean } | null;
+  readonly readlink?: (path: string) => string;
+  /** True when the resolved link target exists (no follow-mutate). */
+  readonly targetExists?: (path: string) => boolean;
+  readonly packageManager?: PackageManager;
+  readonly platform?: NodeJS.Platform;
+  readonly maxEntries?: number;
+  readonly maxDepth?: number;
+}
+
+/** Doctor check name for dangling node_modules junctions/symlinks (#3749). */
+export const DANGLING_NODE_MODULES_LINKS_CHECK = "dangling-node-modules-links" as const;
+
+const DANGLING_WALK_MAX_ENTRIES_DEFAULT = 10_000;
+const DANGLING_WALK_MAX_DEPTH_DEFAULT = 8;
+
+/** PM-aware recovery one-liner; Windows pnpm keeps the CI=true TTY note (#3749). */
+export function danglingNodeModulesRecoveryCommand(
+  pm: PackageManager,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  if (pm === "pnpm") {
+    return platform === "win32"
+      ? "CI=true pnpm install --frozen-lockfile"
+      : "pnpm install --frozen-lockfile";
+  }
+  return "npm ci";
+}
+
+function resolveDanglingPackageManager(
+  projectRoot: string,
+  seams: DanglingNodeModulesLinksSeams,
+): PackageManager {
+  if (seams.packageManager) return seams.packageManager;
+  const readTextForPm = seams.readText ?? readTextSafe;
+  const isFileForPm =
+    seams.isFile ??
+    ((path: string) => {
+      try {
+        return existsSync(path);
+      } catch {
+        return false;
+      }
+    });
+  let packageManagerField: string | null = null;
+  const raw = readTextForPm(join(projectRoot, "package.json"));
+  if (raw !== null) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const field = (parsed as Record<string, unknown>).packageManager;
+        packageManagerField = typeof field === "string" ? field : null;
+      }
+    } catch {
+      packageManagerField = null;
+    }
+  }
+  return detectPackageManager({
+    env: { DEFT_PACKAGE_MANAGER: process.env.DEFT_PACKAGE_MANAGER },
+    packageManagerField,
+    pnpmLockPresent: isFileForPm(join(projectRoot, "pnpm-lock.yaml")),
+  });
+}
+
+function scanDanglingNodeModulesLinks(
+  nodeModulesRoot: string,
+  seams: DanglingNodeModulesLinksSeams,
+): DanglingNodeModulesLink[] {
+  const maxEntries = seams.maxEntries ?? DANGLING_WALK_MAX_ENTRIES_DEFAULT;
+  const maxDepth = seams.maxDepth ?? DANGLING_WALK_MAX_DEPTH_DEFAULT;
+  const readdirWithTypes =
+    seams.readdirWithFileTypes ??
+    ((dir: string) => readdirSync(dir, { withFileTypes: true }) as DanglingLinkDirent[]);
+  const readlink =
+    seams.readlink ?? ((path: string) => readlinkSync(path, { encoding: "utf8" }));
+  const targetExists =
+    seams.targetExists ??
+    ((path: string) => {
+      try {
+        lstatSync(path);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+
+  const dangling: DanglingNodeModulesLink[] = [];
+  const queue: Array<{ dir: string; depth: number }> = [{ dir: nodeModulesRoot, depth: 0 }];
+  let examined = 0;
+
+  while (queue.length > 0 && examined < maxEntries) {
+    const next = queue.shift();
+    if (!next) break;
+    const { dir, depth } = next;
+    let entries: readonly DanglingLinkDirent[];
+    try {
+      entries = readdirWithTypes(dir);
+    } catch {
+      continue;
+    }
+    for (const ent of entries) {
+      if (examined >= maxEntries) break;
+      examined += 1;
+      const full = join(dir, ent.name);
+      let isLink = false;
+      try {
+        isLink = ent.isSymbolicLink();
+      } catch {
+        if (seams.lstat) {
+          const st = seams.lstat(full);
+          isLink = st?.isSymbolicLink() === true;
+        } else {
+          try {
+            isLink = lstatSync(full).isSymbolicLink();
+          } catch {
+            continue;
+          }
+        }
+      }
+      if (isLink) {
+        let target: string;
+        try {
+          target = readlink(full);
+        } catch {
+          continue;
+        }
+        const absTarget = isAbsolute(target) ? target : resolvePath(dirname(full), target);
+        if (!targetExists(absTarget)) {
+          const relativePath = relative(nodeModulesRoot, full).split("\\").join("/");
+          dangling.push({
+            relativePath,
+            target,
+            agentScratchWorktreeTarget:
+              isAgentScratchWorktreePath(target) || isAgentScratchWorktreePath(absTarget),
+          });
+        }
+        continue;
+      }
+      let isDir = false;
+      try {
+        isDir = ent.isDirectory();
+      } catch {
+        continue;
+      }
+      if (isDir && depth < maxDepth) {
+        queue.push({ dir: full, depth: depth + 1 });
+      }
+    }
+  }
+  return dangling;
+}
+
+/**
+ * Read-only dangling junction/symlink probe under node_modules (#3749).
+ * Hard-fails when dangling entries exist; skips cleanly when node_modules is absent.
+ * Does not auto-repair under doctor --fix.
+ */
+export function checkDanglingNodeModulesLinks(
+  projectRoot: string,
+  seams: DanglingNodeModulesLinksSeams = {},
+): CheckResult {
+  const name = DANGLING_NODE_MODULES_LINKS_CHECK;
+  const nodeModulesRoot = join(projectRoot, "node_modules");
+  if (!isDirectoryPath(nodeModulesRoot, seams)) {
+    return {
+      name,
+      status: "skip",
+      detail: "node_modules absent — dangling link probe skipped.",
+    };
+  }
+  const dangling = scanDanglingNodeModulesLinks(nodeModulesRoot, seams);
+  const pm = resolveDanglingPackageManager(projectRoot, seams);
+  const platform = seams.platform ?? process.platform;
+  const recovery = danglingNodeModulesRecoveryCommand(pm, platform);
+  if (dangling.length === 0) {
+    return {
+      name,
+      status: "pass",
+      detail: "No dangling junctions/symlinks under node_modules.",
+      data: { recovery, package_manager: pm },
+    };
+  }
+  const named = dangling.map((d) => d.relativePath).join(", ");
+  const worktreeHits = dangling.filter((d) => d.agentScratchWorktreeTarget);
+  const worktreeNote =
+    worktreeHits.length > 0
+      ? ` ${worktreeHits.length} target(s) resolve under an agent scratch worktree path (AGENT_SCRATCH_DIRS/worktrees).`
+      : "";
+  return {
+    name,
+    status: "fail",
+    detail:
+      `Dangling junction/symlink under node_modules: ${named}.${worktreeNote} ` +
+      `Broken install — recover with \`${recovery}\`. ` +
+      "Discovery: throttle-skip / always-cheap path when node_modules exists, or `deft doctor --full`.",
+    data: {
+      dangling,
+      recovery,
+      package_manager: pm,
+      discovery: "throttle-skip-or-doctor-full",
+    },
+  };
 }
 
 /** True when an fs error means the path is cleanly absent (not unreadable). */
@@ -1569,7 +1791,7 @@ export function deriveExitCode(checks: readonly CheckResult[], errors: readonly 
 
 export function runChecksImpl(
   projectRoot: string,
-  seams: CheckSeams & { isDir?: (p: string) => boolean } = {},
+  seams: DanglingNodeModulesLinksSeams & { isDir?: (p: string) => boolean } = {},
 ): import("./types.js").DoctorResult {
   const errors: string[] = [];
   const isDir = seams.isDir ?? (() => false);
@@ -1615,6 +1837,7 @@ export function runChecksImpl(
     checks.push(checkCompletedUnguardedWrite(projectRoot));
     checks.push(checkReviewerPresence(projectRoot, seams));
     checks.push(checkCursorSdkAuth());
+    checks.push(checkDanglingNodeModulesLinks(projectRoot, seams));
     return {
       projectRoot,
       installRoot: null,
@@ -1640,6 +1863,7 @@ export function runChecksImpl(
   checks.push(checkCompletedUnguardedWrite(projectRoot));
   checks.push(checkReviewerPresence(projectRoot, seams));
   checks.push(checkCursorSdkAuth());
+  checks.push(checkDanglingNodeModulesLinks(projectRoot, seams));
   return {
     projectRoot,
     installRoot,
