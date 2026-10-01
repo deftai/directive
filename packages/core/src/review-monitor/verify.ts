@@ -287,9 +287,10 @@ export function hasActivePollingHeartbeat(
  * When the host primitive is `spawn_subagent` and a sticky lease exists:
  * - lease `platform_primitive` MUST be `spawn_subagent`
  * - live wait `parent_id` MUST be the lease `monitor_agent_id` (Approach 1 child), or
- * - {@link POST_CLEAN_WAIT_PARENT_ID} **and** a local CLEAN attestation from `pr:watch`
+ * - {@link POST_CLEAN_WAIT_PARENT_ID} **and** CLEAN attestation for the **live** PR HEAD
  * Parent-shell native `pr:watch` (`parent_id=pr-watch`) does not count.
- * Premature closer without CLEAN attestation does not arm (Greptile #5219).
+ * Live HEAD is resolved only on the closer path (child heartbeat skips the lookup).
+ * Caller `--head-sha` cannot override a newer live tip (#5219 Greptile).
  *
  * Non-`spawn_subagent` tiers keep the unscoped #5020 heartbeat predicate.
  */
@@ -302,8 +303,10 @@ export function heartbeatActiveForMergePathArm(
     now?: Date;
     staleMinutes?: number;
     isProcessAlive?: (pid: number) => boolean;
-    /** Optional HEAD; when set, CLEAN attestation must match (or omit sha). */
+    /** Hint only; live HEAD from {@link resolveLiveHeadSha} wins for attestation. */
     headSha?: string | null;
+    /** Lazy live PR HEAD — invoked only when child heartbeat is absent (#5219 P2). */
+    resolveLiveHeadSha?: () => string | null;
   },
 ): boolean {
   const base = {
@@ -327,7 +330,15 @@ export function heartbeatActiveForMergePathArm(
     ) {
       return true;
     }
-    if (!hasMergePathCleanAttestation(projectRoot, pr, input.headSha ?? null)) {
+    const liveRaw = input.resolveLiveHeadSha?.() ?? null;
+    const live = typeof liveRaw === "string" && liveRaw.trim().length > 0 ? liveRaw.trim() : null;
+    const hinted =
+      typeof input.headSha === "string" && input.headSha.trim().length > 0
+        ? input.headSha.trim()
+        : null;
+    // Live tip wins; stale caller --head-sha cannot arm a newer tip (#5219 P1).
+    const want = live ?? hinted;
+    if (!hasMergePathCleanAttestation(projectRoot, pr, want)) {
       return false;
     }
     return hasActivePollingHeartbeat(projectRoot, pr, {
@@ -336,8 +347,7 @@ export function heartbeatActiveForMergePathArm(
     });
   }
   return hasActivePollingHeartbeat(projectRoot, pr, base);
-}
-/**
+} /**
  * Cheap Approach 1 babysitter one-liner (#5219 P3): child register + watch first
  * (heartbeat live), then parent `verify --merge-path-arm --live-wait`.
  */
@@ -464,32 +474,20 @@ export function evaluateReviewMonitorGate(
   }
 
   const monitorRecord = githubMonitor;
-  // Bind CLEAN attestation to live HEAD even when callers omit --head-sha (#5219).
-  let headForArm =
-    typeof args.headSha === "string" && args.headSha.trim().length > 0 ? args.headSha.trim() : null;
-  if (
-    headForArm === null &&
-    monitorRecord !== null &&
-    tier.primitive === "spawn_subagent" &&
-    monitorRecord.platform_primitive === "spawn_subagent"
-  ) {
-    const fetchHead =
-      args.fetchPrHeadShaFn ??
-      ((pr, r) => {
-        const got = fetchPrHeadShaRest(pr, r, defaultRunGh);
-        return got.sha;
-      });
-    const live = fetchHead(args.pr, repo);
-    if (typeof live === "string" && live.trim().length > 0) {
-      headForArm = live.trim();
-    }
-  }
+  const fetchHead =
+    args.fetchPrHeadShaFn ??
+    ((prNum: number, r: string) => {
+      const got = fetchPrHeadShaRest(prNum, r, defaultRunGh);
+      return got.sha;
+    });
   const heartbeatActive = heartbeatActiveForMergePathArm(projectRoot, args.pr, {
     tierPrimitive: tier.primitive,
     lease: monitorRecord,
     now,
     staleMinutes,
-    headSha: headForArm,
+    headSha: args.headSha ?? null,
+    // Lazy: only runs when Approach 1 child heartbeat is absent (#5219 P2).
+    resolveLiveHeadSha: () => fetchHead(args.pr, repo),
   });
 
   if (monitorRecord !== null) {

@@ -649,7 +649,8 @@ describe("evaluateReviewMonitorGate", () => {
         tierPrimitive: "spawn_subagent",
         lease,
         isProcessAlive: () => true,
-        headSha: "tip-b",
+        headSha: "tip-a",
+        resolveLiveHeadSha: () => "tip-b",
       }),
     ).toBe(false);
     expect(
@@ -658,8 +659,45 @@ describe("evaluateReviewMonitorGate", () => {
         lease,
         isProcessAlive: () => true,
         headSha: null,
+        resolveLiveHeadSha: () => "tip-b",
       }),
     ).toBe(false);
+  });
+
+  it("spawn_subagent: child heartbeat skips live HEAD lookup (#5219 P2)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-5219-no-lookup-"));
+    const lease = {
+      pr: 5219,
+      repo: "deftai/directive" as string | null,
+      head_sha: "abc" as string | null,
+      platform_primitive: "spawn_subagent" as const,
+      monitor_agent_id: "babysitter-5219",
+      owner: "owner",
+      started_at: NOW.toISOString(),
+      expires_at: computeExpiresAt(NOW),
+      worktree_path: null as string | null,
+      parent_session_id: null as string | null,
+      ended_at: null as string | null,
+      comment_id: 1 as number | null,
+    };
+    writePrWatchWaitHeartbeat(root, 5219, {
+      phase: "polling",
+      parentId: "babysitter-5219",
+      pid: 4_007,
+    });
+    let lookedUp = 0;
+    expect(
+      heartbeatActiveForMergePathArm(root, 5219, {
+        tierPrimitive: "spawn_subagent",
+        lease,
+        isProcessAlive: () => true,
+        resolveLiveHeadSha: () => {
+          lookedUp += 1;
+          return "should-not-run";
+        },
+      }),
+    ).toBe(true);
+    expect(lookedUp).toBe(0);
   });
 
   it("formatApproach1BabysitterOneLiner watches before parent verify (#5219 P3)", () => {
