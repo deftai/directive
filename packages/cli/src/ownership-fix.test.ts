@@ -14,6 +14,14 @@ describe("ownership:fix CLI (#1617)", () => {
     });
   });
 
+  it("parseArgs swallows -- so documented task/cli forms work (#1617)", () => {
+    expect(parseArgs(["--", "--project-root", ".", "--owner", "1000:1000"])).toEqual({
+      projectRoot: ".",
+      owner: "1000:1000",
+      json: false,
+    });
+  });
+
   it("parseArgs rejects missing values and unknown flags", () => {
     expect(parseArgs(["--project-root"]).error).toMatch(/expected one argument/);
     expect(parseArgs(["--owner"]).error).toMatch(/expected uid:gid/);

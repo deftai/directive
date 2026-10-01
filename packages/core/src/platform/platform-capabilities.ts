@@ -770,9 +770,26 @@ export function classifyMountOwnershipCapability(
   options: {
     readonly readMountInfo?: () => string | null;
     readonly readFile?: (path: string) => string | null;
+    /** Resolve symlinks before mount matching (symlink on DrvFs → ext4 target). */
+    readonly realpath?: (path: string) => string;
   } = {},
 ): MountOwnershipFacts {
-  const path = normalizeProjectPath(projectRoot);
+  const inputPath = normalizeProjectPath(projectRoot);
+  let path = inputPath;
+  try {
+    if (options.realpath) {
+      path = options.realpath(inputPath);
+    } else {
+      try {
+        path = realpathSync(inputPath);
+      } catch {
+        path = inputPath;
+      }
+    }
+  } catch {
+    path = inputPath;
+  }
+  path = normalizeProjectPath(path);
   const normalized = path.replace(/\\/g, "/");
   const mountInfo =
     options.readMountInfo?.() ?? readTextOrNull("/proc/self/mountinfo", options.readFile);
@@ -1287,7 +1304,11 @@ export function fixScopedOwnership(options: OwnershipFixSeams = {}): OwnershipFi
       let entries: string[] = [];
       try {
         entries = readdir(absPath);
-      } catch {
+      } catch (err) {
+        failed.push(absPath);
+        messages.push(
+          `cannot list directory ${absPath}: ${err instanceof Error ? err.message : String(err)}`,
+        );
         return;
       }
       for (const name of entries) {

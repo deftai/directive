@@ -15,6 +15,14 @@ describe("ownership:doctor CLI (#1617)", () => {
     expect(parseArgs(["--project-root=/tmp/q", "--owner=1001:1001"]).projectRoot).toBe("/tmp/q");
   });
 
+  it("parseArgs swallows -- so recovery forms work (#1617)", () => {
+    expect(parseArgs(["--", "--project-root", ".", "--json"])).toEqual({
+      projectRoot: ".",
+      owner: null,
+      json: true,
+    });
+  });
+
   it("parseArgs rejects missing values and unknown flags", () => {
     expect(parseArgs(["--project-root"]).error).toMatch(/expected one argument/);
     expect(parseArgs(["--owner"]).error).toMatch(/expected uid:gid/);

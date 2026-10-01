@@ -352,14 +352,26 @@ describe("WSL ownership guard (#1617)", () => {
     expect(
       classifyMountOwnershipCapability("/mnt/c/Users/alice/proj", {
         readMountInfo: () => drvfsMountInfo,
+        realpath: (p) => p,
       }).capability,
     ).toBe("mount-pinned");
+  });
+
+  it("classifies symlink path via realpath target mount (#1617)", () => {
+    const combined = `${drvfsMountInfo}\n${ext4MountInfo}`;
+    expect(
+      classifyMountOwnershipCapability("/mnt/c/project-link", {
+        readMountInfo: () => combined,
+        realpath: () => "/home/alice/proj",
+      }).capability,
+    ).toBe("harm-capable");
   });
 
   it("treats metadata-enabled DrvFs as harm-capable", () => {
     expect(
       classifyMountOwnershipCapability("/mnt/c/proj", {
         readMountInfo: () => metadataDrvFs,
+        realpath: (p) => p,
       }).capability,
     ).toBe("harm-capable");
   });
@@ -367,6 +379,7 @@ describe("WSL ownership guard (#1617)", () => {
   it("unknown mount table fails closed with actionable detail", () => {
     const mount = classifyMountOwnershipCapability("/var/lib/proj", {
       readMountInfo: () => null,
+      realpath: (p) => p,
     });
     expect(mount.capability).toBe("unknown");
     expect(mount.detail).toMatch(/fail closed/i);
@@ -477,6 +490,25 @@ describe("WSL ownership guard (#1617)", () => {
     });
     expect(falseSuccess.ok).toBe(false);
     expect(falseSuccess.messages.join(" ")).toMatch(/re-stat|DrvFs/i);
+
+    const unlistable = fixScopedOwnership({
+      projectRoot: "/home/alice/proj",
+      explicitOwner: "1000:1000",
+      readPasswd: () => passwd,
+      approvedRoots: ["."],
+      exists: () => true,
+      lstat: () => ({ uid: 1000, gid: 1000, isDirectory: true, isSymbolicLink: false }),
+      statOwnership: () => ({ uid: 1000, gid: 1000 }),
+      chown: () => {
+        throw new Error("should not chown");
+      },
+      readdir: () => {
+        throw new Error("EACCES");
+      },
+    });
+    expect(unlistable.ok).toBe(false);
+    expect(unlistable.failed).toContain("/home/alice/proj");
+    expect(unlistable.messages.join(" ")).toMatch(/cannot list directory/i);
   });
 
   it("ownershipGuardToDict exposes vocabulary split", () => {

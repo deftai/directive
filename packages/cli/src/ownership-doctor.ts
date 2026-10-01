@@ -27,7 +27,8 @@ export function parseArgs(argv: readonly string[]): OwnershipDoctorArgs {
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--json") {
+    if (arg === "--") {
+    } else if (arg === "--json") {
       parsed.json = true;
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
