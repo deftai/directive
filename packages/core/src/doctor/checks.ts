@@ -1,10 +1,6 @@
 import { readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { VBRIEF_VERSION } from "@deftai/directive-types";
-import {
-  evaluateWslOwnershipGuard,
-  ownershipGuardToDict,
-} from "../platform/platform-capabilities.js";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import {
   detectDualLayout,
@@ -23,6 +19,10 @@ import {
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { scanCompletedLifecycleConsistency } from "../lifecycle/completed-consistency.js";
 import { scanCompletedWriteCorpus } from "../lifecycle/completed-write-guard.js";
+import {
+  evaluateWslOwnershipGuard,
+  ownershipGuardToDict,
+} from "../platform/platform-capabilities.js";
 import { resolveCheckResume } from "../policy/check-resume.js";
 import { resolveCoverageDebt } from "../policy/coverage-debt.js";
 import { resolveReviewers } from "../policy/reviewers.js";

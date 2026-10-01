@@ -8,14 +8,7 @@ import {
   statSync,
 } from "node:fs";
 import { userInfo } from "node:os";
-import {
-  dirname,
-  join,
-  parse as parsePath,
-  posix,
-  resolve as resolvePath,
-  sep,
-} from "node:path";
+import { dirname, join, parse as parsePath, posix, resolve as resolvePath, sep } from "node:path";
 import {
   IDENTITY_LOCAL_USER,
   IDENTITY_REAL_ROOT,
@@ -761,7 +754,8 @@ export function resolveProjectOwner(options: OwnershipGuardSeams = {}): Resolved
     source: primary.source,
     candidates,
     conflict: false,
-    detail: `Resolved filesystem project-owner ${primary.uid}:${primary.gid}` +
+    detail:
+      `Resolved filesystem project-owner ${primary.uid}:${primary.gid}` +
       `${account ? ` (${account})` : ""} via ${primary.source}.`,
   };
 }
@@ -821,7 +815,11 @@ export function classifyMountOwnershipCapability(
     const options = `${left[5] ?? ""},${right.slice(2).join(",")}`;
     if (!mountPoint) continue;
     const mountNorm = mountPoint.replace(/\\/g, "/");
-    if (normalized === mountNorm || normalized.startsWith(mountNorm.endsWith("/") ? mountNorm : `${mountNorm}/`) || mountNorm === "/") {
+    if (
+      normalized === mountNorm ||
+      normalized.startsWith(mountNorm.endsWith("/") ? mountNorm : `${mountNorm}/`) ||
+      mountNorm === "/"
+    ) {
       if (!best || mountNorm.length >= best.mountPoint.length) {
         best = { mountPoint: mountNorm, fstype, options };
       }
@@ -874,8 +872,7 @@ export function classifyMountOwnershipCapability(
     capability: "unknown",
     fstype: best.fstype,
     options: best.options,
-    detail:
-      `Mount ${best.mountPoint} fstype=${best.fstype} ownership semantics unknown; fail closed.`,
+    detail: `Mount ${best.mountPoint} fstype=${best.fstype} ownership semantics unknown; fail closed.`,
   };
 }
 
@@ -969,9 +966,7 @@ export function evaluateWslOwnershipGuard(
     return {
       ...base,
       status: "ok",
-      messages: [
-        `WSL ownership guard ok: effective uid ${runtime.effectiveUid} is non-root.`,
-      ],
+      messages: [`WSL ownership guard ok: effective uid ${runtime.effectiveUid} is non-root.`],
       sessionWarnLines: [],
       blockProtectedMutation: false,
     };
@@ -1053,9 +1048,7 @@ export function evaluateWslOwnershipGuard(
  * Live check for protected mutating entry points (#1617 item 5).
  * Independent of ritual/doctor cache. Returned failure only.
  */
-export function assertProtectedMutationOwnership(
-  options: OwnershipGuardSeams = {},
-): {
+export function assertProtectedMutationOwnership(options: OwnershipGuardSeams = {}): {
   readonly ok: boolean;
   readonly exitCode: number;
   readonly verdict: WslOwnershipGuardVerdict;
@@ -1073,9 +1066,7 @@ export function assertProtectedMutationOwnership(
   };
 }
 
-export function ownershipGuardToDict(
-  verdict: WslOwnershipGuardVerdict,
-): Record<string, unknown> {
+export function ownershipGuardToDict(verdict: WslOwnershipGuardVerdict): Record<string, unknown> {
   return {
     classifier: verdict.classifier,
     vocabulary: {
@@ -1201,9 +1192,11 @@ export function fixScopedOwnership(options: OwnershipFixSeams = {}): OwnershipFi
   }
 
   const statOwnership = options.statOwnership ?? defaultStatOwnership;
-  const chown = options.chown ?? ((path: string, uid: number, gid: number) => {
-    chownSync(path, uid, gid);
-  });
+  const chown =
+    options.chown ??
+    ((path: string, uid: number, gid: number) => {
+      chownSync(path, uid, gid);
+    });
   const readdir = options.readdir ?? ((path: string) => readdirSync(path));
   const exists = options.exists ?? ((path: string) => existsSync(path));
 
@@ -1255,7 +1248,10 @@ export function fixScopedOwnership(options: OwnershipFixSeams = {}): OwnershipFi
         skippedProtected.push(absPath);
         return;
       }
-      if (!isPathInsideRoot(target, root) && !approvedAbs.some((r) => isPathInsideRoot(target!, r))) {
+      if (
+        !isPathInsideRoot(target, root) &&
+        !approvedAbs.some((r) => isPathInsideRoot(target!, r))
+      ) {
         skippedProtected.push(absPath);
         return;
       }

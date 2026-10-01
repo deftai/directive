@@ -272,11 +272,9 @@ describe("WSL ownership guard (#1617)", () => {
     "36 1 8:1 / /home rw,relatime - ext4 /dev/sda1 rw\n" +
     "37 1 0:35 / /mnt/c rw - 9p C:\\ rw,noatime\n";
 
-  const drvfsMountInfo =
-    "36 1 0:35 / /mnt/c rw,noatime - 9p C:\\ rw,noatime\n";
+  const drvfsMountInfo = "36 1 0:35 / /mnt/c rw,noatime - 9p C:\\ rw,noatime\n";
 
-  const metadataDrvFs =
-    "36 1 0:35 / /mnt/c rw - drvfs C:\\ rw,metadata\n";
+  const metadataDrvFs = "36 1 0:35 / /mnt/c rw - drvfs C:\\ rw,metadata\n";
 
   it("never hard-fails native Windows or macOS", () => {
     for (const platform of ["win32", "darwin"] as const) {
@@ -351,9 +349,11 @@ describe("WSL ownership guard (#1617)", () => {
     });
     expect(verdict.status).toBe("exempt-mount-pinned");
     expect(verdict.blockProtectedMutation).toBe(false);
-    expect(classifyMountOwnershipCapability("/mnt/c/Users/alice/proj", {
-      readMountInfo: () => drvfsMountInfo,
-    }).capability).toBe("mount-pinned");
+    expect(
+      classifyMountOwnershipCapability("/mnt/c/Users/alice/proj", {
+        readMountInfo: () => drvfsMountInfo,
+      }).capability,
+    ).toBe("mount-pinned");
   });
 
   it("treats metadata-enabled DrvFs as harm-capable", () => {
@@ -408,9 +408,13 @@ describe("WSL ownership guard (#1617)", () => {
         path === "/opt/shared" ? { uid: 0, gid: 0 } : { uid: 1000, gid: 1000 },
     });
     // May resolve via ancestor or conflict with bob — either unresolved/ambiguous or single.
-    expect(["ambiguous", "nearest-nonroot-ancestor", "sudo-env", "user-env", "unresolved"]).toContain(
-      ambiguous.source,
-    );
+    expect([
+      "ambiguous",
+      "nearest-nonroot-ancestor",
+      "sudo-env",
+      "user-env",
+      "unresolved",
+    ]).toContain(ambiguous.source);
   });
 
   it("ownership:fix restats after chown and refuses env-only authorize", () => {

@@ -73,6 +73,7 @@ import {
 
 /** #1617: re-export so doctor consumers can invoke the ownership check directly. */
 export { checkWslOwnershipGuard };
+
 import {
   CONSUMER_FRAMEWORK_DIRS,
   EXPECTED_CONTENT_DIRS,

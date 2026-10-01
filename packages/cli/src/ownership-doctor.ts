@@ -7,8 +7,8 @@
 import { resolve } from "node:path";
 import {
   evaluateWslOwnershipGuard,
-  ownershipGuardToDict,
   OWNERSHIP_FACTS_CLASSIFIER,
+  ownershipGuardToDict,
 } from "@deftai/directive-core/platform";
 import { isDirectEntrypoint } from "./entrypoint.js";
 
