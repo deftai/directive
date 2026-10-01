@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **pr:watch treats merged/closed PRs as terminal verdicts (#4288).** REST `repos/.../pulls/<N>` `state`/`merged` short-circuits ahead of Greptile body and SHA-match holdout: `merged=true` → `MERGED` exit 0; `state=closed` + `merged=false` → `CLOSED_UNMERGED` exit 2. Open PRs keep the sha_match stale-review guard. Tracking #4288.
+- **pr:watch finishes when the pull request is already merged or closed (#4288).** A merged PR ends the wait as success; a closed unmerged PR ends as not shipped. Open PRs still require a current review. Tracking #4288.
 - **fix(swarm): origin active-brief probe requires a blob (#4714).** `originActiveBriefPresent` uses `git cat-file -t` and refuses tree objects. Retained transport admits exact reviewed bytes only. Tracking #4714.
 - **process(agents): raise agentsMdBudget for #4714 spawn-dest agents-entry refresh.** managedMaxLines 188→189; absoluteMaxBytes 22124→22886 so verify:agents-md-budget stays green after dest-place-then-cwd marker sync. Tracking #4714.
 - **fix(swarm): retained-brief scan prefers exact reviewed-byte match across dests (#4714).** materializeRetainedBrief no longer stops at the first readable stale retained root. Tracking #4714.

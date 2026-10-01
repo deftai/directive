@@ -175,17 +175,22 @@ export function probeOnce(
   let prMerged: boolean | null = null;
   if (repo !== null) {
     const lifecycle = fetchPrLifecycleRest(prNumber, repo, runGh);
-    if (lifecycle.error === null) {
-      prState = lifecycle.state;
-      prMerged = lifecycle.merged;
-      if (prMerged === true) {
-        return lifecycleProbe(headSha, prState ?? "closed", true);
-      }
-      if (prState === "closed" && prMerged === false) {
-        return lifecycleProbe(headSha, "closed", false);
-      }
+    if (lifecycle.error !== null) {
+      // Fail closed (#4288 Greptile P1): unknown lifecycle must not fall through
+      // to Greptile CLEAN for a closed-unmerged PR.
+      return errorProbe(
+        headSha,
+        `PR lifecycle REST failed (state/merged required before Greptile path): ${lifecycle.error}`,
+      );
     }
-    // Lifecycle REST failure: continue; do not invent CLOSED/MERGED.
+    prState = lifecycle.state;
+    prMerged = lifecycle.merged;
+    if (prMerged === true) {
+      return lifecycleProbe(headSha, prState ?? "closed", true);
+    }
+    if (prState === "closed" && prMerged === false) {
+      return lifecycleProbe(headSha, "closed", false);
+    }
   }
 
   // 2. Latest Greptile body -- primary jq path, then REST fallback.

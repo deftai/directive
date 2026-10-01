@@ -11,7 +11,7 @@ import {
   mintFinishLoopTemplateGrant,
   resolveFinishLoopTemplate,
 } from "../authz/templates.js";
-import { EXIT_CLEAN, EXIT_NEW_P0_P1 } from "../pr-watch/constants.js";
+import { EXIT_CLEAN, EXIT_NEW_P0_P1, VERDICT_MERGED } from "../pr-watch/constants.js";
 import type { WatchResult } from "../pr-watch/types.js";
 import { runDirectiveFinishLoop } from "./directive-finish-loop.js";
 import { evaluateFinishLoopGrant, grantCoversFinishLoopOps } from "./grant-gate.js";
@@ -365,6 +365,42 @@ describe("runPrFinishLoop", () => {
     expect(r.haltReason).toBe("merged");
     expect(r.mergeAttempted).toBe(true);
     expect(pinned).toBe("abc");
+  });
+
+  it("MERGED watch verdict skips merge path (#4288)", () => {
+    const root = tmpRoot();
+    mintFinishLoopTemplateGrant({ projectRoot: root });
+    let mergeCalls = 0;
+    const mergedWatch = (): WatchResult => ({
+      ...cleanWatch(9),
+      verdict: VERDICT_MERGED,
+      exitCode: EXIT_CLEAN,
+      probe: {
+        ...cleanWatch(9).probe,
+        prState: "closed",
+        prMerged: true,
+        isClean: false,
+        shaMatch: false,
+        lastReviewedSha: null,
+      },
+    });
+    const r = runPrFinishLoop({
+      projectRoot: root,
+      prNumber: 9,
+      merge: true,
+      watchFn: () => mergedWatch(),
+      mergeFn: () => {
+        mergeCalls += 1;
+        return 0;
+      },
+      writeProgress: false,
+    });
+    expect(r.exitCode).toBe(EXIT_OK);
+    expect(r.haltReason).toBe("already-merged");
+    expect(r.mergeAttempted).toBe(false);
+    expect(r.mergeSkippedReason).toBe("already-merged");
+    expect(r.watchVerdict).toBe(VERDICT_MERGED);
+    expect(mergeCalls).toBe(0);
   });
 });
 

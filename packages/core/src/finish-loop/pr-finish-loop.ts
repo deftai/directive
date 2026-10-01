@@ -21,6 +21,7 @@ import {
   EXIT_NEW_P0_P1,
   EXIT_TERMINAL_ERROR,
   VERDICT_CLEAN,
+  VERDICT_MERGED,
   VERDICT_NEW_P0_P1,
 } from "../pr-watch/constants.js";
 import type { WatchOptions, WatchResult } from "../pr-watch/types.js";
@@ -177,6 +178,24 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
       watchVerdict: verdict,
       mergeAttempted: false,
       mergeSkippedReason: null,
+      grantId: null,
+    };
+  }
+
+  // #4288: MERGED shares EXIT_CLEAN with CLEAN but must not enter the merge path.
+  if (verdict === VERDICT_MERGED) {
+    const message =
+      `pr:finish-loop OK: PR #${prNumber} already MERGED (pr:watch lifecycle terminal). ` +
+      "Skipping merge; leftover/scope:complete may proceed.";
+    log("halt", "already-merged", message);
+    return {
+      exitCode: EXIT_OK,
+      haltReason: "already-merged",
+      message,
+      prNumber,
+      watchVerdict: VERDICT_MERGED,
+      mergeAttempted: false,
+      mergeSkippedReason: "already-merged",
       grantId: null,
     };
   }
