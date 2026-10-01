@@ -129,10 +129,16 @@ describe("parseWatchArgs", () => {
         GROK_SESSION_ID: "babysitter-5219",
       }),
     ).toBe("babysitter-5219");
+    // Env handle may differ from GROK_SESSION_ID — still stamp the registered id.
     expect(
       resolveMergePathHeartbeatParentId("babysitter-5219", {
         DEFT_MONITOR_AGENT_ID: "babysitter-5219",
-        GROK_SESSION_ID: "parent-session",
+        GROK_SESSION_ID: "host-session-uuid",
+      }),
+    ).toBe("babysitter-5219");
+    expect(
+      resolveMergePathHeartbeatParentId("other-id", {
+        DEFT_MONITOR_AGENT_ID: "babysitter-5219",
       }),
     ).toBeUndefined();
   });

@@ -99,7 +99,7 @@ DEFT_MONITOR_AGENT_ID=<id> task pr:watch -- <N> --monitor-agent-id <id>
 # parent after child watch is live:
 task verify:review-monitor -- --pr <N> --merge-path-arm --live-wait
 ```
-Core helper: `formatApproach1BabysitterOneLiner` / `formatApproach1BabysitterCard` (`packages/core/src/swarm/approach1-babysitter.ts`). ⊗ Parent-shell `pr:watch --monitor-agent-id <leased id>` without spawn-injected `DEFT_MONITOR_AGENT_ID` / matching `GROK_SESSION_ID` — that impersonation does not arm. ⊗ Start `pr:wait-mergeable-and-merge` before CLEAN to satisfy this pre-CLEAN join.
+Core helper: `formatApproach1BabysitterOneLiner` / `formatApproach1BabysitterCard` (`packages/core/src/swarm/approach1-babysitter.ts`). ⊗ Parent-shell `pr:watch --monitor-agent-id <leased id>` without spawn-injected `DEFT_MONITOR_AGENT_ID` (or CLI matching `GROK_SESSION_ID`) — that impersonation does not arm. ⊗ Start `pr:wait-mergeable-and-merge` before CLEAN (#4822).
 
 ! **Mandatory checked handoff (#5219):** before the parent yields on a Tracking PR that still needs Greptile/CI shepherding while `spawn_subagent` is available, the same-turn checked handoff is `task verify:review-monitor -- --pr <N> --merge-path-arm --live-wait` exit 0 after Approach 1 register + **still-running** child-bound wait (verify after watch starts, not before). This host does **not** intercept every conversational yield — guarantee is scoped to that checked handoff (and Swarm Phase 5→6 / review-cycle ownership probes that invoke the same arm). Publish limitation: omitting the arm flag is unarmed stand-down, not silent Approach 1.
 

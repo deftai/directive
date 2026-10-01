@@ -707,10 +707,10 @@ export interface RunWatchOptions extends WatchOptions {}
 /**
  * Resolve heartbeat `parent_id` for #5219 merge-path identity join.
  *
- * Spawn-injected `DEFT_MONITOR_AGENT_ID` is authoritative. CLI `--monitor-agent-id`
- * alone must not let a parent shell impersonate the leased Approach 1 child: when
- * `GROK_SESSION_ID` is set it must equal the candidate id (child session bind);
- * otherwise CLI is accepted only when it matches the env id.
+ * Spawn/one-liner `DEFT_MONITOR_AGENT_ID` is authoritative (may differ from
+ * `GROK_SESSION_ID` when the registered monitor id is an explicit handle).
+ * CLI `--monitor-agent-id` alone must not let a parent shell impersonate the
+ * leased child: CLI-only elevates only when it matches `GROK_SESSION_ID`.
  */
 export function resolveMergePathHeartbeatParentId(
   cliMonitorAgentId: string | null | undefined,
@@ -725,24 +725,19 @@ export function resolveMergePathHeartbeatParentId(
   const sessionId = trim(environ.GROK_SESSION_ID);
   const cliId = trim(cliMonitorAgentId ?? undefined);
 
-  let candidate: string | null = envId;
-  if (candidate === null && cliId !== null) {
-    // CLI-only: allow only when this process is already the named child session.
-    if (sessionId !== null && cliId === sessionId) {
-      candidate = cliId;
-    } else {
-      candidate = null;
+  if (envId !== null) {
+    if (cliId !== null && cliId !== envId) {
+      // Conflicting CLI vs spawn env — do not stamp either as child identity.
+      return undefined;
     }
+    return envId;
   }
-  if (candidate !== null && sessionId !== null && candidate !== sessionId) {
-    // Env/CLI claims a child id but this Grok session is someone else — refuse.
-    return undefined;
+
+  // CLI-only: allow only when this process is already the named child session.
+  if (cliId !== null && sessionId !== null && cliId === sessionId) {
+    return cliId;
   }
-  if (candidate !== null && envId !== null && cliId !== null && cliId !== envId) {
-    // Conflicting CLI vs spawn env — do not stamp either as child identity.
-    return undefined;
-  }
-  return candidate ?? undefined;
+  return undefined;
 }
 
 export function runWatch(argv: readonly string[], options: RunWatchOptions = {}): number {

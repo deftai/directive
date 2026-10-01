@@ -558,7 +558,7 @@ describe("evaluateReviewMonitorGate", () => {
     expect(childOk).toBe(true);
   });
 
-  it("spawn_subagent: premature pr-wait-mergeable does not arm pre-CLEAN join (#5219)", () => {
+  it("spawn_subagent: post-CLEAN wait-merge heartbeat arms (#5219)", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-5219-postclean-"));
     const lease = {
       pr: 5219,
@@ -585,7 +585,7 @@ describe("evaluateReviewMonitorGate", () => {
         lease,
         isProcessAlive: () => true,
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("formatApproach1BabysitterOneLiner watches before parent verify (#5219 P3)", () => {
