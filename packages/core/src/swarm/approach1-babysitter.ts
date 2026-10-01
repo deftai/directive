@@ -1,13 +1,23 @@
 /**
- * Approach 1 babysitter one-liner for Grok / Tier-1 spawn_subagent (#5219).
- * Prefer this dispatch over a parent-owned shell `pr:watch`.
+ * Approach 1 babysitter one-liner for Grok / Tier-1 spawn_subagent (#5219 / #5229).
+ * Prefer this dispatch over a parent-owned shell `pr:watch` or host `monitor`.
  */
 import {
+  babysitPathAdmissionCost,
+  evaluateBoundedPrWatchDeny,
   formatApproach1BabysitterOneLiner,
+  isApproach1CheapestVs,
+  writeHostCapabilityStamp,
   type PlatformPrimitive,
 } from "../review-monitor/index.js";
 
-export { formatApproach1BabysitterOneLiner };
+export {
+  babysitPathAdmissionCost,
+  evaluateBoundedPrWatchDeny,
+  formatApproach1BabysitterOneLiner,
+  isApproach1CheapestVs,
+  writeHostCapabilityStamp,
+};
 
 /** Child register + watch; parent verify after heartbeat is live (#5219 P3). */
 export function approach1BabysitterCommands(
@@ -23,15 +33,37 @@ export function approach1BabysitterCommands(
   ];
 }
 
+/**
+ * Cheapest admitted babysit path when Tier-1 spawn exists (#5229 Prefer-A).
+ * Admission cost: Approach 1 spawn < child-bound Directive pr:watch << bare
+ * shell watch / host monitor / bespoke %TEMP% pollers.
+ */
+export function formatApproach1CheapestAdmissionCard(
+  pr: number,
+  monitorAgentId: string,
+  platformPrimitive: PlatformPrimitive = "spawn_subagent",
+): string {
+  const vsShell = isApproach1CheapestVs("directive-pr-watch-bare");
+  const vsHost = isApproach1CheapestVs("host-monitor");
+  return (
+    `Approach 1 babysitter — cheapest admitted path (#5219 / #5229):\n` +
+    `  admission: approach1-spawn=${babysitPathAdmissionCost("approach1-spawn")} ` +
+    `< bare-pr-watch=${babysitPathAdmissionCost("directive-pr-watch-bare")} ` +
+    `< host-monitor=${babysitPathAdmissionCost("host-monitor")} ` +
+    `(cheaperThanShell=${vsShell}, cheaperThanHostMonitor=${vsHost})\n` +
+    `${formatApproach1BabysitterOneLiner(pr, monitorAgentId, platformPrimitive)}\n` +
+    "Before CLI verify/subprocess: writeHostCapabilityStamp(projectRoot) so Tier probe stays spawn_subagent.\n" +
+    "Bounded deny: Directive pr:watch / task deft:pr:watch without --monitor-agent-id when Tier 1 is provable.\n" +
+    "Named residual: bespoke unsanctioned %TEMP% pollers unless routed through deft-hook.\n" +
+    "Child owns watch → class A residual handoff → re-watch until CLEAN; " +
+    "parent closer runs pr:wait-mergeable-and-merge only after CLEAN."
+  );
+}
+
 export function formatApproach1BabysitterCard(
   pr: number,
   monitorAgentId: string,
   platformPrimitive: PlatformPrimitive = "spawn_subagent",
 ): string {
-  return (
-    `Approach 1 babysitter (cheaper than parent shell pr:watch) (#5219):\n` +
-    `${formatApproach1BabysitterOneLiner(pr, monitorAgentId, platformPrimitive)}\n` +
-    "Child owns watch → class A residual handoff → re-watch until CLEAN; " +
-    "parent closer runs pr:wait-mergeable-and-merge only after CLEAN."
-  );
+  return formatApproach1CheapestAdmissionCard(pr, monitorAgentId, platformPrimitive);
 }

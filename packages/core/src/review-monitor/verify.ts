@@ -21,6 +21,8 @@ import {
 } from "./record.js";
 import {
   isTier1,
+  isTier1PlatformPrimitive,
+  OVERRIDE_TIER3_DESCRIPTOR,
   type MonitoringTierProbe,
   type PlatformPrimitive,
   probeMonitoringTier,
@@ -388,7 +390,8 @@ export function evaluateReviewMonitorGate(
     };
   }
 
-  const tier = probeMonitoringTier(args.environ);
+  // Stamp-aware probe so Grok Build CLI subprocesses stay Tier 1 (#5229).
+  let tier = probeMonitoringTier(args.environ, { projectRoot });
   const callSite = args.callSite ?? "unspecified";
   const staleMinutes = args.staleMinutes ?? 30;
   const now = args.now ?? new Date();
@@ -422,22 +425,13 @@ export function evaluateReviewMonitorGate(
         callSite,
       };
     }
+    const approach3Label =
+      tier.descriptor === OVERRIDE_TIER3_DESCRIPTOR
+        ? `override Tier 3 (${OVERRIDE_TIER3_DESCRIPTOR})`
+        : `Tier ${tier.tier}`;
     return {
       exitCode: EXIT_READY,
-      message: `verify_review_monitor: Tier 3 Approach 3 path allowed (call-site=${callSite}).`,
-      tier,
-      monitorRecord: null,
-      heartbeatActive: false,
-      callSite,
-    };
-  }
-
-  if (!isTier1(tier)) {
-    return {
-      exitCode: EXIT_READY,
-      message:
-        `verify_review_monitor: Tier ${tier.tier} (${tier.descriptor ?? "unknown"}) — ` +
-        "no active review-monitor required (#2655).",
+      message: `verify_review_monitor: ${approach3Label} Approach 3 path allowed (call-site=${callSite}).`,
       tier,
       monitorRecord: null,
       heartbeatActive: false,
@@ -446,6 +440,93 @@ export function evaluateReviewMonitorGate(
   }
 
   const repo = resolveRepo(args.repo ?? null, projectRoot);
+
+  // !isTier1: consult sticky lease before READY (#5229 Prefer-A). Do not greenlight
+  // "no active review-monitor required" when a Tier-1 lease platform_primitive exists.
+  if (!isTier1(tier)) {
+    if (repo !== null) {
+      const leaseConsult = fetchActiveMonitorFromGithub(repo, args.pr, {
+        now,
+        headSha: args.headSha ?? null,
+        seams: args.seams,
+      });
+      if (
+        leaseConsult !== null &&
+        typeof leaseConsult === "object" &&
+        !("error" in leaseConsult) &&
+        isTier1PlatformPrimitive(leaseConsult.platform_primitive)
+      ) {
+        // Elevate to Tier-1 path using lease evidence (stamp gap / mis-detect).
+        tier = {
+          tier: MONITORING_TIER_1,
+          primitive: leaseConsult.platform_primitive,
+          descriptor: "lease-elevated",
+        };
+        // Fall through with this lease as the monitor record below.
+        const heartbeatActive = heartbeatActiveForMergePathArm(projectRoot, args.pr, {
+          tierPrimitive: tier.primitive,
+          lease: leaseConsult,
+          now,
+          staleMinutes,
+          headSha: args.headSha ?? null,
+          resolveLiveHeadSha: () => {
+            const fetchHead =
+              args.fetchPrHeadShaFn ??
+              ((prNum: number, r: string) => {
+                const got = fetchPrHeadShaRest(prNum, r, defaultRunGh);
+                return got.sha;
+              });
+            return fetchHead(args.pr, repo);
+          },
+        });
+        return {
+          exitCode: EXIT_READY,
+          message:
+            `verify_review_monitor: elevated via sticky lease platform_primitive=` +
+            `${leaseConsult.platform_primitive} (probe was non-Tier-1; #5229).\n` +
+            `  active GitHub review-owner lease for PR #${args.pr} ` +
+            `(monitor_agent_id=${leaseConsult.monitor_agent_id}, owner=${leaseConsult.owner}, ` +
+            `call-site=${callSite}, descriptor=${tier.descriptor}).`,
+          tier,
+          monitorRecord: leaseConsult,
+          heartbeatActive,
+          callSite,
+        };
+      }
+      if (
+        leaseConsult !== null &&
+        typeof leaseConsult === "object" &&
+        "error" in leaseConsult
+      ) {
+        return {
+          exitCode: EXIT_CONFIG_ERROR,
+          message: `verify_review_monitor: ${leaseConsult.error}`,
+          tier,
+          monitorRecord: null,
+          heartbeatActive: false,
+          callSite,
+        };
+      }
+    }
+
+    const isOverride = tier.descriptor === OVERRIDE_TIER3_DESCRIPTOR;
+    const tierLabel = isOverride
+      ? `override Tier 3 (${OVERRIDE_TIER3_DESCRIPTOR}; not honest generic-terminal)`
+      : `Tier ${tier.tier} (${tier.descriptor ?? "unknown"})`;
+    return {
+      exitCode: EXIT_READY,
+      message:
+        `verify_review_monitor: ${tierLabel} — ` +
+        "no active review-monitor required (#2655" +
+        (isOverride ? " / #5229 labeled override" : "") +
+        ").",
+      tier,
+      monitorRecord: null,
+      heartbeatActive: false,
+      callSite,
+    };
+  }
+
   if (repo === null) {
     return {
       exitCode: EXIT_CONFIG_ERROR,

@@ -1,5 +1,7 @@
+export * from "./bounded-pr-watch-deny.js";
 export * from "./constants.js";
 export * from "./github-lease.js";
+export * from "./host-capability-stamp.js";
 export * from "./l4-owner.js";
 export * from "./lease-comment.js";
 export * from "./record.js";

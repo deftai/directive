@@ -22,8 +22,10 @@ describe("approach1 babysitter one-liner (#5219)", () => {
     expect(cmds[1]).toContain("DEFT_MONITOR_AGENT_ID=monitor-12");
     expect(cmds[1]).toContain("pr:watch -- 12");
     expect(cmds[2]).toContain("verify:review-monitor");
-    expect(formatApproach1BabysitterCard(12, "monitor-12")).toContain(
-      "cheaper than parent shell pr:watch",
-    );
+    const card = formatApproach1BabysitterCard(12, "monitor-12");
+    expect(card).toContain("cheapest admitted path");
+    expect(card).toContain("writeHostCapabilityStamp");
+    expect(card).toContain("%TEMP%");
+    expect(card).toContain("Bounded deny");
   });
 });
