@@ -32,6 +32,19 @@ export function sameBasenameLifecyclePaths(relPath: string): string[] {
   return LIFECYCLE_FOLDERS.map((folder) => `xbrief/${folder}/${leaf}`);
 }
 
+/**
+ * Same-basename lifecycle paths in pre-move preference order (#5192).
+ * Prefer active over pending so a stale pending brief cannot supply the
+ * production fence or membership precommitment for a completed move.
+ */
+export function preMoveSameBasenameLifecyclePaths(relPath: string): string[] {
+  const leaf = xbriefBasename(relPath);
+  if (!leaf.endsWith(".xbrief.json") && !leaf.endsWith(".vbrief.json")) return [];
+  const self = normalizeRel(relPath);
+  const folders = ["active", "pending", "completed", "cancelled"] as const;
+  return folders.map((folder) => `xbrief/${folder}/${leaf}`).filter((p) => p !== self);
+}
+
 export interface CensusBrief {
   readonly rel: string;
   readonly planId: string | null;

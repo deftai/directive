@@ -38,10 +38,12 @@ import {
 } from "./base-fence.js";
 import {
   type CensusBrief,
+  type ContinuityResolution,
   censusFromBaseMap,
   continuityExemptPaths,
   isLifecycleXbriefPath,
   LIFECYCLE_FOLDERS,
+  preMoveSameBasenameLifecyclePaths,
   resolveStoryContinuity,
   sameBasenameLifecyclePaths,
 } from "./continuity.js";
@@ -417,6 +419,40 @@ function listLifecycleBriefsAtRef(
     }
   }
   return { kind: "ok", briefs: out };
+}
+
+/**
+ * Resolve the merge-base brief used by the production fence and Path B
+ * membership precommitment (#5192). Continuity wins; otherwise probe
+ * same-basename pre-move paths (active before pending) when the head
+ * completed/cancelled path is absent on base.
+ */
+function resolveMergeBaseBriefRead(
+  rel: string,
+  continuity: ContinuityResolution,
+  readAtBase: (baseRel: string) => BaseBriefReadLocal,
+): { readonly baseRel: string; readonly read: BaseBriefReadLocal } {
+  if (continuity.kind === "resolved") {
+    return { baseRel: continuity.baseRel, read: readAtBase(continuity.baseRel) };
+  }
+  const headN = normalizeRepoRelPath(rel);
+  const headRead = readAtBase(headN);
+  if (headRead.kind !== "missing") {
+    return { baseRel: headN, read: headRead };
+  }
+  if (!(headN.startsWith("xbrief/completed/") || headN.startsWith("xbrief/cancelled/"))) {
+    return { baseRel: headN, read: headRead };
+  }
+  for (const candidate of preMoveSameBasenameLifecyclePaths(headN)) {
+    const alt = readAtBase(candidate);
+    if (alt.kind === "text") {
+      return { baseRel: candidate, read: alt };
+    }
+    if (alt.kind === "error") {
+      return { baseRel: candidate, read: alt };
+    }
+  }
+  return { baseRel: headN, read: headRead };
 }
 
 /** Head lifecycle paths for continuity move exclusivity (#5192). */
@@ -1032,7 +1068,9 @@ export function evaluateScopeProvenance(
         if (!basenameMintPathOk(injected.xbriefRelPath, headPath)) {
           return { kind: "missing" };
         }
-        // planId must equal the basename key — never authorize a mismatched record.
+        // Basename key is the only planId that may authorize this lookup.
+        // A record stored under the basename key with a different planId is
+        // invalid — never treat it as a present mint (#5192 Greptile).
         if (injected.planId !== key) {
           return {
             kind: "invalid",
@@ -1057,15 +1095,17 @@ export function evaluateScopeProvenance(
       if (!isHumanApprovalStamp(parsed.humanApproval)) {
         return { kind: "invalid", detail: `mint at ${approvalRel} lacks human stamp` };
       }
-      if (!basenameMintPathOk(parsed.xbriefRelPath, headPath)) {
-        return { kind: "missing" };
-      }
-      // planId must equal the basename key — never authorize a mismatched record.
+      // Basename key is the only planId that may authorize this lookup.
+      // Check before path-ok so a mismatched planId cannot become a mint
+      // merely because xbriefRelPath happens to share the leaf name.
       if (parsed.planId !== key) {
         return {
           kind: "invalid",
           detail: `basename mint for ${key} has mismatched planId=${parsed.planId}`,
         };
+      }
+      if (!basenameMintPathOk(parsed.xbriefRelPath, headPath)) {
+        return { kind: "missing" };
       }
       return { kind: "mint", fileScope: normalizeFileScope(parsed.fileScope) };
     };
@@ -1112,33 +1152,35 @@ export function evaluateScopeProvenance(
       allowlistAuthority = "mint";
     } else if (modified) {
       // Path B missing-mint: concrete merge-base brief file_scope precommitment.
+      // Use the same move-aware base resolution as the production fence so a
+      // completed/ head does not lose the old active brief's concrete scope.
       let basePayloadForPrecommit: unknown | null = null;
       if (continuity.kind === "resolved") {
         basePayloadForPrecommit = continuity.basePayload;
       } else {
-        const baseBriefRead = readAtBase(rel);
-        if (baseBriefRead.kind === "error" && modified) {
+        const precommit = resolveMergeBaseBriefRead(rel, continuity, readAtBase);
+        if (precommit.read.kind === "error") {
           findings.push({
             xbriefRelPath: rel,
             planId: planId ?? rel,
             kind: "active-xbrief-modified-without-digest",
             expandedPaths: [],
-            detail: `merge-base brief read failed for ${rel}: ${baseBriefRead.message}; fail closed (#5192)`,
+            detail: `merge-base brief read failed for ${precommit.baseRel}: ${precommit.read.message}; fail closed (#5192)`,
             remediation:
               "Fix the merge-base git read before Path B membership can use concrete precommitment (#5192).",
           });
           continue;
         }
-        if (baseBriefRead.kind === "text") {
+        if (precommit.read.kind === "text") {
           try {
-            basePayloadForPrecommit = JSON.parse(baseBriefRead.text) as unknown;
+            basePayloadForPrecommit = JSON.parse(precommit.read.text) as unknown;
           } catch {
             findings.push({
               xbriefRelPath: rel,
               planId: planId ?? rel,
               kind: "active-xbrief-modified-without-digest",
               expandedPaths: [],
-              detail: `merge-base brief at ${rel} is unreadable JSON; fail closed (#5192)`,
+              detail: `merge-base brief at ${precommit.baseRel} is unreadable JSON; fail closed (#5192)`,
               remediation:
                 "Restore a readable brief on the merge base before Path B membership (#5192).",
             });
@@ -1235,31 +1277,11 @@ export function evaluateScopeProvenance(
 
     // Path fence (#4956): compare changed production files to the merge-base
     // brief file_scope. Never read the head brief for the fence list.
-    // On lifecycle moves, the head path is absent on base — use continuity.baseRel.
-    // When continuity is missing (e.g. no-plan.id move), probe same-basename
-    // lifecycle paths on base so a completed/ head does not skip the old fence.
-    let fenceBaseRel = continuity.kind === "resolved" ? continuity.baseRel : rel;
-    let baseBriefRead = readAtBase(fenceBaseRel);
-    if (
-      baseBriefRead.kind === "missing" &&
-      continuity.kind !== "resolved" &&
-      (rel.startsWith("xbrief/completed/") || rel.startsWith("xbrief/cancelled/"))
-    ) {
-      for (const candidate of sameBasenameLifecyclePaths(rel)) {
-        if (candidate === normalizeRepoRelPath(rel)) continue;
-        const alt = readAtBase(candidate);
-        if (alt.kind === "text") {
-          fenceBaseRel = candidate;
-          baseBriefRead = alt;
-          break;
-        }
-        if (alt.kind === "error") {
-          baseBriefRead = alt;
-          fenceBaseRel = candidate;
-          break;
-        }
-      }
-    }
+    // On lifecycle moves, the head path is absent on base — use continuity.baseRel
+    // or same-basename pre-move probes (active before pending).
+    const fenceResolved = resolveMergeBaseBriefRead(rel, continuity, readAtBase);
+    const fenceBaseRel = fenceResolved.baseRel;
+    const baseBriefRead = fenceResolved.read;
     if (baseBriefRead.kind === "error") {
       findings.push({
         xbriefRelPath: rel,
@@ -1316,29 +1338,9 @@ export function evaluateScopeProvenance(
             census,
             headPlanIds,
           });
-          let otherFenceRel =
-            otherContinuity.kind === "resolved" ? otherContinuity.baseRel : other.rel;
-          let otherBaseRead = readAtBase(otherFenceRel);
-          if (
-            otherBaseRead.kind === "missing" &&
-            otherContinuity.kind !== "resolved" &&
-            (other.rel.startsWith("xbrief/completed/") || other.rel.startsWith("xbrief/cancelled/"))
-          ) {
-            for (const candidate of sameBasenameLifecyclePaths(other.rel)) {
-              if (candidate === normalizeRepoRelPath(other.rel)) continue;
-              const alt = readAtBase(candidate);
-              if (alt.kind === "text") {
-                otherFenceRel = candidate;
-                otherBaseRead = alt;
-                break;
-              }
-              if (alt.kind === "error") {
-                otherFenceRel = candidate;
-                otherBaseRead = alt;
-                break;
-              }
-            }
-          }
+          const otherFence = resolveMergeBaseBriefRead(other.rel, otherContinuity, readAtBase);
+          const otherFenceRel = otherFence.baseRel;
+          const otherBaseRead = otherFence.read;
           if (otherBaseRead.kind === "error") {
             peerBaseFailure = {
               peerRel: other.rel,

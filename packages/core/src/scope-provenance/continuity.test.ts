@@ -3,6 +3,7 @@ import {
   censusFromBaseMap,
   continuityExemptPaths,
   resolveStoryContinuity,
+  preMoveSameBasenameLifecyclePaths,
   sameBasenameLifecyclePaths,
 } from "./continuity.js";
 
@@ -120,6 +121,14 @@ describe("story continuity (#5192)", () => {
       continuity: { kind: "missing" },
     });
     expect(exempt).toEqual(expect.arrayContaining(["xbrief/pending/story.xbrief.json"]));
+  });
+
+  it("pre-move same-basename probes prefer active over pending (#5192)", () => {
+    expect(preMoveSameBasenameLifecyclePaths("xbrief/completed/story.xbrief.json")).toEqual([
+      "xbrief/active/story.xbrief.json",
+      "xbrief/pending/story.xbrief.json",
+      "xbrief/cancelled/story.xbrief.json",
+    ]);
   });
 
   it("refuses moves when two HEAD briefs claim the same plan.id (#5192)", () => {

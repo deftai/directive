@@ -870,22 +870,32 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
     };
     const mismatched = buildApprovedScopeRecord({
       xbriefRelPath: "xbrief/active/story.xbrief.json",
-      payload: xbrief("other-plan", ["packages/core/src/a.ts"]),
+      payload: xbrief("other-plan", ["packages/core/src/a.ts", "packages/core/src/evil.ts"]),
       humanApproval: {
         kind: "operator",
         actor: "scott",
         mintedAt: "2026-08-01T00:00:00Z",
       },
     });
+    expect(mismatched.planId).toBe("other-plan");
     const result = evaluateScopeProvenance("/tmp/proj-basename-mismatch", {
-      changedFiles: ["xbrief/active/story.xbrief.json", "packages/core/src/a.ts"],
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "packages/core/src/a.ts",
+        "packages/core/src/evil.ts",
+      ],
       activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(noId)]]),
       approvedRecords: [mismatched],
+      // Keyed by basename "story" but planId is other-plan — must not authorize.
       baseApprovedRecords: new Map([["story", mismatched]]),
       baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(noId)]]),
     });
     expect(result.exitCode).toBe(1);
-    expect(result.findings[0]?.detail).toMatch(/mismatched planId/i);
+    expect(result.findings.some((f) => /mismatched planId/i.test(f.detail))).toBe(true);
+    // Mismatched mint must not become the allowlist (evil.ts would otherwise pass).
+    expect(result.findings.some((f) => f.kind === "change-set-outside-approved-scope")).toBe(
+      false,
+    );
   });
 
   it("injected active map does not re-bind a new pending brief over an active story (#5192)", () => {
@@ -970,6 +980,92 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
       approvedRecords: [broadMint],
       baseApprovedRecords: new Map([["story", broadMint]]),
       baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(noIdNarrow)]]),
+      sourceRoots: ["packages"],
+      testRoots: ["tests"],
+      fixtureRoots: ["fixtures"],
+    });
+    expect(result.findings.some((f) => f.kind === "production-scope-over-budget")).toBe(true);
+  });
+
+  it("no-plan.id completed move keeps concrete precommitment for membership (#5192)", () => {
+    const noId = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        status: "completed",
+        metadata: { swarm: { file_scope: ["packages/core/src/a.ts"] } },
+      },
+    };
+    const result = evaluateScopeProvenance("/tmp/proj-noid-completed-precommit", {
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "xbrief/completed/story.xbrief.json",
+        "packages/core/src/a.ts",
+        "CHANGELOG.md",
+      ],
+      activeXbriefs: new Map([["xbrief/completed/story.xbrief.json", JSON.stringify(noId)]]),
+      approvedRecords: [],
+      baseApprovedRecords: new Map(),
+      baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(noId)]]),
+      sourceRoots: ["packages"],
+      testRoots: ["tests"],
+      fixtureRoots: ["fixtures"],
+    });
+    expect(result.exitCode).toBe(0);
+    expect(
+      result.findings.some(
+        (f) =>
+          f.kind === "active-xbrief-modified-without-digest" ||
+          f.kind === "change-set-outside-approved-scope",
+      ),
+    ).toBe(false);
+  });
+
+  it("no-plan.id completed move prefers active over stale pending for fence (#5192)", () => {
+    const noIdNarrow = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        status: "completed",
+        metadata: { swarm: { file_scope: ["packages/core/src/a.ts"] } },
+      },
+    };
+    const stalePendingBroad = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        status: "pending",
+        metadata: {
+          swarm: {
+            file_scope: [
+              "packages/core/src/a.ts",
+              "packages/core/src/b.ts",
+              "packages/core/src/c.ts",
+              "packages/core/src/d.ts",
+              "packages/core/src/e.ts",
+              "packages/core/src/f.ts",
+              "packages/core/src/g.ts",
+            ],
+          },
+        },
+      },
+    };
+    const result = evaluateScopeProvenance("/tmp/proj-noid-prefer-active", {
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "xbrief/completed/story.xbrief.json",
+        "packages/core/src/a.ts",
+        "packages/core/src/b.ts",
+        "packages/core/src/c.ts",
+        "packages/core/src/d.ts",
+        "packages/core/src/e.ts",
+        "packages/core/src/f.ts",
+        "packages/core/src/g.ts",
+      ],
+      activeXbriefs: new Map([["xbrief/completed/story.xbrief.json", JSON.stringify(noIdNarrow)]]),
+      approvedRecords: [],
+      baseApprovedRecords: new Map(),
+      baseXbriefs: new Map([
+        ["xbrief/pending/story.xbrief.json", JSON.stringify(stalePendingBroad)],
+        ["xbrief/active/story.xbrief.json", JSON.stringify(noIdNarrow)],
+      ]),
       sourceRoots: ["packages"],
       testRoots: ["tests"],
       fixtureRoots: ["fixtures"],
