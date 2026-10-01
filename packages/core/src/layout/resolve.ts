@@ -67,16 +67,14 @@ export function resolveLayoutRootOrCanonical(projectRoot: string): string {
   } catch (err) {
     const legacyRoot = join(projectRoot, LEGACY_ARTIFACT_DIR);
     const migratedRoot = join(projectRoot, MIGRATED_ARTIFACT_DIR);
-    if (isDirectory(legacyRoot) && !isDirectory(migratedRoot)) {
+    // Legacy-only, or empty/uninhabited xbrief hiding inhabited vbrief scopes (#4756).
+    const refuseLegacy =
+      (isDirectory(legacyRoot) && !isDirectory(migratedRoot)) ||
+      (isDirectory(legacyRoot) &&
+        containsRecognizedArtifact(legacyRoot) &&
+        !(isDirectory(migratedRoot) && containsMigratedArtifact(migratedRoot)));
+    if (refuseLegacy) {
       throw err; // Legacy-only project: operator must run deft migrate:xbrief.
-    }
-    // Empty/uninhabited xbrief must not hide inhabited legacy scopes.
-    if (
-      isDirectory(legacyRoot) &&
-      containsRecognizedArtifact(legacyRoot) &&
-      !(isDirectory(migratedRoot) && containsMigratedArtifact(migratedRoot))
-    ) {
-      throw err;
     }
     return join(projectRoot, MIGRATED_ARTIFACT_DIR); // New/empty project; use canonical path.
   }

@@ -25,6 +25,12 @@ afterEach(() => {
   for (const dir of temps.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
+function expectRoadmapBuffer(pendingDir: string, completedDir?: string): string {
+  const [ok, value] = renderRoadmapToBufferResult(pendingDir, completedDir);
+  expect(ok).toBe(true);
+  return value;
+}
+
 function makeFixture(): {
   root: string;
   pending: string;
@@ -136,7 +142,7 @@ describe("roadmap-render idempotency", () => {
     renderRoadmap(pending, outPath, completed);
 
     const onDisk = readFileSync(outPath, "utf8");
-    const buffer = renderRoadmapToBuffer(pending, completed);
+    const buffer = expectRoadmapBuffer(pending, completed);
     expect(onDisk).toBe(buffer);
 
     const [checkOk] = checkDrift(pending, outPath, completed);
@@ -205,7 +211,7 @@ describe("roadmap-render idempotency", () => {
       xBRIEFInfo: { version: "0.8" },
       plan: { title: "Done", status: "completed", references: [{ id: "#99" }] },
     });
-    expect(generateRoadmapContent(pending, completed)).toBe(
+    expect(generateRoadmapContent(pending, completed)).toEqual(
       renderRoadmapToBuffer(pending, completed),
     );
   });
@@ -399,7 +405,7 @@ describe("roadmap-render forward projection (#2653)", () => {
       },
     });
 
-    const content = renderRoadmapToBuffer(pending, completed);
+    const content = expectRoadmapBuffer(pending, completed);
     expect(content).toContain("## Proposed");
     expect(content).toContain("Proposed forward work");
     expect(content).toContain("## Completed");
@@ -422,7 +428,7 @@ describe("roadmap-render forward projection (#2653)", () => {
         references: [{ id: "#1" }],
       },
     });
-    const content = renderRoadmapToBuffer(pending, completed);
+    const content = expectRoadmapBuffer(pending, completed);
     expect(content).toContain("## Forward plan");
     expect(content).toContain("No open work in `pending/`");
     expect(content).toContain("## Completed");
@@ -439,7 +445,7 @@ describe("roadmap-render forward projection (#2653)", () => {
         references: [{ id: "#200" }],
       },
     });
-    const content = renderRoadmapToBuffer(pending);
+    const content = expectRoadmapBuffer(pending);
     expect(content).toContain("## Active");
     expect(content).toContain("In flight");
     expect(content).toContain("`[running]`");
@@ -461,7 +467,7 @@ describe("roadmap-render forward projection (#2653)", () => {
         },
       });
     }
-    const content = renderRoadmapToBuffer(pending, completed);
+    const content = expectRoadmapBuffer(pending, completed);
     expect(content).toContain("Showing 25 of 30 completed scopes");
     expect(content).toContain("Done 30");
     expect(content).toContain("Done 6"); // 30..6 = 25 newest by completedAt
@@ -504,7 +510,7 @@ describe("roadmap-render forward projection (#2653)", () => {
         },
       });
     }
-    const content = renderRoadmapToBuffer(pending, completed);
+    const content = expectRoadmapBuffer(pending, completed);
     // 26 total → cap 25; earliest completedAt (2026-02) must drop
     expect(content).toContain("Recently finished old scope");
     expect(content).not.toContain("Early finished new name");
@@ -514,7 +520,7 @@ describe("roadmap-render forward projection (#2653)", () => {
   it("banner names forward lifecycle sources (#2653)", () => {
     const { pending } = makeFixture();
     writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
-    const content = renderRoadmapToBuffer(pending);
+    const content = expectRoadmapBuffer(pending);
     expect(content).toContain("pending/ + proposed/ + active/");
     expect(content).toContain("completed/ capped");
     expect(content).not.toMatch(/Source of truth: vbrief\/pending\/ \(scope vBRIEFs\)/);
@@ -560,7 +566,7 @@ describe("roadmap-render forward projection (#2653)", () => {
       xBRIEFInfo: { version: "0.8" },
       plan: { title: "Later idea", status: "proposed", references: [{ id: "#11" }] },
     });
-    const content = renderRoadmapToBuffer(pending);
+    const content = expectRoadmapBuffer(pending);
     expect(content).toContain("## Accepted plan");
     expect(content).toContain("Leaf");
     expect(content).toContain("## Proposed");
@@ -570,7 +576,7 @@ describe("roadmap-render forward projection (#2653)", () => {
 
   it("empty lifecycle emits no-pending message", () => {
     const { pending, completed } = makeFixture();
-    const content = renderRoadmapToBuffer(pending, completed);
+    const content = expectRoadmapBuffer(pending, completed);
     expect(content).toContain("No pending work items.");
     expect(content).not.toContain("## Completed");
   });
@@ -587,7 +593,7 @@ describe("roadmap-render forward projection (#2653)", () => {
         items: [{ id: "p1", title: "Only phase", status: "pending", subItems: [] }],
       },
     });
-    const content = renderRoadmapToBuffer(pending);
+    const content = expectRoadmapBuffer(pending);
     expect(content).toContain("## With overview (#42)");
     expect(content).toContain("Why this work matters.");
   });
@@ -1008,7 +1014,7 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     const [ok, msg] = renderRoadmapToBufferResult(pending);
     expect(ok).toBe(false);
     expect(msg).toMatch(/Unreadable lifecycle file/i);
-    expect(() => renderRoadmapToBuffer(pending)).toThrow(/Unreadable lifecycle file/i);
+    expect(renderRoadmapToBuffer(pending)).toEqual([false, msg]);
   });
 
   it("corrupt active beside completed history refuses completed-only marker", () => {

@@ -599,19 +599,22 @@ export function renderRoadmapToBufferResult(
 }
 
 /**
- * Single render-to-buffer entry used by both write and --check (mirrors
- * ``scripts/roadmap_render.generate_roadmap_content``). Applies the empty-claim
- * gate; refused probes throw so string callers cannot emit a false-empty page.
+ * Alias of ``renderRoadmapToBufferResult`` for existing imports.
+ * Prefer the Result form; do not reintroduce a string-fail-by-exception path (#4756 residual).
  */
-export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string): string {
-  const [ok, value] = renderRoadmapToBufferResult(pendingDir, completedDir);
-  if (!ok) throw new Error(value);
-  return value;
+export function renderRoadmapToBuffer(
+  pendingDir: string,
+  completedDir?: string,
+): RenderRoadmapResult {
+  return renderRoadmapToBufferResult(pendingDir, completedDir);
 }
 
-/** @deprecated Prefer ``renderRoadmapToBuffer`` — kept for existing imports and parity harnesses. */
-export function generateRoadmapContent(pendingDir: string, completedDir?: string): string {
-  return renderRoadmapToBuffer(pendingDir, completedDir);
+/** @deprecated Prefer ``renderRoadmapToBufferResult``. */
+export function generateRoadmapContent(
+  pendingDir: string,
+  completedDir?: string,
+): RenderRoadmapResult {
+  return renderRoadmapToBufferResult(pendingDir, completedDir);
 }
 
 export function renderRoadmap(
