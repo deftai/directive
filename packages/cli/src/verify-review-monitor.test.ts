@@ -139,9 +139,9 @@ describe("verify-review-monitor CLI", () => {
   it("merge-path-arm refuses lease-only unarmed stand-down (#4882)", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-cli-arm-"));
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
-    expect(
-      run(["--pr", "88", "--merge-path-arm", "--sticky-lease", "--project-root", root]),
-    ).toBe(1);
+    expect(run(["--pr", "88", "--merge-path-arm", "--sticky-lease", "--project-root", root])).toBe(
+      1,
+    );
     expect(err.mock.calls.join("")).toMatch(/unarmed stand-down/);
   });
 
