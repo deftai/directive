@@ -52,18 +52,9 @@ describe("ownership task Prefer-B wiring (#1617)", () => {
       return;
     }
     // Prefer-B: ownership verbs ride :engine:invoke and never build a CLI.
-    // Skip when neither local dist nor a working global CLI is present.
-    const hasLocalDist = existsSync(join(root, "packages", "cli", "dist", "bin.js"));
-    const globalOk = ["deft", "directive"].some((bin) => {
-      const ver = spawnSync(bin, ["--version"], {
-        encoding: "utf8",
-        windowsHide: true,
-        shell: process.platform === "win32",
-        timeout: 15_000,
-      });
-      return ver.status === 0;
-    });
-    if (!hasLocalDist && !globalOk) {
+    // Live smoke requires this checkout's built CLI so an older global
+    // `deft`/`directive` that only answers --version cannot false-fail.
+    if (!existsSync(join(root, "packages", "cli", "dist", "bin.js"))) {
       return;
     }
     const result = spawnSync("task", ["ownership:doctor", "--", "--help"], {
