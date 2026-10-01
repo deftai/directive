@@ -576,11 +576,7 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
       },
     });
     const result = evaluateScopeProvenance("/tmp/proj-relabel", {
-      changedFiles: [
-        "xbrief/active/story.xbrief.json",
-        "packages/core/src/a.ts",
-        "tests/a.ts",
-      ],
+      changedFiles: ["xbrief/active/story.xbrief.json", "packages/core/src/a.ts", "tests/a.ts"],
       activeXbriefs: new Map([
         [
           "xbrief/active/story.xbrief.json",
@@ -628,11 +624,7 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
       fileScope: ["packages/core/src/a.ts"],
     };
     const result = evaluateScopeProvenance("/tmp/proj-no-planid-mint", {
-      changedFiles: [
-        "xbrief/active/story.xbrief.json",
-        "packages/core/src/a.ts",
-        "tests/out.ts",
-      ],
+      changedFiles: ["xbrief/active/story.xbrief.json", "packages/core/src/a.ts", "tests/out.ts"],
       activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(noId)]]),
       approvedRecords: [basenameMint],
       baseApprovedRecords: new Map([["story", basenameMint]]),

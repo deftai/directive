@@ -54,7 +54,10 @@ export type ContinuityResolution =
   | { readonly kind: "missing" };
 
 function normalizeRel(p: string): string {
-  return p.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/{2,}/g, "/");
+  return p
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/\/{2,}/g, "/");
 }
 
 /**

@@ -33,16 +33,16 @@ import {
   evaluateApprovedScopeMembership,
   evaluateProductionScopeFence,
   isConcreteFileScopeEntry,
-  pathMatchesFileScope,
   type MembershipAllowlistAuthority,
+  pathMatchesFileScope,
 } from "./base-fence.js";
 import {
+  type CensusBrief,
   censusFromBaseMap,
   continuityExemptPaths,
   isLifecycleXbriefPath,
   LIFECYCLE_FOLDERS,
   resolveStoryContinuity,
-  type CensusBrief,
 } from "./continuity.js";
 import {
   type ApprovedScopeRecord,
@@ -359,10 +359,7 @@ function listLifecycleBriefsAtRef(
 ): CensusBrief[] {
   const out: CensusBrief[] = [];
   for (const folder of LIFECYCLE_FOLDERS) {
-    const listed = git(
-      ["ls-tree", "-r", "--name-only", baseRef, `xbrief/${folder}`],
-      projectRoot,
-    );
+    const listed = git(["ls-tree", "-r", "--name-only", baseRef, `xbrief/${folder}`], projectRoot);
     if (listed.status !== 0) continue;
     for (const line of listed.stdout.split("\n")) {
       const rel = normalizeRepoRelPath(unquoteGitPath(line));
@@ -805,8 +802,7 @@ export function evaluateScopeProvenance(
     // Membership (#4774 / #5192): continuity-resolved mint, else concrete
     // merge-base precommitment. Path A (no xBRIEF in change set) no-ops.
     const membershipTrigger =
-      modified ||
-      [...changedSet].some((p) => isLifecycleXbriefPath(normalizeRepoRelPath(p)));
+      modified || [...changedSet].some((p) => isLifecycleXbriefPath(normalizeRepoRelPath(p)));
 
     // Merge-base census for continuity (injected map preferred). Skip live git
     // ls-tree on pure injected seams (changedFiles / readAtBase without map).
@@ -903,7 +899,9 @@ export function evaluateScopeProvenance(
     };
 
     const lookupBasenameMint = (headPath: string): MintLookup => {
-      const key = basename(headPath).replace(/\.xbrief\.json$/i, "").replace(/\.vbrief\.json$/i, "");
+      const key = basename(headPath)
+        .replace(/\.xbrief\.json$/i, "")
+        .replace(/\.vbrief\.json$/i, "");
       if (key.length === 0) return { kind: "missing" };
       if (options.baseApprovedRecords !== undefined) {
         const injected = options.baseApprovedRecords.get(key);
@@ -1007,8 +1005,8 @@ export function evaluateScopeProvenance(
         }
       }
       if (basePayloadForPrecommit !== null) {
-        const concrete = normalizeFileScope(extractFileScope(basePayloadForPrecommit)).filter(
-          (e) => isConcreteFileScopeEntry(e),
+        const concrete = normalizeFileScope(extractFileScope(basePayloadForPrecommit)).filter((e) =>
+          isConcreteFileScopeEntry(e),
         );
         membershipAllowlist = concrete;
         allowlistAuthority = "precommitment";

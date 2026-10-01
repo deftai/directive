@@ -305,8 +305,7 @@ export function evaluateApprovedScopeMembership(
   }
 
   const authority: MembershipAllowlistAuthority =
-    input.allowlistAuthority ??
-    (input.baseApprovedFileScope === null ? "missing" : "mint");
+    input.allowlistAuthority ?? (input.baseApprovedFileScope === null ? "missing" : "mint");
   const testRoots = input.testRoots ?? DEFAULT_TEST_ROOTS;
   const fixtureRoots = input.fixtureRoots ?? DEFAULT_FIXTURE_ROOTS;
   const sourceRoots = input.sourceRoots ?? DEFAULT_SOURCE_ROOTS;
@@ -318,9 +317,7 @@ export function evaluateApprovedScopeMembership(
       .filter((p) => p.length > 0),
   );
   const lifecycleExempt = new Set(
-    (input.exemptRelPaths ?? [])
-      .map((p) => normalizeMembershipRel(p))
-      .filter((p) => p.length > 0),
+    (input.exemptRelPaths ?? []).map((p) => normalizeMembershipRel(p)).filter((p) => p.length > 0),
   );
 
   const isFreePath = (rel: string): boolean => {
@@ -338,8 +335,7 @@ export function evaluateApprovedScopeMembership(
       : normalizeFileScope(rawOwn ?? []);
   const peerAllow = normalizeFileScope((input.peerApprovedFileScopes ?? []).flat());
 
-  const emptyAuthoritative =
-    input.emptyAllowlistAuthoritative ?? authority === "mint";
+  const emptyAuthoritative = input.emptyAllowlistAuthoritative ?? authority === "mint";
   const hasDeclaredAllowlist =
     rawOwn !== null && (ownAllow.length > 0 || (emptyAuthoritative && authority === "mint"));
 
@@ -422,8 +418,7 @@ export function evaluateApprovedScopeMembership(
     hardExtras.push(rel);
   }
 
-  const overflow =
-    productionExtras.length > allowance ? productionExtras.slice(allowance) : [];
+  const overflow = productionExtras.length > allowance ? productionExtras.slice(allowance) : [];
   const outside = [...hardExtras, ...overflow];
   if (outside.length === 0) {
     return null;
