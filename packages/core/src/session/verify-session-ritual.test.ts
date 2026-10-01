@@ -26,6 +26,7 @@ import {
   WORK_SELECTION_FLAG,
   writeRitualState,
 } from "./index.js";
+import { applyWorktreeOccupancy } from "./occupancy.js";
 import { defaultBranchSync, parseDeferrals, runSessionStart } from "./session-start.js";
 
 function initRepo(): { root: string; head: string } {
@@ -247,6 +248,341 @@ describe("forward HEAD rebind (#2782)", () => {
     });
     expect(result.code).toBe(2);
     expect(result.message).toContain("could not verify git history");
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("same-owner discontinuous HEAD continuity (#3884)", () => {
+  function gitEnv(): NodeJS.ProcessEnv {
+    return {
+      ...process.env,
+      GIT_AUTHOR_NAME: "T",
+      GIT_AUTHOR_EMAIL: "t@t.local",
+      GIT_COMMITTER_NAME: "T",
+      GIT_COMMITTER_EMAIL: "t@t.local",
+    };
+  }
+
+  function defaultBranch(root: string): string {
+    return execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+  }
+
+  /** Feature tip before rebase onto a moved default branch. */
+  function prepareRebaseOntoMovedBase(root: string): { ritualHead: string; base: string } {
+    const base = defaultBranch(root);
+    execFileSync("git", ["checkout", "-q", "-b", "feature"], { cwd: root, encoding: "utf8" });
+    writeFileSync(join(root, "feat.txt"), "feat\n", "utf8");
+    execFileSync("git", ["add", "feat.txt"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "feat"], {
+      cwd: root,
+      encoding: "utf8",
+      env: gitEnv(),
+    });
+    const ritualHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    execFileSync("git", ["checkout", "-q", base], { cwd: root, encoding: "utf8" });
+    writeFileSync(join(root, "base-move.txt"), "moved\n", "utf8");
+    execFileSync("git", ["add", "base-move.txt"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "base-move"], {
+      cwd: root,
+      encoding: "utf8",
+      env: gitEnv(),
+    });
+    execFileSync("git", ["checkout", "-q", "feature"], { cwd: root, encoding: "utf8" });
+    return { ritualHead, base };
+  }
+
+  function rebaseFeature(root: string, base: string): string {
+    execFileSync("git", ["rebase", base], { cwd: root, encoding: "utf8", env: gitEnv() });
+    return execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+  }
+
+  function amendTip(root: string): string {
+    writeFileSync(join(root, "amend.txt"), "amended\n", "utf8");
+    execFileSync("git", ["add", "amend.txt"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "--amend", "--no-edit"], {
+      cwd: root,
+      encoding: "utf8",
+      env: gitEnv(),
+    });
+    return execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+  }
+
+  it("verify rebinds ritual git_head after same-owner rebase onto moved base", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const { ritualHead, base } = prepareRebaseOntoMovedBase(root);
+    writeRitualState(root, freshPayload(root, ritualHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    const rewrittenHead = rebaseFeature(root, base);
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(0);
+    expect(rewrittenHead).not.toBe(ritualHead);
+    expect(readRitualState(root)[0]?.gitHead).toBe(rewrittenHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("verify rebinds after rebase even when a backup branch still contains ritual (#3884)", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const { ritualHead, base } = prepareRebaseOntoMovedBase(root);
+    execFileSync("git", ["branch", "backup/pre-rebase", ritualHead], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    writeRitualState(root, freshPayload(root, ritualHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    const rewrittenHead = rebaseFeature(root, base);
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(0);
+    expect(rewrittenHead).not.toBe(ritualHead);
+    expect(readRitualState(root)[0]?.gitHead).toBe(rewrittenHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("verify fails closed on soft-reset to unrelated tip despite ritual remaining in reflog (#3884)", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const { ritualHead, base } = prepareRebaseOntoMovedBase(root);
+    const unrelatedTip = execFileSync("git", ["rev-parse", base], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    writeRitualState(root, freshPayload(root, ritualHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    execFileSync("git", ["reset", "--soft", unrelatedTip], {
+      cwd: root,
+      encoding: "utf8",
+      env: gitEnv(),
+    });
+    expect(execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim()).toBe(
+      unrelatedTip,
+    );
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("discontinuously");
+    expect(readRitualState(root)[0]?.gitHead).toBe(ritualHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("verify fails closed when ritual branch is deleted then an unrelated tip is checked out (#3884)", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const base = defaultBranch(root);
+    execFileSync("git", ["checkout", "-q", "-b", "feature"], { cwd: root, encoding: "utf8" });
+    writeFileSync(join(root, "feat.txt"), "feat\n", "utf8");
+    execFileSync("git", ["add", "feat.txt"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "feat"], {
+      cwd: root,
+      encoding: "utf8",
+      env: gitEnv(),
+    });
+    const ritualHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    writeRitualState(root, freshPayload(root, ritualHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    execFileSync("git", ["checkout", "-q", base], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["branch", "-D", "feature"], { cwd: root, encoding: "utf8" });
+    writeFileSync(join(root, "unrelated.txt"), "x\n", "utf8");
+    execFileSync("git", ["add", "unrelated.txt"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "unrelated"], {
+      cwd: root,
+      encoding: "utf8",
+      env: gitEnv(),
+    });
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("discontinuously");
+    expect(readRitualState(root)[0]?.gitHead).toBe(ritualHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("verify fails closed on same-owner branch switch (#2782)", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const base = defaultBranch(root);
+    execFileSync("git", ["checkout", "-q", "-b", "feature"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["checkout", "-q", base], { cwd: root, encoding: "utf8" });
+    writeFileSync(join(root, "main.txt"), "main\n", "utf8");
+    execFileSync("git", ["add", "main.txt"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "main"], {
+      cwd: root,
+      encoding: "utf8",
+      env: gitEnv(),
+    });
+    const ritualHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    writeRitualState(root, freshPayload(root, ritualHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    execFileSync("git", ["checkout", "-q", "feature"], { cwd: root, encoding: "utf8" });
+    writeFileSync(join(root, "feature-only.txt"), "y\n", "utf8");
+    execFileSync("git", ["add", "feature-only.txt"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "feature-only"], {
+      cwd: root,
+      encoding: "utf8",
+      env: gitEnv(),
+    });
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("discontinuously");
+    expect(readRitualState(root)[0]?.gitHead).toBe(ritualHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("verify fails closed on same-owner amend (#2782)", () => {
+    const { root, head: initialHead } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    writeRitualState(root, freshPayload(root, initialHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    amendTip(root);
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("discontinuously");
+    expect(readRitualState(root)[0]?.gitHead).toBe(initialHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("verify fails closed on discontinuous HEAD without a live same-owner lease", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const { ritualHead, base } = prepareRebaseOntoMovedBase(root);
+    writeRitualState(root, freshPayload(root, ritualHead, now));
+    rebaseFeature(root, base);
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("discontinuously");
+    expect(result.message).toContain("session:ready");
+    expect(readRitualState(root)[0]?.gitHead).toBe(ritualHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("verify fails closed when a foreign live owner holds the lease", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const { ritualHead, base } = prepareRebaseOntoMovedBase(root);
+    writeRitualState(root, freshPayload(root, ritualHead, now));
+    applyWorktreeOccupancy(root, {
+      sessionId: "foreign-owner",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    rebaseFeature(root, base);
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("discontinuously");
+    expect(result.message).not.toContain("session:ready");
+    expect(readRitualState(root)[0]?.gitHead).toBe(ritualHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("inspect names re-arm recovery for same-owner rebase without rewriting", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const { ritualHead, base } = prepareRebaseOntoMovedBase(root);
+    writeRitualState(root, freshPayload(root, ritualHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    rebaseFeature(root, base);
+
+    const result = inspectSessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+    });
+    expect(result.code).toBe(1);
+    expect(result.recoveryTier).toBe("rearm");
+    expect(result.message).toContain("discontinuously");
+    expect(result.message).toContain("session:ready");
+    expect(readRitualState(root)[0]?.gitHead).toBe(ritualHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("inspect prefers re-arm when legacy ritual omits verify_tools after same-owner rebase (#3884)", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const { ritualHead, base } = prepareRebaseOntoMovedBase(root);
+    const payload = freshPayload(root, ritualHead, now);
+    const quick = payload.quick_steps as Record<string, unknown>;
+    delete quick.verify_tools;
+    writeRitualState(root, payload);
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    rebaseFeature(root, base);
+
+    const result = inspectSessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+    });
+    expect(result.code).toBe(1);
+    expect(result.recoveryTier).toBe("rearm");
+    expect(result.message).toContain("session:ready");
+    expect(result.message).not.toContain("verify_tools");
+    expect(readRitualState(root)[0]?.gitHead).toBe(ritualHead);
     rmSync(root, { recursive: true, force: true });
   });
 });

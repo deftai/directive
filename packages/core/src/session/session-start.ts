@@ -106,6 +106,7 @@ import { isLinkedWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
 import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
+  evaluateOccupancyCeremonyEligibility,
   type OccupancyDecision,
   type OccupancyIdentityProvenance,
   type PrimaryClaimException,
@@ -473,13 +474,92 @@ export type RearmEligibility =
   | { eligible: false; reason: string };
 
 /**
+ * Live occupancy already admits this ritual session as owner (#3884).
+ * Absent / residue / foreign / member cases stay false — only live-same-owner.
+ */
+export function liveSameOwnerOccupancyAdmits(
+  projectRoot: string,
+  sessionId: string | undefined,
+  input: Omit<ApplyOccupancyInput, "sessionId"> = {},
+): boolean {
+  if (sessionId === undefined || sessionId.trim().length === 0) return false;
+  const eligibility = evaluateOccupancyCeremonyEligibility(projectRoot, {
+    ...input,
+    sessionId,
+  });
+  return eligibility.occupancyCase === "live-same-owner";
+}
+
+/**
+ * Same-owner discontinuous HEAD continuity for rebase tip moves (#3884 / #2782).
+ * Live-same-owner alone is not enough: branch-switch, amend, and soft/hard reset
+ * to unrelated history stay fail-closed. Admit only a same-branch rebase tip
+ * rewrite: walking the current branch reflog from tip back to the ritual SHA
+ * must see a rebase subject and must not see reset/checkout/amend before the
+ * ritual. Mere reflog membership is not enough (soft-reset keeps the old SHA
+ * in the reflog). Amend after rebase must not skip past the amend to an earlier
+ * rebase subject. Backup branches that still contain the old SHA must not
+ * block; dangling ritual on an unrelated checkout must not admit. FF continuity
+ * is handled by the caller via ancestor checks before this helper runs.
+ */
+export function sameOwnerRebaseHeadContinuity(
+  projectRoot: string,
+  sessionId: string | undefined,
+  ritualHead: string,
+  currentHead: string,
+  input: { now?: Date; runGit?: GitRunner } = {},
+): boolean {
+  if (!liveSameOwnerOccupancyAdmits(projectRoot, sessionId, { now: input.now })) {
+    return false;
+  }
+  const runGit = input.runGit ?? defaultGitRunner;
+  const branch = runGit(projectRoot, ["symbolic-ref", "--short", "HEAD"]);
+  if (branch.code !== 0) return false;
+  const branchName = branch.stdout.trim();
+  if (branchName.length === 0) return false;
+  // Same-branch rebase path only — ignores backup branches; rejects switches /
+  // reset-to-unrelated / amend-after-rebase that still leave ritual SHA in the
+  // reflog.
+  const reflog = runGit(projectRoot, ["reflog", "show", branchName, "--format=%H %gs"]);
+  if (reflog.code !== 0) return false;
+  let seenRebase = false;
+  let foundRitual = false;
+  for (const raw of reflog.stdout.split(/[\r\n]+/)) {
+    const line = raw.trim();
+    if (line.length === 0) continue;
+    const sp = line.indexOf(" ");
+    const sha = sp === -1 ? line : line.slice(0, sp);
+    const subject = sp === -1 ? "" : line.slice(sp + 1);
+    if (sha === ritualHead) {
+      foundRitual = true;
+      break;
+    }
+    // Amend after rebase must fail closed — do not walk past amend to an
+    // earlier rebase subject (#3884 Greptile residual).
+    if (/^(reset|checkout)(:|\s)/i.test(subject) || /^commit \(amend\)/i.test(subject)) {
+      return false;
+    }
+    if (/rebase/i.test(subject)) seenRebase = true;
+  }
+  if (!foundRitual || !seenRebase) return false;
+  const ritualParent = runGit(projectRoot, ["rev-parse", "--verify", `${ritualHead}^`]);
+  const currentParent = runGit(projectRoot, ["rev-parse", "--verify", `${currentHead}^`]);
+  // Fail closed when parents cannot be resolved (root / error).
+  if (ritualParent.code !== 0 || currentParent.code !== 0) return false;
+  // Amend keeps the same first parent; rebase onto a moved base does not.
+  if (ritualParent.stdout.trim() === currentParent.stdout.trim()) return false;
+  return true;
+}
+
+/**
  * Whether a prior ritual can be re-armed without a full cold ceremony (#2992).
- * Requires valid state, same worktree, continuous (or identical) HEAD, and
- * previously-passing quick steps.
+ * Requires valid state, same worktree, continuous (or identical) HEAD — or
+ * same-owner rebase tip rewrite under a live lease (#3884) — and
+ * previously-passing quick steps. Branch-switch / amend stay fail-closed (#2782).
  */
 export function assessRearmEligibility(
   projectRoot: string,
-  options: { runGit?: GitRunner } = {},
+  options: { runGit?: GitRunner; now?: Date } = {},
 ): RearmEligibility {
   const runGit = options.runGit ?? defaultGitRunner;
   const [state, err] = readRitualState(projectRoot);
@@ -505,7 +585,13 @@ export function assessRearmEligibility(
     if (forward === null) {
       return { eligible: false, reason: "could not verify git history for session re-arm" };
     }
-    if (!forward) {
+    if (
+      !forward &&
+      !sameOwnerRebaseHeadContinuity(projectRoot, state.sessionId, state.gitHead, currentHead, {
+        now: options.now,
+        runGit,
+      })
+    ) {
       return {
         eligible: false,
         reason: "git HEAD changed discontinuously (full cold session:start required)",

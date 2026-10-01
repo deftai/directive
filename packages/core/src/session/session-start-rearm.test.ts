@@ -60,13 +60,33 @@ function tempRoot(): string {
 
 function fakeGit(
   root: string,
-  options: { head?: string; worktree?: string; ancestorOk?: boolean } = {},
+  options: {
+    head?: string;
+    worktree?: string;
+    ancestorOk?: boolean;
+    /** Current branch short name (`symbolic-ref --short HEAD`). */
+    branchName?: string;
+    /**
+     * Tip→ritual reflog path shape for discontinuous continuity (#3884).
+     * - rebase: ritual present with a rebase subject (admit)
+     * - soft-reset: ritual present but tip subject is reset (fail closed)
+     * - amend-after-rebase: amend tip above an earlier rebase (fail closed)
+     * - absent: ritual not on this branch reflog (fail closed)
+     */
+    reflogPath?: "rebase" | "soft-reset" | "amend-after-rebase" | "absent";
+    /** Shared first parent (amend-shaped). */
+    amendShaped?: boolean;
+    ritualHead?: string;
+  } = {},
 ): (r: string, args: readonly string[]) => GitRunResult {
   const head = options.head ?? "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
   const worktree = options.worktree ?? root;
   const ancestorOk = options.ancestorOk ?? true;
+  const ritualHead = options.ritualHead ?? "cccccccccccccccccccccccccccccccccccccccc";
+  const branchName = options.branchName ?? "feature";
+  const reflogPath = options.reflogPath ?? "absent";
   return (_r, args) => {
-    if (args[0] === "rev-parse" && args.includes("HEAD")) {
+    if (args[0] === "rev-parse" && args.includes("HEAD") && !String(args[2] ?? "").includes("^")) {
       return { code: 0, stdout: head, stderr: "" };
     }
     if (args[0] === "rev-parse" && args.includes("--show-toplevel")) {
@@ -74,6 +94,48 @@ function fakeGit(
     }
     if (args[0] === "merge-base" && args.includes("--is-ancestor")) {
       return { code: ancestorOk ? 0 : 1, stdout: "", stderr: "" };
+    }
+    if (args[0] === "symbolic-ref" && args[1] === "--short" && args[2] === "HEAD") {
+      return { code: 0, stdout: branchName, stderr: "" };
+    }
+    if (args[0] === "reflog" && args[1] === "show" && args[2] === branchName) {
+      let lines: string;
+      if (reflogPath === "rebase") {
+        lines = `${head} rebase (finish): refs/heads/${branchName} onto eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n${ritualHead} commit: feat\n`;
+      } else if (reflogPath === "soft-reset") {
+        lines = `${head} reset: moving to ${head}\n${ritualHead} commit: feat\n`;
+      } else if (reflogPath === "amend-after-rebase") {
+        lines = `${head} commit (amend): tweak\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa rebase (finish): refs/heads/${branchName} onto eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n${ritualHead} commit: feat\n`;
+      } else {
+        lines = `${head} commit: other\nffffffffffffffffffffffffffffffffffffffff commit: prior\n`;
+      }
+      return { code: 0, stdout: lines, stderr: "" };
+    }
+    if (args[0] === "rev-parse" && args[1] === "--verify" && typeof args[2] === "string") {
+      const target = args[2];
+      if (target.endsWith("^")) {
+        const base = target.slice(0, -1);
+        if (options.amendShaped) {
+          return {
+            code: 0,
+            stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            stderr: "",
+          };
+        }
+        // Distinct parents for ritual vs current ⇒ rebase-shaped.
+        if (base === ritualHead) {
+          return {
+            code: 0,
+            stdout: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            stderr: "",
+          };
+        }
+        return {
+          code: 0,
+          stdout: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          stderr: "",
+        };
+      }
     }
     return { code: 1, stdout: "", stderr: "" };
   };
@@ -408,6 +470,178 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
     seedRitual(root, { head: prior, startedAt: new Date("2026-07-20T12:00:00Z") });
     const eligibility = assessRearmEligibility(root, {
       runGit: fakeGit(root, { head: current, ancestorOk: false }),
+    });
+    expect(eligibility.eligible).toBe(false);
+    if (!eligibility.eligible) {
+      expect(eligibility.reason).toContain("discontinuously");
+    }
+  });
+
+  it("re-arm allows discontinuous HEAD for same-owner rebase tip rewrite (#3884)", () => {
+    const root = tempRoot();
+    const prior = "cccccccccccccccccccccccccccccccccccccccc";
+    const current = "dddddddddddddddddddddddddddddddddddddddd";
+    const now = new Date("2026-07-20T12:00:00Z");
+    seedRitual(root, { head: prior, startedAt: now });
+    applyWorktreeOccupancy(root, {
+      sessionId: "seed-session",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    const eligibility = assessRearmEligibility(root, {
+      runGit: fakeGit(root, {
+        head: current,
+        ancestorOk: false,
+        reflogPath: "rebase",
+        amendShaped: false,
+        ritualHead: prior,
+      }),
+      now,
+    });
+    expect(eligibility.eligible).toBe(true);
+    if (eligibility.eligible) {
+      expect(eligibility.currentHead).toBe(current);
+    }
+  });
+
+  it("re-arm allows same-owner rebase when a backup branch still contains ritual (#3884)", () => {
+    const root = tempRoot();
+    const prior = "cccccccccccccccccccccccccccccccccccccccc";
+    const current = "dddddddddddddddddddddddddddddddddddddddd";
+    const now = new Date("2026-07-20T12:00:00Z");
+    seedRitual(root, { head: prior, startedAt: now });
+    applyWorktreeOccupancy(root, {
+      sessionId: "seed-session",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    // Rebase-shaped reflog admits; leftover backup/contains noise must not matter.
+    const eligibility = assessRearmEligibility(root, {
+      runGit: fakeGit(root, {
+        head: current,
+        ancestorOk: false,
+        reflogPath: "rebase",
+        amendShaped: false,
+        ritualHead: prior,
+        branchName: "feature",
+      }),
+      now,
+    });
+    expect(eligibility.eligible).toBe(true);
+  });
+
+  it("re-arm refuses soft-reset to unrelated tip even when ritual remains in reflog (#3884)", () => {
+    const root = tempRoot();
+    const prior = "cccccccccccccccccccccccccccccccccccccccc";
+    const current = "dddddddddddddddddddddddddddddddddddddddd";
+    const now = new Date("2026-07-20T12:00:00Z");
+    seedRitual(root, { head: prior, startedAt: now });
+    applyWorktreeOccupancy(root, {
+      sessionId: "seed-session",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    const eligibility = assessRearmEligibility(root, {
+      runGit: fakeGit(root, {
+        head: current,
+        ancestorOk: false,
+        reflogPath: "soft-reset",
+        amendShaped: false,
+        ritualHead: prior,
+      }),
+      now,
+    });
+    expect(eligibility.eligible).toBe(false);
+    if (!eligibility.eligible) {
+      expect(eligibility.reason).toContain("discontinuously");
+    }
+  });
+
+  it("re-arm refuses amend after rebase even when earlier rebase is in reflog (#3884)", () => {
+    const root = tempRoot();
+    const prior = "cccccccccccccccccccccccccccccccccccccccc";
+    const current = "dddddddddddddddddddddddddddddddddddddddd";
+    const now = new Date("2026-07-20T12:00:00Z");
+    seedRitual(root, { head: prior, startedAt: now });
+    applyWorktreeOccupancy(root, {
+      sessionId: "seed-session",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    const eligibility = assessRearmEligibility(root, {
+      runGit: fakeGit(root, {
+        head: current,
+        ancestorOk: false,
+        reflogPath: "amend-after-rebase",
+        // Distinct parents (rebase-shaped) — must still refuse because amend
+        // sits between tip and ritual.
+        amendShaped: false,
+        ritualHead: prior,
+        branchName: "feature",
+      }),
+      now,
+    });
+    expect(eligibility.eligible).toBe(false);
+    if (!eligibility.eligible) {
+      expect(eligibility.reason).toContain("discontinuously");
+    }
+  });
+
+  it("re-arm refuses same-owner branch switch even with a live lease (#2782)", () => {
+    const root = tempRoot();
+    const prior = "cccccccccccccccccccccccccccccccccccccccc";
+    const current = "dddddddddddddddddddddddddddddddddddddddd";
+    const now = new Date("2026-07-20T12:00:00Z");
+    seedRitual(root, { head: prior, startedAt: now });
+    applyWorktreeOccupancy(root, {
+      sessionId: "seed-session",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    const eligibility = assessRearmEligibility(root, {
+      runGit: fakeGit(root, {
+        head: current,
+        ancestorOk: false,
+        reflogPath: "absent",
+        ritualHead: prior,
+        branchName: "other",
+      }),
+      now,
+    });
+    expect(eligibility.eligible).toBe(false);
+    if (!eligibility.eligible) {
+      expect(eligibility.reason).toContain("discontinuously");
+    }
+  });
+
+  it("re-arm refuses dangling ritual after branch delete then unrelated checkout (#3884)", () => {
+    const root = tempRoot();
+    const prior = "cccccccccccccccccccccccccccccccccccccccc";
+    const current = "dddddddddddddddddddddddddddddddddddddddd";
+    const now = new Date("2026-07-20T12:00:00Z");
+    seedRitual(root, { head: prior, startedAt: now });
+    applyWorktreeOccupancy(root, {
+      sessionId: "seed-session",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    const eligibility = assessRearmEligibility(root, {
+      runGit: fakeGit(root, {
+        head: current,
+        ancestorOk: false,
+        // Ritual absent from current branch reflog after delete/switch.
+        reflogPath: "absent",
+        amendShaped: false,
+        ritualHead: prior,
+        branchName: "main",
+      }),
+      now,
     });
     expect(eligibility.eligible).toBe(false);
     if (!eligibility.eligible) {
