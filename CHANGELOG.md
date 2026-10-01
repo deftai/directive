@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **process(agents): raise agentsMdBudget for #4714 spawn-dest agents-entry refresh.** managedMaxLines 188→189; absoluteMaxBytes 22124→22856 so verify:agents-md-budget stays green after dest-place-then-cwd marker sync. Tracking #4714.
+- **process(agents): raise agentsMdBudget for #4714 spawn-dest agents-entry refresh.** managedMaxLines 188→189; absoluteMaxBytes 22124→22886 so verify:agents-md-budget stays green after dest-place-then-cwd marker sync. Tracking #4714.
 - **fix(swarm): retained-brief scan prefers exact reviewed-byte match across dests (#4714).** materializeRetainedBrief no longer stops at the first readable stale retained root. Tracking #4714.
 - **roadmap:render buffer path returns failures instead of throwing (#4756 residual / PR #5206).** `renderRoadmapToBuffer` / `generateRoadmapContent` alias `renderRoadmapToBufferResult` so the empty-claim gate stays returned-failure-only (no throw vs master). Tracking #4756.
 - **fix(swarm): retained-brief unexpected write errors return `ok:false` (#4714).** After `containedWrite` in `materializeRetainedBrief`, non-`ContainedWriteError` failures are returned instead of rethrown so `verify:intent-constraint` stays free. Tracking #4714.
