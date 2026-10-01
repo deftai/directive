@@ -330,15 +330,14 @@ export function heartbeatActiveForMergePathArm(
     ) {
       return true;
     }
+    // Closer path requires a successful live HEAD lookup — never fall back to a
+    // caller --head-sha (stale tip-A must not arm when lookup fails) (#5219).
     const liveRaw = input.resolveLiveHeadSha?.() ?? null;
     const live = typeof liveRaw === "string" && liveRaw.trim().length > 0 ? liveRaw.trim() : null;
-    const hinted =
-      typeof input.headSha === "string" && input.headSha.trim().length > 0
-        ? input.headSha.trim()
-        : null;
-    // Live tip wins; stale caller --head-sha cannot arm a newer tip (#5219 P1).
-    const want = live ?? hinted;
-    if (!hasMergePathCleanAttestation(projectRoot, pr, want)) {
+    if (live === null) {
+      return false;
+    }
+    if (!hasMergePathCleanAttestation(projectRoot, pr, live)) {
       return false;
     }
     return hasActivePollingHeartbeat(projectRoot, pr, {
@@ -347,7 +346,9 @@ export function heartbeatActiveForMergePathArm(
     });
   }
   return hasActivePollingHeartbeat(projectRoot, pr, base);
-} /**
+}
+
+/**
  * Cheap Approach 1 babysitter one-liner (#5219 P3): child register + watch first
  * (heartbeat live), then parent `verify --merge-path-arm --live-wait`.
  */

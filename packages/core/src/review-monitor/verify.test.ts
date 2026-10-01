@@ -618,6 +618,7 @@ describe("evaluateReviewMonitorGate", () => {
         lease,
         isProcessAlive: () => true,
         headSha: "abc",
+        resolveLiveHeadSha: () => "abc",
       }),
     ).toBe(true);
   });
@@ -658,8 +659,8 @@ describe("evaluateReviewMonitorGate", () => {
         tierPrimitive: "spawn_subagent",
         lease,
         isProcessAlive: () => true,
-        headSha: null,
-        resolveLiveHeadSha: () => "tip-b",
+        headSha: "tip-a",
+        resolveLiveHeadSha: () => null,
       }),
     ).toBe(false);
   });
