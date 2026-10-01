@@ -498,7 +498,7 @@ describe("evaluateCompletedTracked (#3264)", () => {
     expect(result.missing[0]?.origins).toContain("--issue 9104");
   });
 
-  it("does not fail --issue N when the named issue is still open and unlanded", () => {
+  it("fails --issue N when the named issue is still open and unlanded (#4714 R6)", () => {
     const root = makeGitRepo();
     writeCachedIssue(root, "deftai/directive", 9105, "open");
     const result = evaluateCompletedTracked(root, {
@@ -507,8 +507,9 @@ describe("evaluateCompletedTracked (#3264)", () => {
       tip: "HEAD",
       issue: 9105,
     });
-    expect(result.code).toBe(0);
-    expect(result.missing).toEqual([]);
+    expect(result.code).toBe(1);
+    expect(result.missing[0]?.issue.number).toBe(9105);
+    expect(result.missing[0]?.origins).toContain("--issue 9105");
   });
 
   it("returns config error for a non-positive --issue", () => {

@@ -27,9 +27,18 @@ import {
   verifyDeliveryAncestry,
 } from "../scope/delivery-evidence.js";
 import type { GitRunner } from "../session/git.js";
+import {
+  materializeRetainedBrief,
+  SOURCE_RECOVERY_REMEDIATION,
+} from "./brief-transport.js";
 import { completeCohort, type SweepResult } from "./complete-cohort.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import { completedBriefReferencesIssue, resolveStories } from "./launch.js";
+import {
+  evaluateLifecycleDiff,
+  expectedLifecycleRels,
+  parseStagedXbriefPaths,
+} from "./lifecycle-diff.js";
 import { runText } from "./subprocess.js";
 
 /** Structured awaiting-land state (#4919). Distinct from validation/REST failures. */
@@ -88,6 +97,11 @@ export interface FinalizeCohortArgs {
    * return origin-close pending without waiting for land.
    */
   readonly handOffLeftover?: boolean;
+  /**
+   * Retained worker dest roots that may hold an active brief absent from the
+   * isolated delivery checkout (#4714 R5). Default: the calling project root.
+   */
+  readonly retainedDests?: readonly string[];
 }
 
 function splitCsv(values: readonly string[]): string[] {
@@ -957,15 +971,43 @@ function commitLifecycleMoves(
   projectRoot: string,
   storyPaths: readonly string[],
   runGit: typeof runText,
+  derivedRels: readonly string[] = [],
 ): { ok: boolean; error: string | null; sha: string | null } {
   const branchCheck = evaluateBranchPolicy(projectRoot);
   if (branchCheck.exitCode !== 0) {
     return { ok: false, error: branchCheck.message, sha: null };
   }
 
-  const add = runGit(["git", "add", "-A", "xbrief/"], { cwd: projectRoot });
+  const statusBefore = runGit(["git", "status", "--short", "--", "xbrief/", "vbrief/"], {
+    cwd: projectRoot,
+  });
+  if (statusBefore.returncode !== 0) {
+    return {
+      ok: false,
+      error: `git status failed before lifecycle commit: ${statusBefore.stderr.trim()}`,
+      sha: null,
+    };
+  }
+  const storyRels = storyPaths.map((p) => posixProjectRel(projectRoot, p));
+  const allowed = expectedLifecycleRels(storyRels, derivedRels);
+  const stagedPreview = parseStagedXbriefPaths(statusBefore.stdout);
+  const diff = evaluateLifecycleDiff(stagedPreview, allowed);
+  if (!diff.ok) {
+    return { ok: false, error: diff.error, sha: null };
+  }
+
+  const add = runGit(["git", "add", "-A", "xbrief/", "vbrief/"], { cwd: projectRoot });
   if (add.returncode !== 0) {
     return { ok: false, error: `git add failed: ${add.stderr.trim()}`, sha: null };
+  }
+
+  const statusAfter = runGit(["git", "status", "--short", "--", "xbrief/", "vbrief/"], {
+    cwd: projectRoot,
+  });
+  const stagedAfter = parseStagedXbriefPaths(statusAfter.stdout);
+  const diffAfter = evaluateLifecycleDiff(stagedAfter, allowed);
+  if (!diffAfter.ok) {
+    return { ok: false, error: diffAfter.error, sha: null };
   }
 
   const slugs = storySlugs(storyPaths);
@@ -1172,6 +1214,7 @@ function remapStoriesToCheckout(
   evidenceByPath: ReadonlyMap<string, DeliveryEvidenceInput>,
   deliveryBranch: string,
   runGit: typeof runText,
+  retainedDests: readonly string[] = [],
 ):
   | {
       ok: true;
@@ -1183,9 +1226,11 @@ function remapStoriesToCheckout(
   const paths: string[] = [];
   const evidence = new Map<string, DeliveryEvidenceInput>();
   let landedCount = 0;
+  const retainedRoots =
+    retainedDests.length > 0 ? [...retainedDests] : [projectRoot];
   for (const storyPath of storyPaths) {
     const rel = posixProjectRel(projectRoot, storyPath);
-    const next = resolve(checkout, rel);
+    let next = resolve(checkout, rel);
     if (!existsSync(next)) {
       const completedRel = expectedCompletedRel(projectRoot, storyPath);
       const landed = listLandedCompletedRelpaths(projectRoot, deliveryBranch, runGit);
@@ -1193,15 +1238,29 @@ function remapStoriesToCheckout(
         landedCount += 1;
         continue;
       }
-      return {
-        ok: false,
-        error:
-          `lifecycle checkout is missing ${rel}. ` +
-          "Refusing to move the brief in the implement worktree.",
-      };
+      const boundEvidence = evidenceByPath.get(resolve(storyPath)) ?? evidenceByPath.get(storyPath);
+      const reviewedCommit =
+        boundEvidence?.mergeCommit ?? boundEvidence?.deliveryCommit ?? null;
+      const materialized = materializeRetainedBrief({
+        checkoutRoot: checkout,
+        projectRoot,
+        relPath: rel,
+        retainedRoots,
+        reviewedCommitIsh: reviewedCommit,
+        runGit,
+      });
+      if (!materialized.ok) {
+        return {
+          ok: false,
+          error:
+            `lifecycle checkout is missing ${rel}. ${materialized.error} ` +
+            "Refusing to move the brief in the implement worktree.",
+        };
+      }
+      next = materialized.path;
     }
     paths.push(next);
-    const bound = evidenceByPath.get(resolve(storyPath));
+    const bound = evidenceByPath.get(resolve(storyPath)) ?? evidenceByPath.get(storyPath);
     if (bound !== undefined) {
       evidence.set(resolve(next), bound);
     }
@@ -1213,6 +1272,27 @@ function remapStoriesToCheckout(
     };
   }
   return { ok: true, paths, evidence, alreadyLanded: landedCount > 0 && paths.length === 0 };
+}
+
+/** True when any local lifecycle brief references the issue (#4714 R6 expected-scoped). */
+function localBriefReferencesIssue(projectRoot: string, issue: number): boolean {
+  for (const folder of ["proposed", "pending", "active", "completed", "cancelled"] as const) {
+    for (const rootName of ["xbrief", "vbrief"] as const) {
+      const dir = resolve(projectRoot, rootName, folder);
+      if (!existsSync(dir)) {
+        continue;
+      }
+      for (const name of readdirSync(dir)) {
+        if (!name.endsWith(".json")) {
+          continue;
+        }
+        if (githubIssueFromBrief(resolve(dir, name)) === issue) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 function originCloseRoot(checkout: string | null, projectRoot: string): string {
@@ -1597,10 +1677,11 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   }
 
   // Closing-issue tokens are incidental (they come from a merged PR's structured
-  // closing refs, not the operator). A benign ref -- one whose issue is already
-  // closed OR already has a brief in completed/ -- is SKIPPED WITH A WARNING
-  // rather than aborting the whole sweep. A genuine misconfig (open issue, no
-  // active and no completed brief) is still surfaced as a hard error (#2247).
+  // closing refs, not the operator). #4714 R6: expected scoped issues without
+  // active or terminal records cannot use the #2247 closed-ref no-op. Preserve
+  // the warning only for genuinely incidental unscoped refs (no local brief
+  // reference, not full-story / productPullRequest-bound). Completed twin is
+  // still an idempotent skip.
   for (const issue of [...closingIssues].sort((a, b) => a - b)) {
     const resolved = resolveStories(projectRoot, [String(issue)]);
     if (resolved.resolved.length > 0) {
@@ -1617,36 +1698,48 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       continue;
     }
     const completedBrief = completedBriefReferencesIssue(projectRoot, issue);
-    const issueClosed = completedBrief || fetchIssueClosed(issue, repo, runGh);
-    if (completedBrief || issueClosed) {
+    if (completedBrief) {
       let dispositionNote = "";
-      if (completedBrief) {
-        try {
-          const completedDir = resolve(projectRoot, "xbrief", "completed");
-          // Best-effort surface of legacy delivery disposition for completed briefs (#3041).
-          if (existsSync(completedDir)) {
-            for (const name of readdirSync(completedDir)) {
-              if (!name.endsWith(".json")) continue;
-              const raw = JSON.parse(readFileSync(resolve(completedDir, name), "utf8")) as unknown;
-              if (raw === null || typeof raw !== "object" || Array.isArray(raw)) continue;
-              const plan = (raw as Record<string, unknown>).plan;
-              if (typeof plan !== "object" || plan === null || Array.isArray(plan)) continue;
-              const disposition = classifyStoredDeliveryDisposition(
-                plan as Record<string, unknown>,
-              );
-              dispositionNote = ` deliveryDisposition=${disposition}`;
-              break;
-            }
+      try {
+        const completedDir = resolve(projectRoot, "xbrief", "completed");
+        // Best-effort surface of legacy delivery disposition for completed briefs (#3041).
+        if (existsSync(completedDir)) {
+          for (const name of readdirSync(completedDir)) {
+            if (!name.endsWith(".json")) continue;
+            const raw = JSON.parse(readFileSync(resolve(completedDir, name), "utf8")) as unknown;
+            if (raw === null || typeof raw !== "object" || Array.isArray(raw)) continue;
+            const plan = (raw as Record<string, unknown>).plan;
+            if (typeof plan !== "object" || plan === null || Array.isArray(plan)) continue;
+            const disposition = classifyStoredDeliveryDisposition(
+              plan as Record<string, unknown>,
+            );
+            dispositionNote = ` deliveryDisposition=${disposition}`;
+            break;
           }
-        } catch {
-          /* best-effort disposition surfacing for legacy completed records */
         }
+      } catch {
+        /* best-effort disposition surfacing for legacy completed records */
       }
-      const reason = completedBrief
-        ? `a completed brief already exists${dispositionNote}`
-        : "the issue is already closed";
       warnings.push(
-        `#${issue}: no active story references this closing issue; skipped (${reason}).`,
+        `#${issue}: no active story references this closing issue; skipped ` +
+          `(a completed brief already exists${dispositionNote}).`,
+      );
+      continue;
+    }
+    const expectedScoped =
+      fullStoryCloseIssues.has(issue) || localBriefReferencesIssue(projectRoot, issue);
+    if (expectedScoped) {
+      errors.push(
+        `#${issue}: expected scoped issue has no active or terminal brief. ` +
+          `${SOURCE_RECOVERY_REMEDIATION}`,
+      );
+      continue;
+    }
+    const issueClosed = fetchIssueClosed(issue, repo, runGh);
+    if (issueClosed) {
+      warnings.push(
+        `#${issue}: no active story references this closing issue; skipped ` +
+          `(incidental unscoped ref; the issue is already closed).`,
       );
     } else {
       errors.push(`#${issue}: no active story references this closing issue.`);
@@ -1903,6 +1996,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
             evidenceByPath,
             deliveryBranch,
             runGit,
+            args.retainedDests ?? [projectRoot],
           );
           if (!remapped.ok) {
             errors.push(remapped.error);

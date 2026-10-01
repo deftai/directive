@@ -332,7 +332,9 @@ function mockRunGit(
       return { returncode: 0, stdout: "abc123\n", stderr: "" };
     }
     if (joined.includes("git status --short")) {
-      return { returncode: 0, stdout: "M xbrief/active/story-a.xbrief.json\n", stderr: "" };
+      // Empty staged set keeps #4714 R7 causal-diff green under mocked transitions
+      // (runTransition does not actually move briefs in unit tests).
+      return { returncode: 0, stdout: "", stderr: "" };
     }
     if (joined.includes("git fetch") && opts.fetchFail) {
       return { returncode: 1, stdout: "", stderr: "network unreachable" };
@@ -747,10 +749,51 @@ describe("finalizeCohort", () => {
     expect(result.result.pending?.kind).toBe("origin-close");
     expect(result.result.ok).toBe(false);
     expect(result.result.story_paths).toHaveLength(1);
-    expect(result.result.warnings.some((w) => w.includes("#8888") && w.includes("closed"))).toBe(
-      true,
-    );
+    expect(
+      result.result.warnings.some(
+        (w) => w.includes("#8888") && w.includes("incidental") && w.includes("closed"),
+      ),
+    ).toBe(true);
     expect(result.result.errors).toEqual([]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses an expected scoped closing ref with no active or terminal brief (#4714 R6)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-expected-missing-"));
+    writeActiveStory(project, "story-2240", 2240);
+    // Local non-active brief marks #7777 as expected scoped (not incidental).
+    mkdirSync(join(project, "xbrief", "proposed"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "proposed", "story-7777.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "story-7777",
+          status: "proposed",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/7777",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [2241],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({ 2241: { merged: true, closingIssues: [2240, 7777] } }, { 7777: "closed" }),
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(
+      result.result.errors.some(
+        (e) => e.includes("#7777") && e.includes("source-recovery"),
+      ),
+    ).toBe(true);
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -2015,6 +2058,83 @@ describe("finalizeCohort", () => {
       }
       rmSync(project, { recursive: true, force: true });
     }
+  });
+
+  it("materializes a retained active brief into the lifecycle checkout when bytes match the reviewed blob (#4714 R5)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-transport-"));
+    const storyPath = writeActiveStory(project, "story-4714", 4714);
+    const retainedBytes = readFileSync(storyPath, "utf8");
+    const inner = mockRunGit({ checkoutOmitsActive: true });
+    let materializedInCheckout = false;
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      label: "story-4714",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      retainedDests: [project],
+      noOpenPr: true,
+      runGit: (command, options) => {
+        if (command[1] === "show" && String(command[2] ?? "").includes("xbrief/active/story-4714")) {
+          return { returncode: 0, stdout: retainedBytes, stderr: "" };
+        }
+        const out = inner(command, options);
+        if (
+          options?.cwd !== undefined &&
+          options.cwd !== project &&
+          existsSync(join(options.cwd, "xbrief", "active", "story-4714.xbrief.json"))
+        ) {
+          materializedInCheckout = true;
+        }
+        return out;
+      },
+      runGh: mockRunGh({
+        42: {
+          merged: true,
+          closingIssues: [],
+          baseRef: "master",
+          mergeCommitSha: "deadbeefdelivery000000000000000000000001",
+        },
+      }),
+    });
+    expect(materializedInCheckout).toBe(true);
+    expect(vi.mocked(runTransition)).toHaveBeenCalled();
+    expect(result.result.errors).toEqual([]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("fails closed with source-recovery when lifecycle checkout lacks the brief and no reviewed blob matches (#4714 R5)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-no-source-"));
+    const storyPath = writeActiveStory(project, "story-4714b", 47140);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-4714b",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: mockRunGit({
+        checkoutOmitsActive: true,
+        showFail: true,
+      }),
+      runGh: mockRunGh({
+        42: {
+          merged: true,
+          closingIssues: [],
+          baseRef: "master",
+          mergeCommitSha: "deadbeefdelivery000000000000000000000001",
+        },
+      }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(
+      result.result.errors.some(
+        (e) => e.includes("lifecycle checkout is missing") && e.includes("source-recovery"),
+      ),
+    ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
   });
 
   it("origin-closes without moving the implement brief when the completed file is already on the delivery branch (#4937)", () => {

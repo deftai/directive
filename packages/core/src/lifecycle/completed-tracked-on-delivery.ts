@@ -845,11 +845,13 @@ export function evaluateCompletedTracked(
     // assessOrphanSignature; unknown under --issue or live lookup is terminal debt.
     if (landedKeys.has(key) && !residualLanded) {
       const stateWhenResidual = resolveState(entry.issue);
-      if (stateWhenResidual === "open") {
+      // Named --issue still fails residual debt while open (#4714 R6).
+      if (stateWhenResidual === "open" && issueFilter === null) {
         continue;
       }
       const unknownIsTerminalResidual = !skipGh || issueFilter !== null;
       if (
+        issueFilter !== null ||
         stateWhenResidual === "closed" ||
         (stateWhenResidual === null && unknownIsTerminalResidual)
       ) {
@@ -865,10 +867,15 @@ export function evaluateCompletedTracked(
       continue;
     }
     const state = resolveState(entry.issue);
-    if (state === "open") {
+    // #4714 R6: --issue N close proof requires a terminal artifact on the
+    // fetched delivery tip independent of GitHub open/closed state. The open
+    // green-skip remains for unscoped corpus scans only.
+    if (state === "open" && issueFilter === null) {
       continue;
     }
     // Closed: always fail.
+    //
+    // Named --issue: fail when unlanded regardless of open/closed (#4714 R6).
     //
     // Unknown: fail when live lookup was expected (!skipGh) -- cannot prove the
     // issue is still open, so do not green-skip land debt (#3264 Greptile
@@ -881,7 +888,11 @@ export function evaluateCompletedTracked(
     // unscoped corpus scan keeps the offline allowance, since a cold cache
     // legitimately knows nothing about most scoped issues.
     const unknownIsTerminal = !skipGh || issueFilter !== null;
-    if (state === "closed" || (state === null && unknownIsTerminal)) {
+    if (
+      issueFilter !== null ||
+      state === "closed" ||
+      (state === null && unknownIsTerminal)
+    ) {
       missing.push(entry);
     }
   }

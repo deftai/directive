@@ -24,6 +24,7 @@ import {
 import { evaluateWorkerInstallationPermissions } from "../one-pr-unit/dest-token.js";
 import { readPlanSequence, verifyPlanTarget } from "../plan-sequence/index.js";
 import type { PlanSequenceVerifyResult } from "../plan-sequence/types.js";
+import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { evaluate as preflightEvaluate } from "../preflight/evaluate.js";
 import { applyWorktreeOccupancy, liveOccupant, releaseOccupancy } from "../session/occupancy.js";
 import { issueNumbersFromPlan, scopeMetadataRank } from "../triage/queue/scope-walk.js";
@@ -37,7 +38,9 @@ import {
   GATE_ENFORCE,
   LEAF_CODING_WORKER_ROLE,
 } from "./constants.js";
+import { originActiveBriefPresent } from "./origin-active-brief.js";
 import { readinessReport } from "./readiness.js";
+import { runText } from "./subprocess.js";
 import {
   loadRoutingFile,
   resolveDispatchProvider,
@@ -1137,6 +1140,14 @@ export interface LaunchArgs {
   removeWorkerAuthAssignmentFn?: (
     input: RemoveWorkerAuthAssignmentInput,
   ) => RemoveWorkerAuthAssignmentResult;
+  /**
+   * When true (default), require each selected active brief on fetched
+   * origin/<deliveryBranch> before emitting the launch manifest (#4714 R2).
+   * Skipped automatically when the project has no origin remote (fixtures).
+   */
+  requireOriginActiveBrief?: boolean;
+  /** Test seam for origin-active probe git. */
+  runGit?: typeof runText;
 }
 
 function resolveAssignedWorkerAuth(args: LaunchArgs):
@@ -1254,6 +1265,36 @@ export function swarmLaunch(args: LaunchArgs): {
       stderr += `  - ${error}\n`;
     }
     return { exitCode: EXIT_GATE_FAILED, stdout: "", stderr };
+  }
+
+  const runGit = args.runGit ?? runText;
+  const requireOriginActive = args.requireOriginActiveBrief !== false;
+  if (requireOriginActive) {
+    const inside = runGit(["git", "rev-parse", "--is-inside-work-tree"], { cwd: projectRoot });
+    const remote = runGit(["git", "remote", "get-url", "origin"], { cwd: projectRoot });
+    const hasOrigin =
+      inside.returncode === 0 && remote.returncode === 0 && remote.stdout.trim().length > 0;
+    if (hasOrigin) {
+      const delivery = resolveDeliveryBranch(projectRoot, (root, gitArgs) => {
+        const result = runGit(["git", ...gitArgs], { cwd: root });
+        return { code: result.returncode, stdout: result.stdout, stderr: result.stderr };
+      });
+      for (const story of resolved) {
+        const probe = originActiveBriefPresent(
+          projectRoot,
+          delivery.branch,
+          story.relpath,
+          runGit,
+        );
+        if (!probe.present) {
+          return {
+            exitCode: EXIT_GATE_FAILED,
+            stdout: "",
+            stderr: `Error: ${probe.error ?? `origin missing ${story.relpath}`}\n`,
+          };
+        }
+      }
+    }
   }
 
   const gateFailure = enforceGates(resolved, projectRoot, args.preflightGate, args.readinessGate);
