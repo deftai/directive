@@ -136,10 +136,7 @@ describe("story continuity (#5192)", () => {
     const dup = resolveStoryContinuity({
       headRel: "xbrief/active/new.xbrief.json",
       headPlanId: "story-1",
-      headLifecycleRels: [
-        "xbrief/active/new.xbrief.json",
-        "xbrief/completed/also.xbrief.json",
-      ],
+      headLifecycleRels: ["xbrief/active/new.xbrief.json", "xbrief/completed/also.xbrief.json"],
       census,
       headPlanIds: new Map([
         ["xbrief/active/new.xbrief.json", "story-1"],

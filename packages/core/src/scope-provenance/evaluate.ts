@@ -43,6 +43,7 @@ import {
   isLifecycleXbriefPath,
   LIFECYCLE_FOLDERS,
   resolveStoryContinuity,
+  sameBasenameLifecyclePaths,
 } from "./continuity.js";
 import {
   type ApprovedScopeRecord,
@@ -669,8 +670,9 @@ export function evaluateScopeProvenance(
 
   // #5192 item 6: also evaluate lifecycle briefs in the change set that left
   // active/ (moved/completed) so completing in the same PR cannot drop fences.
-  // When an injected active-only map omits a changed completed/ path, fall
-  // through to HEAD disk so presentation-coverage cannot skip membership/fence.
+  // When an injected map omits a changed completed/cancelled path, fall through
+  // to HEAD disk. Do not re-add pending/ (or other omitted folders) — that would
+  // bind a new pending brief over an unrelated active story's product paths.
   const seenEvalRels = new Set(activeEntries.map((e) => e.rel));
   for (const changedRel of changed) {
     const n = normalizeRepoRelPath(changedRel);
@@ -682,7 +684,9 @@ export function evaluateScopeProvenance(
         seenEvalRels.add(n);
         continue;
       }
-      // Missing from the injected map: try HEAD disk before giving up.
+      const isCompletedOrCancelled =
+        n.startsWith("xbrief/completed/") || n.startsWith("xbrief/cancelled/");
+      if (!isCompletedOrCancelled) continue;
     }
     const full = join(root, n);
     if (!existsSync(full)) continue;
@@ -1005,6 +1009,15 @@ export function evaluateScopeProvenance(
       return { kind: "mint", fileScope: normalizeFileScope(parsed.fileScope) };
     };
 
+    const basenameMintPathOk = (mintRel: string, headPath: string): boolean => {
+      const mintN = normalizeRepoRelPath(mintRel);
+      const headN = normalizeRepoRelPath(headPath);
+      if (mintN === headN) return true;
+      // Lifecycle moves keep the leaf name; mint xbriefRelPath may still be the
+      // pre-move folder (active/pending) while head is completed/cancelled.
+      return sameBasenameLifecyclePaths(headN).includes(mintN);
+    };
+
     const lookupBasenameMint = (headPath: string): MintLookup => {
       const key = basename(headPath)
         .replace(/\.xbrief\.json$/i, "")
@@ -1016,9 +1029,10 @@ export function evaluateScopeProvenance(
         if (!isHumanApprovalStamp(injected.humanApproval)) {
           return { kind: "invalid", detail: `basename mint for ${key} lacks human stamp` };
         }
-        if (normalizeRepoRelPath(injected.xbriefRelPath) !== normalizeRepoRelPath(headPath)) {
+        if (!basenameMintPathOk(injected.xbriefRelPath, headPath)) {
           return { kind: "missing" };
         }
+        // planId must equal the basename key — never authorize a mismatched record.
         if (injected.planId !== key) {
           return {
             kind: "invalid",
@@ -1043,9 +1057,10 @@ export function evaluateScopeProvenance(
       if (!isHumanApprovalStamp(parsed.humanApproval)) {
         return { kind: "invalid", detail: `mint at ${approvalRel} lacks human stamp` };
       }
-      if (normalizeRepoRelPath(parsed.xbriefRelPath) !== normalizeRepoRelPath(headPath)) {
+      if (!basenameMintPathOk(parsed.xbriefRelPath, headPath)) {
         return { kind: "missing" };
       }
+      // planId must equal the basename key — never authorize a mismatched record.
       if (parsed.planId !== key) {
         return {
           kind: "invalid",
@@ -1060,6 +1075,14 @@ export function evaluateScopeProvenance(
       mintLookup = lookupMintByPlanId(continuity.basePlanId);
     } else if (continuity.kind === "resolved" && planId === null) {
       // no-plan.id path-first: basename-keyed mint whose xbriefRelPath equals head.
+      mintLookup = lookupBasenameMint(rel);
+    } else if (
+      planId === null &&
+      continuity.kind === "missing" &&
+      (rel.startsWith("xbrief/completed/") || rel.startsWith("xbrief/cancelled/"))
+    ) {
+      // no-plan.id completed/cancelled move: still resolve basename mint (path may
+      // be the pre-move folder); production fence probes same-basename on base.
       mintLookup = lookupBasenameMint(rel);
     } else if (planId !== null && continuity.kind === "missing") {
       // No continuity identity: do not look up mint by head plan.id alone when
@@ -1213,8 +1236,30 @@ export function evaluateScopeProvenance(
     // Path fence (#4956): compare changed production files to the merge-base
     // brief file_scope. Never read the head brief for the fence list.
     // On lifecycle moves, the head path is absent on base — use continuity.baseRel.
-    const fenceBaseRel = continuity.kind === "resolved" ? continuity.baseRel : rel;
-    const baseBriefRead = readAtBase(fenceBaseRel);
+    // When continuity is missing (e.g. no-plan.id move), probe same-basename
+    // lifecycle paths on base so a completed/ head does not skip the old fence.
+    let fenceBaseRel = continuity.kind === "resolved" ? continuity.baseRel : rel;
+    let baseBriefRead = readAtBase(fenceBaseRel);
+    if (
+      baseBriefRead.kind === "missing" &&
+      continuity.kind !== "resolved" &&
+      (rel.startsWith("xbrief/completed/") || rel.startsWith("xbrief/cancelled/"))
+    ) {
+      for (const candidate of sameBasenameLifecyclePaths(rel)) {
+        if (candidate === normalizeRepoRelPath(rel)) continue;
+        const alt = readAtBase(candidate);
+        if (alt.kind === "text") {
+          fenceBaseRel = candidate;
+          baseBriefRead = alt;
+          break;
+        }
+        if (alt.kind === "error") {
+          baseBriefRead = alt;
+          fenceBaseRel = candidate;
+          break;
+        }
+      }
+    }
     if (baseBriefRead.kind === "error") {
       findings.push({
         xbriefRelPath: rel,
@@ -1271,9 +1316,29 @@ export function evaluateScopeProvenance(
             census,
             headPlanIds,
           });
-          const otherFenceRel =
+          let otherFenceRel =
             otherContinuity.kind === "resolved" ? otherContinuity.baseRel : other.rel;
-          const otherBaseRead = readAtBase(otherFenceRel);
+          let otherBaseRead = readAtBase(otherFenceRel);
+          if (
+            otherBaseRead.kind === "missing" &&
+            otherContinuity.kind !== "resolved" &&
+            (other.rel.startsWith("xbrief/completed/") || other.rel.startsWith("xbrief/cancelled/"))
+          ) {
+            for (const candidate of sameBasenameLifecyclePaths(other.rel)) {
+              if (candidate === normalizeRepoRelPath(other.rel)) continue;
+              const alt = readAtBase(candidate);
+              if (alt.kind === "text") {
+                otherFenceRel = candidate;
+                otherBaseRead = alt;
+                break;
+              }
+              if (alt.kind === "error") {
+                otherFenceRel = candidate;
+                otherBaseRead = alt;
+                break;
+              }
+            }
+          }
           if (otherBaseRead.kind === "error") {
             peerBaseFailure = {
               peerRel: other.rel,

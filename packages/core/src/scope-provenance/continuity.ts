@@ -159,16 +159,12 @@ export function resolveStoryContinuity(input: {
     };
   }
   // Two HEAD briefs claiming the same plan.id must not both resolve the move.
-  const headClaimants = input.headLifecycleRels
-    .map(normalizeRel)
-    .filter((p) => p !== headRel);
+  const headClaimants = input.headLifecycleRels.map(normalizeRel).filter((p) => p !== headRel);
   // Caller may pass planIds via optional headPlanIds; without them, refuse when
   // more than one other head lifecycle path exists beside headRel for this id
   // only when headPlanIds is provided.
   if (input.headPlanIds !== undefined) {
-    const otherClaimants = headClaimants.filter(
-      (p) => input.headPlanIds?.get(p) === headPlanId,
-    );
+    const otherClaimants = headClaimants.filter((p) => input.headPlanIds?.get(p) === headPlanId);
     if (otherClaimants.length > 0) {
       return {
         kind: "ambiguous-refuse",
