@@ -65,6 +65,7 @@ import {
   checkXbriefEnvelopeMajorVersion,
   DANGLING_NODE_MODULES_LINKS_CHECK,
   DOCTOR_ADVISORY_FAIL_CHECKS,
+  isDoctorAdvisoryFail,
   prefixCanonicalVendoredSignpostWarn,
   runChecks,
   SIGNPOST_ADVISORY_LABEL,
@@ -528,18 +529,32 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         ...(seams.readText ? { readText: seams.readText } : {}),
       });
       if (danglingThrottle.status === "fail") {
-        throttleSink.error(`${danglingThrottle.name}: fail -- ${danglingThrottle.detail}`);
-        throttleFindings.push({
-          severity: "error",
-          message: danglingThrottle.detail,
-          check: danglingThrottle.name,
-          status: danglingThrottle.status,
-          data: danglingThrottle.data ?? {},
-        });
+        const danglingAdvisory = isDoctorAdvisoryFail(danglingThrottle.name, danglingThrottle.data);
+        if (danglingAdvisory) {
+          throttleSink.warn(`${danglingThrottle.name}: ${danglingThrottle.detail}`);
+          throttleFindings.push({
+            severity: "warning",
+            message: danglingThrottle.detail,
+            check: danglingThrottle.name,
+            status: danglingThrottle.status,
+            data: danglingThrottle.data ?? {},
+          });
+        } else {
+          throttleSink.error(`${danglingThrottle.name}: fail -- ${danglingThrottle.detail}`);
+          throttleFindings.push({
+            severity: "error",
+            message: danglingThrottle.detail,
+            check: danglingThrottle.name,
+            status: danglingThrottle.status,
+            data: danglingThrottle.data ?? {},
+          });
+        }
       } else if (danglingThrottle.status === "pass" && !jsonMode && !quietMode) {
         throttleSink.success(`${danglingThrottle.name}: pass`);
       }
-      const danglingHardFail = danglingThrottle.status === "fail";
+      const danglingHardFail =
+        danglingThrottle.status === "fail" &&
+        !isDoctorAdvisoryFail(danglingThrottle.name, danglingThrottle.data);
       const hint = decision.dirty ? dirtyDoctorHint() : "--full forces";
       const hygieneFailed = depositHygieneFailed(seams);
       const hygieneJson = depositHygieneJson(seams);

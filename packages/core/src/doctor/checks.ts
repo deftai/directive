@@ -196,9 +196,13 @@ function resolveDanglingPackageManager(
   });
 }
 
+type DanglingIncompleteReason = "bounded" | "unreadable";
+
 type DanglingScanResult = {
   readonly dangling: DanglingNodeModulesLink[];
   readonly incomplete: boolean;
+  /** Present when incomplete; unreadable wins if both bounded and unreadable fired. */
+  readonly incompleteReason?: DanglingIncompleteReason;
 };
 
 function lstatDanglingPath(
@@ -210,6 +214,34 @@ function lstatDanglingPath(
     return lstatSync(path);
   } catch {
     return null;
+  }
+}
+
+/** True when an fs error is access-denied (EACCES/EPERM), not clean absence. */
+function isAccessDeniedError(err: unknown): boolean {
+  if (typeof err !== "object" || err === null || !("code" in err)) return false;
+  const code = (err as NodeJS.ErrnoException).code;
+  return code === "EACCES" || code === "EPERM";
+}
+
+/**
+ * Ultimate target missing → dangling. Access-denied on the target is not dangling (#3749 P2).
+ * Injectable `targetExists` remains boolean (false = missing); EACCES/EPERM throws are not missing.
+ */
+function isMissingUltimateTarget(
+  path: string,
+  seams: DanglingNodeModulesLinksSeams,
+  targetExists: (path: string) => boolean,
+): boolean {
+  try {
+    if (seams.targetExists) return !targetExists(path);
+    // Follow to the ultimate target; an intermediate symlink entry alone is not enough.
+    statSync(path);
+    return false;
+  } catch (err) {
+    if (isAccessDeniedError(err)) return false;
+    if (seams.targetExists) throw err;
+    return true;
   }
 }
 
@@ -227,7 +259,6 @@ function scanDanglingNodeModulesLinks(
     seams.targetExists ??
     ((path: string) => {
       try {
-        // Follow to the ultimate target; an intermediate symlink entry alone is not enough.
         statSync(path);
         return true;
       } catch {
@@ -238,7 +269,8 @@ function scanDanglingNodeModulesLinks(
   const dangling: DanglingNodeModulesLink[] = [];
   const queue: Array<{ dir: string; depth: number }> = [{ dir: nodeModulesRoot, depth: 0 }];
   let examined = 0;
-  let incomplete = false;
+  let incompleteBounded = false;
+  let incompleteUnreadable = false;
 
   while (queue.length > 0 && examined < maxEntries) {
     const next = queue.shift();
@@ -248,12 +280,12 @@ function scanDanglingNodeModulesLinks(
     try {
       entries = readdirWithTypes(dir);
     } catch {
-      incomplete = true;
+      incompleteUnreadable = true;
       continue;
     }
     for (const ent of entries) {
       if (examined >= maxEntries) {
-        incomplete = true;
+        incompleteBounded = true;
         break;
       }
       examined += 1;
@@ -281,7 +313,7 @@ function scanDanglingNodeModulesLinks(
           continue;
         }
         const absTarget = isAbsolute(target) ? target : resolvePath(dirname(full), target);
-        if (!targetExists(absTarget)) {
+        if (isMissingUltimateTarget(absTarget, seams, targetExists)) {
           const relativePath = relative(nodeModulesRoot, full).split("\\").join("/");
           dangling.push({
             relativePath,
@@ -302,21 +334,29 @@ function scanDanglingNodeModulesLinks(
         if (depth < maxDepth) {
           queue.push({ dir: full, depth: depth + 1 });
         } else {
-          incomplete = true;
+          incompleteBounded = true;
         }
       }
     }
   }
   if (queue.length > 0) {
-    incomplete = true;
+    incompleteBounded = true;
   }
-  return { dangling, incomplete };
+  const incomplete = incompleteBounded || incompleteUnreadable;
+  const incompleteReason: DanglingIncompleteReason | undefined = incompleteUnreadable
+    ? "unreadable"
+    : incompleteBounded
+      ? "bounded"
+      : undefined;
+  return { dangling, incomplete, ...(incompleteReason ? { incompleteReason } : {}) };
 }
 
 /**
  * Read-only dangling junction/symlink probe under node_modules (#3749).
- * Hard-fails when dangling entries exist, the root link is dangling, or the probe is incomplete;
- * skips cleanly when node_modules is absent. Does not auto-repair under doctor --fix.
+ * Hard-fails when dangling entries exist, the root link is dangling, or the probe
+ * is incomplete due to an unreadable directory; entry/depth truncation with zero
+ * dangling findings is advisory (not a silent clean pass, not a broken-install hard fail).
+ * Skips cleanly when node_modules is absent. Does not auto-repair under doctor --fix.
  */
 export function checkDanglingNodeModulesLinks(
   projectRoot: string,
@@ -352,21 +392,42 @@ export function checkDanglingNodeModulesLinks(
       detail: "node_modules absent — dangling link probe skipped.",
     };
   }
-  const { dangling, incomplete } = scanDanglingNodeModulesLinks(nodeModulesRoot, seams);
+  const { dangling, incomplete, incompleteReason } = scanDanglingNodeModulesLinks(
+    nodeModulesRoot,
+    seams,
+  );
   if (dangling.length === 0) {
-    if (incomplete) {
+    if (incomplete && incompleteReason === "unreadable") {
       return {
         name,
         status: "fail",
         detail:
-          "Incomplete dangling-link probe under node_modules (entry/depth limit or unreadable directory) — " +
+          "Incomplete dangling-link probe under node_modules (unreadable directory) — " +
           `cannot certify clean. Recover with \`${recovery}\` if the install looks broken, or re-run \`deft doctor --full\`.`,
         data: {
           recovery,
           package_manager: pm,
           incomplete: true,
+          incomplete_reason: "unreadable",
           discovery: "throttle-skip-or-doctor-full",
         },
+      };
+    }
+    if (incomplete && incompleteReason === "bounded") {
+      return {
+        name,
+        status: "fail",
+        detail:
+          "Dangling-link probe truncated at entry/depth bound under node_modules — " +
+          "scanned portion has no dangling links (not a certified full pass). " +
+          "Re-run `deft doctor --full` if you need a deeper scan.",
+        data: stampAdvisory({
+          recovery,
+          package_manager: pm,
+          incomplete: true,
+          incomplete_reason: "bounded",
+          discovery: "throttle-skip-or-doctor-full",
+        }),
       };
     }
     return {
@@ -382,9 +443,12 @@ export function checkDanglingNodeModulesLinks(
     worktreeHits.length > 0
       ? ` ${worktreeHits.length} target(s) resolve under an agent scratch worktree path (AGENT_SCRATCH_DIRS/worktrees).`
       : "";
-  const incompleteNote = incomplete
-    ? " Probe also hit an entry/depth limit or unreadable directory (incomplete)."
-    : "";
+  const incompleteNote =
+    incomplete && incompleteReason === "unreadable"
+      ? " Probe also hit an unreadable directory (incomplete)."
+      : incomplete && incompleteReason === "bounded"
+        ? " Probe also truncated at entry/depth bound (incomplete)."
+        : "";
   return {
     name,
     status: "fail",
@@ -396,7 +460,7 @@ export function checkDanglingNodeModulesLinks(
       dangling,
       recovery,
       package_manager: pm,
-      ...(incomplete ? { incomplete: true } : {}),
+      ...(incomplete ? { incomplete: true, incomplete_reason: incompleteReason ?? "bounded" } : {}),
       discovery: "throttle-skip-or-doctor-full",
     },
   };

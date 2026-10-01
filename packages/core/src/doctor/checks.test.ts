@@ -1306,7 +1306,7 @@ describe("checkDanglingNodeModulesLinks (#3749)", () => {
     }
   });
 
-  it("hard-fails incomplete probes instead of reporting a clean pass", () => {
+  it("advisory-fails bounded truncation with zero dangling (not silent clean pass)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-dangling-incomplete-"));
     try {
       const nm = join(root, "node_modules");
@@ -1334,9 +1334,70 @@ describe("checkDanglingNodeModulesLinks (#3749)", () => {
         },
       });
       expect(result.status).toBe("fail");
-      expect(result.detail).toMatch(/incomplete/i);
+      expect(result.detail).toMatch(/truncated|entry\/depth bound/i);
+      expect(result.detail).not.toMatch(/^No dangling/i);
       expect(result.data?.incomplete).toBe(true);
+      expect(result.data?.incomplete_reason).toBe("bounded");
+      expect(result.data?.advisory).toBe(true);
+      expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(true);
+      expect(deriveExitCode([result], [])).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("hard-fails incomplete probes when a directory is unreadable", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-unreadable-"));
+    try {
+      const nm = join(root, "node_modules");
+      mkdirSync(nm, { recursive: true });
+      const result = checkDanglingNodeModulesLinks(root, {
+        packageManager: "npm",
+        isDir: (p) => p === nm || p === root,
+        readdirWithFileTypes: () => {
+          throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+        },
+      });
+      expect(result.status).toBe("fail");
+      expect(result.detail).toMatch(/unreadable/i);
+      expect(result.data?.incomplete).toBe(true);
+      expect(result.data?.incomplete_reason).toBe("unreadable");
+      expect(result.data?.advisory).not.toBe(true);
+      expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(false);
       expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not treat EACCES on a link target as dangling", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-dangling-eacces-target-"));
+    try {
+      const nm = join(root, "node_modules");
+      mkdirSync(nm, { recursive: true });
+      const deniedTarget = join(root, "denied-target");
+      const result = checkDanglingNodeModulesLinks(root, {
+        packageManager: "npm",
+        isDir: (p) => p === nm || p === root,
+        readdirWithFileTypes: (dir) => {
+          if (dir === nm) {
+            return [
+              {
+                name: "pkg",
+                isDirectory: () => false,
+                isSymbolicLink: () => true,
+              },
+            ];
+          }
+          return [];
+        },
+        readlink: () => deniedTarget,
+        targetExists: () => {
+          throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+        },
+      });
+      expect(result.status).toBe("pass");
+      expect(result.detail).toMatch(/No dangling/i);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
