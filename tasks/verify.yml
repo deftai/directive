@@ -215,10 +215,11 @@ tasks:
           ENGINE_CMD: 'verify:branch --project-root "{{.USER_WORKING_DIR}}" --allow-missing-project-definition'
 
   ownership:
-    desc: "Fail closed on harm-capable WSL root vs project-owner mismatch unless DEFT_ALLOW_ROOT_WSL_RUNTIME=1 (#1617). Native Windows/macOS and mount-pinned DrvFs/9p without metadata pass. -- task verify:ownership [-- --project-root PATH] [--owner uid:gid] [--json]"
+    desc: "Fail closed on harm-capable WSL root vs project-owner mismatch unless DEFT_ALLOW_ROOT_WSL_RUNTIME=1 (#1617)."
     dir: '{{.USER_WORKING_DIR}}'
-    # No engine:_ts-build: must not create root-owned dist before the gate (#1617).
+    # Prefer existing CLI; ownership:_ensure-cli builds only when safe (#1617).
     cmds:
+      - task: :ownership:_ensure-cli
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'verify:ownership --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

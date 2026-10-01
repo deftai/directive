@@ -1,11 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4544,
+  "issue": 1617,
   "surfaces": [
     "Taskfile.yml",
     "tasks/verify.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #4544 Prefer-A consumer-header placeholder gate wiring into check Taskfile/verify.yml after rebase onto #5179 Prefer-A planning narratives. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #1617 WSL ownership Taskfile include + verify:ownership wiring (Taskfile.yml / tasks/verify.yml). Disclosure only; not #3164 authorization."
 }

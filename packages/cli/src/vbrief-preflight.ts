@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { emitJson, evaluate, PREFLIGHT_USAGE_HINT } from "@deftai/directive-core/preflight";
 import { scanWorkClaimForBriefPath } from "@deftai/directive-core/scm";
@@ -111,10 +112,10 @@ export function run(
     process.stderr.write(`preflight_implementation: ${args.error}\n`);
     return 2;
   }
-  // #1617: protected preflight entry — live ownership gate before brief work.
-  const blocked = refuseIfWslOwnershipBlocked(process.cwd());
-  if (blocked !== null) return blocked;
   const vbriefPath = args.vbriefPath as string;
+  // #1617: gate the brief's tree, not process.cwd() (cross-directory callers).
+  const blocked = refuseIfWslOwnershipBlocked(dirname(resolve(vbriefPath)));
+  if (blocked !== null) return blocked;
   const result = evaluate(vbriefPath);
   let scanLines: string[] = [];
   try {
