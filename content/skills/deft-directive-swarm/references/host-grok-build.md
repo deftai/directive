@@ -90,12 +90,23 @@ Until a measured callback exists, Grok wording is conditional: background `spawn
 - (a) a `drive-to: merge-ready` leaf that owns a blocking dual-invoke `pr:watch` (`deft pr:watch` then `task deft:pr:watch`) in its own process, then `pr:merge-ready` / merge in the same loop, or
 - (b) `stop-at: pr-open` with the dispatcher (parent that owns `spawn_subagent`) launching a sibling monitor and registering it via dual-invoke `review-monitor:register -- --platform-primitive spawn_subagent`.
 
-! **Grok through-merge (#4529 / #4821):** implement MUST use (b) `stop-at: pr-open`. Path (a) is for non-through-merge Grok leaves only. Named leftover (class A) requires a dest-cwd one-shot residual, stop-at after the push; then Approach 1 wait (`pr:watch` + `verify:review-monitor` / `review-monitor:register`); then Phase 6 / parent-retained squash-merges via `pr:wait-mergeable-and-merge` only after CLEAN. Dest spawn deny is `BLOCKED` or dest-cwd residual via native implementation-capable spawn (#4215) — not parent-primary. ⊗ Send class-A residual through process-only CLI `grok --cwd`. ⊗ Choose Approach 1 sibling or parent-retained as the first partner without dest residual. ⊗ Dispatch a Grok through-merge implement as (a). ⊗ Harvest a Grok `drive-to: merge-ready` continuation as this closer.
+! **Grok through-merge (#4529 / #4821 / #5219):** implement MUST use (b) `stop-at: pr-open`. Path (a) is for non-through-merge Grok leaves only. Named leftover (class A) requires a dest-cwd one-shot residual, stop-at after the push; then Approach 1 wait owner is a **`spawn_subagent` review-monitor sibling** whose `monitor_agent_id` is registered (`review-monitor:register --platform-primitive spawn_subagent`) and whose child-bound `pr:watch --monitor-agent-id <id>` satisfies `verify:review-monitor --merge-path-arm --live-wait`; then Phase 6 / parent-retained squash-merges via `pr:wait-mergeable-and-merge` only after CLEAN. Parent-retained is the **closer after CLEAN**, not the pre-CLEAN poller/fixer. Dest spawn deny is `BLOCKED` or dest-cwd residual via native implementation-capable spawn (#4215) — not parent-primary. ⊗ Send class-A residual through process-only CLI `grok --cwd`. ⊗ Choose Approach 1 sibling or parent-retained as the first partner without dest residual. ⊗ Dispatch a Grok through-merge implement as (a). ⊗ Harvest a Grok `drive-to: merge-ready` continuation as this closer. ⊗ Treat a parent-owned shell/`bash` `pr:watch` (heartbeat `parent_id=pr-watch`) as Approach 1 babysit when `spawn_subagent` is available (#5219).
+
+! **Cheaper Approach 1 one-liner than parent watch (#5219 P3):** after `pr-open`, prefer one background `spawn_subagent` babysitter that owns watch → class A residual handoff → re-watch until CLEAN, then hand CLEAN to the parent closer:
+```
+task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive spawn_subagent
+task verify:review-monitor -- --pr <N> --merge-path-arm --live-wait
+task pr:watch -- <N> --monitor-agent-id <id>
+```
+Core helper: `formatApproach1BabysitterOneLiner` / `formatApproach1BabysitterCard` (`packages/core/src/swarm/approach1-babysitter.ts`).
+
+! **Mandatory checked handoff (#5219):** before the parent yields on a Tracking PR that still needs Greptile/CI shepherding while `spawn_subagent` is available, the same-turn checked handoff is `task verify:review-monitor -- --pr <N> --merge-path-arm --live-wait` exit 0 after Approach 1 register + still-running child-bound wait. This host does **not** intercept every conversational yield — guarantee is scoped to that checked handoff (and Swarm Phase 5→6 / review-cycle ownership probes that invoke the same arm). Publish limitation: omitting the arm flag is unarmed stand-down, not silent Approach 1.
 
 ! Top-level parents/orchestrators that own `spawn_subagent` MAY Approach-1 background a review-monitor. After the full planned launch set (workers + that monitor), lease register, and completion-owner ack, they MUST end the user-facing turn (Gap D above). Background spawn permission is not parent-yield.
 
 ⊗ An implementation leaf backgrounds a nested `spawn_subagent` poller and exits claiming monitoring is active.
 ⊗ Invent mid-flight message-later on grok-build as a substitute for this boundary.
+⊗ Arm merge-path with parent-shell `pr:watch` alone when Tier-1 `spawn_subagent` is available (#5219).
 
 If the leaf needs another agent, it stops and reports `BLOCKED`. The parent owns the next spawn.
 

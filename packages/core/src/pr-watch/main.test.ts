@@ -97,6 +97,8 @@ describe("parseWatchArgs", () => {
       "--repo",
       "deftai/directive",
       "--project-root=/tmp/x",
+      "--monitor-agent-id",
+      "rm-42",
     ]);
     expect(a.error).toBeUndefined();
     expect(a.oneShot).toBe(true);
@@ -105,6 +107,13 @@ describe("parseWatchArgs", () => {
     expect(a.pollSeconds).toBe(15);
     expect(a.repo).toBe("deftai/directive");
     expect(a.projectRoot).toBe("/tmp/x");
+    expect(a.monitorAgentId).toBe("rm-42");
+  });
+
+  it("parses --monitor-agent-id= form (#5219)", () => {
+    const a = parseWatchArgs(["7", "--monitor-agent-id=child-7"]);
+    expect(a.error).toBeUndefined();
+    expect(a.monitorAgentId).toBe("child-7");
   });
 
   it("rejects invalid numeric flag values", () => {
@@ -127,6 +136,7 @@ describe("parseWatchArgs", () => {
 describe("formatWatchHelp (#2652)", () => {
   it("names task pr:watch as canonical and documents exits 0/1/2", () => {
     const help = formatWatchHelp();
+    expect(help).toContain("--monitor-agent-id");
     expect(help).toBe(WATCH_HELP);
     expect(help).toContain("task pr:watch -- <pr_number>");
     expect(help).toContain("--one-shot");

@@ -96,6 +96,11 @@ export const WATCH_HELP =
   "  --poll-seconds N      Seconds between probes (default: 90)\n" +
   "  --repo OWNER/REPO     Override repository (default: GH_REPO / origin)\n" +
   "  --project-root PATH   Chdir before probing (optional)\n" +
+  "  --monitor-agent-id ID Stamp Approach 1 child id into wait heartbeat\n" +
+  "                        parent_id (#5219). Env fallback: DEFT_MONITOR_AGENT_ID.\n" +
+  "                        Required for Tier-1 spawn_subagent merge-path-arm\n" +
+  "                        live-wait identity join; bare parent shell pr:watch\n" +
+  "                        (parent_id=pr-watch) does not arm.\n" +
   "\n" +
   "--json notes (#4882 / #5015):\n" +
   "  Output may be pretty-printed multi-line JSON. Wrappers MUST parse the\n" +

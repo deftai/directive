@@ -10,8 +10,10 @@ import {
   EXIT_CONFIG_ERROR,
   EXIT_NOT_READY,
   evaluateReviewMonitorGate,
+  formatApproach1BabysitterOneLiner,
   isTier1,
   REVIEW_MONITOR_HELP,
+  spawnRedirect,
   type ReviewMonitorCallSite,
   verifyResultToJson,
 } from "@deftai/directive-core/review-monitor";
@@ -152,15 +154,19 @@ export function run(argv: readonly string[]): number {
   if (args.help) {
     process.stdout.write(REVIEW_MONITOR_HELP);
     process.stdout.write(
-      "\n#4882 / #5020 merge-path arm observer (optional):\n" +
+      "\n#4882 / #5020 / #5219 merge-path arm observer (optional):\n" +
         "  --merge-path-arm       Fail closed when neither live wait nor explicit finish\n" +
         "  --live-wait            Require still-running wait evidence for this PR\n" +
         "                         (Tier 1: lease + active polling heartbeat with pid liveness;\n" +
-        "                         lease+flag alone is not armed — #5020)\n" +
+        "                         lease+flag alone is not armed — #5020).\n" +
+        "                         On spawn_subagent hosts, lease platform_primitive must be\n" +
+        "                         spawn_subagent and heartbeat parent_id must match the lease\n" +
+        "                         monitor_agent_id (or pr-wait-mergeable post-CLEAN) — #5219;\n" +
+        "                         parent-shell pr:watch (parent_id=pr-watch) does not arm.\n" +
         "  --explicit-finish      Attest option-C BLOCKED/FAILED finish for this PR\n" +
         "  --sticky-lease         Attest a fresh sticky lease (not sufficient alone)\n" +
-        "  Prefer Approach 1 / native pr:watch or post-CLEAN pr:wait-mergeable-and-merge;\n" +
-        "  homemade line-parsed --json is not an arm.\n",
+        "  Prefer Approach 1 / native pr:watch --monitor-agent-id <id> or post-CLEAN\n" +
+        "  pr:wait-mergeable-and-merge; homemade line-parsed --json is not an arm.\n",
     );
     return 0;
   }
@@ -191,6 +197,7 @@ export function run(argv: readonly string[]): number {
   let arm: MergePathArmResult | null = null;
   if (args.mergePathArm) {
     // Bind --live-wait to lease (#5018) + process-liveness heartbeat (#5020) on Tier 1.
+    // spawn_subagent identity join is already applied in evaluateReviewMonitorGate (#5219).
     const leaseEvidence = result.monitorRecord !== null;
     const liveBind = bindLivePhaseCorrectWait({
       liveWaitFlag: args.liveWait,
@@ -208,13 +215,38 @@ export function run(argv: readonly string[]): number {
       args.liveWait &&
       !liveBind.livePhaseCorrectWait &&
       !args.explicitFinish &&
-      !arm.armed &&
-      liveBind.message !== null
+      !arm.armed
     ) {
+      const spawnHost = result.tier.primitive === "spawn_subagent";
+      const lease = result.monitorRecord;
+      let message = liveBind.message;
+      if (spawnHost && lease !== null && lease.platform_primitive !== "spawn_subagent") {
+        message =
+          `unarmed stand-down: Tier-1 spawn_subagent requires lease ` +
+          `platform_primitive=spawn_subagent for PR #${args.pr} (#5219); ` +
+          `got ${lease.platform_primitive}.\n` +
+          `  ${spawnRedirect(result.tier)}`;
+      } else if (
+        spawnHost &&
+        lease !== null &&
+        lease.platform_primitive === "spawn_subagent" &&
+        liveBind.reason === "missing_process_liveness"
+      ) {
+        message =
+          `unarmed stand-down: --live-wait for PR #${args.pr} has spawn_subagent lease ` +
+          `(monitor_agent_id=${lease.monitor_agent_id}) but no child-bound wait identity ` +
+          `(heartbeat parent_id must match monitor_agent_id, or pr-wait-mergeable post-CLEAN); ` +
+          `parent-shell pr:watch does not arm (#5219).\n` +
+          `  Cheaper path:\n` +
+          `  ${formatApproach1BabysitterOneLiner(args.pr, lease.monitor_agent_id)}\n` +
+          `  ${spawnRedirect(result.tier)}`;
+      } else if (message === null) {
+        message = arm.message;
+      }
       arm = {
         armed: false,
         reason: "unarmed_stand_down",
-        message: liveBind.message,
+        message,
       };
     }
   }

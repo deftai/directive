@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Parent-shell `pr:watch` no longer arms Approach 1 merge-path on `spawn_subagent` hosts (#5219).** `verify:review-monitor --merge-path-arm --live-wait` joins the sticky lease `monitor_agent_id` to wait heartbeat `parent_id` (post-CLEAN `pr-wait-mergeable` exempt); bare `parent_id=pr-watch` is unarmed with a babysitter one-liner redirect. `pr:watch --monitor-agent-id` / `DEFT_MONITOR_AGENT_ID` stamps the child id. Recurrence of #4821; keeps #3984 out. Tracking #5219.
 - **Doctor reports broken package links under `node_modules` (#3749).** Dangling junctions or symlinks hard-fail with package-manager recovery guidance; truncated healthy trees stay advisory; doctor does not auto-install under `--fix`. Tracking #3749.
 - **pr:watch finishes when the pull request is already merged or closed (#4288).** A merged PR ends the wait as success; a closed unmerged PR ends as not shipped. Open PRs still require a current review. Tracking #4288.
 - **fix(swarm): origin active-brief probe requires a blob (#4714).** `originActiveBriefPresent` uses `git cat-file -t` and refuses tree objects. Retained transport admits exact reviewed bytes only. Tracking #4714.

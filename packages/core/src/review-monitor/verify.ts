@@ -17,7 +17,22 @@ import {
   readReviewMonitorFile,
   reviewMonitorPath,
 } from "./record.js";
-import { isTier1, type MonitoringTierProbe, probeMonitoringTier } from "./tier-detection.js";
+import {
+  isTier1,
+  type MonitoringTierProbe,
+  type PlatformPrimitive,
+  probeMonitoringTier,
+} from "./tier-detection.js";
+
+/**
+ * Heartbeat `parent_id` written by post-CLEAN `pr:wait-mergeable-and-merge` (#5020).
+ * Identity join (#5219) must leave this closer path armed when Tier-1 `spawn_subagent`
+ * still holds a sticky lease.
+ */
+export const POST_CLEAN_WAIT_PARENT_ID = "pr-wait-mergeable";
+
+/** Default `parent_id` for a parent-owned / unbound native `pr:watch` (#5020 / #5219). */
+export const DEFAULT_PR_WATCH_PARENT_ID = "pr-watch";
 
 /** Same ESRCH/EPERM contract as authz / delivery-attempt claim locks. */
 export function isWaitHeartbeatProcessAlive(pid: number): boolean {
@@ -78,7 +93,8 @@ export interface VerifyReviewMonitorResult {
   readonly callSite: ReviewMonitorCallSite;
 }
 
-function spawnRedirect(probe: MonitoringTierProbe): string {
+/** Approach 1 spawn + register redirect for Tier-1 hosts (#2655 / #5219). */
+export function spawnRedirect(probe: MonitoringTierProbe): string {
   const primitive = probe.primitive ?? "sub-agent";
   // Claude Code / Cursor nested-leaf boundary (#2797 / #3134): lead with leaf-safe
   // ownership so implementation leaves never treat nested Task/Agent spawn as the
@@ -123,6 +139,12 @@ export function hasActivePollingHeartbeat(
     staleMinutes?: number;
     /** Inject for tests; defaults to `isWaitHeartbeatProcessAlive`. */
     isProcessAlive?: (pid: number) => boolean;
+    /**
+     * When non-empty, heartbeat `parent_id` MUST match one of these ids (#5219).
+     * Used to join a leased `monitor_agent_id` (and post-CLEAN wait-merge) to the
+     * live wait so a parent-shell `pr:watch` (`parent_id=pr-watch`) cannot arm.
+     */
+    expectedParentIds?: readonly string[];
   } = {},
 ): boolean {
   const dir = defaultSubagentStatusDir(projectRoot);
@@ -141,6 +163,8 @@ export function hasActivePollingHeartbeat(
     now: options.now,
   });
   const alive = options.isProcessAlive ?? isWaitHeartbeatProcessAlive;
+  const expectedParentIds = options.expectedParentIds ?? [];
+  const requireParentJoin = expectedParentIds.length > 0;
   return result.records.some((rec) => {
     if (
       rec.pr_number !== pr ||
@@ -151,6 +175,12 @@ export function hasActivePollingHeartbeat(
     ) {
       return false;
     }
+    if (requireParentJoin) {
+      const parentId = typeof rec.parent_id === "string" ? rec.parent_id : "";
+      if (!expectedParentIds.includes(parentId)) {
+        return false;
+      }
+    }
     // When pid is published, it must still be alive — force-kill never runs finally (#5020).
     const pid = readWaitHeartbeatPid(rec.path);
     if (pid !== null && !alive(pid)) {
@@ -158,6 +188,67 @@ export function hasActivePollingHeartbeat(
     }
     return true;
   });
+}
+
+/**
+ * Merge-path live-wait heartbeat with Tier-1 `spawn_subagent` identity join (#5219).
+ *
+ * When the host primitive is `spawn_subagent` and a sticky lease exists:
+ * - lease `platform_primitive` MUST be `spawn_subagent`
+ * - live wait `parent_id` MUST be the lease `monitor_agent_id` (Approach 1 child)
+ *   or {@link POST_CLEAN_WAIT_PARENT_ID} (parent-retained closer after CLEAN)
+ * Parent-shell native `pr:watch` (`parent_id=pr-watch`) does not count.
+ *
+ * Non-`spawn_subagent` tiers keep the unscoped #5020 heartbeat predicate.
+ */
+export function heartbeatActiveForMergePathArm(
+  projectRoot: string,
+  pr: number,
+  input: {
+    readonly tierPrimitive: PlatformPrimitive | null;
+    readonly lease: ReviewMonitorRecord | null;
+    now?: Date;
+    staleMinutes?: number;
+    isProcessAlive?: (pid: number) => boolean;
+  },
+): boolean {
+  const base = {
+    now: input.now,
+    staleMinutes: input.staleMinutes,
+    isProcessAlive: input.isProcessAlive,
+  };
+  if (input.tierPrimitive === "spawn_subagent" && input.lease !== null) {
+    if (input.lease.platform_primitive !== "spawn_subagent") {
+      return false;
+    }
+    const monitorId = input.lease.monitor_agent_id.trim();
+    if (monitorId.length === 0) {
+      return false;
+    }
+    return hasActivePollingHeartbeat(projectRoot, pr, {
+      ...base,
+      expectedParentIds: [monitorId, POST_CLEAN_WAIT_PARENT_ID],
+    });
+  }
+  return hasActivePollingHeartbeat(projectRoot, pr, base);
+}
+
+/**
+ * Cheap Approach 1 babysitter one-liner (#5219 P3): register + verify after
+ * `spawn_subagent`, then keep the child on `pr:watch --monitor-agent-id <id>`.
+ */
+export function formatApproach1BabysitterOneLiner(
+  pr: number,
+  monitorAgentId: string,
+  platformPrimitive: PlatformPrimitive = "spawn_subagent",
+): string {
+  const id = monitorAgentId.trim().length > 0 ? monitorAgentId.trim() : "<id>";
+  return (
+    `task review-monitor:register -- --pr ${pr} --monitor-agent-id ${id} ` +
+    `--platform-primitive ${platformPrimitive}\n` +
+    `task verify:review-monitor -- --pr ${pr} --merge-path-arm --live-wait\n` +
+    `task pr:watch -- ${pr} --monitor-agent-id ${id}`
+  );
 }
 
 export function evaluateReviewMonitorGate(
@@ -268,7 +359,9 @@ export function evaluateReviewMonitorGate(
   }
 
   const monitorRecord = githubMonitor;
-  const heartbeatActive = hasActivePollingHeartbeat(projectRoot, args.pr, {
+  const heartbeatActive = heartbeatActiveForMergePathArm(projectRoot, args.pr, {
+    tierPrimitive: tier.primitive,
+    lease: monitorRecord,
     now,
     staleMinutes,
   });
@@ -279,6 +372,7 @@ export function evaluateReviewMonitorGate(
       message:
         `verify_review_monitor: active GitHub review-owner lease for PR #${args.pr} ` +
         `(monitor_agent_id=${monitorRecord.monitor_agent_id}, owner=${monitorRecord.owner}, ` +
+        `platform_primitive=${monitorRecord.platform_primitive}, ` +
         `call-site=${callSite}, tier=1, descriptor=${tier.descriptor ?? "unknown"}).`,
       tier,
       monitorRecord,

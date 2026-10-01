@@ -56,6 +56,11 @@ export interface ParsedWatchArgs {
   readonly oneShot: boolean;
   readonly emitJson: boolean;
   readonly projectRoot: string | null;
+  /**
+   * Approach 1 / review-monitor child id stamped into wait heartbeat `parent_id`
+   * (#5219). Falls back to `DEFT_MONITOR_AGENT_ID` when unset.
+   */
+  readonly monitorAgentId: string | null;
   readonly help: boolean;
   readonly error?: string;
 }
@@ -73,6 +78,7 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
     oneShot: false,
     emitJson: false,
     projectRoot: null,
+    monitorAgentId: null,
     help: false,
   };
   let prNumber: number | null = null;
@@ -82,6 +88,7 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
   let oneShot = false;
   let emitJson = false;
   let projectRoot: string | null = null;
+  let monitorAgentId: string | null = null;
   let help = false;
 
   const takePositive = (
@@ -142,6 +149,15 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
       i += 1;
     } else if (arg?.startsWith("--project-root=")) {
       projectRoot = arg.slice("--project-root=".length);
+    } else if (arg === "--monitor-agent-id") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return fail(acc, "argument --monitor-agent-id: expected one argument");
+      }
+      monitorAgentId = value;
+      i += 1;
+    } else if (arg?.startsWith("--monitor-agent-id=")) {
+      monitorAgentId = arg.slice("--monitor-agent-id=".length);
     } else if (arg?.startsWith("-")) {
       return fail(acc, `unrecognized arguments: ${arg}`);
     } else if (prNumber === null) {
@@ -156,7 +172,17 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
   }
 
   if (help) {
-    return { prNumber, repo, maxWaitMinutes, pollSeconds, oneShot, emitJson, projectRoot, help };
+    return {
+      prNumber,
+      repo,
+      maxWaitMinutes,
+      pollSeconds,
+      oneShot,
+      emitJson,
+      projectRoot,
+      monitorAgentId,
+      help,
+    };
   }
   if (prNumber === null) {
     return fail(acc, "the following arguments are required: pr_number");
@@ -169,6 +195,7 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
     oneShot,
     emitJson,
     projectRoot,
+    monitorAgentId,
     help,
   };
 }
@@ -702,15 +729,32 @@ export function runWatch(argv: readonly string[], options: RunWatchOptions = {})
 
   const projectRoot = args.projectRoot !== null ? resolve(args.projectRoot) : process.cwd();
   const prNumber = args.prNumber as number;
+  // Stamp lease monitor_agent_id into heartbeat parent_id for #5219 identity join.
+  const envMonitor = process.env.DEFT_MONITOR_AGENT_ID;
+  const monitorFromEnv =
+    typeof envMonitor === "string" && envMonitor.trim().length > 0 ? envMonitor.trim() : null;
+  const monitorAgentId =
+    args.monitorAgentId !== null && args.monitorAgentId.trim().length > 0
+      ? args.monitorAgentId.trim()
+      : monitorFromEnv;
+  const heartbeatParentId = monitorAgentId ?? undefined;
   // Arm hasActivePollingHeartbeat for this PR while the wait is alive (#5020).
-  reportWaitHeartbeatWrite(writePrWatchWaitHeartbeat(projectRoot, prNumber, { phase: "polling" }));
+  reportWaitHeartbeatWrite(
+    writePrWatchWaitHeartbeat(projectRoot, prNumber, {
+      phase: "polling",
+      parentId: heartbeatParentId,
+    }),
+  );
   const baseSleep: SleepFn = options.sleepFn ?? defaultWatchSleep;
   const sleepFn: SleepFn = (seconds) => {
     // Chunk long polls so heartbeat freshness cannot lag the 30m stale floor.
     let remaining = Math.max(0, seconds);
     while (remaining > 0) {
       reportWaitHeartbeatWrite(
-        writePrWatchWaitHeartbeat(projectRoot, prNumber, { phase: "polling" }),
+        writePrWatchWaitHeartbeat(projectRoot, prNumber, {
+          phase: "polling",
+          parentId: heartbeatParentId,
+        }),
       );
       const chunk = Math.min(remaining, WAIT_HEARTBEAT_REFRESH_SECONDS);
       baseSleep(chunk);
@@ -744,6 +788,7 @@ export function runWatch(argv: readonly string[], options: RunWatchOptions = {})
       writePrWatchWaitHeartbeat(projectRoot, prNumber, {
         phase: "terminal",
         terminalState: "exited",
+        parentId: heartbeatParentId,
       }),
     );
     if (restoreCwd !== null) {

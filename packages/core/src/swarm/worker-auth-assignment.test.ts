@@ -53,7 +53,8 @@ function linkedPair(): { main: string; worktree: string } {
   return { main, worktree };
 }
 
-describe("worker-auth-assignment (#3663)", { timeout: 20_000 }, () => {
+// Parallel swarm suite load on Windows can push linked-worktree cases past 20s (#5219 AC).
+describe("worker-auth-assignment (#3663)", { timeout: 60_000 }, () => {
   it("writes a record and index that the dest worktree can read", () => {
     const { main, worktree } = linkedPair();
     const written = writeWorkerAuthAssignment({
