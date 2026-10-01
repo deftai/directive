@@ -31,6 +31,7 @@ import {
   formatSessionStartRecoveryCommand,
   GATED_STEPS,
   type GatedStepName,
+  liveSameOwnerOccupancyAdmits,
   QUICK_STEPS,
   type SessionCeremonyTier,
   WRITE_GATED_EXECUTE_STEPS,
@@ -284,11 +285,11 @@ function runGatedStep(
   return null;
 }
 
-function headDriftRecoveryMessage(): string {
-  const coldCmd = formatSessionStartRecoveryCommand("cold");
+/** Discontinuous-HEAD recovery; #4290 strips unauthorized ceremony when occupancy refuses (#3884). */
+function headDriftRecoveryMessage(tier: SessionCeremonyTier = "cold"): string {
   return (
     `session ritual state is stale because git HEAD changed discontinuously. ` +
-    `Run \`${coldCmd}\` again (full cold ceremony required).`
+    formatRitualRecoveryInstruction(tier)
   );
 }
 
@@ -340,10 +341,19 @@ function evaluateLoadedState(
         recoveryTier: "cold",
       };
     }
-    if (!forward) {
-      return { code: 1, message: headDriftRecoveryMessage(), recoveryTier: "cold" };
+    // Forward FF always continues; discontinuous only under live-same-owner (#3884 / #2782).
+    const sameOwnerContinuity =
+      !forward && liveSameOwnerOccupancyAdmits(projectRoot, state.sessionId, { now: input.now });
+    if (!forward && !sameOwnerContinuity) {
+      const recoveryTier: SessionCeremonyTier = "cold";
+      return {
+        code: 1,
+        message: headDriftRecoveryMessage(recoveryTier),
+        recoveryTier,
+        boundSessionId: state.sessionId,
+      };
     }
-    if (input.rebindForwardHead) {
+    if (input.rebindForwardHead && (forward || sameOwnerContinuity)) {
       const refusal = writeRitualStateIfStillOwned(
         projectRoot,
         { ...state.raw, git_head: currentHead },
@@ -354,8 +364,17 @@ function evaluateLoadedState(
           code: 2,
           message: `could not rebind session ritual git HEAD: ${refusal}`,
           recoveryTier: "cold",
+          boundSessionId: state.sessionId,
         };
       }
+    } else if (!forward && sameOwnerContinuity) {
+      // Inspect path: no rewrite; same-owner can re-arm under the live lease (#3884).
+      return {
+        code: 1,
+        message: headDriftRecoveryMessage("rearm"),
+        recoveryTier: "rearm",
+        boundSessionId: state.sessionId,
+      };
     }
   }
   const staleness = resolveSessionRitualStalenessHours(projectRoot);

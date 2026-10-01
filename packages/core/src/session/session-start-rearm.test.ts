@@ -415,6 +415,28 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
     }
   });
 
+  it("re-arm allows discontinuous HEAD when live same-owner occupancy admits (#3884)", () => {
+    const root = tempRoot();
+    const prior = "cccccccccccccccccccccccccccccccccccccccc";
+    const current = "dddddddddddddddddddddddddddddddddddddddd";
+    const now = new Date("2026-07-20T12:00:00Z");
+    seedRitual(root, { head: prior, startedAt: now });
+    applyWorktreeOccupancy(root, {
+      sessionId: "seed-session",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    const eligibility = assessRearmEligibility(root, {
+      runGit: fakeGit(root, { head: current, ancestorOk: false }),
+      now,
+    });
+    expect(eligibility.eligible).toBe(true);
+    if (eligibility.eligible) {
+      expect(eligibility.currentHead).toBe(current);
+    }
+  });
+
   it("re-arm refuses when a quick step previously failed", () => {
     const root = tempRoot();
     const head = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";

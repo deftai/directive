@@ -26,6 +26,7 @@ import {
   WORK_SELECTION_FLAG,
   writeRitualState,
 } from "./index.js";
+import { applyWorktreeOccupancy } from "./occupancy.js";
 import { defaultBranchSync, parseDeferrals, runSessionStart } from "./session-start.js";
 
 function initRepo(): { root: string; head: string } {
@@ -247,6 +248,100 @@ describe("forward HEAD rebind (#2782)", () => {
     });
     expect(result.code).toBe(2);
     expect(result.message).toContain("could not verify git history");
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("same-owner discontinuous HEAD continuity (#3884)", () => {
+  function amendTip(root: string): string {
+    writeFileSync(join(root, "amend.txt"), "amended\n", "utf8");
+    runGitCapture(root, ["add", "amend.txt"]);
+    runGitCapture(root, ["commit", "--amend", "--no-edit"]);
+    return runGitCapture(root, ["rev-parse", "HEAD"]);
+  }
+
+  it("verify rebinds ritual git_head after same-owner discontinuous rewrite", () => {
+    const { root, head: initialHead } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    writeRitualState(root, freshPayload(root, initialHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    const rewrittenHead = amendTip(root);
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(0);
+    expect(rewrittenHead).not.toBe(initialHead);
+    expect(readRitualState(root)[0]?.gitHead).toBe(rewrittenHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("verify fails closed on discontinuous HEAD without a live same-owner lease", () => {
+    const { root, head: initialHead } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    writeRitualState(root, freshPayload(root, initialHead, now));
+    amendTip(root);
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("discontinuously");
+    expect(result.message).toContain("session:ready");
+    expect(readRitualState(root)[0]?.gitHead).toBe(initialHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("verify fails closed when a foreign live owner holds the lease", () => {
+    const { root, head: initialHead } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    writeRitualState(root, freshPayload(root, initialHead, now));
+    applyWorktreeOccupancy(root, {
+      sessionId: "foreign-owner",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    amendTip(root);
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("discontinuously");
+    expect(readRitualState(root)[0]?.gitHead).toBe(initialHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("inspect names re-arm recovery for same-owner discontinuous HEAD without rewriting", () => {
+    const { root, head: initialHead } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    writeRitualState(root, freshPayload(root, initialHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    amendTip(root);
+
+    const result = inspectSessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+    });
+    expect(result.code).toBe(1);
+    expect(result.recoveryTier).toBe("rearm");
+    expect(result.message).toContain("discontinuously");
+    expect(result.message).toContain("session:ready");
+    expect(readRitualState(root)[0]?.gitHead).toBe(initialHead);
     rmSync(root, { recursive: true, force: true });
   });
 });

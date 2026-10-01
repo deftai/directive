@@ -106,6 +106,7 @@ import { isLinkedWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
 import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
+  evaluateOccupancyCeremonyEligibility,
   type OccupancyDecision,
   type OccupancyIdentityProvenance,
   type PrimaryClaimException,
@@ -473,13 +474,31 @@ export type RearmEligibility =
   | { eligible: false; reason: string };
 
 /**
+ * Live occupancy already admits this ritual session as owner (#3884).
+ * Absent / residue / foreign / member cases stay false — only live-same-owner.
+ */
+export function liveSameOwnerOccupancyAdmits(
+  projectRoot: string,
+  sessionId: string | undefined,
+  input: Omit<ApplyOccupancyInput, "sessionId"> = {},
+): boolean {
+  if (sessionId === undefined || sessionId.trim().length === 0) return false;
+  const eligibility = evaluateOccupancyCeremonyEligibility(projectRoot, {
+    ...input,
+    sessionId,
+  });
+  return eligibility.occupancyCase === "live-same-owner";
+}
+
+/**
  * Whether a prior ritual can be re-armed without a full cold ceremony (#2992).
- * Requires valid state, same worktree, continuous (or identical) HEAD, and
+ * Requires valid state, same worktree, continuous (or identical) HEAD — or
+ * same-owner discontinuous HEAD under a live lease (#3884) — and
  * previously-passing quick steps.
  */
 export function assessRearmEligibility(
   projectRoot: string,
-  options: { runGit?: GitRunner } = {},
+  options: { runGit?: GitRunner; now?: Date } = {},
 ): RearmEligibility {
   const runGit = options.runGit ?? defaultGitRunner;
   const [state, err] = readRitualState(projectRoot);
@@ -505,7 +524,10 @@ export function assessRearmEligibility(
     if (forward === null) {
       return { eligible: false, reason: "could not verify git history for session re-arm" };
     }
-    if (!forward) {
+    if (
+      !forward &&
+      !liveSameOwnerOccupancyAdmits(projectRoot, state.sessionId, { now: options.now })
+    ) {
       return {
         eligible: false,
         reason: "git HEAD changed discontinuously (full cold session:start required)",
