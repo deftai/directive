@@ -308,6 +308,7 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
     const names = payload.steps.map((s) => s.name);
     expect(names).toEqual([
       "alignment",
+      "wsl_ownership_guard",
       "scm_readiness",
       "host_content_surface",
       "effort_budget",

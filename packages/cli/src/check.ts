@@ -13,6 +13,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dispatchTaskCheck } from "@deftai/directive-core/check";
 import { DEFT_REPO_POSITIVE_MARKERS } from "@deftai/directive-core/doctor";
+import { refuseIfWslOwnershipBlocked } from "./wsl-ownership-guard.js";
 
 export interface ParsedArgs {
   frameworkRoot?: string;
@@ -150,6 +151,9 @@ export function run(argv: readonly string[]): number {
     process.stderr.write(FRAMEWORK_ROOT_MISS);
     return 2;
   }
+  // #1617: live WSL ownership gate before first protected check write/orchestration.
+  const blocked = refuseIfWslOwnershipBlocked(args.projectRoot);
+  if (blocked !== null) return blocked;
   return dispatchTaskCheck(args.frameworkRoot, args.projectRoot, { noCache: args.noCache });
 }
 

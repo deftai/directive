@@ -61,6 +61,7 @@ import {
   resolveDoctorAgentsTemplateRootSync,
 } from "./agents-md.js";
 import {
+  checkWslOwnershipGuard,
   checkXbriefEnvelopeMajorVersion,
   DOCTOR_ADVISORY_FAIL_CHECKS,
   prefixCanonicalVendoredSignpostWarn,
@@ -69,6 +70,9 @@ import {
   XBRIEF_ENVELOPE_MAJOR_CHECK,
   XBRIEF_ENVELOPE_MIGRATE_COMMAND,
 } from "./checks.js";
+
+/** #1617: re-export so doctor consumers can invoke the ownership check directly. */
+export { checkWslOwnershipGuard };
 import {
   CONSUMER_FRAMEWORK_DIRS,
   EXPECTED_CONTENT_DIRS,

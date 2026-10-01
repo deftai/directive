@@ -293,6 +293,10 @@ Current status: the validation, extractor, provider, registry, generated MAP, an
 
 ## Quality And Verification Commands
 
+- `deft ownership:doctor` / `task ownership:doctor` / consumer `task deft:ownership:doctor` -- diagnose WSL agent-as-root vs filesystem project-owner mismatch (#1617). Soft on doctor so recovery stays reachable; classifier `wsl-root-runtime-ownership-guard`. Vocabulary: filesystem project-owner (this surface) is distinct from occupancy/session owner and issue-emit private recovery owner.
+- `deft ownership:fix -- [--project-root PATH] [--owner uid:gid]` / `task ownership:fix` / `task deft:ownership:fix` -- scoped repair of root-owned objects under approved project roots only; post-chown re-stat required; no blanket HOME chown; env-sourced owner alone does not authorize chown (#1617).
+- `deft verify:ownership` / `task verify:ownership` / `task deft:verify:ownership` -- fail closed on harm-capable WSL root mismatch unless `DEFT_ALLOW_ROOT_WSL_RUNTIME=1` (process-env only; not an OS security boundary). Native Windows/macOS and mount-pinned DrvFs/9p without metadata pass (#1617).
+
 - `deft check` -- named terminal verb (getting-started / #2893). Include-only consumers then use `task deft:check`. Framework source uses `task check` / `task check:merge`. Do not add a fourth probe (#4379).
 - `task check` -- primary directive repo pre-commit gate (merge chokepoint — #1704). Not deposited at consumer root after `directive init` (#3218).
 - `task check:merge` -- explicit merge-chokepoint alias for `check:framework-source` in the framework source repo (#1704).

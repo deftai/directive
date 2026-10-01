@@ -19,6 +19,10 @@ import {
   maybeFormatHostContentSurfaceLines,
 } from "../platform/host-content-surface.js";
 import {
+  evaluateWslOwnershipGuard,
+  ownershipGuardToDict,
+} from "../platform/platform-capabilities.js";
+import {
   detectEnvironmentContext,
   type EnvironmentContext,
   environmentContextToDict,
@@ -1209,6 +1213,8 @@ function runReadOnlySessionStart(
   lines.push(READ_ONLY_ALIGNMENT_MESSAGE);
   lines.push(userMdLine);
   lines.push(formatEnvironmentContext(environment));
+  const readOnlyOwnership = evaluateWslOwnershipGuard({ projectRoot });
+  lines.push(...readOnlyOwnership.sessionWarnLines);
   lines.push(...formatScmReadinessLines(scm));
   lines.push(...hostSurface.lines);
   lines.push(...effortBudget.lines);
@@ -1235,6 +1241,7 @@ function runReadOnlySessionStart(
       diagnostic: userMd.diagnostic,
     },
     environment: environmentContextToDict(environment),
+    wsl_ownership_guard: ownershipGuardToDict(readOnlyOwnership),
     scm: scmReadinessToDict(scm),
     host_content_surface: hostContentSurfaceToDict(hostSurface.report),
     effort_budget: effortBudgetToDict(effortBudget.budget),
@@ -1970,6 +1977,16 @@ export function runSessionStart(
   }
   lines.push(formatEnvironmentContext(environment));
 
+  // #1617: WSL root-runtime ownership soft warn (never blocks session:start).
+  // Emits resolved intended filesystem project-owner (uid:gid + account).
+  const ownershipStepStarted = performance.now();
+  const ownershipVerdict = evaluateWslOwnershipGuard({ projectRoot });
+  lines.push(...ownershipVerdict.sessionWarnLines);
+  stepTimings.push({
+    name: "wsl_ownership_guard",
+    duration_ms: elapsedMs(ownershipStepStarted),
+  });
+
   // #2275: SCM tooling + auth readiness — shallow on hot path, deep with --with-network.
   // Never fails session:start; reports which SCM-dependent gates are skipped.
   const scmStepStarted = performance.now();
@@ -2543,6 +2560,7 @@ export function runSessionStart(
       diagnostic: userMd.diagnostic,
     },
     environment: environmentContextToDict(environment),
+    wsl_ownership_guard: ownershipGuardToDict(ownershipVerdict),
     scm: scmReadinessToDict(scm),
     host_content_surface: hostContentSurfaceToDict(hostSurface.report),
     effort_budget: effortBudgetToDict(effortBudget.budget),

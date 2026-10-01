@@ -2,6 +2,7 @@
 import { fileURLToPath } from "node:url";
 import { emitJson, evaluate, PREFLIGHT_USAGE_HINT } from "@deftai/directive-core/preflight";
 import { scanWorkClaimForBriefPath } from "@deftai/directive-core/scm";
+import { refuseIfWslOwnershipBlocked } from "./wsl-ownership-guard.js";
 
 interface ParsedArgs {
   vbriefPath: string | null;
@@ -110,6 +111,9 @@ export function run(
     process.stderr.write(`preflight_implementation: ${args.error}\n`);
     return 2;
   }
+  // #1617: protected preflight entry — live ownership gate before brief work.
+  const blocked = refuseIfWslOwnershipBlocked(process.cwd());
+  if (blocked !== null) return blocked;
   const vbriefPath = args.vbriefPath as string;
   const result = evaluate(vbriefPath);
   let scanLines: string[] = [];
