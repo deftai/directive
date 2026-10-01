@@ -111,7 +111,7 @@
       },
       {
         "id": "clause.7",
-        "title": "clause.7",
+        "title": "Keep #3984, #4529 and #5219 scope boundaries separate",
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
