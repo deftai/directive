@@ -211,6 +211,19 @@ export interface DoctorSeams {
       readonly isDir?: (path: string) => boolean;
     },
   ) => Record<string, unknown>;
+  /**
+   * Override dangling node_modules probe for tests (#3749). Used by throttle
+   * and the framework-only full-doctor carve-in (`reportDanglingNodeModulesLinksCheck`).
+   */
+  readonly checkDanglingNodeModulesLinks?: (
+    projectRoot: string,
+    seams?: {
+      readonly readText?: (path: string) => string | null;
+      readonly isFile?: (path: string) => boolean;
+      readonly isDir?: (path: string) => boolean;
+      readonly packageManager?: string;
+    },
+  ) => CheckResult;
   /** Read-only agent-host hook registration probe (#2438). */
   readonly evaluateAgentHooks?: (projectRoot: string) => AgentHookHealthResult;
   /** Per-host SessionStart registration probe for kill-switch agent notice (#4884). */

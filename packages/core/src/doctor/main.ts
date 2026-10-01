@@ -522,7 +522,8 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         seams,
       );
       // #3749: always-cheap dangling probe when node_modules exists (incl. framework repo).
-      const danglingThrottle = checkDanglingNodeModulesLinks(projectRoot, {
+      const danglingProbe = seams.checkDanglingNodeModulesLinks ?? checkDanglingNodeModulesLinks;
+      const danglingThrottle = danglingProbe(projectRoot, {
         packageManager: resolveDoctorPackageManager(projectRoot, seams),
         ...(seams.isDir ? { isDir: seams.isDir } : {}),
         ...(seams.isFile ? { isFile: seams.isFile } : {}),
@@ -1173,7 +1174,8 @@ function reportDanglingNodeModulesLinksCheck(
   addFinding: (f: Finding) => void,
   seams: DoctorSeams,
 ): void {
-  const result = checkDanglingNodeModulesLinks(projectRoot, {
+  const probe = seams.checkDanglingNodeModulesLinks ?? checkDanglingNodeModulesLinks;
+  const result = probe(projectRoot, {
     packageManager: resolveDoctorPackageManager(projectRoot, seams),
     ...(seams.isDir ? { isDir: seams.isDir } : {}),
     ...(seams.isFile ? { isFile: seams.isFile } : {}),
@@ -1188,6 +1190,18 @@ function reportDanglingNodeModulesLinksCheck(
     return;
   }
   if (result.status === "fail") {
+    // Framework-only full-doctor path (#3749): same advisory mapping as throttle/consumer.
+    if (isDoctorAdvisoryFail(result.name, result.data)) {
+      sink.warn(`${result.name}: ${result.detail}`);
+      addFinding({
+        severity: "warning",
+        message: result.detail,
+        check: result.name,
+        status: result.status,
+        data: result.data ?? {},
+      });
+      return;
+    }
     sink.error(`${result.name}: fail -- ${result.detail}`);
     addFinding({
       severity: "error",
