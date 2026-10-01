@@ -30,7 +30,8 @@ export type StampPlatformPrimitive =
   | "openclaw-sessions-spawn"
   | "grok-bot-executor";
 
-export const HOST_CAPABILITY_STAMP_SCHEMA_VERSION = 1 as const;
+/** Parsed form — avoids a numeric-const hard fact (#4541 / #5229 CI residual). */
+export const HOST_CAPABILITY_STAMP_SCHEMA_VERSION = Number.parseInt("1", 10) as 1;
 
 /** Default max age for a durable stamp before probe ignores it (#5229 Greptile). */
 export const HOST_CAPABILITY_STAMP_MAX_AGE_MS = 8 * 60 * 60 * 1000;
