@@ -152,24 +152,37 @@ export function materializeRetainedBrief(args: MaterializeBriefArgs): Materializ
     };
   }
 
+  // Prefer an exact reviewed-byte match across retained roots. Do not stop at
+  // the first readable stale candidate (#4714 Greptile: first retained masks).
   let retainedBytes: string | null = null;
   let retainedFrom: string | null = null;
+  let firstReadable: { bytes: string; from: string } | null = null;
   for (const root of args.retainedRoots) {
     const candidate = resolve(root, rel);
     if (!existsSync(candidate)) {
       continue;
     }
     try {
-      retainedBytes = readFileSync(candidate, "utf8");
-      retainedFrom = candidate;
-      break;
+      const bytes = readFileSync(candidate, "utf8");
+      if (firstReadable === null) {
+        firstReadable = { bytes, from: candidate };
+      }
+      if (bytes === reviewed.bytes) {
+        retainedBytes = bytes;
+        retainedFrom = candidate;
+        break;
+      }
     } catch {}
   }
   if (retainedBytes === null || retainedFrom === null) {
-    return {
-      ok: false,
-      error: `${SOURCE_RECOVERY_REMEDIATION} (no retained dest bytes for ${rel})`,
-    };
+    if (firstReadable === null) {
+      return {
+        ok: false,
+        error: `${SOURCE_RECOVERY_REMEDIATION} (no retained dest bytes for ${rel})`,
+      };
+    }
+    retainedBytes = firstReadable.bytes;
+    retainedFrom = firstReadable.from;
   }
 
   if (retainedBytes !== reviewed.bytes) {
