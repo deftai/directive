@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Ensure a CLI exists for ownership recovery without blindly building as root
- * on a project tree (#1617 / Greptile P1).
+ * Ensure a CLI exists for ownership recovery without building project dist as
+ * root (#1617 / Greptile P1).
  *
- * Prefer order: vendored packages/cli/dist/bin.js → global deft/directive →
- * local engine:_ts-build (non-root only) → fail closed with global-install
- * bootstrap (root must not create root-owned dist).
+ * Prefer order: vendored packages/cli/dist/bin.js → global deft/directive
+ * (--version must succeed) → npm i -g @deftai/directive when uid===0 →
+ * local engine:_ts-build (non-root only).
  */
 "use strict";
 
@@ -23,20 +23,14 @@ if (fs.existsSync(bin)) {
 const isWin = process.platform === "win32";
 
 function hasGlobal(cmd) {
-  // win32: npm shims are .cmd; shell:true is required to launch them.
+  // win32: npm shims are .cmd; shell:true launches them. Require --version
+  // success — do not treat a stale `where` hit as usable (Greptile P1).
   const probe = spawnSync(cmd, ["--version"], {
     encoding: "utf8",
     shell: isWin,
     windowsHide: true,
   });
-  if (probe.status === 0) return true;
-  if (!isWin) return false;
-  const where = spawnSync(`where ${cmd}`, {
-    encoding: "utf8",
-    shell: true,
-    windowsHide: true,
-  });
-  return where.status === 0 && String(where.stdout || "").trim().length > 0;
+  return probe.status === 0;
 }
 
 if (hasGlobal("deft") || hasGlobal("directive")) {
@@ -68,15 +62,25 @@ function isLikelyWsl() {
   }
 }
 
-// Any uid 0 build can create root-owned dist; WSL env markers catch hosts
-// whose /proc/version omits "microsoft" (Greptile P1).
 if (uid === 0) {
   const wslBit = isLikelyWsl() ? " (WSL detected)" : "";
   process.stderr.write(
-    `deft ownership: no packages/cli/dist/bin.js and no global deft/directive${wslBit}.\n` +
-      "  Running as root — refuse project `task build` (root-owned dist risk) (#1617).\n" +
-      "  Install outside the project tree, then re-run ownership:doctor / fix / verify:\n" +
-      "    npm i -g @deftai/directive\n",
+    `deft ownership: no local CLI${wslBit}; installing global @deftai/directive ` +
+      "so recovery can start without creating root-owned project dist (#1617).\n",
+  );
+  const install = spawnSync("npm", ["i", "-g", "@deftai/directive"], {
+    stdio: "inherit",
+    shell: true,
+    windowsHide: true,
+  });
+  if (install.status === 0 && (hasGlobal("deft") || hasGlobal("directive"))) {
+    process.exit(0);
+  }
+  process.stderr.write(
+    "deft ownership: global install failed or CLI still missing.\n" +
+      "  Install manually outside the project tree, then re-run:\n" +
+      "    npm i -g @deftai/directive\n" +
+      "  Avoid `task build` as root — it can create root-owned dist (#1617).\n",
   );
   process.exit(2);
 }
