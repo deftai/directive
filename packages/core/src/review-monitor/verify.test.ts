@@ -573,8 +573,6 @@ describe("evaluateReviewMonitorGate", () => {
   });
 
   it("formatApproach1BabysitterOneLiner is cheaper default path (#5219 P3)", () => {
-    expect(formatApproach1BabysitterOneLiner(9, "rm-9")).toContain(
-      "--monitor-agent-id rm-9",
-    );
+    expect(formatApproach1BabysitterOneLiner(9, "rm-9")).toContain("--monitor-agent-id rm-9");
   });
 });

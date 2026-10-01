@@ -13,8 +13,8 @@ import {
   formatApproach1BabysitterOneLiner,
   isTier1,
   REVIEW_MONITOR_HELP,
-  spawnRedirect,
   type ReviewMonitorCallSite,
+  spawnRedirect,
   verifyResultToJson,
 } from "@deftai/directive-core/review-monitor";
 
@@ -211,12 +211,7 @@ export function run(argv: readonly string[]): number {
       explicitFinish: args.explicitFinish,
       stickyLeaseActive: args.stickyLease || leaseEvidence,
     });
-    if (
-      args.liveWait &&
-      !liveBind.livePhaseCorrectWait &&
-      !args.explicitFinish &&
-      !arm.armed
-    ) {
+    if (args.liveWait && !liveBind.livePhaseCorrectWait && !args.explicitFinish && !arm.armed) {
       const spawnHost = result.tier.primitive === "spawn_subagent";
       const lease = result.monitorRecord;
       let message = liveBind.message;
