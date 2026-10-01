@@ -861,7 +861,9 @@ export function runWatch(argv: readonly string[], options: RunWatchOptions = {})
       process.stdout.write(printWatchHuman(result));
     }
     // Local CLEAN attestation so post-CLEAN pr-wait-mergeable can arm (#5219).
-    if (result.verdict === VERDICT_CLEAN) {
+    // Only a child-bound watch (spawn-injected DEFT_MONITOR_AGENT_ID / matching
+    // GROK_SESSION_ID) may attest — a parent-shell `pr:watch` must not arm the closer.
+    if (result.verdict === VERDICT_CLEAN && heartbeatParentId !== undefined) {
       const attested = writeMergePathCleanAttestation(
         projectRoot,
         prNumber,
