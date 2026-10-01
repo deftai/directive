@@ -121,4 +121,25 @@ describe("story continuity (#5192)", () => {
     });
     expect(exempt).toEqual(expect.arrayContaining(["xbrief/pending/story.xbrief.json"]));
   });
+
+  it("does not basename-fan-out exempts for plan.id stories (#5192)", () => {
+    const payload = {
+      plan: { id: "story-1", metadata: { swarm: { file_scope: ["a.ts"] } } },
+    };
+    const exempt = continuityExemptPaths({
+      headRel: "xbrief/active/story.xbrief.json",
+      headPlanId: "story-1",
+      continuity: {
+        kind: "resolved",
+        baseRel: "xbrief/active/story.xbrief.json",
+        basePlanId: "story-1",
+        basePayload: payload,
+        baseRaw: JSON.stringify(payload),
+        move: false,
+      },
+    });
+    expect(exempt).toEqual(["xbrief/active/story.xbrief.json"]);
+    expect(exempt).not.toContain("xbrief/pending/story.xbrief.json");
+    expect(exempt).not.toContain("xbrief/completed/story.xbrief.json");
+  });
 });

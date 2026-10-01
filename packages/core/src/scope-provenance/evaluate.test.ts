@@ -843,6 +843,46 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
     const hit = result.findings.find((f) => f.kind === "change-set-outside-approved-scope");
     expect(hit?.expandedPaths).toContain("xbrief/active/story-b.xbrief.json");
   });
+
+  it("plan.id story does not exempt deleting a different same-basename brief (#5192)", () => {
+    const approved = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload: xbrief("story-1", ["packages/core/src/a.ts"]),
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+    const result = evaluateScopeProvenance("/tmp/proj-basename-other-delete", {
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "xbrief/pending/story.xbrief.json",
+        "packages/core/src/a.ts",
+      ],
+      activeXbriefs: new Map([
+        [
+          "xbrief/active/story.xbrief.json",
+          JSON.stringify(xbrief("story-1", ["packages/core/src/a.ts"])),
+        ],
+      ]),
+      approvedRecords: [approved],
+      baseApprovedRecords: new Map([["story-1", approved]]),
+      baseXbriefs: new Map([
+        [
+          "xbrief/active/story.xbrief.json",
+          JSON.stringify(xbrief("story-1", ["packages/core/src/a.ts"])),
+        ],
+        [
+          "xbrief/pending/story.xbrief.json",
+          JSON.stringify(xbrief("other-story", ["packages/core/src/other.ts"])),
+        ],
+      ]),
+    });
+    expect(result.exitCode).toBe(1);
+    const hit = result.findings.find((f) => f.kind === "change-set-outside-approved-scope");
+    expect(hit?.expandedPaths).toContain("xbrief/pending/story.xbrief.json");
+  });
 });
 
 describe("evaluateScopeProvenance base-brief fence (#4956)", () => {

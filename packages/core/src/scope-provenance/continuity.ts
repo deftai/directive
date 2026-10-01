@@ -167,7 +167,13 @@ export function resolveStoryContinuity(input: {
   };
 }
 
-/** Lifecycle paths of a continuity-resolved identity (planId or same-basename). */
+/**
+ * Lifecycle paths of a continuity-resolved identity (planId or same-basename).
+ *
+ * plan.id stories exempt only the continuity pair (headRel + baseRel) — basename
+ * fan-out would hide deleting a different story that shares the leaf name.
+ * no-plan.id identities keep same-basename lifecycle exempts (Prefer-A #5192).
+ */
 export function continuityExemptPaths(input: {
   readonly headRel: string;
   readonly headPlanId: string | null;
@@ -177,19 +183,7 @@ export function continuityExemptPaths(input: {
   out.add(normalizeRel(input.headRel));
   if (input.continuity.kind === "resolved") {
     out.add(normalizeRel(input.continuity.baseRel));
-    if (input.headPlanId !== null) {
-      // Exempt every lifecycle path of the continuity-resolved bound planId leaf.
-      const leaf = xbriefBasename(input.continuity.baseRel);
-      for (const folder of LIFECYCLE_FOLDERS) {
-        out.add(`xbrief/${folder}/${leaf}`);
-      }
-      const headLeaf = xbriefBasename(input.headRel);
-      if (headLeaf !== leaf) {
-        for (const folder of LIFECYCLE_FOLDERS) {
-          out.add(`xbrief/${folder}/${headLeaf}`);
-        }
-      }
-    } else {
+    if (input.headPlanId === null) {
       for (const p of sameBasenameLifecyclePaths(input.headRel)) out.add(p);
     }
   } else if (input.headPlanId === null) {

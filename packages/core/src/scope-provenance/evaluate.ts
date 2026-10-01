@@ -669,6 +669,8 @@ export function evaluateScopeProvenance(
 
   // #5192 item 6: also evaluate lifecycle briefs in the change set that left
   // active/ (moved/completed) so completing in the same PR cannot drop fences.
+  // When an injected active-only map omits a changed completed/ path, fall
+  // through to HEAD disk so presentation-coverage cannot skip membership/fence.
   const seenEvalRels = new Set(activeEntries.map((e) => e.rel));
   for (const changedRel of changed) {
     const n = normalizeRepoRelPath(changedRel);
@@ -678,8 +680,9 @@ export function evaluateScopeProvenance(
       if (injected !== undefined) {
         activeEntries.push({ rel: n, raw: injected });
         seenEvalRels.add(n);
+        continue;
       }
-      continue;
+      // Missing from the injected map: try HEAD disk before giving up.
     }
     const full = join(root, n);
     if (!existsSync(full)) continue;

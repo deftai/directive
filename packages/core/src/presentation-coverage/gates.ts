@@ -24,6 +24,7 @@ import {
 import { containedWrite } from "../fs/contained-write.js";
 import { evaluateIntentConstraint } from "../intent-constraint/evaluate.js";
 import { evaluateObservableScope } from "../observable-scope/evaluate.js";
+import { isLifecycleXbriefPath } from "../scope-provenance/continuity.js";
 import { parseApprovedScopeRecordRaw } from "../scope-provenance/evaluate.js";
 import { evaluateTestBoundary } from "../test-boundary/evaluate.js";
 import { loadTestBoundaryPolicy } from "../test-boundary/policy.js";
@@ -220,19 +221,22 @@ export function runComposedGates(
         { code: 2, message: "invalid approved-scope record in pinned snapshot" },
         [],
       );
+    // Head: active/ plus changed lifecycle briefs (completed moves must still
+    // run membership + production fence). Base: full lifecycle census for
+    // continuity (#5192 Greptile P1 — active-only maps skipped completed/).
+    const headXbriefs = readTexts(head, (p) => {
+      if (!p.endsWith(".xbrief.json") && !p.endsWith(".vbrief.json")) return false;
+      if (p.startsWith("xbrief/active/")) return true;
+      return isLifecycleXbriefPath(p) && changed.includes(p);
+    });
+    const baseXbriefs = readTexts(base, (p) => isLifecycleXbriefPath(p));
     return outcome(
       "verify:scope-provenance",
       evaluateIsolatedScope(snapshot, {
         baseRef: mergeBase,
         changedFiles: changed,
-        activeXbriefs: readTexts(
-          head,
-          (p) => p.startsWith("xbrief/active/") && p.endsWith(".xbrief.json"),
-        ),
-        baseXbriefs: readTexts(
-          base,
-          (p) => p.startsWith("xbrief/active/") && p.endsWith(".xbrief.json"),
-        ),
+        activeXbriefs: headXbriefs,
+        baseXbriefs,
         approvedRecords: approved.filter((r) => r !== null),
         baseApprovedRecords: new Map(
           baseApproved.filter((r) => r !== null).map((r) => [r.planId, r]),
