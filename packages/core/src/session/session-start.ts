@@ -534,14 +534,17 @@ export function sameOwnerRebaseHeadContinuity(
     const sp = line.indexOf(" ");
     const sha = sp === -1 ? line : line.slice(0, sp);
     const subject = sp === -1 ? "" : line.slice(sp + 1);
+    // Amend after rebase must fail closed — do not walk past amend to an
+    // earlier rebase subject (#3884 Greptile residual). Branch creation at the
+    // ritual tip (`branch: Created from …`) is a switch, not same-branch rebase
+    // (#1617 / PR #5217 Greptile outside-diff). Check before ritual-SHA match:
+    // the create subject often sits on the ritual line itself.
+    if (/^(reset|checkout|branch)(:|\s)/i.test(subject) || /^commit \(amend\)/i.test(subject)) {
+      return false;
+    }
     if (sha === ritualHead) {
       foundRitual = true;
       break;
-    }
-    // Amend after rebase must fail closed — do not walk past amend to an
-    // earlier rebase subject (#3884 Greptile residual).
-    if (/^(reset|checkout)(:|\s)/i.test(subject) || /^commit \(amend\)/i.test(subject)) {
-      return false;
     }
     if (/rebase/i.test(subject)) seenRebase = true;
   }

@@ -51,6 +51,21 @@ describe("ownership task Prefer-B wiring (#1617)", () => {
       // CI images without go-task skip the live smoke; wiring tests above still bind.
       return;
     }
+    // Prefer-B: ownership verbs ride :engine:invoke and never build a CLI.
+    // Skip when neither local dist nor a working global CLI is present.
+    const hasLocalDist = existsSync(join(root, "packages", "cli", "dist", "bin.js"));
+    const globalOk = ["deft", "directive"].some((bin) => {
+      const ver = spawnSync(bin, ["--version"], {
+        encoding: "utf8",
+        windowsHide: true,
+        shell: process.platform === "win32",
+        timeout: 15_000,
+      });
+      return ver.status === 0;
+    });
+    if (!hasLocalDist && !globalOk) {
+      return;
+    }
     const result = spawnSync("task", ["ownership:doctor", "--", "--help"], {
       cwd: root,
       encoding: "utf8",
