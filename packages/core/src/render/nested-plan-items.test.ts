@@ -341,8 +341,7 @@ describe("roadmap-render consumes the dual-key walker (#4511)", () => {
       }),
       "utf8",
     );
-    const [ok, md] = generateRoadmapContent(pending);
-    expect(ok).toBe(true);
+    const md = generateRoadmapContent(pending);
     expect(md).toContain("Preferred nested task");
   });
 });

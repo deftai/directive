@@ -599,22 +599,19 @@ export function renderRoadmapToBufferResult(
 }
 
 /**
- * Alias of ``renderRoadmapToBufferResult`` for existing imports.
- * Prefer the Result form; do not reintroduce a string-fail-by-exception path (#4756 residual).
+ * Published string buffer API (master contract). Prefer ``renderRoadmapToBufferResult``
+ * at new call sites; this wrapper throws on empty-claim gate refusal so callers cannot
+ * treat a false-empty page as successful ROADMAP text (#4756 / PR #5206 Greptile P1).
  */
-export function renderRoadmapToBuffer(
-  pendingDir: string,
-  completedDir?: string,
-): RenderRoadmapResult {
-  return renderRoadmapToBufferResult(pendingDir, completedDir);
+export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string): string {
+  const [ok, value] = renderRoadmapToBufferResult(pendingDir, completedDir);
+  if (!ok) throw new Error(value);
+  return value;
 }
 
 /** @deprecated Prefer ``renderRoadmapToBufferResult``. */
-export function generateRoadmapContent(
-  pendingDir: string,
-  completedDir?: string,
-): RenderRoadmapResult {
-  return renderRoadmapToBufferResult(pendingDir, completedDir);
+export function generateRoadmapContent(pendingDir: string, completedDir?: string): string {
+  return renderRoadmapToBuffer(pendingDir, completedDir);
 }
 
 export function renderRoadmap(

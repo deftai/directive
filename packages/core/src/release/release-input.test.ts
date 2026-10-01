@@ -284,8 +284,7 @@ describe("production-reader observer", () => {
 
     const anchors = scanLifecycleAnchors(join(root, "xbrief"));
     expect(anchors.some((a) => String(a.rel_path).startsWith("cancelled/"))).toBe(true);
-    const [ok, rendered] = renderRoadmapToBuffer(join(root, "xbrief", "pending"));
-    expect(ok).toBe(true);
+    const rendered = renderRoadmapToBuffer(join(root, "xbrief", "pending"));
     expect(rendered).toContain("pending-title");
     expect(rendered).not.toContain("cancelled-title");
   });

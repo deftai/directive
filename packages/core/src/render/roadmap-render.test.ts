@@ -211,7 +211,7 @@ describe("roadmap-render idempotency", () => {
       xBRIEFInfo: { version: "0.8" },
       plan: { title: "Done", status: "completed", references: [{ id: "#99" }] },
     });
-    expect(generateRoadmapContent(pending, completed)).toEqual(
+    expect(generateRoadmapContent(pending, completed)).toBe(
       renderRoadmapToBuffer(pending, completed),
     );
   });
@@ -1014,7 +1014,7 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     const [ok, msg] = renderRoadmapToBufferResult(pending);
     expect(ok).toBe(false);
     expect(msg).toMatch(/Unreadable lifecycle file/i);
-    expect(renderRoadmapToBuffer(pending)).toEqual([false, msg]);
+    expect(() => renderRoadmapToBuffer(pending)).toThrow(/Unreadable lifecycle file/i);
   });
 
   it("corrupt active beside completed history refuses completed-only marker", () => {
