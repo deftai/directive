@@ -230,8 +230,8 @@ export function run(argv: readonly string[]): number {
         message =
           `unarmed stand-down: --live-wait for PR #${args.pr} has spawn_subagent lease ` +
           `(monitor_agent_id=${lease.monitor_agent_id}) but no child-bound wait identity ` +
-          `(heartbeat parent_id must match monitor_agent_id, or pr-wait-mergeable post-CLEAN); ` +
-          `parent-shell pr:watch does not arm (#5219).\n` +
+          `(heartbeat parent_id must match monitor_agent_id; start child pr:watch before verify; ` +
+          `parent-shell pr:watch / premature pr-wait-mergeable do not arm) (#5219).\n` +
           `  Cheaper path:\n` +
           `  ${formatApproach1BabysitterOneLiner(args.pr, lease.monitor_agent_id)}\n` +
           `  ${spawnRedirect(result.tier)}`;

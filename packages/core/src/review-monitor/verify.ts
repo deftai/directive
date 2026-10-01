@@ -25,9 +25,10 @@ import {
 } from "./tier-detection.js";
 
 /**
- * Heartbeat `parent_id` written by post-CLEAN `pr:wait-mergeable-and-merge` (#5020).
- * Identity join (#5219) must leave this closer path armed when Tier-1 `spawn_subagent`
- * still holds a sticky lease.
+ * Heartbeat `parent_id` written by `pr:wait-mergeable-and-merge` (#5020).
+ * Pre-CLEAN `--merge-path-arm --live-wait` on `spawn_subagent` must NOT accept this
+ * id (#5219 Greptile): a premature closer would otherwise arm without Approach 1.
+ * Post-CLEAN closer ordering stays #4822 (start wait-mergeable only after CLEAN).
  */
 export const POST_CLEAN_WAIT_PARENT_ID = "pr-wait-mergeable";
 
@@ -196,8 +197,9 @@ export function hasActivePollingHeartbeat(
  * When the host primitive is `spawn_subagent` and a sticky lease exists:
  * - lease `platform_primitive` MUST be `spawn_subagent`
  * - live wait `parent_id` MUST be the lease `monitor_agent_id` (Approach 1 child)
- *   or {@link POST_CLEAN_WAIT_PARENT_ID} (parent-retained closer after CLEAN)
  * Parent-shell native `pr:watch` (`parent_id=pr-watch`) does not count.
+ * {@link POST_CLEAN_WAIT_PARENT_ID} does not satisfy this pre-CLEAN join (premature
+ * closer must not arm); start wait-mergeable only after CLEAN (#4822).
  *
  * Non-`spawn_subagent` tiers keep the unscoped #5020 heartbeat predicate.
  */
@@ -227,15 +229,15 @@ export function heartbeatActiveForMergePathArm(
     }
     return hasActivePollingHeartbeat(projectRoot, pr, {
       ...base,
-      expectedParentIds: [monitorId, POST_CLEAN_WAIT_PARENT_ID],
+      expectedParentIds: [monitorId],
     });
   }
   return hasActivePollingHeartbeat(projectRoot, pr, base);
 }
 
 /**
- * Cheap Approach 1 babysitter one-liner (#5219 P3): register + verify after
- * `spawn_subagent`, then keep the child on `pr:watch --monitor-agent-id <id>`.
+ * Cheap Approach 1 babysitter one-liner (#5219 P3): child register + watch first
+ * (heartbeat live), then parent `verify --merge-path-arm --live-wait`.
  */
 export function formatApproach1BabysitterOneLiner(
   pr: number,
@@ -246,8 +248,9 @@ export function formatApproach1BabysitterOneLiner(
   return (
     `task review-monitor:register -- --pr ${pr} --monitor-agent-id ${id} ` +
     `--platform-primitive ${platformPrimitive}\n` +
-    `task verify:review-monitor -- --pr ${pr} --merge-path-arm --live-wait\n` +
-    `task pr:watch -- ${pr} --monitor-agent-id ${id}`
+    `DEFT_MONITOR_AGENT_ID=${id} task pr:watch -- ${pr} --monitor-agent-id ${id}\n` +
+    `# parent after child watch is live:\n` +
+    `task verify:review-monitor -- --pr ${pr} --merge-path-arm --live-wait`
   );
 }
 

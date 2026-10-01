@@ -28,6 +28,7 @@ import {
   parseWatchArgs,
   printWatchHuman,
   prWatchHeartbeatAgentId,
+  resolveMergePathHeartbeatParentId,
   runWatch,
   startWaitHeartbeatRefresher,
   watchResultToJson,
@@ -114,6 +115,26 @@ describe("parseWatchArgs", () => {
     const a = parseWatchArgs(["7", "--monitor-agent-id=child-7"]);
     expect(a.error).toBeUndefined();
     expect(a.monitorAgentId).toBe("child-7");
+  });
+
+  it("resolveMergePathHeartbeatParentId refuses CLI-only parent impersonation (#5219)", () => {
+    expect(resolveMergePathHeartbeatParentId("babysitter-5219", {})).toBeUndefined();
+    expect(
+      resolveMergePathHeartbeatParentId("babysitter-5219", {
+        DEFT_MONITOR_AGENT_ID: "babysitter-5219",
+      }),
+    ).toBe("babysitter-5219");
+    expect(
+      resolveMergePathHeartbeatParentId("babysitter-5219", {
+        GROK_SESSION_ID: "babysitter-5219",
+      }),
+    ).toBe("babysitter-5219");
+    expect(
+      resolveMergePathHeartbeatParentId("babysitter-5219", {
+        DEFT_MONITOR_AGENT_ID: "babysitter-5219",
+        GROK_SESSION_ID: "parent-session",
+      }),
+    ).toBeUndefined();
   });
 
   it("rejects invalid numeric flag values", () => {

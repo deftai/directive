@@ -529,7 +529,7 @@ describe("evaluateReviewMonitorGate", () => {
     ).toBe(false);
   });
 
-  it("spawn_subagent: matching live child arms; post-CLEAN wait-merge preserved (#5219)", () => {
+  it("spawn_subagent: matching live child arms (#5219)", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-5219-child-"));
     const lease = {
       pr: 5219,
@@ -556,23 +556,45 @@ describe("evaluateReviewMonitorGate", () => {
       isProcessAlive: () => true,
     });
     expect(childOk).toBe(true);
+  });
 
-    const root2 = mkdtempSync(join(tmpdir(), "rm-5219-postclean-"));
-    writePrWatchWaitHeartbeat(root2, 5219, {
+  it("spawn_subagent: premature pr-wait-mergeable does not arm pre-CLEAN join (#5219)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-5219-postclean-"));
+    const lease = {
+      pr: 5219,
+      repo: "deftai/directive" as string | null,
+      head_sha: "abc" as string | null,
+      platform_primitive: "spawn_subagent" as const,
+      monitor_agent_id: "babysitter-5219",
+      owner: "owner",
+      started_at: NOW.toISOString(),
+      expires_at: computeExpiresAt(NOW),
+      worktree_path: null as string | null,
+      parent_session_id: null as string | null,
+      ended_at: null as string | null,
+      comment_id: 1 as number | null,
+    };
+    writePrWatchWaitHeartbeat(root, 5219, {
       phase: "polling",
       parentId: POST_CLEAN_WAIT_PARENT_ID,
       pid: 4_004,
     });
     expect(
-      heartbeatActiveForMergePathArm(root2, 5219, {
+      heartbeatActiveForMergePathArm(root, 5219, {
         tierPrimitive: "spawn_subagent",
         lease,
         isProcessAlive: () => true,
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it("formatApproach1BabysitterOneLiner is cheaper default path (#5219 P3)", () => {
-    expect(formatApproach1BabysitterOneLiner(9, "rm-9")).toContain("--monitor-agent-id rm-9");
+  it("formatApproach1BabysitterOneLiner watches before parent verify (#5219 P3)", () => {
+    const text = formatApproach1BabysitterOneLiner(9, "rm-9");
+    expect(text).toContain("DEFT_MONITOR_AGENT_ID=rm-9");
+    expect(text).toContain("--monitor-agent-id rm-9");
+    const watchAt = text.indexOf("pr:watch -- 9");
+    const verifyAt = text.indexOf("verify:review-monitor");
+    expect(watchAt).toBeGreaterThan(-1);
+    expect(verifyAt).toBeGreaterThan(watchAt);
   });
 });

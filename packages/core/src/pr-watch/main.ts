@@ -704,6 +704,47 @@ export function printWatchHuman(result: WatchResult): string {
 
 export interface RunWatchOptions extends WatchOptions {}
 
+/**
+ * Resolve heartbeat `parent_id` for #5219 merge-path identity join.
+ *
+ * Spawn-injected `DEFT_MONITOR_AGENT_ID` is authoritative. CLI `--monitor-agent-id`
+ * alone must not let a parent shell impersonate the leased Approach 1 child: when
+ * `GROK_SESSION_ID` is set it must equal the candidate id (child session bind);
+ * otherwise CLI is accepted only when it matches the env id.
+ */
+export function resolveMergePathHeartbeatParentId(
+  cliMonitorAgentId: string | null | undefined,
+  environ: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): string | undefined {
+  const trim = (raw: string | undefined): string | null => {
+    if (typeof raw !== "string") return null;
+    const t = raw.trim();
+    return t.length > 0 ? t : null;
+  };
+  const envId = trim(environ.DEFT_MONITOR_AGENT_ID);
+  const sessionId = trim(environ.GROK_SESSION_ID);
+  const cliId = trim(cliMonitorAgentId ?? undefined);
+
+  let candidate: string | null = envId;
+  if (candidate === null && cliId !== null) {
+    // CLI-only: allow only when this process is already the named child session.
+    if (sessionId !== null && cliId === sessionId) {
+      candidate = cliId;
+    } else {
+      candidate = null;
+    }
+  }
+  if (candidate !== null && sessionId !== null && candidate !== sessionId) {
+    // Env/CLI claims a child id but this Grok session is someone else — refuse.
+    return undefined;
+  }
+  if (candidate !== null && envId !== null && cliId !== null && cliId !== envId) {
+    // Conflicting CLI vs spawn env — do not stamp either as child identity.
+    return undefined;
+  }
+  return candidate ?? undefined;
+}
+
 export function runWatch(argv: readonly string[], options: RunWatchOptions = {}): number {
   const args = parseWatchArgs(argv);
   if (args.help) {
@@ -729,15 +770,9 @@ export function runWatch(argv: readonly string[], options: RunWatchOptions = {})
 
   const projectRoot = args.projectRoot !== null ? resolve(args.projectRoot) : process.cwd();
   const prNumber = args.prNumber as number;
-  // Stamp lease monitor_agent_id into heartbeat parent_id for #5219 identity join.
-  const envMonitor = process.env.DEFT_MONITOR_AGENT_ID;
-  const monitorFromEnv =
-    typeof envMonitor === "string" && envMonitor.trim().length > 0 ? envMonitor.trim() : null;
-  const monitorAgentId =
-    args.monitorAgentId !== null && args.monitorAgentId.trim().length > 0
-      ? args.monitorAgentId.trim()
-      : monitorFromEnv;
-  const heartbeatParentId = monitorAgentId ?? undefined;
+  // Stamp child identity into heartbeat parent_id for #5219 join — env/session bound
+  // so a parent shell cannot impersonate via `--monitor-agent-id <leased child id>` alone.
+  const heartbeatParentId = resolveMergePathHeartbeatParentId(args.monitorAgentId, process.env);
   // Arm hasActivePollingHeartbeat for this PR while the wait is alive (#5020).
   reportWaitHeartbeatWrite(
     writePrWatchWaitHeartbeat(projectRoot, prNumber, {

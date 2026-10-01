@@ -18,6 +18,7 @@ export {
   parseWatchArgs,
   printWatchHuman,
   type RunWatchOptions,
+  resolveMergePathHeartbeatParentId,
   runWatch,
   watchResultToJson,
 } from "./main.js";

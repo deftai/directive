@@ -9,7 +9,7 @@ import {
 
 export { formatApproach1BabysitterOneLiner };
 
-/** Default register + verify + child-bound watch argv fragments (#5219 P3). */
+/** Child register + watch; parent verify after heartbeat is live (#5219 P3). */
 export function approach1BabysitterCommands(
   pr: number,
   monitorAgentId: string,
@@ -18,8 +18,8 @@ export function approach1BabysitterCommands(
   const id = monitorAgentId.trim().length > 0 ? monitorAgentId.trim() : "<id>";
   return [
     `task review-monitor:register -- --pr ${pr} --monitor-agent-id ${id} --platform-primitive ${platformPrimitive}`,
+    `DEFT_MONITOR_AGENT_ID=${id} task pr:watch -- ${pr} --monitor-agent-id ${id}`,
     `task verify:review-monitor -- --pr ${pr} --merge-path-arm --live-wait`,
-    `task pr:watch -- ${pr} --monitor-agent-id ${id}`,
   ];
 }
 
