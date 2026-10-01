@@ -351,21 +351,51 @@ type BaseBriefReadLocal =
   | { readonly kind: "missing" }
   | { readonly kind: "error"; readonly message: string };
 
-/** Merge-base lifecycle census via git ls-tree + readAtBase (#5192). */
+type LifecycleCensusResult =
+  | { readonly kind: "ok"; readonly briefs: CensusBrief[] }
+  | { readonly kind: "error"; readonly detail: string };
+
+/**
+ * Merge-base lifecycle census via git ls-tree + readAtBase (#5192).
+ * Fail closed on ls-tree / read / parse errors so duplicate plan.id identities
+ * cannot hide behind a partial census.
+ */
 function listLifecycleBriefsAtRef(
   projectRoot: string,
   baseRef: string,
   readAtBase: (rel: string) => BaseBriefReadLocal,
-): CensusBrief[] {
+): LifecycleCensusResult {
   const out: CensusBrief[] = [];
   for (const folder of LIFECYCLE_FOLDERS) {
     const listed = git(["ls-tree", "-r", "--name-only", baseRef, `xbrief/${folder}`], projectRoot);
-    if (listed.status !== 0) continue;
+    if (listed.status !== 0) {
+      return {
+        kind: "error",
+        detail:
+          `merge-base lifecycle census ls-tree failed for xbrief/${folder} at ${baseRef} ` +
+          `(exit ${String(listed.status)}); refuse rather than hide duplicate identities (#5192)`,
+      };
+    }
     for (const line of listed.stdout.split("\n")) {
       const rel = normalizeRepoRelPath(unquoteGitPath(line));
       if (!isLifecycleXbriefPath(rel)) continue;
       const read = readAtBase(rel);
-      if (read.kind !== "text") continue;
+      if (read.kind === "missing") {
+        return {
+          kind: "error",
+          detail:
+            `merge-base lifecycle census missing ${rel} after ls-tree listed it; ` +
+            "refuse rather than hide duplicate identities (#5192)",
+        };
+      }
+      if (read.kind === "error") {
+        return {
+          kind: "error",
+          detail:
+            `merge-base lifecycle census read failed for ${rel}: ${read.message}; ` +
+            "refuse rather than hide duplicate identities (#5192)",
+        };
+      }
       try {
         const payload = JSON.parse(read.text) as unknown;
         out.push({
@@ -374,12 +404,49 @@ function listLifecycleBriefsAtRef(
           raw: read.text,
           payload,
         });
-      } catch {
-        // skip unreadable census entry
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        return {
+          kind: "error",
+          detail:
+            `merge-base lifecycle census unreadable JSON at ${rel}: ${detail}; ` +
+            "refuse rather than hide duplicate identities (#5192)",
+        };
       }
     }
   }
-  return out;
+  return { kind: "ok", briefs: out };
+}
+
+/** Head lifecycle paths for continuity move exclusivity (#5192). */
+function listHeadLifecycleRels(input: {
+  readonly projectRoot: string;
+  readonly activeEntries: readonly { readonly rel: string }[];
+  readonly changedSet: ReadonlySet<string>;
+  readonly baseXbriefs?: ReadonlyMap<string, string>;
+  readonly injected: boolean;
+}): string[] {
+  const out = new Set(input.activeEntries.map((e) => normalizeRepoRelPath(e.rel)));
+  if (input.injected) {
+    // Unchanged base lifecycle paths remain on HEAD when absent from the change set.
+    if (input.baseXbriefs !== undefined) {
+      for (const relRaw of input.baseXbriefs.keys()) {
+        const rel = normalizeRepoRelPath(relRaw);
+        if (!isLifecycleXbriefPath(rel)) continue;
+        if (!changedSetHasPath(input.changedSet, rel)) out.add(rel);
+      }
+    }
+    return [...out];
+  }
+  for (const folder of LIFECYCLE_FOLDERS) {
+    const dir = join(input.projectRoot, "xbrief", folder);
+    if (!existsSync(dir)) continue;
+    for (const name of readdirSync(dir)) {
+      if (!name.endsWith(".xbrief.json") && !name.endsWith(".vbrief.json")) continue;
+      out.add(`xbrief/${folder}/${name}`);
+    }
+  }
+  return [...out];
 }
 
 /**
@@ -624,7 +691,13 @@ export function evaluateScopeProvenance(
     }
   }
 
-  const headLifecycleRels = activeEntries.map((e) => e.rel);
+  const headLifecycleRels = listHeadLifecycleRels({
+    projectRoot: root,
+    activeEntries,
+    changedSet,
+    baseXbriefs: options.baseXbriefs,
+    injected: options.activeXbriefs !== undefined || options.changedFiles !== undefined,
+  });
 
   const boundary =
     options.testRoots !== undefined ||
@@ -807,6 +880,7 @@ export function evaluateScopeProvenance(
     // Merge-base census for continuity (injected map preferred). Skip live git
     // ls-tree on pure injected seams (changedFiles / readAtBase without map).
     let census: CensusBrief[] = [];
+    let censusError: string | null = null;
     if (options.baseXbriefs !== undefined) {
       census = censusFromBaseMap(options.baseXbriefs);
     } else if (
@@ -815,10 +889,30 @@ export function evaluateScopeProvenance(
       options.changedFiles === undefined
     ) {
       try {
-        census = listLifecycleBriefsAtRef(root, discoveryBaseRef, readAtBase);
-      } catch {
+        const listed = listLifecycleBriefsAtRef(root, discoveryBaseRef, readAtBase);
+        if (listed.kind === "error") {
+          censusError = listed.detail;
+          census = [];
+        } else {
+          census = listed.briefs;
+        }
+      } catch (err) {
+        censusError = err instanceof Error ? err.message : String(err);
         census = [];
       }
+    }
+    if (censusError !== null && membershipTrigger) {
+      findings.push({
+        xbriefRelPath: rel,
+        planId: planId ?? rel,
+        kind: "active-xbrief-modified-without-digest",
+        expandedPaths: [],
+        detail: censusError,
+        remediation:
+          "Fix the merge-base lifecycle census read (fetch base ref / repair objects) before " +
+          "membership can resolve identities (#5192).",
+      });
+      continue;
     }
 
     const continuity = resolveStoryContinuity({
@@ -912,6 +1006,12 @@ export function evaluateScopeProvenance(
         if (normalizeRepoRelPath(injected.xbriefRelPath) !== normalizeRepoRelPath(headPath)) {
           return { kind: "missing" };
         }
+        if (injected.planId !== key) {
+          return {
+            kind: "invalid",
+            detail: `basename mint for ${key} has mismatched planId=${injected.planId}`,
+          };
+        }
         return { kind: "mint", fileScope: normalizeFileScope(injected.fileScope) };
       }
       const approvalRel = `.deft/approved-scope/${approvedScopeSafePlanId(key)}.json`;
@@ -932,6 +1032,12 @@ export function evaluateScopeProvenance(
       }
       if (normalizeRepoRelPath(parsed.xbriefRelPath) !== normalizeRepoRelPath(headPath)) {
         return { kind: "missing" };
+      }
+      if (parsed.planId !== key) {
+        return {
+          kind: "invalid",
+          detail: `basename mint for ${key} has mismatched planId=${parsed.planId}`,
+        };
       }
       return { kind: "mint", fileScope: normalizeFileScope(parsed.fileScope) };
     };
@@ -1093,14 +1199,16 @@ export function evaluateScopeProvenance(
 
     // Path fence (#4956): compare changed production files to the merge-base
     // brief file_scope. Never read the head brief for the fence list.
-    const baseBriefRead = readAtBase(rel);
+    // On lifecycle moves, the head path is absent on base — use continuity.baseRel.
+    const fenceBaseRel = continuity.kind === "resolved" ? continuity.baseRel : rel;
+    const baseBriefRead = readAtBase(fenceBaseRel);
     if (baseBriefRead.kind === "error") {
       findings.push({
         xbriefRelPath: rel,
         planId: planId ?? rel,
         kind: "production-scope-over-budget",
         expandedPaths: [],
-        detail: `merge-base brief read failed for ${rel}: ${baseBriefRead.message}; fail closed (#4956)`,
+        detail: `merge-base brief read failed for ${fenceBaseRel}: ${baseBriefRead.message}; fail closed (#4956)`,
         remediation:
           "Fix the merge-base git read (fetch the base ref / repair the object) before changing " +
           "production paths. There is no scope ceremony for proceed (#4956).",
@@ -1118,7 +1226,7 @@ export function evaluateScopeProvenance(
           planId: planId ?? rel,
           kind: "production-scope-over-budget",
           expandedPaths: [],
-          detail: `merge-base brief at ${rel} is unreadable JSON; write fence / check fail closed (#4956)`,
+          detail: `merge-base brief at ${fenceBaseRel} is unreadable JSON; write fence / check fail closed (#4956)`,
           remediation:
             "Restore a readable active brief on the merge base before changing production paths. " +
             "There is no scope ceremony for proceed (#4956).",

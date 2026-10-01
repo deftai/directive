@@ -262,11 +262,22 @@ function remediationForMissingDeclaration(planId: string): string {
   );
 }
 
-function remediationForOutsideMembership(extras: readonly string[]): string {
+function remediationForOutsideMembership(
+  extras: readonly string[],
+  authority: MembershipAllowlistAuthority,
+): string {
+  const outside = `Outside paths: ${extras.join(", ")}.`;
+  if (authority === "mint") {
+    return (
+      "Split paths outside the continuity-resolved mint allowlist to a follow-up story (#5192). " +
+      "A present human mint is authoritative; widening the merge-base brief file_scope will not " +
+      `clear this finding. Live HEAD file_scope cannot authorize extras. ${outside}`
+    );
+  }
   return (
     "Split paths outside the membership allowlist to a follow-up story, or land a " +
     "widened concrete brief on the merge base before widening (#5192). Live HEAD " +
-    `file_scope cannot authorize extras. Outside paths: ${extras.join(", ")}.`
+    `file_scope cannot authorize extras. ${outside}`
   );
 }
 
@@ -385,7 +396,7 @@ export function evaluateApprovedScopeMembership(
       detail:
         "active xBRIEF in change set with empty authoritative membership allowlist and " +
         `non-exempt paths present (${offenders.join(", ")}); fail closed (#4774 / #5192)`,
-      remediation: remediationForOutsideMembership(offenders),
+      remediation: remediationForOutsideMembership(offenders, authority),
     };
   }
 
@@ -434,6 +445,6 @@ export function evaluateApprovedScopeMembership(
       `${authority === "precommitment" ? "; concrete precommitment" : ""}` +
       `${overflow.length > 0 ? `; production extras past allowance ${String(allowance)}` : ""}` +
       `): ${outside.join(", ")}`,
-    remediation: remediationForOutsideMembership(outside),
+    remediation: remediationForOutsideMembership(outside, authority),
   };
 }
