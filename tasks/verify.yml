@@ -217,8 +217,7 @@ tasks:
   ownership:
     desc: "Fail closed on harm-capable WSL root vs project-owner mismatch unless DEFT_ALLOW_ROOT_WSL_RUNTIME=1 (#1617). Native Windows/macOS and mount-pinned DrvFs/9p without metadata pass. -- task verify:ownership [-- --project-root PATH] [--owner uid:gid] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
+    # No engine:_ts-build: must not create root-owned dist before the gate (#1617).
     cmds:
       - task: :engine:invoke
         vars:

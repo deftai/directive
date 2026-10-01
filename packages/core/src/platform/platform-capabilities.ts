@@ -791,12 +791,16 @@ export function classifyMountOwnershipCapability(
   }
   path = normalizeProjectPath(path);
   const normalized = path.replace(/\\/g, "/");
+  // Injected null/empty must not fall through via ?? to a live /proc read (CI Linux).
   const mountInfo =
-    options.readMountInfo?.() ?? readTextOrNull("/proc/self/mountinfo", options.readFile);
-  if (mountInfo === null) {
+    options.readMountInfo !== undefined
+      ? options.readMountInfo()
+      : readTextOrNull("/proc/self/mountinfo", options.readFile);
+  if (mountInfo === null || mountInfo.trim() === "") {
     // Prefer harm-capable for classic Linux home trees when mount table is
     // unreadable only if path is under /home — otherwise unknown (fail closed).
-    if (normalized.startsWith("/home/")) {
+    // Empty tables are unknown everywhere (Bound: unknown/empty fail closed).
+    if (mountInfo === null && normalized.startsWith("/home/")) {
       return {
         path,
         capability: "harm-capable",
@@ -811,9 +815,11 @@ export function classifyMountOwnershipCapability(
       fstype: null,
       options: null,
       detail:
-        "Cannot read /proc/self/mountinfo to classify ownership semantics; " +
-        "fail closed. Re-run on a readable mount table or set " +
-        `${DEFT_ALLOW_ROOT_WSL_RUNTIME}=1 with human acknowledgment.`,
+        mountInfo !== null && mountInfo.trim() === ""
+          ? "Empty mount table; ownership semantics unknown (fail closed)."
+          : "Cannot read /proc/self/mountinfo to classify ownership semantics; " +
+            "fail closed. Re-run on a readable mount table or set " +
+            `${DEFT_ALLOW_ROOT_WSL_RUNTIME}=1 with human acknowledgment.`,
     };
   }
 

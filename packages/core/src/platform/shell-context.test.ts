@@ -385,6 +385,15 @@ describe("WSL ownership guard (#1617)", () => {
     expect(mount.detail).toMatch(/fail closed/i);
   });
 
+  it("empty mount table fails closed as unknown (not harm-capable)", () => {
+    const mount = classifyMountOwnershipCapability("/home/alice/proj", {
+      readMountInfo: () => "",
+      realpath: (p) => p,
+    });
+    expect(mount.capability).toBe("unknown");
+    expect(mount.detail).toMatch(/fail closed|empty/i);
+  });
+
   it("honors override with documented limitation and soft warn", () => {
     const verdict = evaluateWslOwnershipGuard({
       platform: "linux",

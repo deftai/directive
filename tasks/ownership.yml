@@ -10,8 +10,8 @@ tasks:
   doctor:
     desc: "Diagnose WSL agent-as-root vs filesystem project-owner mismatch (#1617). Soft so recovery stays reachable. -- task ownership:doctor [-- --project-root PATH] [--owner uid:gid] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
+    # No engine:_ts-build: recovery must run before any build that could create
+    # root-owned dist under a WSL mismatch (#1617 / Greptile P1).
     env:
       PYTHONUTF8: "1"
     cmds:
@@ -22,8 +22,7 @@ tasks:
   fix:
     desc: "Scoped repair of root-owned objects under approved project roots only (#1617). Post-chown re-stat required; no blanket HOME chown. -- task ownership:fix [-- --project-root PATH] [--owner uid:gid] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
+    # No engine:_ts-build: same recovery-before-build rule as ownership:doctor.
     env:
       PYTHONUTF8: "1"
     cmds:

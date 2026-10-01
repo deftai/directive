@@ -112,7 +112,10 @@ tasks:
             " triage:summary "|" triage-summary "|\
             " triage:welcome "|" triage-welcome "|\
             " verify:cache-fresh "|" verify-cache-fresh "|\
-            " preflight-cache ")
+            " preflight-cache "|\
+            " ownership:doctor "|" ownership-doctor "|\
+            " ownership:fix "|" ownership-fix "|\
+            " verify:ownership "|" verify-ownership ")
               is_runtime_verb=1
               ;;
           esac
