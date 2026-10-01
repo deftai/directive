@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=240d0c871c73 refreshed=2026-09-30T21:03:13Z session=577a6ee147e2 -->
+<!-- deft:managed-section v3 sha=0b071d00ee9c refreshed=2026-10-01T01:31:26Z session=2aa902cc45fc -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -257,7 +257,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Through-merge worker dispatch (#3032)
 
-! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. **#3032 solo path** = interactive swarm skill (Phase 0; Mode B; `dispatch_kind: solo`; #3669). Headless `swarm:launch` concurrent-gated; N=1 sequential declined. Default `drive-to: merge-ready`. **Grok (#4529 / #4821):** `stop-at: pr-open` — not Gap C silent handback; Envelope SLA names dest residual then closer. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C). Spawn dest (#4066/#4295/#4575): dest-place then cwd before occupancy. Cursor local is dest-placing (nursery inherit or dest-rooted `@cursor/sdk` `Agent.create`); ⊗ Task dest keys.
+! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. **#3032 solo path** = interactive swarm skill (Phase 0; Mode B; `dispatch_kind: solo`; #3669). Headless `swarm:launch` concurrent-gated; N=1 sequential declined. Default `drive-to: merge-ready`. **Grok (#4529 / #4821):** `stop-at: pr-open` — not Gap C silent handback; Envelope SLA names dest residual then closer. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C). Spawn dest (#4066 / #4295): dest-place before occupancy. Cursor local is dest-placing (nursery inherit or dest-rooted `@cursor/sdk` `Agent.create`); ⊗ Task dest keys.
 ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032). ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner (#4529).
 ! After leaf announce: tool-first / yield / one short non-repeated answer; ⊗ N>2 near-identical zero-tool (FC14 / #3131). Machine: `evaluateParentTurnShape` (`parent-turn-shape`). Depth: preamble §11 + `docs/openclaw-agent-host.md`.
 ! **Dest Prefer-A (#5145):** linked dest worktrees inherit primary finalize-owed (deferred/ok); prefer `session:start --rearm` when dest ritual exists. ⊗ Stampede N dest cold tip inventories before primary records finalize-owed. Depth: swarm SKILL Dest leaf ceremony.
@@ -283,7 +283,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Parent-steer inbox (#4286)
 
-! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json`. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: content/docs/subagent-heartbeat.md (.deft/core/docs). ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
+! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json` on each pollable slice. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: preamble §10.5; `docs/subagent-heartbeat.md`. ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
 
 ## Review-surface precedence (#2308)
 
