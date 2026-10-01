@@ -20,15 +20,15 @@
         "id": "clause.1",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Product PR #5207 shipped Prefer-A #4714 remedy on origin/master; leftover-complete records terminal brief after Tracking close.",
+          "reason": "Product PR #5207 shipped Prefer-A #4714 in-scope remedy on origin/master (retained exact-byte transport, origin active blob probe, completed-tracked tip proof, agents-entry markers).",
           "provenance": {
             "kind": "operator-cli",
             "actor": "Scott",
-            "mintedAt": "2026-10-01T05:28:51.767Z",
+            "mintedAt": "2026-10-01T05:45:58.526Z",
             "mintedVia": "leftover-complete-stamp",
-            "eventRef": "PR #5207 merge aca1876f995c"
+            "eventRef": "PR #5207 merge aca1876f995c / leftover Greptile fix"
           },
-          "recorded_at": "2026-10-01T05:28:51.767Z"
+          "recorded_at": "2026-10-01T05:45:58.526Z"
         }
       },
       {
@@ -37,15 +37,15 @@
         "id": "clause.2",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Product PR #5207 shipped Prefer-A #4714 remedy on origin/master; leftover-complete records terminal brief after Tracking close.",
+          "reason": "Product PR #5207 shipped Prefer-A #4714 in-scope remedy on origin/master (retained exact-byte transport, origin active blob probe, completed-tracked tip proof, agents-entry markers).",
           "provenance": {
             "kind": "operator-cli",
             "actor": "Scott",
-            "mintedAt": "2026-10-01T05:28:51.767Z",
+            "mintedAt": "2026-10-01T05:45:58.526Z",
             "mintedVia": "leftover-complete-stamp",
-            "eventRef": "PR #5207 merge aca1876f995c"
+            "eventRef": "PR #5207 merge aca1876f995c / leftover Greptile fix"
           },
-          "recorded_at": "2026-10-01T05:28:51.767Z"
+          "recorded_at": "2026-10-01T05:45:58.526Z"
         }
       },
       {
@@ -54,15 +54,15 @@
         "id": "clause.3",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Product PR #5207 shipped Prefer-A #4714 remedy on origin/master; leftover-complete records terminal brief after Tracking close.",
+          "reason": "Product PR #5207 shipped Prefer-A #4714 in-scope remedy on origin/master (retained exact-byte transport, origin active blob probe, completed-tracked tip proof, agents-entry markers).",
           "provenance": {
             "kind": "operator-cli",
             "actor": "Scott",
-            "mintedAt": "2026-10-01T05:28:51.767Z",
+            "mintedAt": "2026-10-01T05:45:58.526Z",
             "mintedVia": "leftover-complete-stamp",
-            "eventRef": "PR #5207 merge aca1876f995c"
+            "eventRef": "PR #5207 merge aca1876f995c / leftover Greptile fix"
           },
-          "recorded_at": "2026-10-01T05:28:51.767Z"
+          "recorded_at": "2026-10-01T05:45:58.526Z"
         }
       },
       {
@@ -70,16 +70,16 @@
         "status": "completed",
         "id": "clause.4",
         "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Product PR #5207 shipped Prefer-A #4714 remedy on origin/master; leftover-complete records terminal brief after Tracking close.",
+          "disposition": "deferred",
+          "reason": "Out of PR #5207 file_scope follow-on: required consumer-check / activation-checkpoint deep wiring remains open; do not read this leftover as delivery of that gate.",
           "provenance": {
             "kind": "operator-cli",
             "actor": "Scott",
-            "mintedAt": "2026-10-01T05:28:51.767Z",
+            "mintedAt": "2026-10-01T05:45:58.526Z",
             "mintedVia": "leftover-complete-stamp",
-            "eventRef": "PR #5207 merge aca1876f995c"
+            "eventRef": "PR #5207 merge aca1876f995c / leftover Greptile fix"
           },
-          "recorded_at": "2026-10-01T05:28:51.767Z"
+          "recorded_at": "2026-10-01T05:45:58.526Z"
         }
       },
       {
@@ -87,16 +87,16 @@
         "status": "completed",
         "id": "clause.5",
         "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Product PR #5207 shipped Prefer-A #4714 remedy on origin/master; leftover-complete records terminal brief after Tracking close.",
+          "disposition": "deferred",
+          "reason": "Out of PR #5207 file_scope follow-on: required consumer-check / activation-checkpoint deep wiring remains open; do not read this leftover as delivery of that gate.",
           "provenance": {
             "kind": "operator-cli",
             "actor": "Scott",
-            "mintedAt": "2026-10-01T05:28:51.767Z",
+            "mintedAt": "2026-10-01T05:45:58.526Z",
             "mintedVia": "leftover-complete-stamp",
-            "eventRef": "PR #5207 merge aca1876f995c"
+            "eventRef": "PR #5207 merge aca1876f995c / leftover Greptile fix"
           },
-          "recorded_at": "2026-10-01T05:28:51.767Z"
+          "recorded_at": "2026-10-01T05:45:58.526Z"
         }
       },
       {
@@ -105,15 +105,15 @@
         "id": "clause.6",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Product PR #5207 shipped Prefer-A #4714 remedy on origin/master; leftover-complete records terminal brief after Tracking close.",
+          "reason": "Product PR #5207 shipped Prefer-A #4714 in-scope remedy on origin/master (retained exact-byte transport, origin active blob probe, completed-tracked tip proof, agents-entry markers).",
           "provenance": {
             "kind": "operator-cli",
             "actor": "Scott",
-            "mintedAt": "2026-10-01T05:28:51.767Z",
+            "mintedAt": "2026-10-01T05:45:58.526Z",
             "mintedVia": "leftover-complete-stamp",
-            "eventRef": "PR #5207 merge aca1876f995c"
+            "eventRef": "PR #5207 merge aca1876f995c / leftover Greptile fix"
           },
-          "recorded_at": "2026-10-01T05:28:51.767Z"
+          "recorded_at": "2026-10-01T05:45:58.526Z"
         }
       },
       {
@@ -122,15 +122,15 @@
         "id": "clause.7",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Product PR #5207 shipped Prefer-A #4714 remedy on origin/master; leftover-complete records terminal brief after Tracking close.",
+          "reason": "Product PR #5207 shipped Prefer-A #4714 in-scope remedy on origin/master (retained exact-byte transport, origin active blob probe, completed-tracked tip proof, agents-entry markers).",
           "provenance": {
             "kind": "operator-cli",
             "actor": "Scott",
-            "mintedAt": "2026-10-01T05:28:51.767Z",
+            "mintedAt": "2026-10-01T05:45:58.526Z",
             "mintedVia": "leftover-complete-stamp",
-            "eventRef": "PR #5207 merge aca1876f995c"
+            "eventRef": "PR #5207 merge aca1876f995c / leftover Greptile fix"
           },
-          "recorded_at": "2026-10-01T05:28:51.767Z"
+          "recorded_at": "2026-10-01T05:45:58.526Z"
         }
       },
       {
@@ -139,15 +139,15 @@
         "id": "clause.8",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Product PR #5207 shipped Prefer-A #4714 remedy on origin/master; leftover-complete records terminal brief after Tracking close.",
+          "reason": "Product PR #5207 shipped Prefer-A #4714 in-scope remedy on origin/master (retained exact-byte transport, origin active blob probe, completed-tracked tip proof, agents-entry markers).",
           "provenance": {
             "kind": "operator-cli",
             "actor": "Scott",
-            "mintedAt": "2026-10-01T05:28:51.767Z",
+            "mintedAt": "2026-10-01T05:45:58.526Z",
             "mintedVia": "leftover-complete-stamp",
-            "eventRef": "PR #5207 merge aca1876f995c"
+            "eventRef": "PR #5207 merge aca1876f995c / leftover Greptile fix"
           },
-          "recorded_at": "2026-10-01T05:28:51.767Z"
+          "recorded_at": "2026-10-01T05:45:58.526Z"
         }
       },
       {
@@ -156,15 +156,15 @@
         "id": "clause.9",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Product PR #5207 shipped Prefer-A #4714 remedy on origin/master; leftover-complete records terminal brief after Tracking close.",
+          "reason": "Product PR #5207 shipped Prefer-A #4714 in-scope remedy on origin/master (retained exact-byte transport, origin active blob probe, completed-tracked tip proof, agents-entry markers).",
           "provenance": {
             "kind": "operator-cli",
             "actor": "Scott",
-            "mintedAt": "2026-10-01T05:28:51.767Z",
+            "mintedAt": "2026-10-01T05:45:58.526Z",
             "mintedVia": "leftover-complete-stamp",
-            "eventRef": "PR #5207 merge aca1876f995c"
+            "eventRef": "PR #5207 merge aca1876f995c / leftover Greptile fix"
           },
-          "recorded_at": "2026-10-01T05:28:51.767Z"
+          "recorded_at": "2026-10-01T05:45:58.526Z"
         }
       },
       {
@@ -172,16 +172,16 @@
         "status": "completed",
         "id": "clause.10",
         "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Product PR #5207 shipped Prefer-A #4714 remedy on origin/master; leftover-complete records terminal brief after Tracking close.",
+          "disposition": "deferred",
+          "reason": "Out of PR #5207 file_scope follow-on: required consumer-check / activation-checkpoint deep wiring remains open; do not read this leftover as delivery of that gate.",
           "provenance": {
             "kind": "operator-cli",
             "actor": "Scott",
-            "mintedAt": "2026-10-01T05:28:51.767Z",
+            "mintedAt": "2026-10-01T05:45:58.526Z",
             "mintedVia": "leftover-complete-stamp",
-            "eventRef": "PR #5207 merge aca1876f995c"
+            "eventRef": "PR #5207 merge aca1876f995c / leftover Greptile fix"
           },
-          "recorded_at": "2026-10-01T05:28:51.767Z"
+          "recorded_at": "2026-10-01T05:45:58.526Z"
         }
       }
     ],
@@ -1450,11 +1450,11 @@
         "**R9 — Required-check and real-Git fixtures.** Invoke the actual consumer required-check entry on a protected base with two normalized pending active stories and scoped head claims. Show a product candidate with suitable `premerge` test evidence passes while a reviewed `postmerge` merge criterion and a separate UAT criterion remain visibly pending; missing premerge evidence, a changed phase, omitted/forged claim, deletion, moved brief, changed criterion/scope/issue/path/command, or changed checkpoint fails and blocks merge. Show the separate postmerge evidence-PR check accepts only suitable typed evidence or human-origin disposition on the original item, and rejects an invalid pointer, both evidence and disposition, agent-self disposition, unrelated code, changed command, and branch-name-only lifecycle exemption. Then use a temporary bare Git remote and actual activation, product, postmerge evidence, and lifecycle commits, pushes, merges, and fetches; mock only forge human approvals. Stamp premerge test evidence in the product branch, merge it, then produce suitable merge evidence linked to the actual product merge SHA and a separate UAT probe artifact in a reviewed evidence PR, merge that, delete the implementation checkout, finalize from fetched origin in a separate checkout, human-merge the lifecycle PR, and inspect terminal JSON blobs for synthetic #1/#2 in a new clone with per-issue origin-tip verification. The terminal brief must retain all typed evidence and the original command projection. Negative cases include no evidence PR, local-only evidence, a retained same-identity/changed-command brief, conflicting terminal, unrelated staged diff, and unmerged lifecycle PR. This synthetic fixture tests the future mechanism; #5051 alone owns proof of historical recovery."
       ]
     },
-    "id": "github.issue.residual.5490135197.lean.delivery-branch-recovery",
+    "id": "github.issue.residual.5490135197.lean.5840090921",
     "updated": "2026-10-01T05:28:53Z",
     "x-directive/plan-id": {
       "source": "github-residual",
-      "id": "github.issue.residual.5490135197.lean.delivery-branch-recovery"
+      "id": "github.issue.residual.5490135197.lean.5840090921"
     }
   }
 }
