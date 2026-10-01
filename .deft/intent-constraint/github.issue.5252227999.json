@@ -1,0 +1,25 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.5252227999",
+  "xbriefRelPath": "xbrief/active/2026-10-01-3749-bugworktree-removing-a-worktree-can-break-the-primary-checko.xbrief.json",
+  "approvedAt": "2026-10-01T13:24:34Z",
+  "constraints": [
+    {
+      "value": "10000",
+      "unit": "entries",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "8",
+      "unit": "directory-levels",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-01T13:24:34Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "7613c9bc9a252f0794c81edd8bef929ed32990540de941339dfe8ca037b6d985"
+}
