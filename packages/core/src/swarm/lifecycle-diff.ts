@@ -15,6 +15,25 @@ function normalizeRel(path: string): string {
   return path.replace(/\\/g, "/").replace(/^\.\//, "");
 }
 
+const LIFECYCLE_FOLDERS = new Set([
+  "proposed",
+  "pending",
+  "active",
+  "completed",
+  "cancelled",
+  "draft",
+]);
+
+/** True for bare `xbrief/completed/` dir markers from `git status --short` (#4714). */
+function isLifecycleDirectoryMarker(rel: string): boolean {
+  const normalized = normalizeRel(rel).replace(/\/+$/, "");
+  const parts = normalized.split("/");
+  if (parts.length !== 2) {
+    return false;
+  }
+  return (parts[0] === "xbrief" || parts[0] === "vbrief") && LIFECYCLE_FOLDERS.has(parts[1] ?? "");
+}
+
 /** Parse `git status --short` paths under xbrief/ (supports rename "R  a -> b"). */
 export function parseStagedXbriefPaths(statusStdout: string): string[] {
   const out: string[] = [];
@@ -31,35 +50,60 @@ export function parseStagedXbriefPaths(statusStdout: string): string[] {
       const parts = body.split(" -> ");
       for (const part of parts) {
         const rel = normalizeRel(part.trim().replace(/^"|"$/g, ""));
-        if (rel.startsWith("xbrief/") || rel.startsWith("vbrief/")) {
+        if (
+          (rel.startsWith("xbrief/") || rel.startsWith("vbrief/")) &&
+          !isLifecycleDirectoryMarker(rel)
+        ) {
           out.push(rel);
         }
       }
       continue;
     }
     const rel = normalizeRel(body.replace(/^"|"$/g, ""));
-    if (rel.startsWith("xbrief/") || rel.startsWith("vbrief/")) {
+    if (
+      (rel.startsWith("xbrief/") || rel.startsWith("vbrief/")) &&
+      !isLifecycleDirectoryMarker(rel)
+    ) {
       out.push(rel);
     }
   }
   return [...new Set(out)].sort();
 }
 
+/** Registry companions completeCohort may rewrite beside selected stories (#4714 R7). */
+export const LIFECYCLE_REGISTRY_RELS: readonly string[] = [
+  "xbrief/PROJECT-DEFINITION.xbrief.json",
+  "xbrief/specification.xbrief.json",
+  "xbrief/plan.xbrief.json",
+  "vbrief/PROJECT-DEFINITION.xbrief.json",
+  "vbrief/specification.xbrief.json",
+  "vbrief/plan.xbrief.json",
+];
+
 export function expectedLifecycleRels(
   storyRels: readonly string[],
   derivedRels: readonly string[] = [],
 ): Set<string> {
   const allowed = new Set<string>();
-  for (const rel of [...storyRels, ...derivedRels]) {
+  for (const rel of [...storyRels, ...derivedRels, ...LIFECYCLE_REGISTRY_RELS]) {
     const normalized = normalizeRel(rel);
     allowed.add(normalized);
     if (normalized.includes("/active/")) {
       allowed.add(normalized.replace("/active/", "/completed/"));
       allowed.add(normalized.replace("/active/", "/cancelled/"));
     }
+    if (normalized.includes("/pending/")) {
+      allowed.add(normalized.replace("/pending/", "/active/"));
+      allowed.add(normalized.replace("/pending/", "/completed/"));
+      allowed.add(normalized.replace("/pending/", "/cancelled/"));
+    }
     // Registry / specification companions sometimes rewrite beside the story.
     const base = basename(normalized);
-    if (base === "plan.xbrief.json" || base === "specification.xbrief.json") {
+    if (
+      base === "plan.xbrief.json" ||
+      base === "specification.xbrief.json" ||
+      base === "PROJECT-DEFINITION.xbrief.json"
+    ) {
       allowed.add(normalized);
     }
   }

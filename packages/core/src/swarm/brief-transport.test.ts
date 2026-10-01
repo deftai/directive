@@ -115,4 +115,47 @@ describe("brief transport (#4714 R5)", () => {
     expect(lookup.bytes).toBeNull();
     expect(SOURCE_RECOVERY_REMEDIATION).toContain("source-recovery");
   });
+
+  it("walks past a deletion tip to recover an earlier readable blob", () => {
+    const rel = "xbrief/active/story-1.xbrief.json";
+    const bytes = '{"plan":{"id":"story-1"}}\n';
+    const runGit = (cmd: readonly string[]): TextCaptureResult => {
+      if (cmd[1] === "show" && String(cmd[2]) === `deadbeef:${rel}`) {
+        return { returncode: 1, stdout: "", stderr: "deleted at merge" };
+      }
+      if (cmd[1] === "log" && cmd.includes("--diff-filter=ACMR")) {
+        return { returncode: 0, stdout: "abc123\n", stderr: "" };
+      }
+      if (cmd[1] === "show" && String(cmd[2]) === `abc123:${rel}`) {
+        return { returncode: 0, stdout: bytes, stderr: "" };
+      }
+      return { returncode: 1, stdout: "", stderr: "no" };
+    };
+    const lookup = readReviewedBriefBlob("/tmp", rel, "deadbeef", runGit);
+    expect(lookup.bytes).toBe(bytes);
+    expect(lookup.source).toBe(`abc123:${rel}`);
+  });
+
+  it("skips an unreadable deletion commit when diff-filter log is empty", () => {
+    const rel = "xbrief/active/story-1.xbrief.json";
+    const bytes = '{"plan":{"id":"story-1"}}\n';
+    const runGit = (cmd: readonly string[]): TextCaptureResult => {
+      if (cmd[1] === "log" && cmd.includes("--diff-filter=ACMR")) {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (cmd[1] === "log") {
+        return { returncode: 0, stdout: "delete-sha\nearlier-sha\n", stderr: "" };
+      }
+      if (cmd[1] === "show" && String(cmd[2]) === `delete-sha:${rel}`) {
+        return { returncode: 1, stdout: "", stderr: "gone" };
+      }
+      if (cmd[1] === "show" && String(cmd[2]) === `earlier-sha:${rel}`) {
+        return { returncode: 0, stdout: bytes, stderr: "" };
+      }
+      return { returncode: 1, stdout: "", stderr: "no" };
+    };
+    const lookup = readReviewedBriefBlob("/tmp", rel, null, runGit);
+    expect(lookup.bytes).toBe(bytes);
+    expect(lookup.source).toBe(`earlier-sha:${rel}`);
+  });
 });

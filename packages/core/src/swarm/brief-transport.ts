@@ -27,17 +27,38 @@ export function readReviewedBriefBlob(
 ): ReviewedBriefLookup {
   const rel = relPath.replace(/\\/g, "/");
   if (typeof commitIsh === "string" && commitIsh.trim().length > 0) {
-    const shown = runGit(["git", "show", `${commitIsh.trim()}:${rel}`], { cwd: projectRoot });
+    const tip = commitIsh.trim();
+    const shown = runGit(["git", "show", `${tip}:${rel}`], { cwd: projectRoot });
     if (shown.returncode === 0 && shown.stdout.length > 0) {
-      return { bytes: shown.stdout, source: `${commitIsh.trim()}:${rel}`, error: null };
+      return { bytes: shown.stdout, source: `${tip}:${rel}`, error: null };
     }
   }
-  // Fall back to tip history: last commit that touched the path on origin.
-  const log = runGit(["git", "log", "-1", "--format=%H", `origin/HEAD`, "--", rel], {
-    cwd: projectRoot,
-  });
-  if (log.returncode === 0 && log.stdout.trim().length > 0) {
-    const sha = log.stdout.trim();
+  // Walk tip history for a readable blob. Prefer non-deletion touches; a merge
+  // that deleted the active brief must not become the recovery tip (#4714 R5).
+  const log = runGit(
+    ["git", "log", "-20", "--format=%H", "--diff-filter=ACMR", "origin/HEAD", "--", rel],
+    { cwd: projectRoot },
+  );
+  let shas: string[] =
+    log.returncode === 0
+      ? log.stdout
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0)
+      : [];
+  if (shas.length === 0) {
+    // Fallback without diff-filter: walk recent tips and skip unreadable (deleted) tips.
+    const anyLog = runGit(["git", "log", "-20", "--format=%H", "origin/HEAD", "--", rel], {
+      cwd: projectRoot,
+    });
+    if (anyLog.returncode === 0) {
+      shas = anyLog.stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+    }
+  }
+  for (const sha of shas) {
     const shown = runGit(["git", "show", `${sha}:${rel}`], { cwd: projectRoot });
     if (shown.returncode === 0 && shown.stdout.length > 0) {
       return { bytes: shown.stdout, source: `${sha}:${rel}`, error: null };

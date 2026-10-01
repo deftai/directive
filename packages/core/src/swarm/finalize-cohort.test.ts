@@ -117,6 +117,30 @@ function writeCompletedStory(
   return full;
 }
 
+function writeCancelledStory(project: string, storyId: string, issueNumber: number): string {
+  const full = join(project, "xbrief", "cancelled", `${storyId}.xbrief.json`);
+  mkdirSync(join(project, "xbrief", "cancelled"), { recursive: true });
+  writeFileSync(
+    full,
+    JSON.stringify({
+      plan: {
+        id: storyId,
+        title: storyId,
+        status: "cancelled",
+        references: [
+          {
+            uri: `https://github.com/deftai/directive/issues/${issueNumber}`,
+            type: "x-xbrief/github-issue",
+          },
+        ],
+        items: [{ id: "i1", title: "t", status: "cancelled" }],
+      },
+    }),
+    "utf8",
+  );
+  return full;
+}
+
 interface MockPrState {
   readonly merged: boolean;
   readonly closingIssues: number[];
@@ -791,6 +815,30 @@ describe("finalizeCohort", () => {
     expect(result.exitCode).not.toBe(0);
     expect(
       result.result.errors.some((e) => e.includes("#7777") && e.includes("source-recovery")),
+    ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("skips a closing ref whose terminal brief is cancelled, not completed (#4714 R6)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-cancelled-terminal-"));
+    writeActiveStory(project, "story-2240", 2240);
+    writeCancelledStory(project, "story-6666", 6666);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [2241],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({ 2241: { merged: true, closingIssues: [2240, 6666] } }, { 6666: "closed" }),
+      runGit: mockRunGit(),
+    });
+    expect(
+      result.result.errors.some((e) => e.includes("#6666") && e.includes("source-recovery")),
+    ).toBe(false);
+    expect(
+      result.result.warnings.some(
+        (w) => w.includes("#6666") && w.includes("cancelled brief already exists"),
+      ),
     ).toBe(true);
     rmSync(project, { recursive: true, force: true });
   });

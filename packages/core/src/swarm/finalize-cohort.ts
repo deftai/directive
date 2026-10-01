@@ -30,7 +30,12 @@ import type { GitRunner } from "../session/git.js";
 import { materializeRetainedBrief, SOURCE_RECOVERY_REMEDIATION } from "./brief-transport.js";
 import { completeCohort, type SweepResult } from "./complete-cohort.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
-import { completedBriefReferencesIssue, resolveStories } from "./launch.js";
+import {
+  cancelledBriefReferencesIssue,
+  completedBriefReferencesIssue,
+  resolveStories,
+  terminalBriefReferencesIssue,
+} from "./launch.js";
 import {
   evaluateLifecycleDiff,
   expectedLifecycleRels,
@@ -964,6 +969,48 @@ function ensureFeatureBranch(
   return { ok: true, error: null, branch: currentBranch };
 }
 
+/**
+ * Paths completeCohort may rewrite beside the selected stories: epic parents,
+ * twin completions, and registry companions (#4714 R7).
+ */
+function derivedLifecycleRelsFromSweep(
+  projectRoot: string,
+  storyPaths: readonly string[],
+  sweep: SweepResult | null,
+): string[] {
+  const selected = new Set(storyPaths.map((p) => resolve(p)));
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const addPath = (fullPath: string): void => {
+    const resolvedPath = resolve(fullPath);
+    if (selected.has(resolvedPath) || seen.has(resolvedPath)) {
+      return;
+    }
+    seen.add(resolvedPath);
+    out.push(posixProjectRel(projectRoot, resolvedPath));
+  };
+  if (sweep !== null) {
+    for (const rec of [...sweep.stories, ...sweep.parents]) {
+      if (!rec.ok || rec.path.trim().length === 0) {
+        continue;
+      }
+      addPath(rec.path);
+      // Transition records keep the pre-move path; admit the terminal twin too.
+      const rel = posixProjectRel(projectRoot, rec.path);
+      if (rel.includes("/active/") || rel.includes("/pending/")) {
+        const completed = rel
+          .replace("/active/", "/completed/")
+          .replace("/pending/", "/completed/");
+        const cancelled = rel
+          .replace("/active/", "/cancelled/")
+          .replace("/pending/", "/cancelled/");
+        out.push(completed, cancelled);
+      }
+    }
+  }
+  return [...new Set(out)].sort();
+}
+
 function commitLifecycleMoves(
   projectRoot: string,
   storyPaths: readonly string[],
@@ -1664,7 +1711,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     }
     for (const err of resolved.errors) {
       const m = /^#(\d+): no active story references this issue\.?$/.exec(err);
-      if (m !== null && completedBriefReferencesIssue(projectRoot, Number(m[1]))) {
+      if (m !== null && terminalBriefReferencesIssue(projectRoot, Number(m[1]))) {
         continue;
       }
       errors.push(err);
@@ -1693,15 +1740,21 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       continue;
     }
     const completedBrief = completedBriefReferencesIssue(projectRoot, issue);
-    if (completedBrief) {
+    const cancelledBrief = cancelledBriefReferencesIssue(projectRoot, issue);
+    if (completedBrief || cancelledBrief) {
       let dispositionNote = "";
+      const terminalLabel = completedBrief ? "completed" : "cancelled";
       try {
-        const completedDir = resolve(projectRoot, "xbrief", "completed");
-        // Best-effort surface of legacy delivery disposition for completed briefs (#3041).
-        if (existsSync(completedDir)) {
-          for (const name of readdirSync(completedDir)) {
+        const terminalDir = resolve(
+          projectRoot,
+          "xbrief",
+          completedBrief ? "completed" : "cancelled",
+        );
+        // Best-effort surface of legacy delivery disposition for terminal briefs (#3041).
+        if (existsSync(terminalDir)) {
+          for (const name of readdirSync(terminalDir)) {
             if (!name.endsWith(".json")) continue;
-            const raw = JSON.parse(readFileSync(resolve(completedDir, name), "utf8")) as unknown;
+            const raw = JSON.parse(readFileSync(resolve(terminalDir, name), "utf8")) as unknown;
             if (raw === null || typeof raw !== "object" || Array.isArray(raw)) continue;
             const plan = (raw as Record<string, unknown>).plan;
             if (typeof plan !== "object" || plan === null || Array.isArray(plan)) continue;
@@ -1711,11 +1764,11 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
           }
         }
       } catch {
-        /* best-effort disposition surfacing for legacy completed records */
+        /* best-effort disposition surfacing for legacy terminal records */
       }
       warnings.push(
         `#${issue}: no active story references this closing issue; skipped ` +
-          `(a completed brief already exists${dispositionNote}).`,
+          `(a ${terminalLabel} brief already exists${dispositionNote}).`,
       );
       continue;
     }
@@ -1756,8 +1809,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       errors.push(...resolved.errors);
       continue;
     }
-    const completedBrief = completedBriefReferencesIssue(projectRoot, issue);
-    if (!completedBrief && !fetchIssueClosed(issue, repo, runGh)) {
+    const terminalBrief = terminalBriefReferencesIssue(projectRoot, issue);
+    if (!terminalBrief && !fetchIssueClosed(issue, repo, runGh)) {
       errors.push(
         `#${issue}: full-story close intent recorded but no active or completed brief references this issue (#4864).`,
       );
@@ -2101,7 +2154,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     const closeRoot = originCloseRoot(lifecycle?.checkout ?? null, projectRoot);
 
     if (!dryRun && !noCommit && !skipSweep && errors.length === 0) {
-      const commitResult = commitLifecycleMoves(sweepRoot, storyPaths, runGit);
+      const derivedRels = derivedLifecycleRelsFromSweep(sweepRoot, storyPaths, sweep);
+      const commitResult = commitLifecycleMoves(sweepRoot, storyPaths, runGit, derivedRels);
       if (!commitResult.ok) {
         errors.push(commitResult.error ?? "commit failed");
       } else {

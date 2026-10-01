@@ -519,6 +519,22 @@ export function completedBriefReferencesIssue(projectRoot: string, issue: number
   return indexStoriesInFolder(projectRoot, "completed").some((s) => s.issues.has(issue));
 }
 
+/**
+ * True when a brief in `xbrief/cancelled/` (or legacy `vbrief/cancelled/`)
+ * references the issue. Terminal alongside completed for finalize skip (#4714 R6).
+ */
+export function cancelledBriefReferencesIssue(projectRoot: string, issue: number): boolean {
+  return indexStoriesInFolder(projectRoot, "cancelled").some((s) => s.issues.has(issue));
+}
+
+/** Completed or cancelled terminal brief cites the issue (#4714 R6). */
+export function terminalBriefReferencesIssue(projectRoot: string, issue: number): boolean {
+  return (
+    completedBriefReferencesIssue(projectRoot, issue) ||
+    cancelledBriefReferencesIssue(projectRoot, issue)
+  );
+}
+
 export function looksLikePath(token: string): boolean {
   return (
     token.endsWith(".json") ||
