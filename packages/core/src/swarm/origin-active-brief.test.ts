@@ -33,12 +33,7 @@ describe("origin-active-brief (#4714 R2)", () => {
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     };
-    const result = originActiveBriefPresent(
-      "/tmp/proj",
-      "master",
-      "xbrief/active",
-      runGit,
-    );
+    const result = originActiveBriefPresent("/tmp/proj", "master", "xbrief/active", runGit);
     expect(result.present).toBe(false);
     expect(result.error).toContain("activation PR");
   });
