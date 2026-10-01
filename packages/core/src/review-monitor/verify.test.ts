@@ -17,6 +17,7 @@ import {
   heartbeatActiveForMergePathArm,
   POST_CLEAN_WAIT_PARENT_ID,
   verifyResultToJson,
+  writeMergePathCleanAttestation,
 } from "./verify.js";
 
 const NOW = new Date("2026-07-24T12:00:00.000Z");
@@ -558,8 +559,8 @@ describe("evaluateReviewMonitorGate", () => {
     expect(childOk).toBe(true);
   });
 
-  it("spawn_subagent: post-CLEAN wait-merge heartbeat arms (#5219)", () => {
-    const root = mkdtempSync(join(tmpdir(), "rm-5219-postclean-"));
+  it("spawn_subagent: closer without CLEAN attestation stays unarmed (#5219)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-5219-premature-closer-"));
     const lease = {
       pr: 5219,
       repo: "deftai/directive" as string | null,
@@ -584,6 +585,39 @@ describe("evaluateReviewMonitorGate", () => {
         tierPrimitive: "spawn_subagent",
         lease,
         isProcessAlive: () => true,
+        headSha: "abc",
+      }),
+    ).toBe(false);
+  });
+
+  it("spawn_subagent: post-CLEAN wait-merge heartbeat arms with attestation (#5219)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-5219-postclean-"));
+    const lease = {
+      pr: 5219,
+      repo: "deftai/directive" as string | null,
+      head_sha: "abc" as string | null,
+      platform_primitive: "spawn_subagent" as const,
+      monitor_agent_id: "babysitter-5219",
+      owner: "owner",
+      started_at: NOW.toISOString(),
+      expires_at: computeExpiresAt(NOW),
+      worktree_path: null as string | null,
+      parent_session_id: null as string | null,
+      ended_at: null as string | null,
+      comment_id: 1 as number | null,
+    };
+    expect(writeMergePathCleanAttestation(root, 5219, "abc", NOW).ok).toBe(true);
+    writePrWatchWaitHeartbeat(root, 5219, {
+      phase: "polling",
+      parentId: POST_CLEAN_WAIT_PARENT_ID,
+      pid: 4_005,
+    });
+    expect(
+      heartbeatActiveForMergePathArm(root, 5219, {
+        tierPrimitive: "spawn_subagent",
+        lease,
+        isProcessAlive: () => true,
+        headSha: "abc",
       }),
     ).toBe(true);
   });

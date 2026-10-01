@@ -161,7 +161,8 @@ export function run(argv: readonly string[]): number {
         "                         lease+flag alone is not armed — #5020).\n" +
         "                         On spawn_subagent hosts, lease platform_primitive must be\n" +
         "                         spawn_subagent and heartbeat parent_id must match the lease\n" +
-        "                         monitor_agent_id (or pr-wait-mergeable post-CLEAN) — #5219;\n" +
+        "                         monitor_agent_id, or pr-wait-mergeable only after local\n" +
+        "                         pr:watch CLEAN attestation — #5219;\n" +
         "                         parent-shell pr:watch (parent_id=pr-watch) does not arm.\n" +
         "  --explicit-finish      Attest option-C BLOCKED/FAILED finish for this PR\n" +
         "  --sticky-lease         Attest a fresh sticky lease (not sufficient alone)\n" +
@@ -230,8 +231,9 @@ export function run(argv: readonly string[]): number {
         message =
           `unarmed stand-down: --live-wait for PR #${args.pr} has spawn_subagent lease ` +
           `(monitor_agent_id=${lease.monitor_agent_id}) but no child-bound wait identity ` +
-          `(heartbeat parent_id must match monitor_agent_id, or pr-wait-mergeable post-CLEAN; ` +
-          `start child pr:watch before verify; parent-shell pr:watch does not arm) (#5219).\n` +
+          `(heartbeat parent_id must match monitor_agent_id, or pr-wait-mergeable after ` +
+          `pr:watch CLEAN attestation; start child pr:watch before verify; ` +
+          `parent-shell pr:watch does not arm) (#5219).\n` +
           `  Cheaper path:\n` +
           `  ${formatApproach1BabysitterOneLiner(args.pr, lease.monitor_agent_id)}\n` +
           `  ${spawnRedirect(result.tier)}`;

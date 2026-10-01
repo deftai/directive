@@ -6,12 +6,14 @@ import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import { platformStatusUrlsForWeather } from "../pr-merge-readiness/platform-status.js";
 import { defaultSubagentStatusDir } from "../review-monitor/record.js";
+import { writeMergePathCleanAttestation } from "../review-monitor/verify.js";
 import {
   DEFAULT_MAX_WAIT_MINUTES,
   DEFAULT_POLL_SECONDS,
   EXIT_CLEAN,
   EXIT_TERMINAL_ERROR,
   GREPTILE_SHA_STALL_REMEDY,
+  VERDICT_CLEAN,
   VERDICT_GREPTILE_SHA_STALL,
   WATCH_HELP,
 } from "./constants.js";
@@ -810,6 +812,17 @@ export function runWatch(argv: readonly string[], options: RunWatchOptions = {})
     } else {
       process.stdout.write(printWatchHuman(result));
     }
+    // Local CLEAN attestation so post-CLEAN pr-wait-mergeable can arm (#5219).
+    if (result.verdict === VERDICT_CLEAN) {
+      const attested = writeMergePathCleanAttestation(
+        projectRoot,
+        prNumber,
+        result.probe.headSha ?? null,
+      );
+      if (!attested.ok) {
+        process.stderr.write(`pr_watch: ${attested.reason}\n`);
+      }
+    }
     return result.exitCode;
   } finally {
     // Clear liveness so a sticky lease cannot outlive the wait process (#5020).
@@ -826,7 +839,6 @@ export function runWatch(argv: readonly string[], options: RunWatchOptions = {})
     }
   }
 }
-
 export function cmdPrWatch(argv: readonly string[], options: RunWatchOptions = {}): number {
   return runWatch(argv, options);
 }

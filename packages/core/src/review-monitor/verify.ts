@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
+import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { sweepScratchDirs } from "../orchestration/subagent-monitor.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 import {
@@ -26,11 +27,94 @@ import {
 
 /**
  * Heartbeat `parent_id` written by post-CLEAN `pr:wait-mergeable-and-merge` (#5020).
- * Identity join (#5219) leaves this closer path armed when Tier-1 `spawn_subagent`
- * still holds a sticky lease. Callers must start wait-mergeable only after CLEAN (#4822).
+ * Identity join (#5219) accepts this closer path only with a local CLEAN attestation
+ * from `pr:watch` (premature closer must not arm --merge-path-arm --live-wait).
  */
 export const POST_CLEAN_WAIT_PARENT_ID = "pr-wait-mergeable";
 
+/** Local CLEAN attestation sink for post-CLEAN closer arm (#5219 Greptile). */
+export function mergePathCleanAttestationRelPath(pr: number): string {
+  return [".deft-scratch", "merge-path-arm", `pr-${pr}.clean.json`].join("/");
+}
+
+export type MergePathCleanAttestationWriteResult =
+  | { readonly ok: true; readonly path: string }
+  | { readonly ok: false; readonly reason: string };
+
+/**
+ * Record that `pr:watch` reached CLEAN for this PR (optional HEAD). Closer
+ * `pr-wait-mergeable` heartbeats arm only when this attestation is present.
+ */
+export function writeMergePathCleanAttestation(
+  projectRoot: string,
+  pr: number,
+  headSha: string | null = null,
+  now: Date = new Date(),
+): MergePathCleanAttestationWriteResult {
+  if (!Number.isInteger(pr) || pr <= 0) {
+    return { ok: false, reason: `invalid pr for CLEAN attestation: ${pr}` };
+  }
+  const rootAbs = resolve(projectRoot);
+  const relTarget = mergePathCleanAttestationRelPath(pr);
+  const path = join(rootAbs, relTarget);
+  const escaped = relative(rootAbs, path);
+  if (escaped.startsWith("..") || escaped.length === 0) {
+    return { ok: false, reason: `CLEAN attestation path escapes project root: ${path}` };
+  }
+  const sha =
+    typeof headSha === "string" && headSha.trim().length > 0 ? headSha.trim() : null;
+  const payload = {
+    pr_number: pr,
+    head_sha: sha,
+    cleaned_at: now.toISOString(),
+    source: "pr:watch",
+  };
+  try {
+    containedWrite({
+      root: rootAbs,
+      target: relTarget,
+      data: `${JSON.stringify(payload)}\n`,
+      mode: "replace",
+      mkdir: true,
+    });
+    return { ok: true, path };
+  } catch (err) {
+    const detail =
+      err instanceof ContainedWriteError
+        ? `${err.code}: ${err.message}`
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    return { ok: false, reason: `CLEAN attestation write failed: ${detail}` };
+  }
+}
+
+/** True when a local CLEAN attestation exists (optional HEAD match). */
+export function hasMergePathCleanAttestation(
+  projectRoot: string,
+  pr: number,
+  headSha: string | null = null,
+): boolean {
+  if (!Number.isInteger(pr) || pr <= 0) return false;
+  const path = join(resolve(projectRoot), mergePathCleanAttestationRelPath(pr));
+  try {
+    const raw = readFileSync(path, "utf8");
+    const payload = JSON.parse(raw) as unknown;
+    if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+      return false;
+    }
+    const rec = payload as Record<string, unknown>;
+    if (rec.pr_number !== pr) return false;
+    const want =
+      typeof headSha === "string" && headSha.trim().length > 0 ? headSha.trim() : null;
+    if (want === null) return true;
+    const got = typeof rec.head_sha === "string" ? rec.head_sha.trim() : "";
+    // Attestation without SHA still admits (one-shot CLEAN before HEAD known).
+    return got.length === 0 || got === want;
+  } catch {
+    return false;
+  }
+}
 /** Default `parent_id` for a parent-owned / unbound native `pr:watch` (#5020 / #5219). */
 export const DEFAULT_PR_WATCH_PARENT_ID = "pr-watch";
 
@@ -195,10 +279,10 @@ export function hasActivePollingHeartbeat(
  *
  * When the host primitive is `spawn_subagent` and a sticky lease exists:
  * - lease `platform_primitive` MUST be `spawn_subagent`
- * - live wait `parent_id` MUST be the lease `monitor_agent_id` (Approach 1 child)
- *   or {@link POST_CLEAN_WAIT_PARENT_ID} (parent-retained closer after CLEAN)
+ * - live wait `parent_id` MUST be the lease `monitor_agent_id` (Approach 1 child), or
+ * - {@link POST_CLEAN_WAIT_PARENT_ID} **and** a local CLEAN attestation from `pr:watch`
  * Parent-shell native `pr:watch` (`parent_id=pr-watch`) does not count.
- * Start wait-mergeable only after CLEAN (#4822) so the closer path is not claimed early.
+ * Premature closer without CLEAN attestation does not arm (Greptile #5219).
  *
  * Non-`spawn_subagent` tiers keep the unscoped #5020 heartbeat predicate.
  */
@@ -211,6 +295,8 @@ export function heartbeatActiveForMergePathArm(
     now?: Date;
     staleMinutes?: number;
     isProcessAlive?: (pid: number) => boolean;
+    /** Optional HEAD; when set, CLEAN attestation must match (or omit sha). */
+    headSha?: string | null;
   },
 ): boolean {
   const base = {
@@ -226,14 +312,24 @@ export function heartbeatActiveForMergePathArm(
     if (monitorId.length === 0) {
       return false;
     }
+    if (
+      hasActivePollingHeartbeat(projectRoot, pr, {
+        ...base,
+        expectedParentIds: [monitorId],
+      })
+    ) {
+      return true;
+    }
+    if (!hasMergePathCleanAttestation(projectRoot, pr, input.headSha ?? null)) {
+      return false;
+    }
     return hasActivePollingHeartbeat(projectRoot, pr, {
       ...base,
-      expectedParentIds: [monitorId, POST_CLEAN_WAIT_PARENT_ID],
+      expectedParentIds: [POST_CLEAN_WAIT_PARENT_ID],
     });
   }
   return hasActivePollingHeartbeat(projectRoot, pr, base);
 }
-
 /**
  * Cheap Approach 1 babysitter one-liner (#5219 P3): child register + watch first
  * (heartbeat live), then parent `verify --merge-path-arm --live-wait`.
@@ -366,6 +462,7 @@ export function evaluateReviewMonitorGate(
     lease: monitorRecord,
     now,
     staleMinutes,
+    headSha: args.headSha ?? null,
   });
 
   if (monitorRecord !== null) {
