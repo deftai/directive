@@ -176,12 +176,13 @@ export function probeOnce(
   if (repo !== null) {
     const lifecycle = fetchPrLifecycleRest(prNumber, repo, runGh);
     if (lifecycle.error !== null) {
-      // Fail closed (#4288 Greptile P1): unknown lifecycle must not fall through
-      // to Greptile CLEAN for a closed-unmerged PR.
-      return errorProbe(
-        headSha,
-        `PR lifecycle REST failed (state/merged required before Greptile path): ${lifecycle.error}`,
-      );
+      // Soft fail-closed (#4288): do not fall through to Greptile CLEAN, and do
+      // not terminal CONFIG on transient REST (429/503). Keep polling.
+      return {
+        ...lifecycleProbe(headSha, null, null),
+        cleanGateHoldout: "lifecycle_unknown",
+        error: null,
+      };
     }
     prState = lifecycle.state;
     prMerged = lifecycle.merged;

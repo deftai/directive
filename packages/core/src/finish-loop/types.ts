@@ -24,6 +24,7 @@ export type FinishLoopHaltReason =
   | "agent-implement"
   | "clean"
   | "merged"
+  | "already-merged"
   | "error";
 
 export type FinishLoopPhase =

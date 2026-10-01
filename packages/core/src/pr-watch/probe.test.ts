@@ -160,7 +160,7 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
     expect(probe.cleanGateHoldout).toBe("sha_match");
   });
 
-  it("lifecycle REST failure fails closed before Greptile CLEAN (#4288)", () => {
+  it("lifecycle REST failure polls with lifecycle_unknown (no CLEAN, no CONFIG) (#4288)", () => {
     // HEAD comes from `gh pr view`; pulls REST fails for lifecycle only.
     const ok = (stdout: string): RunGhResult => ({ returncode: 0, stdout, stderr: "" });
     const fail = (stderr: string): RunGhResult => ({ returncode: 1, stdout: "", stderr });
@@ -184,10 +184,11 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
       return fail(`unexpected: ${joined}`);
     };
     const probe = probeOnce(4288, "deftai/directive", runGh);
-    expect(probe.error).toMatch(/lifecycle REST failed/i);
+    expect(probe.error).toBeNull();
     expect(probe.prState).toBeNull();
     expect(probe.prMerged).toBeNull();
     expect(probe.isClean).toBe(false);
+    expect(probe.cleanGateHoldout).toBe("lifecycle_unknown");
   });
 
   it("empty check-runs with clean Greptile -> ci_never_scheduled, not CLEAN (#3167)", () => {
