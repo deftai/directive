@@ -459,10 +459,10 @@
       "issueBody": "Parent: #4842\n\n## Finding\n\nEntering completed/ requires every plan item to be terminal, and the evidence gate does not re-check items that are already terminal. Pre-marking items complete therefore bypasses the evidence gate, and scope:complete still reports the transition.\n\nSplit out of #4842 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: GATES\n- Priority: Urgent (audit scale S1)\n- Source: #4842\n\n",
       "x-directive/plan-id": {
         "version": 1,
-        "source": "github-rest-id",
+        "source": "github-residual",
         "github_issue_id": 5540571864,
         "origin": "deftai/directive#4879",
-        "id": "github.issue.5540571864"
+        "id": "github.issue.residual.5540571864.lean.4150461381"
       },
       "x-directive/admitted-target-digest": {
         "schema": "deft.scope.admitted-target-digest.v1",
