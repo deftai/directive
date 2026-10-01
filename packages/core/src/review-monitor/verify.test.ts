@@ -622,6 +622,46 @@ describe("evaluateReviewMonitorGate", () => {
     ).toBe(true);
   });
 
+  it("spawn_subagent: tip-A CLEAN attestation does not arm tip-B closer (#5219)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-5219-stale-clean-"));
+    const lease = {
+      pr: 5219,
+      repo: "deftai/directive" as string | null,
+      head_sha: "tip-b" as string | null,
+      platform_primitive: "spawn_subagent" as const,
+      monitor_agent_id: "babysitter-5219",
+      owner: "owner",
+      started_at: NOW.toISOString(),
+      expires_at: computeExpiresAt(NOW),
+      worktree_path: null as string | null,
+      parent_session_id: null as string | null,
+      ended_at: null as string | null,
+      comment_id: 1 as number | null,
+    };
+    expect(writeMergePathCleanAttestation(root, 5219, "tip-a", NOW).ok).toBe(true);
+    writePrWatchWaitHeartbeat(root, 5219, {
+      phase: "polling",
+      parentId: POST_CLEAN_WAIT_PARENT_ID,
+      pid: 4_006,
+    });
+    expect(
+      heartbeatActiveForMergePathArm(root, 5219, {
+        tierPrimitive: "spawn_subagent",
+        lease,
+        isProcessAlive: () => true,
+        headSha: "tip-b",
+      }),
+    ).toBe(false);
+    expect(
+      heartbeatActiveForMergePathArm(root, 5219, {
+        tierPrimitive: "spawn_subagent",
+        lease,
+        isProcessAlive: () => true,
+        headSha: null,
+      }),
+    ).toBe(false);
+  });
+
   it("formatApproach1BabysitterOneLiner watches before parent verify (#5219 P3)", () => {
     const text = formatApproach1BabysitterOneLiner(9, "rm-9");
     expect(text).toContain("DEFT_MONITOR_AGENT_ID=rm-9");

@@ -2,6 +2,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { sweepScratchDirs } from "../orchestration/subagent-monitor.js";
+import { defaultRunGh, fetchPrHeadShaRest } from "../pr-merge-readiness/gh.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 import {
   EXIT_CONFIG_ERROR,
@@ -42,8 +43,8 @@ export type MergePathCleanAttestationWriteResult =
   | { readonly ok: false; readonly reason: string };
 
 /**
- * Record that `pr:watch` reached CLEAN for this PR (optional HEAD). Closer
- * `pr-wait-mergeable` heartbeats arm only when this attestation is present.
+ * Record that `pr:watch` reached CLEAN for this PR HEAD. Closer
+ * `pr-wait-mergeable` heartbeats arm only when attestation SHA matches live HEAD.
  */
 export function writeMergePathCleanAttestation(
   projectRoot: string,
@@ -54,6 +55,10 @@ export function writeMergePathCleanAttestation(
   if (!Number.isInteger(pr) || pr <= 0) {
     return { ok: false, reason: `invalid pr for CLEAN attestation: ${pr}` };
   }
+  const sha = typeof headSha === "string" && headSha.trim().length > 0 ? headSha.trim() : null;
+  if (sha === null) {
+    return { ok: false, reason: `CLEAN attestation requires head SHA for PR #${pr}` };
+  }
   const rootAbs = resolve(projectRoot);
   const relTarget = mergePathCleanAttestationRelPath(pr);
   const path = join(rootAbs, relTarget);
@@ -61,7 +66,6 @@ export function writeMergePathCleanAttestation(
   if (escaped.startsWith("..") || escaped.length === 0) {
     return { ok: false, reason: `CLEAN attestation path escapes project root: ${path}` };
   }
-  const sha = typeof headSha === "string" && headSha.trim().length > 0 ? headSha.trim() : null;
   const payload = {
     pr_number: pr,
     head_sha: sha,
@@ -88,13 +92,18 @@ export function writeMergePathCleanAttestation(
   }
 }
 
-/** True when a local CLEAN attestation exists (optional HEAD match). */
+/**
+ * True when local CLEAN attestation SHA exactly matches expected HEAD.
+ * Omitting expected HEAD fails closed — stale tip A must not arm tip B (#5219).
+ */
 export function hasMergePathCleanAttestation(
   projectRoot: string,
   pr: number,
   headSha: string | null = null,
 ): boolean {
   if (!Number.isInteger(pr) || pr <= 0) return false;
+  const want = typeof headSha === "string" && headSha.trim().length > 0 ? headSha.trim() : null;
+  if (want === null) return false;
   const path = join(resolve(projectRoot), mergePathCleanAttestationRelPath(pr));
   try {
     const raw = readFileSync(path, "utf8");
@@ -104,16 +113,12 @@ export function hasMergePathCleanAttestation(
     }
     const rec = payload as Record<string, unknown>;
     if (rec.pr_number !== pr) return false;
-    const want = typeof headSha === "string" && headSha.trim().length > 0 ? headSha.trim() : null;
-    if (want === null) return true;
     const got = typeof rec.head_sha === "string" ? rec.head_sha.trim() : "";
-    // Attestation without SHA still admits (one-shot CLEAN before HEAD known).
-    return got.length === 0 || got === want;
+    return got.length > 0 && got === want;
   } catch {
     return false;
   }
-}
-/** Default `parent_id` for a parent-owned / unbound native `pr:watch` (#5020 / #5219). */
+} /** Default `parent_id` for a parent-owned / unbound native `pr:watch` (#5020 / #5219). */
 export const DEFAULT_PR_WATCH_PARENT_ID = "pr-watch";
 
 /** Same ESRCH/EPERM contract as authz / delivery-attempt claim locks. */
@@ -164,8 +169,12 @@ export interface VerifyReviewMonitorArgs {
   readonly now?: Date;
   readonly environ?: NodeJS.ProcessEnv;
   readonly seams?: ReviewOwnerGithubSeams;
+  /**
+   * Resolve live PR HEAD when `--head-sha` omitted so CLEAN attestation cannot
+   * arm a newer tip from a stale tip-A file (#5219). Inject in tests.
+   */
+  readonly fetchPrHeadShaFn?: (pr: number, repo: string) => string | null;
 }
-
 export interface VerifyReviewMonitorResult {
   readonly exitCode: typeof EXIT_READY | typeof EXIT_NOT_READY | typeof EXIT_CONFIG_ERROR;
   readonly message: string;
@@ -455,12 +464,32 @@ export function evaluateReviewMonitorGate(
   }
 
   const monitorRecord = githubMonitor;
+  // Bind CLEAN attestation to live HEAD even when callers omit --head-sha (#5219).
+  let headForArm =
+    typeof args.headSha === "string" && args.headSha.trim().length > 0 ? args.headSha.trim() : null;
+  if (
+    headForArm === null &&
+    monitorRecord !== null &&
+    tier.primitive === "spawn_subagent" &&
+    monitorRecord.platform_primitive === "spawn_subagent"
+  ) {
+    const fetchHead =
+      args.fetchPrHeadShaFn ??
+      ((pr, r) => {
+        const got = fetchPrHeadShaRest(pr, r, defaultRunGh);
+        return got.sha;
+      });
+    const live = fetchHead(args.pr, repo);
+    if (typeof live === "string" && live.trim().length > 0) {
+      headForArm = live.trim();
+    }
+  }
   const heartbeatActive = heartbeatActiveForMergePathArm(projectRoot, args.pr, {
     tierPrimitive: tier.primitive,
     lease: monitorRecord,
     now,
     staleMinutes,
-    headSha: args.headSha ?? null,
+    headSha: headForArm,
   });
 
   if (monitorRecord !== null) {
