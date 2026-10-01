@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **WSL ownership residual (#1617).** Ownership recovery can diagnose and repair without creating root-owned build output under agent-as-root. Tracking #1617.
+- **WSL ownership residual Prefer-B (#1617).** `ownership:doctor` / `ownership:fix` / `verify:ownership` use house `:engine:invoke` task calls only (runtime-verb allowlist; no `_ts-build` as root). Removes `ownership-ensure-cli` / `ownership-run` shims and the root temp-worktree bootstrap. Tracking #1617.
 - **pr:watch finishes when the pull request is already merged or closed (#4288).** A merged PR ends the wait as success; a closed unmerged PR ends as not shipped. Open PRs still require a current review. Tracking #4288.
 - **fix(swarm): origin active-brief probe requires a blob (#4714).** `originActiveBriefPresent` uses `git cat-file -t` and refuses tree objects. Retained transport admits exact reviewed bytes only. Tracking #4714.
 - **process(agents): raise agentsMdBudget for #4714 spawn-dest agents-entry refresh.** managedMaxLines 188→189; absoluteMaxBytes 22124→22886 so verify:agents-md-budget stays green after dest-place-then-cwd marker sync. Tracking #4714.
