@@ -152,6 +152,34 @@ describe("parseWatchArgs", () => {
     expect(parseWatchArgs(["-h"]).help).toBe(true);
     expect(parseWatchArgs(["1056", "--help"]).help).toBe(true);
   });
+
+  it("shows help even when DEFT_PR_WATCH_MAX_WAIT_MINUTES is invalid (#3984)", () => {
+    const prev = process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+    process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = "nope";
+    try {
+      const a = parseWatchArgs(["--help"]);
+      expect(a.help).toBe(true);
+      expect(a.error).toBeUndefined();
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+      else process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = prev;
+    }
+  });
+
+  it("keeps CLI budgetDeclared on help when env is invalid (#3984)", () => {
+    const prev = process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+    process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = "nope";
+    try {
+      const a = parseWatchArgs(["--help", "--max-wait-minutes", "12"]);
+      expect(a.help).toBe(true);
+      expect(a.error).toBeUndefined();
+      expect(a.budgetDeclared).toBe(true);
+      expect(a.maxWaitMinutes).toBe(12);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+      else process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = prev;
+    }
+  });
 });
 
 describe("formatWatchHelp (#2652)", () => {

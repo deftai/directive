@@ -60,6 +60,22 @@ describe("resolveDeclaredWaitBudget (#3984)", () => {
     );
   });
 
+  it("rejects env minutes whose seconds conversion is not finite", () => {
+    const r = resolveDeclaredWaitBudget({
+      env: { [ENV_PR_WATCH_MAX_WAIT_MINUTES]: "1e308" },
+    });
+    expect(r.ok).toBe(false);
+    if (r.ok) throw new Error("expected failure");
+    expect(r.reason).toContain(ENV_PR_WATCH_MAX_WAIT_MINUTES);
+  });
+
+  it("rejects CLI minutes whose seconds conversion is not finite", () => {
+    const r = resolveDeclaredWaitBudget({ cliMinutes: 1e308, env: {} });
+    expect(r.ok).toBe(false);
+    if (r.ok) throw new Error("expected failure");
+    expect(r.source).toBe("cli");
+  });
+
   it("treats blank env as undeclared default", () => {
     const r = resolveDeclaredWaitBudget({
       env: { [ENV_PR_WATCH_MAX_WAIT_MINUTES]: "  " },

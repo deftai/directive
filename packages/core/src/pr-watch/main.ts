@@ -162,27 +162,54 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
     }
   }
 
-  const budget = resolveDeclaredWaitBudget({ cliMinutes: cliMaxWait });
-  if (!budget.ok) {
-    return fail(acc, budget.reason);
-  }
-  const maxWaitMinutes = budget.minutes;
-  const budgetSource = budget.source;
-  const budgetDeclared = budget.declared;
-
+  // Help wins over invalid env so `pr:watch --help` stays discoverable.
   if (help) {
+    const budget = resolveDeclaredWaitBudget({ cliMinutes: cliMaxWait });
+    if (budget.ok) {
+      return {
+        prNumber,
+        repo,
+        maxWaitMinutes: budget.minutes,
+        budgetSource: budget.source,
+        budgetDeclared: budget.declared,
+        pollSeconds,
+        oneShot,
+        emitJson,
+        projectRoot,
+        help: true,
+      };
+    }
+    if (cliMaxWait !== null && Number.isFinite(cliMaxWait) && Number.isFinite(cliMaxWait * 60)) {
+      return {
+        prNumber,
+        repo,
+        maxWaitMinutes: cliMaxWait,
+        budgetSource: "cli",
+        budgetDeclared: true,
+        pollSeconds,
+        oneShot,
+        emitJson,
+        projectRoot,
+        help: true,
+      };
+    }
     return {
       prNumber,
       repo,
-      maxWaitMinutes,
-      budgetSource,
-      budgetDeclared,
+      maxWaitMinutes: DEFAULT_MAX_WAIT_MINUTES,
+      budgetSource: "default",
+      budgetDeclared: false,
       pollSeconds,
       oneShot,
       emitJson,
       projectRoot,
-      help,
+      help: true,
     };
+  }
+
+  const budget = resolveDeclaredWaitBudget({ cliMinutes: cliMaxWait });
+  if (!budget.ok) {
+    return fail(acc, budget.reason);
   }
   if (prNumber === null) {
     return fail(acc, "the following arguments are required: pr_number");
@@ -190,14 +217,14 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
   return {
     prNumber,
     repo,
-    maxWaitMinutes,
-    budgetSource,
-    budgetDeclared,
+    maxWaitMinutes: budget.minutes,
+    budgetSource: budget.source,
+    budgetDeclared: budget.declared,
     pollSeconds,
     oneShot,
     emitJson,
     projectRoot,
-    help,
+    help: false,
   };
 }
 

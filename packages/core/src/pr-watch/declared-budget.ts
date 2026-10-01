@@ -25,7 +25,7 @@ export type DeclaredWaitBudgetOk = {
 export type DeclaredWaitBudgetErr = {
   readonly ok: false;
   readonly reason: string;
-  readonly source: "env";
+  readonly source: "cli" | "env";
 };
 
 export type DeclaredWaitBudgetResult = DeclaredWaitBudgetOk | DeclaredWaitBudgetErr;
@@ -48,6 +48,15 @@ export function resolveDeclaredWaitBudget(
 ): DeclaredWaitBudgetResult {
   const defaultMinutes = input.defaultMinutes ?? DEFAULT_MAX_WAIT_MINUTES;
   if (input.cliMinutes !== undefined && input.cliMinutes !== null) {
+    const seconds = input.cliMinutes * 60;
+    // Reject values finite as minutes but non-finite as seconds (e.g. 1e308).
+    if (!Number.isFinite(input.cliMinutes) || input.cliMinutes < 0 || !Number.isFinite(seconds)) {
+      return {
+        ok: false,
+        reason: `invalid --max-wait-minutes value: ${String(input.cliMinutes)}`,
+        source: "cli",
+      };
+    }
     return {
       ok: true,
       minutes: input.cliMinutes,
@@ -60,7 +69,9 @@ export function resolveDeclaredWaitBudget(
   const raw = env[ENV_PR_WATCH_MAX_WAIT_MINUTES];
   if (raw !== undefined && String(raw).trim() !== "") {
     const parsed = Number(String(raw).trim());
-    if (!Number.isFinite(parsed) || parsed < 0) {
+    const seconds = parsed * 60;
+    // Reject values finite as minutes but non-finite as seconds (e.g. 1e308).
+    if (!Number.isFinite(parsed) || parsed < 0 || !Number.isFinite(seconds)) {
       return {
         ok: false,
         reason: `invalid ${ENV_PR_WATCH_MAX_WAIT_MINUTES} value: ${raw}`,
