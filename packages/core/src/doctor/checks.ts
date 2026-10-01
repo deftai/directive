@@ -4,10 +4,6 @@ import { VBRIEF_VERSION } from "@deftai/directive-types";
 import { isAgentScratchWorktreePath } from "../fs/non-product-dirs.js";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import {
-  detectPackageManager,
-  type PackageManager,
-} from "../resolution/package-manager.js";
-import {
   detectDualLayout,
   detectLegacyLayout,
   dualLayoutSignpostLine,
@@ -32,6 +28,7 @@ import {
   REVIEW_CYCLE_NO_REVIEWER_HANDBACK,
   reviewerConfigPresent,
 } from "../pr-merge-readiness/reviewer-presence.js";
+import { detectPackageManager, type PackageManager } from "../resolution/package-manager.js";
 import { classifyXbriefSchemaDistance } from "../staleness-tickler/probe-xbrief.js";
 import type { XbriefSchemaDistance } from "../staleness-tickler/types.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";
@@ -208,8 +205,7 @@ function scanDanglingNodeModulesLinks(
   const readdirWithTypes =
     seams.readdirWithFileTypes ??
     ((dir: string) => readdirSync(dir, { withFileTypes: true }) as DanglingLinkDirent[]);
-  const readlink =
-    seams.readlink ?? ((path: string) => readlinkSync(path, { encoding: "utf8" }));
+  const readlink = seams.readlink ?? ((path: string) => readlinkSync(path, { encoding: "utf8" }));
   const targetExists =
     seams.targetExists ??
     ((path: string) => {

@@ -25,8 +25,8 @@ import {
   checkTypescript7SideBySide,
   checkXbriefEnvelopeMajorVersion,
   DANGLING_NODE_MODULES_LINKS_CHECK,
-  danglingNodeModulesRecoveryCommand,
   DOCTOR_ADVISORY_FAIL_CHECKS,
+  danglingNodeModulesRecoveryCommand,
   deriveExitCode,
   isDoctorAdvisoryFail,
   prefixCanonicalVendoredSignpostWarn,
@@ -1233,7 +1233,14 @@ describe("checkDanglingNodeModulesLinks (#3749)", () => {
       const nm = join(root, "node_modules");
       mkdirSync(nm, { recursive: true });
       const linkRel = "readable-stream";
-      const target = join(root, ".deft-scratch", "worktrees", "b3738", "node_modules", "readable-stream");
+      const target = join(
+        root,
+        ".deft-scratch",
+        "worktrees",
+        "b3738",
+        "node_modules",
+        "readable-stream",
+      );
       const result = checkDanglingNodeModulesLinks(root, {
         packageManager: "pnpm",
         platform: "win32",
