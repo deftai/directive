@@ -1,0 +1,446 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5188",
+    "updated": "2026-09-30T23:21:34Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): N=3 + pain needs post-lean critic seat; provision process-only dest before panel (leftover from #4233)",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(design-critique): N=3 + pain needs post-lean critic seat; provision process-only dest before panel (leftover from #4233)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5188",
+      "Overview": "\n\n1. **Reserved-slot literacy for N=3 + pain.** When Stop 1 records `spend: N≥3` and a non-vacuous `pain:` list, Stop 1 / parent recording MUST surface that the first post-lean pain-audit of asserted coverage is in-cap via Dual-stop reserved slot (`evaluateDualStopReservedSlot` / `evaluateDualStopParentPath` / `deriveReservedPainAuditPostsUsed` in `handoff.ts` + `leftover-pain.ts`). Ask raise only after that reserved seat is spent. Do not grow numbered Dual-stop post budget. Do not add a second reserved-slot predicate keyed off Stop 1 pain presence. Do not invent always-on +1.\n\n2. **Second pain-audit stays raise-by-design.** Scope Prefer-A to the first post-lean pain-audit of asserted coverage. Second and later pain-audits remain raise-by-design (`reservedPainAuditPostsUsed: 1` → needsRaise).\n\n3. **Verification-path before panel-deposit.** Before panel-deposit on a process-only dest, record a closed verification-path line that either (a) names the read-only pin-read path (`git show <dispatch-sha>:`, dest cwd-without-occupy for on-pin file reads), or (b) records a provisioned runnable path when a specific check requires executing fixtures/tests. Default to (a). Keep N≥3 launch-probe (`evaluateN3LaunchProbe`) as launchability, separate from method-verification. Do not mandate full install-on-dest for every panel.\n\n4. **Surfaces.** `content/contracts/design-critique.md` Dual stop / Run posture / Critic method pointers; skill brief template / parent recording lines; fixtures already in leftover-pain / handoff tests; CHANGELOG Unreleased if contract text moves.\n\n5. **Non-goals.** Do not absorb #4233 product store/UAT Bound. Do not re-own #4514 pain-field. Do not invent `dual-stop.ts`. Do not change this leftover arc's own spend (N=1). Do not auto-ingest after ingest-ready.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:8f0dd4f514239c051e290ebc36ea465de6d3083fd83e00b2df9fbfccaee524da\n\n\n",
+      "Labels": "bug, design, security, determinism, agent-experience, process, source-of-truth, urgent, area:cli, status:claimed, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "**Reserved-slot literacy for N=3 + pain.** When Stop 1 records `spend: N≥3` and a non-vacuous `pain:` list, Stop 1 / parent recording MUST surface that the first post-lean pain-audit of asserted coverage is in-cap via Dual-stop reserved slot (`evaluateDualStopReservedSlot` / `evaluateDualStopParentPath` / `deriveReservedPainAuditPostsUsed` in `handoff.ts` + `leftover-pain.ts`). Ask raise only after that reserved seat is spent. Do not grow numbered Dual-stop post budget. Do not add a second reserved-slot predicate keyed off Stop 1 pain presence. Do not invent always-on +1.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5204 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit df506fe7402b1e53f8bec0d490b5432b71108acc.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T00:06:15.037Z",
+            "mintedVia": "leftover-complete-after-5204"
+          },
+          "recorded_at": "2026-10-01T00:06:15.037Z"
+        }
+      },
+      {
+        "title": "**Second pain-audit stays raise-by-design.** Scope Prefer-A to the first post-lean pain-audit of asserted coverage. Second and later pain-audits remain raise-by-design (`reservedPainAuditPostsUsed: 1` → needsRaise).",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5204 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit df506fe7402b1e53f8bec0d490b5432b71108acc.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T00:06:15.037Z",
+            "mintedVia": "leftover-complete-after-5204"
+          },
+          "recorded_at": "2026-10-01T00:06:15.037Z"
+        }
+      },
+      {
+        "title": "**Verification-path before panel-deposit.** Before panel-deposit on a process-only dest, record a closed verification-path line that either (a) names the read-only pin-read path (`git show <dispatch-sha>:`, dest cwd-without-occupy for on-pin file reads), or (b) records a provisioned runnable path when a specific check requires executing fixtures/tests. Default to (a). Keep N≥3 launch-probe (`evaluateN3LaunchProbe`) as launchability, separate from method-verification. Do not mandate full install-on-dest for every panel.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5204 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit df506fe7402b1e53f8bec0d490b5432b71108acc.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T00:06:15.037Z",
+            "mintedVia": "leftover-complete-after-5204"
+          },
+          "recorded_at": "2026-10-01T00:06:15.037Z"
+        }
+      },
+      {
+        "title": "**Surfaces.** `content/contracts/design-critique.md` Dual stop / Run posture / Critic method pointers; skill brief template / parent recording lines; fixtures already in leftover-pain / handoff tests; CHANGELOG Unreleased if contract text moves.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5204 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit df506fe7402b1e53f8bec0d490b5432b71108acc.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T00:06:15.037Z",
+            "mintedVia": "leftover-complete-after-5204"
+          },
+          "recorded_at": "2026-10-01T00:06:15.037Z"
+        }
+      },
+      {
+        "title": "**Non-goals.** Do not absorb #4233 product store/UAT Bound. Do not re-own #4514 pain-field. Do not invent `dual-stop.ts`. Do not change this leftover arc's own spend (N=1). Do not auto-ingest after ingest-ready.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5204 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit df506fe7402b1e53f8bec0d490b5432b71108acc.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T00:06:15.037Z",
+            "mintedVia": "leftover-complete-after-5204"
+          },
+          "recorded_at": "2026-10-01T00:06:15.037Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "security",
+      "determinism",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "status:claimed",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5188",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5188: bug(design-critique): N=3 + pain needs post-lean critic seat; provision process-only dest before panel (leftover from #4233)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4233",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4233"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/design-critique"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Reserved-slot literacy for N=3 + pain. When Stop 1 records `spend: N≥3` and a non-vacuous `pain:` list, Stop 1 / parent recording MUST surface that the first post-lean pain-audit of asserted coverage is in-cap via Dual-stop reserved slot (`evaluateDualStopReservedSlot` / `evaluateDualStopParentPath` / `deriveReservedPainAuditPostsUsed` in `handoff.ts` + `leftover-pain.ts`). Ask raise only after that reserved seat is spent. Do not grow numbered Dual-stop post budget. Do not add a second reserved-slot predicate keyed off Stop 1 pain presence. Do not invent always-on +1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Second pain-audit stays raise-by-design. Scope Prefer-A to the first post-lean pain-audit of asserted coverage. Second and later pain-audits remain raise-by-design (`reservedPainAuditPostsUsed: 1` → needsRaise).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Verification-path before panel-deposit. Before panel-deposit on a process-only dest, record a closed verification-path line that either (a) names the read-only pin-read path (`git show <dispatch-sha>:`, dest cwd-without-occupy for on-pin file reads), or (b) records a provisioned runnable path when a specific check requires executing fixtures/tests. Default to (a). Keep N≥3 launch-probe (`evaluateN3LaunchProbe`) as launchability, separate from method-verification. Do not mandate full install-on-dest for every panel.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Surfaces. `content/contracts/design-critique.md` Dual stop / Run posture / Critic method pointers; skill brief template / parent recording lines; fixtures already in leftover-pain / handoff tests; CHANGELOG Unreleased if contract text moves.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Non-goals. Do not absorb #4233 product store/UAT Bound. Do not re-own #4514 pain-field. Do not invent `dual-stop.ts`. Do not change this leftover arc's own spend (N=1). Do not auto-ingest after ingest-ready.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "sentences": [
+        "Reserved-slot literacy for N=3 + pain. When Stop 1 records `spend: N≥3` and a non-vacuous `pain:` list, Stop 1 / parent recording MUST surface that the first post-lean pain-audit of asserted coverage is in-cap via Dual-stop reserved slot (`evaluateDualStopReservedSlot` / `evaluateDualStopParentPath` / `deriveReservedPainAuditPostsUsed` in `handoff.ts` + `leftover-pain.ts`). Ask raise only after that reserved seat is spent. Do not grow numbered Dual-stop post budget. Do not add a second reserved-slot predicate keyed off Stop 1 pain presence. Do not invent always-on +1.",
+        "Second pain-audit stays raise-by-design. Scope Prefer-A to the first post-lean pain-audit of asserted coverage. Second and later pain-audits remain raise-by-design (`reservedPainAuditPostsUsed: 1` → needsRaise).",
+        "Verification-path before panel-deposit. Before panel-deposit on a process-only dest, record a closed verification-path line that either (a) names the read-only pin-read path (`git show <dispatch-sha>:`, dest cwd-without-occupy for on-pin file reads), or (b) records a provisioned runnable path when a specific check requires executing fixtures/tests. Default to (a). Keep N≥3 launch-probe (`evaluateN3LaunchProbe`) as launchability, separate from method-verification. Do not mandate full install-on-dest for every panel.",
+        "Surfaces. `content/contracts/design-critique.md` Dual stop / Run posture / Critic method pointers; skill brief template / parent recording lines; fixtures already in leftover-pain / handoff tests; CHANGELOG Unreleased if contract text moves.",
+        "Non-goals. Do not absorb #4233 product store/UAT Bound. Do not re-own #4514 pain-field. Do not invent `dual-stop.ts`. Do not change this leftover arc's own spend (N=1). Do not auto-ingest after ingest-ready."
+      ],
+      "admitted_source_digest": "a68a93980cae3d6d7b113e3e73331858fc4a6dd479b9b5b27f056356d4288dd6",
+      "admitted_source_sentences": [
+        "Reserved-slot literacy for N=3 + pain. When Stop 1 records `spend: N≥3` and a non-vacuous `pain:` list, Stop 1 / parent recording MUST surface that the first post-lean pain-audit of asserted coverage is in-cap via Dual-stop reserved slot (`evaluateDualStopReservedSlot` / `evaluateDualStopParentPath` / `deriveReservedPainAuditPostsUsed` in `handoff.ts` + `leftover-pain.ts`). Ask raise only after that reserved seat is spent. Do not grow numbered Dual-stop post budget. Do not add a second reserved-slot predicate keyed off Stop 1 pain presence. Do not invent always-on +1.",
+        "Second pain-audit stays raise-by-design. Scope Prefer-A to the first post-lean pain-audit of asserted coverage. Second and later pain-audits remain raise-by-design (`reservedPainAuditPostsUsed: 1` → needsRaise).",
+        "Verification-path before panel-deposit. Before panel-deposit on a process-only dest, record a closed verification-path line that either (a) names the read-only pin-read path (`git show <dispatch-sha>:`, dest cwd-without-occupy for on-pin file reads), or (b) records a provisioned runnable path when a specific check requires executing fixtures/tests. Default to (a). Keep N≥3 launch-probe (`evaluateN3LaunchProbe`) as launchability, separate from method-verification. Do not mandate full install-on-dest for every panel.",
+        "Surfaces. `content/contracts/design-critique.md` Dual stop / Run posture / Critic method pointers; skill brief template / parent recording lines; fixtures already in leftover-pain / handoff tests; CHANGELOG Unreleased if contract text moves.",
+        "Non-goals. Do not absorb #4233 product store/UAT Bound. Do not re-own #4514 pain-field. Do not invent `dual-stop.ts`. Do not change this leftover arc's own spend (N=1). Do not auto-ingest after ingest-ready."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Current known state (2026-09-30 Stage A)\n\nStage A `task triage:evaluate -- 5188` on origin/master `5a311bf5cb97`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false before mechanism-shaped chip\n- sink: `.deft-scratch/issue-eval/5a311bf5cb97/278ff5ba-a98c-4f6a-8dd3-4045bdb9afa9`\n\n### Live gap\n\nLeftover from #4233 Dual-stop halt: an N=3 panel with a non-vacuous pain list still needs a separate operator cap raise for the post-lean pain-audit seat; process-only dests can lack a named verification path before panel-deposit. Product Bound stays on #4233 (now ingest-ready); #4514 owns pain-field.\n\n### Spend recommendation\n\nLeftover motion-process Bound with closed Acceptance after an already-critiqued parent split. Recommended Dual-stop **N=1**.\n\nOperator bare `arc` under **#5111 defaults**: yolo + no-ingest + use recommended Dual-stop.\n\nCatalog facets added: design, determinism, agent-experience, process, source-of-truth, area:cli, framework-gap. Chip: design-critique:mechanism-shaped → in-progress.\n\n",
+          "id": 5918965774,
+          "html_url": "https://github.com/deftai/directive/issues/5188#issuecomment-5918965774",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:19:25Z",
+          "updated_at": "2026-09-30T20:19:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because an N=3 design-critique arc with a non-vacuous pain list still needs an ad-hoc Dual-stop raise for the post-lean pain-audit seat, and process-only dests can lack a named verification path before panel-deposit — motion gaps that halted #4233 after product Bound was already recut.\n\ncharter: open critique\nspend-recommend: N=1\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\n\nOperator directed leftover arc under #5111 defaults. Concrete motion-process leftover of #4233; recommended Dual-stop N=1 applied without a spend ask.\n\npain: P1, P2\n\nP1. When spend is N=3 and Stop 1 / write-back carries a non-vacuous pain list, Dual-stop must admit one post-lean pain-audit critic in-cap (or document an equivalent closed reserved-slot / raise rule recorded at Stop 1) so yolo arcs do not halt solely for that seat after one raise.\nP2. Before panel-deposit on a process-only dest, the launch path must provision verification capability or name the read-only verification path the critic method may use, so method obligations are runnable without an ad-hoc temp-tree escape.\n\nparent-split: #4233\ncite: #4514\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-5188-dc\norigin-ref: origin/HEAD\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\npin-kind: origin-default\ntarget-digest: sha256:8f0dd4f514239c051e290ebc36ea465de6d3083fd83e00b2df9fbfccaee524da\n\nPin reads use git show 5a311bf5cb976ccaacdcfe939e630878135ab819:. Single Grok seat. Not dual-launched. Non-goals: do not absorb #4233 product store/UAT Bound; do not re-own #4514 pain-field; do not auto-ingest after ingest-ready.\n\n",
+          "id": 5918966266,
+          "html_url": "https://github.com/deftai/directive/issues/5188#issuecomment-5918966266",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:19:26Z",
+          "updated_at": "2026-09-30T20:19:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5188\ncharter: open critique\nround: 1\nseat: grok\nlauncher: grok (process-only)\nid-ceiling: 5918966266\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\narc-mode: no-ingest\naudit-targets: none\n\n## Verdict\n\nStop 1 P1/P2 plus Prefer-A (in-cap post-lean pain-audit for N=3+pain; provision or name verification path before panel-deposit) can bind for this leftover if Prefer-A inventories the pin's Dual-stop reserved-slot fixtures and the existing pin-read verification path. A Prefer-A that invents a second Dual-stop seat keyed off Stop 1 pain presence, or that mandates install-on-dest for every process-only panel, is the wrong bind shape.\n\nRe-verified at `5a311bf5cb976ccaacdcfe939e630878135ab819` via `git show` on `content/contracts/design-critique.md`, `packages/core/src/design-critique/handoff.ts`, `leftover-pain.ts`, `spend.ts`, `arc-dest.ts`, and their tests. No `dual-stop.ts` at this pin; Dual-stop lives in `handoff.ts` + `leftover-pain.ts`. Dest HEAD matches dispatch-sha; dest has no `node_modules` / `packages/core/dist`.\n\n## Findings\n\n### 1. Prefer-A for P1 must cite the existing reserved slot, not a Stop-1-pain +1 seat\n**class:** sharpens-framing\n\n**evidence:** Dual stop at pin already states that an N=3 panel gets three round-1 posts, and the Dual-stop reserved slot admits the first post-lean pain-audit of asserted coverage without a raise (`content/contracts/design-critique.md` Dual stop). `evaluateDualStopReservedSlot` admits when `criticPostsUsed >= numberedCap`, `mapCarriesAssertedPainCoverage`, and `reservedPainAuditPostsUsed === 0`. `evaluateDualStopParentPath` admits on `postsRemaining > 0` OR `inCapWithoutRaise`. leftover-pain tests lock spendSeats 3 / postsUsed 3 / asserted / reservedUsed 0 → `admit: true`. Gate is successor-map asserted coverage (relieves + different-issue deferred), not Stop 1 pain-list presence. Contract also says reserved is not always-on +1 on the N=1 six-post default.\n\n**failure mode:** Prefer-A phrased as \"N=3 + non-vacuous Stop 1 pain ⇒ automatic extra seat\" invents a parallel budget rule, rekeys admission off Stop 1 pain, and can fire before any lean asserts coverage. That diverges from the fixture and recreates the always-on-+1 shape the pin forbids.\n\n**disposition consequence:** Prefer-A Bound remedy for P1 must name `evaluateDualStopReservedSlot` / `evaluateDualStopParentPath` / `deriveReservedPainAuditPostsUsed` and bind a Stop 1 / parent recording obligation when `spend` is N≥3 and `pain:` is non-vacuous (surface that the first post-lean pain-audit of asserted coverage is in-cap via reserved slot; ask raise only after that slot is spent). Do not grow numbered Dual-stop post budget. Do not add a second reserved-slot predicate.\n\n### 2. P1 \"after one raise\" conflates first reserved use with second pain-audit\n**class:** sharpens-framing\n\n**evidence:** Same fixtures: reserved admits exactly one extra pain-audit; `reservedPainAuditPostsUsed: 1` → `inCapWithoutRaise: false`, `needsRaise: true` (handoff + leftover-pain tests). Live parent turns stay unenforced on these fixtures (contract / leftover-pain JSDoc). A parent that raises for the first post-lean seat instead of calling `evaluateDualStopParentPath` produces the \"halt after one raise\" symptom even though the pin already admits that seat in-cap.\n\n**failure mode:** Prefer-A that treats any post-lean pain-audit after any raise as in-cap erases the second-audit raise boundary. Prefer-A that only documents \"raise earlier\" leaves the unused reserved-slot path opaque and the #4233-class halt recur.\n\n**disposition consequence:** Scope P1 Prefer-A to the first post-lean pain-audit of asserted coverage (reserved slot). Second and later pain-audits stay raise-by-design. The leftover bind is parent/skill recording + use of the existing admit OR, not a Dual-stop math recut.\n\n### 3. Prefer-A for P2 should name pin-read first; provision only when runnable checks are required\n**class:** sharpens-framing\n\n**evidence:** Process-only dest obligations at pin: `ensureArcDest` creates/verifies one dest at origin/<default> tip; N>1 process-only critics share that dest with cwd-without-occupy; pin reads MUST use `git show <dispatch-sha>:`; critic method MUST re-verify anchors by running checks (`design-critique.md` Run posture + Critic method). N≥3 launch probe before panel-deposit proves critic argv launchability (`evaluateN3LaunchProbe`), not method-verification capability. `arc-dest.ts` has no install / node_modules provision. This dest at the pin has no `node_modules` and no `packages/core/dist`.\n\n**failure mode:** Prefer-A that mandates full install-on-dest before every panel-deposit overfits one escape mode and adds ceremony for critics whose method obligations are satisfied by pin-read source + contract text. Prefer-A that only says \"provision verification\" without a closed named path leaves critics inventing temp-tree escapes when the dest cannot run fixtures.\n\n**disposition consequence:** Prefer-A Bound for P2: before panel-deposit on a process-only dest, record a closed verification-path line that either (a) names the read-only pin-read path (`git show <dispatch-sha>:`, plus dest cwd-without-occupy for file reads already on that pin), or (b) records a provisioned runnable path when a specific check requires executing fixtures/tests. Default to (a). Inventory existing launch-probe separately; do not merge launchability into method-verification.\n\n### 4. Inventory note: Dual-stop module layout at pin\n**class:** footnote\n\nNo `packages/core/src/design-critique/dual-stop.ts` at this SHA. Spend front door is `spend.ts`; Dual-stop numbered/reserved/parent-path fixtures are `handoff.ts` + `leftover-pain.ts`. Prefer-A cites those paths; do not invent a new dual-stop module as the bind surface.\n\n### 5. This leftover's own spend stays N=1\n**class:** footnote\n\nStop 1 records `spend: N=1` / `spend-ask: resolved` for leftover #5188. P1/P2 are motion-process remedies that apply when a future (or parent) arc spends N≥3 with non-vacuous pain. Binding them here does not change this arc's Dual-stop seat count.\n\n## Road-not-taken\n\nConsidered \"P1 is already closed by reserved-slot fixtures, so drop P1 and keep only P2.\" Rejected: fixtures admit the seat, but live parent turns are unenforced and Stop 1 does not yet record the reserved-slot rule when N≥3+pain. The leftover's motion gap is recording/parent-path use, which Prefer-A can bind without new seat math. What would flip: evidence that #4233 halted only after reserved was already spent on a first pain-audit (then P1 collapses to raise-by-design and should leave this leftover).\n\n## Steelman (rejected)\n\nStrongest reject: invent an always-on +1 numbered post for every N≥3 Stop 1 with non-vacuous pain, so parents never need reserved-slot literacy. Flip condition: reserved-slot fixtures deleted or proven unreachable from parent path. At this pin they are reachable and tested; Prefer-A must reuse them.\r\n\n",
+          "id": 5919051717,
+          "html_url": "https://github.com/deftai/directive/issues/5188#issuecomment-5919051717",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:23:24Z",
+          "updated_at": "2026-09-30T20:23:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe pin already admits the first post-lean pain-audit for an N=3 panel via Dual-stop reserved slot. The leftover gap is that parents still raise for that seat and process-only dests lack a closed named verification path. Prefer-A reuses `evaluateDualStopReservedSlot` / parent-path fixtures and records pin-read verification first. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5918966266. Critic 5919051717 checks the findings. Whether the list covers the two pains stays open until a later critic targets those cites.\n\n**Lean:** open critique. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5918966266\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\nparent-split: #4233\ncite: #4514\n\n## Takes\n\n- 5919051717 Prefer-A for P1 must cite existing reserved slot, not Stop-1-pain +1 seat - accept-into-contract\n- 5919051717 P1 after one raise conflates first reserved use with second pain-audit - accept-into-contract\n- 5919051717 Prefer-A for P2 names pin-read first; provision only when runnable checks required - accept-into-contract\n- 5919051717 Dual-stop module layout / this leftover spend stays N=1 - footnote\n\nSpec-path:\n\n## Bound remedy\n\n1. **Reserved-slot literacy for N=3 + pain.** When Stop 1 records `spend: N≥3` and a non-vacuous `pain:` list, Stop 1 / parent recording MUST surface that the first post-lean pain-audit of asserted coverage is in-cap via Dual-stop reserved slot (`evaluateDualStopReservedSlot` / `evaluateDualStopParentPath` / `deriveReservedPainAuditPostsUsed` in `handoff.ts` + `leftover-pain.ts`). Ask raise only after that reserved seat is spent. Do not grow numbered Dual-stop post budget. Do not add a second reserved-slot predicate keyed off Stop 1 pain presence. Do not invent always-on +1.\n\n2. **Second pain-audit stays raise-by-design.** Scope Prefer-A to the first post-lean pain-audit of asserted coverage. Second and later pain-audits remain raise-by-design (`reservedPainAuditPostsUsed: 1` → needsRaise).\n\n3. **Verification-path before panel-deposit.** Before panel-deposit on a process-only dest, record a closed verification-path line that either (a) names the read-only pin-read path (`git show <dispatch-sha>:`, dest cwd-without-occupy for on-pin file reads), or (b) records a provisioned runnable path when a specific check requires executing fixtures/tests. Default to (a). Keep N≥3 launch-probe (`evaluateN3LaunchProbe`) as launchability, separate from method-verification. Do not mandate full install-on-dest for every panel.\n\n4. **Surfaces.** `content/contracts/design-critique.md` Dual stop / Run posture / Critic method pointers; skill brief template / parent recording lines; fixtures already in leftover-pain / handoff tests; CHANGELOG Unreleased if contract text moves.\n\n5. **Non-goals.** Do not absorb #4233 product store/UAT Bound. Do not re-own #4514 pain-field. Do not invent `dual-stop.ts`. Do not change this leftover arc's own spend (N=1). Do not auto-ingest after ingest-ready.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:8f0dd4f514239c051e290ebc36ea465de6d3083fd83e00b2df9fbfccaee524da\n\n## Parent-side substantiation\n\nCritic blocked Prefer-A that invents a Stop-1-pain +1 seat or mandates install-on-dest; Bound items 1-3 reuse reserved-slot fixtures and name pin-read verification first. Item 2 keeps second-audit raise boundary. Item 4 is the write-set; item 5 keeps leftover scope.\n\naudit:reserved-slot-literacy sha=5a311bf5cb976ccaacdcfe939e630878135ab819 pointer=comment:5919051717 reading=asserted\naudit:verification-path-before-panel sha=5a311bf5cb976ccaacdcfe939e630878135ab819 pointer=comment:5919051717 reading=asserted\n\n",
+          "id": 5919066870,
+          "html_url": "https://github.com/deftai/directive/issues/5188#issuecomment-5919066870",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:24:04Z",
+          "updated_at": "2026-09-30T20:24:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5188\ncharter: open critique; spend: N=1 (Dual-stop reserved pain-audit slot for first post-lean asserted coverage)\nround: 4 Pass-4 audit (pain-audit of relieves)\ncritic-role: fresh\nseat: grok\nlauncher: grok (process-only)\nid-ceiling: 5919066870\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2\n\n## Verdict\n\nFootnote-only. Bound lean 5919066870 items 1–3 cover Stop 1 P1 and P2 as written. Prefer-A does not invent a Stop-1-pain +1 seat or always-on +1; the second pain-audit stays raise-by-design; verification-path defaults to pin-read before panel-deposit. Map stays bindable.\n\nRe-verified at `5a311bf5cb976ccaacdcfe939e630878135ab819` via `git show` on `packages/core/src/design-critique/handoff.ts`, `leftover-pain.ts`, their tests, and `content/contracts/design-critique.md` Dual stop / Run posture / Critic method. Dest HEAD matches dispatch-sha.\n\n## Findings\n\n### 1. P1 → Bound items 1–2 match reserved-slot fixtures\n**class:** footnote\n\n**evidence:** `evaluateDualStopReservedSlot` admits when `criticPostsUsed >= numberedCap`, `mapCarriesAssertedPainCoverage`, and `reservedPainAuditPostsUsed === 0`; second use (`reservedPainAuditPostsUsed: 1`) returns `needsRaise: true`. `evaluateDualStopParentPath` admits on `postsRemaining > 0` OR `inCapWithoutRaise`. leftover-pain tests lock spendSeats 3 / postsUsed 3 / asserted / reservedUsed 0 → `admit: true`, and reservedUsed 1 → `admit: false`. Contract Dual stop names the same reserved slot and forbids always-on +1 on the N=1 six-post default. Admission gate is successor-map asserted coverage (relieves + different-issue deferred), not Stop 1 pain-list presence. Bound item 1 records that rule at Stop 1 / parent when `spend: N≥3` and `pain:` is non-vacuous; item 2 keeps second-audit raise-by-design; both forbid Stop-1-pain +1 and numbered-budget growth.\n\n**census:** P1's \"document reserved-slot / raise rule at Stop 1\" branch is the Bound shape. Fixtures already admit the seat; leftover gap is literacy / parent-path use.\n\n### 2. P2 → Bound item 3 matches pin-read default\n**class:** footnote\n\n**evidence:** Run posture requires pin reads via `git show <dispatch-sha>:`. Critic method requires re-verify by running checks and inventory before new mechanisms. `evaluateN3LaunchProbe` is launchability, separate from method-verification. This dest has no `node_modules` / `packages/core/dist`. Bound item 3 records a closed verification-path line: (a) pin-read + dest cwd-without-occupy default, or (b) provisioned runnable path when a specific check must execute fixtures; keeps launch-probe separate; does not mandate install-on-dest for every panel.\n\n**census:** P2's \"provision OR name read-only path\" is closed by defaulting to named pin-read and allowing provision only when runnable checks are required.\n\n### 3. deriveReservedPainAuditPostsUsed counting rule\n**class:** footnote\n\n**evidence:** `deriveReservedPainAuditPostsUsed` counts critic envelopes after the earliest asserted-coverage successor lean whose `auditTargets` hit asserted `painMarkerId`s; does not use `declaredNone` or bare `.length`; does not reset on later Recut-supersedes. leftover-pain tests lock that derivation into parent-path `admit: false` after one targeting audit.\n\n**census:** Bound item 1 naming this helper is accurate for reserved-seat spent detection; no Prefer-A math change required.\n\n### 4. This leftover's own spend stays N=1\n**class:** footnote\n\nStop 1 records `spend: N=1` for #5188. Bound items 1–3 are motion-process remedies for future (or parent) N≥3+pain arcs. This Pass-4 seat is the reserved pain-audit of asserted coverage on lean 5919066870; it does not change this arc's numbered Dual-stop seat count.\n\n## Road-not-taken\n\nConsidered sharpening Bound item 3/4 to pin an exact durable field token (e.g. on panel-deposit). Declined: Prefer-A already says \"record a closed verification-path line\" before panel-deposit, and item 4 already lists skill brief / parent recording surfaces. A field-name polish can land in the write-set without a Recut.\n\n## Steelman (rejected)\n\nStrongest reject: treat P1 as already closed by contract Dual stop fixtures and drop the Stop 1 recording obligation. Flip condition: live parent turns already call `evaluateDualStopParentPath` before raising. At this pin, live parent turns stay unenforced; the leftover's motion gap is recording / literacy, which Bound items 1–2 bind without new seat math.\r\n\n",
+          "id": 5919156052,
+          "html_url": "https://github.com/deftai/directive/issues/5188#issuecomment-5919156052",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:28:02Z",
+          "updated_at": "2026-09-30T20:28:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| # | Claim | Status | Basis |\n|---|---|---|---|\n| 1 | First post-lean pain-audit of asserted coverage on N≥3 + non-vacuous pain is already in-cap via Dual-stop reserved slot (`evaluateDualStopReservedSlot` / `evaluateDualStopParentPath`); raise only after that seat is spent | verified | critic 5919051717 (P1 sharpens); Bound lean 5919066870 item 1; pain-audit 5919156052 |\n| 2 | Prefer-A must reuse reserved-slot fixtures — not invent Stop-1-pain +1 or always-on +1 | verified | critic 5919051717; Bound items 1–2; pain-audit 5919156052 Finding 1 |\n| 3 | Second and later pain-audits remain raise-by-design (`reservedPainAuditPostsUsed: 1` → needsRaise) | verified | Bound lean 5919066870 item 2; pain-audit 5919156052 Finding 3 |\n| 4 | Verification-path before panel-deposit defaults to pin-read (`git show <dispatch-sha>:`, dest cwd-without-occupy); provision runnable path only when a check requires executing fixtures/tests | verified | critic 5919051717 (P2); Bound item 3; pain-audit 5919156052 Finding 2 |\n| 5 | N≥3 launch-probe stays launchability, separate from method-verification; no mandate of full install-on-dest for every panel | verified | Bound item 3; pain-audit 5919156052 Finding 2 |\n| 6 | Leftover scope excludes #4233 product store/UAT Bound and #4514 pain-field; this arc spend stays N=1 | verified | Stop 1 5918966266; Bound item 5; pain-audit 5919156052 Finding 4 |\n| 7 | Pain-audit of P1/P2 against Bound lean 5919066870 is footnote-only; relieves hold | verified | pain-audit 5919156052 |\n\nDecorrelation: single Grok seat under Dual-stop N=1 leftover; reserved-slot literacy and pin-read verification independently pinned to fixtures already on tree.\n\nNon-self-arbitration: Stop 1 / lean author ≠ pain-audit critic seat for the relieves check.\n\n",
+          "id": 5919167168,
+          "html_url": "https://github.com/deftai/directive/issues/5188#issuecomment-5919167168",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:28:31Z",
+          "updated_at": "2026-09-30T20:28:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn N=3 design-critique arc with a non-vacuous pain list already admits the first post-lean pain-audit via Dual-stop reserved slot; parents must surface that literacy at Stop 1 and raise only after the reserved seat is spent. Process-only dests name a closed verification-path before panel-deposit, defaulting to pin-read, with provision only when a runnable check is required. Second pain-audits stay raise-by-design. This leftover owns motion-process only — #4233 product Bound and #4514 pain-field stay elsewhere. Pain-audit 5919156052 of lean 5919066870 was footnote-only. The same parent wrote Stop 1 5918966266. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5919066870\nverified-claims table comment 5919167168\nround-1 critic: 5919051717 (grok)\npain-audit: 5919156052\nStop 1: 5918966266\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\narc-mode: no-ingest\nyolo-standing: yes\nparent-split: #4233\ncite: #4514\n\nDisagreement set: empty.\n\n",
+          "id": 5919168014,
+          "html_url": "https://github.com/deftai/directive/issues/5188#issuecomment-5919168014",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:28:33Z",
+          "updated_at": "2026-09-30T20:28:33Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nLeftover from #4233 Dual-stop halt (lean 5666963836 / pain-audit 5666943165 / halt 5666964164). This issue owns **design-critique motion process items only**. Product UAT/store authority Bound stays on #4233.\n\nAfter an N=3 panel with a non-vacuous pain list, a post-lean pain-audit is a fourth critic post and needs an operator cap raise. Process-only dests can also lack a named verification path before panel-deposit. Those motion gaps blocked finish on #4233 after the product Bound was already recut.\n\n## Bound remedy (leftover only)\n\n- When spend is N=3 and Stop 1 / write-back carries a non-vacuous pain list, admit one post-lean pain-audit critic in-cap without a separate raise (or record an equivalent closed Dual-stop rule so yolo arcs do not halt solely for that fifth-needed seat after one raise).\n- Before panel-deposit on a process-only dest, provision the dest (or name the read-only verification path the critic method may use) so method obligations are runnable without an ad-hoc temp-tree escape.\n- Do **not** absorb #4233 product store/UAT authority Bound into this number.\n\n## Non-goals (owned elsewhere)\n\n- Product UAT hard-refuse / grant-widen / empty-pin / lift refuseMintWhileUatActive into core — remainder #4233\n- Copyable brief / skill pain-field — already open as #4514 (cite; do not re-own)\n\n## Acceptance\n\n1. An N=3 design-critique arc whose Stop 1 names pain can dispatch one post-lean pain-audit critic without an ad-hoc operator cap raise solely for that seat (or the Dual-stop contract documents the closed reserved-slot / raise rule operators must record at Stop 1).\n2. Process-only dest launch path either provisions verification capability or names the read-only verification path before panel-deposit.\n3. #4233 product Bound and #4514 pain-field remain out of this leftover's harvest.\n\n## Related\n\n- Parent split: #4233 (remainder = AppSec UAT/store SoT under node/tsx)\n- #4514 (pain field on brief/skill)\n- Evidence: https://github.com/deftai/directive/issues/4233#issuecomment-5666963836\n- Halt: https://github.com/deftai/directive/issues/4233#issuecomment-5666964164\n\nRefs #4233\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5651788256,
+        "origin": "deftai/directive#5188",
+        "id": "github.issue.5651788256"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "8f0dd4f514239c051e290ebc36ea465de6d3083fd83e00b2df9fbfccaee524da"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/design-critique",
+          "content/contracts/design-critique.md",
+          "content/skills",
+          "content/templates",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/design-critique"
+        ],
+        "expected_outputs": [
+          "tests pass",
+          "CHANGELOG Unreleased notes Dual-stop literacy / verification-path"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-dual-stop",
+        "size": "M",
+        "file_scope_confidence": "bound-surfaces",
+        "model_tier": "default"
+      },
+      "productPullRequest": 5204,
+      "productMergeCommit": "df506fe7402b1e53f8bec0d490b5432b71108acc",
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/design-critique",
+          "source": "explicit"
+        }
+      ]
+    },
+    "id": "github.issue.5651788256",
+    "updated": "2026-10-01T00:08:18.887Z"
+  }
+}
