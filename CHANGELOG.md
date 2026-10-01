@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **roadmap:render buffer path returns failures instead of throwing (#4756 residual / PR #5206).** `renderRoadmapToBuffer` / `generateRoadmapContent` alias `renderRoadmapToBufferResult` so the empty-claim gate stays returned-failure-only (no throw vs master). Tracking #4756.
+- **fix(swarm): retained-brief unexpected write errors return `ok:false` (#4714).** After `containedWrite` in `materializeRetainedBrief`, non-`ContainedWriteError` failures are returned instead of rethrown so `verify:intent-constraint` stays free. Tracking #4714.
 - **fix(swarm): retained-brief materialize uses `containedWrite` (#4714).** `materializeRetainedBrief` no longer raw-`writeFileSync`s into the lifecycle checkout; failures return `ok:false`. Tracking #4714.
 - **fix(swarm): reviewed-brief recovery walks `origin/<deliveryBranch>` (#4714).** History fallback no longer uses remote default `origin/HEAD`, so retained bytes cannot match the wrong branch; Fresh-clone completed-land rule is mirrored into `agents-entry`. Tracking #4714.
 - **fix(swarm): sync skills-pack SoT for #4714 Fresh-clone land (pack-render --check).** The swarm SKILL projection edit for fresh-clone completed land / `verify:completed-tracked` close proof is now in `packs/skills/skills-pack-0.1.json` so multipack `pack-render --check` stays green. Tracking #4714.

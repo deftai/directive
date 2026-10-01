@@ -210,7 +210,10 @@ export function materializeRetainedBrief(args: MaterializeBriefArgs): Materializ
         error: `contained write failed (${err.code}): ${err.message}`,
       };
     }
-    throw err;
+    return {
+      ok: false,
+      error: `contained write failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
   }
   return {
     ok: true,
