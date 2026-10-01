@@ -1,0 +1,705 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1617",
+    "updated": "2026-10-01T17:50:44Z"
+  },
+  "plan": {
+    "title": "Add WSL root-runtime ownership guard",
+    "status": "completed",
+    "narratives": {
+      "Description": "Add WSL root-runtime ownership guard",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1617",
+      "Overview": "\n\n1. Ship a WSL-specific ownership guard for agent-as-root vs non-root project owner: session:start soft warn + audit that emits the resolved intended owner (uid:gid and account when known); mutating install/update/check/preflight (and other protected Directive entry points) fail closed unless an explicit override is set. Native Windows/macOS must not get WSL-specific hard failures.\n2. Detection must be harm-capable, not merely WSL+uid0+non-root-owner. Read filesystem mount options / ownership semantics: do not fail closed on DrvFs/9p trees where uid/gid are mount-pinned and a root process cannot create root-owned files (default Windows-clone-under-/mnt/c layout). Prefer ext4/home trees and metadata-enabled mounts where real uid 0 ownership can occur. Unknown/error detection fails closed with actionable output.\n3. Wire a real effective-identity probe (process.getuid or equivalent) into the production platform/runtime path; null/unknown must not mean non-root. Reuse existing platform identity/UID-map reporting; do not treat that report alone as the ready guard. Name which classifier owns ownership facts.\n4. Owner resolution stays dynamic (project root owner, nearest non-root ancestor, /home/<user> passwd, then SUDO_*/USER/LOGNAME/HOME only when they resolve to real non-root accounts). Ambiguous or conflicting candidates fail closed and require explicit --owner uid:gid or DEFT_PROJECT_OWNER=uid:gid. Env-sourced candidates must not alone authorize chown.\n5. Each protected mutation checks the executing process's live identity before its first project/tool write, independently of ritual/doctor cache freshness. Do not present the guard or override as an OS security boundary for arbitrary shell.\n6. Override (e.g. DEFT_ALLOW_ROOT_WSL_RUNTIME) must not be sole-trustable when set only by the restrained root principal without an out-of-band/human-visible acknowledgment path; document that limitation if a stronger binding is deferred.\n7. Ship consumer task deft:ownership:doctor / ownership:fix / verify:ownership and maintainer aliases. Keep doctor/fix reachable under the mismatch so operators can recover.\n8. ownership:fix is scoped: explicit approved roots only; no symlink following / traversal outside those roots; root-owned objects only; race-safe mutation or refuse; resolve tool homes from the validated account; report protected/uncertain leftovers (e.g. Cursor .git/cursor) without changing them. After chown, re-stat and require ownership actually changed — exit 0 alone is not repaired (DrvFs false-success). Owner inference and --owner must not enlarge repair scope. No blanket HOME chown. No hardcoded usernames.\n9. Vocabulary: distinguish filesystem project-owner from occupancy/session owner and issue-emit private recovery owner so docs and doctor copy do not collide.\n10. Non-goals: native Windows ACL redesign; treating scm-boundary or foreign-uid refuse as this guard; claiming application gates stop a root agent that bypasses Directive entry points.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:cf2d58701f43b67eec63161930c4e5466b75accc9273c40382a8e0c1c13b0860\n\n\n",
+      "Labels": "enhancement, design, adoption-blocker, doctor, agent-experience, process, runtime-portability, source-of-truth, tooling, agent-safety, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "title": "Ship a WSL-specific ownership guard for agent-as-root vs non-root project owner: session:start soft warn + audit that emits the resolved intended owner (uid:gid and account when known); mutating install/update/check/preflight (and other protected Directive entry points) fail closed unless an explicit override is set. Native Windows/macOS must not get WSL-specific hard failures.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5217 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 2b757e86eb07c01ac847d3499b6b7dc60c20e58f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T17:50:41.837Z",
+            "mintedVia": "leftover-complete-after-5217"
+          },
+          "recorded_at": "2026-10-01T17:50:41.837Z"
+        }
+      },
+      {
+        "title": "Detection must be harm-capable, not merely WSL+uid0+non-root-owner. Read filesystem mount options / ownership semantics: do not fail closed on DrvFs/9p trees where uid/gid are mount-pinned and a root process cannot create root-owned files (default Windows-clone-under-/mnt/c layout). Prefer ext4/home trees and metadata-enabled mounts where real uid 0 ownership can occur. Unknown/error detection fails closed with actionable output.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5217 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 2b757e86eb07c01ac847d3499b6b7dc60c20e58f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T17:50:41.837Z",
+            "mintedVia": "leftover-complete-after-5217"
+          },
+          "recorded_at": "2026-10-01T17:50:41.837Z"
+        }
+      },
+      {
+        "title": "Wire a real effective-identity probe (process.getuid or equivalent) into the production platform/runtime path; null/unknown must not mean non-root. Reuse existing platform identity/UID-map reporting; do not treat that report alone as the ready guard. Name which classifier owns ownership facts.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5217 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 2b757e86eb07c01ac847d3499b6b7dc60c20e58f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T17:50:41.837Z",
+            "mintedVia": "leftover-complete-after-5217"
+          },
+          "recorded_at": "2026-10-01T17:50:41.837Z"
+        }
+      },
+      {
+        "title": "Owner resolution stays dynamic (project root owner, nearest non-root ancestor, /home/<user> passwd, then SUDO_*/USER/LOGNAME/HOME only when they resolve to real non-root accounts). Ambiguous or conflicting candidates fail closed and require explicit --owner uid:gid or DEFT_PROJECT_OWNER=uid:gid. Env-sourced candidates must not alone authorize chown.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5217 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 2b757e86eb07c01ac847d3499b6b7dc60c20e58f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T17:50:41.837Z",
+            "mintedVia": "leftover-complete-after-5217"
+          },
+          "recorded_at": "2026-10-01T17:50:41.837Z"
+        }
+      },
+      {
+        "title": "Each protected mutation checks the executing process's live identity before its first project/tool write, independently of ritual/doctor cache freshness. Do not present the guard or override as an OS security boundary for arbitrary shell.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5217 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 2b757e86eb07c01ac847d3499b6b7dc60c20e58f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T17:50:41.837Z",
+            "mintedVia": "leftover-complete-after-5217"
+          },
+          "recorded_at": "2026-10-01T17:50:41.837Z"
+        }
+      },
+      {
+        "title": "Override (e.g. DEFT_ALLOW_ROOT_WSL_RUNTIME) must not be sole-trustable when set only by the restrained root principal without an out-of-band/human-visible acknowledgment path; document that limitation if a stronger binding is deferred.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5217 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 2b757e86eb07c01ac847d3499b6b7dc60c20e58f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T17:50:41.837Z",
+            "mintedVia": "leftover-complete-after-5217"
+          },
+          "recorded_at": "2026-10-01T17:50:41.837Z"
+        }
+      },
+      {
+        "title": "Ship consumer task deft:ownership:doctor / ownership:fix / verify:ownership and maintainer aliases. Keep doctor/fix reachable under the mismatch so operators can recover.",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5217 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 2b757e86eb07c01ac847d3499b6b7dc60c20e58f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T17:50:41.837Z",
+            "mintedVia": "leftover-complete-after-5217"
+          },
+          "recorded_at": "2026-10-01T17:50:41.837Z"
+        }
+      },
+      {
+        "title": "ownership:fix is scoped: explicit approved roots only; no symlink following / traversal outside those roots; root-owned objects only; race-safe mutation or refuse; resolve tool homes from the validated account; report protected/uncertain leftovers (e.g. Cursor .git/cursor) without changing them. After chown, re-stat and require ownership actually changed — exit 0 alone is not repaired (DrvFs false-success). Owner inference and --owner must not enlarge repair scope. No blanket HOME chown. No hardcoded usernames.",
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5217 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 2b757e86eb07c01ac847d3499b6b7dc60c20e58f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T17:50:41.837Z",
+            "mintedVia": "leftover-complete-after-5217"
+          },
+          "recorded_at": "2026-10-01T17:50:41.837Z"
+        }
+      },
+      {
+        "title": "Vocabulary: distinguish filesystem project-owner from occupancy/session owner and issue-emit private recovery owner so docs and doctor copy do not collide.",
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5217 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 2b757e86eb07c01ac847d3499b6b7dc60c20e58f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T17:50:41.837Z",
+            "mintedVia": "leftover-complete-after-5217"
+          },
+          "recorded_at": "2026-10-01T17:50:41.837Z"
+        }
+      },
+      {
+        "title": "Non-goals: native Windows ACL redesign; treating scm-boundary or foreign-uid refuse as this guard; claiming application gates stop a root agent that bypasses Directive entry points.",
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5217 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 2b757e86eb07c01ac847d3499b6b7dc60c20e58f.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T17:50:41.837Z",
+            "mintedVia": "leftover-complete-after-5217"
+          },
+          "recorded_at": "2026-10-01T17:50:41.837Z"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "adoption-blocker",
+      "doctor",
+      "agent-experience",
+      "process",
+      "runtime-portability",
+      "source-of-truth",
+      "tooling",
+      "agent-safety",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1617",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1617: Add WSL root-runtime ownership guard"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/platform/ownership-task-wiring.test.ts --reporter=dot"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Bound Prefer-A leftover-complete after product PR #5217",
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Ship a WSL-specific ownership guard for agent-as-root vs non-root project owner: session:start soft warn + audit that emits the resolved intended owner (uid:gid and account when known); mutating install/update/check/preflight (and other protected Directive entry points) fail closed unless an explicit override is set. Native Windows/macOS must not get WSL-specific hard failures.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Detection must be harm-capable, not merely WSL+uid0+non-root-owner. Read filesystem mount options / ownership semantics: do not fail closed on DrvFs/9p trees where uid/gid are mount-pinned and a root process cannot create root-owned files (default Windows-clone-under-/mnt/c layout). Prefer ext4/home trees and metadata-enabled mounts where real uid 0 ownership can occur. Unknown/error detection fails closed with actionable output.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Wire a real effective-identity probe (process.getuid or equivalent) into the production platform/runtime path; null/unknown must not mean non-root. Reuse existing platform identity/UID-map reporting; do not treat that report alone as the ready guard. Name which classifier owns ownership facts.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Owner resolution stays dynamic (project root owner, nearest non-root ancestor, /home/<user> passwd, then SUDO_*/USER/LOGNAME/HOME only when they resolve to real non-root accounts). Ambiguous or conflicting candidates fail closed and require explicit --owner uid:gid or DEFT_PROJECT_OWNER=uid:gid. Env-sourced candidates must not alone authorize chown.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Each protected mutation checks the executing process's live identity before its first project/tool write, independently of ritual/doctor cache freshness. Do not present the guard or override as an OS security boundary for arbitrary shell.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Override (e.g. DEFT_ALLOW_ROOT_WSL_RUNTIME) must not be sole-trustable when set only by the restrained root principal without an out-of-band/human-visible acknowledgment path; document that limitation if a stronger binding is deferred.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Ship consumer task deft:ownership:doctor / ownership:fix / verify:ownership and maintainer aliases. Keep doctor/fix reachable under the mismatch so operators can recover.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "ownership:fix is scoped: explicit approved roots only; no symlink following / traversal outside those roots; root-owned objects only; race-safe mutation or refuse; resolve tool homes from the validated account; report protected/uncertain leftovers (e.g. Cursor .git/cursor) without changing them. After chown, re-stat and require ownership actually changed — exit 0 alone is not repaired (DrvFs false-success). Owner inference and --owner must not enlarge repair scope. No blanket HOME chown. No hardcoded usernames.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Vocabulary: distinguish filesystem project-owner from occupancy/session owner and issue-emit private recovery owner so docs and doctor copy do not collide.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Non-goals: native Windows ACL redesign; treating scm-boundary or foreign-uid refuse as this guard; claiming application gates stop a root agent that bypasses Directive entry points.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "sentences": [
+        "Ship a WSL-specific ownership guard for agent-as-root vs non-root project owner: session:start soft warn + audit that emits the resolved intended owner (uid:gid and account when known); mutating install/update/check/preflight (and other protected Directive entry points) fail closed unless an explicit override is set. Native Windows/macOS must not get WSL-specific hard failures.",
+        "Detection must be harm-capable, not merely WSL+uid0+non-root-owner. Read filesystem mount options / ownership semantics: do not fail closed on DrvFs/9p trees where uid/gid are mount-pinned and a root process cannot create root-owned files (default Windows-clone-under-/mnt/c layout). Prefer ext4/home trees and metadata-enabled mounts where real uid 0 ownership can occur. Unknown/error detection fails closed with actionable output.",
+        "Wire a real effective-identity probe (process.getuid or equivalent) into the production platform/runtime path; null/unknown must not mean non-root. Reuse existing platform identity/UID-map reporting; do not treat that report alone as the ready guard. Name which classifier owns ownership facts.",
+        "Owner resolution stays dynamic (project root owner, nearest non-root ancestor, /home/<user> passwd, then SUDO_*/USER/LOGNAME/HOME only when they resolve to real non-root accounts). Ambiguous or conflicting candidates fail closed and require explicit --owner uid:gid or DEFT_PROJECT_OWNER=uid:gid. Env-sourced candidates must not alone authorize chown.",
+        "Each protected mutation checks the executing process's live identity before its first project/tool write, independently of ritual/doctor cache freshness. Do not present the guard or override as an OS security boundary for arbitrary shell.",
+        "Override (e.g. DEFT_ALLOW_ROOT_WSL_RUNTIME) must not be sole-trustable when set only by the restrained root principal without an out-of-band/human-visible acknowledgment path; document that limitation if a stronger binding is deferred.",
+        "Ship consumer task deft:ownership:doctor / ownership:fix / verify:ownership and maintainer aliases. Keep doctor/fix reachable under the mismatch so operators can recover.",
+        "ownership:fix is scoped: explicit approved roots only; no symlink following / traversal outside those roots; root-owned objects only; race-safe mutation or refuse; resolve tool homes from the validated account; report protected/uncertain leftovers (e.g. Cursor .git/cursor) without changing them. After chown, re-stat and require ownership actually changed — exit 0 alone is not repaired (DrvFs false-success). Owner inference and --owner must not enlarge repair scope. No blanket HOME chown. No hardcoded usernames.",
+        "Vocabulary: distinguish filesystem project-owner from occupancy/session owner and issue-emit private recovery owner so docs and doctor copy do not collide.",
+        "Non-goals: native Windows ACL redesign; treating scm-boundary or foreign-uid refuse as this guard; claiming application gates stop a root agent that bypasses Directive entry points."
+      ],
+      "admitted_source_digest": "323edf273c7f57f7e3388b045ff24545174ecfda48244029c09787d2eca0f7c9",
+      "admitted_source_sentences": [
+        "Ship a WSL-specific ownership guard for agent-as-root vs non-root project owner: session:start soft warn + audit that emits the resolved intended owner (uid:gid and account when known); mutating install/update/check/preflight (and other protected Directive entry points) fail closed unless an explicit override is set. Native Windows/macOS must not get WSL-specific hard failures.",
+        "Detection must be harm-capable, not merely WSL+uid0+non-root-owner. Read filesystem mount options / ownership semantics: do not fail closed on DrvFs/9p trees where uid/gid are mount-pinned and a root process cannot create root-owned files (default Windows-clone-under-/mnt/c layout). Prefer ext4/home trees and metadata-enabled mounts where real uid 0 ownership can occur. Unknown/error detection fails closed with actionable output.",
+        "Wire a real effective-identity probe (process.getuid or equivalent) into the production platform/runtime path; null/unknown must not mean non-root. Reuse existing platform identity/UID-map reporting; do not treat that report alone as the ready guard. Name which classifier owns ownership facts.",
+        "Owner resolution stays dynamic (project root owner, nearest non-root ancestor, /home/<user> passwd, then SUDO_*/USER/LOGNAME/HOME only when they resolve to real non-root accounts). Ambiguous or conflicting candidates fail closed and require explicit --owner uid:gid or DEFT_PROJECT_OWNER=uid:gid. Env-sourced candidates must not alone authorize chown.",
+        "Each protected mutation checks the executing process's live identity before its first project/tool write, independently of ritual/doctor cache freshness. Do not present the guard or override as an OS security boundary for arbitrary shell.",
+        "Override (e.g. DEFT_ALLOW_ROOT_WSL_RUNTIME) must not be sole-trustable when set only by the restrained root principal without an out-of-band/human-visible acknowledgment path; document that limitation if a stronger binding is deferred.",
+        "Ship consumer task deft:ownership:doctor / ownership:fix / verify:ownership and maintainer aliases. Keep doctor/fix reachable under the mismatch so operators can recover.",
+        "ownership:fix is scoped: explicit approved roots only; no symlink following / traversal outside those roots; root-owned objects only; race-safe mutation or refuse; resolve tool homes from the validated account; report protected/uncertain leftovers (e.g. Cursor .git/cursor) without changing them. After chown, re-stat and require ownership actually changed — exit 0 alone is not repaired (DrvFs false-success). Owner inference and --owner must not enlarge repair scope. No blanket HOME chown. No hardcoded usernames.",
+        "Vocabulary: distinguish filesystem project-owner from occupancy/session owner and issue-emit private recovery owner so docs and doctor copy do not collide.",
+        "Non-goals: native Windows ACL redesign; treating scm-boundary or foreign-uid refuse as this guard; claiming application gates stop a root agent that bypasses Directive entry points."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Lifecycle: installing Directive, updating it, and getting one clear next step when something looks wrong. It also covers whether the version someone thinks they installed is the version that is actually running.\n\nWhat a new person hits: On Windows Subsystem for Linux, file ownership of the runtime blocks the session.\n\nWhy that ruins the product for them: A very common way to run Linux tools on a Windows machine cannot get through session start.\n\nHow likely: Medium. It is limited to that setup, and that setup is a common place to try a Node tool.\n\n",
+          "id": 5780306334,
+          "html_url": "https://github.com/deftai/directive/issues/1617#issuecomment-5780306334",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:39:52Z",
+          "updated_at": "2026-09-22T16:39:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Current known state (2026-09-27 Stage A)\n\nStage A `task triage:evaluate -- 1617` on origin/master `b5b6139993b3` (arc dest later pinned at tip `d9b031c1a352b0d09f00f85028db9673d36ddd6f`):\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/b5b6139993b3/4e6ff1f0-fccf-40dd-81bc-90b7f3140231`\n\n### Live product gap\n\nNo `ownership:doctor` / `ownership:fix` / `verify:ownership` / `DEFT_ALLOW_ROOT_WSL_RUNTIME` / `DEFT_PROJECT_OWNER` surfaces found under packages or content at the evaluate SHA. WSL agent-as-root vs interactive non-root owner mismatch remains ungarded.\n\n### Spend recommendation\n\nOpen design surface (owner-resolution order, which gates fail closed, repair path inventory, consumer vs maintainer aliases). Recommended Dual-stop **N≥3**. Operator utterance carried recommend-n; spend recorded as N≥3.\n\nCatalog facets added: process, source-of-truth, area:cli, framework-gap, design. Chip: design-critique:mechanism-shaped.",
+          "id": 5857909408,
+          "html_url": "https://github.com/deftai/directive/issues/1617#issuecomment-5857909408",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:01:25Z",
+          "updated_at": "2026-09-27T17:01:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because a WSL agent/tool runtime can execute as root while the interactive user and project owner are non-root, creating root-owned .venv/.deft/caches/tooling with no Directive ownership detect-warn-fail-closed or scoped fix surface for consumers or maintainers.\n\ncharter: refutation\nrefutation-target: On WSL, an agent runtime running as uid 0 while the project owner is a non-root user can create root-owned project and tool files without a Directive ownership guard that warns at session start, fails closed on mutating gates, and offers a scoped ownership:fix.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N≥3\nspend-ask: asked\n\nThe operator directed the same evaluate/label/arc flow with recommend n. This is an open design surface (owner resolution, gate integration, repair scope), so recommended spend is N≥3.\n\npain: P1, P2, P3\n\nP1. WSL agent/tool runtime as root while interactive/default user is non-root can create root-owned project files (.venv, .deft, caches, generated xBRIEFs) with no session-start warning that names the intended owner.\nP2. Mutating install/update/check/preflight gates do not fail closed on that WSL-root mismatch unless an explicit override is set.\nP3. There is no scoped ownership:doctor / ownership:fix / verify:ownership consumer+maintainer surface that repairs known Deft-created root-owned paths and reports protected leftovers without a blanket HOME chown or hardcoded usernames.\n\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-1617-dc\norigin-ref: origin/HEAD\ndispatch-sha: d9b031c1a352b0d09f00f85028db9673d36ddd6f\npin-kind: origin-default\ntarget-digest: sha256:3e3f8dd7271e5efa2224bcfe9cb8d19b7fba1663389050cac0848bf1bb5d06d2\n\nPin reads use git show d9b031c1a352b0d09f00f85028db9673d36ddd6f. Seat families for N≥3: claude, codex, grok. Launch probe required before panel-deposit.\n\n",
+          "id": 5857909526,
+          "html_url": "https://github.com/deftai/directive/issues/1617#issuecomment-5857909526",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:01:25Z",
+          "updated_at": "2026-09-27T17:01:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound: 1 critic. Seat: grok. Launcher: grok. Id ceiling honored: 5857909526. Dispatch SHA confirmed via `git rev-parse HEAD` = `d9b031c1a352b0d09f00f85028db9673d36ddd6f`. Pin reads via `git show d9b031c1a352b0d09f00f85028db9673d36ddd6f:<path>`.\n\n## Refutation-target survival\n\nThe Stop 1 refutation target survives. At the dispatch SHA there is still no WSL detector, no `ownership:doctor` / `ownership:fix` / `verify:ownership` / `DEFT_ALLOW_ROOT_WSL_RUNTIME` / `DEFT_PROJECT_OWNER` surface under `packages/`, `content/`, or `tasks/`, and no session/doctor/hooks/check consumer of `identityKind` that warns or fails closed on a WSL agent-as-root vs non-root project-owner mismatch. Existing nearby machinery classifies runtime identity for SCM auth and occupancy session ids; it does not discharge this FS-ownership guard.\n\n## Production uid probe is inert without an injected getuid\nsharpens-framing\nEvidence: `git show d9b031c1a352b0d09f00f85028db9673d36ddd6f:packages/core/src/platform/platform-capabilities.ts` — `probeRuntimeCapabilities` sets `effectiveUid` only from `effectiveUidOverride` or an injected `options.getuid`; otherwise `effectiveUid = null`, so `classifyIdentityKind` returns `IDENTITY_UNKNOWN`. `process.getuid` does not appear in that file. Production callers (`getPlatformCapabilities()`, `scm/readiness.ts`, `swarm/launch.ts`) do not pass `getuid`. Tests alone inject uid.\nFailure mode: A bound remedy that says \"reuse `identityKind` / `probeRuntimeCapabilities` as-is\" never observes `real-root` in live WSL agent runtimes, so session-start warn and mutating-gate fail-closed stay silent while root-owned `.venv` / `.deft` keep appearing.\nDisposition: Before bind, name wiring `process.getuid` (when present) as the production default seam for `effectiveUid`, keeping the injectable override for tests. Treat today's probe as a partial scaffold, not a live ownership gate.\n\n## Extend the existing identity/ownership facts; require a WSL conjunct\nsharpens-framing\nEvidence: Same file exports `IDENTITY_REAL_ROOT`, `IDENTITY_SANDBOX_REMAPPED_LOCAL_USER`, cwd `OwnershipFacts` via `statSync`, and `detectSandboxUidRemap` over `/proc/self/uid_map` + `CURSOR_ORIG_UID`. `git grep` for `WSL_DISTRO_NAME` / `wsl.conf` / `isWsl` under `packages` and `content` at this SHA returns no hits. `session-start.ts` imports `shell-context` / `formatEnvironmentContext` only; it does not surface `identityKind` or cwd ownership. Issue AC requires native Windows/macOS (and non-WSL Linux) not take WSL-specific hard failures.\nFailure mode: A greenfield `getuid()===0` detector duplicates and can fight sandbox-remapped classification (apparent uid 0 inside Cursor remap is already `sandbox-remapped-local-user`). Fail-closed on bare `real-root` without a WSL conjunct over-gates native Linux/docker root sessions the issue body explicitly separates.\nDisposition: Bound remedy should extend `probeRuntimeCapabilities` (after the getuid wire) plus a named WSL detector conjunct for hard fail; keep sandbox-remapped on the non-fail path. Soft warn may reuse the `[deft environment]` session-start emit seam already present.\n\n## Env-sourced owner candidates must not authorize chown\nsharpens-framing\nEvidence: Issue body Owner resolution step 4 admits `SUDO_UID` / `SUDO_GID` / `USER` / `LOGNAME` / `HOME` when they resolve to a non-root account. Repair scope includes project paths and known tool paths such as `~/.local/bin/task`. Injection / swarm lens applies: session authority and mutating repair change shared FS state. Existing foreign-uid refuse pattern in `packages/core/src/intake/issue-emit.ts` (`isTrustedStat`) trusts only matching `process.getuid()`, not ambient env strings.\nFailure mode: Under a root agent runtime, a child or poisoned environment can set `HOME` / `USER` / `SUDO_UID` to an attacker-chosen account; if `ownership:fix` treats those as chown authority, repair becomes a scoped privilege hand-off or locks the real operator out of project files.\nDisposition: Before bind, constrain mutating fix authority to filesystem/passwd evidence (project-root owner, non-root ancestor walk, `/home/<user>` via passwd) or explicit `--owner` / `DEFT_PROJECT_OWNER`. Env candidates may inform warnings only.\n\n## Keep diagnostic repair verbs reachable under the mismatch\nsharpens-framing\nEvidence: Stop 1 / issue Gate integration suggests fail-closed on gated ritual / preflight / install / update / check while session:start stays soft-warn. Current-state comment 5857909408 correctly notes the ownership verbs are absent today. Doctor already has unrelated permission messaging for unreadable AGENTS/xBRIEF paths (`doctor/main.ts`, `doctor/checks.ts`), not a uid-mismatch gate.\nFailure mode: If `task check` / doctor / the new verify surface themselves fail closed on the same WSL-root predicate, the operator cannot run `ownership:doctor` / `ownership:fix` to remediate, and the override env becomes the only escape—agents will set it.\nDisposition: Bound remedy must list which gates fail closed (install/update/preflight/write/mutation ritual) and keep ownership doctor/fix (and a readable verify) executable under the detected mismatch so remediation is reachable without requiring the override first.\n\n## Naming collisions with existing \"owner\" vocabulary\nfootnote\nEvidence: `host-session-owner.ts` and `content/commands.md` occupancy sections use \"owner\" for host session / lease identity. `tasks/verify.yml` already has `verify:rule-ownership` (Rule Ownership Map). Doctor `root-check-invoke` (#4947) means Taskfile root `check` invoking Directive, not uid 0.\nFailure mode: Operator and agent confusion between FS ownership verbs and occupancy/rule-ownership/root-check; low bind risk if verb names stay `ownership:*` and docs disambiguate.\nDisposition: Cosmetic/doc disambiguation on the lean; does not block the design.\n\n## Local foreign-uid refuse is not this guard\nfootnote\nEvidence: `issue-emit.ts` `isTrustedStat` refuses recovery dirs not owned by `process.getuid()`. `verify:scm-boundary` is GraphQL/raw-gh detection. Neither warns at session start nor repairs root-owned project trees on WSL.\nFailure mode: None for bind if cited only as prior art for \"trust matching uid.\"\nDisposition: Optional cite as pattern; does not relieve P1–P3.\n\n## Road-not-taken\n\nRejected bare documentation (\"do not run the agent as root on WSL\") and rejected fail-closed on every `real-root` without WSL detection. Strongest rejected steelman: rely only on Cursor sandbox remap + existing SCM runtime classification. That fails because the reported defect is a real uid-0 agent runtime on WSL (interactive user non-root, `wsl.conf` already correct) creating durable root-owned project files—remap classification and SCM readiness do not chown or block those writes today. Flip condition: a landed path that both classifies `real-root`∩WSL and fails closed before mutating install/update/write gates, with a reachable scoped fix.\r\n\n",
+          "id": 5857945631,
+          "html_url": "https://github.com/deftai/directive/issues/1617#issuecomment-5857945631",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:06:18Z",
+          "updated_at": "2026-09-27T17:06:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nCharter refutation, round 1, seat claude. Reads pinned at `d9b031c1a352b0d09f00f85028db9673d36ddd6f` (`git rev-parse HEAD` confirmed equal). Comments above 5857909526 not read. No embedded instructions were found in the issue body or in-ceiling comments; nothing to surface on that axis.\n\n## Verdict on the refutation target\n\nThe target **survives as an absence claim and fails as stated on the harm clause.**\n\nAbsence re-verified, not taken from the Stage A cite. At the dispatch SHA, `git grep -E \"ownership:(doctor|fix)|verify:ownership|DEFT_ALLOW_ROOT_WSL_RUNTIME|DEFT_PROJECT_OWNER\"` returns zero hits tree-wide, and `git grep -iE \"WSL_DISTRO_NAME|/proc/version|microsoft-standard|isWsl\"` returns zero hits. Every `wsl` hit in the tree is CHANGELOG, SPECIFICATION, docs or xbrief prose. There is no WSL detection and no ownership guard.\n\nWhat does not survive is \"can create root-owned project and tool files\" as an unqualified WSL premise. That harm is filesystem-conditional, and the condition it fails on is the most common WSL project layout. Findings 1 and 2 carry that.\n\n## Detection predicate fires where the harm cannot occur\n\nblocks-the-design\n\nEvidence: ran on this host's WSL2 Ubuntu (kernel `6.6.114.1-microsoft-standard-WSL2`). `/proc/mounts` shows the Windows drive mounted `C:\\134 /mnt/c 9p rw,...,aname=drvfs;path=C:\\;uid=1000;gid=1000;...`. Ownership there is a fixed mount option, not file metadata. Running `wsl -u root` (`id` → `uid=0(root) gid=0(root)`), a `mkdir` + file create under `/mnt/c/Users/msada/AppData/Local/Temp/...` produced `uid=1000 gid=1000 user=msadams mode=777`. A root process on DrvFs cannot create a root-owned file. The same script on ext4 (`/home/msadams/...`) produced `uid=0 gid=0 user=root mode=755` and `644`, inside a `/home/msadams` that is `mode=750` — so the user cannot write into what root made. I also ran the repo's own probe (`probeRuntimeCapabilities` in `packages/core/src/platform/platform-capabilities.ts`) and it reported `ownership: {uid: 0, gid: 0}` for this win32 worktree path, which is the same class of projected, meaningless uid.\n\nFailure mode: the desired-behavior predicate is \"WSL + effective UID 0 + a likely non-root project owner\", and owner resolution step 1 is \"prefer the project root owner when it is non-root\". On a project at `/mnt/c/...` under a root agent runtime all three conjuncts hold — WSL yes, euid 0 yes, project root owner uid 1000 yes — so the guard fires, `session:start` warns, and every install/update/check/preflight gate fails closed, on a tree where the named harm is physically impossible. That is the default layout for anyone who cloned on Windows and opened the folder in WSL, which is the same population the issue's likelihood estimate is about. The predictable operator response is a standing `DEFT_ALLOW_ROOT_WSL_RUNTIME=1`, which also disables the guard for the `/home/<user>` case where the harm is real.\n\nDisposition: before bind, the detect predicate needs a conjunct on whether the target path's filesystem honors POSIX ownership (read `/proc/mounts` or `stat -f` for `9p`/`drvfs`/`v9fs` and for a pinned `uid=`/`gid=` mount option), not on \"is this WSL\". Owner resolution must not read `stat().uid` as ownership on such a mount at all. The acceptance criterion \"a consumer project under WSL detects root agent runtime\" should be restated to name the filesystem class, and a `/mnt/c` no-fire case belongs in it.\n\n## The repair acceptance criterion is satisfiable by a fix that repairs nothing\n\nblocks-the-design\n\nEvidence: in the same WSL root run, `chown 0:0` on a DrvFs file returned exit status `0`, and the immediately following `stat` showed the file still `uid=1000 user=msadams`. The call succeeded and changed nothing. No error, no diagnostic.\n\nFailure mode: the acceptance criterion reads \"`ownership:fix` repairs scoped root-owned files and reports unfixable/protected leftovers\", and the repair-scope list is a path enumeration. An implementation that walks that list, calls `chown`, and treats exit 0 as repaired will report a clean successful repair for every DrvFs path it touched while changing zero bytes of ownership. The leftover-reporting branch never runs, because nothing errored. The operator is told the tree is fixed. This is worse than the current no-guard state, which at least does not assert a false all-clear.\n\nDisposition: `ownership:fix` must re-`stat` after each `chown` and compare against the intended uid/gid, and classify a silent no-op as its own outcome distinct from both repaired and protected-leftover. The acceptance criterion should require that verification, not just that the command reports leftovers. A fixture covering `chown` returning 0 without effect belongs in the test surface.\n\n## Fail-closed has no chokepoint over the artifacts P1 names\n\nsharpens-framing\n\nEvidence: `packages/core/src/policy/runtime-authority.ts` defines `RuntimeAuthorityShellOp` as `push | merge` only; `listShellOps` scans segments and returns at most those two, and `classifyShellCommand`'s own JSDoc says \"Unclassifiable commands return null (fail open at the gate)\" and \"intentionally narrow; prefer false-open over false-deny\". `packages/core/src/hooks/shell-write-targets.ts` closes `SHELL_WRITE_KINDS` at five forms: `set-content`, `out-file`, `add-content`, `python-pathlib`, `io-writealltext`. `content/commands.md:436` states it plainly: \"Dedicated Write/Edit and recognized in-repository shell forms are gated; unrecognized shell forms remain outside that coverage.\"\n\nFailure mode: the artifacts the design is actually about — `.venv`, `~/.local/bin/task`, uv and Go caches, generated build output — are created by subprocesses (`uv venv`, `pip`, `npm`, `task`, `go build`, plain `mkdir` and `>` redirection). None of those is a recognized shell write form and none is a `push`/`merge` op, so none reaches the hook dispatcher's deny path. Bound as written, \"fails closed on mutating gates\" means fails closed at Directive's own gate entry points, while the root-owned writes continue unimpeded the moment the agent runs a build command. P2 would be recorded as satisfied by a control that does not intercept the writes P1 describes.\n\nDisposition: the fail-closed clause must be scoped explicitly to Directive gate entry rather than to file creation, or the design must name a real chokepoint. The honest control for the subprocess path is the warn plus the post-hoc doctor and fix, not a gate. If the design wants an actual pre-write control it has to extend `hooks/dispatcher.ts` shell coverage, and that is a separate and much larger change than what the issue scopes.\n\n## The existing identity mechanism is half-dead and duplicated\n\nsharpens-framing\n\nEvidence: two classifiers exist. `packages/core/src/platform/platform-capabilities.ts` already computes `effectiveUid`, `classifyIdentityKind` returning `IDENTITY_REAL_ROOT` (`platform/constants.ts:32`), and an `OwnershipFacts` record with `uid`/`gid` of the cwd. I ran it: with no options it returns `{\"identityKind\":\"unknown\",\"effectiveUid\":null}`, because `effectiveUid` is only populated from `effectiveUidOverride` or an injected `getuid`, and defaults to `null` (lines 254-261). With `getuid: () => 0` it correctly returns `real-root`. Separately, `packages/core/src/intake/platform-capabilities.ts` — the one actually imported by `scm/readiness.ts`, `intake/github-auth-modes.ts` and `swarm/launch.ts` — returns only `{runtimeMode, runtimeModeReason}`; I ran it and confirmed those are the sole keys. `git grep` for `probeRuntimeCapabilities|getPlatformCapabilities|IDENTITY_REAL_ROOT` outside `*.test.ts` shows the rich `platform/` probe has no production importer; every runtime consumer reaches for the thin `intake/` one.\n\nFailure mode: the write-back's product-gap finding is correct about ownership surfaces but does not name this, so the design reads as greenfield. Bound that way, the likely implementation either adds a third identity probe, or reuses the `platform/` report and inherits `identity_kind: \"unknown\"` in production because nothing wires `process.getuid` — a guard that never fires, with passing unit tests that inject `getuid` directly. The duplication is a known cost here: #3859 had to land the same precedence fix in both classifiers.\n\nDisposition: the design must name which classifier owns the ownership facts, and wiring `process.getuid` into the default path is itself a change to a shared module that already feeds SCM readiness and swarm launch — it should be called out as such rather than treated as new code. Worth noting on the doctor side: `packages/core/src/doctor/checks.ts` already fails closed on `EACCES`/`EPERM` by treating a path as \"live but unreadable\" (#3243), so a root-owned tree today produces a confusing unreadable verdict rather than silence. The ownership check should reconcile with that reason, not sit beside it.\n\n## Injection lens: the override is settable by the principal being restrained\n\nsharpens-framing\n\nEvidence: the target changes session authority and mutating gates, so the lens applies. The design's escape is `DEFT_ALLOW_ROOT_WSL_RUNTIME=1` \"or equivalent explicit override\", plus `--owner uid:gid` / `DEFT_PROJECT_OWNER=uid:gid` as the ambiguity resolver. Under `wsl -u root` I confirmed the root runtime's own environment (`USER=root HOME=/root`, no `SUDO_UID`), and that runtime exports its own variables and writes its own profile files. Directive has precedent on exactly this shape: #3859 made `DEFT_GITHUB_AUTH_MODE=host-gh` an explicit selection deliberately ranked **below** a positive managed-runtime read, so a marker could not override a detection.\n\nFailure mode: the root agent runtime that the guard exists to restrain is the same principal that can set the variable that disables it, once, silently, with no record. The fail-closed half then degrades to advisory without anyone observing the transition. Second surface: `ownership:fix --owner uid:gid` executing as root is an arbitrary-chown primitive whose uid and whose path list both come from the untrusted side; `SUDO_UID`/`USER`/`LOGNAME`/`HOME` in resolution step 4 are all runtime-settable strings.\n\nDisposition: rank the override below detection the way #3859 ranks its selection, record each override use as an audit event at `session:start` rather than a one-time warning, and make `ownership:fix` refuse any uid it did not itself resolve from the filesystem — `--owner` should narrow a resolved candidate set, not supply one. Owner-resolution step 4 should be demoted below the filesystem-derived steps for the same reason, or dropped.\n\n## Repair scope keys on `~`, which is ambiguous under the root runtime\n\nfootnote\n\nEvidence: under `wsl -u root`, `HOME=/root`. The repair-scope list names `~/.local/bin/task` as a Deft-created path to repair. I could not observe the actual Cursor agent runtime's `HOME` from this seat, so which branch holds is unverified — this is a login-shell proxy, not the runtime in the report. If the runtime keeps `HOME=/root`, `task` installs into `/root/.local/bin` and the user's `~/.local/bin/task` is never created root-owned at all; the symptom is a missing tool on the user's PATH, not a permission error, and there is nothing at that path to repair. If the runtime inherits `HOME=/home/<user>` while euid is 0, the listed path is right and resolution step 4 happens to infer the correct owner from it. Disposition either way: resolve the intended owner's home explicitly from the passwd entry rather than expanding `~` in the process that is running as root.\n\n## Road not taken, and what would flip this\n\nI considered placing the control at the hook dispatcher (`hooks/dispatcher.ts` already denies writes and carries the occupancy/authz machinery) rather than at `session:start` plus doctor. I did not recommend it: extending recognized shell forms to cover `uv`, `task`, `go` and redirection is a command-parsing surface the repo has deliberately kept narrow and fail-open, and widening it for this one guard buys false denials across every project. That is the reasoning behind Finding 3's disposition — scope the claim down rather than chase the chokepoint.\n\nSteelman of the position I am arguing against on Finding 1: DrvFs mount options are configurable, `/etc/wsl.conf` can set `options=\"metadata,uid=...\"`, and with `metadata` enabled DrvFs does honor real per-file ownership and `chown` does stick. On such a host the harm is real on `/mnt/c` too, and a filesystem conjunct that blanket-exempts `9p`/`drvfs` would create a false negative. What would flip me: a probe that reads the actual mount options and distinguishes `metadata`-enabled DrvFs from the pinned `uid=`/`gid=` form. That is the right mechanism and it is not what the issue currently specifies — which is the finding. A blanket \"skip `/mnt/*`\" carve-out is not an acceptable substitute and would be the wrong fix.\n\n",
+          "id": 5857969457,
+          "html_url": "https://github.com/deftai/directive/issues/1617#issuecomment-5857969457",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:09:41Z",
+          "updated_at": "2026-09-27T17:09:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nThe refutation target survives. At d9b031c1a352b0d09f00f85028db9673d36ddd6f, existing identity reporting and narrowly scoped permission guards do not provide the proposed WSL detect/warn/block/repair behavior. The gap is supported; the repair authority and enforcement timing need tighter boundaries before binding the proposed remedy.\n\nVerification: `git rev-parse HEAD` matched the dispatch SHA. I read the issue body and REST comments only through 5857909526, without reading sibling critic posts. I inventoried session, doctor, platform, task, and command surfaces with SHA-pinned `git ls-tree`, `git grep`, and `git show`. A Python assertion check against `git show` output confirmed the nullable UID probe, stat-based ownership report, reusable ritual results, session-state write, and absence of `ownership:doctor`, `ownership:fix`, `verify:ownership`, `DEFT_ALLOW_ROOT_WSL_RUNTIME`, and `DEFT_PROJECT_OWNER` under packages/tasks and content/commands.md. These are static checks on a Windows host, not a WSL reproduction.\n\n## Repair needs a filesystem authority boundary\nblocks-the-design\nEvidence: The issue's Repair scope includes project directories, `.deft`, `.venv`, caches, and selected user tool paths, but does not define traversal or concurrent replacement behavior. At the pinned SHA, `packages/core/src/platform/platform-capabilities.ts:207` uses `statSync` for diagnostic ownership facts; this follows the target and is not a repair authorization primitive. By contrast, `packages/core/src/intake/issue-emit.ts` explicitly rejects symlinks and untrusted ownership/mode for its private recovery files. That protection is local to issue recovery.\nFailure mode: An allowed cache/tool pathname can resolve through a symlink to an unrelated root-owned object. A root repair that trusts path names or checks once before a recursive traversal can change ownership outside its intended scope; another worker can replace a checked path between inspection and mutation. An explicit owner resolves the recipient, not the authority to modify that object. Merely resolving an environment-supplied account in passwd also does not establish authority over external user tools.\nDisposition: Before binding repair, specify a deterministic boundary: explicit approved roots, no symlink following or traversal outside those roots, root-owned objects only, and a race-safe mutation strategy or refusal where safety cannot be established. Resolve external tool homes from the validated account and require attributable tool paths; report uncertain/protected paths without changing them. Owner inference and `--owner` must not enlarge repair scope. A dry run alone does not close the replacement race.\n\n## Mutation identity cannot inherit a cached doctor verdict\nsharpens-framing\nEvidence: `packages/core/src/session/session-start.ts:1843` records doctor/cache results specifically so ritual verification can skip reruns; the same module persists ritual state through `writeRitualState` near line 2081. The issue proposes a warning plus audit at session start and fail-closed behavior at later gates.\nFailure mode: A non-root interactive process can produce a passing ritual, then a root agent process can reuse that state. Checking ownership only through a cached doctor result misses the exact runtime mismatch at issue. A root session-start warning that writes its own audit into the project can also create the root-owned residue before the later gate runs.\nDisposition: Preserve the proposed surface, but state that each protected mutation checks the executing process's current identity before its first project/tool write, independently of ritual freshness. Define the warning path's audit destination and write policy. Scope the guarantee to protected Directive entry points; an agent already running as root can still bypass application gates through arbitrary shell commands. Do not present the override or the guard as an OS security boundary.\n\n## Reuse identity facts without treating them as a ready guard\nsharpens-framing\nEvidence: `packages/core/src/platform/platform-capabilities.ts` already reports UID-map interpretation, identity kind, and filesystem UID/GID. Its `probeRuntimeCapabilities` only gets an effective UID from an injected override or `getuid` callback; otherwise it returns null. `tasks/verify.yml` defines `scm-boundary` as a raw GitHub subprocess scanner, not filesystem ownership protection. Doctor permission messages concern existing read failures, and issue-emit's owner check protects private recovery records.\nFailure mode: Wiring the new gate to the default report and treating a null UID as non-root silently passes the unsafe runtime. Conversely, treating every numeric UID 0 as ordinary host root without resolving the existing namespace interpretation can incorrectly authorize repair or deny a mapped runtime. The current diagnostics are useful evidence, but neither they nor SCM/session ownership prove the intended OS owner.\nDisposition: Keep the WSL-specific feature, reuse the relevant reporting mechanisms, and add an actual effective-identity probe with an explicit unknown/error disposition. Test root/non-root process changes and mapped identity separately. Leave native Windows ACL redesign outside this issue. This sharpens implementation framing rather than refuting the gap.\n\n## The supplied ceiling excludes the required panel deposit\nblocks-the-design\nEvidence: The envelope names N>=3 and three isolated seats but fixes the ceiling at Stop 1 comment 5857909526. The complete in-ceiling REST thread contains comments 5780306334, 5857909408, and 5857909526; none is a panel-deposit. The pinned contract's `Envelope and ceiling` heading requires the N>=2 round-start snapshot after the panel deposit, with that deposit inside the envelope.\nFailure mode: This round's critic inputs cannot verify the required pre-dispatch panel record. Treating a possible later deposit as in-ceiling evidence would silently change the authorized input boundary.\nDisposition: The parent must resolve this dispatch-contract defect before treating the round as conforming. I have not re-ceiled, inspected later comments, or inferred panel completeness. This blocks binding on this envelope as a conforming panel; it does not refute the ownership problem.",
+          "id": 5857995331,
+          "html_url": "https://github.com/deftai/directive/issues/1617#issuecomment-5857995331",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:12:56Z",
+          "updated_at": "2026-09-27T17:12:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWSL can still run an agent as root while the project owner is non-root, and Directive still has no ownership detect/warn/fail-closed/fix surface. The gap survives. Binding the issue as written would fail closed on DrvFs trees where root cannot create root-owned files, and would treat chown exit 0 as repaired when ownership did not change. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5857909526. Critics 5857945631 (grok), 5857969457 (claude), 5857995331 (codex) check the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target survives in sharpened form. This map is the bind.\n\nsiblings: 3\nRound: 1\nResidual: process panel-deposit miss on the in-ceiling envelope (Codex finding); product harvest below still binds\nsupersedes: 5857909526\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: d9b031c1a352b0d09f00f85028db9673d36ddd6f\n\n## Takes\n\n- 5857969457 Detection predicate fires where the harm cannot occur — accept-into-contract\n- 5857969457 The repair acceptance criterion is satisfiable by a fix that repairs nothing — accept-into-contract\n- 5857969457 Fail-closed has no chokepoint over the artifacts P1 names — accept-into-contract\n- 5857969457 The existing identity mechanism is half-dead and duplicated — accept-into-contract\n- 5857969457 Injection lens: the override is settable by the principal being restrained — accept-into-contract\n- 5857969457 Repair scope keys on ~, which is ambiguous under the root runtime — accept-into-contract\n- 5857945631 Production uid probe is inert without an injected getuid — accept-into-contract\n- 5857945631 Extend the existing identity/ownership facts; require a WSL conjunct — accept-into-contract\n- 5857945631 Env-sourced owner candidates must not authorize chown — accept-into-contract\n- 5857945631 Keep diagnostic repair verbs reachable under the mismatch — accept-into-contract\n- 5857945631 Naming collisions with existing owner vocabulary — accept-into-contract\n- 5857945631 Local foreign-uid refuse is not this guard — accept-into-contract\n- 5857995331 Repair needs a filesystem authority boundary — accept-into-contract\n- 5857995331 Mutation identity cannot inherit a cached doctor verdict — accept-into-contract\n- 5857995331 Reuse identity facts without treating them as a ready guard — accept-into-contract\n- 5857995331 The supplied ceiling excludes the required panel deposit — accept-into-contract (process residual: future N≥3 rounds must panel-deposit before critic ceiling; this product lean still binds from the three posted seats after launch probe)\n\nSpec-path:\n\n## Bound remedy\n\n1. Ship a WSL-specific ownership guard for agent-as-root vs non-root project owner: session:start soft warn + audit; mutating install/update/check/preflight (and other protected Directive entry points) fail closed unless an explicit override is set. Native Windows/macOS must not get WSL-specific hard failures.\n2. Detection must be harm-capable, not merely WSL+uid0+non-root-owner. Read filesystem mount options / ownership semantics: do not fail closed on DrvFs/9p trees where uid/gid are mount-pinned and a root process cannot create root-owned files (default Windows-clone-under-/mnt/c layout). Prefer ext4/home trees and metadata-enabled mounts where real uid 0 ownership can occur. Unknown/error detection fails closed with actionable output.\n3. Wire a real effective-identity probe (process.getuid or equivalent) into the production platform/runtime path; null/unknown must not mean non-root. Reuse existing platform identity/UID-map reporting; do not treat that report alone as the ready guard. Name which classifier owns ownership facts.\n4. Owner resolution stays dynamic (project root owner, nearest non-root ancestor, /home/<user> passwd, then SUDO_*/USER/LOGNAME/HOME only when they resolve to real non-root accounts). Ambiguous or conflicting candidates fail closed and require explicit --owner uid:gid or DEFT_PROJECT_OWNER=uid:gid. Env-sourced candidates must not alone authorize chown.\n5. Each protected mutation checks the executing process's live identity before its first project/tool write, independently of ritual/doctor cache freshness. Do not present the guard or override as an OS security boundary for arbitrary shell.\n6. Override (e.g. DEFT_ALLOW_ROOT_WSL_RUNTIME) must not be sole-trustable when set only by the restrained root principal without an out-of-band/human-visible acknowledgment path; document that limitation if a stronger binding is deferred.\n7. Ship consumer task deft:ownership:doctor / ownership:fix / verify:ownership and maintainer aliases. Keep doctor/fix reachable under the mismatch so operators can recover.\n8. ownership:fix is scoped: explicit approved roots only; no symlink following / traversal outside those roots; root-owned objects only; race-safe mutation or refuse; resolve tool homes from the validated account; report protected/uncertain leftovers (e.g. Cursor .git/cursor) without changing them. After chown, re-stat and require ownership actually changed — exit 0 alone is not repaired (DrvFs false-success). Owner inference and --owner must not enlarge repair scope. No blanket HOME chown. No hardcoded usernames.\n9. Vocabulary: distinguish filesystem project-owner from occupancy/session owner and issue-emit private recovery owner so docs and doctor copy do not collide.\n10. Non-goals: native Windows ACL redesign; treating scm-boundary or foreign-uid refuse as this guard; claiming application gates stop a root agent that bypasses Directive entry points.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:cf2d58701f43b67eec63161930c4e5466b75accc9273c40382a8e0c1c13b0860\n\n## Parent-side substantiation\n\nClaude's two blockers (DrvFs false-positive detection; chown exit-0 without ownership change) and Codex's repair-authority boundary are first-ship constraints, not footnotes. Grok/Codex sharpenings on live getuid, WSL conjunct, env-not-authorize-chown, ritual-cache independence, and reachable diagnostics are folded into items 2–8. The panel-deposit process miss is recorded as process residual for future N≥3 envelopes; product harvest still binds from the three posted seats after a successful three-family launch probe.\n\naudit:drvfs-harm-capable-detect sha=d9b031c1a352b0d09f00f85028db9673d36ddd6f pointer=comment:5857969457 reading=asserted\naudit:repair-restat-and-boundary sha=d9b031c1a352b0d09f00f85028db9673d36ddd6f pointer=comment:5857995331 reading=asserted\naudit:live-uid-not-ritual-cache sha=d9b031c1a352b0d09f00f85028db9673d36ddd6f pointer=comment:5857945631 reading=asserted\n\n\n",
+          "id": 5858003280,
+          "html_url": "https://github.com/deftai/directive/issues/1617#issuecomment-5858003280",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:14:01Z",
+          "updated_at": "2026-10-01T12:27:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\n\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic. Seat: grok. Launcher: grok.\nId ceiling honored: 5858003280. Dispatch SHA confirmed via `git rev-parse HEAD` = `d9b031c1a352b0d09f00f85028db9673d36ddd6f`. Pin reads via `git show d9b031c1a352b0d09f00f85028db9673d36ddd6f:<path>`. Target-digest on lean 5858003280 matches live issue body sha256 `3e3f8dd7271e5efa2224bcfe9cb8d19b7fba1663389050cac0848bf1bb5d06d2`.\n\n## Pain-audit of Bound remedy 5858003280\n\nStop 1 pains (5857909526). Asserted coverage on the lean: P1, P2, P3. Re-verified anchors for harm-capable DrvFs detection, live uid, and repair restat/boundary. No embedded instructions found in the in-ceiling thread.\n\n### Session-start warn must name the resolved intended owner\nsharpens-framing\nEvidence: P1 requires a session-start warning that names the intended owner. Issue Desired behavior says the same (\"Warn during session start with the detected intended owner\"). Bound remedy item 1 says only \"session:start soft warn + audit\"; item 4 binds owner resolution but does not contract the warn emit text. Items 2–3 correctly bind harm-capable detect and a live `process.getuid` wire (`platform-capabilities.ts` still defaults `effectiveUid = null` without injected `getuid` at this SHA).\nFailure mode: An implementation can warn \"WSL root runtime detected\" without printing the resolved uid:gid/account, and still claim P1 closed while operators cannot see who ownership:fix will target.\nDisposition: Before bind/synthesis, sharpen item 1 so the soft warn emits the resolved intended owner (uid:gid and account when known). Items 2–4 already supply the detect/resolve machinery; this is emit content, not a new mechanism.\n\n### P2 fail-closed is Directive entry-point scoped\nfootnote\nEvidence: Bound remedy items 1, 5, and 10 already scope fail-closed to protected Directive entry points and refuse to claim an OS boundary over arbitrary shell. At this SHA, `runtime-authority.ts` / shell-write hooks remain narrow (Claude 5857969457). P2 as written is about install/update/check/preflight gates.\nFailure mode: None for the asserted P2 cite if readers treat gate fail-closed as the control; subprocess `.venv`/cache creates stay on the warn + post-hoc doctor/fix path.\nDisposition: Census only; harvest already states the scope.\n\n### Live uid, DrvFs harm-capable detect, and repair restat/boundary are on the harvest\nfootnote\nEvidence: Re-verified at the pin SHA — `probeRuntimeCapabilities` leaves `effectiveUid` null without `getuid`/`effectiveUidOverride`; no `WSL_DISTRO_NAME` / `ownership:doctor|fix` / `DEFT_ALLOW_ROOT_WSL_RUNTIME` hits under packages/content/tasks; intake `platform-capabilities.ts` stays thin (`runtimeMode` only); issue-emit `isTrustedStat`/`lstatSync` remains the local trust pattern, not a project repair boundary. Lean items 2, 3, and 8 fold Claude blockers (DrvFs false-positive; chown exit-0 without ownership change), Grok live-uid sharpening, and Codex repair-authority boundary, including post-chown re-stat and approved-root/no-symlink/race-safe limits.\nFailure mode: None for P1–P3 cites on those three limbs as written.\nDisposition: Census confirmation that the three audit limbs named in the envelope are present on the Bound remedy; absence at SHA still supports the gap, not a coverage miss.\n\n## Coverage read\n\n- P1: covered by items 1–4 once item 1 names the intended owner in the soft warn (sharpening above).\n- P2: covered by items 1–3, 5–6, 10 as Directive-entry fail-closed with harm-capable detect and live identity.\n- P3: covered by items 4, 7–8 (consumer+maintainer surfaces; scoped fix; restat; protected leftovers; no blanket HOME; no hardcoded usernames; env candidates do not alone authorize chown).\n\nNo `blocks-the-design` findings on the asserted P1–P3 map. One `sharpens-framing` finding changes harvest wording on item 1's warn emit. Process residual (panel-deposit miss) stays outside this pain-audit product read.\r\n\n",
+          "id": 5858029360,
+          "html_url": "https://github.com/deftai/directive/issues/1617#issuecomment-5858029360",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:17:37Z",
+          "updated_at": "2026-09-27T17:17:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nRecut after pain-audit 5858029360. Bound remedy item 1 must make the session:start soft warn emit the resolved intended owner (uid:gid and account when known), matching P1 and the issue Desired behavior. All other Bound remedy items from lean 5858003280 stay. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5857909526 and lean 5858003280.\n\n**Lean:** Recut of 5858003280. This map is the bind.\n\nsiblings: 0\nRound: 1\nResidual: none\nsupersedes: 5858003280\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: d9b031c1a352b0d09f00f85028db9673d36ddd6f\n\n## Takes\n\n- 5858029360 Session-start warn must name the resolved intended owner — accept-into-contract\n- 5858029360 P2 fail-closed is Directive entry-point scoped — accept-into-contract\n- 5858029360 Live uid, DrvFs harm-capable detect, and repair restat/boundary are on the harvest — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Ship a WSL-specific ownership guard for agent-as-root vs non-root project owner: session:start soft warn + audit that emits the resolved intended owner (uid:gid and account when known); mutating install/update/check/preflight (and other protected Directive entry points) fail closed unless an explicit override is set. Native Windows/macOS must not get WSL-specific hard failures.\n2. Detection must be harm-capable, not merely WSL+uid0+non-root-owner. Read filesystem mount options / ownership semantics: do not fail closed on DrvFs/9p trees where uid/gid are mount-pinned and a root process cannot create root-owned files (default Windows-clone-under-/mnt/c layout). Prefer ext4/home trees and metadata-enabled mounts where real uid 0 ownership can occur. Unknown/error detection fails closed with actionable output.\n3. Wire a real effective-identity probe (process.getuid or equivalent) into the production platform/runtime path; null/unknown must not mean non-root. Reuse existing platform identity/UID-map reporting; do not treat that report alone as the ready guard. Name which classifier owns ownership facts.\n4. Owner resolution stays dynamic (project root owner, nearest non-root ancestor, /home/<user> passwd, then SUDO_*/USER/LOGNAME/HOME only when they resolve to real non-root accounts). Ambiguous or conflicting candidates fail closed and require explicit --owner uid:gid or DEFT_PROJECT_OWNER=uid:gid. Env-sourced candidates must not alone authorize chown.\n5. Each protected mutation checks the executing process's live identity before its first project/tool write, independently of ritual/doctor cache freshness. Do not present the guard or override as an OS security boundary for arbitrary shell.\n6. Override (e.g. DEFT_ALLOW_ROOT_WSL_RUNTIME) must not be sole-trustable when set only by the restrained root principal without an out-of-band/human-visible acknowledgment path; document that limitation if a stronger binding is deferred.\n7. Ship consumer task deft:ownership:doctor / ownership:fix / verify:ownership and maintainer aliases. Keep doctor/fix reachable under the mismatch so operators can recover.\n8. ownership:fix is scoped: explicit approved roots only; no symlink following / traversal outside those roots; root-owned objects only; race-safe mutation or refuse; resolve tool homes from the validated account; report protected/uncertain leftovers (e.g. Cursor .git/cursor) without changing them. After chown, re-stat and require ownership actually changed — exit 0 alone is not repaired (DrvFs false-success). Owner inference and --owner must not enlarge repair scope. No blanket HOME chown. No hardcoded usernames.\n9. Vocabulary: distinguish filesystem project-owner from occupancy/session owner and issue-emit private recovery owner so docs and doctor copy do not collide.\n10. Non-goals: native Windows ACL redesign; treating scm-boundary or foreign-uid refuse as this guard; claiming application gates stop a root agent that bypasses Directive entry points.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:cf2d58701f43b67eec63161930c4e5466b75accc9273c40382a8e0c1c13b0860\n\n## Parent-side substantiation\n\nPain-audit 5858029360 required only emit-text sharpening on item 1 (session-start warn names intended owner). Items 2–10 unchanged from 5858003280. Process residual (panel-deposit miss) remains outside product harvest.\n\naudit:session-start-warn-names-owner sha=d9b031c1a352b0d09f00f85028db9673d36ddd6f pointer=comment:5858029360 reading=asserted\n\n\n",
+          "id": 5858034139,
+          "html_url": "https://github.com/deftai/directive/issues/1617#issuecomment-5858034139",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:18:16Z",
+          "updated_at": "2026-10-01T12:27:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\n\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic. Seat: grok. Launcher: grok.\nId ceiling honored: 5858034139. Dispatch SHA confirmed via `git rev-parse HEAD` = `d9b031c1a352b0d09f00f85028db9673d36ddd6f`. Pin reads via `git show d9b031c1a352b0d09f00f85028db9673d36ddd6f:<path>`. Target-digest on Recut lean 5858034139 matches live issue body sha256 `3e3f8dd7271e5efa2224bcfe9cb8d19b7fba1663389050cac0848bf1bb5d06d2`.\n\n## Pain-audit of Bound remedy 5858034139\n\nStop 1 pains (5857909526). Asserted coverage on the Recut lean (supersedes 5858003280): P1, P2, P3. Prior pain-audit 5858029360 required emit-text sharpening so session:start soft warn names the resolved intended owner. Recut item 1 now contracts that emit. No embedded instructions found in the in-ceiling thread.\n\n### Session-start warn emit names the resolved intended owner\nfootnote\nEvidence: P1 and issue Desired behavior require a session-start warning that names the intended owner. Recut item 1 now states soft warn + audit \"that emits the resolved intended owner (uid:gid and account when known)\". Items 2–4 still bind harm-capable detect, live `process.getuid` wire, and dynamic owner resolution. At this SHA, `probeRuntimeCapabilities` still defaults `effectiveUid = null` without injected `getuid`; session-start still surfaces `formatEnvironmentContext` only; no WSL/ownership verb hits under packages/content/tasks.\nFailure mode: None for the asserted P1 cite once implement follows item 1's emit contract; the prior silent-owner warn hole is closed on the harvest.\nDisposition: Census confirmation that the 5858029360 sharpening landed on the bind map; no further harvest change.\n\n### P2 fail-closed and live-identity limbs remain on the harvest\nfootnote\nEvidence: Recut items 1–3, 5–6, and 10 still scope fail-closed to protected Directive entry points with harm-capable detect, live identity before first write, override acknowledgment limits, and no claim of an OS boundary over arbitrary shell. Item set is unchanged from 5858003280 aside from item 1 emit text.\nFailure mode: None for the asserted P2 cite as written.\nDisposition: Census only; harvest already states the scope.\n\n### P3 doctor/fix surface and repair restat/boundary remain on the harvest\nfootnote\nEvidence: Recut items 4, 7–8 still bind consumer+maintainer `ownership:doctor` / `ownership:fix` / `verify:ownership`, reachable under mismatch, scoped approved-root repair, post-chown re-stat, protected leftovers, no blanket HOME, no hardcoded usernames, and env candidates that do not alone authorize chown. Pin re-check: issue-emit `isTrustedStat`/`lstatSync` remains the local trust pattern, not a project repair boundary; ownership verbs remain absent at the SHA.\nFailure mode: None for the asserted P3 cite as written.\nDisposition: Census confirmation; no further harvest change.\n\n## Coverage read\n\n- P1: covered by items 1–4, including the resolved-owner emit on the soft warn.\n- P2: covered by items 1–3, 5–6, 10 as Directive-entry fail-closed with harm-capable detect and live identity.\n- P3: covered by items 4, 7–8 (consumer+maintainer surfaces; scoped fix; restat; protected leftovers; env-not-alone-authorize-chown).\n\nNo `blocks-the-design` findings. No `sharpens-framing` findings that change harvest. Footnote-only pain-audit; bind map 5858034139 stays bindable with no further harvest change. Process residual (panel-deposit miss) stays outside this pain-audit product read.\r\n\n",
+          "id": 5858049962,
+          "html_url": "https://github.com/deftai/directive/issues/1617#issuecomment-5858049962",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:20:30Z",
+          "updated_at": "2026-09-27T17:20:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWSL agent-as-root vs non-root project owner still has no Directive ownership guard. Bound remedy ships harm-capable WSL detect (not DrvFs false-positive), live uid fail-closed on protected entry points, session:start soft warn that names the resolved intended owner, and scoped ownership:doctor/fix/verify with post-chown restat and repair authority bounds. Pain-audit 5858049962 of Recut lean 5858034139 was footnote-only. The same parent wrote Stop 1 5857909526. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5858034139.\n\n",
+          "id": 5858052932,
+          "html_url": "https://github.com/deftai/directive/issues/1617#issuecomment-5858052932",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:20:55Z",
+          "updated_at": "2026-09-27T17:20:55Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nAdd a Directive ownership guard for the WSL-specific failure mode where an agent/tool runtime executes as `root` while the actual WSL user and project owner are non-root. This should work for both the maintainer repo and consumer-installed `.deft/core` copies.\n\n## Problem\n\nIn a correctly configured WSL distro, the interactive shell may run as the expected user, e.g. `uid=1000(msadams)` with `/etc/wsl.conf` setting `default=msadams`, while the Cursor agent/tool runtime still executes commands as `root`. Any mutating task then creates root-owned files such as `.venv`, `.deft`, `~/.local/bin/task`, caches, generated vBRIEF files, or build artifacts. This is painful in consumer projects and should not require hardcoding the maintainer's username.\n\nThis is primarily important for WSL. Native Windows uses ACLs and different process identity semantics; native macOS/Linux root remains risky but should not be conflated with the WSL agent-runtime mismatch.\n\n## Desired behavior\n\n- Detect WSL + effective UID 0 + a likely non-root project owner.\n- Warn during session start with the detected intended owner.\n- Fail closed before mutating implementation/install/update gates unless explicitly overridden.\n- Provide a scoped ownership doctor/fix command for already-created root-owned files.\n- Work in consumer installs via `task deft:*` as well as maintainer aliases.\n\n## Owner resolution\n\nResolve the intended owner dynamically, without maintainer-specific assumptions:\n\n1. Prefer the project root owner when it is non-root.\n2. If the project root is already root-owned, walk to the nearest non-root ancestor.\n3. If the project lives under `/home/<user>/...`, resolve `<user>` through the passwd database.\n4. Consider `SUDO_UID` / `SUDO_GID`, `USER`, `LOGNAME`, and `HOME` only when they resolve to a real non-root account.\n5. If candidates conflict or no safe candidate exists, fail closed and require explicit `--owner uid:gid` or `DEFT_PROJECT_OWNER=uid:gid`.\n\n## Proposed task surface\n\nConsumer install:\n\n- `task deft:ownership:doctor`\n- `task deft:ownership:fix -- --project-root . [--owner uid:gid]`\n- `task deft:verify:ownership`\n\nMaintainer aliases:\n\n- `task ownership:doctor`\n- `task ownership:fix`\n- `task verify:ownership`\n\n## Repair scope\n\nThe fix command should be targeted, not a blanket `$HOME` chown. Candidate scoped paths:\n\n- project root and known generated project files\n- `.deft`\n- `.venv`\n- project-local caches\n- known Deft-created user tool paths when clearly tied to the inferred owner, such as `~/.local/bin/task`\n- Go/uv caches only when they were created by a Directive task and the owner inference is unambiguous\n\nThe command should report protected leftovers, such as Cursor internal `.git/cursor` indexes, instead of failing unclearly.\n\n## Gate integration\n\nAdd the ownership check to the session ritual / doctor surface and to pre-mutation gates. Suggested behavior:\n\n- `session:start`: soft warning and audit record.\n- gated ritual / preflight / install/update/check surfaces: fail closed on WSL-root runtime unless `DEFT_ALLOW_ROOT_WSL_RUNTIME=1` or equivalent explicit override is set.\n\n## Acceptance criteria\n\n- A consumer project under WSL detects root agent runtime even when `/etc/wsl.conf` is correctly configured for a non-root default user.\n- The intended owner is inferred correctly without hardcoded usernames.\n- Ambiguous owner inference fails closed with actionable output.\n- `ownership:fix` repairs scoped root-owned files and reports unfixable/protected leftovers.\n- Native Windows/macOS do not get WSL-specific hard failures.\n- Maintainer and consumer task surfaces are both covered.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 4659894396,
+        "origin": "deftai/directive#1617",
+        "id": "github.issue.4659894396"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "cf2d58701f43b67eec63161930c4e5466b75accc9273c40382a8e0c1c13b0860"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/platform/platform-capabilities.ts",
+          "packages/core/src/platform/shell-context.ts",
+          "packages/core/src/platform/shell-context.test.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/cli/src",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/platform/ownership-task-wiring.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "WSL harm-capable detect",
+          "session:start names intended owner",
+          "ownership doctor/fix/verify",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "conflict_group": "wsl-ownership-guard",
+        "size": "L",
+        "file_scope_confidence": "bound-surfaces",
+        "model_tier": "default"
+      },
+      "productPullRequest": 5217,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5217,
+        "prBase": null,
+        "mergeCommit": "2b757e86eb07c01ac847d3499b6b7dc60c20e58f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0d4ec8c8e9555b051c03c071f751fc71fad7e795",
+        "verifiedAt": "2026-10-01T17:50:44Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-01T17:50:44Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-01T17:50:44Z"
+      }
+    },
+    "id": "github.issue.4659894396",
+    "updated": "2026-10-01T17:50:44Z"
+  }
+}
