@@ -1,0 +1,473 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3749",
+    "updated": "2026-10-01T15:04:32Z"
+  },
+  "plan": {
+    "title": "bug(worktree): removing a worktree can break the primary checkout's node_modules, surfacing later as an opaque MODULE_NOT_FOUND",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(worktree): removing a worktree can break the primary checkout's node_modules, surfacing later as an opaque MODULE_NOT_FOUND",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3749",
+      "Overview": "\n\n1. Add a read-only dangling junction/symlink probe under node_modules that reports each dangling entry by name with actionable recovery. Place it on a doctor path that still runs for framework source when node_modules is present (sibling of install-integrity, or install-integrity with an explicit framework-repo carve-in for this check alone). Consumer-only placement under the install-integrity skip cannot bind.\n2. Bind discovery timing for the delayed/displaced class: either include this probe on the throttle-skip / always-cheap path when node_modules exists, or name `deft doctor --full` (and/or an explicit post-teardown invocation) as the supported discovery surface and put that same command in the recovery docs (P3).\n3. Treat dangling findings as non-advisory hard fail (broken install). Skip cleanly when node_modules is absent. Do not make `--fix` auto-run pnpm/npm install unless a later arc explicitly adds that.\n4. Bound the walk (lstat/readlink only; no follow-mutate into sibling worktrees) with injectable seams. Emit recovery via the existing package-manager resolver (`resolveDoctorPackageManager` / detectPackageManager); keep the Windows `CI=true pnpm install --frozen-lockfile` TTY note where pnpm is selected.\n5. For the worktree-path bonus (P2), match dangling targets against `AGENT_SCRATCH_DIRS` (including `.deft-scratch` / legacy scratch roots) plus a worktrees subpath, rather than hardcoding only `.deft-scratch/worktrees/`.\n6. Non-goals / deferrals (P4): do not invent a pnpm/worktree layout fix; do not relocate worktrees outside the repo root; do not bind live cross-worktree link policy or optional post-teardown primary validation in this first ship. Mechanism formation stays a separate prerequisite arc.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nTarget-digest: sha256:cf94f67002c4fd472e0f429a4b96c8bfb78debfd50b5ae05a772ddef06fb2a64\n\n\n",
+      "Labels": "bug, swarm, adoption-blocker, doctor, agent-experience, process, source-of-truth, area:cli, dogfood, platform:windows, design-critique:ingest-ready, framework-gap, core-capabilities, promise:swarm"
+    },
+    "items": [
+      {
+        "title": "Add a read-only dangling junction/symlink probe under node_modules that reports each dangling entry by name with actionable recovery. Place it on a doctor path that still runs for framework source when node_modules is present (sibling of install-integrity, or install-integrity with an explicit framework-repo carve-in for this check alone). Consumer-only placement under the install-integrity skip cannot bind.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5215 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 1ce9d2e751d7f473e83fda8856347260274531c3.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T15:04:30.770Z",
+            "mintedVia": "leftover-complete-after-5215"
+          },
+          "recorded_at": "2026-10-01T15:04:30.770Z"
+        }
+      },
+      {
+        "title": "Bind discovery timing for the delayed/displaced class: either include this probe on the throttle-skip / always-cheap path when node_modules exists, or name `deft doctor --full` (and/or an explicit post-teardown invocation) as the supported discovery surface and put that same command in the recovery docs (P3).",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5215 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 1ce9d2e751d7f473e83fda8856347260274531c3.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T15:04:30.770Z",
+            "mintedVia": "leftover-complete-after-5215"
+          },
+          "recorded_at": "2026-10-01T15:04:30.770Z"
+        }
+      },
+      {
+        "title": "Treat dangling findings as non-advisory hard fail (broken install). Skip cleanly when node_modules is absent. Do not make `--fix` auto-run pnpm/npm install unless a later arc explicitly adds that.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5215 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 1ce9d2e751d7f473e83fda8856347260274531c3.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T15:04:30.770Z",
+            "mintedVia": "leftover-complete-after-5215"
+          },
+          "recorded_at": "2026-10-01T15:04:30.770Z"
+        }
+      },
+      {
+        "title": "Bound the walk (lstat/readlink only; no follow-mutate into sibling worktrees) with injectable seams. Emit recovery via the existing package-manager resolver (`resolveDoctorPackageManager` / detectPackageManager); keep the Windows `CI=true pnpm install --frozen-lockfile` TTY note where pnpm is selected.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5215 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 1ce9d2e751d7f473e83fda8856347260274531c3.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T15:04:30.770Z",
+            "mintedVia": "leftover-complete-after-5215"
+          },
+          "recorded_at": "2026-10-01T15:04:30.770Z"
+        }
+      },
+      {
+        "title": "For the worktree-path bonus (P2), match dangling targets against `AGENT_SCRATCH_DIRS` (including `.deft-scratch` / legacy scratch roots) plus a worktrees subpath, rather than hardcoding only `.deft-scratch/worktrees/`.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5215 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 1ce9d2e751d7f473e83fda8856347260274531c3.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T15:04:30.770Z",
+            "mintedVia": "leftover-complete-after-5215"
+          },
+          "recorded_at": "2026-10-01T15:04:30.770Z"
+        }
+      },
+      {
+        "title": "Non-goals / deferrals (P4): do not invent a pnpm/worktree layout fix; do not relocate worktrees outside the repo root; do not bind live cross-worktree link policy or optional post-teardown primary validation in this first ship. Mechanism formation stays a separate prerequisite arc.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5215 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 1ce9d2e751d7f473e83fda8856347260274531c3.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-01T15:04:30.770Z",
+            "mintedVia": "leftover-complete-after-5215"
+          },
+          "recorded_at": "2026-10-01T15:04:30.770Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "adoption-blocker",
+      "doctor",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "dogfood",
+      "platform:windows",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3749",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3749: bug(worktree): removing a worktree can break the primary checkout's node_modules, surfacing later as an opaque MODULE_NOT_FOUND"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/doctor"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Bound Prefer-A leftover-complete after product PR #5215",
+      "sentences": [
+        "Add a read-only dangling junction/symlink probe under node_modules that reports each dangling entry by name with actionable recovery. Place it on a doctor path that still runs for framework source when node_modules is present (sibling of install-integrity, or install-integrity with an explicit framework-repo carve-in for this check alone). Consumer-only placement under the install-integrity skip cannot bind.",
+        "Bind discovery timing for the delayed/displaced class: either include this probe on the throttle-skip / always-cheap path when node_modules exists, or name `deft doctor --full` (and/or an explicit post-teardown invocation) as the supported discovery surface and put that same command in the recovery docs (P3).",
+        "Treat dangling findings as non-advisory hard fail (broken install). Skip cleanly when node_modules is absent. Do not make `--fix` auto-run pnpm/npm install unless a later arc explicitly adds that.",
+        "Bound the walk (lstat/readlink only; no follow-mutate into sibling worktrees) with injectable seams. Emit recovery via the existing package-manager resolver (`resolveDoctorPackageManager` / detectPackageManager); keep the Windows `CI=true pnpm install --frozen-lockfile` TTY note where pnpm is selected.",
+        "For the worktree-path bonus (P2), match dangling targets against `AGENT_SCRATCH_DIRS` (including `.deft-scratch` / legacy scratch roots) plus a worktrees subpath, rather than hardcoding only `.deft-scratch/worktrees/`.",
+        "Non-goals / deferrals (P4): do not invent a pnpm/worktree layout fix; do not relocate worktrees outside the repo root; do not bind live cross-worktree link policy or optional post-teardown primary validation in this first ship. Mechanism formation stays a separate prerequisite arc."
+      ],
+      "admitted_source_sentences": [
+        "Add a read-only dangling junction/symlink probe under node_modules that reports each dangling entry by name with actionable recovery. Place it on a doctor path that still runs for framework source when node_modules is present (sibling of install-integrity, or install-integrity with an explicit framework-repo carve-in for this check alone). Consumer-only placement under the install-integrity skip cannot bind.",
+        "Bind discovery timing for the delayed/displaced class: either include this probe on the throttle-skip / always-cheap path when node_modules exists, or name `deft doctor --full` (and/or an explicit post-teardown invocation) as the supported discovery surface and put that same command in the recovery docs (P3).",
+        "Treat dangling findings as non-advisory hard fail (broken install). Skip cleanly when node_modules is absent. Do not make `--fix` auto-run pnpm/npm install unless a later arc explicitly adds that.",
+        "Bound the walk (lstat/readlink only; no follow-mutate into sibling worktrees) with injectable seams. Emit recovery via the existing package-manager resolver (`resolveDoctorPackageManager` / detectPackageManager); keep the Windows `CI=true pnpm install --frozen-lockfile` TTY note where pnpm is selected.",
+        "For the worktree-path bonus (P2), match dangling targets against `AGENT_SCRATCH_DIRS` (including `.deft-scratch` / legacy scratch roots) plus a worktrees subpath, rather than hardcoding only `.deft-scratch/worktrees/`.",
+        "Non-goals / deferrals (P4): do not invent a pnpm/worktree layout fix; do not relocate worktrees outside the repo root; do not bind live cross-worktree link policy or optional post-teardown primary validation in this first ship. Mechanism formation stays a separate prerequisite arc."
+      ],
+      "admitted_source_digest": "197576cee9a57fb9e2dc8647fac4c85a9a80934bb1a95d05a903b14e3bd3e622",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add a read-only dangling junction/symlink probe under node_modules that reports each dangling entry by name with actionable recovery. Place it on a doctor path that still runs for framework source when node_modules is present (sibling of install-integrity, or install-integrity with an explicit framework-repo carve-in for this check alone). Consumer-only placement under the install-integrity skip cannot bind.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Bind discovery timing for the delayed/displaced class: either include this probe on the throttle-skip / always-cheap path when node_modules exists, or name `deft doctor --full` (and/or an explicit post-teardown invocation) as the supported discovery surface and put that same command in the recovery docs (P3).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Treat dangling findings as non-advisory hard fail (broken install). Skip cleanly when node_modules is absent. Do not make `--fix` auto-run pnpm/npm install unless a later arc explicitly adds that.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Bound the walk (lstat/readlink only; no follow-mutate into sibling worktrees) with injectable seams. Emit recovery via the existing package-manager resolver (`resolveDoctorPackageManager` / detectPackageManager); keep the Windows `CI=true pnpm install --frozen-lockfile` TTY note where pnpm is selected.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "For the worktree-path bonus (P2), match dangling targets against `AGENT_SCRATCH_DIRS` (including `.deft-scratch` / legacy scratch roots) plus a worktrees subpath, rather than hardcoding only `.deft-scratch/worktrees/`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Non-goals / deferrals (P4): do not invent a pnpm/worktree layout fix; do not relocate worktrees outside the repo root; do not bind live cross-worktree link policy or optional post-teardown primary validation in this first ship. Mechanism formation stays a separate prerequisite arc.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Swarm: letting an agent, or several agents, carry a piece of work through to a finished pull request. A single person should still have a simple way to run one story.\n\nWhat a new person hits: Cleaning up an agent work folder can break the installed libraries in the main project, so the app later fails with a missing-module error.\n\nWhy that ruins the product for them: They try the multi-agent path once, tidy up, and the application will not start. The tool damaged the project.\n\nHow likely: Medium. Only people who try parallel agents hit it. For those people it is a strong reason to uninstall.\n\n",
+          "id": 5780304582,
+          "html_url": "https://github.com/deftai/directive/issues/3749#issuecomment-5780304582",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:39:45Z",
+          "updated_at": "2026-09-22T16:39:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because removing a Directive scratch worktree can leave dangling primary node_modules junctions that later surface as opaque MODULE_NOT_FOUND, and tip doctor has no dangling-junction/symlink scan with named recovery.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nOperator answered the Dual-stop spend ask with use recommended n; recommended and recorded spend is N=1 for this concrete doctor/detect-and-report first-ship with closed AC. Mechanism formation remains deferred per the issue body.\n\npain: P1, P2, P3, P4\n\nP1. A dangling junction or symlink under node_modules is not detected and reported by name with an actionable recovery; it surfaces later as MODULE_NOT_FOUND on an unrelated transitive dependency.\nP2. When a dangling target resolves under a worktree path (including .deft-scratch/worktrees/), the report does not say so.\nP3. The recovery command is not documented where someone hitting this will look (doctor output / adjacent docs).\nP4. First-ship must keep the unverified link-formation mechanism and any structural relocate (overlap #3604) out of the detector PR; establishing the mechanism is a separate prerequisite before designing against it.\n\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-3749-dc\norigin-ref: origin/master\ndispatch-sha: 56e37e8ae956484c5ff729909eb3ef528085a6e3\npin-kind: origin-default\ntarget-digest: sha256:cf94f67002c4fd472e0f429a4b96c8bfb78debfd50b5ae05a772ddef06fb2a64\n\nPin reads use git show 56e37e8ae956484c5ff729909eb3ef528085a6e3. Single Grok seat. Not dual-launched. Non-goals: do not invent a pnpm/worktree layout fix in this arc; do not relocate worktrees outside the repo root in the first ship; do not block the detector on reproducing link formation.",
+          "id": 5875533301,
+          "html_url": "https://github.com/deftai/directive/issues/3749#issuecomment-5875533301",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T17:52:54Z",
+          "updated_at": "2026-09-28T17:52:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#3749\nCharter: open critique\nRound: 1 critic (fresh)\nId ceiling (inclusive): 5875533301\nSHA at dispatch: 56e37e8ae956484c5ff729909eb3ef528085a6e3\narc-mode: no-ingest\naudit-targets: none\nSeat: grok\nLauncher: spawn_subagent\n\nOpen critique of Stop 1 charter 5875533301 (first-ship doctor detect-and-report for dangling junctions/symlinks under node_modules; mechanism formation and structural relocate deferred). Pin reads via `git show 56e37e8ae956484c5ff729909eb3ef528085a6e3:<path>`. Tip `runChecksImpl` registers no dangling-link check (`packages/core/src/doctor/checks.ts` ~1489–1559).\n\n## 1. Framework-repo install-integrity skip would hide the detector\n\nclass: blocks-the-design\n\nEvidence: Issue body files the incident in this Windows framework checkout. At the pin, `runInstallIntegrityChecks` returns early when `runningInsideDeftRepo` is true (`packages/core/src/doctor/main.ts` ~1041–1051: \"Skipping install-integrity checks -- running inside the deft framework repo\"). That gate sits on the only `runChecks` / install-integrity path (`main.ts` ~560–561). `runningInsideDeftRepo` matches this repo via `main.md` + `DEFT_REPO_POSITIVE_MARKERS` (`packages/core/src/doctor/paths.ts`). Throttle-skip signposts also no-op inside deft (`packages/core/src/doctor/signpost-checks.ts` ~17–27).\n\nFailure mode: A lean that only adds the new check to `runChecksImpl` / install-integrity ships a consumer-only detector. In the filing environment, bare `deft doctor` never scans primary `node_modules`, so P1–P3 stay unmet where the opaque `MODULE_NOT_FOUND` actually hit.\n\nDisposition: Bound remedy must place the dangling-link probe on a doctor path that still runs for framework source when `node_modules` is present (sibling of install-integrity, or install-integrity with an explicit framework-repo carve-in for this check alone). Consumer-only placement cannot bind.\n\n## 2. Clean-window throttle skips the delayed symptom class\n\nclass: sharpens-framing\n\nEvidence: Issue Observed / Why-hard-to-diagnose: failure is delayed and displaced after worktree remove. Default doctor without `--full` uses `decideThrottle` with `CLEAN_WINDOW_HOURS = 24` (`packages/core/src/doctor/constants.ts` ~198; `doctor-state.ts` ~123+; `main.ts` ~449–495). On skip, only lightweight consumer signposts run; the full probe (and any new integrity check) does not. Dirty window is 4h and keyed off `lastErrorCount`, so an advisory-only prior run still gets the 24h clean skip.\n\nFailure mode: Operator runs a clean doctor, later removes a scratch worktree, then hits ritual/`deft doctor` inside the window and gets throttle-skipped status. The named dangling report never appears; the next failure is still opaque `MODULE_NOT_FOUND`.\n\nDisposition: Lean must bind discovery timing. Either (a) include this probe on the throttle-skip / always-cheap path when `node_modules` exists, or (b) name `deft doctor --full` (and/or an explicit post-teardown invocation) as the supported discovery surface and put that same command in the P3 recovery docs. Leaving timing implicit under-ships the delayed class the issue names.\n\n## 3. Bind hard-fail versus advisory for a broken install\n\nclass: sharpens-framing\n\nEvidence: Charter P1 asks for detect + named recovery. Doctor already splits hard fails from exit-exempt advisory fails via `DOCTOR_ADVISORY_FAIL_CHECKS` / `data.advisory` and `deriveExitCode` (`packages/core/src/doctor/checks.ts` ~70–87, ~1479–1485). Hard errors feed `lastErrorCount` and dirty throttle; advisory warnings do not (`main.ts` install-integrity loop commentary ~advisory stays warning).\n\nFailure mode: Shipping the check as advisory keeps exit 0 and a 24h clean throttle after a known-broken `node_modules`, so session ritual can look green while every verb still throws `MODULE_NOT_FOUND`. Shipping it hard without a skip-when-absent rule can false-red greenfield trees with no `node_modules`.\n\nDisposition: Bind dangling findings as non-advisory hard fail (broken install), skip cleanly when `node_modules` is absent, and keep `--fix` from auto-running `pnpm/npm install` unless a later arc explicitly adds that.\n\n## 4. Bound the walk and make recovery package-manager aware\n\nclass: sharpens-framing\n\nEvidence: pnpm `nodeLinker: isolated` trees put many links under `node_modules` / `node_modules/.pnpm` (issue Environment). Issue notes this host's process spawn is ~5–10x normal. Doctor already has `resolveDoctorPackageManager` / `detectPackageManager` (`main.ts`) while the recorded recovery is the incident-specific `CI=true pnpm install --frozen-lockfile`.\n\nFailure mode: Unbounded recursive descent makes `--full` / session doctor costly enough to avoid, recreating the opaque path. Hard-coding only the pnpm recovery mis-documents npm/yarn consumers and fights the existing PM resolver.\n\nDisposition: Bind a bounded, read-only link walk (lstat/readlink; no follow-mutate into other worktrees) with injectable seams, and emit recovery via the existing package-manager resolver (keep the Windows/`CI=true` pnpm TTY note where that PM is selected).\n\n## 5. Worktree-path bonus should cite AGENT_SCRATCH_DIRS\n\nclass: footnote\n\nEvidence: P2 bonuses targets under `.deft-scratch/worktrees/`. Shared SoT already lists `.deft-scratch` and legacy `swarm-worktrees` as `AGENT_SCRATCH_DIRS` (`packages/core/src/fs/non-product-dirs.ts` ~38).\n\nFailure mode: Hardcoding only the current basename misses legacy scratch roots that still appear in older checkouts.\n\nDisposition: Prefer matching dangling targets against `AGENT_SCRATCH_DIRS` (plus worktrees subpath) when implementing P2; non-blocking for first ship.\n\n## 6. Teardown validate and live cross-worktree links stay out\n\nclass: footnote\n\nEvidence: Issue body offers optional post-teardown primary validation; Stop 1 pains are P1–P4 detect/report/docs + mechanism deferral only. Live junctions into still-present worktrees are the unverified formation half the body refuses to design against.\n\nFailure mode: Pulling teardown hooks or live-link policy into first ship reopens the #3736/#3738 mechanism trap Stop 1 correctly fences.\n\nDisposition: Affirm deferral. First ship is dangling detect-and-report (+ worktree-path bonus + recovery docs) only.\n\n### Injection / swarm lens\n\nTarget touches worktrees and shared `node_modules` state. Detector must stay read-only (lstat/readlink/report). Do not follow links into sibling worktrees for writes, and do not treat a still-resolving cross-worktree link as in-scope until mechanism formation is a separate arc.\r\n\n",
+          "id": 5875622836,
+          "html_url": "https://github.com/deftai/directive/issues/3749#issuecomment-5875622836",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T17:58:45Z",
+          "updated_at": "2026-09-28T17:58:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nRemoving a scratch worktree can leave dangling primary node_modules junctions that later surface as opaque MODULE_NOT_FOUND, and tip doctor has no dangling-link scan. Critic 5875622836 kept the detect-and-report first ship and blocked consumer-only placement under install-integrity (framework repo skips that path). Bound remedy puts the probe on a doctor path that still runs in-framework when node_modules exists, binds discovery timing and hard-fail/advisory, bounds the walk with PM-aware recovery, uses AGENT_SCRATCH_DIRS for the worktree-path bonus, and keeps mechanism/teardown out of first ship. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5875533301. Critic 5875622836 checks the findings. Whether the list covers the four pains stays open until a later critic targets those cites.\n\n**Lean:** open critique of #3749 after round-1 sibling 1. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5875533301\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 56e37e8ae956484c5ff729909eb3ef528085a6e3\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-3749-dc\norigin-ref: origin/master\npin-kind: origin-default\n\n## Takes\n\n- 5875622836 Framework-repo install-integrity skip would hide the detector — accept-into-contract\n- 5875622836 Clean-window throttle skips the delayed symptom class — accept-into-contract\n- 5875622836 Bind hard-fail versus advisory for a broken install — accept-into-contract\n- 5875622836 Bound the walk and make recovery package-manager aware — accept-into-contract\n- 5875622836 Worktree-path bonus should cite AGENT_SCRATCH_DIRS — accept-into-contract\n- 5875622836 Teardown validate and live cross-worktree links stay out — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Add a read-only dangling junction/symlink probe under node_modules that reports each dangling entry by name with actionable recovery. Place it on a doctor path that still runs for framework source when node_modules is present (sibling of install-integrity, or install-integrity with an explicit framework-repo carve-in for this check alone). Consumer-only placement under the install-integrity skip cannot bind.\n2. Bind discovery timing for the delayed/displaced class: either include this probe on the throttle-skip / always-cheap path when node_modules exists, or name `deft doctor --full` (and/or an explicit post-teardown invocation) as the supported discovery surface and put that same command in the recovery docs (P3).\n3. Treat dangling findings as non-advisory hard fail (broken install). Skip cleanly when node_modules is absent. Do not make `--fix` auto-run pnpm/npm install unless a later arc explicitly adds that.\n4. Bound the walk (lstat/readlink only; no follow-mutate into sibling worktrees) with injectable seams. Emit recovery via the existing package-manager resolver (`resolveDoctorPackageManager` / detectPackageManager); keep the Windows `CI=true pnpm install --frozen-lockfile` TTY note where pnpm is selected.\n5. For the worktree-path bonus (P2), match dangling targets against `AGENT_SCRATCH_DIRS` (including `.deft-scratch` / legacy scratch roots) plus a worktrees subpath, rather than hardcoding only `.deft-scratch/worktrees/`.\n6. Non-goals / deferrals (P4): do not invent a pnpm/worktree layout fix; do not relocate worktrees outside the repo root; do not bind live cross-worktree link policy or optional post-teardown primary validation in this first ship. Mechanism formation stays a separate prerequisite arc.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nTarget-digest: sha256:cf94f67002c4fd472e0f429a4b96c8bfb78debfd50b5ae05a772ddef06fb2a64\n\n## Parent-side substantiation\n\nCritic blocked consumer-only install-integrity placement and required timing + severity + bounded walk. Footnotes keep AGENT_SCRATCH_DIRS and mechanism deferral. Items 1–4 are first-ship doctor surface; item 5 is P2 bonus SoT; item 6 is the Stop 1 fence.\n\naudit:dangling-doctor-framework-path sha=56e37e8ae956484c5ff729909eb3ef528085a6e3 pointer=comment:5875622836 reading=asserted\naudit:doctor-discovery-timing sha=56e37e8ae956484c5ff729909eb3ef528085a6e3 pointer=comment:5875622836 reading=asserted\naudit:dangling-hard-fail-skip-absent sha=56e37e8ae956484c5ff729909eb3ef528085a6e3 pointer=comment:5875622836 reading=asserted",
+          "id": 5875638889,
+          "html_url": "https://github.com/deftai/directive/issues/3749#issuecomment-5875638889",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T17:59:51Z",
+          "updated_at": "2026-09-28T17:59:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#3749\nCharter: open critique. Pain-audit of asserted coverage on the bind lean. Spend N=1.\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nId ceiling (inclusive): 5875638889\nSHA at dispatch: 56e37e8ae956484c5ff729909eb3ef528085a6e3\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nSeat: grok\nLauncher: grok\n\nPain-audit of asserted coverage on successor lean 5875638889 (relieves P1–P4). Stop 1 pains from 5875533301. Round-1 critic in envelope: 5875622836. Pin reads via `git show 56e37e8ae956484c5ff729909eb3ef528085a6e3:<path>`.\n\n## pain-P1 detect/report with recovery\n\nclass: footnote\n\nEvidence: Stop 1 P1 asks for dangling junction/symlink under `node_modules` detected and reported by name with actionable recovery. At the pin, `runChecksImpl` registers no dangling-link check (`packages/core/src/doctor/checks.ts`), and `runInstallIntegrityChecks` returns early inside the framework repo (`packages/core/src/doctor/main.ts`: \"Skipping install-integrity checks -- running inside the deft framework repo\"). Bound remedy item 1 adds the read-only probe with named report + recovery and places it on a doctor path that still runs for framework source when `node_modules` is present (sibling of install-integrity, or install-integrity with an explicit framework-repo carve-in). Items 3–4 bind hard-fail (skip when absent) and PM-aware recovery emission via `resolveDoctorPackageManager` / `detectPackageManager`. Critic 5875622836 finding 1 (consumer-only placement blocks) is accept-into-contract on the lean.\n\nFailure mode if under-covered: a consumer-only or nameless check would leave the filing environment and the opaque `MODULE_NOT_FOUND` path unmet. Items 1, 3, and 4 close that as written.\n\nDisposition: Asserted coverage for pain-P1 stands. Harvest unchanged.\n\n## pain-P2 worktree-path target named\n\nclass: footnote\n\nEvidence: Stop 1 P2 asks the report to say when a dangling target resolves under a worktree path (including `.deft-scratch/worktrees/`). Bound remedy item 5 matches dangling targets against `AGENT_SCRATCH_DIRS` (pin: `.deft-scratch` and legacy `swarm-worktrees` in `packages/core/src/fs/non-product-dirs.ts`) plus a worktrees subpath, rather than hardcoding only the current basename. Critic footnote 5 is accept-into-contract.\n\nFailure mode if under-covered: hardcoding only `.deft-scratch/worktrees/` would miss legacy scratch roots. Item 5 closes that without inventing mechanism.\n\nDisposition: Asserted coverage for pain-P2 stands. Harvest unchanged.\n\n## pain-P3 recovery documented where operators look\n\nclass: footnote\n\nEvidence: Stop 1 P3 names doctor output / adjacent docs as the look-here surface. Bound remedy item 1 requires actionable recovery on the dangling report itself (doctor output — the surface the issue body says would have replaced the diagnostic detour). Item 4 emits that recovery through the existing package-manager resolver and keeps the Windows `CI=true pnpm install --frozen-lockfile` TTY note where pnpm is selected. Item 2 further requires that when discovery is bound to `deft doctor --full` (or an explicit post-teardown invocation), that same command appears in the recovery docs.\n\nFailure mode if under-covered: operators would still get a named dangling hit with no recovery string, or a `--full`-only surface with no documented discovery command. Items 1, 2, and 4 close both arms.\n\nDisposition: Asserted coverage for pain-P3 stands. Harvest unchanged.\n\n## pain-P4 first-ship must not invent mechanism/layout fix\n\nclass: footnote\n\nEvidence: Stop 1 P4 fences unverified link-formation mechanism and structural relocate (overlap #3604) out of the detector PR. Bound remedy item 6 lists the same non-goals: no invented pnpm/worktree layout fix, no relocate outside the repo root, no live cross-worktree link policy, no optional post-teardown primary validation in this first ship; mechanism formation stays a separate prerequisite arc. Critic footnote 6 is accept-into-contract.\n\nFailure mode if under-covered: first ship would reopen the #3736/#3738 mechanism trap. Item 6 keeps that fence.\n\nDisposition: Asserted coverage for pain-P4 stands. Harvest unchanged.\n\n## Discovery-timing dual path (already on the bind list)\n\nclass: footnote\n\nEvidence: Bound remedy item 2 keeps the exclusive-or already accepted from critic finding 2: always-cheap / throttle-skip path when `node_modules` exists, or name `--full` (and/or post-teardown) as the supported discovery surface with that command in P3 docs. Pin confirms default doctor without `--full` uses `decideThrottle` with `CLEAN_WINDOW_HOURS = 24` (`packages/core/src/doctor/constants.ts` / `main.ts`), and throttle-skip signposts no-op inside deft (`signpost-checks.ts`).\n\nFailure mode: implement must pick one arm; both arms are already on the Bound remedy list.\n\nDisposition: Does not change harvested Bound remedy items 1–6. Bindable as written.\n\nCensus: five footnotes; zero blocks-the-design; zero sharpens-framing. Bound remedy items 1–6 cover pain-P1, pain-P2, pain-P3, and pain-P4 as asserted on lean 5875638889.\r\n\n",
+          "id": 5875682640,
+          "html_url": "https://github.com/deftai/directive/issues/3749#issuecomment-5875682640",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:02:44Z",
+          "updated_at": "2026-09-28T18:02:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nRemoving a scratch worktree can leave dangling primary node_modules junctions that later surface as opaque MODULE_NOT_FOUND. Bound remedy places a read-only doctor dangling-link probe on a path that still runs in-framework when node_modules exists, binds discovery timing and hard-fail severity, bounds the walk with PM-aware recovery, uses AGENT_SCRATCH_DIRS for the worktree-path bonus, and keeps mechanism/teardown out of first ship. Pain-audit 5875682640 of lean 5875638889 was footnote-only for harvest. The same parent wrote Stop 1 5875533301. No product implement in this session — arc ends at ingest-ready.\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Tip doctor has no dangling-link check under runChecksImpl | critic 5875622836; pin checks.ts | verified |\n| Framework install-integrity skip would hide consumer-only placement | critic 5875622836 F1; main.ts runningInsideDeftRepo | verified |\n| Bound remedy items 1–6 cover Stop 1 P1–P4 | lean 5875638889; pain-audit 5875682640 footnote-only | verified |\n| Agents agreed (empty disagreement set) | pain-audit census: five footnotes, zero blocks, zero sharpenings | verified |\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5875638889.",
+          "id": 5875694895,
+          "html_url": "https://github.com/deftai/directive/issues/3749#issuecomment-5875694895",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T18:03:32Z",
+          "updated_at": "2026-09-28T18:03:32Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n`git worktree remove` on a Directive scratch worktree took down the **primary checkout's** deft CLI. Every verb failed with `Cannot find module 'readable-stream/passthrough'` — a transitive dependency name that mentions neither worktrees nor pnpm nor the directory that had just been deleted.\n\nThis issue has two halves, deliberately kept apart: a **guard that is shippable now** and does not depend on knowing why the link formed, and a **mechanism that is not yet established** and should not be designed against until it is.\n\n## Observed\n\n2026-08-25, Windows, this repo.\n\n1. Finished a build in `.deft-scratch/worktrees/b3738`, merged the PR, ran `git worktree remove <path> --force` as ordinary cleanup.\n2. Nothing failed at removal.\n3. The next deft CLI invocation in the **primary checkout** — a different directory — failed. So did every subsequent one, including `policy:show`.\n\n```\nError: Cannot find module 'readable-stream/passthrough'\ncode: 'MODULE_NOT_FOUND'\n```\n\nThe operator diagnosed it: archiver's `readable-stream` junction in the primary checkout had been pointing **into the b3738 worktree's tree**. Deleting the worktree dangled it.\n\n**Recovery** (works, cheap): `CI=true pnpm install --frozen-lockfile` — 114 packages reused from the store, no re-download. `CI=true` is required so pnpm can recreate `node_modules` without a TTY prompt.\n\nAfter recovery the junction resolves inside the primary's own virtual store, and a scan found **zero** remaining junctions pointing into worktrees.\n\n## What I ruled out — the mechanism is NOT established\n\nThree plausible explanations, all refuted by measurement on this machine:\n\n| Hypothesis | Check | Result |\n|---|---|---|\n| Worktrees are picked up as pnpm workspace members (they sit under the repo root) | `pnpm-workspace.yaml` globs | `packages/*` only — worktrees are not members |\n| pnpm searches upward from a worktree and resolves to the primary workspace | `pnpm root -w` from inside a worktree | Resolves to the **worktree itself**, not the primary |\n| The pnpm store lives inside the repo, so trees cross-link | `pnpm store path` | `%LOCALAPPDATA%\\pnpm\\store\\v11` — global, outside the repo |\n\nConfiguration looks conventional throughout: `nodeLinker: isolated`, `virtualStoreDir` is the primary's own `node_modules/.pnpm`, store is global.\n\nSo **why a primary-checkout junction ever pointed into a worktree is unexplained.** Each worktree carries its own `node_modules` and its own `package.json`, and installs there appear self-contained.\n\nI am not filing a remedy for this half. Specifying a fix for an unverified mechanism is the exact error #3736 was recut for and the one #3738's critic rejected three directions over. Establishing the mechanism is the prerequisite, not the afterthought.\n\n## Why the failure is hard to diagnose\n\nThree properties compound:\n\n- **Delayed.** Nothing breaks when the worktree is removed.\n- **Displaced.** It breaks in a different directory, on a later command.\n- **Opaque.** The error names a transitive dependency. Nothing in it points at worktrees, pnpm, junctions, or the deletion. I spent several probes on it and initially suspected a concurrent agent's install.\n\n## The shippable half: detect it\n\nA check that does not require knowing the cause, because it tests the symptom class:\n\n- `deft doctor` scans `node_modules` for **dangling** junctions/symlinks and reports them by name, with the recovery command.\n- Bonus signal when a dangling target resolves under `.deft-scratch/worktrees/` — that names the likely origin without asserting a mechanism.\n- Optionally, whatever verb owns worktree teardown validates the primary checkout afterwards rather than leaving the breakage to surface later somewhere else.\n\nOne line of `doctor` output would have replaced the whole diagnostic detour.\n\n## Why this is worth doing now: #3604\n\n#3604 records **~213 accumulated worktrees** and asks for them to be pruned. That is this exact command, 213 times, against a checkout where the hazard can recur. Whoever takes that work can brick the primary checkout and get an error naming `readable-stream`.\n\nThis is a **distinct** defect from #3604 and arguably a prerequisite for it:\n\n- #3604: worktrees accumulate and are never released.\n- This: removing one can break the primary checkout, invisibly and with a misleading error.\n\n## Acceptance\n\n- A dangling junction or symlink under `node_modules` is detected and reported by name, with an actionable recovery, rather than surfacing later as `MODULE_NOT_FOUND` on an unrelated transitive dependency.\n- Where a dangling target resolves under a worktree path, the report says so.\n- The recovery command is documented where someone hitting this will look.\n- **Separately**, and before any structural change: reproduce the link formation and establish the mechanism. Only then decide whether worktrees belong outside the repo root, which is a design change overlapping #3604.\n\n## Environment\n\nWindows 11; pnpm 11, `nodeLinker: isolated`, store `%LOCALAPPDATA%\\pnpm\\store\\v11`; worktrees at `<repo>/.deft-scratch/worktrees/*`, each with its own `node_modules`. Note this machine's process spawn is roughly 5-10x normal (bare `node -e \"0\"` at 340ms), which is unrelated to this defect but is worth knowing when reading any timing here.\n\nRelated: #3604 (worktree accumulation), #3649 (worktree creation ordering).\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5252227999,
+        "origin": "deftai/directive#3749",
+        "id": "github.issue.5252227999"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "cf94f67002c4fd472e0f429a4b96c8bfb78debfd50b5ae05a772ddef06fb2a64"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/types.ts",
+          "packages/core/src/fs/non-product-dirs.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor"
+        ],
+        "expected_outputs": [
+          "doctor dangling-link hard-fail when node_modules present",
+          "PM-aware recovery text",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "conflict_group": "doctor-dangling-links",
+        "size": "M",
+        "file_scope_confidence": "bound-surfaces",
+        "model_tier": "default"
+      },
+      "productPullRequest": 5215,
+      "githubIssue": 3749,
+      "productMergeCommit": "1ce9d2e751d7f473e83fda8856347260274531c3",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5215,
+        "prBase": null,
+        "mergeCommit": "1ce9d2e751d7f473e83fda8856347260274531c3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1ce9d2e751d7f473e83fda8856347260274531c3",
+        "verifiedAt": "2026-10-01T15:04:32Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGY3NjktZGI4Yi03MmMyLTlhNjktMTA2ZTZmNmU3ZDVl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-01T15:04:32Z",
+      "completedSessionId": "host:grok:v1:MDFhMGY3NjktZGI4Yi03MmMyLTlhNjktMTA2ZTZmNmU3ZDVl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-01T15:04:32Z"
+      }
+    },
+    "id": "github.issue.5252227999",
+    "updated": "2026-10-01T15:04:32Z",
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "10000",
+          "unit": "entries",
+          "rejectionScope": "invocation"
+        },
+        {
+          "value": "8",
+          "unit": "directory-levels",
+          "rejectionScope": "invocation"
+        }
+      ]
+    }
+  }
+}
