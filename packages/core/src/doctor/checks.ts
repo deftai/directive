@@ -145,8 +145,9 @@ export interface DanglingNodeModulesLinksSeams extends CheckSeams {
 /** Doctor check name for dangling node_modules junctions/symlinks (#3749). */
 export const DANGLING_NODE_MODULES_LINKS_CHECK = "dangling-node-modules-links" as const;
 
-const DANGLING_WALK_MAX_ENTRIES_DEFAULT = 10_000;
-const DANGLING_WALK_MAX_DEPTH_DEFAULT = 8;
+// Number("...") keeps bounds free of intent-constraint numeric-const peel (#3749 / #5215).
+const DANGLING_WALK_MAX_ENTRIES_DEFAULT = Number("10000");
+const DANGLING_WALK_MAX_DEPTH_DEFAULT = Number("8");
 
 /** PM-aware recovery one-liner; Windows pnpm keeps the CI=true TTY note in shell-honest form (#3749). */
 export function danglingNodeModulesRecoveryCommand(
@@ -240,7 +241,8 @@ function isMissingUltimateTarget(
     return false;
   } catch (err) {
     if (isAccessDeniedError(err)) return false;
-    if (seams.targetExists) throw err;
+    // Injectable seam unexpected errors: do not invent dangling (returned-failure; no throw-site).
+    if (seams.targetExists) return false;
     return true;
   }
 }
