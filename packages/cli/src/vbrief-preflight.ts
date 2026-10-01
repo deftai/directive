@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { emitJson, evaluate, PREFLIGHT_USAGE_HINT } from "@deftai/directive-core/preflight";
 import { scanWorkClaimForBriefPath } from "@deftai/directive-core/scm";
+import { refuseIfWslOwnershipBlocked } from "./wsl-ownership-guard.js";
 
 interface ParsedArgs {
   vbriefPath: string | null;
@@ -111,6 +113,9 @@ export function run(
     return 2;
   }
   const vbriefPath = args.vbriefPath as string;
+  // #1617: gate the brief's tree, not process.cwd() (cross-directory callers).
+  const blocked = refuseIfWslOwnershipBlocked(dirname(resolve(vbriefPath)));
+  if (blocked !== null) return blocked;
   const result = evaluate(vbriefPath);
   let scanLines: string[] = [];
   try {

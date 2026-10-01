@@ -82,6 +82,8 @@ describe("parseWatchArgs", () => {
     expect(a.error).toBeUndefined();
     expect(a.prNumber).toBe(1056);
     expect(a.maxWaitMinutes).toBe(DEFAULT_MAX_WAIT_MINUTES);
+    expect(a.budgetSource).toBe("default");
+    expect(a.budgetDeclared).toBe(false);
     expect(a.pollSeconds).toBe(DEFAULT_POLL_SECONDS);
     expect(a.oneShot).toBe(false);
     expect(a.emitJson).toBe(false);
@@ -105,6 +107,8 @@ describe("parseWatchArgs", () => {
     expect(a.oneShot).toBe(true);
     expect(a.emitJson).toBe(true);
     expect(a.maxWaitMinutes).toBe(10);
+    expect(a.budgetSource).toBe("cli");
+    expect(a.budgetDeclared).toBe(true);
     expect(a.pollSeconds).toBe(15);
     expect(a.repo).toBe("deftai/directive");
     expect(a.projectRoot).toBe("/tmp/x");
@@ -143,6 +147,32 @@ describe("parseWatchArgs", () => {
     ).toBeUndefined();
   });
 
+  it("honors DEFT_PR_WATCH_MAX_WAIT_MINUTES when CLI omits max-wait (#3984)", () => {
+    const prev = process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+    process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = "18";
+    try {
+      const a = parseWatchArgs(["7"]);
+      expect(a.error).toBeUndefined();
+      expect(a.maxWaitMinutes).toBe(18);
+      expect(a.budgetSource).toBe("env");
+      expect(a.budgetDeclared).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+      else process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = prev;
+    }
+  });
+
+  it("rejects invalid DEFT_PR_WATCH_MAX_WAIT_MINUTES without throw (#3984)", () => {
+    const prev = process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+    process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = "abc";
+    try {
+      expect(parseWatchArgs(["7"]).error).toContain("DEFT_PR_WATCH_MAX_WAIT_MINUTES");
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+      else process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = prev;
+    }
+  });
+
   it("rejects invalid numeric flag values", () => {
     expect(parseWatchArgs(["1", "--poll-seconds", "abc"]).error).toContain("--poll-seconds");
     expect(parseWatchArgs(["1", "--max-wait-minutes", "-1"]).error).toContain("--max-wait-minutes");
@@ -157,6 +187,34 @@ describe("parseWatchArgs", () => {
     expect(parseWatchArgs(["--help"]).error).toBeUndefined();
     expect(parseWatchArgs(["-h"]).help).toBe(true);
     expect(parseWatchArgs(["1056", "--help"]).help).toBe(true);
+  });
+
+  it("shows help even when DEFT_PR_WATCH_MAX_WAIT_MINUTES is invalid (#3984)", () => {
+    const prev = process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+    process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = "nope";
+    try {
+      const a = parseWatchArgs(["--help"]);
+      expect(a.help).toBe(true);
+      expect(a.error).toBeUndefined();
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+      else process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = prev;
+    }
+  });
+
+  it("keeps CLI budgetDeclared on help when env is invalid (#3984)", () => {
+    const prev = process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+    process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = "nope";
+    try {
+      const a = parseWatchArgs(["--help", "--max-wait-minutes", "12"]);
+      expect(a.help).toBe(true);
+      expect(a.error).toBeUndefined();
+      expect(a.budgetDeclared).toBe(true);
+      expect(a.maxWaitMinutes).toBe(12);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES;
+      else process.env.DEFT_PR_WATCH_MAX_WAIT_MINUTES = prev;
+    }
   });
 });
 

@@ -85,4 +85,10 @@ describe("pr-watch constants", () => {
     expect(WATCH_HELP).toContain("@greptileai review");
     expect(VERDICT_GREPTILE_SHA_STALL).toBe("GREPTILE_SHA_STALL");
   });
+
+  it("documents declared budget vs default poll cap (#3984 / #3153)", () => {
+    expect(WATCH_HELP).toContain("DEFT_PR_WATCH_MAX_WAIT_MINUTES");
+    expect(WATCH_HELP).toContain("declared envelope");
+    expect(WATCH_HELP).toContain("#3984");
+  });
 });

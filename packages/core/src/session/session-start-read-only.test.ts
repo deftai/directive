@@ -162,6 +162,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
     }>;
     expect(steps.map((s) => s.name)).toEqual([
       "alignment",
+      "wsl_ownership_guard",
       "scm_readiness",
       "host_content_surface",
       "effort_budget",

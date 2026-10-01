@@ -214,6 +214,15 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:branch --project-root "{{.USER_WORKING_DIR}}" --allow-missing-project-definition'
 
+  ownership:
+    desc: "Fail closed on harm-capable WSL root vs project-owner mismatch unless DEFT_ALLOW_ROOT_WSL_RUNTIME=1 (#1617)."
+    dir: '{{.USER_WORKING_DIR}}'
+    # Prefer-B: house :engine:invoke only (runtime-verb allowlist; no build dep).
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:ownership --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   gh-auth:
     # Worker-envelope GitHub auth validation (#1557). Thin task wrapper over the
     # existing `github-auth-modes` engine verb, added by #3483: the swarm skill

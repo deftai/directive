@@ -1,0 +1,30 @@
+version: '3'
+
+# tasks/ownership.yml -- WSL root-runtime ownership doctor/fix (#1617).
+# Reachable under mismatch so operators can recover (Bound item 7).
+# Prefer-B: house :engine:invoke task calls only — no bespoke ensure/run shims.
+# Ownership verbs are on the engine runtime-verb allowlist (no _ts-build as root).
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  doctor:
+    desc: "Diagnose WSL agent-as-root vs filesystem project-owner mismatch (#1617)."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'ownership:doctor --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  fix:
+    desc: "Scoped repair of root-owned objects under approved project roots (#1617)."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'ownership:fix --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

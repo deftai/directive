@@ -19,6 +19,10 @@ import {
   maybeFormatHostContentSurfaceLines,
 } from "../platform/host-content-surface.js";
 import {
+  evaluateWslOwnershipGuard,
+  ownershipGuardToDict,
+} from "../platform/platform-capabilities.js";
+import {
   detectEnvironmentContext,
   type EnvironmentContext,
   environmentContextToDict,
@@ -530,14 +534,17 @@ export function sameOwnerRebaseHeadContinuity(
     const sp = line.indexOf(" ");
     const sha = sp === -1 ? line : line.slice(0, sp);
     const subject = sp === -1 ? "" : line.slice(sp + 1);
+    // Amend after rebase must fail closed — do not walk past amend to an
+    // earlier rebase subject (#3884 Greptile residual). Branch creation at the
+    // ritual tip (`branch: Created from …`) is a switch, not same-branch rebase
+    // (#1617 / PR #5217 Greptile outside-diff). Check before ritual-SHA match:
+    // the create subject often sits on the ritual line itself.
+    if (/^(reset|checkout|branch)(:|\s)/i.test(subject) || /^commit \(amend\)/i.test(subject)) {
+      return false;
+    }
     if (sha === ritualHead) {
       foundRitual = true;
       break;
-    }
-    // Amend after rebase must fail closed — do not walk past amend to an
-    // earlier rebase subject (#3884 Greptile residual).
-    if (/^(reset|checkout)(:|\s)/i.test(subject) || /^commit \(amend\)/i.test(subject)) {
-      return false;
     }
     if (/rebase/i.test(subject)) seenRebase = true;
   }
@@ -1295,6 +1302,8 @@ function runReadOnlySessionStart(
   lines.push(READ_ONLY_ALIGNMENT_MESSAGE);
   lines.push(userMdLine);
   lines.push(formatEnvironmentContext(environment));
+  const readOnlyOwnership = evaluateWslOwnershipGuard({ projectRoot });
+  lines.push(...readOnlyOwnership.sessionWarnLines);
   lines.push(...formatScmReadinessLines(scm));
   lines.push(...hostSurface.lines);
   lines.push(...effortBudget.lines);
@@ -1321,6 +1330,7 @@ function runReadOnlySessionStart(
       diagnostic: userMd.diagnostic,
     },
     environment: environmentContextToDict(environment),
+    wsl_ownership_guard: ownershipGuardToDict(readOnlyOwnership),
     scm: scmReadinessToDict(scm),
     host_content_surface: hostContentSurfaceToDict(hostSurface.report),
     effort_budget: effortBudgetToDict(effortBudget.budget),
@@ -2056,6 +2066,16 @@ export function runSessionStart(
   }
   lines.push(formatEnvironmentContext(environment));
 
+  // #1617: WSL root-runtime ownership soft warn (never blocks session:start).
+  // Emits resolved intended filesystem project-owner (uid:gid + account).
+  const ownershipStepStarted = performance.now();
+  const ownershipVerdict = evaluateWslOwnershipGuard({ projectRoot });
+  lines.push(...ownershipVerdict.sessionWarnLines);
+  stepTimings.push({
+    name: "wsl_ownership_guard",
+    duration_ms: elapsedMs(ownershipStepStarted),
+  });
+
   // #2275: SCM tooling + auth readiness — shallow on hot path, deep with --with-network.
   // Never fails session:start; reports which SCM-dependent gates are skipped.
   const scmStepStarted = performance.now();
@@ -2629,6 +2649,7 @@ export function runSessionStart(
       diagnostic: userMd.diagnostic,
     },
     environment: environmentContextToDict(environment),
+    wsl_ownership_guard: ownershipGuardToDict(ownershipVerdict),
     scm: scmReadinessToDict(scm),
     host_content_surface: hostContentSurfaceToDict(hostSurface.report),
     effort_budget: effortBudgetToDict(effortBudget.budget),

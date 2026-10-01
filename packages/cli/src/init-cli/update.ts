@@ -4,6 +4,7 @@ import {
   UnknownUpdateFlagError,
 } from "@deftai/directive-core/init-deposit";
 import type { DispatchIo } from "../dispatch.js";
+import { refuseIfWslOwnershipBlocked } from "../wsl-ownership-guard.js";
 import { CANONICAL_UPDATE_ARGV, UPDATE_DRY_RUN_FLAGS } from "./constants.js";
 import { argvWantsHelp, printUpdateHelp } from "./help.js";
 
@@ -20,6 +21,11 @@ export function runUpdate(argv: readonly string[], io: DispatchIo): Promise<numb
   }
   try {
     const args = parseUpdateArgv(CANONICAL_UPDATE_ARGV, argv);
+    // #1617: live ownership gate before deposit mutation (dry-run exempt).
+    if (!isUpdateDryRun(argv)) {
+      const blocked = refuseIfWslOwnershipBlocked(args.projectDir, io.writeErr);
+      if (blocked !== null) return Promise.resolve(blocked);
+    }
     return runRefreshDepositCli({
       ...args,
       dryRun: isUpdateDryRun(argv),

@@ -20,6 +20,10 @@ import {
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { scanCompletedLifecycleConsistency } from "../lifecycle/completed-consistency.js";
 import { scanCompletedWriteCorpus } from "../lifecycle/completed-write-guard.js";
+import {
+  evaluateWslOwnershipGuard,
+  ownershipGuardToDict,
+} from "../platform/platform-capabilities.js";
 import { resolveCheckResume } from "../policy/check-resume.js";
 import { resolveCoverageDebt } from "../policy/coverage-debt.js";
 import { resolveReviewers } from "../policy/reviewers.js";
@@ -85,6 +89,9 @@ export const DOCTOR_ADVISORY_FAIL_CHECKS: ReadonlySet<string> = new Set([
   "completed-open-items",
   "completed-unguarded-write",
   "coverage-check-resume-policy",
+  // #1617: soft on doctor so ownership:doctor/fix stay reachable under mismatch;
+  // protected mutations fail closed separately via assertProtectedMutationOwnership.
+  "wsl-ownership-guard",
 ]);
 
 /** True when a check fail must stay a warning (not lastErrorCount / exit 1). */
@@ -1883,6 +1890,45 @@ export function checkReviewerPresence(projectRoot: string, seams: CheckSeams = {
   };
 }
 
+/**
+ * #1617 WSL root-runtime ownership advisory. Native Windows/macOS skip.
+ * Failures stay advisory so doctor/fix remain reachable under mismatch.
+ */
+export function checkWslOwnershipGuard(projectRoot: string): CheckResult {
+  const verdict = evaluateWslOwnershipGuard({ projectRoot });
+  if (
+    verdict.status === "exempt-non-wsl" ||
+    verdict.status === "exempt-sandbox-remap" ||
+    verdict.status === "exempt-mount-pinned" ||
+    verdict.status === "ok"
+  ) {
+    return {
+      name: "wsl-ownership-guard",
+      status: "pass",
+      detail: verdict.messages[0] ?? `WSL ownership guard ${verdict.status}`,
+      data: stampAdvisory(ownershipGuardToDict(verdict)),
+    };
+  }
+  if (verdict.status === "exempt-override" || verdict.status === "warn") {
+    return {
+      name: "wsl-ownership-guard",
+      status: "fail",
+      detail: verdict.messages[0] ?? `WSL ownership guard ${verdict.status}`,
+      data: stampAdvisory(ownershipGuardToDict(verdict)),
+    };
+  }
+  return {
+    name: "wsl-ownership-guard",
+    status: "fail",
+    detail: verdict.messages[0] ?? "WSL ownership guard failed",
+    data: stampAdvisory({
+      ...ownershipGuardToDict(verdict),
+      suggested_fix: "deft ownership:doctor",
+      fix_command: "deft ownership:fix",
+    }),
+  };
+}
+
 export function checkCursorSdkAuth(environ: NodeJS.ProcessEnv = process.env): CheckResult {
   const key = (environ.CURSOR_API_KEY ?? "").trim();
   const want = (environ.DEFT_CURSOR_SDK_LAUNCH ?? "").trim() === "1";
@@ -1966,6 +2012,7 @@ export function runChecksImpl(
     checks.push(checkCompletedUnguardedWrite(projectRoot));
     checks.push(checkReviewerPresence(projectRoot, seams));
     checks.push(checkCursorSdkAuth());
+    checks.push(checkWslOwnershipGuard(projectRoot));
     checks.push(checkDanglingNodeModulesLinks(projectRoot, seams));
     return {
       projectRoot,
@@ -1992,6 +2039,7 @@ export function runChecksImpl(
   checks.push(checkCompletedUnguardedWrite(projectRoot));
   checks.push(checkReviewerPresence(projectRoot, seams));
   checks.push(checkCursorSdkAuth());
+  checks.push(checkWslOwnershipGuard(projectRoot));
   checks.push(checkDanglingNodeModulesLinks(projectRoot, seams));
   return {
     projectRoot,

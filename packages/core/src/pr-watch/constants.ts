@@ -92,7 +92,12 @@ export const WATCH_HELP =
   "  -h, --help            Show this help and exit 0\n" +
   "  --one-shot            Single probe (PENDING with no terminal verdict → exit 2)\n" +
   "  --json                Emit the AC-4 JSON shape on stdout\n" +
-  "  --max-wait-minutes N  Cap for the blocking poll (default: 30)\n" +
+  "  --max-wait-minutes N  Cap for the blocking poll (default: 30).\n" +
+  "                        Declared budget for #3153 wall-clock row (#3984):\n" +
+  "                        CLI flag or DEFT_PR_WATCH_MAX_WAIT_MINUTES. The\n" +
+  "                        30m default is a poll cap, not a declared envelope\n" +
+  "                        budget — dual-stop / envelope SLA bind only when\n" +
+  "                        a budget is declared.\n" +
   "  --poll-seconds N      Seconds between probes (default: 90)\n" +
   "  --repo OWNER/REPO     Override repository (default: GH_REPO / origin)\n" +
   "  --project-root PATH   Chdir before probing (optional)\n" +

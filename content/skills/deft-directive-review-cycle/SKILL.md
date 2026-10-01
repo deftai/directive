@@ -441,7 +441,7 @@ Review-cycle babysit wait is `pr:watch` (blocking to CLEAN, or `--one-shot` grou
 ⊗ Invent a third poller. Engine wait stays `pr:watch` then wait-merge after CLEAN.
 ⊗ Harvest `cascade.ts`, pr-monitor, or `minGreptileConfidence`.
 ⊗ Recut #4821 dest-worker ownership into this wait-verb order.
-⊗ Cite #3984 as babysit binding (in-tree #3984 is the PreToolUse matcher leftover of #3983).
+⊗ Cite #3984 as a parent-turn-shape detector or AGENTS restatement — Bound Prefer-A is envelope ownership + cheaper Approach 1 dispatch + declared-budget parameterization; #5219 stays the separate live-wait identity-join track.
 
 ### Runner capacity stall (`runner_capacity_stall` / #2672)
 
@@ -629,6 +629,8 @@ Workflow failover arming (Blacksmith cancelled → GH-hosted lane) is sibling is
 ! **Swarm monitor must not self-implement (#2843 / Gap C):** When a cohort monitor receives `BLOCKED` or DONE-with-blockers from a `drive-to: merge-ready` implementation leaf, the monitor MUST NOT enter the review/fix loop inline on Tier 1 — background-dispatch ONE continuation leaf scoped `drive-to: merge-ready` on the same worktree. Monitor-inline review-cycle is permitted only on Tier 3 or with explicit operator consent (see `skills/deft-directive-swarm/SKILL.md` Phase 5 completion-notification decision tree). **Grok through-merge (#4529 / #4821):** do **not** dispatch that continuation as a Grok `drive-to: merge-ready` coding leaf — that recreates #4529 P1. Named leftover (class A) on an already-touched PR file requires a dest-cwd one-shot residual, stop-at after the push; then Approach 1 is wait owner (`pr:watch` + `verify:review-monitor` / `review-monitor:register`); then `pr:wait-mergeable-and-merge` only after CLEAN. Parent-retained is closer plus post-merge `scope:complete` after that dest worker exists — not parent-inline residual. Dest spawn deny is `BLOCKED` or dest-cwd residual via native implementation-capable spawn (#4215) — not parent-primary residual. ⊗ Send class-A residual through process-only CLI `grok --cwd` (cannot edit/push). ⊗ Harvest option 2.
 
 ### Partner merge-path when implement stops at PR-open (#3153)
+
+! **Cheaper Approach 1 one-liner (#3984):** When Tier 1 spawn is available, the cheap multi-hour babysit path is: spawn a review-monitor that **keeps a live wait** (blocking `pr:watch`) → `review-monitor:register --pr <N> --monitor-agent-id <id> --platform-primitive <primitive>` → `verify:review-monitor --pr <N> --merge-path-arm --live-wait` exit 0 → parent yields. Prefer that over parent-as-leaf implement. Pass a declared wait budget via `--max-wait-minutes` / `DEFT_PR_WATCH_MAX_WAIT_MINUTES` when the envelope states one; #3153 wall-clock row does not fire without a declared budget. Sticky lease alone is unarmed (#4882); identity-join of lease to live wait stays on #5219. ⊗ Parent yield after register / plain `verify:review-monitor` without `--merge-path-arm --live-wait`.
 
 ! This skill is the **required partner** for the swarm **Envelope selection SLA** (`skills/deft-directive-swarm/references/core-phase-0.md` / Phase 3). When an implement leaf was deliberately scoped **`stop-at: pr-open`** (or a merge-ready leaf failed thin DONE and recovery chose babysit ownership), the parent/monitor MUST **not** leave the open PR without a merge-path owner.
 

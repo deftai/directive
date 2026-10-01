@@ -178,6 +178,9 @@ includes:
   occupancy:
     taskfile: ./tasks/occupancy.yml
     optional: true
+  ownership:
+    taskfile: ./tasks/ownership.yml
+    optional: true
   lifecycle:
     taskfile: ./tasks/lifecycle.yml
     optional: true

@@ -339,7 +339,13 @@ describe("platform-capabilities branch coverage", () => {
       effectiveUidOverride: 0,
     });
     expect(root.identityKind).toBe("real-root");
-    const unknown = probeRuntimeCapabilities({ environ: {}, uidMapPath: "/none", cwd: "/none" });
+    // Force null: production now probes process.getuid when available (#1617).
+    const unknown = probeRuntimeCapabilities({
+      environ: {},
+      uidMapPath: "/none",
+      cwd: "/none",
+      effectiveUidOverride: null,
+    });
     expect(unknown.identityKind).toBe("unknown");
     const viaGetuid = probeRuntimeCapabilities({
       environ: {},
