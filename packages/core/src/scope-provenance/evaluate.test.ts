@@ -1018,6 +1018,69 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
     ).toBe(false);
   });
 
+  it("no-plan.id completed brief does not borrow a same-basename pending still on HEAD (#5192)", () => {
+    const noIdNarrow = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        status: "completed",
+        metadata: { swarm: { file_scope: ["packages/core/src/a.ts"] } },
+      },
+    };
+    const unrelatedPendingBroad = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        status: "pending",
+        metadata: {
+          swarm: {
+            file_scope: [
+              "packages/core/src/a.ts",
+              "packages/core/src/b.ts",
+              "packages/core/src/c.ts",
+              "packages/core/src/d.ts",
+              "packages/core/src/e.ts",
+              "packages/core/src/f.ts",
+              "packages/core/src/g.ts",
+            ],
+          },
+        },
+      },
+    };
+    // New completed brief; pending with same basename remains on HEAD (not a move).
+    const result = evaluateScopeProvenance("/tmp/proj-noid-no-borrow-pending", {
+      changedFiles: [
+        "xbrief/completed/story.xbrief.json",
+        "packages/core/src/a.ts",
+        "packages/core/src/b.ts",
+        "packages/core/src/c.ts",
+        "packages/core/src/d.ts",
+        "packages/core/src/e.ts",
+        "packages/core/src/f.ts",
+        "packages/core/src/g.ts",
+      ],
+      activeXbriefs: new Map([
+        ["xbrief/completed/story.xbrief.json", JSON.stringify(noIdNarrow)],
+        ["xbrief/pending/story.xbrief.json", JSON.stringify(unrelatedPendingBroad)],
+      ]),
+      approvedRecords: [],
+      baseApprovedRecords: new Map(),
+      baseXbriefs: new Map([
+        ["xbrief/pending/story.xbrief.json", JSON.stringify(unrelatedPendingBroad)],
+      ]),
+      sourceRoots: ["packages"],
+      testRoots: ["tests"],
+      fixtureRoots: ["fixtures"],
+    });
+    // Must not admit extras under the unrelated pending brief's broad scope.
+    expect(
+      result.findings.some(
+        (f) =>
+          f.kind === "production-scope-over-budget" ||
+          f.kind === "active-xbrief-modified-without-digest" ||
+          f.kind === "change-set-outside-approved-scope",
+      ),
+    ).toBe(true);
+  });
+
   it("no-plan.id completed move prefers active over stale pending for fence (#5192)", () => {
     const noIdNarrow = {
       xBRIEFInfo: { version: "0.8" },

@@ -425,12 +425,15 @@ function listLifecycleBriefsAtRef(
  * Resolve the merge-base brief used by the production fence and Path B
  * membership precommitment (#5192). Continuity wins; otherwise probe
  * same-basename pre-move paths (active before pending) when the head
- * completed/cancelled path is absent on base.
+ * completed/cancelled path is absent on base. A same-basename candidate
+ * may supply scope only when it is absent from HEAD — otherwise an
+ * unrelated live brief would authorize the completed story.
  */
 function resolveMergeBaseBriefRead(
   rel: string,
   continuity: ContinuityResolution,
   readAtBase: (baseRel: string) => BaseBriefReadLocal,
+  headLifecycleRels: ReadonlySet<string> | readonly string[],
 ): { readonly baseRel: string; readonly read: BaseBriefReadLocal } {
   if (continuity.kind === "resolved") {
     return { baseRel: continuity.baseRel, read: readAtBase(continuity.baseRel) };
@@ -443,7 +446,13 @@ function resolveMergeBaseBriefRead(
   if (!(headN.startsWith("xbrief/completed/") || headN.startsWith("xbrief/cancelled/"))) {
     return { baseRel: headN, read: headRead };
   }
+  const headSet =
+    headLifecycleRels instanceof Set
+      ? headLifecycleRels
+      : new Set([...headLifecycleRels].map((p) => normalizeRepoRelPath(p)));
   for (const candidate of preMoveSameBasenameLifecyclePaths(headN)) {
+    // Still on HEAD → different story sharing the leaf name, not a move.
+    if (headSet.has(candidate)) continue;
     const alt = readAtBase(candidate);
     if (alt.kind === "text") {
       return { baseRel: candidate, read: alt };
@@ -1158,7 +1167,7 @@ export function evaluateScopeProvenance(
       if (continuity.kind === "resolved") {
         basePayloadForPrecommit = continuity.basePayload;
       } else {
-        const precommit = resolveMergeBaseBriefRead(rel, continuity, readAtBase);
+        const precommit = resolveMergeBaseBriefRead(rel, continuity, readAtBase, headLifecycleRels);
         if (precommit.read.kind === "error") {
           findings.push({
             xbriefRelPath: rel,
@@ -1279,7 +1288,7 @@ export function evaluateScopeProvenance(
     // brief file_scope. Never read the head brief for the fence list.
     // On lifecycle moves, the head path is absent on base — use continuity.baseRel
     // or same-basename pre-move probes (active before pending).
-    const fenceResolved = resolveMergeBaseBriefRead(rel, continuity, readAtBase);
+    const fenceResolved = resolveMergeBaseBriefRead(rel, continuity, readAtBase, headLifecycleRels);
     const fenceBaseRel = fenceResolved.baseRel;
     const baseBriefRead = fenceResolved.read;
     if (baseBriefRead.kind === "error") {
@@ -1338,7 +1347,12 @@ export function evaluateScopeProvenance(
             census,
             headPlanIds,
           });
-          const otherFence = resolveMergeBaseBriefRead(other.rel, otherContinuity, readAtBase);
+          const otherFence = resolveMergeBaseBriefRead(
+            other.rel,
+            otherContinuity,
+            readAtBase,
+            headLifecycleRels,
+          );
           const otherBaseRead = otherFence.read;
           if (otherBaseRead.kind === "error") {
             peerBaseFailure = {
