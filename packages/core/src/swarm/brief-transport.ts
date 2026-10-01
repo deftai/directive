@@ -2,8 +2,9 @@
  * Bounded retained-brief transport into the isolated lifecycle checkout (#4714 R5).
  * Materialize only when exact bytes match a reachable reviewed product/evidence blob.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { projectionsEqual } from "./immutable-projection.js";
 import type { runText } from "./subprocess.js";
 
@@ -195,8 +196,22 @@ export function materializeRetainedBrief(args: MaterializeBriefArgs): Materializ
   }
 
   const dest = join(args.checkoutRoot, ...rel.split("/"));
-  mkdirSync(dirname(dest), { recursive: true });
-  writeFileSync(dest, retainedBytes, "utf8");
+  try {
+    containedWrite({
+      root: args.checkoutRoot,
+      target: rel,
+      data: retainedBytes,
+      mode: "replace",
+    });
+  } catch (err) {
+    if (err instanceof ContainedWriteError) {
+      return {
+        ok: false,
+        error: `contained write failed (${err.code}): ${err.message}`,
+      };
+    }
+    throw err;
+  }
   return {
     ok: true,
     path: dest,
