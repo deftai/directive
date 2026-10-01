@@ -61,8 +61,7 @@ export function writeMergePathCleanAttestation(
   if (escaped.startsWith("..") || escaped.length === 0) {
     return { ok: false, reason: `CLEAN attestation path escapes project root: ${path}` };
   }
-  const sha =
-    typeof headSha === "string" && headSha.trim().length > 0 ? headSha.trim() : null;
+  const sha = typeof headSha === "string" && headSha.trim().length > 0 ? headSha.trim() : null;
   const payload = {
     pr_number: pr,
     head_sha: sha,
@@ -105,8 +104,7 @@ export function hasMergePathCleanAttestation(
     }
     const rec = payload as Record<string, unknown>;
     if (rec.pr_number !== pr) return false;
-    const want =
-      typeof headSha === "string" && headSha.trim().length > 0 ? headSha.trim() : null;
+    const want = typeof headSha === "string" && headSha.trim().length > 0 ? headSha.trim() : null;
     if (want === null) return true;
     const got = typeof rec.head_sha === "string" ? rec.head_sha.trim() : "";
     // Attestation without SHA still admits (one-shot CLEAN before HEAD known).
