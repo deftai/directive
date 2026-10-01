@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5188",
-    "updated": "2026-09-30T23:21:34Z"
+    "updated": "2026-10-01T00:08:30Z"
   },
   "plan": {
     "title": "bug(design-critique): N=3 + pain needs post-lean critic seat; provision process-only dest before panel (leftover from #4233)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(design-critique): N=3 + pain needs post-lean critic seat; provision process-only dest before panel (leftover from #4233)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5188",
@@ -438,9 +438,34 @@
           "command": "pnpm exec vitest run packages/core/src/design-critique",
           "source": "explicit"
         }
-      ]
+      ],
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5204,
+        "prBase": null,
+        "mergeCommit": "df506fe7402b1e53f8bec0d490b5432b71108acc",
+        "deliveryBranch": "master",
+        "deliveryCommit": "df506fe7402b1e53f8bec0d490b5432b71108acc",
+        "verifiedAt": "2026-10-01T00:08:30Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-01T00:08:30Z",
+      "completedSessionId": "host:grok:v1:MDFhMGYyMmEtMTEyYS03NDAxLTkxMjUtYTYwM2NhMDA5MjFm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-01T00:08:30Z"
+      }
     },
     "id": "github.issue.5651788256",
-    "updated": "2026-10-01T00:08:18.887Z"
+    "updated": "2026-10-01T00:08:30Z"
   }
 }
