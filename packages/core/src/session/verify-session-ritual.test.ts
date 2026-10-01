@@ -334,6 +334,72 @@ describe("same-owner discontinuous HEAD continuity (#3884)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("verify rebinds after rebase even when a backup branch still contains ritual (#3884)", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const { ritualHead, base } = prepareRebaseOntoMovedBase(root);
+    execFileSync("git", ["branch", "backup/pre-rebase", ritualHead], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    writeRitualState(root, freshPayload(root, ritualHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    const rewrittenHead = rebaseFeature(root, base);
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(0);
+    expect(rewrittenHead).not.toBe(ritualHead);
+    expect(readRitualState(root)[0]?.gitHead).toBe(rewrittenHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("verify fails closed when ritual branch is deleted then an unrelated tip is checked out (#3884)", () => {
+    const { root } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const base = defaultBranch(root);
+    execFileSync("git", ["checkout", "-q", "-b", "feature"], { cwd: root, encoding: "utf8" });
+    writeFileSync(join(root, "feat.txt"), "feat\n", "utf8");
+    execFileSync("git", ["add", "feat.txt"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "feat"], {
+      cwd: root,
+      encoding: "utf8",
+      env: gitEnv(),
+    });
+    const ritualHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    writeRitualState(root, freshPayload(root, ritualHead, now));
+    applyWorktreeOccupancy(root, { sessionId: "s", intent: "mutation", now, env: {} });
+    execFileSync("git", ["checkout", "-q", base], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["branch", "-D", "feature"], { cwd: root, encoding: "utf8" });
+    writeFileSync(join(root, "unrelated.txt"), "x\n", "utf8");
+    execFileSync("git", ["add", "unrelated.txt"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "unrelated"], {
+      cwd: root,
+      encoding: "utf8",
+      env: gitEnv(),
+    });
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("discontinuously");
+    expect(readRitualState(root)[0]?.gitHead).toBe(ritualHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("verify fails closed on same-owner branch switch (#2782)", () => {
     const { root } = initRepo();
     const now = new Date("2026-07-23T12:00:00Z");

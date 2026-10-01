@@ -493,8 +493,10 @@ export function liveSameOwnerOccupancyAdmits(
 /**
  * Same-owner discontinuous HEAD continuity for rebase tip moves (#3884 / #2782).
  * Live-same-owner alone is not enough: branch-switch and amend stay fail-closed.
- * Admit only when ritual HEAD is no longer on any local branch (rewritten tip)
- * and the move is not amend-shaped (shared first parent).
+ * Admit only for a same-branch tip rewrite (ritual SHA in the current branch
+ * reflog) that is not amend-shaped (shared first parent). Backup / other local
+ * branches that still contain the old SHA must not block; dangling ritual on an
+ * unrelated checkout must not admit.
  */
 export function sameOwnerRebaseHeadContinuity(
   projectRoot: string,
@@ -507,10 +509,18 @@ export function sameOwnerRebaseHeadContinuity(
     return false;
   }
   const runGit = input.runGit ?? defaultGitRunner;
-  const contains = runGit(projectRoot, ["branch", "--contains", ritualHead]);
-  if (contains.code !== 0) return false;
-  // Still on a local branch ⇒ checkout/divergent tip, not a rewritten tip.
-  if (contains.stdout.trim().length > 0) return false;
+  const branch = runGit(projectRoot, ["symbolic-ref", "--short", "HEAD"]);
+  if (branch.code !== 0) return false;
+  const branchName = branch.stdout.trim();
+  if (branchName.length === 0) return false;
+  // Same-branch tip rewrite only — ignores backup branches; rejects switches.
+  const reflog = runGit(projectRoot, ["reflog", "show", branchName, "--format=%H"]);
+  if (reflog.code !== 0) return false;
+  const onBranchReflog = reflog.stdout
+    .split(/[\r\n]+/)
+    .map((line) => line.trim())
+    .some((sha) => sha === ritualHead);
+  if (!onBranchReflog) return false;
   const ritualParent = runGit(projectRoot, ["rev-parse", "--verify", `${ritualHead}^`]);
   const currentParent = runGit(projectRoot, ["rev-parse", "--verify", `${currentHead}^`]);
   // Fail closed when parents cannot be resolved (root / error).

@@ -64,8 +64,10 @@ function fakeGit(
     head?: string;
     worktree?: string;
     ancestorOk?: boolean;
-    /** Ritual SHA still listed by `git branch --contains` (branch-switch). */
-    branchContainsRitual?: boolean;
+    /** Current branch short name (`symbolic-ref --short HEAD`). */
+    branchName?: string;
+    /** Ritual SHA appears in the current branch reflog (same-branch rewrite). */
+    ritualInBranchReflog?: boolean;
     /** Shared first parent (amend-shaped). */
     amendShaped?: boolean;
     ritualHead?: string;
@@ -75,6 +77,8 @@ function fakeGit(
   const worktree = options.worktree ?? root;
   const ancestorOk = options.ancestorOk ?? true;
   const ritualHead = options.ritualHead ?? "cccccccccccccccccccccccccccccccccccccccc";
+  const branchName = options.branchName ?? "feature";
+  const ritualInBranchReflog = options.ritualInBranchReflog ?? false;
   return (_r, args) => {
     if (args[0] === "rev-parse" && args.includes("HEAD") && !String(args[2] ?? "").includes("^")) {
       return { code: 0, stdout: head, stderr: "" };
@@ -85,11 +89,14 @@ function fakeGit(
     if (args[0] === "merge-base" && args.includes("--is-ancestor")) {
       return { code: ancestorOk ? 0 : 1, stdout: "", stderr: "" };
     }
-    if (args[0] === "branch" && args[1] === "--contains") {
-      if (options.branchContainsRitual) {
-        return { code: 0, stdout: "  main\n", stderr: "" };
-      }
-      return { code: 0, stdout: "", stderr: "" };
+    if (args[0] === "symbolic-ref" && args[1] === "--short" && args[2] === "HEAD") {
+      return { code: 0, stdout: branchName, stderr: "" };
+    }
+    if (args[0] === "reflog" && args[1] === "show" && args[2] === branchName) {
+      const lines = ritualInBranchReflog
+        ? `${head}\n${ritualHead}\n`
+        : `${head}\nffffffffffffffffffffffffffffffffffffffff\n`;
+      return { code: 0, stdout: lines, stderr: "" };
     }
     if (args[0] === "rev-parse" && args[1] === "--verify" && typeof args[2] === "string") {
       const target = args[2];
@@ -473,7 +480,7 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
       runGit: fakeGit(root, {
         head: current,
         ancestorOk: false,
-        branchContainsRitual: false,
+        ritualInBranchReflog: true,
         amendShaped: false,
         ritualHead: prior,
       }),
@@ -483,6 +490,33 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
     if (eligibility.eligible) {
       expect(eligibility.currentHead).toBe(current);
     }
+  });
+
+  it("re-arm allows same-owner rebase when a backup branch still contains ritual (#3884)", () => {
+    const root = tempRoot();
+    const prior = "cccccccccccccccccccccccccccccccccccccccc";
+    const current = "dddddddddddddddddddddddddddddddddddddddd";
+    const now = new Date("2026-07-20T12:00:00Z");
+    seedRitual(root, { head: prior, startedAt: now });
+    applyWorktreeOccupancy(root, {
+      sessionId: "seed-session",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    // Reflog admits; leftover backup/contains noise must not matter.
+    const eligibility = assessRearmEligibility(root, {
+      runGit: fakeGit(root, {
+        head: current,
+        ancestorOk: false,
+        ritualInBranchReflog: true,
+        amendShaped: false,
+        ritualHead: prior,
+        branchName: "feature",
+      }),
+      now,
+    });
+    expect(eligibility.eligible).toBe(true);
   });
 
   it("re-arm refuses same-owner branch switch even with a live lease (#2782)", () => {
@@ -501,8 +535,39 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
       runGit: fakeGit(root, {
         head: current,
         ancestorOk: false,
-        branchContainsRitual: true,
+        ritualInBranchReflog: false,
         ritualHead: prior,
+        branchName: "other",
+      }),
+      now,
+    });
+    expect(eligibility.eligible).toBe(false);
+    if (!eligibility.eligible) {
+      expect(eligibility.reason).toContain("discontinuously");
+    }
+  });
+
+  it("re-arm refuses dangling ritual after branch delete then unrelated checkout (#3884)", () => {
+    const root = tempRoot();
+    const prior = "cccccccccccccccccccccccccccccccccccccccc";
+    const current = "dddddddddddddddddddddddddddddddddddddddd";
+    const now = new Date("2026-07-20T12:00:00Z");
+    seedRitual(root, { head: prior, startedAt: now });
+    applyWorktreeOccupancy(root, {
+      sessionId: "seed-session",
+      intent: "mutation",
+      now,
+      env: {},
+    });
+    const eligibility = assessRearmEligibility(root, {
+      runGit: fakeGit(root, {
+        head: current,
+        ancestorOk: false,
+        // Empty contains + different parents would formerly admit; reflog does not.
+        ritualInBranchReflog: false,
+        amendShaped: false,
+        ritualHead: prior,
+        branchName: "main",
       }),
       now,
     });
