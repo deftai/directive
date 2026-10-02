@@ -241,8 +241,7 @@ export function evaluatePanelSeatDeliveryFromThread(input: {
   // Expected seats come from the caller override or the deposit (seat:/families:).
   // Child handbacks never define the expected set — a partial return must not
   // shrink the conjunct and make allExpectedVerified true.
-  const expectedIds =
-    input.expectedSeatIds !== undefined ? input.expectedSeatIds : deposit.seatIds;
+  const expectedIds = input.expectedSeatIds !== undefined ? input.expectedSeatIds : deposit.seatIds;
   // Seat-bound verification is required once a panel-deposit is present.
   if (expectedIds.length === 0) return null;
 
