@@ -205,6 +205,28 @@ describe("enforceConsumerHeaderPlaceholderAtCompletionChokepoint (#4544 residual
     expect(evaluateConsumerHeaderPlaceholderAtRoot(root).reason).toBe("not-placeholder");
   });
 
+  it("refuses Overview CAS when AGENTS.md changed after the snapshot (#4544 P1)", () => {
+    const root = tempRoot();
+    const snapshot = `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`;
+    writeFileSync(join(root, "AGENTS.md"), snapshot, "utf8");
+    let reads = 0;
+    const result = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, {
+      recordedAt: new Date("2026-10-02T12:00:00Z"),
+      confirmedOverview: "Garden notes CRUD app",
+      readAgentsMd: () => {
+        reads += 1;
+        // evaluate + CAS snapshot share the pre-write text; write-time re-read drifts.
+        if (reads <= 2) return snapshot;
+        return "# Project\n\nCustom concurrent header.\n";
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.remediation.attempted).toBe(true);
+    expect(result.remediation.wroteAgentsMd).toBe(false);
+    expect(result.message).toMatch(/changed after the CAS snapshot/i);
+    expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe(snapshot);
+  });
+
   it("reads Overview from PROJECT-DEFINITION when seam is omitted", () => {
     const root = tempRoot();
     writeFileSync(

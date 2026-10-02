@@ -515,8 +515,9 @@ describe("worktree occupancy lease (#3433)", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toMatch(/consumer-header-placeholder-completion-chokepoint/i);
+    // Prefer-A stamp must survive refuse so later verify fails closed (#4544 P1).
     expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(
-      false,
+      true,
     );
     expect(readOccupancy(root)?.lastWriteAt).toBeNull();
   });

@@ -327,6 +327,38 @@ export function enforceConsumerHeaderPlaceholderAtCompletionChokepoint(
   });
   let wroteAgentsMd = false;
   if (cas.changed && seams.applyRemediationWrite !== false) {
+    // Re-read at write time so a concurrent AGENTS.md edit is not overwritten
+    // by CAS computed from the earlier snapshot (#4544 Greptile P1).
+    const freshRead = seams.readAgentsMd
+      ? normalizeAgentsMdSeam(seams.readAgentsMd())
+      : readAgentsMdAtRoot(root);
+    if (freshRead.kind !== "ok" || freshRead.text !== agentsRead.text) {
+      const detail =
+        freshRead.kind === "ok"
+          ? "AGENTS.md changed after the CAS snapshot"
+          : freshRead.kind === "missing"
+            ? "AGENTS.md missing at write time"
+            : `AGENTS.md unreadable at write time (${freshRead.detail})`;
+      const message =
+        `${CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID} FAIL: Overview CAS computed but ` +
+        `${detail}; remedy: retry completion after resolving the concurrent edit`;
+      return {
+        ok: false,
+        evaluation: {
+          ok: false,
+          reason: "placeholder-with-product-mutation",
+          message,
+        },
+        message,
+        marker,
+        remediation: {
+          attempted: true,
+          overviewAvailable: true,
+          casReason: cas.reason,
+          wroteAgentsMd: false,
+        },
+      };
+    }
     const written = writeAgentsMdAtRoot(root, cas.agentsMd);
     if (!written.ok) {
       const message =

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Occupancy product-write refuse keeps Prefer-A mutation marker; Overview CAS refuses concurrent AGENTS.md edits (#4544).** Scaffold-header refuse no longer deletes the completion stamp (later verify stays fail-closed). Remediation re-reads AGENTS.md at write time and refuses when the snapshot drifted. Tracking #4544.
 - **First-ship AGENTS header completion no longer depends on remembering to stamp the mutation marker or run check (#4544).** After product work, the exact scaffold edit-me header is remediating via confirmed Overview when available, or refused with a clear remedy when it is not. Process-only and already-custom headers stay legal. Tracking #4544.
 - **Oracle-integrity detector no longer treats `independent_rederivation` on the run-summary as a security waiver (#3925).** Fail→method-change→pass stays unresolved even when that boolean is true on the agent-writable stream. Recovery for poisoned history remains a new session or truncate-delete. Same-stream attested_by / hashes / seq-gap stay out. Closes #3925. Refs #3322.
 - **Authz CLI exits cleanly when grant or UAT writes are refused (#4233).** Tracking #4233.

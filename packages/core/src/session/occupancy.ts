@@ -2626,16 +2626,9 @@ function writeOccupancyRecord(
       recordedAt: at,
     });
     if (!chokepoint.ok) {
-      if (!markerExistedBefore) {
-        const stampedPath = productMutationCompletionMarkerPath(root);
-        if (existsSync(stampedPath)) {
-          try {
-            containedRemove({ root, target: stampedPath });
-          } catch {
-            /* best-effort orphan Prefer-A stamp cleanup */
-          }
-        }
-      }
+      // Keep any Prefer-A stamp the chokepoint already wrote. Erasing it on
+      // refuse lets later verify:consumer-header-placeholder treat the still-
+      // placeholder header as Process-only and pass (#4544 Greptile P1).
       return { ok: false, error: chokepoint.message };
     }
     if (chokepoint.marker.ok && "path" in chokepoint.marker) {
