@@ -20,27 +20,52 @@ export const ALLOW_UNPAID_SKIP_CI_FLAG = "--allow-unpaid-skip-ci";
 export const RELEASE_E2E_ENV = "DEFT_RELEASE_E2E";
 
 function parseIssueFlag(argv: readonly string[], flag: string): SkipCiIncidentResolution {
+  // Scan every occurrence so a later malformed duplicate cannot be masked by
+  // an earlier valid token (SLizard P1 on #5239).
+  let firstValid: number | null = null;
+  let sawAny = false;
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i] ?? "";
     if (token === flag) {
+      sawAny = true;
       const next = argv[i + 1];
       if (next === undefined || next.startsWith("-")) {
         return { kind: "invalid", reason: `${flag} requires an issue number (#N)` };
       }
       const issue = parseSkipCiIncidentIssueNumber(next);
-      return issue === null
-        ? { kind: "invalid", reason: `${flag} value must be #N or N` }
-        : { kind: "valid", issue };
+      if (issue === null) {
+        return { kind: "invalid", reason: `${flag} value must be #N or N` };
+      }
+      if (firstValid !== null && firstValid !== issue) {
+        return {
+          kind: "invalid",
+          reason: `${flag} has conflicting issue numbers (#${firstValid} vs #${issue})`,
+        };
+      }
+      firstValid = issue;
+      i += 1;
+      continue;
     }
     if (token.startsWith(`${flag}=`)) {
+      sawAny = true;
       const value = token.slice(flag.length + 1);
       const issue = parseSkipCiIncidentIssueNumber(value);
-      return issue === null
-        ? { kind: "invalid", reason: `${flag}= value must be #N or N` }
-        : { kind: "valid", issue };
+      if (issue === null) {
+        return { kind: "invalid", reason: `${flag}= value must be #N or N` };
+      }
+      if (firstValid !== null && firstValid !== issue) {
+        return {
+          kind: "invalid",
+          reason: `${flag} has conflicting issue numbers (#${firstValid} vs #${issue})`,
+        };
+      }
+      firstValid = issue;
     }
   }
-  return { kind: "none" };
+  if (!sawAny || firstValid === null) {
+    return { kind: "none" };
+  }
+  return { kind: "valid", issue: firstValid };
 }
 
 export function parseSkipCiIncidentArgv(argv: readonly string[]): SkipCiIncidentResolution {

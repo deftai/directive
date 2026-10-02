@@ -59,6 +59,15 @@ describe("skip-ci incident (#2652)", () => {
     );
   });
 
+  it("rejects a later malformed duplicate after an earlier valid token (#5239)", () => {
+    expect(
+      parseSkipCiIncidentArgv(["release", "--allow-skip-ci=123", "--allow-skip-ci=abc"]).kind,
+    ).toBe("invalid");
+    expect(
+      parseSkipCiIncidentArgv(["release", "--allow-skip-ci=123", "--allow-skip-ci=456"]).kind,
+    ).toBe("invalid");
+  });
+
   it("parses --allow-unpaid-skip-ci (#5239)", () => {
     expect(parseAllowUnpaidSkipCiArgv(["--allow-unpaid-skip-ci=5239"]).kind).toBe("valid");
     expect(parseAllowUnpaidSkipCiArgv(["--allow-unpaid-skip-ci"]).kind).toBe("invalid");

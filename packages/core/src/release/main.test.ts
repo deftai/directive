@@ -151,6 +151,8 @@ describe("pipeline verify flip failure", () => {
     };
     const seams: ReleaseSeams = {
       validateReleaseInputs: passReleaseInputs,
+      // Paid citation for this fixture — avoid live unpaid probe (#5239).
+      probeSkipCiIncidentLedger: () => ({ unpaid: [] }),
       spawnText: (_c, a) => {
         if (a.includes("status")) return { status: 0, stdout: "", stderr: "" };
         if (a.includes("branch")) return { status: 0, stdout: "master\n", stderr: "" };

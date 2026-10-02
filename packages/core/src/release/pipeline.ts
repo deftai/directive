@@ -31,7 +31,11 @@ import {
   VERIFY_DRAFT_MAX_ATTEMPTS,
 } from "./constants.js";
 import { formatConsumerReadinessDisclosure } from "./consumer-readiness-disclosure.js";
-import { createCoverageDebtIssue, probeOpenCoverageDebtLedger } from "./coverage-debt-ledger.js";
+import {
+  createCoverageDebtIssue,
+  probeOpenCoverageDebtLedger,
+  probeSkipCiIncidentLedger,
+} from "./coverage-debt-ledger.js";
 import { checkTagAvailable, createGithubRelease, readTextFile, verifyReleaseDraft } from "./gh.js";
 import {
   checkGitClean,
@@ -63,7 +67,7 @@ import {
   writeReleaseInputDetails,
 } from "./release-input.js";
 import { evaluateReleaseConsumerReadiness, issuesFromInventory } from "./run-consumer-readiness.js";
-import { formatSkipCiIncidentWarning } from "./skip-ci-incident.js";
+import { formatSkipCiIncidentWarning, validateSkipCiUnpaidLedger } from "./skip-ci-incident.js";
 import { evaluateSuiteStamp, writeSuiteStamp } from "./suite-stamp.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { isPrereleaseTag } from "./version.js";
@@ -307,6 +311,30 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     return changelogSafety.exitCode;
   }
   if (config.skipCi) {
+    // Mirror cmdRelease unpaid-ledger gate so programmatic runPipeline callers
+    // cannot bypass production unpaid citation refusal (SLizard P1 / #5239).
+    // Dry-run skips the GitHub/CHANGELOG probe (same as cmdRelease).
+    if (!config.dryRun && config.allowSkipCiIssue !== null && config.allowSkipCiIssue > 0) {
+      const ledger =
+        seams.probeSkipCiIncidentLedger?.(config.repo, projectRoot, config.allowSkipCiIssue) ??
+        probeSkipCiIncidentLedger(config.repo, projectRoot, config.allowSkipCiIssue, {
+          spawnText: seams.spawnText,
+          whichGh: seams.whichGh,
+          readFile: seams.readFile,
+          fileExists: seams.fileExists,
+        });
+      const unpaidGate = validateSkipCiUnpaidLedger({
+        skipCi: config.skipCi,
+        allowSkipCiIssue: config.allowSkipCiIssue,
+        allowUnpaidSkipCiIssue: config.allowUnpaidSkipCiIssue ?? null,
+        unpaidIssues: ledger.unpaid,
+      });
+      if (unpaidGate.kind === "invalid") {
+        emit(5, label, `FAIL (${unpaidGate.reason})`);
+        process.stderr.write(`release: error: ${unpaidGate.reason}\n`);
+        return EXIT_CONFIG_ERROR;
+      }
+    }
     if (config.allowSkipCiIssue !== null && config.allowSkipCiIssue > 0) {
       process.stderr.write(formatSkipCiIncidentWarning(config.allowSkipCiIssue));
     }
