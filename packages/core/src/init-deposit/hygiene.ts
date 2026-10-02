@@ -75,6 +75,11 @@ export const CONSUMER_GUARD_MUST_FIRE: readonly string[] = [
  * Go cmd/deft-install/deposit.go consumerGuardMustFire is a frozen
  * source-only assertion (LAST_GO_INSTALLER). It is not kept in lockstep with
  * this live TypeScript denylist and is not the Pass 2 commit-set referent (#4271).
+ *
+ * #5245 consequence (recorded, not a side effect): after migrated delete-repair
+ * removes root/vbrief bare markers, frozen `gateReadVersionMarker` (vbrief then
+ * root only; no xbrief candidate) loses both of its read paths until Go freeze
+ * rolls. Delivering rail is TS; do not unfreeze Go in this unit.
  */
 export const GO_1430_DENYLIST_STATUS = "frozen-source-only" as const;
 
@@ -134,6 +139,9 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     { exact: "pnpm-lock.yaml" },
     { exact: "yarn.lock" },
     { exact: ".deft/GENERATION.json" },
+    // Installer-owned root fallback marker (#5245 / #1440). Written when
+    // resolveLifecycleRoot throws; must not classify as app beside .deft/core/**.
+    { exact: ".deft-version" },
     // Legacy vbrief/ tree -- retained for not-yet-migrated consumers.
     { exact: "vbrief/.deft-version" },
     { exact: "vbrief/vbrief.md" },
@@ -257,6 +265,25 @@ export function installerManagedGuardEre(): string {
 
 export function isInstallerManagedPath(path: string): boolean {
   return matchesInstallerManaged(path, installerManagedMatchers());
+}
+
+/**
+ * Resolver-independent bare `.deft-version` targets (#5245).
+ * Order: xbrief (canonical lifecycle) → root fallback → legacy vbrief.
+ * Doctor + writer consume this list; do not derive from resolveLifecycleRoot.
+ */
+export function bareVersionMarkerTargets(projectDir: string): string[] {
+  const root = projectDir.replace(/\\/g, "/").replace(/\/$/, "");
+  return [
+    join(root, "xbrief", ".deft-version").replace(/\\/g, "/"),
+    join(root, ".deft-version").replace(/\\/g, "/"),
+    join(root, "vbrief", ".deft-version").replace(/\\/g, "/"),
+  ];
+}
+
+/** Relative POSIX paths for every bareVersionMarkerTargets entry (#5245). */
+export function bareVersionMarkerRelativePaths(): readonly string[] {
+  return ["xbrief/.deft-version", ".deft-version", "vbrief/.deft-version"] as const;
 }
 
 /**
@@ -499,15 +526,15 @@ export function isPackageLockDirectivePinFollowThrough(baseRaw: string, headRaw:
     !Array.isArray(headObj.packages)
       ? (headObj.packages as Record<string, unknown>)
       : {};
-  // Freeze every non-@deftai/directive package record (including hoisted
-  // transitives and nested product trees). Only packages[""] root dep maps
-  // (directive keys only) and node_modules/@deftai/directive* trees may change.
-  const allPkgKeys = new Set([...Object.keys(basePkgs), ...Object.keys(headPkgs)]);
-  for (const key of allPkgKeys) {
+  // Path-key freeze-except-additions (#5245 / #3193): existing non-directive
+  // package paths must stay byte-stable; head-only paths (necessary transitives)
+  // may be added. Deleting a base path still fails.
+  for (const key of Object.keys(basePkgs)) {
     if (key === "") continue;
     if (key.includes("node_modules/@deftai/directive") || key.includes("/@deftai/directive/")) {
       continue;
     }
+    if (!(key in headPkgs)) return false;
     if (!deepEqualJson(basePkgs[key], headPkgs[key])) return false;
   }
 
@@ -526,175 +553,127 @@ export function isPackageLockDirectivePinFollowThrough(baseRaw: string, headRaw:
   return true;
 }
 
+function pnpmUnquote(s: string): string {
+  const t = s.trim();
+  if ((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
+    return t.slice(1, -1);
+  }
+  return t;
+}
+
 /**
- * Minimal pnpm-lock.yaml (v6/v9) root importer (`.`) direct-dep extractor.
- * Avoids a YAML dependency; sufficient for pin follow-through identity checks.
+ * pnpm importers oracle (#5245): every importer, keyed at full identity, with
+ * both specifier and version. Do not widen a version-only bare-name map.
  */
-export function pnpmLockRootDirectDeps(raw: string): Record<string, string> {
+export function pnpmLockImporterDeps(raw: string): Record<string, string> {
   const lines = raw.split(/\r?\n/);
   const out: Record<string, string> = {};
   let inImporters = false;
-  let inRoot = false;
+  let currentImporter: string | null = null;
   let inDepBlock = false;
   let currentPkg: string | null = null;
-
-  const unquote = (s: string): string => {
-    const t = s.trim();
-    if ((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
-      return t.slice(1, -1);
-    }
-    return t;
-  };
+  let pendingSpecifier: string | null = null;
 
   for (const line of lines) {
     if (/^importers:\s*$/.test(line)) {
       inImporters = true;
-      inRoot = false;
+      currentImporter = null;
       inDepBlock = false;
       currentPkg = null;
+      pendingSpecifier = null;
       continue;
     }
     if (!inImporters) continue;
-    // Left the importers section (top-level key at column 0).
     if (/^[^\s#]/.test(line) && !line.startsWith("importers")) {
       break;
     }
-    // Root importer `.` (quoted or bare).
-    if (/^ {2}(?:\.|'\.'|"\."):\s*$/.test(line)) {
-      inRoot = true;
+    // Importer path at exactly 2-space indent (`.` or `packages/foo`).
+    // `\S.*` allows colon-bearing keys (e.g. file: protocol); 4-space nested still rejected.
+    const importerMatch = line.match(/^ {2}(\S.*):\s*$/);
+    if (importerMatch) {
+      currentImporter = pnpmUnquote(importerMatch[1] ?? "");
       inDepBlock = false;
       currentPkg = null;
+      pendingSpecifier = null;
       continue;
     }
-    // Sibling importer under importers (2-space indent, not a dep field).
-    if (inRoot && /^ {2}\S/.test(line) && !/^ {2}\./.test(line)) {
-      inRoot = false;
-      inDepBlock = false;
-      currentPkg = null;
-      continue;
-    }
-    if (!inRoot) continue;
+    if (currentImporter === null) continue;
     if (
       /^ {4}(?:dependencies|devDependencies|optionalDependencies|peerDependencies):\s*$/.test(line)
     ) {
       inDepBlock = true;
       currentPkg = null;
+      pendingSpecifier = null;
       continue;
     }
-    // Non-dep field under root importer ends a dep block.
     if (inDepBlock && /^ {4}\S/.test(line)) {
       inDepBlock = false;
       currentPkg = null;
+      pendingSpecifier = null;
       continue;
     }
     if (!inDepBlock) continue;
-    const pkgMatch = line.match(/^ {6}(.+?):\s*$/);
+    const pkgMatch = line.match(/^ {6}(\S.*):\s*$/);
     if (pkgMatch) {
-      currentPkg = unquote(pkgMatch[1] ?? "");
+      currentPkg = pnpmUnquote(pkgMatch[1] ?? "");
+      pendingSpecifier = null;
       continue;
     }
     if (currentPkg) {
+      const specMatch = line.match(/^ {8}specifier:\s*(.+?)\s*$/);
+      if (specMatch) {
+        pendingSpecifier = pnpmUnquote(specMatch[1] ?? "");
+        continue;
+      }
       const verMatch = line.match(/^ {8}version:\s*(.+?)\s*$/);
       if (verMatch) {
-        out[currentPkg] = unquote(verMatch[1] ?? "");
+        const version = pnpmUnquote(verMatch[1] ?? "");
+        const identity = `${pendingSpecifier ?? ""}|${version}`;
+        out[`${currentImporter}\0${currentPkg}`] = identity;
         currentPkg = null;
+        pendingSpecifier = null;
       }
     }
   }
   return out;
 }
 
-/**
- * Extract pnpm `packages:` section records keyed by the package name (not
- * name@version). Used to freeze product package resolution blocks.
- */
-export function pnpmPackagesByName(raw: string): Map<string, string> {
-  const map = new Map<string, string[]>();
-  const lines = raw.split(/\r?\n/);
-  let inPackages = false;
-  let currentName: string | null = null;
-  let buf: string[] = [];
-  const flush = (): void => {
-    if (currentName === null) return;
-    const prev = map.get(currentName) ?? [];
-    prev.push(buf.join("\n"));
-    map.set(currentName, prev);
-    currentName = null;
-    buf = [];
-  };
-  const unquote = (s: string): string => {
-    const t = s.trim();
-    if ((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
-      return t.slice(1, -1);
-    }
-    return t;
-  };
-  for (const line of lines) {
-    if (/^packages:\s*$/.test(line)) {
-      flush();
-      inPackages = true;
-      continue;
-    }
-    if (!inPackages) continue;
-    if (/^[^\s#]/.test(line) && !line.startsWith("packages")) {
-      flush();
-      break;
-    }
-    // Package key at 2-space indent: `  lodash@4.17.21:` or `  '@scope/pkg@1.0.0':`
-    const keyMatch = line.match(/^ {2}(.+?):\s*$/);
-    if (keyMatch) {
-      flush();
-      const key = unquote(keyMatch[1] ?? "");
-      // name@version or @scope/name@version — strip version suffix after last @
-      // that is not the scope marker.
-      const at = key.startsWith("@") ? key.indexOf("@", 1) : key.indexOf("@");
-      currentName = at > 0 ? key.slice(0, at) : key;
-      buf = [line];
-      continue;
-    }
-    if (currentName !== null) buf.push(line);
-  }
-  flush();
-  // Join multi-version records for stable compare.
-  const out = new Map<string, string>();
-  for (const [name, blocks] of map) {
-    out.set(name, blocks.slice().sort().join("\n---\n"));
+/** @deprecated Prefer {@link pnpmLockImporterDeps}; kept as root-importer view. */
+export function pnpmLockRootDirectDeps(raw: string): Record<string, string> {
+  const all = pnpmLockImporterDeps(raw);
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(all)) {
+    const sep = key.indexOf("\0");
+    const importer = sep >= 0 ? key.slice(0, sep) : ".";
+    const pkg = sep >= 0 ? key.slice(sep + 1) : key;
+    if (importer !== ".") continue;
+    // Expose version half for legacy callers; specifier lives in full oracle.
+    const pipe = value.indexOf("|");
+    out[pkg] = pipe >= 0 ? value.slice(pipe + 1) : value;
   }
   return out;
 }
 
 /**
- * pnpm-lock.yaml follow-through: root importer (`.`) non-directive direct dep
- * identities must be unchanged, and every non-@deftai/directive packages-section
- * record (including transitive product packages) must be byte-stable (#3193).
+ * Extract a top-level pnpm section (`packages:` or `snapshots:`) keyed by the
+ * full section key (name@version including peer-qualified suffix) (#5245).
+ * Package keys must start at exactly 2-space indent (reject nested YAML keys).
  */
-/**
- * Extract a top-level pnpm section (`packages:` or `snapshots:`) keyed by package name.
- */
-function pnpmNamedSectionByName(
+function pnpmNamedSectionByFullKey(
   raw: string,
   section: "packages" | "snapshots",
 ): Map<string, string> {
-  const map = new Map<string, string[]>();
+  const map = new Map<string, string>();
   const lines = raw.split(/\r?\n/);
   let inSection = false;
-  let currentName: string | null = null;
+  let currentKey: string | null = null;
   let buf: string[] = [];
   const sectionRe = new RegExp(`^${section}:\\s*$`);
   const flush = (): void => {
-    if (currentName === null) return;
-    const prev = map.get(currentName) ?? [];
-    prev.push(buf.join("\n"));
-    map.set(currentName, prev);
-    currentName = null;
+    if (currentKey === null) return;
+    map.set(currentKey, buf.join("\n"));
+    currentKey = null;
     buf = [];
-  };
-  const unquote = (s: string): string => {
-    const t = s.trim();
-    if ((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
-      return t.slice(1, -1);
-    }
-    return t;
   };
   for (const line of lines) {
     if (sectionRe.test(line)) {
@@ -707,36 +686,50 @@ function pnpmNamedSectionByName(
       flush();
       break;
     }
-    const keyMatch = line.match(/^ {2}(.+?):\s*$/);
+    // Exact 2-space package key; `\S` rejects deeper-indented nested keys.
+    // `\S.*` keeps colon-bearing keys (e.g. 'pkg@file:../pkg') in the full-key map.
+    const keyMatch = line.match(/^ {2}(\S.*):\s*$/);
     if (keyMatch) {
       flush();
-      const key = unquote(keyMatch[1] ?? "");
-      const at = key.startsWith("@") ? key.indexOf("@", 1) : key.indexOf("@");
-      currentName = at > 0 ? key.slice(0, at) : key;
+      currentKey = pnpmUnquote(keyMatch[1] ?? "");
       buf = [line];
       continue;
     }
-    if (currentName !== null) buf.push(line);
+    if (currentKey !== null) buf.push(line);
   }
   flush();
-  const out = new Map<string, string>();
-  for (const [name, blocks] of map) {
-    out.set(name, blocks.slice().sort().join("\n---\n"));
+  return map;
+}
+
+/**
+ * pnpm-lock.yaml follow-through (#5245 / #3193): all-importer specifier+version
+ * freeze, then full-key freeze-except-additions on packages/snapshots.
+ */
+function onlyDirectiveImporterDepsDiffer(
+  baseDeps: Record<string, string>,
+  headDeps: Record<string, string>,
+): boolean {
+  const keys = new Set([...Object.keys(baseDeps), ...Object.keys(headDeps)]);
+  for (const key of keys) {
+    const sep = key.indexOf("\0");
+    const pkg = sep >= 0 ? key.slice(sep + 1) : key;
+    if (isDirectiveDependencyKey(pkg)) continue;
+    if ((baseDeps[key] ?? null) !== (headDeps[key] ?? null)) return false;
   }
-  return out;
+  return true;
 }
 
 export function isPnpmLockDirectivePinFollowThrough(baseRaw: string, headRaw: string): boolean {
-  const baseRoot = pnpmLockRootDirectDeps(baseRaw);
-  const headRoot = pnpmLockRootDirectDeps(headRaw);
-  if (!onlyDirectiveDirectDepsDiffer(baseRoot, headRoot)) return false;
+  const baseImporters = pnpmLockImporterDeps(baseRaw);
+  const headImporters = pnpmLockImporterDeps(headRaw);
+  if (!onlyDirectiveImporterDepsDiffer(baseImporters, headImporters)) return false;
   for (const section of ["packages", "snapshots"] as const) {
-    const baseSec = pnpmNamedSectionByName(baseRaw, section);
-    const headSec = pnpmNamedSectionByName(headRaw, section);
-    const names = new Set([...baseSec.keys(), ...headSec.keys()]);
-    for (const name of names) {
-      if (isDirectiveDependencyKey(name)) continue;
-      if ((baseSec.get(name) ?? null) !== (headSec.get(name) ?? null)) return false;
+    const baseSec = pnpmNamedSectionByFullKey(baseRaw, section);
+    const headSec = pnpmNamedSectionByFullKey(headRaw, section);
+    for (const key of baseSec.keys()) {
+      if (isDirectiveDependencyKey(key)) continue;
+      if (!headSec.has(key)) return false;
+      if (baseSec.get(key) !== headSec.get(key)) return false;
     }
   }
   return true;
@@ -1825,18 +1818,37 @@ export function printCommitGuidance(
   printUnstagedLedgerRemainder(io, unstagedRemainder);
 }
 
-/** Commit guidance when `--allow-dirty-no-stage` skipped automatic `git add` (#4158). */
-export function printDirtyEscapeCommitGuidance(
-  io: InitDepositIo,
-  writtenPaths: readonly string[],
-): void {
+function quoteGitPath(path: string): string {
+  // Escape backslashes before quotes so Windows paths and embedded quotes stay literal.
+  if (/[\s"'\\]/.test(path)) return `"${path.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  return path;
+}
+
+/** Commit guidance when `--allow-dirty-no-stage` skipped automatic `git add` (#4158 / #5245). */
+export function printDirtyEscapeCommitGuidance(io: InitDepositIo, split: LedgerStageSplit): void {
   io.printf(
     "\nDirty escape (--allow-dirty-no-stage): automatic git add is disabled for this run.\n",
   );
   io.printf("git config core.hooksPath still runs (accepted risk of this escape, not staging).\n");
-  if (writtenPaths.length === 0) return;
-  io.printf("Commit only the updater-written paths:\n");
-  io.printf(`  git commit -- ${writtenPaths.join(" ")}\n`);
+  if (split.stagePaths.length === 0) {
+    if (split.skippedUntrackedDeletes.length > 0 || split.unstagedRemainder.length > 0) {
+      printUnstagedLedgerRemainder(io, [
+        ...split.unstagedRemainder,
+        ...split.skippedUntrackedDeletes,
+      ]);
+    }
+    return;
+  }
+  const quoted = split.stagePaths.map(quoteGitPath).join(" ");
+  io.printf("Stage then commit only the classified updater paths (includes tracked deletes):\n");
+  io.printf(`  git add -- ${quoted}\n`);
+  io.printf(`  git commit -- ${quoted}\n`);
+  if (split.skippedUntrackedDeletes.length > 0 || split.unstagedRemainder.length > 0) {
+    printUnstagedLedgerRemainder(io, [
+      ...split.unstagedRemainder,
+      ...split.skippedUntrackedDeletes,
+    ]);
+  }
 }
 
 function defaultCachedNames(projectDir: string): string[] {
@@ -1882,7 +1894,7 @@ export interface DepositStagePathsOptions
   printf?: (text: string) => void;
 }
 
-function defaultTrackedNames(projectDir: string, paths: readonly string[]): string[] {
+export function defaultTrackedNames(projectDir: string, paths: readonly string[]): string[] {
   if (paths.length === 0) return [];
   try {
     const out = execFileSync("git", ["ls-files", "-z", "--", ...paths], {
@@ -1897,6 +1909,23 @@ function defaultTrackedNames(projectDir: string, paths: readonly string[]): stri
   } catch {
     return [];
   }
+}
+
+export type ReadTrackedNamesFn = (projectDir: string, paths: readonly string[]) => string[];
+
+/**
+ * Dirty-escape / ledger staging split (#5245 Prefer-A H4).
+ * Builds trackedDeletes from summary.deleted via optional injector (tests) or
+ * {@link defaultTrackedNames} (production). Shared by depositStagePaths
+ * (ledgerBound branch) and refreshDeposit dirty-escape.
+ */
+export function classifyDirtyEscapeLedger(
+  projectDir: string,
+  summary: MutationSummary,
+  readTrackedNames: ReadTrackedNamesFn = defaultTrackedNames,
+): LedgerStageSplit {
+  const tracked = new Set(readTrackedNames(projectDir, summary.deleted));
+  return splitLedgerForStaging(summary, tracked);
 }
 
 export function depositStagePaths(
@@ -1918,9 +1947,11 @@ export function depositStagePaths(
   let skippedUntrackedDeletes: string[] = [];
 
   if (ledgerBound) {
-    const readTracked = options.readTrackedNames ?? defaultTrackedNames;
-    const tracked = new Set(readTracked(projectDir, summary.deleted));
-    const split = splitLedgerForStaging(summary, tracked);
+    const split = classifyDirtyEscapeLedger(
+      projectDir,
+      summary,
+      options.readTrackedNames ?? defaultTrackedNames,
+    );
     stagePaths = split.stagePaths;
     unstagedRemainder = split.unstagedRemainder;
     skippedUntrackedDeletes = split.skippedUntrackedDeletes;

@@ -13,6 +13,7 @@ import { assertDestinationNotSymlink } from "../fs/projection-containment.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { DEV_FALLBACK } from "../platform/constants.js";
 import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
+import { bareVersionMarkerTargets } from "./hygiene.js";
 
 const OBSOLETE_CORE_SCHEMA = "vbrief-core.schema.json";
 const CURRENT_CORE_SCHEMA = "xbrief-core-0.8.schema.json";
@@ -149,38 +150,87 @@ export function syncConsumerXbriefSchemas(projectDir: string, deftDir: string): 
   return changed;
 }
 
+export interface SyncBareVersionMarkerOptions {
+  /** Optional printf for migrate hint when legacy multi-marker disagreement is left in place. */
+  readonly printf?: (text: string) => void;
+}
+
 function syncBareVersionMarkerWithPolicy(
   projectDir: string,
   version: string,
   allowRootFallback: boolean,
+  options: SyncBareVersionMarkerOptions = {},
 ): boolean {
   const normalized = normalizeVersion(version);
   if (!normalized || normalized === DEV_FALLBACK) return false;
+
+  const targets = bareVersionMarkerTargets(projectDir);
+  const desired = `${normalized}\n`;
 
   const canonicalRoot = join(projectDir, MIGRATED_ARTIFACT_DIR);
   if (existsSync(canonicalRoot)) {
     assertDestinationNotSymlink(projectDir, join(canonicalRoot, ".deft-version"));
   }
-  let targetDir = projectDir;
+
+  let lifecycleRoot: string | undefined;
   try {
-    targetDir = resolveLifecycleRoot(projectDir);
+    lifecycleRoot = resolveLifecycleRoot(projectDir);
   } catch {
-    // Preserve the historical root fallback for payload-changing refreshes,
-    // and repair an existing fallback on no-op refreshes without creating new
-    // untracked state (#2118 / #2595).
-    const rootMarker = join(projectDir, ".deft-version");
-    if (!allowRootFallback && !existsSync(rootMarker)) return false;
+    lifecycleRoot = undefined;
   }
-  const target = join(targetDir, ".deft-version");
-  return writeFileIfChanged(projectDir, target, `${normalized}\n`);
+
+  if (lifecycleRoot !== undefined) {
+    // Migrated tree: write canonical lifecycle marker; delete other bare copies (#5245).
+    const canonical = join(lifecycleRoot, ".deft-version").replace(/\\/g, "/");
+    let changed = writeFileIfChanged(projectDir, canonical, desired);
+    for (const target of targets) {
+      const normalizedTarget = target.replace(/\\/g, "/");
+      if (normalizedTarget === canonical) continue;
+      if (containedRemove({ root: projectDir, target: normalizedTarget }).removed) {
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  // Legacy / Bridge path: root `.deft-version` is canonical; delete nothing.
+  const rootMarker = join(projectDir, ".deft-version");
+  if (!allowRootFallback && !existsSync(rootMarker)) return false;
+
+  const existingValues = new Set<string>();
+  for (const target of targets) {
+    try {
+      if (existsSync(target)) {
+        existingValues.add(readFileSync(target, "utf8").trim());
+      }
+    } catch {
+      // unreadable marker — doctor will surface
+    }
+  }
+  if (existingValues.size > 1) {
+    options.printf?.(
+      "Bare .deft-version markers disagree across xbrief/root/vbrief; leaving all in place. " +
+        "Run `deft migrate:xbrief` to converge lifecycle layout before delete-repair (#5245).\n",
+    );
+  }
+
+  return writeFileIfChanged(projectDir, rootMarker, desired);
 }
 
 /** Regenerate the bare consumer version derivative, retaining the historical root fallback. */
-export function syncBareVersionMarker(projectDir: string, version: string): boolean {
-  return syncBareVersionMarkerWithPolicy(projectDir, version, true);
+export function syncBareVersionMarker(
+  projectDir: string,
+  version: string,
+  options: SyncBareVersionMarkerOptions = {},
+): boolean {
+  return syncBareVersionMarkerWithPolicy(projectDir, version, true, options);
 }
 
 /** Repair an existing marker without creating root state when no lifecycle artifact exists. */
-export function syncExistingBareVersionMarker(projectDir: string, version: string): boolean {
-  return syncBareVersionMarkerWithPolicy(projectDir, version, false);
+export function syncExistingBareVersionMarker(
+  projectDir: string,
+  version: string,
+  options: SyncBareVersionMarkerOptions = {},
+): boolean {
+  return syncBareVersionMarkerWithPolicy(projectDir, version, false, options);
 }

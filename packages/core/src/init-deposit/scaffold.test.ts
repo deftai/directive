@@ -194,6 +194,9 @@ describe("init-deposit scaffold", () => {
     await depositNeutralization(project, io);
 
     expect(readFileSync(join(project, ".gitattributes"), "utf8")).toContain(
+      ".deft/core/** text=auto eol=lf",
+    );
+    expect(readFileSync(join(project, ".gitattributes"), "utf8")).not.toContain(
       ".deft/core/** text eol=lf",
     );
     expect(readFileSync(join(project, "greptile.json"), "utf8")).toContain(".deft/core/**");
@@ -416,20 +419,44 @@ describe("init-deposit scaffold", () => {
     ).toContain("tag: 'v0.53.0'");
   });
 
-  it("repairs old .gitattributes entries with the LF pin", () => {
+  it("repairs old .gitattributes entries with text=auto and removes legacy text eol=lf (#5245)", () => {
     const project = freshRoot("scaffold-gitattributes-lf-");
     const { io } = captureIo();
     writeFileSync(
       join(project, ".gitattributes"),
-      ".deft/core/** linguist-generated=true\n.deft/core/** linguist-vendored=true\n",
+      ".deft/core/** text eol=lf\n.deft/core/** linguist-generated=true\n.deft/core/** linguist-vendored=true\n# consumer fixture\n*.md text\n",
       "utf8",
     );
 
     expect(ensureGitattributes(project, io)).toBe(true);
     const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
-    expect(attrs).toContain(".deft/core/** text eol=lf");
+    expect(attrs).toContain(".deft/core/** text=auto eol=lf");
+    expect((attrs.match(/\.deft\/core\/\*\* text eol=lf/g) ?? []).length).toBe(0);
+    expect((attrs.match(/text=auto eol=lf/g) ?? []).length).toBe(1);
     expect(attrs.match(/linguist-generated=true/g) ?? []).toHaveLength(1);
     expect(attrs.match(/linguist-vendored=true/g) ?? []).toHaveLength(1);
+    expect(attrs).toContain("*.md text");
+  });
+
+  it("removes legacy text eol=lf even when desired lines already present (#5245)", () => {
+    const project = freshRoot("scaffold-gitattributes-legacy-only-");
+    const { io, lines } = captureIo();
+    writeFileSync(
+      join(project, ".gitattributes"),
+      [
+        ".deft/core/** text eol=lf",
+        ".deft/core/** text=auto eol=lf",
+        ".deft/core/** linguist-generated=true",
+        ".deft/core/** linguist-vendored=true",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    expect(ensureGitattributes(project, io)).toBe(true);
+    const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
+    expect((attrs.match(/\.deft\/core\/\*\* text eol=lf/g) ?? []).length).toBe(0);
+    expect((attrs.match(/text=auto eol=lf/g) ?? []).length).toBe(1);
+    expect(lines.join("")).not.toMatch(/skipping/);
   });
 
   it("prunes framework self-tests and vendored TS test files", async () => {

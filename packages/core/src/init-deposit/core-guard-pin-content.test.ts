@@ -27,6 +27,18 @@ describe("core-guard pin-content SoT (#3193 / #3427)", () => {
     expect(isUpgradePinPathContentAllowed("README.md", "a", "b")).toBe(false);
   });
 
+  it("AC-8-content python SoT names four entry points + freeze-except-additions (#5245 H5)", () => {
+    // Verdicts are string/byte assertions on the deposited SoT — not process execution.
+    for (const name of ["pkg_pin_only", "npm_lock_ok", "pnpm_ok", "yarn_ok"] as const) {
+      expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain(`def ${name}(`);
+    }
+    expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain("pnpm_section_by_full_key");
+    expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain("pnpm_importer_deps");
+    expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain("freeze-except-additions");
+    expect(CORE_GUARD_PIN_CONTENT_PYTHON).not.toContain("def pnpm_packages_by_name");
+    expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain(String.raw`^ {2}(\S.*):\s*$`);
+  });
+
   it("leaves no tracked .py files in this repo (#3427)", () => {
     const listed = execFileSync("git", ["ls-files", "*.py"], {
       cwd: repoRoot,

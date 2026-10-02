@@ -96,8 +96,10 @@ import { removeStaleMigratedFrameworkNarrative } from "../xbrief-migrate/migrate
 import { writeAgentHookDeposit } from "./agent-hooks.js";
 import { ensureInitGitignoreLines, type GitLsFiles, isDepositTrackedInGit } from "./gitignore.js";
 import {
+  classifyDirtyEscapeLedger,
   depositStagePaths,
   isInstallerManagedPath,
+  type LedgerStageSplit,
   printCommitGuidance,
   printDirtyEscapeCommitGuidance,
   reconcileDepositToContentPackage,
@@ -187,6 +189,11 @@ export interface RefreshDepositResult {
   readonly pinLockRefreshError?: string;
   /** #4120 generation rewind gate refused before dest writes. */
   readonly generationRewindError?: string;
+  /**
+   * Dirty-escape classified ledger split (#5245). Populated when
+   * `--allow-dirty-no-stage` skips automatic git add; --json emits the sets.
+   */
+  readonly dirtyEscapeSplit?: LedgerStageSplit;
 }
 
 export type RefreshDepositStrategy = "file-swap" | "no-op";
@@ -569,8 +576,9 @@ export function frameworkRefreshSideEffects(
 export function printRefreshSideEffects(io: InitDepositIo, effects: RefreshSideEffects): void {
   if (effects.crlfOnlyCoreFiles.length > 0) {
     io.printf(
-      "\nWindows line-ending note (#2118): suppressed .deft/core CRLF/LF-only noise; " +
-        "ensure .gitattributes contains `.deft/core/** text eol=lf`.\n",
+      "\nWindows line-ending note (#2118 / #5245): suppressed .deft/core CRLF/LF-only noise; " +
+        "ensure .gitattributes contains `.deft/core/** text=auto eol=lf` " +
+        "(not legacy `text eol=lf`, which corrupts binary assets).\n",
     );
   }
   if (effects.files.length === 0) return;
@@ -713,6 +721,9 @@ export function buildUpdateSummaryJson(input: {
           allow_dirty_no_stage: true,
           staging_skipped: true,
           staging_skipped_reason: "allow-dirty-no-stage",
+          stage_candidates: result.dirtyEscapeSplit?.stagePaths ?? [],
+          unstaged_remainder: result.dirtyEscapeSplit?.unstagedRemainder ?? [],
+          skipped_untracked_deletes: result.dirtyEscapeSplit?.skippedUntrackedDeletes ?? [],
         }
       : {}),
     staged_paths: result.stagedPaths,
@@ -1293,9 +1304,11 @@ export async function runRefreshDeposit(
   // Always repair these cheap projections, including on the #2118 no-op path.
   const wroteBeforeMarker = snapshotMutationSummary().wrote;
   if (alreadyCurrent) {
-    syncExistingBareVersionMarker(projectDir, contentVersion);
+    syncExistingBareVersionMarker(projectDir, contentVersion, {
+      printf: (t) => io.printf(t),
+    });
   } else {
-    syncBareVersionMarker(projectDir, contentVersion);
+    syncBareVersionMarker(projectDir, contentVersion, { printf: (t) => io.printf(t) });
   }
   for (const path of wroteSince(wroteBeforeMarker, snapshotMutationSummary().wrote)) {
     if (path.endsWith(".deft-version") || path === ".deft-version") {
@@ -1441,8 +1454,11 @@ export async function runRefreshDeposit(
   });
 
   let stagedPaths: string[] = [];
+  let dirtyEscapeSplit: LedgerStageSplit | undefined;
   if (args.allowDirtyNoStage === true) {
-    printDirtyEscapeCommitGuidance(io, snapshotMutationSummary().wrote);
+    // After runWithMutationLedger: summary.deleted is populated (#5245 Prefer-A H4).
+    dirtyEscapeSplit = classifyDirtyEscapeLedger(projectDir, snapshotMutationSummary());
+    printDirtyEscapeCommitGuidance(io, dirtyEscapeSplit);
   } else if (!alreadyCurrent || effects.files.length > 0) {
     const stagedResult = depositStagePaths(projectDir, {
       includeTaskfile: taskfileWired,
@@ -1489,6 +1505,7 @@ export async function runRefreshDeposit(
     stagedPaths,
     mutations: snapshotMutationSummary(),
     consumerProjections,
+    ...(dirtyEscapeSplit !== undefined ? { dirtyEscapeSplit } : {}),
   };
 }
 
@@ -1731,6 +1748,10 @@ async function emitDryRunPlan(
                 allow_dirty_no_stage: true,
                 staging_skipped: true,
                 staging_skipped_reason: "allow-dirty-no-stage",
+                stage_candidates: destResult.dirtyEscapeSplit?.stagePaths ?? [],
+                unstaged_remainder: destResult.dirtyEscapeSplit?.unstagedRemainder ?? [],
+                skipped_untracked_deletes:
+                  destResult.dirtyEscapeSplit?.skippedUntrackedDeletes ?? [],
               }
             : {}),
         },

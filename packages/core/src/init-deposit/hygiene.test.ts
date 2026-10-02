@@ -20,10 +20,14 @@ import {
 import { detectBranchSync, formatBranchSyncExemptionMessage } from "../policy/branch-sync.js";
 import {
   assertInstallerAllowlistHonors1430,
+  bareVersionMarkerRelativePaths,
+  bareVersionMarkerTargets,
   CONSUMER_GUARD_MUST_FIRE,
+  classifyDirtyEscapeLedger,
   classifyMixedCoreAndApp,
   classifyMixedCoreAndAppContentAware,
   classifyMixedCoreAndAppForPr,
+  defaultTrackedNames,
   depositStagePaths,
   filterUntrackedIgnoredStagePaths,
   findPackageAbsentDepositPaths,
@@ -45,6 +49,7 @@ import {
   isUpgradePinPathContentAllowed,
   isYarnLockDirectivePinFollowThrough,
   pass2CommitSetMatchers,
+  pnpmLockImporterDeps,
   pnpmLockRootDirectDeps,
   printCommitGuidance,
   printDirtyEscapeCommitGuidance,
@@ -2187,18 +2192,313 @@ describe("Pass 2 commit-set and #1430 peers (#4271)", () => {
   });
 });
 
-describe("printDirtyEscapeCommitGuidance (#4158)", () => {
-  it("prints git commit -- written paths and not add-then-bare-commit", () => {
+describe("printDirtyEscapeCommitGuidance (#4158 / #5245)", () => {
+  it("prints git add -- then git commit -- for classified stage paths", () => {
     const lines: string[] = [];
-    printDirtyEscapeCommitGuidance({ printf: (text) => lines.push(text) }, [
-      "AGENTS.md",
-      ".deft/core/VERSION",
-    ]);
+    printDirtyEscapeCommitGuidance(
+      { printf: (text) => lines.push(text) },
+      {
+        stagePaths: ["AGENTS.md", ".deft/core/VERSION"],
+        unstagedRemainder: [],
+        skippedUntrackedDeletes: [],
+      },
+    );
     const out = lines.join("");
+    expect(out).toContain("git add -- AGENTS.md .deft/core/VERSION");
     expect(out).toContain("git commit -- AGENTS.md .deft/core/VERSION");
     expect(out).toContain("automatic git add is disabled");
     expect(out).toContain("core.hooksPath still runs");
-    expect(out).not.toMatch(/git add --/);
     expect(out).not.toMatch(/git commit -m/);
+  });
+});
+
+describe("root .deft-version allowlist + bareVersionMarkerTargets (#5245 P1)", () => {
+  it("treats root .deft-version as installer-managed", () => {
+    expect(isInstallerManagedPath(".deft-version")).toBe(true);
+    expect(installerManagedGuardEre()).toContain("^\\.deft-version$");
+  });
+
+  it("bareVersionMarkerTargets lists xbrief/root/vbrief independently of resolver", () => {
+    const targets = bareVersionMarkerTargets("/tmp/project");
+    expect(targets.map((p) => p.replace(/\\/g, "/"))).toEqual([
+      "/tmp/project/xbrief/.deft-version",
+      "/tmp/project/.deft-version",
+      "/tmp/project/vbrief/.deft-version",
+    ]);
+    for (const rel of bareVersionMarkerRelativePaths()) {
+      expect(isInstallerManagedPath(rel)).toBe(true);
+    }
+  });
+
+  it("core + root .deft-version is not mixed app", () => {
+    const result = classifyMixedCoreAndApp([".deft/core/VERSION", ".deft-version"]);
+    expect(result.wouldFail).toBe(false);
+    expect(result.installerManaged).toContain(".deft-version");
+  });
+});
+
+describe("classifyDirtyEscapeLedger (#5245 P4)", () => {
+  it("uses optional readTrackedNames injector and defaultTrackedNames", () => {
+    expect(typeof defaultTrackedNames).toBe("function");
+    const summary = {
+      wrote: ["AGENTS.md"],
+      stripped: [] as string[],
+      deleted: [".deft-version"],
+      chmod: [] as string[],
+      exec: [] as string[],
+    };
+    const split = classifyDirtyEscapeLedger("/tmp", summary, () => [".deft-version"]);
+    expect(split.stagePaths).toEqual(expect.arrayContaining(["AGENTS.md", ".deft-version"]));
+    expect(split.skippedUntrackedDeletes).toEqual([]);
+  });
+});
+
+/** Expected-verdict corpus for AC-8-content (#5245 P3/P5). */
+describe("expected-verdict corpus (#5245 P3/P5)", () => {
+  const basePnpm = [
+    "lockfileVersion: '9.0'",
+    "",
+    "importers:",
+    "",
+    "  .:",
+    "    dependencies:",
+    "      lodash:",
+    "        specifier: ^4.17.21",
+    "        version: 4.17.21",
+    "    devDependencies:",
+    "      '@deftai/directive':",
+    "        specifier: 0.96.0",
+    "        version: 0.96.0",
+    "",
+    "packages:",
+    "",
+    "  lodash@4.17.21:",
+    "    resolution: {integrity: sha512-base}",
+    "",
+    "  '@deftai/directive@0.96.0':",
+    "    resolution: {integrity: sha512-pin-base}",
+    "",
+    "snapshots:",
+    "",
+    "  lodash@4.17.21:",
+    "    {}",
+    "",
+  ].join("\n");
+
+  it("Row1: head-only full-key transitive ACCEPT", () => {
+    const headClean = [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    dependencies:",
+      "      lodash:",
+      "        specifier: ^4.17.21",
+      "        version: 4.17.21",
+      "    devDependencies:",
+      "      '@deftai/directive':",
+      "        specifier: 0.97.0",
+      "        version: 0.97.0",
+      "",
+      "packages:",
+      "",
+      "  lodash@4.17.21:",
+      "    resolution: {integrity: sha512-base}",
+      "",
+      "  archiver@7.0.0:",
+      "    resolution: {integrity: sha512-arch}",
+      "",
+      "  '@deftai/directive@0.97.0':",
+      "    resolution: {integrity: sha512-pin-head}",
+      "",
+      "snapshots:",
+      "",
+      "  lodash@4.17.21:",
+      "    {}",
+      "",
+      "  archiver@7.0.0:",
+      "    {}",
+      "",
+    ].join("\n");
+    expect(isPnpmLockDirectivePinFollowThrough(basePnpm, headClean)).toBe(true);
+    expect(isUpgradePinPathContentAllowed("pnpm-lock.yaml", basePnpm, headClean)).toBe(true);
+  });
+
+  it("Row2: same full-key block-text change FAIL", () => {
+    const head = basePnpm.replace("sha512-base", "sha512-changed");
+    expect(isPnpmLockDirectivePinFollowThrough(basePnpm, head)).toBe(false);
+  });
+
+  it("Row3: base-only full-key deletion FAIL", () => {
+    const head = [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    dependencies:",
+      "      lodash:",
+      "        specifier: ^4.17.21",
+      "        version: 4.17.21",
+      "    devDependencies:",
+      "      '@deftai/directive':",
+      "        specifier: 0.97.0",
+      "        version: 0.97.0",
+      "",
+      "packages:",
+      "",
+      "  '@deftai/directive@0.97.0':",
+      "    resolution: {integrity: sha512-pin-head}",
+      "",
+      "snapshots:",
+      "",
+      "  '@deftai/directive@0.97.0':",
+      "    {}",
+      "",
+    ].join("\n");
+    expect(isPnpmLockDirectivePinFollowThrough(basePnpm, head)).toBe(false);
+  });
+
+  it("nested YAML keys are not package identities (ordering-oracle)", () => {
+    const withNested = [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    dependencies:",
+      "      lodash:",
+      "        specifier: ^4.17.21",
+      "        version: 4.17.21",
+      "",
+      "packages:",
+      "",
+      "  lodash@4.17.21:",
+      "    resolution: {integrity: sha512-base}",
+      "    peerDependencies:",
+      "      left-pad: ^1.0.0",
+      "",
+      "snapshots:",
+      "",
+      "  lodash@4.17.21:",
+      "    dependencies:",
+      "      left-pad: 1.0.0",
+      "",
+    ].join("\n");
+    const bumpedNested = withNested.replace(
+      "peerDependencies:\n      left-pad: ^1.0.0",
+      "peerDependencies:\n      left-pad: ^1.0.1",
+    );
+    // Nested peerDeps change stays under the same full key → FAIL on block text.
+    expect(isPnpmLockDirectivePinFollowThrough(withNested, bumpedNested)).toBe(false);
+    // peerDependencies must not appear as a section key.
+    const importers = pnpmLockImporterDeps(withNested);
+    expect(Object.keys(importers).some((k) => k.includes("peerDependencies"))).toBe(false);
+  });
+
+  it("specifier-only importer edit FAIL (H3 corpus row)", () => {
+    const head = basePnpm.replace("specifier: ^4.17.21", "specifier: ^4.17.22");
+    expect(isPnpmLockDirectivePinFollowThrough(basePnpm, head)).toBe(false);
+  });
+
+  it("colon-bearing full keys stay in the freeze map (#5245 Greptile P1)", () => {
+    const withFileKey = [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    dependencies:",
+      "      local-pkg:",
+      "        specifier: file:../local-pkg",
+      "        version: link:../local-pkg",
+      "    devDependencies:",
+      "      '@deftai/directive':",
+      "        specifier: 0.97.0",
+      "        version: 0.97.0",
+      "",
+      "packages:",
+      "",
+      "  'local-pkg@file:../local-pkg':",
+      "    resolution: {directory: ../local-pkg, type: directory}",
+      "",
+      "  '@deftai/directive@0.97.0':",
+      "    resolution: {integrity: sha512-pin-head}",
+      "",
+      "snapshots:",
+      "",
+      "  'local-pkg@file:../local-pkg':",
+      "    {}",
+      "",
+      "  '@deftai/directive@0.97.0':",
+      "    {}",
+      "",
+    ].join("\n");
+    const changedFileKey = withFileKey.replace(
+      "resolution: {directory: ../local-pkg, type: directory}",
+      "resolution: {directory: ../local-pkg-moved, type: directory}",
+    );
+    expect(isPnpmLockDirectivePinFollowThrough(withFileKey, changedFileKey)).toBe(false);
+  });
+
+  it("npm path-key freeze-except-additions ACCEPT for new node_modules path", () => {
+    const base = JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {
+          dependencies: { lodash: "^4.17.21" },
+          devDependencies: { "@deftai/directive": "0.96.0" },
+        },
+        "node_modules/lodash": { version: "4.17.21" },
+        "node_modules/@deftai/directive": { version: "0.96.0" },
+      },
+    });
+    const head = JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {
+          dependencies: { lodash: "^4.17.21" },
+          devDependencies: { "@deftai/directive": "0.97.0" },
+        },
+        "node_modules/lodash": { version: "4.17.21" },
+        "node_modules/archiver": { version: "7.0.0" },
+        "node_modules/@deftai/directive": { version: "0.97.0" },
+      },
+    });
+    expect(isPackageLockDirectivePinFollowThrough(base, head)).toBe(true);
+    expect(isUpgradePinPathContentAllowed("package-lock.json", base, head)).toBe(true);
+  });
+
+  it("yarn additions remain FAIL (fully frozen residual)", () => {
+    const base = [
+      "lodash@^4.17.21:",
+      '  version "4.17.21"',
+      "",
+      '"@deftai/directive@0.96.0":',
+      '  version "0.96.0"',
+      "",
+    ].join("\n");
+    const head = [
+      "lodash@^4.17.21:",
+      '  version "4.17.21"',
+      "",
+      '"@deftai/directive@0.97.0":',
+      '  version "0.97.0"',
+      "",
+      "archiver@7.0.0:",
+      '  version "7.0.0"',
+      "",
+    ].join("\n");
+    expect(isYarnLockDirectivePinFollowThrough(base, head)).toBe(false);
+    expect(isUpgradePinPathContentAllowed("yarn.lock", base, head)).toBe(false);
+  });
+
+  it("AC-8-content dispatches four targets + entry against corpus", () => {
+    expect(typeof isPackageJsonDirectivePinOnlyDiff).toBe("function");
+    expect(typeof isPackageLockDirectivePinFollowThrough).toBe("function");
+    expect(typeof isPnpmLockDirectivePinFollowThrough).toBe("function");
+    expect(typeof isYarnLockDirectivePinFollowThrough).toBe("function");
+    expect(typeof isUpgradePinPathContentAllowed).toBe("function");
   });
 });

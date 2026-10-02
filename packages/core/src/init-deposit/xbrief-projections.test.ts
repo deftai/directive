@@ -241,6 +241,33 @@ describe("xbrief consumer projections (#2595)", () => {
     expect(readFileSync(join(project, ".deft-version"), "utf8")).toBe("0.78.0\n");
   });
 
+  it("deletes non-canonical bare markers only when resolveLifecycleRoot succeeds (#5245)", () => {
+    const { project } = fixture();
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(project, "xbrief", "active", "seed.xbrief.json"), "{}\n", "utf8");
+    writeFileSync(join(project, "xbrief", ".deft-version"), "0.72.0\n", "utf8");
+    writeFileSync(join(project, ".deft-version"), "0.66.1\n", "utf8");
+    mkdirSync(join(project, "vbrief"), { recursive: true });
+    writeFileSync(join(project, "vbrief", ".deft-version"), "0.66.1\n", "utf8");
+
+    expect(syncBareVersionMarker(project, "0.78.0")).toBe(true);
+    expect(readFileSync(join(project, "xbrief", ".deft-version"), "utf8")).toBe("0.78.0\n");
+    expect(existsSync(join(project, ".deft-version"))).toBe(false);
+    expect(existsSync(join(project, "vbrief", ".deft-version"))).toBe(false);
+  });
+
+  it("does not delete root marker when resolver throws; surfaces migrate hint (#5245)", () => {
+    const { project } = fixture();
+    writeFileSync(join(project, ".deft-version"), "0.66.1\n", "utf8");
+    mkdirSync(join(project, "vbrief"), { recursive: true });
+    writeFileSync(join(project, "vbrief", ".deft-version"), "0.60.0\n", "utf8");
+    const lines: string[] = [];
+    expect(syncBareVersionMarker(project, "0.78.0", { printf: (t) => lines.push(t) })).toBe(true);
+    expect(readFileSync(join(project, ".deft-version"), "utf8")).toBe("0.78.0\n");
+    expect(existsSync(join(project, "vbrief", ".deft-version"))).toBe(true);
+    expect(lines.join("")).toContain("migrate:xbrief");
+  });
+
   itSymlink("refuses schema symlinks in the framework payload", () => {
     const { project, deftDir, schemas } = fixture();
     const outside = join(project, "outside.schema.json");

@@ -378,10 +378,40 @@ describe("checks", () => {
 
   it("manifest agreement drift between yaml and bare", () => {
     const result = checkManifestAgreement("/tmp", ".deft/core", {
-      isFile: () => true,
-      readText: (p) => (p.includes(".deft-version") ? "0.2.0\n" : "tag: v0.1.0\n"),
+      isFile: (p) => {
+        const n = p.replace(/\\/g, "/");
+        if (n.endsWith("/.deft/core/VERSION") || n.endsWith(".deft/core/VERSION")) return true;
+        // Only the root bare marker — not xbrief/vbrief — so disagreement does not fire.
+        return n.endsWith("/.deft-version") && !n.includes("/xbrief/") && !n.includes("/vbrief/");
+      },
+      readText: (p) => {
+        const n = p.replace(/\\/g, "/");
+        if (n.includes(".deft-version")) return "0.2.0\n";
+        return "tag: v0.1.0\n";
+      },
     });
     expect(result.status).toBe("fail");
+    expect(result.detail).toContain("Drift detected");
+  });
+
+  it("bare marker disagreement skips with migrate hint when lifecycle unresolved (#5245 H1)", () => {
+    const result = checkManifestAgreement("/tmp/legacy", ".deft/core", {
+      isFile: (p) => {
+        const n = p.replace(/\\/g, "/");
+        if (n.includes("/xbrief/")) return false;
+        return n.includes(".deft-version") || n.includes("/VERSION");
+      },
+      readText: (p) => {
+        const n = p.replace(/\\/g, "/");
+        if (n.includes("/vbrief/") && n.includes(".deft-version")) return "0.66.1\n";
+        if (n.includes(".deft-version")) return "0.119.13\n";
+        if (n.includes("VERSION")) return "tag: v0.119.13\n";
+        return null;
+      },
+    });
+    expect(result.status).toBe("skip");
+    expect(result.detail).toContain("migrate:xbrief");
+    expect(result.data).toMatchObject({ bare_marker_disagreement: true });
   });
 
   it("install path consistency skip without root", () => {

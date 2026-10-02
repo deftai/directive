@@ -3,6 +3,7 @@ import { dirname, isAbsolute, join, relative, resolve as resolvePath } from "nod
 import { VBRIEF_VERSION } from "@deftai/directive-types";
 import { isAgentScratchWorktreePath } from "../fs/non-product-dirs.js";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
+import { bareVersionMarkerTargets } from "../init-deposit/hygiene.js";
 import {
   detectDualLayout,
   detectLegacyLayout,
@@ -999,16 +1000,49 @@ export function checkManifestAgreement(
   const isFile = seams.isFile ?? ((p) => readText(p, seams) !== null);
   const manifestPath = locateManifest(projectRoot, installRoot, isFile);
   const expectedManifestPath = manifestPath ?? manifestCandidatePaths(projectRoot, installRoot)[0];
-  let layoutRoot: string;
+  // Single list (#5245): xbrief/root/vbrief independently of resolveLifecycleRoot.
+  const bareCandidates = bareVersionMarkerTargets(projectRoot);
+  const presentMarkers = bareCandidates
+    .filter((p) => isFile(p))
+    .map((p) => ({ path: p, value: (readText(p, seams) ?? "").trim() }));
+  const distinctValues = new Set(presentMarkers.map((m) => m.value).filter((v) => v.length > 0));
+  let lifecycleResolved = false;
   try {
-    layoutRoot = resolveLifecycleRoot(projectRoot);
+    resolveLifecycleRoot(projectRoot);
+    lifecycleResolved = true;
   } catch {
-    layoutRoot = projectRoot; // No xbrief/ layout; fall back to project root for bare version check.
+    lifecycleResolved = false;
   }
-  const bareCandidates = [join(layoutRoot, ".deft-version"), join(projectRoot, ".deft-version")];
-  const barePath = bareCandidates.find((p) => isFile(p)) ?? null;
-  const manifestText = manifestPath ? readText(manifestPath, seams) : null;
+  if (distinctValues.size > 1) {
+    const listing = presentMarkers.map((m) => `${m.path}='${m.value}'`).join("; ");
+    if (lifecycleResolved) {
+      // Repairable: writer delete-repair clears non-canonical copies on next update.
+      return {
+        name: "manifest-agreement",
+        status: "fail",
+        detail: `Bare .deft-version markers disagree (${listing}). Run \`deft update\` to keep the canonical lifecycle marker and delete the others (#5245).`,
+        data: {
+          bare_marker_disagreement: true,
+          bare_markers: presentMarkers,
+          suggested_fix: "deft update",
+        },
+      };
+    }
+    // Prefer-A H1: unrepaired legacy (resolver throws) is skip with migrate hint — not pass/fail.
+    return {
+      name: "manifest-agreement",
+      status: "skip",
+      detail: `Bare .deft-version markers disagree (${listing}) and no inhabited xbrief/ layout is present. Delete-repair is gated on migrate; run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` then \`deft update\` (#5245 Prefer-A H1).`,
+      data: {
+        bare_marker_disagreement: true,
+        bare_markers: presentMarkers,
+        suggested_fix: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
+      },
+    };
+  }
+  const barePath = presentMarkers[0]?.path ?? null;
   const bareText = barePath ? readText(barePath, seams) : null;
+  const manifestText = manifestPath ? readText(manifestPath, seams) : null;
   if (manifestText === null && bareText === null) {
     return {
       name: "manifest-agreement",
@@ -1018,6 +1052,7 @@ export function checkManifestAgreement(
       data: {
         manifest_path: manifestPath,
         bare_path: barePath,
+        bare_candidates: bareCandidates,
       },
     };
   }

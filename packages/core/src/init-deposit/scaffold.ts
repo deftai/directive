@@ -85,11 +85,15 @@ const VENDORED_TS_PACKAGES_REL = ".deft/core/packages";
 
 const VENDORED_TS_TEST_RE = /\.(test|spec)\.(c|m)?[jt]sx?$/i;
 
+/** Desired core attribute lines (#5245). `text=auto` keeps binary PNG bytes intact. */
 const CORE_GITATTRIBUTES_LINES = [
-  `${CORE_GLOB} text eol=lf`,
+  `${CORE_GLOB} text=auto eol=lf`,
   `${CORE_GLOB} linguist-generated=true`,
   `${CORE_GLOB} linguist-vendored=true`,
 ];
+
+/** Exact legacy forced-text line removed on refresh (#5245 / #1430). */
+export const LEGACY_CORE_TEXT_EOL_LF = `${CORE_GLOB} text eol=lf` as const;
 
 const VBRIEF_LIFECYCLE_DIRS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 
@@ -872,26 +876,41 @@ function coreGuardWorkflowContent(): string {
 export function ensureGitattributes(projectDir: string, io: InitDepositIo): boolean {
   const path = projectionTarget(projectDir, ".gitattributes");
   const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
-  const present = new Set(existing.split("\n").map((line) => line.trim()));
+  const lines = existing.length > 0 ? existing.split("\n") : [];
+  // Targeted removal of legacy forced-text, independent of additions short-circuit (#5245).
+  const withoutLegacy = lines.filter((line) => line.trim() !== LEGACY_CORE_TEXT_EOL_LF);
+  const removedLegacy = withoutLegacy.length !== lines.length;
+  const present = new Set(
+    withoutLegacy.map((line) => line.trim()).filter((line) => line.length > 0),
+  );
   const additions = CORE_GITATTRIBUTES_LINES.filter((line) => !present.has(line));
-  if (additions.length === 0) {
+  if (additions.length === 0 && !removedLegacy) {
     io.printf(
-      `.gitattributes already marks ${CORE_GLOB} as LF-pinned/generated/vendored — skipping.\n`,
+      `.gitattributes already marks ${CORE_GLOB} as text=auto/generated/vendored — skipping.\n`,
     );
     return false;
   }
-  let body = existing;
+  let body = withoutLegacy.join("\n");
+  // Drop trailing empty lines left by filter so we can append cleanly.
+  while (body.endsWith("\n\n")) body = body.slice(0, -1);
   if (body && !body.endsWith("\n")) body += "\n";
-  if (body && !body.endsWith("\n\n")) body += "\n";
-  body +=
-    "# Deft framework: the vendored payload is packaged framework code, not\n" +
-    "# consumer source. Pin LF endings and mark it generated + vendored so\n" +
-    "# Git does not rewrite it and diffs treat .deft/core/** as machine-managed (#1430, #2118).\n";
-  for (const add of additions) {
-    body += `${add}\n`;
+  if (additions.length > 0) {
+    if (body && !body.endsWith("\n\n")) body += "\n";
+    body +=
+      "# Deft framework: the vendored payload is packaged framework code, not\n" +
+      "# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
+      "# byte identity. Mark generated + vendored (#1430, #2118, #5245).\n";
+    for (const add of additions) {
+      body += `${add}\n`;
+    }
+  } else if (removedLegacy && body && !body.endsWith("\n")) {
+    body += "\n";
   }
   containedProjectWrite(projectDir, path, body);
-  io.printf(`.gitattributes updated with Deft core markers: ${additions.join(", ")}\n`);
+  const parts: string[] = [];
+  if (removedLegacy) parts.push(`removed ${LEGACY_CORE_TEXT_EOL_LF}`);
+  if (additions.length > 0) parts.push(`added ${additions.join(", ")}`);
+  io.printf(`.gitattributes updated with Deft core markers: ${parts.join("; ")}\n`);
   return true;
 }
 
