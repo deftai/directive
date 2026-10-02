@@ -287,6 +287,19 @@ describe("pr-closeout-attestable evaluate", () => {
     expect(result.message).toContain("nothing to check");
   });
 
+  it("no-xbrief skip wins over a PR-head mismatch (#3875 residual)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-closeout-nolayout-mismatch-"));
+    temps.push(root);
+    const result = evaluate(root, 1, {
+      repo: REPO,
+      runner: { runGh: NEVER_CALLED, proxied: false },
+      fetchClosingIssues: closing(1),
+      prHeadAssert: { localHeadSha: "a".repeat(40), prHeadSha: "b".repeat(40) },
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("nothing to check");
+  });
+
   it("walks nested subItems and items", () => {
     const root = makeRepo();
     writeBrief(root, "2026-08-26-3609-story.xbrief.json", {

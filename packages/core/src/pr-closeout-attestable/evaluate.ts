@@ -292,8 +292,9 @@ function configError(
  * The brief is read from the PR-head working tree (caller cwd, or a linked
  * worktree whose HEAD matches the PR head when cascade runs from primary). That
  * is the tree the merge lands, and it is the same working-tree basis
- * `verify:orphan-active` uses. Before that read, #3875 asserts HEAD equals the
- * PR head SHA (or an injected forge blob), refuses a dirty xbrief/vbrief tree,
+ * `verify:orphan-active` uses. No-xbrief layouts exit 0 before the HEAD assert
+ * so legacy vbrief/-only checkouts are not blocked. When briefs would be read,
+ * #3875 asserts HEAD equals the PR head SHA, refuses a dirty xbrief/vbrief tree,
  * and exit-2s on mismatch with no matching linked worktree.
  */
 
@@ -313,6 +314,45 @@ export function evaluate(
   // closing-reference read would fail this gate open (#3767 / #3737).
   const runner = options.runner ?? makeGateRunner();
   const fetchClosing = options.fetchClosingIssues ?? fetchClosingIssuesReferences;
+
+  // No-xbrief layouts have nothing to attest — exit 0 before HEAD assert so a
+  // legacy vbrief/-only (or empty) checkout is not blocked by PR-head mismatch.
+  let callerLifecycle: string;
+  try {
+    callerLifecycle = resolveLifecycleRoot(root);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    // Consumers may still be on a legacy vbrief/-only layout (#2112). Closeout
+    // attestability applies to xbrief/active/ only — skip cleanly, not config fail.
+    if (message.includes("No xbrief/ layout found")) {
+      return {
+        code: 0,
+        message: quiet
+          ? ""
+          : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
+        stream: quiet ? "none" : "stdout",
+        prNumber,
+        closingIssues: [],
+        findings: [],
+        proxied: false,
+      };
+    }
+    return configError(prNumber, message, runner.proxied);
+  }
+  if (!existsSync(callerLifecycle)) {
+    return {
+      code: 0,
+      message: quiet
+        ? ""
+        : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
+      stream: quiet ? "none" : "stdout",
+      prNumber,
+      closingIssues: [],
+      findings: [],
+      proxied: runner.proxied,
+    };
+  }
+
   const repo = resolveRepo(options.repo, root);
   if (repo === null || repo.length === 0) {
     // Closing references are repository-scoped. Without the slug this gate could
@@ -337,14 +377,28 @@ export function evaluate(
   const briefRoot =
     headAssert.resolvedProjectRoot !== undefined ? resolve(headAssert.resolvedProjectRoot) : root;
 
-  let lifecycleRoot: string;
-  try {
-    lifecycleRoot = resolveLifecycleRoot(briefRoot);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    // Consumers may still be on a legacy vbrief/-only layout (#2112). Closeout
-    // attestability applies to xbrief/active/ only — skip cleanly, not config fail.
-    if (message.includes("No xbrief/ layout found")) {
+  let lifecycleRoot = callerLifecycle;
+  if (briefRoot !== root) {
+    try {
+      lifecycleRoot = resolveLifecycleRoot(briefRoot);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("No xbrief/ layout found")) {
+        return {
+          code: 0,
+          message: quiet
+            ? ""
+            : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
+          stream: quiet ? "none" : "stdout",
+          prNumber,
+          closingIssues: [],
+          findings: [],
+          proxied: runner.proxied,
+        };
+      }
+      return configError(prNumber, message, runner.proxied);
+    }
+    if (!existsSync(lifecycleRoot)) {
       return {
         code: 0,
         message: quiet
@@ -354,24 +408,9 @@ export function evaluate(
         prNumber,
         closingIssues: [],
         findings: [],
-        proxied: false,
+        proxied: runner.proxied,
       };
     }
-    return configError(prNumber, message, runner.proxied);
-  }
-
-  if (!existsSync(lifecycleRoot)) {
-    return {
-      code: 0,
-      message: quiet
-        ? ""
-        : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
-      stream: quiet ? "none" : "stdout",
-      prNumber,
-      closingIssues: [],
-      findings: [],
-      proxied: runner.proxied,
-    };
   }
 
   const linked = fetchClosing(prNumber, repo, runner.runGh);
