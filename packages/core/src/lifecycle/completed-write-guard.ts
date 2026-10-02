@@ -39,10 +39,7 @@ import {
   LEGACY_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_DIR,
 } from "../layout/resolve.js";
-import {
-  parseDisposition,
-  readNamespacedAcceptanceFields,
-} from "../scope/acceptance-evidence.js";
+import { parseDisposition, readNamespacedAcceptanceFields } from "../scope/acceptance-evidence.js";
 import {
   hasTransitionWrite,
   LEFTOVER_LAND_PR_REMEDIATION,

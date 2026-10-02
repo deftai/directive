@@ -1302,7 +1302,9 @@ describe("evaluateCompletedWriteGuard disposition provenance (#3819)", () => {
     });
     expect(result.code).toBe(1);
     expect(result.findings[0]?.detail).toMatch(/provenance|#3819|human-origin/);
-    expect(result.findings[0]?.detail).toMatch(/disposition\.provenance is required|must be human-origin/);
+    expect(result.findings[0]?.detail).toMatch(
+      /disposition\.provenance is required|must be human-origin/,
+    );
   });
 
   it("refuses the #3610 forged bare-string disposition on completed/ modification", () => {
