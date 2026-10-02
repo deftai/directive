@@ -45,6 +45,7 @@ import {
   suspendUatLease,
   toProjectRelativePosix,
 } from "@deftai/directive-core/authz";
+import { uatCampaignEndSeal } from "@deftai/directive-core/authz/campaign-end-seal";
 import {
   type HumanPresenceMintSeams,
   refuseMintWhileUatActive,
@@ -394,7 +395,7 @@ export function main(
         }
         const blocked = gateConfirm();
         if (blocked !== null) return blocked;
-        // Result narrowing only — seal/pinActive stay parked (class 4 follow-up).
+        // Result narrowing; pinActive mint wiring stays parked (class 4).
         const started = startUatLease({
           projectRoot: args.projectRoot,
           campaignId: args.campaign,
@@ -417,10 +418,12 @@ export function main(
       case "uat-suspend": {
         const blocked = gateConfirm();
         if (blocked !== null) return blocked;
-        // Result narrowing only — campaignEndSeal wiring stays parked (class 4).
+        // Sealed campaign-end only after CLI human-presence gateConfirm (#4233).
+        // pinActive mint wiring stays parked (class 4 follow-up).
         const suspended = suspendUatLease({
           projectRoot: args.projectRoot,
           actor: args.actor,
+          campaignEndSeal: uatCampaignEndSeal(),
         });
         if (!suspended.ok) {
           process.stderr.write(`authz:uat-suspend: ${suspended.reason}\n`);
