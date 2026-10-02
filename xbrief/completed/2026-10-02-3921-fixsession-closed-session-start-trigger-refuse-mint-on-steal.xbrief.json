@@ -74,7 +74,7 @@
       },
       {
         "uri": "https://github.com/deftai/directive/pull/5259",
-        "type": "x-xbrief/github-pr",
+        "type": "x-xbrief/github-pull-request",
         "title": "PR #5259"
       }
     ],
