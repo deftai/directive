@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { mintHumanOriginGrant, startUatLease, suspendUatLease } from "./actions.js";
+import { uatCampaignEndSeal } from "./uat-write-guard.js";
 import { authzStatePath } from "./paths.js";
 import {
   appendAuthzAudit,
@@ -59,7 +60,7 @@ describe("authz store (#2944)", () => {
     const root = tempRoot();
     startUatLease({ projectRoot: root, campaignId: "c1", actor: "op" });
     expect(loadAuthzState(root).uat?.active).toBe(true);
-    suspendUatLease({ projectRoot: root });
+    suspendUatLease({ projectRoot: root, campaignEndSeal: uatCampaignEndSeal() });
     expect(loadAuthzState(root).uat?.active).toBe(false);
   });
 

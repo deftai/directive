@@ -44,6 +44,7 @@ import {
   startUatLease,
   suspendUatLease,
   toProjectRelativePosix,
+  uatCampaignEndSeal,
 } from "@deftai/directive-core/authz";
 import {
   type HumanPresenceMintSeams,
@@ -412,9 +413,11 @@ export function main(
       case "uat-suspend": {
         const blocked = gateConfirm();
         if (blocked !== null) return blocked;
+        // Sealed campaign-end only after CLI human-presence gateConfirm (#4233).
         const state = suspendUatLease({
           projectRoot: args.projectRoot,
           actor: args.actor,
+          campaignEndSeal: uatCampaignEndSeal(),
         });
         if (state.uat === null) {
           process.stdout.write("UAT lease was already inactive.\n");

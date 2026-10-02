@@ -15,6 +15,7 @@ import {
 } from "./store.js";
 import type { AuthzOperation, AuthzState, HumanOriginGrant, UatLease } from "./types.js";
 import { AUTHZ_OPERATIONS } from "./types.js";
+import type { UatCampaignEndSeal } from "./uat-write-guard.js";
 
 function newGrantId(now?: Date): string {
   const ts = (now ?? new Date())
@@ -51,9 +52,13 @@ export function startUatLease(input: StartUatInput): { state: AuthzState; lease:
   const state: AuthzState = {
     schemaVersion: 1,
     uat: lease,
+    // #4233: carry pin forward — do not empty on UAT start.
     activeGrantIds: prev.activeGrantIds,
   };
-  saveAuthzState(input.projectRoot, state);
+  const wrote = saveAuthzState(input.projectRoot, state);
+  if (!wrote.ok) {
+    throw new Error(wrote.reason);
+  }
   return { state, lease };
 }
 
@@ -61,6 +66,11 @@ export interface SuspendUatInput {
   readonly projectRoot: string;
   readonly actor?: string;
   readonly now?: Date;
+  /**
+   * Sealed campaign-end token from CLI after gateConfirm (#4233).
+   * Required when flipping uat.active true→false; not stringly argv/JSON.
+   */
+  readonly campaignEndSeal?: UatCampaignEndSeal;
 }
 
 export function suspendUatLease(input: SuspendUatInput): AuthzState {
@@ -77,7 +87,12 @@ export function suspendUatLease(input: SuspendUatInput): AuthzState {
     },
     activeGrantIds: prev.activeGrantIds,
   };
-  saveAuthzState(input.projectRoot, state);
+  const wrote = saveAuthzState(input.projectRoot, state, {
+    campaignEndSeal: input.campaignEndSeal,
+  });
+  if (!wrote.ok) {
+    throw new Error(wrote.reason);
+  }
   return state;
 }
 
@@ -149,16 +164,22 @@ export function mintHumanOriginGrant(input: MintGrantInput): HumanOriginGrant {
       revokedAt: null,
     },
   };
-  saveGrant(input.projectRoot, grant);
+  const saved = saveGrant(input.projectRoot, grant);
+  if (!saved.ok) {
+    throw new Error(saved.reason);
+  }
   if (input.pinActive) {
     const prev = loadAuthzState(input.projectRoot);
     const ids = new Set(prev.activeGrantIds);
     ids.add(grant.id);
-    saveAuthzState(input.projectRoot, {
+    const pinned = saveAuthzState(input.projectRoot, {
       schemaVersion: 1,
       uat: prev.uat,
       activeGrantIds: [...ids],
     });
+    if (!pinned.ok) {
+      throw new Error(pinned.reason);
+    }
   }
   return grant;
 }
@@ -180,7 +201,10 @@ export function revokeGrant(input: RevokeGrantInput): HumanOriginGrant | null {
       revokedAt: utcIso(input.now),
     },
   };
-  saveGrant(input.projectRoot, revoked);
+  const wrote = saveGrant(input.projectRoot, revoked);
+  if (!wrote.ok) {
+    throw new Error(wrote.reason);
+  }
   return revoked;
 }
 

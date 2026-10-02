@@ -2088,7 +2088,6 @@ describe("UAT protected dest-of-write fail-closed (#4188)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-4709-spend-"));
     temps.push(root);
     mkdirSync(join(root, ".deft", "authz", "grants"), { recursive: true });
-    startUatLease({ projectRoot: root, campaignId: "uat-4709-spend", actor: "operator" });
     const grant: HumanOriginGrant = {
       schemaVersion: 1,
       id: "settings-single-use-4709",
@@ -2112,7 +2111,9 @@ describe("UAT protected dest-of-write fail-closed (#4188)", () => {
       },
       semantics: { expiresAt: null, singleUse: true, usedAt: null, revokedAt: null },
     };
+    // #4233: plant grant before UAT — store refuses grant-create under active lease.
     saveGrant(root, grant);
+    startUatLease({ projectRoot: root, campaignId: "uat-4709-spend", actor: "operator" });
     const decision = decideHook(
       {
         host: "claude",

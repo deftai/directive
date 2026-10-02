@@ -12,6 +12,7 @@ import {
 import { describeScope, shouldConsumeSingleUseGrant } from "./evaluate.js";
 import { isHumanOriginGrant } from "./origin.js";
 import { authzGrantPath } from "./paths.js";
+import { uatCampaignEndSeal } from "./uat-write-guard.js";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -50,7 +51,7 @@ describe("authz actions + helpers (#2944)", () => {
 
   it("mint with pinActive + revoke + show snapshot", () => {
     const root = tempRoot();
-    startUatLease({ projectRoot: root, campaignId: "c", actor: "op" });
+    // #4233: mint/pin outside UAT; store hard-refuses grant create under active UAT.
     const g = mintHumanOriginGrant({
       projectRoot: root,
       operations: ["edit", "push"],
@@ -64,18 +65,22 @@ describe("authz actions + helpers (#2944)", () => {
     });
     expect(g.id).toBe("grant-fixed");
     expect(authzGrantPath(root, g.id)).toContain("grant-fixed");
+    startUatLease({ projectRoot: root, campaignId: "c", actor: "op" });
     const snap = showAuthzSnapshot(root);
     expect(snap.activeGrants.some((x) => x.id === g.id)).toBe(true);
     expect(snap.state.activeGrantIds).toContain(g.id);
 
-    const revoked = revokeGrant({ projectRoot: root, grantId: g.id });
-    expect(revoked?.semantics.revokedAt).toBeTruthy();
+    // Revoke under UAT is authority-field mutate — store refuse.
+    expect(() => revokeGrant({ projectRoot: root, grantId: g.id })).toThrow(/active UAT|authority/i);
     expect(revokeGrant({ projectRoot: root, grantId: "missing" })).toBeNull();
 
-    suspendUatLease({ projectRoot: root });
+    suspendUatLease({ projectRoot: root, campaignEndSeal: uatCampaignEndSeal() });
     expect(showAuthzSnapshot(root).state.uat?.active).toBe(false);
     // second suspend is no-op
     suspendUatLease({ projectRoot: root });
+
+    const revoked = revokeGrant({ projectRoot: root, grantId: g.id });
+    expect(revoked?.semantics.revokedAt).toBeTruthy();
   });
 
   it("describeScope and grantSatisfies helpers", () => {

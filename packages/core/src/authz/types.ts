@@ -117,7 +117,12 @@ export interface UatLease {
 export interface AuthzState {
   readonly schemaVersion: 1;
   readonly uat: UatLease | null;
-  /** Optional pin of grant ids considered active (empty = all non-revoked on disk). */
+  /**
+   * Optional pin of grant ids considered active.
+   * Outside UAT: empty = all non-revoked human-origin on disk.
+   * Under active UAT: empty = activate none (fail closed, #4233).
+   * startUatLease carries the pin forward (does not empty it).
+   */
   readonly activeGrantIds: readonly string[];
 }
 

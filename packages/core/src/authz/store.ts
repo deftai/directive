@@ -20,6 +20,12 @@ import {
   type HumanOriginGrant,
   type UatLease,
 } from "./types.js";
+import {
+  type AuthzUatWriteDecision,
+  type EvaluateAuthzStateWriteOptions,
+  evaluateAuthzStateWriteUnderUat,
+  evaluateGrantWriteUnderUat,
+} from "./uat-write-guard.js";
 
 function utcIso(now?: Date): string {
   const dt = now ?? new Date();
@@ -266,7 +272,8 @@ export function markGrantUsed(
       usedAt: utcIso(now),
     },
   };
-  saveGrant(projectRoot, used);
+  const wrote = saveGrant(projectRoot, used);
+  if (!wrote.ok) return null;
   return used;
 }
 
@@ -470,7 +477,10 @@ export function claimSingleUseGrantForApply(
         usedAt: usedAtIso,
       },
     };
-    saveGrant(projectRoot, used);
+    const spent = saveGrant(projectRoot, used);
+    if (!spent.ok) {
+      return { ok: false, reason: spent.reason };
+    }
     markedUsedAt = usedAtIso;
 
     if (opts.apply !== undefined) {
@@ -508,8 +518,23 @@ export function claimSingleUseGrantForApply(
   }
 }
 
-export function saveAuthzState(projectRoot: string, state: AuthzState): void {
+export type SaveAuthzStateOptions = EvaluateAuthzStateWriteOptions;
+
+/**
+ * Persist authz state. Under active UAT, write-class refuse applies (#4233):
+ * pin mutate / unsealed campaign-end / other UAT field mutate return ok:false.
+ * Sealed campaign-end (CLI after gateConfirm) may flip uat.active true→false only.
+ */
+export function saveAuthzState(
+  projectRoot: string,
+  state: AuthzState,
+  options: SaveAuthzStateOptions = {},
+): AuthzUatWriteDecision {
+  const prev = loadAuthzState(projectRoot);
+  const decision = evaluateAuthzStateWriteUnderUat(prev, state, options);
+  if (!decision.ok) return decision;
   writeJsonContained(projectRoot, authzStatePath(projectRoot), state);
+  return decision;
 }
 
 export function loadGrant(projectRoot: string, grantId: string): HumanOriginGrant | null {
@@ -522,8 +547,17 @@ export function loadGrant(projectRoot: string, grantId: string): HumanOriginGran
   }
 }
 
-export function saveGrant(projectRoot: string, grant: HumanOriginGrant): void {
+/**
+ * Persist a grant. Under active UAT (#4233): grant-create and authority-field
+ * mutate refuse (returned failure); usedAt-only consume is allowed.
+ */
+export function saveGrant(projectRoot: string, grant: HumanOriginGrant): AuthzUatWriteDecision {
+  const state = loadAuthzState(projectRoot);
+  const onDisk = loadGrant(projectRoot, grant.id);
+  const decision = evaluateGrantWriteUnderUat(state, onDisk, grant);
+  if (!decision.ok) return decision;
   writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
+  return decision;
 }
 
 export function listGrants(projectRoot: string): HumanOriginGrant[] {
@@ -545,6 +579,9 @@ export function listGrants(projectRoot: string): HumanOriginGrant[] {
 /**
  * Active grants: non-revoked, optionally filtered by state.activeGrantIds,
  * human-origin only (self-authored records stay on disk but do not activate).
+ *
+ * Empty pin (#4233): outside UAT activates all non-revoked human-origin grants;
+ * under active UAT activates none (fail closed). startUatLease carries the pin forward.
  */
 export function listActiveHumanGrants(
   projectRoot: string,
@@ -553,7 +590,9 @@ export function listActiveHumanGrants(
 ): HumanOriginGrant[] {
   const all = listGrants(projectRoot);
   const pin = state.activeGrantIds;
-  const pinSet = pin.length > 0 ? new Set(pin) : null;
+  const uatActive = state.uat !== null && state.uat.active;
+  // Outside UAT: empty pin = no filter. Under UAT: empty pin = activate none.
+  const pinSet = pin.length > 0 ? new Set(pin) : uatActive ? new Set<string>() : null;
   const nowMs = now.getTime();
   return all.filter((g) => {
     if (pinSet !== null && !pinSet.has(g.id)) return false;
