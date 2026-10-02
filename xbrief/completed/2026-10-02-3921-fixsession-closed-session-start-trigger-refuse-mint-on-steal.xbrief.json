@@ -1,0 +1,157 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF leftover-complete for omitted ingest after product PR #5259 (Closes #3921)",
+    "updated": "2026-10-02T17:46:30.597Z"
+  },
+  "plan": {
+    "id": "github.issue.5289767878",
+    "title": "fix(session): closed session_start trigger; refuse mint-on-steal",
+    "status": "completed",
+    "narratives": {
+      "Overview": "Prefer-A Bound lean 5918548065 / synthesis 5918595652. Product shipped via PR #5259 (merge c5c5198120014c7ab98e94e37343e3c9e126d9c3). xBRIEF was omitted from the product PR; this leftover lands completed/ for verify:completed-tracked.\n"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Emit a closed trigger on every cold run-summary session_start payload (closed set covering at least cold | rearm-forced-cold | post-compact | mutation-intent | steal-recover, or the landed closed vocabulary).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5259 ship; omitted xBRIEF leftover-complete after Closes merge. Delivery attested via merge-commit c5c5198120014c7ab98e94e37343e3c9e126d9c3.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T17:46:30.597Z",
+            "mintedVia": "leftover-complete-after-5259"
+          },
+          "recorded_at": "2026-10-02T17:46:30.597Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Fail-closed fixture asserts one cold session_start JSONL event per host session under both thin/consumer and heavyweight prompt shapes, or records an explicit documented reason for each additional cold emit; count existing emitSessionStart / JSONL stream.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5259 ship; omitted xBRIEF leftover-complete after Closes merge. Delivery attested via merge-commit c5c5198120014c7ab98e94e37343e3c9e126d9c3.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T17:46:30.597Z",
+            "mintedVia": "leftover-complete-after-5259"
+          },
+          "recorded_at": "2026-10-02T17:46:30.597Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Refuse steal-recover as an admissible default that yields a second cold session_start / second session_id (refuse mint-on-steal when a caller id was presented).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5259 ship; omitted xBRIEF leftover-complete after Closes merge. Delivery attested via merge-commit c5c5198120014c7ab98e94e37343e3c9e126d9c3.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T17:46:30.597Z",
+            "mintedVia": "leftover-complete-after-5259"
+          },
+          "recorded_at": "2026-10-02T17:46:30.597Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "session",
+      "leftover-complete"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3921",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3921"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/5259",
+        "type": "x-xbrief/github-pull-request",
+        "title": "PR #5259"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/session/session-start-ritual-once.test.ts packages/core/src/session/occupancy.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived from Bound lean 5918548065 remedy after product #5259",
+      "sentences": [
+        "Emit a closed trigger on every cold run-summary session_start payload (closed set covering at least cold | rearm-forced-cold | post-compact | mutation-intent | steal-recover, or the landed closed vocabulary).",
+        "Fail-closed fixture asserts one cold session_start JSONL event per host session under both thin/consumer and heavyweight prompt shapes, or records an explicit documented reason for each additional cold emit; count existing emitSessionStart / JSONL stream.",
+        "Refuse steal-recover as an admissible default that yields a second cold session_start / second session_id (refuse mint-on-steal when a caller id was presented)."
+      ],
+      "admitted_source_sentences": [
+        "Emit a closed trigger on every cold run-summary session_start payload (closed set covering at least cold | rearm-forced-cold | post-compact | mutation-intent | steal-recover, or the landed closed vocabulary).",
+        "Fail-closed fixture asserts one cold session_start JSONL event per host session under both thin/consumer and heavyweight prompt shapes, or records an explicit documented reason for each additional cold emit; count existing emitSessionStart / JSONL stream.",
+        "Refuse steal-recover as an admissible default that yields a second cold session_start / second session_id (refuse mint-on-steal when a caller id was presented)."
+      ],
+      "admitted_source_digest": "2c9b45f13d9d94ee1ddbe400aa67a83eb03b5b95dbcc5f48f35e7eaa9f342ce9",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Emit a closed trigger on every cold run-summary session_start payload (closed set covering at least cold | rearm-forced-cold | post-compact | mutation-intent | steal-recover, or the landed closed vocabulary).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Fail-closed fixture asserts one cold session_start JSONL event per host session under both thin/consumer and heavyweight prompt shapes, or records an explicit documented reason for each additional cold emit; count existing emitSessionStart / JSONL stream.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Refuse steal-recover as an admissible default that yields a second cold session_start / second session_id (refuse mint-on-steal when a caller id was presented).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "productPullRequest": 5259,
+      "mergeCommit": "c5c5198120014c7ab98e94e37343e3c9e126d9c3",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5289767878,
+        "origin": "deftai/directive#3921",
+        "id": "github.issue.5289767878"
+      },
+      "x-directive/bound-lean": {
+        "schema": "deft.scope.bound-lean.v1",
+        "comment_id": 5918548065,
+        "synthesis_comment_id": 5918595652
+      },
+      "leftoverOmittedXbrief": true,
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start-ritual-once.test.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/session-start-ritual-once.test.ts packages/core/src/session/occupancy.test.ts"
+        ],
+        "conflict_group": "session-ritual-once-trigger"
+      }
+    }
+  }
+}
