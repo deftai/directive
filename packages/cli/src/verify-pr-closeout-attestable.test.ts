@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -81,10 +82,29 @@ describe("run", () => {
     expect(silentRun([])).toBe(2);
   });
 
-  it("exits 0 without a forge read when the project has no xbrief/ lifecycle root", () => {
+  it("exits 2 when no xbrief/ and OWNER/REPO cannot be resolved (#3875)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-closeout-bare-"));
     temps.push(root);
-    expect(silentRun(["--project-root", root, "--pr", "3786", "--quiet"])).toBe(0);
+    // Stop git walking into a parent checkout; drop env slug fallbacks.
+    execFileSync("git", ["init", "-q", "-b", "master"], { cwd: root, stdio: "ignore" });
+    const prevTriage = process.env.DEFT_TRIAGE_REPO;
+    const prevGh = process.env.GH_REPO;
+    delete process.env.DEFT_TRIAGE_REPO;
+    delete process.env.GH_REPO;
+    try {
+      expect(silentRun(["--project-root", root, "--pr", "3786", "--quiet"])).toBe(2);
+    } finally {
+      if (prevTriage === undefined) {
+        delete process.env.DEFT_TRIAGE_REPO;
+      } else {
+        process.env.DEFT_TRIAGE_REPO = prevTriage;
+      }
+      if (prevGh === undefined) {
+        delete process.env.GH_REPO;
+      } else {
+        process.env.GH_REPO = prevGh;
+      }
+    }
   });
 
   it("exits 2 for a project root that does not exist", () => {

@@ -287,6 +287,29 @@ describe("pr-closeout-attestable evaluate", () => {
     expect(result.message).toContain("nothing to check");
   });
 
+  it("no-xbrief fails closed when OWNER/REPO cannot be resolved (#3875)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-closeout-nolayout-norepo-"));
+    temps.push(root);
+    execFileSync("git", ["init", "-q", "-b", "master"], { cwd: root, stdio: "ignore" });
+    const prevRepo = process.env[ENV_TRIAGE_REPO];
+    delete process.env[ENV_TRIAGE_REPO];
+    try {
+      const result = evaluate(root, 1, {
+        repo: null,
+        runner: { runGh: NEVER_CALLED, proxied: false },
+        fetchClosingIssues: closing(1),
+      });
+      expect(result.code).toBe(2);
+      expect(result.message).toContain("cannot resolve OWNER/REPO");
+    } finally {
+      if (prevRepo === undefined) {
+        delete process.env[ENV_TRIAGE_REPO];
+      } else {
+        process.env[ENV_TRIAGE_REPO] = prevRepo;
+      }
+    }
+  });
+
   it("no-xbrief skip wins over a PR-head mismatch when no linked worktree (#3875)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-closeout-nolayout-mismatch-"));
     temps.push(root);

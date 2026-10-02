@@ -302,11 +302,11 @@ function configError(
  * is the tree the merge lands, and it is the same working-tree basis
  * `verify:orphan-active` uses. When the caller has no xbrief/, closeout still
  * probes a linked PR-head worktree before declaring nothing to check; only when
- * neither tree has xbrief/ (or no repo slug is available to probe) does it exit
- * 0 (legacy vbrief/-only). A failed PR-head SHA fetch or HEAD verification on a
- * found worktree is exit 2 — never a silent skip. When briefs would be read,
- * #3875 asserts HEAD equals the PR head SHA, refuses a dirty xbrief/vbrief
- * tree, and exit-2s on mismatch with no matching linked worktree.
+ * neither tree has xbrief/ does it exit 0 (legacy vbrief/-only). A missing
+ * OWNER/REPO slug, failed PR-head SHA fetch, or HEAD verification on a found
+ * worktree is exit 2 — never a silent skip. When briefs would be read, #3875
+ * asserts HEAD equals the PR head SHA, refuses a dirty xbrief/vbrief tree, and
+ * exit-2s on mismatch with no matching linked worktree.
  */
 
 export function evaluate(
@@ -358,10 +358,15 @@ export function evaluate(
   let lifecycleRoot: string;
 
   if (callerLifecycle === null) {
-    // No local xbrief: without a repo slug we cannot probe a linked PR-head
-    // worktree — same as a bare/legacy checkout with nothing to attest.
+    // No local xbrief: without a repo slug we cannot know the PR head SHA to
+    // probe a linked worktree — fail closed, never certify "nothing to check".
     if (repo === null || repo.length === 0) {
-      return nothingToCheck();
+      return configError(
+        prNumber,
+        "cannot resolve OWNER/REPO for the PR-head closeout probe. Pass --repo OWNER/REPO, " +
+          "set $GH_REPO, or run inside a checkout with a GitHub origin remote.",
+        runner.proxied,
+      );
     }
     // Probe a linked PR-head worktree before declaring nothing to check
     // (outside-diff residual on #5258). Fail closed on an unverified lookup.
