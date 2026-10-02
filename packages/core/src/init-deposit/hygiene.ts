@@ -1822,10 +1822,7 @@ function quoteGitPath(path: string): string {
 }
 
 /** Commit guidance when `--allow-dirty-no-stage` skipped automatic `git add` (#4158 / #5245). */
-export function printDirtyEscapeCommitGuidance(
-  io: InitDepositIo,
-  split: LedgerStageSplit,
-): void {
+export function printDirtyEscapeCommitGuidance(io: InitDepositIo, split: LedgerStageSplit): void {
   io.printf(
     "\nDirty escape (--allow-dirty-no-stage): automatic git add is disabled for this run.\n",
   );
@@ -1911,10 +1908,7 @@ export function defaultTrackedNames(projectDir: string, paths: readonly string[]
   }
 }
 
-export type ReadTrackedNamesFn = (
-  projectDir: string,
-  paths: readonly string[],
-) => string[];
+export type ReadTrackedNamesFn = (projectDir: string, paths: readonly string[]) => string[];
 
 /**
  * Dirty-escape / ledger staging split (#5245 Prefer-A H4).

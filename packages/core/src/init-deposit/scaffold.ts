@@ -880,7 +880,9 @@ export function ensureGitattributes(projectDir: string, io: InitDepositIo): bool
   // Targeted removal of legacy forced-text, independent of additions short-circuit (#5245).
   const withoutLegacy = lines.filter((line) => line.trim() !== LEGACY_CORE_TEXT_EOL_LF);
   const removedLegacy = withoutLegacy.length !== lines.length;
-  const present = new Set(withoutLegacy.map((line) => line.trim()).filter((line) => line.length > 0));
+  const present = new Set(
+    withoutLegacy.map((line) => line.trim()).filter((line) => line.length > 0),
+  );
   const additions = CORE_GITATTRIBUTES_LINES.filter((line) => !present.has(line));
   if (additions.length === 0 && !removedLegacy) {
     io.printf(

@@ -99,10 +99,10 @@ import {
   classifyDirtyEscapeLedger,
   depositStagePaths,
   isInstallerManagedPath,
+  type LedgerStageSplit,
   printCommitGuidance,
   printDirtyEscapeCommitGuidance,
   reconcileDepositToContentPackage,
-  type LedgerStageSplit,
 } from "./hygiene.js";
 import { restoreNullPinAtRecordedDepositVersion } from "./init-consumer-invariant.js";
 import { type InitDepositArgs, parseInitArgv, presentLockfiles } from "./init-deposit.js";
