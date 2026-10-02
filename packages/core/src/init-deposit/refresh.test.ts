@@ -235,7 +235,8 @@ describe("printRefreshSideEffects", () => {
       { files: [], crlfOnlyCoreFiles: [".deft/core/VERSION"] },
     );
     const out = lines.join("");
-    expect(out).toContain("Windows line-ending note (#2118)");
+    expect(out).toContain("Windows line-ending note (#2118 / #5245)");
+    expect(out).toContain("text=auto eol=lf");
     expect(out).not.toContain("framework deposit commit");
   });
 });
@@ -545,7 +546,7 @@ describe("runRefreshDeposit", () => {
     expect(nowIso).not.toHaveBeenCalled();
     const out = io.printf.mock.calls.flat().join("");
     expect(out).toContain("Framework payload already current");
-    expect(out).toContain("Windows line-ending note (#2118)");
+    expect(out).toContain("Windows line-ending note (#2118 / #5245)");
     expect(out).not.toContain("Commit hygiene");
     expect(out).not.toContain("framework deposit commit");
   });
