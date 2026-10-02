@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { decideHook } from "../hooks/dispatcher.js";
+import { CONSUMER_HEADER_PLACEHOLDER_ONELINER } from "../platform/agents-consumer-header.js";
 import { completeCohort } from "../swarm/complete-cohort.js";
 import {
   persistLaunchOccupancyRecord,
@@ -103,6 +104,8 @@ function resetLeaseFiles(root: string): void {
   rmSync(join(root, ".deft-scratch"), { recursive: true, force: true });
   rmSync(join(root, "xbrief"), { recursive: true, force: true });
   rmSync(join(root, ".deft-directive-disable"), { force: true });
+  // #4544 residual chokepoint tests may write AGENTS.md on the shared fixture.
+  rmSync(join(root, "AGENTS.md"), { force: true });
   // ownedRitualRepo rewrites PROJECT-DEFINITION after reset; keep the dir.
   mkdirSync(join(root, "xbrief"), { recursive: true });
   mkdirSync(join(root, ".deft"), { recursive: true });
@@ -493,6 +496,29 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(gate.allow).toBe(true);
     expect(gate.refreshed).toBe(true);
     expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(true);
+  });
+
+  it("markWrite refuses scaffold edit-me when Overview is unavailable (#4544 residual)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    const writeAt = new Date(claimedAt.getTime() + 1000);
+    const result = applyWorktreeOccupancy(root, {
+      sessionId: "owner",
+      now: writeAt,
+      markWrite: true,
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/consumer-header-placeholder-completion-chokepoint/i);
+    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(
+      false,
+    );
+    expect(readOccupancy(root)?.lastWriteAt).toBeNull();
   });
 
   it("write-gate product refresh fails closed when Prefer-A marker cannot be written (#5176)", () => {

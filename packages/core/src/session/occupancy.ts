@@ -61,10 +61,8 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, realpathSync, renameSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import {
-  productMutationCompletionMarkerPath,
-  recordProductMutationCompletion,
-} from "../check/product-mutation-completion.js";
+import { enforceConsumerHeaderPlaceholderAtCompletionChokepoint } from "../check/consumer-header-placeholder.js";
+import { productMutationCompletionMarkerPath } from "../check/product-mutation-completion.js";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { assertAppendLockOwned, type LockDeps, withAppendLock } from "../slice/lock.js";
@@ -2618,15 +2616,33 @@ function writeOccupancyRecord(
   let markerExistedBefore = false;
   // #5176 / #4544 Prefer-A: durable marker before lease publish on markWrite only
   // so a marker miss cannot leave product-write without completion proof.
+  // Residual after #5178: completion chokepoint remediates/refuses scaffold
+  // edit-me so Prefer-A refuse is reached without a separate check invoke.
   // Heartbeat / grant refresh must not require a fresh marker rewrite.
   if (opts.persistProductMutationMarker === true) {
     const at = record.lastWriteAt ?? new Date();
     markerExistedBefore = existsSync(productMutationCompletionMarkerPath(root));
-    const marker = recordProductMutationCompletion(root, at);
-    if (!marker.ok) {
-      return { ok: false, error: marker.error };
+    const chokepoint = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, {
+      recordedAt: at,
+    });
+    if (!chokepoint.ok) {
+      if (!markerExistedBefore) {
+        const stampedPath = productMutationCompletionMarkerPath(root);
+        if (existsSync(stampedPath)) {
+          try {
+            containedRemove({ root, target: stampedPath });
+          } catch {
+            /* best-effort orphan Prefer-A stamp cleanup */
+          }
+        }
+      }
+      return { ok: false, error: chokepoint.message };
     }
-    markerWrittenPath = marker.path;
+    if (chokepoint.marker.ok && "path" in chokepoint.marker) {
+      markerWrittenPath = chokepoint.marker.path;
+    } else {
+      markerWrittenPath = productMutationCompletionMarkerPath(root);
+    }
   }
   try {
     containedWrite({ root, target: tmpName, data: text, mode: "create" });

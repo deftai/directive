@@ -1,10 +1,15 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CONSUMER_HEADER_PLACEHOLDER_ONELINER } from "../platform/agents-consumer-header.js";
-import { evaluateConsumerHeaderPlaceholderAtRoot } from "./consumer-header-placeholder.js";
 import {
+  CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID,
+  enforceConsumerHeaderPlaceholderAtCompletionChokepoint,
+  evaluateConsumerHeaderPlaceholderAtRoot,
+} from "./consumer-header-placeholder.js";
+import {
+  productMutationCompletionAtRoot,
   productMutationCompletionMarkerPath,
   recordProductMutationCompletion,
 } from "./product-mutation-completion.js";
@@ -155,5 +160,108 @@ describe("evaluateConsumerHeaderPlaceholderAtRoot (#4544 Prefer-A)", () => {
     const absent = evaluateConsumerHeaderPlaceholderAtRoot(absentRoot);
     expect(absent.ok).toBe(true);
     expect(absent.reason).toBe("no-agents-md");
+  });
+});
+
+describe("enforceConsumerHeaderPlaceholderAtCompletionChokepoint (#4544 residual)", () => {
+  it("refuses placeholder after product completion when Overview is unavailable", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    const result = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, {
+      recordedAt: new Date("2026-10-02T12:00:00Z"),
+      confirmedOverview: null,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain(CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID);
+    expect(result.message).toMatch(/Overview is unavailable/i);
+    expect(result.remediation.overviewAvailable).toBe(false);
+    expect(productMutationCompletionAtRoot(root)).toBe(true);
+    expect(evaluateConsumerHeaderPlaceholderAtRoot(root).ok).toBe(false);
+  });
+
+  it("remediates via confirmed-Overview CAS then Prefer-A passes", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n\n## Session orientation\n`,
+      "utf8",
+    );
+    const result = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, {
+      recordedAt: new Date("2026-10-02T12:00:00Z"),
+      confirmedOverview: "Garden notes CRUD app",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.remediation.attempted).toBe(true);
+    expect(result.remediation.wroteAgentsMd).toBe(true);
+    expect(result.remediation.casReason).toBe("replaced-placeholder");
+    const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
+    expect(agents).toContain("Garden notes CRUD app");
+    expect(agents).not.toContain(CONSUMER_HEADER_PLACEHOLDER_ONELINER);
+    expect(evaluateConsumerHeaderPlaceholderAtRoot(root).ok).toBe(true);
+    expect(evaluateConsumerHeaderPlaceholderAtRoot(root).reason).toBe("not-placeholder");
+  });
+
+  it("reads Overview from PROJECT-DEFINITION when seam is omitted", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "demo",
+          narratives: { Overview: "PD-confirmed one-liner", "tech stack": "node" },
+        },
+      })}\n`,
+      "utf8",
+    );
+    const result = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, {
+      recordedAt: new Date("2026-10-02T12:00:00Z"),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.remediation.wroteAgentsMd).toBe(true);
+    expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toContain("PD-confirmed one-liner");
+  });
+
+  it("keeps custom headers and absent AGENTS.md legal at the chokepoint", () => {
+    const custom = tempRoot();
+    writeFileSync(join(custom, "AGENTS.md"), "# Garden\n\nCustom one-liner.\n", "utf8");
+    const customResult = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(custom, {
+      recordedAt: new Date("2026-10-02T12:00:00Z"),
+      confirmedOverview: null,
+    });
+    expect(customResult.ok).toBe(true);
+    expect(customResult.evaluation.reason).toBe("not-placeholder");
+    expect(customResult.remediation.attempted).toBe(false);
+
+    const absent = tempRoot();
+    const absentResult = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(absent, {
+      recordedAt: new Date("2026-10-02T12:00:00Z"),
+      confirmedOverview: null,
+    });
+    expect(absentResult.ok).toBe(true);
+    expect(absentResult.evaluation.reason).toBe("no-agents-md");
+    expect(existsSync(productMutationCompletionMarkerPath(absent))).toBe(true);
+  });
+
+  it("Process-only Prefer-A evaluator still allows placeholder without the chokepoint", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    const processOnly = evaluateConsumerHeaderPlaceholderAtRoot(root);
+    expect(processOnly.ok).toBe(true);
+    expect(processOnly.reason).toBe("process-only");
   });
 });

@@ -26,9 +26,15 @@ export {
 } from "./consumer-gate-integrity.js";
 export {
   type AgentsMdReadResult,
+  CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID,
+  CONSUMER_HEADER_COMPLETION_CHOKEPOINT_REMEDY,
   CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
+  type CompletionChokepointSeams,
+  type ConsumerHeaderCompletionChokepointResult,
   type ConsumerHeaderPlaceholderSeams,
+  enforceConsumerHeaderPlaceholderAtCompletionChokepoint,
   evaluateConsumerHeaderPlaceholderAtRoot,
+  readConfirmedOverviewAtRoot,
 } from "./consumer-header-placeholder.js";
 export {
   type CheckGateSpec,
