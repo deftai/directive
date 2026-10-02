@@ -22,14 +22,25 @@ export interface ReachabilityFinding {
   readonly remediation: string;
 }
 
+/** Job/step continue-on-error: literal false/true, or undecidable expression. */
+export type ContinueOnErrorClass = false | true | "unknown";
+
+export interface WorkflowStepNode {
+  readonly ifExpr: string | null;
+  readonly continueOnError: ContinueOnErrorClass;
+  readonly runText: string | null;
+}
+
 export interface WorkflowJobNode {
   readonly id: string;
   readonly body: string;
   readonly ifExpr: string | null;
-  readonly continueOnError: boolean;
+  readonly continueOnError: ContinueOnErrorClass;
   readonly hasMatrixExclude: boolean;
   readonly jobUses: string | null;
   readonly stepUses: readonly string[];
+  /** Steps under `steps:` (for step-level if: / continue-on-error on gate runs). */
+  readonly steps: readonly WorkflowStepNode[];
   /** Filled by caller via {@link attachRunCommands} (reuses evaluate extractors). */
   readonly runCommands: readonly string[];
 }
@@ -84,13 +95,32 @@ export function classifyPullRequestCondition(ifExpr: string | null): ConditionCl
     return "accept";
   }
 
-  // Lifecycle / job-graph coordination (`always() && needs.…`) is out of scope
-  // for this slice (#4015 Non-goals → #4012 / #3678 artifact-only lanes).
-  if (/^always\(\)\s*&&\s*needs\./.test(lower) && !/\bgithub\./.test(lower)) {
-    return "accept";
-  }
-
+  // `always() && needs.…` can still be false on pull_request (output gates, etc.).
   return "skippable";
+}
+
+function parseContinueOnErrorValue(raw: string): ContinueOnErrorClass {
+  const v = parseScalarRemainder(raw).trim();
+  if (v.length === 0) return false;
+  const normalized = normalizeGithubExpression(v).toLowerCase();
+  if (normalized === "true" || normalized === "yes" || normalized === "1") return true;
+  if (normalized === "false" || normalized === "no" || normalized === "0") return false;
+  return "unknown";
+}
+
+function parseIfScalar(rest: string, lines: readonly string[], lineIndex: number, indent: number): string {
+  const trimmed = rest.trim();
+  if (trimmed === "|" || trimmed === ">" || trimmed.startsWith("|") || trimmed.startsWith(">")) {
+    const collected: string[] = [];
+    for (let j = lineIndex + 1; j < lines.length; j += 1) {
+      const lr = lines[j] ?? "";
+      if (lr.trim().length === 0) continue;
+      if (lineIndent(lr) <= indent) break;
+      collected.push(lr.trim());
+    }
+    return collected.join(" ");
+  }
+  return parseScalarRemainder(trimmed);
 }
 
 function lineIndent(raw: string): number {
@@ -206,12 +236,13 @@ function parseJobNodes(jobBlockLines: readonly string[]): WorkflowJobNode[] {
       continue;
     }
     const indent = lineIndent(raw);
-    const jobKey = /^([A-Za-z_][\w-]*)\s*:\s*(?:#.*)?$/.exec(stripped);
+    // Quoted keys (`"check":` / `'check':`) are valid workflow job ids.
+    const jobKey = /^(?:["']([A-Za-z_][\w-]*)["']|([A-Za-z_][\w-]*))\s*:\s*(?:#.*)?$/.exec(stripped);
     if (jobKey !== null && (jobIndent === null || indent === jobIndent || currentId === null)) {
       if (currentId === null) jobIndent = indent;
       if (indent === jobIndent) {
         flush();
-        currentId = jobKey[1] ?? null;
+        currentId = jobKey[1] ?? jobKey[2] ?? null;
         currentLines = [];
         continue;
       }
@@ -222,10 +253,115 @@ function parseJobNodes(jobBlockLines: readonly string[]): WorkflowJobNode[] {
   return jobs;
 }
 
+function readBlockOrScalarRun(
+  runRest: string,
+  lines: readonly string[],
+  lineIndex: number,
+  indent: number,
+): string | null {
+  const trimmed = runRest.trim();
+  if (trimmed === "|" || trimmed === ">" || trimmed.startsWith("|") || trimmed.startsWith(">")) {
+    const collected: string[] = [];
+    for (let j = lineIndex + 1; j < lines.length; j += 1) {
+      const lr = lines[j] ?? "";
+      if (lr.trim().length === 0) continue;
+      if (lineIndent(lr) <= indent) break;
+      collected.push(lr.trim());
+    }
+    const joined = collected.join("\n");
+    return joined.length > 0 ? joined : null;
+  }
+  if (trimmed.length === 0) return null;
+  return parseScalarRemainder(trimmed);
+}
+
+function parseJobSteps(lines: readonly string[], baseIndent: number | null): WorkflowStepNode[] {
+  if (baseIndent === null) return [];
+  // `steps:` is a job-level key (same indent as if: / runs-on:).
+  let stepsKeyIndent: number | null = null;
+  let stepsStart = -1;
+  for (let i = 0; i < lines.length; i += 1) {
+    const raw = lines[i] ?? "";
+    const stripped = raw.trim();
+    if (!stripped || stripped.startsWith("#")) continue;
+    const indent = lineIndent(raw);
+    if (indent === baseIndent && /^steps\s*:/i.test(stripped)) {
+      stepsKeyIndent = indent;
+      stepsStart = i + 1;
+      break;
+    }
+  }
+  if (stepsKeyIndent === null || stepsStart < 0) return [];
+
+  const steps: WorkflowStepNode[] = [];
+  let inStep = false;
+  let itemIndent: number | null = null;
+  let stepIf: string | null = null;
+  let stepCoe: ContinueOnErrorClass = false;
+  let stepRun: string | null = null;
+
+  const flushStep = (): void => {
+    if (!inStep) return;
+    steps.push({ ifExpr: stepIf, continueOnError: stepCoe, runText: stepRun });
+    inStep = false;
+    itemIndent = null;
+    stepIf = null;
+    stepCoe = false;
+    stepRun = null;
+  };
+
+  for (let i = stepsStart; i < lines.length; i += 1) {
+    const raw = lines[i] ?? "";
+    const stripped = raw.trim();
+    if (!stripped || stripped.startsWith("#")) continue;
+    const indent = lineIndent(raw);
+
+    // Sibling job-level key ends the steps block.
+    if (indent <= stepsKeyIndent) {
+      flushStep();
+      break;
+    }
+
+    const listItem = /^-\s+(.*)$/.exec(stripped);
+    if (listItem !== null && (itemIndent === null || indent === itemIndent)) {
+      flushStep();
+      inStep = true;
+      itemIndent = indent;
+      const rest = (listItem[1] ?? "").trim();
+      const inlineIf = /^if\s*:\s*(.*)$/i.exec(rest);
+      if (inlineIf !== null) stepIf = parseIfScalar(inlineIf[1] ?? "", lines, i, indent);
+      const inlineCoe = /^continue-on-error\s*:\s*(.*)$/i.exec(rest);
+      if (inlineCoe !== null) stepCoe = parseContinueOnErrorValue(inlineCoe[1] ?? "");
+      const inlineRun = /^(?:run|script)\s*:\s*(.*)$/i.exec(rest);
+      if (inlineRun !== null) stepRun = readBlockOrScalarRun(inlineRun[1] ?? "", lines, i, indent);
+      continue;
+    }
+
+    if (!inStep || itemIndent === null || indent <= itemIndent) continue;
+
+    const ifMatch = /^if\s*:\s*(.*)$/i.exec(stripped);
+    if (ifMatch !== null) {
+      stepIf = parseIfScalar(ifMatch[1] ?? "", lines, i, indent);
+      continue;
+    }
+    const coe = /^continue-on-error\s*:\s*(.*)$/i.exec(stripped);
+    if (coe !== null) {
+      stepCoe = parseContinueOnErrorValue(coe[1] ?? "");
+      continue;
+    }
+    const runMatch = /^(?:run|script)\s*:\s*(.*)$/i.exec(stripped);
+    if (runMatch !== null) {
+      stepRun = readBlockOrScalarRun(runMatch[1] ?? "", lines, i, indent);
+    }
+  }
+  flushStep();
+  return steps;
+}
+
 function buildJobNode(id: string, body: string): WorkflowJobNode {
   const lines = body.replace(/\r\n/g, "\n").split("\n");
   let ifExpr: string | null = null;
-  let continueOnError = false;
+  let continueOnError: ContinueOnErrorClass = false;
   let hasMatrixExclude = false;
   let jobUses: string | null = null;
   const stepUses: string[] = [];
@@ -241,25 +377,12 @@ function buildJobNode(id: string, body: string): WorkflowJobNode {
     if (indent === baseIndent) {
       const ifMatch = /^if\s*:\s*(.*)$/i.exec(stripped);
       if (ifMatch !== null) {
-        const rest = (ifMatch[1] ?? "").trim();
-        if (rest === "|" || rest === ">" || rest.startsWith("|") || rest.startsWith(">")) {
-          const collected: string[] = [];
-          for (let j = i + 1; j < lines.length; j += 1) {
-            const lr = lines[j] ?? "";
-            if (lr.trim().length === 0) continue;
-            if (lineIndent(lr) <= indent) break;
-            collected.push(lr.trim());
-          }
-          ifExpr = collected.join(" ");
-        } else {
-          ifExpr = parseScalarRemainder(rest);
-        }
+        ifExpr = parseIfScalar(ifMatch[1] ?? "", lines, i, indent);
         continue;
       }
       const coe = /^continue-on-error\s*:\s*(.*)$/i.exec(stripped);
       if (coe !== null) {
-        const v = parseScalarRemainder(coe[1] ?? "").toLowerCase();
-        continueOnError = v === "true" || v === "yes" || v === "1";
+        continueOnError = parseContinueOnErrorValue(coe[1] ?? "");
         continue;
       }
       const uses = /^uses\s*:\s*(.*)$/i.exec(stripped);
@@ -288,6 +411,7 @@ function buildJobNode(id: string, body: string): WorkflowJobNode {
     hasMatrixExclude,
     jobUses,
     stepUses,
+    steps: parseJobSteps(lines, baseIndent),
     runCommands: [],
   };
 }
@@ -300,6 +424,7 @@ export function parseWorkflowJobGraph(text: string): WorkflowJobGraph {
   const lines = text.replace(/\r\n/g, "\n").split("\n");
   let onLines = extractTopLevelBlock(lines, "on");
   if (onLines.length === 0) onLines = extractTopLevelBlock(lines, '"on"');
+  if (onLines.length === 0) onLines = extractTopLevelBlock(lines, "'on'");
   let hasPr = onMentionsPullRequest(onLines);
   if (!hasPr) {
     for (const raw of lines) {
@@ -363,8 +488,29 @@ export function findingsForWorkflowGraph(
     if (carried.fullCheck || carried.gates.length > 0) anyRunGate = true;
   }
 
-  // Path/branch filters only matter on workflows that actually carry the gate.
-  if (anyRunGate && (filters.hasPaths || filters.hasPathsIgnore || filters.hasBranches)) {
+  // A gate that only runs on push/workflow_dispatch is not PR-reachable.
+  if (anyRunGate && !graph.hasPullRequestTrigger) {
+    findings.push({
+      kind: "workflow-filter",
+      workflowPath,
+      jobId: null,
+      detail:
+        `Workflow ${workflowPath} has no pull_request trigger, so the gate never runs on a ` +
+        "pull request; presence of the command alone must not read as clean",
+      remediation: remediationFor(
+        workflowPath,
+        null,
+        "add a pull_request trigger (or move the gate into a workflow that already runs on pull_request)",
+      ),
+    });
+  }
+
+  // Path/branch filters only matter on PR-triggered workflows that carry the gate.
+  if (
+    anyRunGate &&
+    graph.hasPullRequestTrigger &&
+    (filters.hasPaths || filters.hasPathsIgnore || filters.hasBranches)
+  ) {
     const parts: string[] = [];
     if (filters.hasPaths) parts.push("paths");
     if (filters.hasPathsIgnore) parts.push("paths-ignore");
@@ -386,22 +532,22 @@ export function findingsForWorkflowGraph(
     });
   }
 
-  for (const job of graph.jobs) {
-    const carried = jobCarry.get(job.id) ?? { fullCheck: false, gates: [] };
-    if (!carried.fullCheck && carried.gates.length === 0) continue;
-
-    const cond = classifyPullRequestCondition(job.ifExpr);
+  const pushConditionFinding = (
+    jobId: string,
+    scope: "job" | "step",
+    cond: ConditionClass,
+  ): void => {
     if (cond === "unknown") {
       findings.push({
         kind: "unknown-expression",
         workflowPath,
-        jobId: job.id,
+        jobId,
         detail:
-          `Gate job '${job.id}' in ${workflowPath} has an undecidable if: expression ` +
+          `Gate ${scope} '${jobId}' in ${workflowPath} has an undecidable if: expression ` +
           `(github.event.*/vars/secrets); reachability is unknown — never clean`,
         remediation: remediationFor(
           workflowPath,
-          job.id,
+          jobId,
           "replace undecidable if: (github.event.*/vars/secrets) with always() or a PR-true-by-construction condition",
         ),
       });
@@ -409,32 +555,76 @@ export function findingsForWorkflowGraph(
       findings.push({
         kind: "skippable-if",
         workflowPath,
-        jobId: job.id,
+        jobId,
         detail:
-          `Gate job '${job.id}' in ${workflowPath} has an if: condition that can evaluate ` +
+          `Gate ${scope} '${jobId}' in ${workflowPath} has an if: condition that can evaluate ` +
           "false on pull_request, so the gate may be skipped on the merge path",
         remediation: remediationFor(
           workflowPath,
-          job.id,
+          jobId,
           "remove the skippable if: or use if: always() / a condition true on pull_request by construction",
         ),
       });
     }
+  };
 
-    if (job.continueOnError) {
+  const pushContinueOnErrorFinding = (
+    jobId: string,
+    scope: "job" | "step",
+    coe: ContinueOnErrorClass,
+  ): void => {
+    if (coe === false) return;
+    if (coe === "unknown") {
       findings.push({
         kind: "continue-on-error",
         workflowPath,
-        jobId: job.id,
+        jobId,
         detail:
-          `Gate job '${job.id}' in ${workflowPath} sets continue-on-error: true, so a failed ` +
-          "gate does not fail the workflow on pull_request",
+          `Gate ${scope} '${jobId}' in ${workflowPath} sets continue-on-error to an expression ` +
+          "that may evaluate true, so a failed gate may not fail the workflow on pull_request",
         remediation: remediationFor(
           workflowPath,
-          job.id,
-          "set continue-on-error: false (or remove it) on the gate job",
+          jobId,
+          "set continue-on-error: false (or remove it) on the gate " + scope,
         ),
       });
+      return;
+    }
+    findings.push({
+      kind: "continue-on-error",
+      workflowPath,
+      jobId,
+      detail:
+        `Gate ${scope} '${jobId}' in ${workflowPath} sets continue-on-error: true, so a failed ` +
+        "gate does not fail the workflow on pull_request",
+      remediation: remediationFor(
+        workflowPath,
+        jobId,
+        "set continue-on-error: false (or remove it) on the gate " + scope,
+      ),
+    });
+  };
+
+  const stepLooksLikeGate = (job: WorkflowJobNode, step: WorkflowStepNode): boolean => {
+    if (step.runText === null || step.runText.length === 0) return false;
+    const run = step.runText;
+    if (job.runCommands.some((c) => c === run || c.includes(run) || run.includes(c))) return true;
+    return /(?:^|[\n;|&])\s*(?:sudo\s+)?(?:task|deft|directive)\s+(?:deft:)?(?:check\b|verify:)/i.test(
+      run,
+    );
+  };
+
+  for (const job of graph.jobs) {
+    const carried = jobCarry.get(job.id) ?? { fullCheck: false, gates: [] };
+    if (!carried.fullCheck && carried.gates.length === 0) continue;
+
+    pushConditionFinding(job.id, "job", classifyPullRequestCondition(job.ifExpr));
+    pushContinueOnErrorFinding(job.id, "job", job.continueOnError);
+
+    for (const step of job.steps) {
+      if (!stepLooksLikeGate(job, step)) continue;
+      pushConditionFinding(job.id, "step", classifyPullRequestCondition(step.ifExpr));
+      pushContinueOnErrorFinding(job.id, "step", step.continueOnError);
     }
 
     if (job.hasMatrixExclude) {

@@ -1116,16 +1116,15 @@ export function evaluateConsumerCheckContract(
         return taskDefinedInTaskfileYaml(verifyText, gateId.slice("verify:".length));
       });
     const fullCheck = runCmds.some(runCommandIsFullCheck) && verifyDefinesAll;
-    const unknownUsesCoversCi = reachabilityRaw.some((r) => r.kind === "unknown-uses");
 
     for (const gateId of required) {
       const direct = runCmds.some((c) => runCommandInvokesGate(c, gateId));
       // Single gate does NOT satisfy the whole trio (Greptile P1).
       const mentioned = direct || fullCheck;
       if (!mentioned) {
-        // When uses: indirection is the CI vehicle, prefer unknown (never clean)
-        // over a stack of per-gate "missing" notes (#4015).
-        if (unknownUsesCoversCi) continue;
+        // Do not let an unrelated unknown-uses finding suppress missing-invocation
+        // notes for required gates (Greptile P1 / #4015). Unknown stays a soft
+        // never-clean reachability note alongside missing composition findings.
         const finding: ConsumerCheckContractFinding = {
           gateId,
           surface: "ci-workflow",

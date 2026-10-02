@@ -134,10 +134,13 @@ describe("classifyPullRequestCondition (#4015)", () => {
     expect(classifyPullRequestCondition("secrets.TOKEN != ''")).toBe("unknown");
   });
 
-  it("accepts always() && needs.* lifecycle coordination (out of scope)", () => {
+  it("flags always() && needs.* as skippable (can be false on pull_request)", () => {
     expect(
       classifyPullRequestCondition("always() && needs.changes.outputs.artifact_only != 'true'"),
-    ).toBe("accept");
+    ).toBe("skippable");
+    expect(
+      classifyPullRequestCondition("always() && needs.changes.outputs.run_gate == 'true'"),
+    ).toBe("skippable");
   });
 });
 
@@ -282,5 +285,111 @@ jobs:
 `;
     const kinds = reachabilityOf(ci).map((f) => f.kind);
     expect(kinds).toContain("matrix-exclude");
+  });
+
+  it("flags workflows with gate commands but no pull_request trigger", () => {
+    const ci = `
+on:
+  push:
+jobs:
+  check:
+    steps:
+      - run: task check
+`;
+    const result = evaluateCi(ci);
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toMatch(/WARN/i);
+    expect(result.findings.some((f) => f.detail.includes("no pull_request trigger"))).toBe(true);
+    expect(reachabilityOf(ci).some((f) => f.kind === "workflow-filter")).toBe(true);
+  });
+
+  it("parses quoted job keys and attaches gate run commands", () => {
+    const ci = `
+on:
+  pull_request:
+jobs:
+  "check":
+    steps:
+      - run: task check
+  lint:
+    steps:
+      - run: echo lint
+`;
+    const graph = parseWorkflowJobGraph(ci);
+    expect(graph.jobs.map((j) => j.id)).toEqual(["check", "lint"]);
+    expect(reachabilityOf(ci)).toEqual([]);
+  });
+
+  it("flags step-level if: / continue-on-error on the gate run step", () => {
+    const ci = `
+on:
+  pull_request:
+jobs:
+  check:
+    steps:
+      - name: setup
+        run: echo setup
+      - name: gate
+        if: github.event_name == 'push'
+        continue-on-error: true
+        run: task check
+`;
+    const kinds = reachabilityOf(ci).map((f) => f.kind);
+    expect(kinds).toContain("skippable-if");
+    expect(kinds).toContain("continue-on-error");
+  });
+
+  it("flags expression continue-on-error as unknown/skippable soft-fail", () => {
+    const ci = `
+on:
+  pull_request:
+jobs:
+  check:
+    continue-on-error: \${{ matrix.allow_failure }}
+    steps:
+      - run: task check
+`;
+    const findings = reachabilityOf(ci);
+    expect(findings.some((f) => f.kind === "continue-on-error")).toBe(true);
+    expect(findings.some((f) => f.detail.includes("expression"))).toBe(true);
+  });
+
+  it("reads pull_request filters under quoted 'on':", () => {
+    const ci = `
+'on':
+  pull_request:
+    paths:
+      - 'packages/**'
+jobs:
+  check:
+    steps:
+      - run: task check
+`;
+    const kinds = reachabilityOf(ci).map((f) => f.kind);
+    expect(kinds).toContain("workflow-filter");
+  });
+
+  it("does not let unrelated unknown-uses hide missing gate invocations", () => {
+    const ci = `
+on:
+  pull_request:
+jobs:
+  lint:
+    uses: org/lint.yml@v1
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: ROOT_WITH_CHECK_DEPS,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([[".github/workflows/ci.yml", ci]]),
+      requiredGates: REQUIRED,
+      enforce: true,
+      ciWarnOnly: false,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(
+      result.findings.some(
+        (f) => f.surface === "ci-workflow" && f.detail.includes("do not invoke"),
+      ),
+    ).toBe(true);
   });
 });
