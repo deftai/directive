@@ -135,6 +135,38 @@ describe("evaluatePanelSeatDelivery (#3979 panel consumption)", () => {
     expect(verdict?.verifiedPostedSeatIds).toEqual([]);
   });
 
+  it("unavailable read with a missing handback stays unverifiable (not dispatch-failure)", () => {
+    const verdict = evaluatePanelSeatDeliveryFromThread({
+      issueNumber: 3979,
+      comments: [deposit()],
+      verificationStatus: "unavailable",
+      unavailableReason: "rate limited",
+      handbacks: [{ seatId: "claude", hostSuccess: true, claimedCommentId: 1 }],
+    });
+    expect(verdict?.unverifiableSeatIds).toEqual(["grok", "claude", "codex"]);
+    expect(verdict?.dispatchFailedSeatIds).toEqual([]);
+    expect(verdict?.verifiedPostedSeatIds).toEqual([]);
+  });
+
+  it("does not let child handbacks shrink the expected seat set", () => {
+    const verdict = evaluatePanelSeatDeliveryFromThread({
+      issueNumber: 3979,
+      comments: [familiesOnlyDeposit()],
+      handbacks: [
+        {
+          seatId: "grok",
+          hostSuccess: true,
+          claimedCommentId: 5470572756,
+          toolCallCount: 0,
+        },
+      ],
+    });
+    expect(verdict).not.toBeNull();
+    expect(verdict?.rows.map((row) => row.seatId)).toEqual(["grok", "claude", "codex"]);
+    expect(verdict?.allExpectedVerified).toBe(false);
+    expect(verdict?.dispatchFailedSeatIds).toEqual(["grok", "claude", "codex"]);
+  });
+
   it("counts only obligation-bound parent reads when all seats posted", () => {
     const comments = [
       deposit(),

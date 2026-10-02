@@ -192,10 +192,11 @@ export function acceptDispatchPostcondition(input: {
     return fail("dispatch-failure", "missing", reasons, toolCalls);
   }
 
-  // Prefer the earliest binding comment after the ceiling.
+  // Prefer the earliest binding comment after the ceiling, unless the child
+  // claimed a specific id that is among the parent-bound set.
   const sorted = [...bound].sort((a, b) => a.id - b.id);
-  const chosen = sorted[0];
-  if (chosen === undefined) {
+  const earliest = sorted[0];
+  if (earliest === undefined) {
     return fail("dispatch-failure", "missing", ["bound set empty after sort"], toolCalls);
   }
 
@@ -219,6 +220,11 @@ export function acceptDispatchPostcondition(input: {
       toolCalls,
     );
   }
+
+  const chosen =
+    claimed !== undefined && claimed !== null
+      ? (bound.find((comment: VerifiedThreadComment) => comment.id === claimed) ?? earliest)
+      : earliest;
 
   return {
     accepted: true,

@@ -16,13 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Dispatch postcondition for fabricated handbacks (#3979).** Parent/host verification must pass before a child completion counts as success on the design-critique panel path. Tracking #3979.
+- **Panel handback checks before design-critique success (#3979).** A child report only counts when the parent can see the matching critic comment on the issue thread. Tracking #3979.
 
 ### Changed
 
 ### Fixed
 
-- **Dispatch postcondition repeat-dispatch claims (#3979).** A bad/nonexistent handback comment id no longer credits an earlier matching seat/round comment as success; missing handbacks stay fail-closed. Tracking #3979.
+- **Repeat panel dispatch no longer trusts a bad handback claim (#3979).** A wrong or missing comment id does not reuse an earlier matching post; failed panel checks also block path-1 auto-stamp. Tracking #3979.
 
 ### Removed
 

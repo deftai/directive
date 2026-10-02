@@ -139,6 +139,24 @@ export function evaluatePanelSeatDelivery(input: {
     // Missing handback for this dispatch must not inherit an earlier matching
     // comment as success for the current obligation (repeat-dispatch case).
     if (handback === undefined) {
+      if (input.verification.status === "unavailable") {
+        rows.push({
+          seatId: seat.seatId,
+          verdict: {
+            accepted: false,
+            deliveryStatus: "unverifiable",
+            failClass: "unavailable",
+            reasons: [
+              `parent verification unavailable: ${input.verification.reason}`,
+              "unknown never accepts delivery",
+            ],
+            boundCommentId: null,
+            complementaryToolCallCount: null,
+          },
+          countsAsPostedSibling: false,
+        });
+        continue;
+      }
       rows.push({
         seatId: seat.seatId,
         verdict: {
@@ -220,15 +238,11 @@ export function evaluatePanelSeatDeliveryFromThread(input: {
 }): PanelSeatDeliveryVerdict | null {
   const deposit = latestPanelDeposit(input.comments);
   if (deposit === null) return null;
-  const fromHandbacks = [
-    ...new Set((input.handbacks ?? []).map((handback) => handback.seatId).filter(Boolean)),
-  ];
+  // Expected seats come from the caller override or the deposit (seat:/families:).
+  // Child handbacks never define the expected set — a partial return must not
+  // shrink the conjunct and make allExpectedVerified true.
   const expectedIds =
-    input.expectedSeatIds !== undefined && input.expectedSeatIds.length > 0
-      ? input.expectedSeatIds
-      : deposit.seatIds.length > 0
-        ? deposit.seatIds
-        : fromHandbacks;
+    input.expectedSeatIds !== undefined ? input.expectedSeatIds : deposit.seatIds;
   // Seat-bound verification is required once a panel-deposit is present.
   if (expectedIds.length === 0) return null;
 

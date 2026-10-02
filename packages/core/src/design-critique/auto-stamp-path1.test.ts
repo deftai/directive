@@ -228,4 +228,46 @@ describe("evaluateAutoStampPath1Write (#4592)", () => {
     });
     expect(tooEarly.unpublished?.id).toBeGreaterThan(LEAN_4589);
   });
+
+  it("refuses path-1 when supplied handbacks fail panel verification (#3979)", () => {
+    const ceiling = 5918176420;
+    const panelDeposit: ThreadComment = {
+      id: ceiling,
+      body:
+        "model: grok-4.5\nrole: parent\n\n" +
+        "panel-deposit\n" +
+        "round: 1\n" +
+        "siblings: 1\n" +
+        `input-ceiling: ${String(ceiling)}\n` +
+        "families: grok\n",
+    };
+    const live: ThreadComment[] = [
+      stop1("pain: P1\n"),
+      relievesLean(LEAN_4590),
+      criticAfter(LEAN_4590 + 1, "pain-P1"),
+      panelDeposit,
+    ];
+    const withoutGate = evaluateAutoStampPath1Write({
+      comments: live,
+      issueNumber: 3979,
+    });
+    expect(withoutGate.writePath1).toBe(true);
+
+    const withFailedHandback = evaluateAutoStampPath1Write({
+      comments: live,
+      issueNumber: 3979,
+      handbacks: [
+        {
+          seatId: "grok",
+          hostSuccess: true,
+          claimedCommentId: 5470572756,
+          toolCallCount: 0,
+        },
+      ],
+    });
+    expect(withFailedHandback.panelDelivery).not.toBeNull();
+    expect(withFailedHandback.panelDelivery?.dispatchFailedSeatIds).toContain("grok");
+    expect(withFailedHandback.writePath1).toBe(false);
+    expect(withFailedHandback.writeIngestReadyRemainingSet).toBe(false);
+  });
 });

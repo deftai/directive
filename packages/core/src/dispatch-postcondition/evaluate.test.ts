@@ -201,6 +201,23 @@ describe("acceptDispatchPostcondition (#3979)", () => {
     expect(staleClaim.reasons.join(" ")).toMatch(/earlier matching|nonexistent|untrusted/i);
   });
 
+  it("binds boundCommentId to the verified claimed id when multiple comments match", () => {
+    const verdict = acceptDispatchPostcondition({
+      postcondition: POSTCONDITION,
+      verification: threadOk([
+        { id: 5918223700, body: criticBody("grok") },
+        { id: 5918299614, body: criticBody("grok") },
+      ]),
+      handback: { hostSuccess: true, claimedCommentId: 5918299614, toolCallCount: 12 },
+    });
+    expect(verdict).toMatchObject({
+      accepted: true,
+      deliveryStatus: "verified",
+      boundCommentId: 5918299614,
+      complementaryToolCallCount: 12,
+    });
+  });
+
   it("old-round and parent-comment artifacts do not satisfy the seat obligation", () => {
     const oldRound = acceptDispatchPostcondition({
       postcondition: POSTCONDITION,

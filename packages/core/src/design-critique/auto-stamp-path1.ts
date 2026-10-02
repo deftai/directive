@@ -121,10 +121,10 @@ function refuse(
  * audit-targets field. Does not grow resolveAutoStampCatalogChip. Does not
  * treat operatorVerbApplySet autoStamp as this write (#4648).
  *
- * When issueNumber and a seat-bearing panel-deposit are present, also runs
- * evaluatePanelSeatDeliveryFromThread (#3979) so fabricated handbacks cannot
- * count as posted siblings on this path. Full #3850 panel-completeness
- * remain behavioural.
+ * When issueNumber, handbacks, and a seat-bearing panel-deposit are present,
+ * evaluatePanelSeatDeliveryFromThread (#3979) must verify; fabricated or
+ * failed seats refuse both writes. Full #3850 panel-completeness remain
+ * behavioural for callers that omit handbacks.
  */
 export function evaluateAutoStampPath1Write(
   input: AutoStampPath1WriteInput,
@@ -155,6 +155,18 @@ export function evaluateAutoStampPath1Write(
     issueNumber: input.issueNumber,
   });
   if (candidate.status === "complete") {
+    // When handbacks were supplied against a seat-bearing deposit, panel
+    // verification failure refuses both writes (fabricated / missing /
+    // unverifiable seats must not stamp path-1).
+    if (
+      input.handbacks !== undefined &&
+      panelDelivery !== null &&
+      (panelDelivery.dispatchFailedSeatIds.length > 0 ||
+        panelDelivery.unverifiableSeatIds.length > 0 ||
+        !panelDelivery.allExpectedVerified)
+    ) {
+      return refuse(unpublished, candidate, panelDelivery);
+    }
     return {
       writePath1: true,
       writeIngestReadyRemainingSet: true,
