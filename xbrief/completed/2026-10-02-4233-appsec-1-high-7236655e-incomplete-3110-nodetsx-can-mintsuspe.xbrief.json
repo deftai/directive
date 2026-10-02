@@ -1,0 +1,1197 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4233",
+    "updated": "2026-10-02T07:13:51Z"
+  },
+  "plan": {
+    "title": "AppSec: 1 HIGH @ 7236655e -- Incomplete #3110: node/tsx can mint/suspend UAT while authz:* CLI denies",
+    "status": "completed",
+    "narratives": {
+      "Description": "AppSec: 1 HIGH @ 7236655e -- Incomplete #3110: node/tsx can mint/suspend UAT while authz:* CLI denies",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4233",
+      "Overview": "\n\n- Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` and thus actions) for write-intent classes: grant create; authority-field mutate (scope / semantics.expiresAt / revokedAt / other non-consume fields); pin mutate. Classify intent against the on-disk grant so usedAt-only consume is not an exists-based waive and cannot widen authority fields.\n- Campaign-end is a separate sealed core entry (or options token) for `uat.active` true→false only. Only the CLI human-presence path may exercise it after `gateConfirm`. Do not make sealed campaign-end a stringly agent-passable flag in argv or grant JSON. Mint / grant-create / authority-field mutate / pin mutate stay unconditional UAT hard-refuse and must not reuse that sealed entry.\n- Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulted by those store writers. Do not move CLI `refuseMintWhileUatActive` stderr/exit helper into core; CLI keeps stderr + exit adaptation over the core decision.\n- Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outside UAT, keep today's empty-pin default. Do not bind \"UAT start empties the pin\" (`startUatLease` carries the pin forward).\n- Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as the control. Literal classify of node/tsx symbol imports is optional defense-in-depth; if kept, emit unknown not settings.\n- Human-presence stays the CLI gate, not a TTY check inside SoT.\n- Shared authority-state lock is optional concurrency defense-in-depth only; it does not replace write-class refuse (a serialized widen is still a widen).\n- Thread evidence cites file, line, and classifier verdicts. No runnable mint/suspend payloads on this issue.\n- Motion-process Bound stays on leftover #5188. Pain-field stays on #4514.\n\nA critic after this lean naming audit-targets pain-P1, pain-P2 is required before ingest can complete.\n\n",
+      "Labels": "bug, design, security, agent-experience, process, source-of-truth, urgent, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` a",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5241 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 36b0c9eed650920a4985d5ef76acc1c0f5d018b9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T07:00:10.596Z",
+            "mintedVia": "leftover-complete-after-5241"
+          },
+          "recorded_at": "2026-10-02T07:00:10.596Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Campaign-end is a separate sealed core entry (or options token) for `uat.active`",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5241 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 36b0c9eed650920a4985d5ef76acc1c0f5d018b9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T07:00:10.596Z",
+            "mintedVia": "leftover-complete-after-5241"
+          },
+          "recorded_at": "2026-10-02T07:00:10.596Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulte",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5241 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 36b0c9eed650920a4985d5ef76acc1c0f5d018b9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T07:00:10.596Z",
+            "mintedVia": "leftover-complete-after-5241"
+          },
+          "recorded_at": "2026-10-02T07:00:10.596Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outs",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5241 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 36b0c9eed650920a4985d5ef76acc1c0f5d018b9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T07:00:10.596Z",
+            "mintedVia": "leftover-complete-after-5241"
+          },
+          "recorded_at": "2026-10-02T07:00:10.596Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5241 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 36b0c9eed650920a4985d5ef76acc1c0f5d018b9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T07:00:10.596Z",
+            "mintedVia": "leftover-complete-after-5241"
+          },
+          "recorded_at": "2026-10-02T07:00:10.596Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Human-presence stays the CLI gate, not a TTY check inside SoT.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5241 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 36b0c9eed650920a4985d5ef76acc1c0f5d018b9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T07:00:10.596Z",
+            "mintedVia": "leftover-complete-after-5241"
+          },
+          "recorded_at": "2026-10-02T07:00:10.596Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Shared authority-state lock is optional concurrency defense-in-depth only; it do",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5241 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 36b0c9eed650920a4985d5ef76acc1c0f5d018b9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T07:00:10.596Z",
+            "mintedVia": "leftover-complete-after-5241"
+          },
+          "recorded_at": "2026-10-02T07:00:10.596Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Thread evidence cites file, line, and classifier verdicts. No runnable mint/susp",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5241 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 36b0c9eed650920a4985d5ef76acc1c0f5d018b9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T07:00:10.596Z",
+            "mintedVia": "leftover-complete-after-5241"
+          },
+          "recorded_at": "2026-10-02T07:00:10.596Z"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Motion-process Bound stays on leftover #5188. Pain-field stays on #4514.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5241 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 36b0c9eed650920a4985d5ef76acc1c0f5d018b9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T07:00:10.596Z",
+            "mintedVia": "leftover-complete-after-5241"
+          },
+          "recorded_at": "2026-10-02T07:00:10.596Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "security",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4233",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4233: AppSec: 1 HIGH @ 7236655e -- Incomplete #3110: node/tsx can mint/suspend UAT while authz:* CLI denies"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/authz"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover pathless clauses from Bound plan.items after product PR #5241",
+      "sentences": [
+        "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` a",
+        "Campaign-end is a separate sealed core entry (or options token) for `uat.active`",
+        "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulte",
+        "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outs",
+        "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as",
+        "Human-presence stays the CLI gate, not a TTY check inside SoT.",
+        "Shared authority-state lock is optional concurrency defense-in-depth only; it do",
+        "Thread evidence cites file, line, and classifier verdicts. No runnable mint/susp",
+        "Motion-process Bound stays on leftover #5188. Pain-field stays on #4514."
+      ],
+      "admitted_source_sentences": [
+        "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` a",
+        "Campaign-end is a separate sealed core entry (or options token) for `uat.active`",
+        "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulte",
+        "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outs",
+        "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as",
+        "Human-presence stays the CLI gate, not a TTY check inside SoT.",
+        "Shared authority-state lock is optional concurrency defense-in-depth only; it do",
+        "Thread evidence cites file, line, and classifier verdicts. No runnable mint/susp",
+        "Motion-process Bound stays on leftover #5188. Pain-field stays on #4514."
+      ],
+      "admitted_source_digest": "950df3e63456b622a3b4610521f609b5b8d9741c50562f59f510f8b129cef1e8",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` a",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Campaign-end is a separate sealed core entry (or options token) for `uat.active`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulte",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outs",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 6,
+          "text": "Human-presence stays the CLI gate, not a TTY check inside SoT.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 7,
+          "text": "Shared authority-state lock is optional concurrency defense-in-depth only; it do",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 8,
+          "text": "Thread evidence cites file, line, and classifier verdicts. No runnable mint/susp",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 9,
+          "text": "Motion-process Bound stays on leftover #5188. Pain-field stays on #4514.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because mint/suspend SoT remains callable from node/tsx while authz:* CLI is settings-denied under UAT.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4233-dc\norigin-ref: origin/master\ndispatch-sha: e48db87af28b9c2cc4550fe65a43db85648739a7\n\ncharter: refutation\nspend: N>=3\nspend-why: high blast radius; authz/UAT bypass unlocks write/push/PR/merge; operator permitted n=3 if needed.\n\nrefutation-target: mintHumanOriginGrant, startUatLease, and suspendUatLease remain callable from Shell via node/tsx import while authz:* CLI is settings-denied under UAT.\n\ntarget: #4233\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. Stage A issue-eval: still-open, no WIP, no duplicate, no open PR. This write-back is the round-1 ceiling.\n\n",
+          "id": 5665865831,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5665865831",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T14:48:52Z",
+          "updated_at": "2026-09-14T14:48:52Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5665865831\nfamilies: grok, claude, codex\nseat: grok launcher: spawn_subagent\nseat: claude launcher: claude\nseat: codex launcher: codex\n\n",
+          "id": 5665888209,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5665888209",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T14:50:28Z",
+          "updated_at": "2026-09-14T14:50:28Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nseat: grok launcher: grok\nnative spawn_subagent denied: advertised schema omitted process_only; native admit without skip-class is not a critic. Recovery: dest-rooted grok --cwd --prompt-file. Not dual-launch.\n\n",
+          "id": 5665902883,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5665902883",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T14:51:31Z",
+          "updated_at": "2026-09-14T14:51:31Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nRound 1, fresh, refutation charter. Ceiling 5665865831 honored. Reads pinned to `git show e48db87af28b9c2cc4550fe65a43db85648739a7:`.\n\n**Refutation verdict: the target survives.** Re-derived at the dispatch SHA, not accepted from the line cites. `packages/core/src/authz/actions.ts` — `startUatLease` (36), `suspendUatLease` (66), `mintHumanOriginGrant` (111) carry no UAT refusal and no presence check; the `pinActive` branch reads `prev.uat` only to carry it forward while adding to `activeGrantIds`. `packages/core/src/authz/classify.ts` match count for each of the three symbols: 0. Running the repo's own `classifyShellAuthzOps` at e48db87a: the two CLI verbs return `[\"settings\"]`, and `node -e` / `node --input-type=module -e` / `tsx -e` forms that name the three symbols return `[]`. Triage measured the same polarity at `7236655e` through the same function, so there is no discrepancy to reconcile. Verification method for everything below: dispatch-SHA sources copied to a temp tree and executed under `node --experimental-strip-types` (see finding 5 for why not in the dest).\n\nThree blocking findings are about what this arc records and what the AC set buys, not about the premise.\n\n---\n\n## 1. blocks-the-design — the Stop 1 write-back carries no `pain:` list, so this arc cannot produce an ingest-clearing record\n\n**Evidence.** `scanPainList` over the real body of 5665865831 returns `{\"present\":false,\"ids\":[],\"duplicates\":[],\"malformed\":false}`. Feeding `evaluateCompletedArcRecord` the real write-back and deposit plus a synthetic all-accept successor lean and the path-1 accepted sentence returns:\n\n```text\nblocked / missing-pain\n\"Stop 1 write-back 5665865831 has no operative non-vacuous pain: list; accepted forms: ...\"\n```\n\n**Failure mode.** `applyPainCoverage` runs inside `finalizeComplete`, so the block only materializes once the record is otherwise complete. Three seats get spent, the map comes back all-accept, `yolo-standing: yes` supplies the confirm conjunct, parent posts the accepted sentence and flips the chip — and every visible surface reads done. The refusal appears at `issue:ingest`, after the panel budget is gone.\n\n**Disposition consequence.** No critic output can repair this; the denominator lives on the Stop 1 comment. A superseding Stop 1 warrant carrying a `pain:` list is needed before the remaining seats are spent, and it is free to post now.\n\n**Steelman of the strongest rejected position.** `arc-mode: no-ingest`, so ingest is not this arc's problem. This fails on the machinery: the evaluator ignores `arc-mode:` (locked in the contract's Test surface, #4072), and no-ingest names ingest as a later operator verb rather than a denial. The block is deferred, not avoided. What would flip it: a live consumer that reads `arc-mode:` before pain coverage. There is none — `assertCompletedArcAllowsIngest` is the only caller and it throws on the reason.\n\n## 2. blocks-the-design — the N≥3 spend forecloses the only mechanism that can clear a pain cite\n\n**Evidence.** `applyPainCoverage` routes every `relieves` id **and** every different-issue `operator-deferred` id (`asserted = [...relieved, ...deferred]`) through `evaluateParentAudit`, built from `criticEnvelopes(comments, citedLean.id)` — comments with an id strictly greater than the cited lean, matching `role: critic`, carrying an operative audit-targets field that names `pain-P<n>`. Measured partition on a minimal thread:\n\n| thread | verdict |\n|---|---|\n| lean cites `relieves`, no later critic | `unresolved-pain-audit` |\n| critic with the right target posted **before** the lean | `unresolved-pain-audit` |\n| critic after the lean, targets declared `none` | `unresolved-pain-audit` |\n| critic after the lean naming `pain-P1` | `complete` |\n\nParent self-clearance is refused in code: only `clearedByRole === \"critic\"` enters the cleared set. The alternative dispositions do not escape it — `does-not-relieve` and same-issue defer return `unrelieved-pain`.\n\n**Failure mode.** Repairing finding 1 makes the clearing critic the fourth critic post. An N=3 panel spends all three round-1 posts and carries no default retry, so bind halts pending an operator cap raise that Stop 2 never recorded. The arc arrives at that halt only after all three seats are burned.\n\n**Disposition consequence.** Record the cap raise for this arc at Stop 2 now, or amend the spend to N=2 and keep the retry slot for the post-lean pass. Either is cheap before the seats are spent and unavailable after. This is a general result for this motion, not a quirk of this thread: any arc with a non-vacuous pain list needs at least one critic post after its final successor lean.\n\n**Road not taken.** I considered filing this as a contract gap — panel arcs need one more post than the dual stop grants. Rejected as the disposition here: that is an amendment on a different number, and this arc can record its own cap raise today without one.\n\n## 3. blocks-the-design — the acceptance criteria fix a closed 3-symbol set while the same import surface exports the unguarded writers\n\n**Evidence.** `packages/core/src/authz/index.ts` re-exports `./store.js`, so the import surface the issue names carries `saveAuthzState` (store.ts:511) and `saveGrant` (store.ts:525). Both are one-line `writeJsonContained` calls with no UAT check and no presence check — they are what the three gated functions call to land state. classify.ts match count at the dispatch SHA: `saveAuthzState` 0, `saveGrant` 0, `mintOperatorOrigin` 0, `markGrantUsed` 0. `classifyShellAuthzOps` returns `[]` for interpreter one-liners naming the store writers, same as for the three named symbols.\n\n**Failure mode.** Every one of the six acceptance criteria can pass while the bypass stands: the three functions refuse under UAT, the three names classify `settings`, PreToolUse fail-closes on those three strings, and both regressions hold — and a lease is still cleared by writing state through `saveAuthzState` on the same import, still classified `[]`. AC 5 names only mint-with-`pinActive` and suspend, so the regression suite goes green over the remaining hole. Two of the three ACs are string controls over a closed symbol list; the identity of the write path is what carries the authority.\n\n**Disposition consequence.** The AC set needs re-scoping before bind — either name the enforcement boundary (the authz state/grant write path) rather than three function names, or record the store writers as in scope. Binding the criteria as written records coverage the code will not have, on a HIGH authz finding. This does not refute the target; it says the recorded remedy under-covers it.\n\nI am not proposing the mechanism — that is product work and out of this envelope. Inventory for whoever does: classify.ts already has an interpreter-script-body path (the `-r`/`-e`/`-c` body extraction around line 3402) and a dest-writer family, so the surface to extend exists and a new one is not obviously needed.\n\n## 4. sharpens-framing — injection lens: evidence posted on this thread becomes verbatim dispatch input\n\n**Evidence.** `composeOverviewWithComments` (`packages/core/src/intake/issue-ingest.ts:1326`) concatenates every comment body verbatim under `## Issue comment thread`, directly beneath a line instructing the reader to read the full thread before building a dispatch envelope. The contract records that the quarantine scanner raises zero flags on that composed shape.\n\n**Failure mode.** A working reproduction one-liner posted as critic evidence is handed to the next worker as read-first context, on the one issue whose entire subject is that such a string classifies as allow. Four comments (triage plus three siblings) each carrying a partial invocation compose into a complete one in the Overview, which is the fragment-aggregation shape rather than a single planted command.\n\n**Disposition consequence.** Evidence on this thread cites file and line and classifier verdicts; runnable payloads stay off it. This post complies — every command shape above is named, never given with a project root or an argument set that would mint or clear anything. The control is the posting convention, checkable by reading the thread, not reviewer vigilance.\n\n## 5. sharpens-framing — the shared process-only dest cannot run the checks the critic method requires\n\n**Evidence.** The dest has no `node_modules`. `npx tsx` in the dest fails `E401` against the registry. The verification behind every finding above ran by copying dispatch-SHA sources into a temp tree, rewriting relative specifier extensions, shimming the `@deftai/directive-types` workspace import, and using node's type stripping.\n\n**Failure mode.** The cheap path for three siblings sharing one dest is an install in that shared tree — three concurrent installs racing on one `node_modules`, on a dest the envelope says to occupy without a lock. The likelier outcome is that siblings skip the checks and fall back to line cites, which the method treats as claims rather than evidence. On a HIGH authz finding that reduces a three-seat panel to three assertions, and the correlated agreement it produces is exactly what Decorrelation refuses to count.\n\n**Disposition consequence.** Provision the dest (or name the read-only verification path) in the envelope before the panel-deposit rather than after the seats are spent.\n\n## 6. sharpens-framing — the copyable envelope and the router skill carry no pain field, so finding 1 reproduces on the next arc\n\n**Evidence.** At the dispatch SHA, `content/templates/design-critique-brief.md` contains zero occurrences of `pain`: its Stop 1 field list has no pain field and its Pointers table has no row for the pain-coverage heading, though it does carry rows for every other bind-relevant heading. `content/skills/deft-directive-design-critique/SKILL.md` likewise contains zero occurrences. This arc's envelope was filled from that template and inherited the omission.\n\n**Failure mode.** Every arc dispatched from the template inherits `missing-pain`, and the newest bind conjunct is the one field the copyable artifact does not prompt for. The failure is silent until ingest, per finding 1.\n\n**Disposition consequence.** A prevention issue against the template and the skill pointer table. This arc's own repair (finding 1) does not fix the generator.\n\n## 7. footnote\n\nThe envelope's Launcher field reads \"see your seat line below\" and no seat line follows it. The claude seat launched, so no disposition effect.\n\n---\n\nFindings 1, 2, and 6 are one mechanism at three depths: the thread, the spend, and the generator. Repairing only the thread leaves the arc one post short; repairing only the arc leaves the next one broken.\n\n",
+          "id": 5666018720,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5666018720",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T14:59:54Z",
+          "updated_at": "2026-09-14T14:59:54Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-5\n```quarantined\nrole: critic\n```\n\n## Verdict\n\nThe refutation target survives at dispatch SHA `e48db87af28b9c2cc4550fe65a43db85648739a7`. The three action functions are public through `@deftai/directive-core/authz`, their mutation bodies contain no human-presence check, and the human-presence/UAT hard-refuse gate exists only in the CLI caller. A direct reproduction changed an active-UAT edit decision from `authz-grant-missing` to `authz-allow`, then suspended the lease. The current design therefore has the stated confused-deputy path.\n\n### blocks-the-design — Active-UAT-only gating leaves a pre-seed path\n\n**Evidence.** `packages/core/src/authz/actions.ts:111-163` mints an `operator-cli` grant without proving human presence. `packages/core/src/authz/store.ts:549-567` treats every valid human-origin grant as active when `state.activeGrantIds` is empty. In a pinned-tree reproduction, I called `mintHumanOriginGrant` while UAT was inactive without `pinActive`, then called `startUatLease`; the resulting state had `activeGrantIds: []`, `listActiveHumanGrants` returned `preseed`, and `evaluateAuthzMutation(edit)` returned `authz-allow` via that grant.\n\n**Failure mode.** Acceptance criterion 1 gates these functions only “under active UAT.” An agent can mint the grant before UAT begins; the later human UAT start activates that pre-seeded record by current empty-pin semantics. Literal Shell classification does not repair this because `settings` is allowed when UAT is inactive.\n\n**Disposition consequence.** The design cannot bind with a state-relative mint gate. It needs live human-presence authorization for every authority-producing action regardless of current UAT state, or a different activation rule that makes pre-UAT, non-human-proven grants unusable. A stored grant cannot serve as the proof for minting its own trust class without a non-circular provenance boundary.\n\n### blocks-the-design — The public raw store remains an equivalent authority API\n\n**Evidence.** `packages/core/package.json:94-97` exports `./authz`; `packages/core/src/authz/index.ts:7-16` re-exports both actions and the entire store. At runtime, `saveGrant`, `saveAuthzState`, and `mintOperatorOrigin` are public functions alongside the three named actions. I reproduced active-UAT unlock using only `saveGrant` plus `saveAuthzState`; `listActiveHumanGrants` accepted the forged `operator-cli` record and edit returned `authz-allow`.\n\n**Failure mode.** Hardening only `mintHumanOriginGrant`, `startUatLease`, and `suspendUatLease` leaves the same node/tsx import path able to write authoritative grant and lease state through exported lower-level functions. A command such as `node exploit.mjs` exposes neither the protected path nor an action symbol to PreToolUse.\n\n**Disposition consequence.** Either include the raw state-mutation surface in this remedy and move authority validation to the load/commit boundary, or narrow the issue explicitly to one known aligned-agent deputy and stop claiming closure of programmatic UAT bypass. Merely removing barrel exports is not a full boundary while local deep imports and same-user file writes remain possible; full hostile-input resistance needs an external/OS-held proof or similarly non-forgeable authority.\n\n### blocks-the-design — “And equivalent” is not a closed classifier contract\n\n**Evidence.** On the pinned build, the CLI controls classify as expected: `deft authz:grant ...` and `deft authz:uat-suspend` each return `[\"settings\"]`. These return `[]`: `node -e mintHumanOriginGrant(x)`, `tsx -e suspendUatLease(x)`, `node exploit.mjs`, and a computed-property call `x[\"mint\"+\"HumanOriginGrant\"](...)`. `classifyShellAuthzOps` in `packages/core/src/authz/classify.ts:4208-4305` recognizes CLI verbs, protected destinations, and write-shaped interpreter payloads; it does not and cannot resolve arbitrary JavaScript call graphs.\n\n**Failure mode.** A literal-symbol matcher closes only the demonstrated spelling. Aliases, computed properties, re-exports, prebuilt scripts, or another interpreter evade it. Conversely, denying every node/tsx command during UAT would break the contract’s allowed test/evidence workflows.\n\n**Disposition consequence.** Replace “and equivalent” with a finite, testable command grammar and treat it as defense in depth. The primary acceptance proof must be that indirect execution cannot mutate authoritative state, not that PreToolUse recognizes every way arbitrary code could reach a JavaScript function.\n\n### sharpens-framing — Shared-state authorization needs an atomic transition\n\n**Evidence.** `startUatLease`, `suspendUatLease`, and pinned grant activation use separate load/save sequences in `packages/core/src/authz/actions.ts:36-80,111-163`; `saveAuthzState` is an unguarded state replacement at `packages/core/src/authz/store.ts:511-512`. The existing exclusive-lock mechanism at `packages/core/src/authz/store.ts:330-508` is scoped to single-use grant claim/apply, not authority-state transitions.\n\n**Failure mode.** In a panel/swarm, a check-then-write implementation can race a concurrent UAT start, restart, suspend, grant activation, or revocation. A stale writer can mint after the state it checked changed, or overwrite a newer campaign/active-grant set.\n\n**Disposition consequence.** Add an acceptance obligation that authorization re-check and state transition occur under one shared authority lock (or equivalent compare-and-swap), with concurrency regression coverage. The existing single-use lock is an inventory pattern, not coverage of this state.\n\n### footnote — Baseline checks corroborate the gap\n\n`pnpm -r build` passed. The focused authz suite passed 117/117 tests. That green baseline is not contrary evidence: `packages/core/src/authz/actions.test.ts:51-79` currently starts UAT, directly mints and pins a grant, and suspends UAT in one test, so the vulnerable behavior is explicitly accepted by the current suite.\n\n## Road not taken and steelman\n\nThe strongest narrow remedy is literal classification of the three observed symbols plus guards in those three actions. It is cheap, preserves ordinary node/tsx use, and would stop the exact published reproduction; that is worth retaining as defense in depth. I rejected it as the security boundary because the pre-seed and public-store reproductions use the same authority model without those spellings. I would flip to accept once the contract makes live human presence time-independent, serializes shared authority transitions, and either closes the raw mutation surface or explicitly limits the security claim to a bounded aligned-agent misuse case.\n\n",
+          "id": 5666021986,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5666021986",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T15:00:09Z",
+          "updated_at": "2026-09-14T15:00:09Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\nRefutation target **holds** at dispatch SHA `e48db87af28b9c2cc4550fe65a43db85648739a7`. The hole is real. The ACs as written cannot close it.\n\nMeasured on dest HEAD (= dispatch SHA), importing unmodified `classifyShellAuthzOps` / `decideHook` / the SoT functions:\n\n| command | classify | PreToolUse (`decideHook` + active UAT, empty grants) |\n| --- | --- | --- |\n| `deft authz:grant` / `authz:uat-suspend` | `[\"settings\"]` | deny `authz-grant-missing` |\n| `node -e` / `tsx -e` mint, start, or suspend by import | `[]` | allow `shell-op-unclassifiable` |\n| `node /tmp/mint-wrapper.mjs` (no symbol names) | `[]` | allow `shell-op-unclassifiable` |\n| `node -e` `saveGrant` / `saveAuthzState` | `[]` | allow `shell-op-unclassifiable` |\n| `node -e` `writeFileSync('.deft/authz/state.json')` | `[\"settings\"]` | deny `authz-grant-missing` |\n\nIn a temp projectRoot, `mintHumanOriginGrant({ pinActive: true, operations: [edit,push,pr,merge], cohortId: \"self\" })` after `startUatLease` flipped edit/push/pr/merge from `authz-grant-missing` to `authz-allow`. Origin was `{ kind: \"operator-cli\", mintedVia: \"deft authz:grant\" }`. `suspendUatLease` then flipped edit to `authz-inactive`. `saveGrant` + `saveAuthzState` reproduced the same unlock without calling the three named wrappers.\n\n`classify.ts` has no matches for `mintHumanOriginGrant` / `startUatLease` / `suspendUatLease` / `saveGrant` / `saveAuthzState`. `hasWriteCapableProgrammaticShell` only fires on write APIs, not library mint. `authzForMutation` returns null on empty ops; the shell path then fail-opens.\n\nExisting mechanisms already on this SHA (do not invent a fourth harvest): `refuseMintWhileUatActive` in `packages/cli/src/human-presence-mint.ts` (CLI-only, no grant escape); `hasAuthzMutatingCli` (CLI verb tokens → settings); dest-writer / programmatic-write harvest for **file** dests under `.deft/authz` (#3110 / #3186 / #3545 family); `unknown` grant-immune dest-of-write (#4188). Human-presence TTY/phrase lives in CLI (#3384), not in `actions.ts`.\n\n## 1. blocks-the-design — AC1 names wrappers, not the public store SoT\n\nEvidence: `packages/core/src/authz/index.ts` re-exports `saveGrant`, `saveAuthzState`, and `mintOperatorOrigin` from `store.ts`. `mintOperatorOrigin` always stamps `kind: \"operator-cli\"` regardless of `mintedVia`. Probe `store-writer-equivalent` allowed edit+push under active UAT; `saveAuthzState-clears-uat` cleared the lease. `markGrantUsed` also calls `saveGrant` to persist `usedAt` after a legitimate allow — a blanket `saveGrant` refuse would break single-use consume.\n\nFailure mode: AC1+AC2+AC3 go green on the three names. An agent under the same UAT lease runs `node -e` importing `saveGrant`/`saveAuthzState` (or a `/tmp` wrapper with no symbols). PreToolUse allows. The worker pins an `operator-cli` grant or sets `uat.active=false`. Cohort writes/push/PR/merge unlock. Distinct from dest-form plants: `writeFileSync` to the store already denies; the API path does not.\n\nDisposition: do not bind AC1 as those three names. Bind UAT **hard-refuse** (no grant escape) on writes that **create a grant**, **pin `activeGrantIds`**, or **change `uat.active`**. Leave `usedAt` consume. Un-exporting the barrel is not a control (deep `dist/authz/store.js` import remains). Reuse the existing `refuseMintWhileUatActive` predicate in core; do not add a second UAT-active checker.\n\n## 2. blocks-the-design — \"unless a matching human-presence grant already exists\" recuts #3110\n\nEvidence: CLI `refuseMintWhileUatActive` refuses every mutating verb while a lease is active — \"no TTY, no `--confirm`, no typed phrase path. Self-approval under UAT is impossible by construction.\" AC1 adds a grant-exists exception inside SoT. `evaluateAuthzMutation` already lets a pre-UAT named-cohort grant cover product ops; that is not remint authority.\n\nFailure mode: any leftover or planted human-origin grant (settings or otherwise) becomes permission to call SoT mint/suspend via node/tsx. One swarm worker extends ops to `edit,push,pr,merge` or clears UAT for every worker on that `projectRoot`. CLI still refuses; the import path does not.\n\nDisposition: do not bind that exception. SoT UAT refuse must match CLI: unconditional. A deliberate recut of #3110 is a different issue, not this residual.\n\n## 3. sharpens-framing — AC2/AC3 symbol harvest is not the gate; `settings` is the wrong class\n\nEvidence: literal `node -e` naming `mintHumanOriginGrant` classifies `[]`. Split-name `mint`+`HumanOriginGrant`, `mintAfkTemplateGrant`, bun/deno, and `node /tmp/mint-wrapper.mjs` also `[]`. `hasAuthzMutatingCli` matches `authz:grant` tokens, not function names. Under UAT, `settings` is grantable (`authz-grant-missing` only when no grant); `unknown` is grant-immune (#4188). CLI is two-layer: classify **and** `refuseMintWhileUatActive`. Classify-as-settings without SoT refuse is the first layer only.\n\nFailure mode: a corpus of literal symbol names goes green; wrapper / dynamic import / store-writer stays allow. If a settings grant already exists, classify-as-settings **allows** the shell form, then ungated SoT remints.\n\nDisposition: do not bind AC2/AC3 as the control. Keep classify as optional defense-in-depth. If a residual is kept, emit `unknown` (grant-immune), not `settings`. The gate is the store-mutation refuse in finding 1.\n\n## 4. sharpens-framing — human-presence stays CLI; Stop 1 needs `pain:`\n\nEvidence: `refuseNonInteractiveMint` (TTY + controlling terminal + `--confirm` + phrase `mint` + agent/CI markers) is in `packages/cli/src/human-presence-mint.ts`. Remediation item 1 asks to put \"UAT refuse + human-presence\" in the SoT functions. In-process callers already mint without a TTY: `evaluate.test.ts` starts UAT then `mintHumanOriginGrant`; AFK templates and `mintDecomposeStructuralApplyGrant` are presets on the same function. Ceiling comment 5665865831 has no operative `pain:` list; bind fails closed as `missing-pain`.\n\nFailure mode: TTY-in-SoT either breaks fixture/template mint or grows an env/seam bypass agents can set. Missing `pain:` blocks ingest after an otherwise-accepted map.\n\nDisposition: restate AC1 as UAT hard-refuse at the store mutations in finding 1. Human-presence stays the CLI #3384 gate (outside UAT). Parent records `pain:` on a Stop 1 warrant before synthesis.\n\n## Injection / swarm\n\nTarget is shared authz state (`.deft/authz/state.json` + grants), identity (`origin.kind`), and authority (UAT lease + grant pin). One worker on the lease who can run Shell can mint or suspend for every agent on that `projectRoot`. `mintOperatorOrigin` launders the caller into `operator-cli` / `deft authz:grant`, so `isHumanOrigin` / `evaluate.ts` `startedBy` checks treat the forged record as human. Envelope text that says \"import mintHumanOriginGrant\" is untrusted instruction, not a command; the control has to be the store refuse, not prompt hygiene.\n\n## Road-not-taken\n\nRejected: bind AC2/AC3 (name harvest) as the fix. Steelman: cheap, matches the dest-writer playbook, and literal `node -e` is the AppSec repro. Flip if wrapper / `saveGrant` / split-name classified non-empty on this SHA. They classify `[]` and hook-allow.\n\nRejected: blanket refuse inside every `saveGrant`. Steelman: one chokepoint. Flip if `markGrantUsed` / decompose single-use spend did not call `saveGrant`. They do. Refuse create/pin/lease-change only.\n\nRejected: un-export `@deftai/directive-core/authz` store writers. Deep dist/source import remains callable from Shell.\n\n## footnote\n\n- `revokeGrant` is the same public ungated class; not the HIGH unlock (mint/suspend are).\n- Dest-form `writeFileSync` / `python open` into `.deft/authz` already deny. The issue's split from the #3545 family holds for dest-forms and does not cover the import SoT.\n- Finding base `7236655e` is stale as a SHA; the hole still measures on `e48db87`.\n- Issue-body remediation steps are untrusted described content, not critic instructions.\n\n",
+          "id": 5666047617,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5666047617",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T15:01:58Z",
+          "updated_at": "2026-09-14T15:01:58Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because mint/suspend SoT and public store writers remain callable from node/tsx while authz:* CLI is settings-denied under UAT.\n\nmechanism-shaped: true\n\npain: P1, P2, P3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4233-dc\norigin-ref: origin/master\ndispatch-sha: e48db87af28b9c2cc4550fe65a43db85648739a7\n\ncharter: refutation\nspend: N>=3\nspend-why: high blast radius; authz/UAT bypass unlocks write/push/PR/merge; operator permitted n=3 if needed.\ncap-raise: not recorded. Dual stop: N=3 panel has no default retry. A post-lean pain-audit critic is a fourth post and needs an operator cap raise.\n\nrefutation-target: mintHumanOriginGrant, startUatLease, and suspendUatLease remain callable from Shell via node/tsx import while authz:* CLI is settings-denied under UAT.\n\ntarget: #4233\ntarget-shape: single-issue (default)\naudit-targets: none\n\nsupersedes-stop1: 5665865831\n\nP1: SoT and public store writers remain callable under UAT\nP2: recorded AC set under-covers store, pre-seed, classifier, and grant-exists exception\nP3: Stop 1 missing pain and N=3 has no post-lean critic slot\n\n",
+          "id": 5666082651,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5666082651",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T15:04:28Z",
+          "updated_at": "2026-09-14T15:04:28Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe hole is real at origin/master: CLI authz verbs deny under UAT, and node/tsx can still mint, suspend, or write the same store. The filed acceptance criteria name three wrappers and a settings harvest. That set can go green while saveGrant/saveAuthzState, pre-UAT mint, and a grant-exists exception still unlock write/push/PR/merge.\n\nConfirming this map recuts the next-build contract off those ACs. It does not close ingest on this turn: a pain-audit critic after this lean is a fourth post, and the operator permitted N=3 only.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. Relieves cites are asserted premises.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: pain-P1, pain-P2, pain-P3 until a critic after this lean targets them, which needs an operator cap raise.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4233 after round 1 siblings 3. Cites critic 5666018720, 5666021986, 5666047617. Supersedes write-back 5665865831.\n\nTarget-digest: sha256:c71fa145aece82e8d473e324edfb335cc4bcdb53d266e955617f909731c88ecf\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4233-dc\norigin-ref: origin/master\ndispatch-sha: e48db87af28b9c2cc4550fe65a43db85648739a7\n\nTakes:\n\n- 5666018720 / 1. Stop 1 write-back carries no pain list — accept-into-contract\n- 5666018720 / 2. N>=3 spend forecloses the post-lean pain-cite critic — accept-into-contract\n- 5666018720 / 3. AC set fixes a closed 3-symbol set while store writers stay unguarded — accept-into-contract\n- 5666018720 / 4. injection lens: evidence posted on this thread becomes verbatim dispatch input — accept-into-contract\n- 5666018720 / 5. shared process-only dest cannot run the checks the critic method requires — accept-into-contract\n- 5666018720 / 6. copyable envelope and router skill carry no pain field — accept-into-contract\n- 5666021986 / Active-UAT-only gating leaves a pre-seed path — accept-into-contract\n- 5666021986 / The public raw store remains an equivalent authority API — accept-into-contract\n- 5666021986 / And equivalent is not a closed classifier contract — accept-into-contract\n- 5666021986 / Shared-state authorization needs an atomic transition — accept-into-contract\n- 5666047617 / 1. AC1 names wrappers, not the public store SoT — accept-into-contract\n- 5666047617 / 2. unless a matching human-presence grant already exists recuts #3110 — accept-into-contract\n- 5666047617 / 3. AC2/AC3 symbol harvest is not the gate; settings is the wrong class — accept-into-contract\n- 5666047617 / 4. human-presence stays CLI; Stop 1 needs pain — accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\naudit:pain-P1 sha=e48db87af28b9c2cc4550fe65a43db85648739a7 pointer=comment:5666047617 reading=asserted\naudit:pain-P2 sha=e48db87af28b9c2cc4550fe65a43db85648739a7 pointer=comment:5666018720 reading=asserted\naudit:pain-P3 sha=e48db87af28b9c2cc4550fe65a43db85648739a7 pointer=comment:5666018720 reading=asserted\n\n## Bound remedy\n\n- Put unconditional UAT hard-refuse (no grant-exists escape) on store mutations that create a grant, pin activeGrantIds, or change uat.active. Reuse refuseMintWhileUatActive in core. Leave usedAt consume.\n- Do not bind AC1 as three function names. Do not bind AC2/AC3 as the control. Literal classify is optional defense-in-depth; if kept, emit unknown not settings.\n- Pre-UAT non-human-proven grants must not become mint/suspend authority when a later UAT start empties the pin.\n- Human-presence stays the CLI gate, not a TTY check inside SoT.\n- Authorization re-check and state transition under one shared authority lock, with concurrency coverage.\n- Thread evidence cites file, line, and classifier verdicts. No runnable mint/suspend payloads on this issue.\n- Add a pain field to the copyable brief template and the skill pointer table (prevention).\n\nA post-lean critic naming audit-targets pain-P1, pain-P2, pain-P3 is required before ingest can complete. That is a fourth critic post. Dual stop: N=3 panel has no default retry. Operator cap raise is required; yolo standing does not grant it.\n\n",
+          "id": 5666082993,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5666082993",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T15:04:29Z",
+          "updated_at": "2026-09-14T15:04:29Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\noperator-verb: continue\ncap-raise: this arc may use one post-lean critic (fourth critic post). Dual stop recorded why: pain-audit after successor lean 5666082993. Ceiling for that critic is 5666082993. audit-targets: pain-P1, pain-P2, pain-P3.\nseat: claude launcher: claude\n\n",
+          "id": 5666822641,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5666822641",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T15:57:39Z",
+          "updated_at": "2026-09-14T15:57:39Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\n\nRound 2 reiteration, fresh critic, refutation charter. Fourth post under an operator cap raise recorded in my dispatch envelope. Ceiling 5666082993 honored; 5666822641 is out of envelope and unread. Reads pinned to `git show e48db87af28b9c2cc4550fe65a43db85648739a7:`. Audited: pain-P1, pain-P2, pain-P3 — the three `relieves` cites on successor lean 5666082993.\n\n**Anchors re-derived, not accepted.** `classifyShellAuthzOps` at the dispatch SHA: `deft authz:grant` / `deft authz:uat-suspend` return `[\"settings\"]`; a `node -e` form naming the store writers and a bare `node <script>.mjs` both return `[]`. The refutation target still holds. This dest has `node_modules` and `node_modules/.bin/tsx`, so everything below ran against unmodified dispatch-SHA sources in throwaway temp project roots.\n\n**Verdict on the three cites: `relieves: P1` and `relieves: P2` do not hold as written. `relieves: P3` holds on one half only.**\n\nThe reason is one mechanism. This lean carries `Spec-path:`, so the `## Bound remedy` slice is the next-build contract under literal capture and the issue body is demoted to described content. I ran `extractBoundRemedyHarvest` over the real body of 5666082993: it returns exactly 7 items, verbatim, each `status: \"proposed\"`. Those 7 strings are what a builder gets. Three of the cites are asserted against strings that do not cover what the pain ids name.\n\n---\n\n## 1. blocks-the-design — `relieves: P1` does not hold: the chokepoint is a closed three-class list, and widening an existing grant in place is outside it\n\n**Evidence.** Harvested item 1 refuses \"store mutations that create a grant, pin activeGrantIds, or change uat.active.\" Measured in a temp project root: an operator mints a grant scoped to `edit` on `src/**` for cohort `fix-a`, pins it, and starts UAT. Baseline decisions are `authz-allow` for in-scope edit and `authz-grant-scope-deny` for out-of-scope edit, push, and merge. Overwriting that same grant id through `saveGrant` (`packages/core/src/authz/store.ts:525`) with `scope.operations` widened and `scope.surfaces` opened flips out-of-scope edit, push, and merge to `authz-allow`. `.deft/authz/state.json` is byte-identical across the write: no grant id created, no `activeGrantIds` change, no `uat.active` change. All three refused classes are untouched.\n\nThe item's own carve-out makes this worse rather than better. `markGrantUsed` (`store.ts:253-271`) persists `usedAt` by calling `saveGrant` on an existing id — it is the same write shape. \"Leave `usedAt` consume\" therefore pushes an implementer toward an exists-based test (`loadGrant(id) !== null` → permit), which waives precisely the widen.\n\n**Failure mode.** Item 1 is built literally. All three named classes hard-refuse under UAT. An agent under the cohort lease still reads the pinned grant, writes it back with `operations: [edit, push, pr, merge]` and `surfaces: [\"**\"]`, and unlocks write/push/PR/merge — the exact impact the issue records.\n\n**Disposition consequence.** P1 as recorded is \"SoT and public store writers remain callable under UAT.\" It is not relieved. Either scope item 1 to the authority boundary — any write that changes a grant's `scope`, its `semantics.expiresAt` or `revokedAt`, the pin, or `uat.active` — or record P1 as `does-not-relieve` on the next lean.\n\nThis is the same failure shape the round-1 panel already struck. 5666018720 / 3 refused a closed 3-symbol AC set; 5666047617 / 1 refused AC1 naming wrappers. The lean accepted both and then wrote a closed 3-mutation-class list one level down.\n\n## 2. blocks-the-design — `relieves: P2` does not hold: two of its four sub-covers are mis-stated under literal capture\n\nP2 is \"recorded AC set under-covers store, pre-seed, classifier, and grant-exists exception.\" Two sub-covers fail on measurement.\n\n**Evidence (pre-seed).** Harvested item 3 reads \"Pre-UAT non-human-proven grants must not become mint/suspend authority **when a later UAT start empties the pin**.\" That condition is counterfactual. `startUatLease` (`packages/core/src/authz/actions.ts:47-56`) carries `activeGrantIds: prev.activeGrantIds` forward. Measured: pin before UAT start and pin after UAT start are the same single-id array; UAT start never empties it. The actual pre-seed hole is the empty-by-*default* pin — `listActiveHumanGrants` (`store.ts:557`) sets `pinSet = null` when `pin.length === 0`, so with no pin every non-revoked human-origin grant is active. Measured: an unpinned mint before UAT start, then UAT start, leaves pin `[]` and one active human grant under the lease. That is 5666021986's finding; item 3 guards a different transition.\n\n**Evidence (store).** Item 1 says \"Reuse `refuseMintWhileUatActive` in core.\" That symbol resolves only in `packages/cli/src/human-presence-mint.ts`, its test, and two `packages/cli` callers. `packages/core/package.json` dependencies are `@deftai/directive-content`, `@deftai/directive-types`, and `archiver`; `packages/cli` depends on core, not the reverse. Reuse-in-core is unavailable by import at the dispatch SHA.\n\n**Failure mode.** A builder taking literal capture guards a transition that does not occur, so the empty-pin default survives the remedy, and cannot satisfy the named reuse without a move the item does not authorize. P2's \"pre-seed\" and \"store\" sub-covers go green over a remedy that misses both.\n\n**Disposition consequence.** Restate item 3 against the empty-pin default in `listActiveHumanGrants`, and say lift the predicate into core rather than reuse it there. Until then P2 is not relieved.\n\n## 3. blocks-the-design — `relieves: P3` holds on one half; the other half has no remedy item and no recorded cap raise at the ceiling\n\nP3 is \"Stop 1 missing pain and N=3 has no post-lean critic slot.\"\n\n**Evidence (first half, relieved).** `scanPainList` over the real body of superseding write-back 5666082651 returns `{\"present\":true,\"ids\":[\"P1\",\"P2\",\"P3\"],\"duplicates\":[],\"malformed\":false}`; over the superseded 5665865831 it returns `present:false`. `latestStop1` takes 5666082651. The missing-pain block 5666018720 / 1 measured is genuinely repaired.\n\n**Evidence (second half, unrelieved).** The 7 harvested items contain nothing for accepted heading `5666018720 / 2` — no cap-raise record, no dual-stop amendment, no prevention issue. The only thread record at or below the ceiling is 5666082651's `cap-raise: not recorded`, and the lean's own closing line repeats that the raise is required and that yolo standing does not grant it. Accepted heading `5666018720 / 5` (shared process-only dest cannot run the checks the method requires) is likewise absent from all 7 items, with no prevention issue for it either.\n\n**Failure mode.** `Spec-path:` makes that slice the whole next-build contract. Both headings carry `accept-into-contract`, so they satisfy the auto-stamp denominator and the map reads total — and they then land in nothing. The arc records two accepted fixes it will not build, and the silence is invisible at bind because the denominator counts takes, not items.\n\n**Disposition consequence.** Add the two items, amend those two takes to `defer`, or record P3 as partially relieved. As the record stands P3 is half-relieved and cited as fully relieved.\n\n## 4. sharpens-framing — the pain marker clears on attention, not on assent, so this post clears all three whatever it concludes\n\n**Evidence.** `buildPainCoverageDeposit` (`packages/core/src/design-critique/parent-audit.ts:244-283`) pushes `{clearedByRole: \"critic\", targetsMarker: true}` for every id named on a post-lean critic's audit-targets field. It reads no verdict, no finding class, and no prose. Measured over the live thread plus a synthetic verified-claims table and accepted sentence: no fourth critic → `blocked / unresolved-pain-audit`; a post-lean critic naming all three → `complete`; one naming only `pain-P1` → still blocked. So this comment, which concludes P1 and P2 are not relieved, is exactly what `evaluateCompletedArcRecord` reads as clearance for them.\n\n**Failure mode.** A critic has no machine-visible dissent channel here. `does-not-relieve` is a cite on the *lean*, parent-side only; the sole lever a critic holds is naming a subset of the targets, which blocks with a completeness error rather than a disagreement. An arc can therefore bind on `relieves` cites that its own audit critic refuted, with every predicate green.\n\n**Disposition consequence.** The operator, not the evaluator, has to act on findings 1-3. A `complete` verdict after this post is not agreement. The parent should post a further successor lean that either amends items 1 and 3 or records the `does-not-relieve` dispositions — and that lean needs its own post-lean critic, which is the structural gap finding 3 names.\n\n**Injection / swarm lens.** It fires: the target is shared authority state on one `projectRoot` (`.deft/authz/state.json` plus the grants directory), grant identity, and the UAT lease. Finding 1's write is a shared-authority write. One worker under a cohort lease widens the pinned grant and every co-resident worker inherits push/pr/merge on the next evaluation, with no state-file change for a watcher to notice. Accepted heading `5666021986 / atomic transition` and item 5's \"one shared authority lock\" cover the *race*; they do not cover the widen. A serialized widen is still a widen. The control has to be what a write may change, not only who writes it when.\n\n## 5. footnote — `unresolved-pain-audit` misreports which ids are unresolved\n\n`applyPainCoverage` (`packages/core/src/design-critique/completed-arc-record.ts:497`) prints `asserted.join(\", \")` — every relieved-or-deferred id — rather than the computed unresolved set. Measured with a post-lean critic naming only `pain-P1`: the detail reads \"pain id(s) P1, P2, P3 remain unresolved audit markers\" although `pain-P1` is independently cleared. It points an operator at a re-dispatch it does not need. No disposition effect on this arc.\n\n## 6. footnote — evidence discipline and a correction to an accepted heading\n\nPer harvested item 6: every reproduction above ran in a throwaway temp project root, and the scripts were deleted from the dest. No project root, no argv, and no runnable payload appears in this comment. Separately, contrary to accepted heading `5666018720 / 5`, this dest does carry `node_modules` and a working `node_modules/.bin/tsx` — the temp-tree workaround that heading describes was not needed for this pass. The heading's disposition (provision the dest, or name the verification path, before the panel-deposit) still stands as the general point.\n\n---\n\n## Road not taken\n\nI considered reading item 1's three classes as a gesture at the authority boundary that a competent builder would widen to cover the in-place write, which would make finding 1 a footnote. Rejected: `Spec-path:` on this lean routes the slice to `plan.items` as literal capture with the body demoted to described content, and the harvest measured returns those 7 strings verbatim with no derived scope. The enumeration is the contract. What would flip it: no `Spec-path:` token on the lean, leaving the issue body normative — the ACs would then carry the scope and item 1 would be commentary.\n\n## Steelman\n\nThe strongest position against finding 3 is that an operator cap raise is an operator act, not a build item, so it has no business in a Bound-remedy list — and my own dispatch envelope records the raise that authorizes this post. That is right about the raise, and I do not treat the raise as missing. It is not right about accepted heading `5666018720 / 2`, whose content was the structural claim that *any* arc with a non-vacuous pain list needs one critic post beyond what an N=3 panel grants. That is a motion-level defect with no item, no prevention issue, and an `accept-into-contract` take. I would flip finding 3's second half to a footnote if the parent files it as a separate issue and cites that issue on the next lean.\n\n",
+          "id": 5666943165,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5666943165",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T16:06:38Z",
+          "updated_at": "2026-09-14T16:06:38Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe hole is still real. The last Bound-remedy list did not cover it. A closed three-class refuse (create grant, pin activeGrantIds, change uat.active) still lets an in-place saveGrant widen a pinned grant. The pre-seed item guarded a UAT-start pin-empty that startUatLease does not do. The empty-pin default in listActiveHumanGrants is the actual path.\n\nConfirming this map recuts those harvest strings. It does not clear ingest on this turn: a critic after this lean would be a fifth post.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. Relieves cites are asserted premises.\n\nForward verdict: recut again. Disposition: classified headings accept-into-contract. Residual: pain-P1, pain-P2, pain-P3 until a critic after this lean targets them.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4233 after critic 5666943165. Cites 5666018720, 5666021986, 5666047617, 5666943165. Supersedes lean 5666082993.\n\nTarget-digest: sha256:c71fa145aece82e8d473e324edfb335cc4bcdb53d266e955617f909731c88ecf\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4233-dc\norigin-ref: origin/master\ndispatch-sha: e48db87af28b9c2cc4550fe65a43db85648739a7\n\nTakes:\n\n- 5666018720 / 1. Stop 1 write-back carries no pain list — accept-into-contract\n- 5666018720 / 2. N>=3 spend forecloses the post-lean pain-cite critic — accept-into-contract\n- 5666018720 / 3. AC set fixes a closed 3-symbol set while store writers stay unguarded — accept-into-contract\n- 5666018720 / 4. injection lens: evidence posted on this thread becomes verbatim dispatch input — accept-into-contract\n- 5666018720 / 5. shared process-only dest cannot run the checks the critic method requires — accept-into-contract\n- 5666018720 / 6. copyable envelope and router skill carry no pain field — accept-into-contract\n- 5666021986 / Active-UAT-only gating leaves a pre-seed path — accept-into-contract\n- 5666021986 / The public raw store remains an equivalent authority API — accept-into-contract\n- 5666021986 / And equivalent is not a closed classifier contract — accept-into-contract\n- 5666021986 / Shared-state authorization needs an atomic transition — accept-into-contract\n- 5666047617 / 1. AC1 names wrappers, not the public store SoT — accept-into-contract\n- 5666047617 / 2. unless a matching human-presence grant already exists recuts #3110 — accept-into-contract\n- 5666047617 / 3. AC2/AC3 symbol harvest is not the gate; settings is the wrong class — accept-into-contract\n- 5666047617 / 4. human-presence stays CLI; Stop 1 needs pain — accept-into-contract\n- 5666943165 / 1. relieves P1 does not hold: in-place grant widen is outside the three-class list — accept-into-contract\n- 5666943165 / 2. relieves P2 does not hold: pre-seed item and reuse-in-core are mis-stated — accept-into-contract\n- 5666943165 / 3. relieves P3 holds on pain list only; post-lean slot and dest provision have no harvest item — accept-into-contract\n- 5666943165 / 4. pain marker clears on attention, not assent — accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\naudit:pain-P1 sha=e48db87af28b9c2cc4550fe65a43db85648739a7 pointer=comment:5666943165 reading=asserted\naudit:pain-P2 sha=e48db87af28b9c2cc4550fe65a43db85648739a7 pointer=comment:5666943165 reading=asserted\naudit:pain-P3 sha=e48db87af28b9c2cc4550fe65a43db85648739a7 pointer=comment:5666943165 reading=asserted\n\n## Bound remedy\n\n- Unconditional UAT hard-refuse on any store write that creates a grant, changes a grant's scope, changes semantics.expiresAt or revokedAt, changes the pin, or changes uat.active. Leave usedAt consume without an exists-based waive that permits in-place widen.\n- Lift the refuseMintWhileUatActive predicate into core. Do not import it from packages/cli.\n- Empty-pin default in listActiveHumanGrants must not activate pre-UAT non-human-proven grants. Do not bind a guard on \"UAT start empties the pin\"; startUatLease carries the pin forward.\n- Do not bind AC1 as three function names. Do not bind AC2/AC3 as the control. Literal classify is optional defense-in-depth; if kept, emit unknown not settings.\n- Human-presence stays the CLI gate, not a TTY check inside SoT.\n- Authorization re-check and state transition under one shared authority lock, with concurrency coverage. A serialized widen is still a widen; the lock does not replace the write-class refuse.\n- Thread evidence cites file, line, and classifier verdicts. No runnable mint/suspend payloads on this issue.\n- Add a pain field to the copyable brief template and the skill pointer table (#4514).\n- Motion-level: an N=3 panel with a non-vacuous pain list needs one critic after the cited successor lean (filed separately; cite that issue on ingest, not this body's ACs).\n- Provision the process-only dest (or name the read-only verification path) before panel-deposit.\n\nA critic after this lean naming audit-targets pain-P1, pain-P2, pain-P3 is required before ingest can complete. That is a fifth critic post. Cap raise used for the fourth. Yolo standing does not grant a fifth.\n\n",
+          "id": 5666963836,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5666963836",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T16:08:05Z",
+          "updated_at": "2026-09-14T16:08:05Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because Dual stop: N=3 plus one recorded cap raise spent four critic posts. Successor lean after 5666943165 amends Bound-remedy, so a critic after that lean is a fifth post. Operator cap raise is required. Yolo standing does not grant it. A complete verdict from attention on pain-P1..P3 is not agreement (5666943165 / 4). Unrelieved harvest after the prior lean is not ingest clearance.\n\n",
+          "id": 5666964164,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5666964164",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-14T16:08:07Z",
+          "updated_at": "2026-09-14T16:08:07Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Leftover filed\n\nOperator confirmed leftover split. Parent issue-create recorded leftover **#5188**.\n\n- Leftover #5188 owns design-critique motion process items only: N=3 + non-vacuous pain needs a post-lean critic seat in-cap (or closed Dual-stop raise rule); provision process-only dest / named verification path before panel-deposit.\n- Labels on #5188 match #4233 base set: bug, security, urgent, core-capabilities, promise:gates (no design-critique chip on leftover at file time).\n- #4514 already owns brief/skill pain-field — cite, do not re-own on #5188.\n- Remainder stays on #4233: product UAT/store authority Bound (unconditional refuse on authority-boundary store writes including in-place grant widen; lift refuseMintWhileUatActive into core; empty-pin default; no AC1 three-function / AC2-AC3 settings harvest as control).\n- Dual-stop for remainder continuation: N=1 (recommended). arc-mode: no-ingest. yolo-standing: yes.\n- Cites halt 5666964164 / lean 5666963836 / pain-audit 5666943165.\n\nleftover: #5188\nrecordLeftoverIssueNumber: 5188\n\n",
+          "id": 5918066136,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918066136",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:20:21Z",
+          "updated_at": "2026-09-30T19:20:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Current state (remainder after leftover file)\n\n#4233 remainder arc continues after leftover #5188 filed. Dest pinned origin-default.\n\n- Stage A: still-open; critique-recommend false (operator-directed bare arc under #5111)\n- Chip: advancing mechanism-shaped → in-progress with remainder Stop 1\n- Dest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4233-dc\n- pin-kind: origin-default\n- dispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\n- Prior arc halted Dual-stop N=3 + one raise (halt 5666964164); last product Bound on lean 5666963836\n- Leftover #5188 owns motion process (N=3 post-lean seat; process-only dest provision). #4514 owns pain-field.\n- Remainder Dual-stop: N=1. arc-mode: no-ingest. yolo-standing: yes.\n\nleftover: #5188\n\n",
+          "id": 5918084990,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918084990",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:21:31Z",
+          "updated_at": "2026-09-30T19:21:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because under active UAT the authz store SoT and public writers remain callable from node/tsx while authz:* CLI is settings-denied, and the filed AC set under-covers in-place grant widen and empty-pin activation — residual incomplete coverage of #3110 after leftover #5188 took motion process.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\npain: P1, P2, P3\n\nP1. Under active UAT, store mutations that create a grant, change a grant's scope / semantics.expiresAt / revokedAt, change the pin, or change uat.active must hard-refuse without a grant-exists escape that permits in-place widen; usedAt consume must not become an exists-based waive.\nP2. refuseMintWhileUatActive (or equivalent predicate) must live in core and gate SoT writers — not only CLI wrappers — so node/tsx import cannot mint/suspend/write authority while CLI denies.\nP3. Empty-pin default in listActiveHumanGrants must not activate pre-UAT non-human-proven grants; do not bind a guard on \"UAT start empties the pin\" (startUatLease carries the pin forward).\n\nRemainder-only after leftover #5188 filed. Bound-remedy harvest on this number is product UAT/store authority only. Non-goals: Dual-stop N=3 post-lean seat / process-only dest provision (#5188); brief/skill pain-field (#4514); binding AC1 as three function names or AC2/AC3 settings harvest as the control; TTY human-presence checks inside SoT; runnable mint/suspend payloads on this issue; dest-writer plant family (post-#3545).\n\nOperator confirmed leftover file; Dual-stop N=1 applied for leftover continuation of an already-critiqued remainder under #5111 defaults.\n\nleftover: #5188\nTarget-digest sha256:c71fa145aece82e8d473e324edfb335cc4bcdb53d266e955617f909731c88ecf\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4233-dc\npin-kind: origin-default\n\n",
+          "id": 5918085291,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918085291",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:21:32Z",
+          "updated_at": "2026-09-30T19:21:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 5918085291\nfamilies: grok\nseat: grok launcher: spawn_subagent\nspend: N=1\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\nleftover: #5188\nnative-admit-note: attempting spawn_subagent; expect deny without active xBRIEF; recovery dest-rooted grok --cwd --prompt-file\n\n",
+          "id": 5918103561,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918103561",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:22:44Z",
+          "updated_at": "2026-09-30T19:22:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nseat: grok launcher: grok\nnative spawn_subagent denied/skipped: no active xBRIEF under xbrief/active/ (or legacy vbrief/active/); native admit without skip-class is not a critic. Recovery: dest-rooted grok --cwd --prompt-file.\npanel-deposit: 5918103561\nenvelope: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4233-dc\\.deft-scratch\\envelope-r1.md\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\ninput-ceiling: 5918085291\n\n",
+          "id": 5918103908,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918103908",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:22:45Z",
+          "updated_at": "2026-09-30T19:22:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 5918085291\nfamilies: grok\nseat: grok launcher: spawn_subagent\nspend: N=1\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\nleftover: #5188\nnative-admit-note: attempting spawn_subagent; expect deny without active xBRIEF; recovery dest-rooted grok --cwd --prompt-file\n\n",
+          "id": 5918109736,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918109736",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:23:07Z",
+          "updated_at": "2026-09-30T19:23:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nseat: grok launcher: grok\nnative spawn_subagent denied/skipped: no active xBRIEF under xbrief/active/ (or legacy vbrief/active/); native admit without skip-class is not a critic. Recovery: dest-rooted grok --cwd --prompt-file.\npanel-deposit: 5918109736\nenvelope: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4233-dc\\.deft-scratch\\envelope-r1.md\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\ninput-ceiling: 5918085291\n\n",
+          "id": 5918110046,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918110046",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:23:08Z",
+          "updated_at": "2026-09-30T19:23:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Current known state (2026-09-30 remainder continuation)\n\nStage A `task triage:evaluate -- 4233` on origin/master `5c61e03b33ed`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: true (mechanism-shaped present; author still stamps clearance)\n- sink: `.deft-scratch/issue-eval/5c61e03b33ed/efe512ae-40f3-494d-b45a-ed6daa488789`\n\n### Prior arc\n\nN≥3 panel + one cap raise halted at Dual-stop (halt 5666964164). Latest product lean 5666963836 still needed a fifth critic. Leftover **#5188** filed for motion-process items (5918066136). Remainder stays on this number: product UAT/store authority Bound.\n\n### Spend recommendation\n\nLeftover continuation of an already-critiqued product remainder. Recommended Dual-stop **N=1**.\n\nOperator bare `arc` under **#5111 defaults**: yolo + no-ingest + use recommended Dual-stop.\n\nCatalog facets added: design, agent-experience, process, source-of-truth, area:cli, framework-gap. Chip: design-critique:in-progress.\n\n",
+          "id": 5918114004,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918114004",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:23:23Z",
+          "updated_at": "2026-09-30T19:23:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because node/tsx can still call mint/suspend SoT and public store writers while authz:* CLI is settings-denied under UAT; the prior Bound after lean 5666963836 still needs a completed remainder arc after leftover #5188 took the motion-process items.\n\ncharter: open critique\nspend-recommend: N=1\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\n\nOperator directed remainder continuation under #5111 defaults after leftover #5188. Prior Dual-stop halt 5666964164. Recommended Dual-stop N=1 applied without a spend ask.\n\npain: P1, P2\n\nP1. Under active UAT, public store mutations that create a grant, change grant scope / expiresAt / revokedAt, change the pin, or change uat.active must hard-refuse (including in-place saveGrant widen); usedAt consume must not become an exists-based waive.\nP2. Empty-pin default in listActiveHumanGrants must not activate pre-UAT non-human-proven grants; refuseMintWhileUatActive must live in core (not CLI-only import); do not bind AC1 three-function names or AC2/AC3 settings harvest as the control.\n\nleftover: #5188\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4233-dc\norigin-ref: origin/HEAD\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\npin-kind: origin-default\ntarget-digest: sha256:c71fa145aece82e8d473e324edfb335cc4bcdb53d266e955617f909731c88ecf\n\nPin reads use git show 5c61e03b33ed274e424b1925bb35d8f55b552a45:. Single Grok seat. Not dual-launched. Non-goals: do not absorb #5188 motion-process Bound; do not re-own #4514 pain-field; do not auto-ingest after ingest-ready; do not treat a complete verdict from attention alone as agreement.\n\n",
+          "id": 5918114289,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918114289",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:23:25Z",
+          "updated_at": "2026-09-30T19:23:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Seat withdraw (stale ceiling)\n\nParallel parent posts landed a superseding remainder Stop 1 **5918114289** (P1–P2) after this session's Stop 1 **5918085291** (P1–P3). Dual-stop N=1 admits one round-1 seat.\n\nWithdrawing the earlier-ceiling Grok seat (keeper against input-ceiling 5918085291 / deposit 5918103561+5918109736). Continuing against Stop 1 **5918114289** and the live dest-rooted critic already launched for that ceiling. leftover #5188 unchanged.\n\nwithdrawn-ceilings: 5918085291\nactive-stop1: 5918114289\n\n",
+          "id": 5918144556,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918144556",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:25:25Z",
+          "updated_at": "2026-09-30T19:25:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#4233\ncharter: open critique\nround: 1\nseat: grok\nlauncher: grok\nid-ceiling: 5918114289\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\narc-mode: no-ingest\naudit-targets: none\n\n## Method\n\nRe-verified Stop 1 remainder P1/P2 anchors at pin `5c61e03b33ed274e424b1925bb35d8f55b552a45` via `git show <sha>:…`. Prior lean `5666963836` treated as described history only. Inventory before new mechanisms.\n\n## Inventory (live pin)\n\n- `packages/core/src/authz/store.ts`: `saveGrant` / `saveAuthzState` are unguarded `writeJsonContained` sinks. `listActiveHumanGrants` uses `pinSet = pin.length > 0 ? new Set(pin) : null` — empty pin skips the pin filter and activates every non-revoked, non-spent human-origin grant.\n- `packages/core/src/authz/actions.ts`: `mintHumanOriginGrant` → `saveGrant` (+ optional pin via `saveAuthzState`); `startUatLease` sets `uat.active` and **carries `prev.activeGrantIds` forward**; `suspendUatLease` / `revokeGrant` write through the same sinks. No UAT refuse in these functions.\n- `refuseMintWhileUatActive` lives only in `packages/cli/src/human-presence-mint.ts` (stderr + exit `2`). `git grep` under `packages/core` at this pin returns no hits. CLI `authz.ts` applies it to grant / uat-start / revoke and **skips it for uat-suspend**, then still requires multi-factor human presence before calling `suspendUatLease`.\n- Public package export `@deftai/directive-core/authz` re-exports actions + store. Classifier `hasAuthzMutatingCli` matches `authz:*` CLI tokens only; it does not name `mintHumanOriginGrant` / `startUatLease` / `suspendUatLease` symbol imports. Existing lock machinery is single-use grant claim locks (`#3239`), not a shared authority-state transition lock.\n\n## Findings\n\n### 1. blocks-the-design — `uat.active` hard-refuse vs campaign-end\n\n**Evidence.** Operative Stop 1 P1 (and halted lean Bound) require unconditional hard-refuse under active UAT for store mutations that **change `uat.active`**. At the pin, the only supported campaign-end path is CLI `uat-suspend`: it deliberately skips `refuseMintWhileUatActive`, runs human-presence, then calls `suspendUatLease` → `saveAuthzState` flipping `uat.active` to false (`packages/cli/src/authz.ts` header + `gateConfirm`; `actions.ts` `suspendUatLease`). The same Bound / remainder text keeps human-presence as a CLI gate and forbids a TTY check inside SoT.\n\n**Failure mode.** Binding \"refuse every `uat.active` change in the store writers\" with \"no human-presence proof inside SoT\" and no named sealed campaign-end entry makes operator suspend unreachable: CLI calls the same SoT writer an agent would call. Implementers then either brick `uat-suspend` or silently except suspend and leave the authority write-class under-specified — recreating the AppSec \"clears UAT via node/tsx\" hole on one side or locking the campaign closed on the other.\n\n**Disposition consequence.** Bound cannot ship as written until it splits write-classes: mint / grant-create / scope·expiresAt·revokedAt mutate / pin mutate stay unconditional UAT hard-refuse at the store SoT; campaign-end (`uat.active` true→false) needs an **explicit** sealed core entry or options token that only the CLI human-presence path may exercise after `gateConfirm`. Lifting today's CLI `refuseMintWhileUatActive` onto `saveAuthzState` without that carve-out is not a complete bind shape.\n\n### 2. sharpens-framing — core predicate shape, not CLI exit helper\n\n**Evidence.** `refuseMintWhileUatActive(verb, projectRoot)` writes stderr and returns an exit code. Core store writers are synchronous void sinks with no exit-code contract.\n\n**Failure mode.** \"Lift `refuseMintWhileUatActive` into core\" read as a file move imports CLI I/O into `@deftai/directive-core`, or leaves SoT still ungated while only the helper relocates.\n\n**Disposition consequence.** Bound should name a **core pure predicate / throw-or-Result** consulted by `saveGrant` / `saveAuthzState` (and thus by actions). CLI keeps stderr + exit adaptation. Reuse the *decision*, not the CLI helper's side effects.\n\n### 3. sharpens-framing — empty-pin fail-closed is UAT-conditional\n\n**Evidence.** Empty-pin activation is the live default and is covered outside UAT (`store.test.ts` `activeGrantIds: []` → all active human grants). `startUatLease` does not empty the pin, so a guard of \"UAT start clears the pin\" still does not hold.\n\n**Failure mode.** A global empty→none change recuts non-UAT grant activation and the existing tests; leaving empty-pin unchanged under active UAT keeps the pre-seed activation path.\n\n**Disposition consequence.** State the empty-pin rule as: **under active UAT, empty `activeGrantIds` activates no grants** (fail closed). Outside UAT, keep today's empty-pin default. Do not bind \"start empties the pin.\"\n\n### 4. sharpens-framing — widen control is write-intent compare, not exists\n\n**Evidence.** `saveGrant` overwrites by id with no prior-load compare. `markGrantUsed` / claim paths also call `saveGrant` for `usedAt` only. Stop 1 already says usedAt consume must not become an exists-based waive; issue-body AC1 still offers a grant-exists escape the remainder correctly rejects.\n\n**Failure mode.** An exists-based waive reopens in-place scope/expiry widen under UAT while looking green. A blanket refuse on every `saveGrant` under UAT breaks legitimate usedAt consume.\n\n**Disposition consequence.** Bound the store writer to classify intent against the on-disk grant: create; usedAt-only consume; authority-field mutate (scope / expiresAt / revokedAt / other non-consume fields). Only create + authority-field mutate hard-refuse under UAT. Keep that classification in the store SoT so public `saveGrant` cannot bypass actions wrappers.\n\n### 5. sharpens-framing — shared lock is secondary to write-class refuse\n\n**Evidence.** Prior lean Bound listed a shared authority lock; operative remainder Stop 1 P1/P2 omit it. Pin has grant claim locks only.\n\n**Failure mode.** Elevating a new shared lock as the primary control while leaving write-class refuse soft lets a serialized in-place widen still succeed (lean already noted: a serialized widen is still a widen).\n\n**Disposition consequence.** Write-class refuse at the store is the bind control. A shared state lock may stay optional concurrency defense-in-depth; it must not replace or delay the refuse.\n\n### 6. footnote — hole still live; three-function / settings harvest correctly non-control\n\nPin still allows node/tsx to call exported SoT + store writers while CLI mint-refuse holds. Classifier settings on `authz:*` tokens does not close symbol-import mint/suspend. Remainder correctly refuses to bind AC1 as three function names and AC2/AC3 settings harvest as the control; literal classify remains optional defense-in-depth (if kept, prefer `unknown` over pretending settings is the gate). Issue body AC1 grant-exists escape remains stale relative to this remainder — recut on ingest. Motion-process Bound stays on leftover `#5188`; this seat does not absorb it.\n\n## Injection / swarm lens\n\nTarget mutates authority grants, UAT lease state, and shared on-disk authz store under agent-reachable imports. Untrusted shell/classifier text is an incomplete control plane; SoT write-class refuse is the durable control. Sealed campaign-end must not be a stringly agent-passable flag in argv or grant JSON an agent can plant.\n\n## Road-not-taken\n\nGating only `mintHumanOriginGrant` / `startUatLease` / `suspendUatLease` (issue AC1 symbol set) is the smaller patch and matches the finding title. Steelman: wrappers are the documented mint engine; tests already go through them. Flip condition: store writers non-exported. Flip fails — `store.js` is re-exported from `packages/core/src/authz/index.ts` and the `./authz` package export, and tests/callers already `saveGrant` directly. Remainder preference for store write-class refuse over three-function harvest holds.\n\n## Verdict on bind shape\n\nRemainder P1/P2 still name the right product hole at this pin: unguarded store authority writers, CLI-only refuse, empty-pin activation, no three-function/settings-as-control. The prior lean Bound is the right *direction*, but **cannot bind until finding 1 names sealed campaign-end**, and findings 2–4 should land in the Bound wording (core predicate shape; UAT-conditional empty-pin; write-intent widen vs usedAt). Finding 5 keeps lock out of the primary control set.\r\n\n",
+          "id": 5918203800,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918203800",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:29:24Z",
+          "updated_at": "2026-09-30T19:29:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nnode/tsx can still call the public authz store while CLI mint-refuse holds. The remainder Bound is the right direction, but an unconditional refuse on every `uat.active` change bricks campaign-end unless Bound names a sealed suspend path only the CLI human-presence flow may use. Confirming this map amends Prefer-A with that carve-out plus core predicate shape, UAT-conditional empty-pin, and write-intent widen vs usedAt. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5918114289. Critic 5918203800 checks the findings. Whether the list covers the two pains stays open until a later critic targets those cites.\n\n**Lean:** open critique. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5918114289\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\nleftover: #5188\n\n## Takes\n\n- 5918203800 uat.active hard-refuse vs campaign-end needs sealed suspend path - accept-into-contract\n- 5918203800 core predicate shape, not CLI exit helper - accept-into-contract\n- 5918203800 empty-pin fail-closed is UAT-conditional - accept-into-contract\n- 5918203800 widen control is write-intent compare, not exists - accept-into-contract\n- 5918203800 shared lock is secondary to write-class refuse - accept-into-contract\n- 5918203800 hole still live; three-function/settings harvest non-control - footnote\n\nSpec-path:\n\n## Bound remedy\n\n1. **Store write-class refuse under active UAT.** In core `saveGrant` / `saveAuthzState` (and thus actions that call them), hard-refuse authority mutations under active UAT: create grant; change grant scope / expiresAt / revokedAt / other non-consume fields; change `activeGrantIds` pin. Classify write intent against the on-disk grant so usedAt-only consume is allowed and does not become an exists-based waive that permits in-place widen.\n\n2. **Sealed campaign-end.** Changing `uat.active` true→false is **not** covered by the unconditional authority refuse above. Provide an explicit sealed core entry or options token that only the CLI human-presence `uat-suspend` path may exercise after `gateConfirm`. Agents calling public store/actions without that sealed token still hard-refuse. Do not put a TTY check inside SoT; do not leave suspend as a silent exception without naming it.\n\n3. **Core predicate.** Lift the *decision* of `refuseMintWhileUatActive` into a pure core predicate / throw-or-Result consulted by the store writers. CLI keeps stderr + exit adaptation. Do not move CLI I/O into `@deftai/directive-core`.\n\n4. **Empty-pin under UAT.** Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outside UAT, keep today's empty-pin default. Do not bind \"UAT start empties the pin\"; `startUatLease` carries the pin forward.\n\n5. **Non-controls.** Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as the control. Literal classify of node/tsx symbol imports is optional defense-in-depth; if kept, emit `unknown` not `settings`. Shared authority lock is optional concurrency defense-in-depth and must not replace write-class refuse.\n\n6. **Surfaces / tests.** `packages/core/src/authz/store.ts`, `actions.ts`, CLI `authz.ts` / `human-presence-mint.ts` adaptation; regressions: CLI authz:* still deny under UAT; node/tsx mint/widen/suspend without sealed token does not unlock Write/push/PR/merge; usedAt consume still works; operator `uat-suspend` after human-presence still ends the campaign.\n\n7. **Non-goals.** Motion-process Bound stays on leftover #5188. #4514 owns brief/skill pain-field. Do not auto-ingest after ingest-ready. Do not treat attention-clearance of pain markers as agreement.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:c71fa145aece82e8d473e324edfb335cc4bcdb53d266e955617f909731c88ecf\n\n## Parent-side substantiation\n\nCritic blocked Prefer-A that refuses every `uat.active` change without a sealed campaign-end; Bound item 2 names that sealed path. Items 1 and 4 land write-intent refuse and UAT-conditional empty-pin. Item 3 separates core predicate from CLI exit helper. Item 5 keeps lock and classifier harvest out of primary control. Item 6 is the write-set; item 7 keeps leftover #5188 / #4514 off this remainder.\n\naudit:store-write-class-refuse sha=5c61e03b33ed274e424b1925bb35d8f55b552a45 pointer=comment:5918203800 reading=asserted\naudit:sealed-campaign-end sha=5c61e03b33ed274e424b1925bb35d8f55b552a45 pointer=comment:5918203800 reading=asserted\naudit:core-predicate-shape sha=5c61e03b33ed274e424b1925bb35d8f55b552a45 pointer=comment:5918203800 reading=asserted\naudit:uat-conditional-empty-pin sha=5c61e03b33ed274e424b1925bb35d8f55b552a45 pointer=comment:5918203800 reading=asserted\n\n",
+          "id": 5918219047,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918219047",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:30:22Z",
+          "updated_at": "2026-09-30T19:30:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nUnder active UAT the hole is still real at origin/master: CLI authz verbs can deny while node/tsx still reaches unguarded store writers. Remainder Prefer-A after leftover #5188 keeps write-class refuse at the store SoT, lifts a core predicate (not the CLI exit helper), fail-closes empty-pin only under UAT, and adds an explicit sealed campaign-end path so operator suspend does not brick.\n\nConfirming this map recuts the next-build contract off the stale three-function / settings-harvest ACs. Pain-audit of relieves is next under Dual-stop N=1 reserved slot.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.5 parent authored Stop 1 family and these takes. Takes accept critic headings. Relieves cites are asserted premises.\n\nForward verdict: Prefer-A. Disposition: all classified headings accept-into-contract. Residual: pain-P1, pain-P2 until a critic after this lean targets them.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** Prefer-A of #4233 remainder after critic 5918203800. Cites 5918203800. Supersedes write-back 5918114289. Supersedes halted lean 5666963836 for product Bound wording.\n\nTarget-digest: sha256:c71fa145aece82e8d473e324edfb335cc4bcdb53d266e955617f909731c88ecf\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4233-dc\norigin-ref: origin/master\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\nleftover: #5188\n\nTakes:\n\n- 5918203800 / 1. blocks-the-design — uat.active hard-refuse vs campaign-end — accept-into-contract\n- 5918203800 / 2. sharpens-framing — core predicate shape, not CLI exit helper — accept-into-contract\n- 5918203800 / 3. sharpens-framing — empty-pin fail-closed is UAT-conditional — accept-into-contract\n- 5918203800 / 4. sharpens-framing — widen control is write-intent compare, not exists — accept-into-contract\n- 5918203800 / 5. sharpens-framing — shared lock is secondary to write-class refuse — accept-into-contract\n- 5918203800 / 6. footnote — hole still live; three-function / settings harvest correctly non-control — accept-into-contract\n\nrelieves: P1\nrelieves: P2\n\naudit:pain-P1 sha=5c61e03b33ed274e424b1925bb35d8f55b552a45 pointer=comment:5918203800 reading=asserted\naudit:pain-P2 sha=5c61e03b33ed274e424b1925bb35d8f55b552a45 pointer=comment:5918203800 reading=asserted\n\n## Bound remedy\n\n- Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` and thus actions) for write-intent classes: grant create; authority-field mutate (scope / semantics.expiresAt / revokedAt / other non-consume fields); pin mutate. Classify intent against the on-disk grant so usedAt-only consume is not an exists-based waive and cannot widen authority fields.\n- Campaign-end is a separate sealed core entry (or options token) for `uat.active` true→false only. Only the CLI human-presence path may exercise it after `gateConfirm`. Do not make sealed campaign-end a stringly agent-passable flag in argv or grant JSON. Mint / grant-create / authority-field mutate / pin mutate stay unconditional UAT hard-refuse and must not reuse that sealed entry.\n- Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulted by those store writers. Do not move CLI `refuseMintWhileUatActive` stderr/exit helper into core; CLI keeps stderr + exit adaptation over the core decision.\n- Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outside UAT, keep today's empty-pin default. Do not bind \"UAT start empties the pin\" (`startUatLease` carries the pin forward).\n- Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as the control. Literal classify of node/tsx symbol imports is optional defense-in-depth; if kept, emit unknown not settings.\n- Human-presence stays the CLI gate, not a TTY check inside SoT.\n- Shared authority-state lock is optional concurrency defense-in-depth only; it does not replace write-class refuse (a serialized widen is still a widen).\n- Thread evidence cites file, line, and classifier verdicts. No runnable mint/suspend payloads on this issue.\n- Motion-process Bound stays on leftover #5188. Pain-field stays on #4514.\n\nA critic after this lean naming audit-targets pain-P1, pain-P2 is required before ingest can complete.\n\n",
+          "id": 5918221512,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918221512",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:30:31Z",
+          "updated_at": "2026-09-30T19:30:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Bind lean pin\n\nParallel Prefer-A maps landed twice. Bind lean for this remainder is **5918221512** (later). Earlier duplicate lean 5918219047 is superseded for pain-audit ceiling and harvest. Relaunching one reserved pain-audit seat against 5918221512 with audit-targets pain-P1, pain-P2.\n\n",
+          "id": 5918243925,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918243925",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:32:01Z",
+          "updated_at": "2026-09-30T19:32:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2\n\nissue: deftai/directive#4233\ncharter: open critique\nround: 4 Pass-4 audit (pain-audit of relieves)\nid-ceiling: 5918221512\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\narc-mode: no-ingest\nseat: grok\nlauncher: grok\n\n## Verdict\n\nPrefer-A lean 5918221512 covers Stop 1 pains P1 and P2 (5918114289). Asserted `relieves` of both ids match the harvested Bound-remedy as written: store write-class refuse under active UAT with write-intent classify (usedAt-only consume is not an exists-based waive); sealed campaign-end for `uat.active` true→false only via the CLI human-presence path after `gateConfirm`; core pure predicate / throw-or-Result consulted by the store writers (CLI keeps stderr/exit adaptation); UAT-conditional empty-pin fail-closed; no three-function / settings harvest as the control; leftover #5188 untouched.\n\nRe-verified at pin `5c61e03b33ed274e424b1925bb35d8f55b552a45` (HEAD matches; no fetch). Pin-read only.\n\nAnchors:\n\n- `saveGrant` / `saveAuthzState` are unguarded `writeJsonContained` sinks (`packages/core/src/authz/store.ts`).\n- `listActiveHumanGrants`: `pinSet = pin.length > 0 ? new Set(pin) : null` — empty pin skips the pin filter and activates every non-revoked, non-spent human-origin grant.\n- `mintHumanOriginGrant` / `startUatLease` / `suspendUatLease` write through those sinks; `startUatLease` carries `prev.activeGrantIds` forward (`packages/core/src/authz/actions.ts`).\n- `refuseMintWhileUatActive` lives only in `packages/cli/src/human-presence-mint.ts` (stderr + exit `2`); `git grep` under `packages/core` at this pin returns no hits.\n- Public `@deftai/directive-core/authz` re-exports actions + store (`packages/core/src/authz/index.ts`). Classifier `hasAuthzMutatingCli` matches `authz:*` CLI tokens only (`packages/core/src/authz/classify.ts`).\n\n## pain-P1 — covered\n\nfootnote\n\nStop 1 P1 requires hard-refuse under active UAT for grant create, authority-field mutate (scope / expiresAt / revokedAt), pin mutate, and change of `uat.active`, plus write-intent so usedAt consume cannot waive an in-place widen. Prefer-A Bound lands create / authority-field / pin refuse at the store SoT with on-disk intent classify, and names sealed campaign-end as the sole true→false path only CLI human-presence may exercise after `gateConfirm` (mint / create / authority / pin must not reuse that entry). That is the accepted disposition of critic 5918203800 finding 1; agent-reachable `uat.active` clear stays refused while operator suspend remains reachable. No blocking gap on the asserted cover.\n\n## pain-P2 — covered\n\nfootnote\n\nStop 1 P2 requires empty-pin not to activate pre-UAT grants under UAT, a core (not CLI-only) refuse decision, and no bind of AC1 three-function names or AC2/AC3 settings harvest as the control. Prefer-A Bound states UAT-conditional empty-pin fail-closed (outside UAT keep today's default; do not bind \"start empties the pin\"), lifts a core pure predicate consulted by the store writers, and explicitly refuses three-function / settings-as-control. Live pin still shows the hole those Bound lines close. No blocking gap on the asserted cover.\n\n## Finding 1 — sealed exclusivity is already in Prefer-A product wording\n\nfootnote\n\nEvidence: sibling lean 5918219047 said \"Agents calling public store/actions without that sealed token still hard-refuse.\" Prefer-A 5918221512 says only the CLI human-presence path may exercise sealed campaign-end and that refuse classes must not reuse it. Same exclusivity, shorter product Bound. Does not change the harvested Bound-remedy.\n\n## Injection / swarm lens\n\nTarget mutates authority grants, UAT lease state, and the shared on-disk authz store under agent-reachable imports. Untrusted shell/classifier text remains an incomplete control plane; store write-class refuse plus sealed campaign-end exclusivity is the durable control Prefer-A binds. No embedded-instruction follow-through from thread text.\r\n\n",
+          "id": 5918282335,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918282335",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:34:34Z",
+          "updated_at": "2026-09-30T19:34:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Finding | Class | Disposition | Cite |\n| --- | --- | --- | --- |\n| uat.active hard-refuse vs campaign-end needs sealed suspend path | blocks-the-design | accept-into-contract — Prefer-A sealed campaign-end | 5918203800 |\n| core predicate shape, not CLI exit helper | sharpens-framing | accept-into-contract | 5918203800 |\n| empty-pin fail-closed is UAT-conditional | sharpens-framing | accept-into-contract | 5918203800 |\n| widen control is write-intent compare, not exists | sharpens-framing | accept-into-contract | 5918203800 |\n| shared lock is secondary to write-class refuse | sharpens-framing | accept-into-contract | 5918203800 |\n| hole still live; three-function/settings harvest non-control | footnote | census only | 5918203800 |\n\nDisagreement set: empty.\nBind lean pin: 5918221512 (later Prefer-A; earlier duplicate lean 5918219047 superseded).\nPain-audit 5918282335 of lean 5918221512: footnote-only for harvest; coverage of pain-P1, pain-P2 holds.\n\n",
+          "id": 5918291495,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918291495",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:35:12Z",
+          "updated_at": "2026-09-30T19:35:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nUnder active UAT, public authz store writers must hard-refuse authority mutations (create / scope-widen / pin) while usedAt-only consume stays allowed; campaign-end needs a sealed core entry only CLI human-presence may use; refuse decision lives in core; empty-pin fail-closes only under UAT; three-function/settings harvest is not the control. Leftover motion Bound stays on #5188. Pain-audit 5918282335 of lean 5918221512 was footnote-only. The same parent lineage wrote remainder Stop 1 5918114289. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5918221512\n\n",
+          "id": 5918291757,
+          "html_url": "https://github.com/deftai/directive/issues/4233#issuecomment-5918291757",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:35:13Z",
+          "updated_at": "2026-09-30T19:35:13Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Parent\n\n- #3110 (closed; this is residual incomplete coverage of that fix)\n- #2948 (layered authz stack)\n\n## Summary\n\n**AppSec finding (high)** at `7236655e`. #3110 gated the `authz:grant` / `authz:uat-start` / `authz:uat-suspend` CLI verbs as `settings` (deny under UAT). The SoT functions those verbs wrap -- `mintHumanOriginGrant`, `startUatLease`, `suspendUatLease` in `packages/core/src/authz/actions.ts` -- remain callable from Shell via `node` / `tsx` import.\n\nPreToolUse classifies those interpreter invocations as unclassifiable / allow, so real mint/suspend SoT runs while CLI stays settings-denied.\n\n## Severity\n\n**high**\n\n## Location\n\n- `packages/core/src/authz/actions.ts` (`mintHumanOriginGrant`, `startUatLease`, `suspendUatLease`)\n- Related: `packages/core/src/authz/classify.ts` (`classifyShellAuthzOps` -- CLI verbs classified; `node`/`tsx` symbol imports not)\n- Import surface: `@deftai/directive-core/authz` (or local `dist`) from an agent under active UAT with PreToolUse Shell hooks\n\n## Attacker\n\nAgent under active UAT with PreToolUse Shell hooks; `@deftai/directive-core/authz` (or local dist) importable.\n\n## Impact\n\nFull Wave 1 UAT + #3110 human-presence bypass:\n\n- Real mint / suspend SoT runs while CLI stays settings-denied\n- Unlocks edit / push / PR / merge (or clears UAT)\n\n## Remediation\n\n1. Gate `mintHumanOriginGrant` / `startUatLease` / `suspendUatLease` with UAT refuse + human-presence (not CLI-only).\n2. Classify `node` / `tsx` imports of those APIs as `settings`.\n3. Under UAT, fail-closed on Shell naming those symbols.\n\n## Evidence\n\nAt `7236655e`:\n\n- `deft authz:grant` / `authz:uat-suspend` -> `[settings]` / deny\n- `node -e` mint / suspend -> `[]` / allow / `shell-op-unclassifiable`\n- Write before: deny / `authz-grant-missing`\n- After `mint(pinActive)` or `suspend` -> allow / write-ready\n\n`classify.ts` has no matches for `mintHumanOriginGrant` / `startUatLease` / `suspendUatLease`. It classifies `authz:*` CLI verbs and dest-writers, not programmatic imports of the SoT functions.\n\n## Commit (finding base)\n\n`7236655e` (`chore(policy): restore branch protection after v0.112.0`)\n\n## Acceptance criteria\n\n- [ ] `mintHumanOriginGrant`, `startUatLease`, and `suspendUatLease` refuse under active UAT unless a matching human-presence grant already exists (gate is in the SoT functions, not only the CLI wrappers)\n- [ ] Shell `node` / `tsx` (and equivalent) invocations that import or name those APIs classify as `settings` -- not `[]` / `shell-op-unclassifiable`\n- [ ] Under UAT, PreToolUse fail-closes Shell commands that name those symbols\n- [ ] Regression: `deft authz:grant` / `authz:uat-suspend` still deny under UAT (no #3110 CLI regression)\n- [ ] Regression: `node -e` / `tsx` mint with `pinActive` (or suspend) under UAT does **not** unlock Write / push / PR / merge\n- [ ] Tests pass; `task check` passes\n\n## Type\n\nAFK\n\n## Blocked by\n\nNone -- can start immediately.\n\n## Notes\n\nResidual incomplete coverage of #3110: CLI path is gated, library SoT path is not. Distinct from the post-#3545 dest-writer residual family (ffmpeg/sox/plant `.deft/authz/**` files). Those plant grant JSON; this calls the mint/suspend APIs directly.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5375421403,
+        "origin": "deftai/directive#4233",
+        "id": "github.issue.5375421403"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c71fa145aece82e8d473e324edfb335cc4bcdb53d266e955617f909731c88ecf"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/authz/**",
+          "packages/cli/src/**",
+          "packages/core/tests/**",
+          "CHANGELOG.md",
+          "packages/core/src/authz/store.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/authz"
+        ],
+        "expected_outputs": [
+          "store write-class refuse under UAT",
+          "sealed campaign-end path"
+        ],
+        "depends_on": [],
+        "conflict_group": "authz-uat-store-refuse",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "default",
+        "parallel_safe": true,
+        "readiness": "ready"
+      },
+      "productPullRequest": 5241,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5241,
+        "prBase": null,
+        "mergeCommit": "36b0c9eed650920a4985d5ef76acc1c0f5d018b9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "36b0c9eed650920a4985d5ef76acc1c0f5d018b9",
+        "verifiedAt": "2026-10-02T07:13:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "01a0fa29-bf3b-7da2-adc8-667be1e1a666"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-02T07:13:51Z",
+      "completedSessionId": "01a0fa29-bf3b-7da2-adc8-667be1e1a666",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-02T07:13:51Z"
+      }
+    },
+    "id": "github.issue.5375421403",
+    "updated": "2026-10-02T07:13:51Z"
+  }
+}
