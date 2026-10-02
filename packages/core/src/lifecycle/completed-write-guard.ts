@@ -371,8 +371,8 @@ const RECOGNIZED_COMPLETED_PLAN_STATUSES = new Set(["completed", "complete", "fa
 
 /**
  * Validate-if-present: typed dispositions on a completed/ land must parse and
- * carry human-origin provenance. operator-session also requires eventRef.
- * Does not invent a parallel parser (#3819).
+ * carry human-origin provenance via shared parseDisposition / isHumanOrigin.
+ * Does not invent a parallel parser or extra eventRef limb (#3819 Prefer-A).
  */
 function dispositionFindingForCompletedPlan(
   plan: Record<string, unknown>,
@@ -414,20 +414,6 @@ function walkDispositionFindings(
           relPath,
           detail: sanitizeDetail(`${relPath}: ${path} ${parsed.message} (#3819)`),
         };
-      }
-      const kind = String(parsed.record.provenance.kind ?? "")
-        .trim()
-        .toLowerCase();
-      if (kind === "operator-session") {
-        const eventRef = parsed.record.provenance.eventRef;
-        if (typeof eventRef !== "string" || eventRef.trim().length === 0) {
-          return {
-            relPath,
-            detail: sanitizeDetail(
-              `${relPath}: ${path} operator-session disposition requires provenance.eventRef (#3819)`,
-            ),
-          };
-        }
       }
     }
     const fromSub = walkDispositionFindings(obj.subItems, `${path}.subItems`, relPath);
@@ -877,12 +863,10 @@ export function evaluateCompletedWriteGuard(
     const pairingCandidate = key !== null && activePairKeys.has(key);
     const payload = readPayload(root, rel, options.payloads);
     if (payload.kind === "missing") {
-      if (pairingCandidate) {
-        findings.push({
-          relPath: rel,
-          detail: sanitizeDetail(`${rel}: modified under completed/ but unreadable`),
-        });
-      }
+      findings.push({
+        relPath: rel,
+        detail: sanitizeDetail(`${rel}: modified under completed/ but unreadable`),
+      });
       continue;
     }
     if (payload.kind === "unsafe") {
@@ -894,15 +878,14 @@ export function evaluateCompletedWriteGuard(
     }
     const plan = parsePlan(payload.raw);
     if (plan === null) {
-      if (pairingCandidate) {
-        findings.push({
-          relPath: rel,
-          detail: sanitizeDetail(`${rel}: modified under completed/ with unreadable plan`),
-        });
-      }
+      findings.push({
+        relPath: rel,
+        detail: sanitizeDetail(`${rel}: modified under completed/ with unreadable plan`),
+      });
       continue;
     }
-    // #3819: every completed/ mod in the change set validates present dispositions.
+    // #3819: every completed/ mod in the change set validates present dispositions
+    // through the shared parser only (grandfather historical eventRef-less shapes).
     const dispositionFinding = dispositionFindingForCompletedPlan(plan, rel);
     if (dispositionFinding !== null) {
       findings.push(dispositionFinding);

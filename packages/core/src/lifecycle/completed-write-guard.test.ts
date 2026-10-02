@@ -1342,7 +1342,7 @@ describe("evaluateCompletedWriteGuard disposition provenance (#3819)", () => {
     expect(result.findings).toHaveLength(0);
   });
 
-  it("refuses operator-session disposition without eventRef on completed/ add", () => {
+  it("accepts operator-session disposition without eventRef via shared parseDisposition (#3819)", () => {
     const missingRef = stampedWithItems([
       {
         title: "waived without eventRef",
@@ -1359,8 +1359,38 @@ describe("evaluateCompletedWriteGuard disposition provenance (#3819)", () => {
       addedFiles: [completedRel],
       payloads: new Map([[completedRel, missingRef]]),
     });
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it("accepts a completed/ mod that leaves a historical operator-session disposition without eventRef", () => {
+    const historical = stampedWithItems([
+      {
+        title: "historical waiver",
+        status: "pending",
+        "x-directive/disposition": {
+          disposition: "waived",
+          reason: "grandfathered operator-session",
+          provenance: { kind: "operator-session", actor: "Scott" },
+          recorded_at: "2026-08-27T22:20:00Z",
+        },
+      },
+    ]);
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `M\t${completedRel}`,
+      payloads: new Map([[completedRel, historical]]),
+    });
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it("refuses a malformed completed/ modification even without an active pairing", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `M\t${completedRel}`,
+      payloads: new Map([[completedRel, "{not-json"]]),
+    });
     expect(result.code).toBe(1);
-    expect(result.findings[0]?.detail).toMatch(/eventRef|#3819/);
+    expect(result.findings[0]?.detail).toMatch(/unreadable plan|modified under completed/);
   });
 
   it("refuses missing or unrecognized plan.status on completed/ add (#3819)", () => {
