@@ -1,0 +1,483 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4015",
+    "updated": "2026-10-02T04:06:28Z"
+  },
+  "plan": {
+    "title": "feat(consumer-check-contract): gate reachability on pull_request is unmodelled, so a skipped gate reads as clean",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(consumer-check-contract): gate reachability on pull_request is unmodelled, so a skipped gate reads as clean",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4015",
+      "Overview": "\n\n- Parse consumer workflow files as YAML job graphs (not concatenated text). Locate the job or jobs whose `run:` / `script:` lines invoke the composing entrypoint or a named gate. Reuse existing command extractors; do not fork them.\n- Flag a gate job that carries a condition able to evaluate false on `pull_request`, carries `continue-on-error: true`, or is removed by a `strategy.matrix` exclusion.\n- Flag workflow-level `paths:` / `paths-ignore:` / `branches:` filters that can skip the whole workflow on a pull request, and name the pending-required-check consequence in the message.\n- Accept `if: always()` and conditions true on `pull_request` by construction. Report `unknown` with the reason — never clean — for `uses:` reusable-workflow or composite indirection, and expressions referencing `github.event.*`, `vars`, or `secrets`.\n- One remediation string naming the file, the job, and the repair. Warn by default; promotion to fail-closed is a separate policy step. Keep existing text-level shell evasion detectors. Docs state the two limits (accident detector, not #3687; GitHub expressions not fully statically decidable). CHANGELOG `[Unreleased]`.\n- Out of scope: requiredness / branch-protection (#4012); lifecycle-only skip lanes; security against deliberate workflow edits (#3687); provenance model (#3631); rewriting consumer YAML. Taskfile YAML helpers are not a GHA job-graph discharge.\n\n",
+      "Labels": "enhancement, design, ci-cd, agent-experience, process, source-of-truth, urgent, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Parse consumer workflow files as YAML job graphs (not concatenated text). Locate the job or jobs whose `run:` / `script:` lines invoke the composing entrypoint or a named gate. Reuse existing command extractors; do not fork them.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5240 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit e36ff3803ddd0943f12bc16eca9f9cd68a3455e8.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T03:50:46.587Z",
+            "mintedVia": "leftover-complete-after-5240"
+          },
+          "recorded_at": "2026-10-02T03:50:46.587Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Flag a gate job that carries a condition able to evaluate false on `pull_request`, carries `continue-on-error: true`, or is removed by a `strategy.matrix` exclusion.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5240 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit e36ff3803ddd0943f12bc16eca9f9cd68a3455e8.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T03:50:46.587Z",
+            "mintedVia": "leftover-complete-after-5240"
+          },
+          "recorded_at": "2026-10-02T03:50:46.587Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Flag workflow-level `paths:` / `paths-ignore:` / `branches:` filters that can skip the whole workflow on a pull request, and name the pending-required-check consequence in the message.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5240 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit e36ff3803ddd0943f12bc16eca9f9cd68a3455e8.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T03:50:46.587Z",
+            "mintedVia": "leftover-complete-after-5240"
+          },
+          "recorded_at": "2026-10-02T03:50:46.587Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Accept `if: always()` and conditions true on `pull_request` by construction. Report `unknown` with the reason — never clean — for `uses:` reusable-workflow or composite indirection, and expressions referencing `github.event.*`, `vars`, or `secrets`.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5240 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit e36ff3803ddd0943f12bc16eca9f9cd68a3455e8.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T03:50:46.587Z",
+            "mintedVia": "leftover-complete-after-5240"
+          },
+          "recorded_at": "2026-10-02T03:50:46.587Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "One remediation string naming the file, the job, and the repair. Warn by default; promotion to fail-closed is a separate policy step. Keep existing text-level shell evasion detectors. Docs state the two limits (accident detector, not #3687; GitHub expressions not fully statically decidable). CHANGELOG `[Unreleased]`.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5240 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit e36ff3803ddd0943f12bc16eca9f9cd68a3455e8.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T03:50:46.587Z",
+            "mintedVia": "leftover-complete-after-5240"
+          },
+          "recorded_at": "2026-10-02T03:50:46.587Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Out of scope: requiredness / branch-protection (#4012); lifecycle-only skip lanes; security against deliberate workflow edits (#3687); provenance model (#3631); rewriting consumer YAML. Taskfile YAML helpers are not a GHA job-graph discharge.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5240 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit e36ff3803ddd0943f12bc16eca9f9cd68a3455e8.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T03:50:46.587Z",
+            "mintedVia": "leftover-complete-after-5240"
+          },
+          "recorded_at": "2026-10-02T03:50:46.587Z"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "ci-cd",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4015",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4015: feat(consumer-check-contract): gate reachability on pull_request is unmodelled, so a skipped gate reads as clean"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/consumer-check-contract"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Parse consumer workflow files as YAML job graphs (not concatenated text). Locate the job or jobs whose `run:` / `script:` lines invoke the composing entrypoint or a named gate. Reuse existing command extractors; do not fork them.",
+        "Flag a gate job that carries a condition able to evaluate false on `pull_request`, carries `continue-on-error: true`, or is removed by a `strategy.matrix` exclusion.",
+        "Flag workflow-level `paths:` / `paths-ignore:` / `branches:` filters that can skip the whole workflow on a pull request, and name the pending-required-check consequence in the message.",
+        "Accept `if: always()` and conditions true on `pull_request` by construction. Report `unknown` with the reason — never clean — for `uses:` reusable-workflow or composite indirection, and expressions referencing `github.event.*`, `vars`, or `secrets`.",
+        "One remediation string naming the file, the job, and the repair. Warn by default; promotion to fail-closed is a separate policy step. Keep existing text-level shell evasion detectors. Docs state the two limits (accident detector, not #3687; GitHub expressions not fully statically decidable). CHANGELOG `[Unreleased]`.",
+        "Out of scope: requiredness / branch-protection (#4012); lifecycle-only skip lanes; security against deliberate workflow edits (#3687); provenance model (#3631); rewriting consumer YAML. Taskfile YAML helpers are not a GHA job-graph discharge."
+      ],
+      "admitted_source_sentences": [
+        "Parse consumer workflow files as YAML job graphs (not concatenated text). Locate the job or jobs whose `run:` / `script:` lines invoke the composing entrypoint or a named gate. Reuse existing command extractors; do not fork them.",
+        "Flag a gate job that carries a condition able to evaluate false on `pull_request`, carries `continue-on-error: true`, or is removed by a `strategy.matrix` exclusion.",
+        "Flag workflow-level `paths:` / `paths-ignore:` / `branches:` filters that can skip the whole workflow on a pull request, and name the pending-required-check consequence in the message.",
+        "Accept `if: always()` and conditions true on `pull_request` by construction. Report `unknown` with the reason — never clean — for `uses:` reusable-workflow or composite indirection, and expressions referencing `github.event.*`, `vars`, or `secrets`.",
+        "One remediation string naming the file, the job, and the repair. Warn by default; promotion to fail-closed is a separate policy step. Keep existing text-level shell evasion detectors. Docs state the two limits (accident detector, not #3687; GitHub expressions not fully statically decidable). CHANGELOG `[Unreleased]`.",
+        "Out of scope: requiredness / branch-protection (#4012); lifecycle-only skip lanes; security against deliberate workflow edits (#3687); provenance model (#3631); rewriting consumer YAML. Taskfile YAML helpers are not a GHA job-graph discharge."
+      ],
+      "admitted_source_digest": "98264094ef2c0d0cadff59d4a03314934dede35cf9be6a16bbf38769fb4cfee2",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Parse consumer workflow files as YAML job graphs (not concatenated text). Locate the job or jobs whose `run:` / `script:` lines invoke the composing entrypoint or a named gate. Reuse existing command extractors; do not fork them.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Flag a gate job that carries a condition able to evaluate false on `pull_request`, carries `continue-on-error: true`, or is removed by a `strategy.matrix` exclusion.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Flag workflow-level `paths:` / `paths-ignore:` / `branches:` filters that can skip the whole workflow on a pull request, and name the pending-required-check consequence in the message.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Accept `if: always()` and conditions true on `pull_request` by construction. Report `unknown` with the reason — never clean — for `uses:` reusable-workflow or composite indirection, and expressions referencing `github.event.*`, `vars`, or `secrets`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "One remediation string naming the file, the job, and the repair. Warn by default; promotion to fail-closed is a separate policy step. Keep existing text-level shell evasion detectors. Docs state the two limits (accident detector, not #3687; GitHub expressions not fully statically decidable). CHANGELOG `[Unreleased]`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 6,
+          "text": "Out of scope: requiredness / branch-protection (#4012); lifecycle-only skip lanes; security against deliberate workflow edits (#3687); provenance model (#3631); rewriting consumer YAML. Taskfile YAML helpers are not a GHA job-graph discharge.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Current state\n\nBare arc 4015 under #5111 defaults (no-ingest, yolo). Gate reachability on pull_request for verify:consumer-check-contract.\n\n- Stage A: still-open; critique-recommend false (operator-directed bare arc)\n- Chip: mechanism-shaped → in-progress with Stop 1\n- Dest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4015-dc\n- dispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45 (origin-default; issue body measurement SHA fb9ece05 is historical)\n- Target-digest: sha256:277462eb0f37df15d1085b5cb2ea9df5d7edefa2cda2b91a34403d6a4260747a\n- Tip peek: evaluate.ts still concatenates workflow text; no continue-on-error / paths-ignore model\n- Dual-stop spend: N=1 (concrete closed-AC reachability check)\n\narc-mode: no-ingest\nyolo-standing: yes\n\n",
+          "id": 5918129502,
+          "html_url": "https://github.com/deftai/directive/issues/4015#issuecomment-5918129502",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:24:26Z",
+          "updated_at": "2026-09-30T19:24:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because verify:consumer-check-contract only proves a gate command is present in concatenated CI text and never answers whether the carrying job can be skipped on pull_request, so a disarmed merge-path gate still reads clean.\n\ncharter: refutation\nrefutation-target: At tip, verify:consumer-check-contract already parses consumer workflow YAML as a job graph and flags gate jobs that can be skipped on pull_request (job-level if, continue-on-error, matrix exclusion, workflow paths/branches filters), reporting unknown rather than clean for uses: indirection and undecidable expressions.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\npain: P1, P2, P3\n\nP1. Consumer CI is still read as concatenated text, so the verifier cannot locate the job that runs the gate or see job-level / workflow-level skip conditions.\nP2. A gate job with a condition able to evaluate false on pull_request, continue-on-error: true, or a matrix exclusion is not flagged; the project still reads clean.\nP3. Workflow-level paths / paths-ignore / branches filters that can skip the whole workflow on a pull request are not flagged with the pending-required-check consequence, and uses: / undecidable expressions are not forced to unknown (never clean).\n\nNext-build contract stays the issue body: YAML job-graph parse; reuse existing command extractors; flag skippable gate jobs and workflow filters; accept if: always() and PR-true-by-construction; unknown for uses: and github.event/vars/secrets expressions; one remediation string; warn by default. Non-goals: requiredness (#4012); lifecycle-only skip lanes; security against deliberate workflow edits (#3687); provenance model (#3631); rewriting consumer YAML.\n\nOperator bare arc 4015 under #5111 defaults; Dual-stop N=1 for concrete closed-AC reachability check. Related #4012 (requiredness half stays there).\n\nTarget-digest sha256:277462eb0f37df15d1085b5cb2ea9df5d7edefa2cda2b91a34403d6a4260747a\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4015-dc\npin-kind: origin-default\n\n",
+          "id": 5918129881,
+          "html_url": "https://github.com/deftai/directive/issues/4015#issuecomment-5918129881",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:24:27Z",
+          "updated_at": "2026-09-30T19:24:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\r\n```quarantined\nrole: critic\r\n```\n\r\nIssue: deftai/directive#4015\r\nCharter: refutation\r\nRound: 1 critic\r\nSeat: grok\r\nLauncher: grok\r\nId ceiling: 5918129881\r\nSHA at dispatch: 5c61e03b33ed274e424b1925bb35d8f55b552a45\r\narc-mode: no-ingest\r\naudit-targets: none\r\n\r\n## Verdict\r\n\r\nRefutation-target does **not** survive at `5c61e03b33ed274e424b1925bb35d8f55b552a45`. Tip `verify:consumer-check-contract` still answers gate **presence** in concatenated CI text. It does not parse workflows as a job graph, does not flag PR-skippable gate jobs, and has no `unknown` path for `uses:` / undecidable expressions. P1–P3 on Stop 1 (5918129881) remain live.\r\n\r\n`git rev-parse HEAD` = `5c61e03b33ed274e424b1925bb35d8f55b552a45` (no fetch / no checkout). Pin-reads via `git show 5c61e03b33ed274e424b1925bb35d8f55b552a45:<path>`.\r\n\r\n## Findings\r\n\r\n### 1. CI surface is still concatenated text, not a job graph\r\nblocks-the-design\r\n\r\nEvidence: `packages/core/src/consumer-check-contract/evaluate.ts` at tip builds `allCi = [...workflows.values()].join(\"\\n\")` then `extractWorkflowRunCommands(allCi)` (lines 1073–1074). `extractWorkflowRunCommands` walks `run:` / `script:` lines only (342+). Zero matches in that file for job-graph tokens `jobs:`, `needs:`, job-level `if:`, `continue-on-error`, `paths-ignore`, `pull_request`, `uses:`, `strategy.matrix`.\r\n\r\nFailure mode: the verifier cannot name the job that carries a gate or see conditions that skip it on `pull_request`, so a disarmed merge-path gate still satisfies composition.\r\n\r\nDisposition consequence: a Bound that claims tip already ships reachability analysis cannot bind. Next-build contract stays the issue-body Required behavior (YAML job-graph parse; reuse existing extractors).\r\n\r\n### 2. Skip / soft-fail / filter shapes are unmodelled; shell evasion only\r\nblocks-the-design\r\n\r\nEvidence: tip evasion helpers are shell-line only — `lineMasksShellStatus` (402), `lineHasBackgroundJob` (422), `lineMasksCheckFailure` (439) for `||`, pipelines, `;`, backgrounding. `content/docs/consumer-check-contract.md` at tip documents presence/composition and CI warn-by-default; it does not define reachability, pending-required-check messaging, or an `unknown` verdict. Related tests under `packages/core/src/consumer-check-contract/` at tip have no fixtures for job-level `if:`, `continue-on-error`, workflow `paths` / `paths-ignore` / `branches`, matrix exclusion, or `uses:` → unknown.\r\n\r\nFailure mode: job `if:` false on PR, `continue-on-error: true`, matrix exclusion, or workflow path/branch filters leave the project clean (or warn only for missing invocation), matching P2/P3.\r\n\r\nDisposition consequence: Bound remedy must still flag those skippable shapes, name the pending-required-check consequence for workflow filters, accept `if: always()` / PR-true-by-construction, and force `unknown` (never clean) for `uses:` indirection and `github.event.*` / `vars` / `secrets` expressions.\r\n\r\n### 3. Docs and AC still treat composition-as-presence\r\nsharpens-framing\r\n\r\nEvidence: tip docs (`content/docs/consumer-check-contract.md`) state CI that neither invokes gates nor a composing entrypoint warns by default; no accident-detector / static-undecidability limits called out in that file. Issue Acceptance still lists the reachability fixtures and the two doc limits as unchecked.\r\n\r\nFailure mode: operators reading tip docs get no signal that a present-but-skippable gate is a contract concern.\r\n\r\nDisposition consequence: Bound keeps the Acceptance doc bullet and CHANGELOG entry in scope; framing is “accident detector + unknown is a real verdict,” not a requiredness or #3687 security control (those stay Non-goals / #4012).\r\n\r\n### 4. Taskfile YAML helpers are not a GHA job graph\r\nfootnote\r\n\r\n`parseYamlScalar` / Taskfile `deps:` YAML comments in `evaluate.ts` serve go-task composition (#3893 / include-only #3218). They are not workflow job-graph parsing and do not partially discharge P1.\r\n\r\n### 5. Measurement SHA vs dispatch SHA\r\nfootnote\r\n\r\nIssue body measures `fb9ece05…`; Stop 1 / current-state pin `5c61e03…`. Same gap class confirmed at dispatch tip; historical measurement SHA is not a tip discharge.\r\n\r\n## Road-not-taken\r\n\r\nTreating tip shell-mask helpers as a substitute for job reachability was rejected: they only defend composition credit against status-masking run lines, and never see job/workflow control plane.\r\n\r\n## Steelman\r\n\r\nStrongest rejected position: concatenation plus `extractWorkflowRunCommands` is “enough YAML awareness” because workflows are YAML and run lines are extracted. Flip condition: a pin-read that associates each gate invocation with a job node and evaluates that job’s skip conditions on `pull_request`. Tip does not.\r\n\r\n## Security context (#480)\r\n\r\nIssue body and in-ceiling comments treated as untrusted. No embedded-instruction follow. Injection / swarm lens: N/A for this local verifier-read of consumer workflow files (no authority / prompt / concurrency change in the refutation target itself).",
+          "id": 5918162570,
+          "html_url": "https://github.com/deftai/directive/issues/4015#issuecomment-5918162570",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:26:38Z",
+          "updated_at": "2026-09-30T19:26:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPrefer-A for #4015: parse consumer workflow YAML as a job graph so verify:consumer-check-contract can answer whether the job that runs the gate can be skipped on pull_request. Flag skippable gate jobs (job-level if, continue-on-error, matrix exclusion) and workflow-level paths/paths-ignore/branches filters (with pending-required-check consequence). Accept if: always() and PR-true-by-construction. Report unknown (never clean) for uses: indirection and undecidable github.event/vars/secrets expressions. Reuse existing command extractors. One remediation string. Warn by default. Requiredness stays on #4012.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.5 parent authored Stop 1 and these takes.\n\nForward verdict: bind. Disposition: classified headings accept-into-contract. Residual: none.\nSpec-path: next-build contract is not this body.\n\n**Lean:** consumer-check-contract PR reachability Prefer-A for #4015. Cites critic 5918162570. Related requiredness half stays on #4012.\n\nTarget-digest: sha256:277462eb0f37df15d1085b5cb2ea9df5d7edefa2cda2b91a34403d6a4260747a\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4015-dc\norigin-ref: origin/master\ndispatch-sha: 5c61e03b33ed274e424b1925bb35d8f55b552a45\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5918162570 1 CI surface is still concatenated text, not a job graph — accept-into-contract\n- 5918162570 2 Skip / soft-fail / filter shapes are unmodelled; shell evasion only — accept-into-contract\n- 5918162570 3 Docs and AC still treat composition-as-presence — accept-into-contract\n- 5918162570 4 Taskfile YAML helpers are not a GHA job graph — accept-into-contract\n- 5918162570 5 Measurement SHA vs dispatch SHA — accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n\n- Parse consumer workflow files as YAML job graphs (not concatenated text). Locate the job or jobs whose `run:` / `script:` lines invoke the composing entrypoint or a named gate. Reuse existing command extractors; do not fork them.\n- Flag a gate job that carries a condition able to evaluate false on `pull_request`, carries `continue-on-error: true`, or is removed by a `strategy.matrix` exclusion.\n- Flag workflow-level `paths:` / `paths-ignore:` / `branches:` filters that can skip the whole workflow on a pull request, and name the pending-required-check consequence in the message.\n- Accept `if: always()` and conditions true on `pull_request` by construction. Report `unknown` with the reason — never clean — for `uses:` reusable-workflow or composite indirection, and expressions referencing `github.event.*`, `vars`, or `secrets`.\n- One remediation string naming the file, the job, and the repair. Warn by default; promotion to fail-closed is a separate policy step. Keep existing text-level shell evasion detectors. Docs state the two limits (accident detector, not #3687; GitHub expressions not fully statically decidable). CHANGELOG `[Unreleased]`.\n- Out of scope: requiredness / branch-protection (#4012); lifecycle-only skip lanes; security against deliberate workflow edits (#3687); provenance model (#3631); rewriting consumer YAML. Taskfile YAML helpers are not a GHA job-graph discharge.\n\n",
+          "id": 5918173918,
+          "html_url": "https://github.com/deftai/directive/issues/4015#issuecomment-5918173918",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:27:24Z",
+          "updated_at": "2026-09-30T19:27:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#4015\nCharter: refutation. Pain-audit of asserted coverage on the bind lean. Spend N=1. You are the only seat.\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nId ceiling (inclusive): 5918173918\nSHA at dispatch: 5c61e03b33ed274e424b1925bb35d8f55b552a45\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/4015\naudit-targets: pain-P1, pain-P2, pain-P3\nSeat: grok. Launcher: grok.\n\n## Pain-audit of lean 5918173918\n\nStop 1 pains from 5918129881. Round-1 critic 5918162570 (2 blocks-the-design; 1 sharpens-framing; 2 footnotes) folded into Prefer-A Bound on 5918173918. Pin reads via `git show 5c61e03b33ed274e424b1925bb35d8f55b552a45:<path>` only. `git rev-parse HEAD` equals that SHA. Tip `packages/core/src/consumer-check-contract/evaluate.ts` still builds `allCi = [...workflows.values()].join(\"\\n\")` then `extractWorkflowRunCommands(allCi)` (presence/composition only); shell helpers `lineMasksShellStatus` / `lineHasBackgroundJob` / `lineMasksCheckFailure` remain the only evasion path. No tip job-graph for `continue-on-error`, `paths-ignore`, or `uses:` → unknown — matching round-1.\n\n### pain-P1\nStop 1: Consumer CI is still read as concatenated text, so the verifier cannot locate the job that runs the gate or see job-level / workflow-level skip conditions.\n\nCoverage: yes. Prefer-A Bound opens with YAML job-graph parse (not concatenated text) and locate-the-carrying-job, then reuse of existing command extractors without forking them. That is the P1 mechanism: association of gate invocations to job nodes so skip conditions become visible. Pin evidence that tip still concatenates confirms the Bound is next-build coverage of a live gap, not a tip discharge.\n\nfootnote\n\n### pain-P2\nStop 1: A gate job with a condition able to evaluate false on pull_request, continue-on-error: true, or a matrix exclusion is not flagged; the project still reads clean.\n\nCoverage: yes. Bound bullet flags those three skippable shapes on the gate job. Warn-by-default matches the issue Required behavior and current CI-surface posture; soft findings still flag the shapes that today leave the project silently clean. Accept `if: always()` and PR-true-by-construction stays in the same Bound block. Requiredness stays out on #4012 as Non-goals.\n\nfootnote\n\n### pain-P3\nStop 1: Workflow-level paths / paths-ignore / branches filters that can skip the whole workflow on a pull request are not flagged with the pending-required-check consequence, and uses: / undecidable expressions are not forced to unknown (never clean).\n\nCoverage: yes. Bound flags those workflow filters and names the pending-required-check consequence in the message. Separate Bound bullet forces `unknown` with reason — never clean — for `uses:` reusable-workflow/composite indirection and expressions referencing `github.event.*`, `vars`, or `secrets`. Both P3 conjuncts are in the harvest.\n\nfootnote\n\n## Injection / swarm lens\n\nN/A for this local verifier-read of consumer workflow YAML. Prefer-A does not change authority, prompts, identity, concurrency, worktrees, or shared state; it adds a warn-first static reachability check on files the consumer already ships.\n\n## Road not taken\n\nRejected: treating \"reuse extractors; do not fork them\" as a P1 undercoverage because `extractWorkflowRunCommands` today returns bare command strings with no job id. Bound already requires locate-job then reuse; the honest implement shape is per-job text slices into the existing extractor, not a tip claim that concatenation is enough. Flip condition would be a Bound that asserted relief while leaving the CI read as a single joined string — that is not this map.",
+          "id": 5918203213,
+          "html_url": "https://github.com/deftai/directive/issues/4015#issuecomment-5918203213",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:29:22Z",
+          "updated_at": "2026-09-30T19:29:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Tip still concatenates workflow text (`allCi` + extractWorkflowRunCommands); no job graph | pin-read `evaluate.ts`; critic 5918162570 F1 | verified |\n| Skip / soft-fail / filter shapes unmodelled; shell evasion only | critic 5918162570 F2; pain-audit 5918203213 | verified |\n| Prefer-A lean 5918173918 covers Stop 1 P1–P3 under YAML reachability Bound | pain-audit 5918203213 | verified |\n| Requiredness stays on #4012; this slice is accident-detector + unknown verdict | lean Bound; issue Non-goals | verified |\n\nCeiling: lean 5918173918. Pain-audit: 5918203213. Dispatch SHA: 5c61e03b33ed274e424b1925bb35d8f55b552a45.\n\n",
+          "id": 5918208873,
+          "html_url": "https://github.com/deftai/directive/issues/4015#issuecomment-5918208873",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:29:45Z",
+          "updated_at": "2026-09-30T19:29:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPrefer-A for #4015: parse consumer workflow YAML as a job graph so verify:consumer-check-contract can answer whether the gate job can be skipped on pull_request. Flag skippable jobs and workflow path/branch filters; unknown for uses: and undecidable expressions; reuse extractors; warn by default. Requiredness stays on #4012.\n\nBound contract: successor lean 5918173918\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nRound-1 critic 5918162570 headings accepted into Prefer-A lean 5918173918. Pain-audit 5918203213 footnote-only; no Bound-remedy harvest change. Verified-claims table posted as the prior comment. Yolo standing confirms the all-accept map.\n\n",
+          "id": 5918209223,
+          "html_url": "https://github.com/deftai/directive/issues/4015#issuecomment-5918209223",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:29:46Z",
+          "updated_at": "2026-09-30T19:29:46Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n`verify:consumer-check-contract` answers whether a gate command is *present* in consumer CI text. It never answers whether the job carrying that command *runs on a pull request*.\n\nA consumer that adds a job-level `if:`, a workflow-level `paths:` / `paths-ignore:` filter, `continue-on-error: true`, or a matrix exclusion disarms its own quality gate on the merge path while the verifier keeps reporting the project clean. The common case is accidental: someone trims runner minutes, the gate stops executing on PRs, and nothing says so.\n\n## Measured at `fb9ece05e881d91b75a5bada1ea37d535c677f7d`\n\n| Observation | Evidence | Reading |\n|---|---|---|\n| The CI read is concatenated text | `packages/core/src/consumer-check-contract/evaluate.ts:1066` — `allCi = [...workflows.values()].join(\"\\n\")`, handed to `extractWorkflowRunCommands` | measured |\n| Evasion detection is shell-level only | `lineMasksShellStatus:395`, `lineHasBackgroundJob:415`, `lineMasksCheckFailure:432` — `\\|\\| true`, backgrounding, quoted impersonation | measured |\n| No job-graph model exists | a search of `evaluate.ts` for `jobs:`, `needs:`, `if:` matches only the two concatenation lines above; `continue-on-error` and `paths-ignore` appear nowhere in the file | measured |\n| CI-surface omissions warn by default | `content/docs/consumer-check-contract.md:17` | measured |\n| A job skipped by a condition reports success and does not block a required check; a workflow skipped by path or branch filtering leaves its checks pending and does block | GitHub documentation — \"Troubleshooting required status checks\" § Handling skipped but required checks, and \"Control jobs with conditions\" | measured, vendor primary source |\n\nProvenance: this gap was surfaced as the first `blocks-the-design` finding of the #4012 critique arc (comment 5480712638) and re-derived independently for this filing.\n\n## Proposed outcome\n\nOne deterministic, warn-first check with one remediation string, answering a single question: **can the job that runs the consumer's gate be skipped on `pull_request`?**\n\nIt reads the consumer's own workflow YAML. No API call, no token, no branch-protection read, no new permission.\n\n## Required behavior\n\n- Parse consumer workflow files as YAML rather than as concatenated text, and locate the job or jobs whose `run:` / `script:` lines invoke the composing entrypoint or a named gate. Reuse the existing command extractors; do not fork them.\n- Flag a gate job that carries a condition able to evaluate false on `pull_request`, carries `continue-on-error: true`, or is removed by a `strategy.matrix` exclusion.\n- Flag workflow-level `paths:` / `paths-ignore:` / `branches:` filters that can skip the whole workflow on a pull request, and name the consequence: a required context that never reports stays pending and blocks the merge.\n- Accept `if: always()` and conditions true on `pull_request` by construction.\n- Report `unknown` with the reason — never clean — for shapes the analysis cannot statically read: `uses:` reusable-workflow or composite indirection, and expressions referencing `github.event.*`, `vars`, or `secrets`.\n- One remediation string naming the file, the job, and the repair.\n- Warn by default, matching the current CI-surface posture. Promotion to fail-closed is a separate policy step, not part of this slice.\n\n## Acceptance\n\n- [ ] Fixture: unconditional gate job reports clean.\n- [ ] Fixture: job-level `if:` that can be false on `pull_request` is flagged.\n- [ ] Fixture: `continue-on-error: true` on the gate job is flagged.\n- [ ] Fixture: workflow-level `paths:` filter is flagged, with the pending-required-check consequence in the message.\n- [ ] Fixture: `if: always()` reports clean.\n- [ ] Fixture: `uses:` indirection reports unknown with its reason, and never clean.\n- [ ] Existing text-level detectors keep their behavior — no regression in `evaluate.test.ts`.\n- [ ] Docs state the two limits: this is an accident detector, not protection against a contributor who edits workflow files (#3687 residual); and GitHub expressions are not fully statically decidable, so `unknown` is a real verdict.\n- [ ] CHANGELOG `[Unreleased]` entry.\n\n## Non-goals\n\n- **Requiredness** — whether a gated job is a required status check. That half needs the branch-protection or ruleset view and stays on #4012, where a fixture can measure whether `GET /repos/{owner}/{repo}/branches/{branch}` exposes `protection.required_status_checks` to a `contents: read` token, and whether ruleset-required checks appear there at all. Both are unmeasured today; the #4012 panel marked the permission question asserted, not measured.\n- Any lifecycle-only CI lane or skip mechanism (#4012).\n- A security control against deliberate workflow edits (#3687).\n- A general provenance model for framework-authored changes (#3631).\n- Rewriting a consumer's workflow YAML. This check reads and reports.\n\nRelated: #4012, #3687, #3631, #3678, #967.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5302347164,
+        "origin": "deftai/directive#4015",
+        "id": "github.issue.5302347164"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "277462eb0f37df15d1085b5cb2ea9df5d7edefa2cda2b91a34403d6a4260747a"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/consumer-check-contract/**",
+          "packages/core/tests/**",
+          "CHANGELOG.md",
+          "content/docs/**"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/consumer-check-contract"
+        ],
+        "expected_outputs": [
+          "job-graph reachability verdict",
+          "unknown for uses/undecidable"
+        ],
+        "depends_on": [],
+        "conflict_group": "consumer-check-contract-reachability",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "default",
+        "parallel_safe": true,
+        "readiness": "ready"
+      },
+      "productPullRequest": 5240,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5240,
+        "prBase": null,
+        "mergeCommit": "e36ff3803ddd0943f12bc16eca9f9cd68a3455e8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "68b51145a019fcd543dced56008214d7022ce0e9",
+        "verifiedAt": "2026-10-02T04:06:28Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGZhYmEtY2ZiZS03ZjkwLTkyYTgtNWUwZjhlOTA0OGNh"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-02T04:06:28Z",
+      "completedSessionId": "host:grok:v1:MDFhMGZhYmEtY2ZiZS03ZjkwLTkyYTgtNWUwZjhlOTA0OGNh",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-02T04:06:28Z"
+      }
+    },
+    "id": "github.issue.5302347164",
+    "updated": "2026-10-02T04:06:28Z"
+  }
+}
