@@ -403,6 +403,64 @@ jobs:
     expect(reachabilityOf(ci).map((f) => f.kind)).toContain("skippable-if");
   });
 
+  it("keeps step if:/run:/continue-on-error when step starts with - env:", () => {
+    const ci = `
+on:
+  pull_request:
+jobs:
+  check:
+    steps:
+      - env:
+          FOO: bar
+          if: always()
+        if: github.event_name == 'push'
+        run: task check
+        continue-on-error: true
+`;
+    const graph = parseWorkflowJobGraph(ci);
+    const gate = graph.jobs[0]?.steps.find((s) => (s.runText ?? "").includes("task check"));
+    expect(gate?.ifExpr).toMatch(/push/);
+    expect(gate?.continueOnError).toBe(true);
+    expect(gate?.runText).toMatch(/task check/);
+    const kinds = reachabilityOf(ci).map((f) => f.kind);
+    expect(kinds).toContain("skippable-if");
+    expect(kinds).toContain("continue-on-error");
+  });
+
+  it("keeps step if:/run: when step starts with - with:", () => {
+    const ci = `
+on:
+  pull_request:
+jobs:
+  check:
+    steps:
+      - with:
+          path: .
+        if: github.event_name == 'push'
+        run: task check
+`;
+    const graph = parseWorkflowJobGraph(ci);
+    const gate = graph.jobs[0]?.steps.find((s) => (s.runText ?? "").includes("task check"));
+    expect(gate?.ifExpr).toMatch(/push/);
+    expect(gate?.runText).toMatch(/task check/);
+    expect(reachabilityOf(ci).map((f) => f.kind)).toContain("skippable-if");
+  });
+
+  it("flags step-level expression continue-on-error on the gate run", () => {
+    const ci = `
+on:
+  pull_request:
+jobs:
+  check:
+    steps:
+      - run: task check
+        continue-on-error: \${{ matrix.allow_failure }}
+`;
+    const findings = reachabilityOf(ci);
+    expect(findings.some((f) => f.kind === "continue-on-error")).toBe(true);
+    expect(findings.some((f) => f.detail.includes("expression"))).toBe(true);
+  });
+
   it("does not let unrelated unknown-uses hide missing gate invocations", () => {
     const ci = `
 on:

@@ -288,6 +288,14 @@ function readBlockOrScalarRun(
   return parseScalarRemainder(trimmed);
 }
 
+/** True when env:/with: value continues as a nested block (not inline scalar/flow). */
+function opensNestedStepMap(valueRest: string): boolean {
+  const rest = valueRest.trim();
+  if (rest.length === 0) return true;
+  if (rest === "|" || rest === ">" || rest.startsWith("|") || rest.startsWith(">")) return true;
+  return false;
+}
+
 function parseJobSteps(lines: readonly string[], baseIndent: number | null): WorkflowStepNode[] {
   if (baseIndent === null) return [];
   // `steps:` is a job-level key (same indent as if: / runs-on:).
@@ -311,6 +319,8 @@ function parseJobSteps(lines: readonly string[], baseIndent: number | null): Wor
   let itemIndent: number | null = null;
   /** Indent of direct step keys (`if:`/`run:`/`env:`); nested map keys are deeper. */
   let stepFieldIndent: number | null = null;
+  /** While set, skip lines deeper than this nest key (env:/with: children). */
+  let nestKeyIndent: number | null = null;
   let stepIf: string | null = null;
   let stepCoe: ContinueOnErrorClass = false;
   let stepRun: string | null = null;
@@ -321,6 +331,7 @@ function parseJobSteps(lines: readonly string[], baseIndent: number | null): Wor
     inStep = false;
     itemIndent = null;
     stepFieldIndent = null;
+    nestKeyIndent = null;
     stepIf = null;
     stepCoe = false;
     stepRun = null;
@@ -344,6 +355,14 @@ function parseJobSteps(lines: readonly string[], baseIndent: number | null): Wor
       inStep = true;
       itemIndent = indent;
       const rest = (listItem[1] ?? "").trim();
+      // `- env:` / `- with:` — sibling fields align with the key after `- `.
+      const nestInline = /^(?:env|with)\s*:\s*(.*)$/i.exec(rest);
+      if (nestInline !== null) {
+        const dashPrefix = /^-\s+/.exec(stripped);
+        const fieldIndent = indent + (dashPrefix?.[0].length ?? 2);
+        stepFieldIndent = fieldIndent;
+        if (opensNestedStepMap(nestInline[1] ?? "")) nestKeyIndent = fieldIndent;
+      }
       const inlineIf = /^if\s*:\s*(.*)$/i.exec(rest);
       if (inlineIf !== null) stepIf = parseIfScalar(inlineIf[1] ?? "", lines, i, indent);
       const inlineCoe = /^continue-on-error\s*:\s*(.*)$/i.exec(rest);
@@ -355,23 +374,46 @@ function parseJobSteps(lines: readonly string[], baseIndent: number | null): Wor
 
     if (!inStep || itemIndent === null || indent <= itemIndent) continue;
 
-    // Only direct step fields — ignore nested keys under env:/with:/etc. (env.if overwrite).
-    if (stepFieldIndent === null) stepFieldIndent = indent;
-    if (indent !== stepFieldIndent) continue;
+    // Leave env:/with: nest when indent returns to the nest key column.
+    if (nestKeyIndent !== null && indent <= nestKeyIndent) {
+      nestKeyIndent = null;
+    }
+    if (nestKeyIndent !== null) continue;
 
+    // Open nest for block-form env:/with: without locking indent from nested children.
+    const nestField = /^(?:env|with)\s*:\s*(.*)$/i.exec(stripped);
+    if (nestField !== null) {
+      if (stepFieldIndent === null) stepFieldIndent = indent;
+      if (indent !== stepFieldIndent) continue;
+      if (opensNestedStepMap(nestField[1] ?? "")) nestKeyIndent = indent;
+      continue;
+    }
+
+    // Only known direct step fields set/use stepFieldIndent (not nested map values).
     const ifMatch = /^if\s*:\s*(.*)$/i.exec(stripped);
     if (ifMatch !== null) {
+      if (stepFieldIndent === null) stepFieldIndent = indent;
+      if (indent !== stepFieldIndent) continue;
       stepIf = parseIfScalar(ifMatch[1] ?? "", lines, i, indent);
       continue;
     }
     const coe = /^continue-on-error\s*:\s*(.*)$/i.exec(stripped);
     if (coe !== null) {
+      if (stepFieldIndent === null) stepFieldIndent = indent;
+      if (indent !== stepFieldIndent) continue;
       stepCoe = parseContinueOnErrorValue(coe[1] ?? "");
       continue;
     }
     const runMatch = /^(?:run|script)\s*:\s*(.*)$/i.exec(stripped);
     if (runMatch !== null) {
+      if (stepFieldIndent === null) stepFieldIndent = indent;
+      if (indent !== stepFieldIndent) continue;
       stepRun = readBlockOrScalarRun(runMatch[1] ?? "", lines, i, indent);
+      continue;
+    }
+    // Other direct step keys (name/uses/…) may establish the field column.
+    if (/^(?:name|id|uses|shell|working-directory|timeout-minutes)\s*:/i.test(stripped)) {
+      if (stepFieldIndent === null) stepFieldIndent = indent;
     }
   }
   flushStep();

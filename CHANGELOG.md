@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`verify:consumer-check-contract` reachability: do not let `- env:`/`- with:` nested maps steal step-field indent (#4015).** Gate step `if:` / `run:` / `continue-on-error` after a leading env/with block stay visible so skippable or soft-fail gates cannot read clean. Tracking #4015.
+
 ### Removed
 
 ## [0.119.13] - 2026-10-02
