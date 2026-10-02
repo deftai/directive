@@ -199,8 +199,27 @@ export function acceptDispatchPostcondition(input: {
     return fail("dispatch-failure", "missing", ["bound set empty after sort"], toolCalls);
   }
 
-  // Child claimed ids are untrusted: they never bind alone, and a stale/wrong
-  // claim must not veto a parent-verified obligation-bound post.
+  // Child claimed ids never bind alone. On repeat seat/round dispatch, a
+  // bad/nonexistent claim must not credit an earlier matching comment as
+  // success for this handback (Prefer-A returned failure).
+  const claimed = input.handback?.claimedCommentId;
+  if (
+    claimed !== undefined &&
+    claimed !== null &&
+    !bound.some((comment: VerifiedThreadComment) => comment.id === claimed)
+  ) {
+    return fail(
+      "dispatch-failure",
+      "mismatch",
+      [
+        `child claimed comment id ${String(claimed)} is not among obligation-bound parent reads`,
+        "earlier matching comments do not credit a bad or nonexistent handback claim",
+        "child-supplied artifact ids are untrusted",
+      ],
+      toolCalls,
+    );
+  }
+
   return {
     accepted: true,
     deliveryStatus: "verified",

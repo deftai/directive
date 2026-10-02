@@ -175,6 +175,8 @@ export function evaluatePanelSeatDelivery(input: {
       verification: input.verification,
       handback: claim,
     });
+    // Accepted only when this dispatch's handback binds; earlier matching
+    // comments alone never flip countsAsPostedSibling (repeat-dispatch).
     rows.push({
       seatId: seat.seatId,
       verdict,

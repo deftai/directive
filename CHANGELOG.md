@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Dispatch postcondition repeat-dispatch claims (#3979).** A bad/nonexistent handback comment id no longer credits an earlier matching seat/round comment as success; missing handbacks stay fail-closed. Tracking #3979.
+
 ### Removed
 
 ## [0.119.13] - 2026-10-02

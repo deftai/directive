@@ -172,7 +172,7 @@ describe("acceptDispatchPostcondition (#3979)", () => {
     expect(verdict.reasons.join(" ")).toMatch(/never accepts/i);
   });
 
-  it("wrong-issue verification is mismatch; stale claimed id does not veto verified post", () => {
+  it("wrong-issue verification is mismatch", () => {
     const wrongIssue = acceptDispatchPostcondition({
       postcondition: POSTCONDITION,
       verification: threadOk([{ id: 5918223700, body: criticBody("grok") }], 3961),
@@ -183,18 +183,22 @@ describe("acceptDispatchPostcondition (#3979)", () => {
       deliveryStatus: "dispatch-failure",
       failClass: "mismatch",
     });
+  });
 
+  it("repeat dispatch: nonexistent claim does not credit an earlier matching comment", () => {
     const staleClaim = acceptDispatchPostcondition({
       postcondition: POSTCONDITION,
       verification: threadOk([{ id: 5918223700, body: criticBody("grok") }]),
-      handback: { hostSuccess: true, claimedCommentId: 5470174383 },
+      handback: { hostSuccess: true, claimedCommentId: 5470174383, toolCallCount: 0 },
     });
     expect(staleClaim).toMatchObject({
-      accepted: true,
-      deliveryStatus: "verified",
-      failClass: "none",
-      boundCommentId: 5918223700,
+      accepted: false,
+      deliveryStatus: "dispatch-failure",
+      failClass: "mismatch",
+      boundCommentId: null,
+      complementaryToolCallCount: 0,
     });
+    expect(staleClaim.reasons.join(" ")).toMatch(/earlier matching|nonexistent|untrusted/i);
   });
 
   it("old-round and parent-comment artifacts do not satisfy the seat obligation", () => {

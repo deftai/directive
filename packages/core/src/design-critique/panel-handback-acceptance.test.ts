@@ -197,4 +197,38 @@ describe("evaluatePanelSeatDelivery (#3979 panel consumption)", () => {
     expect(grok?.countsAsPostedSibling).toBe(false);
     expect(grok?.verdict.failClass).toBe("missing");
   });
+
+  it("repeat dispatch: nonexistent handback claim does not credit earlier matching comment", () => {
+    const verdict = evaluatePanelSeatDelivery({
+      issueNumber: 3979,
+      round: 1,
+      inputCeilingCommentId: CEILING,
+      expectedSeats: [{ seatId: "grok" }, { seatId: "claude" }],
+      verification: {
+        kind: "thread",
+        status: "ok",
+        issueNumber: 3979,
+        comments: [
+          { id: CEILING, body: deposit().body },
+          { id: 5918223700, body: critic(5918223700, "grok").body },
+          { id: 5918299614, body: critic(5918299614, "claude").body },
+        ],
+      },
+      handbacks: [
+        {
+          seatId: "grok",
+          hostSuccess: true,
+          claimedCommentId: 5470572756,
+          toolCallCount: 0,
+        },
+        { seatId: "claude", hostSuccess: true, claimedCommentId: 5918299614 },
+      ],
+    });
+    expect(verdict.verifiedPostedSeatIds).toEqual(["claude"]);
+    expect(verdict.dispatchFailedSeatIds).toContain("grok");
+    const grok = verdict.rows.find((row) => row.seatId === "grok");
+    expect(grok?.countsAsPostedSibling).toBe(false);
+    expect(grok?.verdict.accepted).toBe(false);
+    expect(grok?.verdict.failClass).toBe("mismatch");
+  });
 });
