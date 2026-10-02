@@ -54,6 +54,8 @@ describe("parseArgs", () => {
       issue: null,
       quiet: false,
       skipGh: false,
+      discover: null,
+      enforce: false,
     });
   });
 
@@ -70,6 +72,8 @@ describe("parseArgs", () => {
         "3476",
         "--quiet",
         "--skip-gh",
+        "--discover",
+        "--enforce",
       ]),
     ).toMatchObject({
       projectRoot: "/root",
@@ -78,7 +82,13 @@ describe("parseArgs", () => {
       issue: 3476,
       quiet: true,
       skipGh: true,
+      discover: true,
+      enforce: true,
     });
+  });
+
+  it("parses --no-discover", () => {
+    expect(parseArgs(["--no-discover"])).toMatchObject({ discover: false });
   });
 
   it("parses equals-form flags", () => {

@@ -6,4 +6,5 @@ export * from "./event.js";
 export * as eventDetect from "./event-detect.js";
 export * as events from "./events.js";
 export * as lifecycleHygiene from "./lifecycle-hygiene.js";
+export * from "./shipped-closed-discovery.js";
 export * from "./stats.js";
