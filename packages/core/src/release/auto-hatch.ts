@@ -171,17 +171,19 @@ export function extractCoverageDebtCitationsFromChangelog(
 
 /**
  * Parse `--allow-skip-ci=#N` / `allow-skip-ci=#N` spend markers from CHANGELOG
- * Unreleased + recent version sections (#5239 S1). Same window shape as
- * coverage-debt citations so a prior production cut that already spent an
- * incident citation remains unpaid for later reuse even after the issue closes.
+ * Unreleased + all version sections by default (#5239 S1). Unlike coverage-debt
+ * (recent-window), skip-ci unpaid reuse must see the full spend history so an
+ * older closed citation (e.g. #5107 in 0.119.10) stays unpaid after close.
+ * Pass a finite `maxVersionSections` only in tests that assert a narrow window.
  */
 export function extractSkipCiIncidentCitationsFromChangelog(
   changelog: string,
-  maxVersionSections = 3,
+  maxVersionSections: number = Number.POSITIVE_INFINITY,
 ): number[] {
   const versionHeader = /^## \[(?!Unreleased)/m;
   const parts = changelog.split(versionHeader);
-  const windows = [parts[0] ?? "", ...parts.slice(1, maxVersionSections + 1)];
+  const versionEnd = Number.isFinite(maxVersionSections) ? maxVersionSections + 1 : undefined;
+  const windows = [parts[0] ?? "", ...parts.slice(1, versionEnd)];
   const found = new Set<number>();
   const re = /allow-skip-ci=#?(\d+)/gi;
   for (const section of windows) {

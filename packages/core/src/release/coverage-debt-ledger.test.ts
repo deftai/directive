@@ -4,7 +4,7 @@ import { probeSkipCiIncidentLedger } from "./coverage-debt-ledger.js";
 import { parseAllowUnpaidSkipCiArgv, validateSkipCiUnpaidLedger } from "./skip-ci-incident.js";
 
 describe("skip-ci CHANGELOG spend scan (#5239 S1)", () => {
-  it("extracts allow-skip-ci citations from Unreleased + recent versions", () => {
+  it("extracts allow-skip-ci citations from full CHANGELOG spend history", () => {
     const cl = [
       "## [Unreleased]",
       "",
@@ -13,15 +13,22 @@ describe("skip-ci CHANGELOG spend scan (#5239 S1)", () => {
       "## [0.119.13]",
       "Step 5 skipped with --allow-skip-ci=5239 after hang.",
       "",
+      "## [0.119.12]",
+      "no spend",
+      "",
+      "## [0.119.11]",
+      "no spend",
+      "",
+      // Fourth released section — must still be found (Greptile P1 on #5239).
       "## [0.119.10]",
       "Step 5 skipped with --allow-skip-ci=5107 after flake.",
       "",
       "## [0.119.9]",
       "allow-skip-ci=#9999",
     ].join("\n");
-    // Default window: Unreleased + 3 version sections → 5239, 5107, 9999
     expect(extractSkipCiIncidentCitationsFromChangelog(cl)).toEqual([5107, 5239, 9999]);
     expect(extractSkipCiIncidentCitationsFromChangelog(cl, 1)).toEqual([5239]);
+    expect(extractSkipCiIncidentCitationsFromChangelog(cl, 3)).toEqual([5239]);
   });
 });
 
