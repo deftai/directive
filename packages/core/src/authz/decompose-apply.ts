@@ -12,7 +12,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
-import { type MintGrantInput, mintHumanOriginGrant } from "./actions.js";
+import { type MintGrantInput, type MintGrantResult, mintHumanOriginGrant } from "./actions.js";
 import {
   evidenceSatisfiesImplementationApproval,
   isHumanOriginGrant,
@@ -463,7 +463,7 @@ export interface MintDecomposeStructuralApplyGrantInput {
  */
 export function mintDecomposeStructuralApplyGrant(
   input: MintDecomposeStructuralApplyGrantInput,
-): HumanOriginGrant {
+): MintGrantResult {
   const parentRel = toProjectRelativePosix(input.projectRoot, input.parentPath);
   const targetRel = toProjectRelativePosix(input.projectRoot, input.draftPath);
   if (parentRel === null || targetRel === null) {

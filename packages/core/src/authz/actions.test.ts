@@ -3,16 +3,46 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  mintHumanOriginGrant,
-  revokeGrant,
+  mintHumanOriginGrant as mintHumanOriginGrantResult,
+  revokeGrant as revokeGrantResult,
   showAuthzSnapshot,
-  startUatLease,
-  suspendUatLease,
+  startUatLease as startUatLeaseResult,
+  suspendUatLease as suspendUatLeaseResult,
 } from "./actions.js";
 import { describeScope, shouldConsumeSingleUseGrant } from "./evaluate.js";
 import { isHumanOriginGrant } from "./origin.js";
 import { authzGrantPath } from "./paths.js";
 import { uatCampaignEndSeal } from "./uat-write-guard.js";
+
+/** Test unwraps for #4233 Result-returning actions (throws free in *.test.ts). */
+function mintHumanOriginGrant(
+  ...args: Parameters<typeof mintHumanOriginGrantResult>
+): import("./types.js").HumanOriginGrant {
+  const r = mintHumanOriginGrantResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return r.grant;
+}
+function startUatLease(
+  ...args: Parameters<typeof startUatLeaseResult>
+): { state: import("./types.js").AuthzState; lease: import("./types.js").UatLease } {
+  const r = startUatLeaseResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return { state: r.state, lease: r.lease };
+}
+function suspendUatLease(
+  ...args: Parameters<typeof suspendUatLeaseResult>
+): import("./types.js").AuthzState {
+  const r = suspendUatLeaseResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return r.state;
+}
+function revokeGrant(
+  ...args: Parameters<typeof revokeGrantResult>
+): import("./types.js").HumanOriginGrant | null {
+  const r = revokeGrantResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return r.grant;
+}
 
 const roots: string[] = [];
 afterEach(() => {

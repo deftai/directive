@@ -5,7 +5,34 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { mintHumanOriginGrant, startUatLease, suspendUatLease } from "./actions.js";
+import {
+  mintHumanOriginGrant as mintHumanOriginGrantResult,
+  startUatLease as startUatLeaseResult,
+  suspendUatLease as suspendUatLeaseResult,
+} from "./actions.js";
+
+/** Test unwraps for #4233 Result-returning actions (throws free in *.test.ts). */
+function mintHumanOriginGrant(
+  ...args: Parameters<typeof mintHumanOriginGrantResult>
+): import("./types.js").HumanOriginGrant {
+  const r = mintHumanOriginGrantResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return r.grant;
+}
+function startUatLease(
+  ...args: Parameters<typeof startUatLeaseResult>
+): { state: import("./types.js").AuthzState; lease: import("./types.js").UatLease } {
+  const r = startUatLeaseResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return { state: r.state, lease: r.lease };
+}
+function suspendUatLease(
+  ...args: Parameters<typeof suspendUatLeaseResult>
+): import("./types.js").AuthzState {
+  const r = suspendUatLeaseResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return r.state;
+}
 import {
   listActiveHumanGrants,
   loadAuthzState,

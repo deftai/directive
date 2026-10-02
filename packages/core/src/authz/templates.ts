@@ -8,9 +8,13 @@
  *   that agents can self-mint as alternate permission.
  */
 
-import { type MintGrantInput, mintHumanOriginGrant } from "./actions.js";
+import {
+  type MintGrantInput,
+  type MintGrantResult,
+  mintHumanOriginGrant,
+} from "./actions.js";
 import { normaliseClosedVerbTarget, targetSurfaceCandidates } from "./closed-verb.js";
-import type { AuthzOperation, HumanOriginGrant } from "./types.js";
+import type { AuthzOperation } from "./types.js";
 import {
   builtinReleaseVerbClassification,
   getVerbRow,
@@ -203,7 +207,7 @@ export function resolveFinishLoopTemplate(input: {
  * Mint a human-origin grant for an AFK closed-verb template.
  * **Sole mint path:** mintHumanOriginGrant (operator-cli). No session-auth SoT.
  */
-export function mintClosedVerbTemplateGrant(input: MintClosedVerbTemplateInput): HumanOriginGrant {
+export function mintClosedVerbTemplateGrant(input: MintClosedVerbTemplateInput): MintGrantResult {
   // Production dual-mint guard: templates never open an independent session-auth mint.
   const dualMint = assertNoIndependentSessionAuthMint();
   if (dualMint.sessionAuthIsAuthority || dualMint.mintPath !== "mintHumanOriginGrant") {
@@ -240,7 +244,9 @@ export function mintClosedVerbTemplateGrant(input: MintClosedVerbTemplateInput):
  * Covers edit/push/pr/merge only — never release-cut / release-publish / release-rollback.
  * **Sole mint path:** mintHumanOriginGrant (operator-cli).
  */
-export function mintFinishLoopTemplateGrant(input: MintFinishLoopTemplateInput): HumanOriginGrant {
+export function mintFinishLoopTemplateGrant(
+  input: MintFinishLoopTemplateInput,
+): MintGrantResult {
   const dualMint = assertNoIndependentSessionAuthMint();
   if (dualMint.sessionAuthIsAuthority || dualMint.mintPath !== "mintHumanOriginGrant") {
     throw new Error(
@@ -296,7 +302,7 @@ export function mintAfkTemplateGrant(input: {
   readonly pinActive?: boolean;
   readonly eventRef?: string | null;
   readonly durationHours?: number;
-}): HumanOriginGrant {
+}): MintGrantResult {
   const name = input.template.trim().toLowerCase();
   if (isFinishLoopTemplateName(name)) {
     return mintFinishLoopTemplateGrant({

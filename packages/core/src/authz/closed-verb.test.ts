@@ -13,12 +13,29 @@ import {
   isAfkTemplateName,
   isClosedVerbTemplateName,
   isFinishLoopTemplateName,
-  mintAfkTemplateGrant,
-  mintClosedVerbTemplateGrant,
-  mintFinishLoopTemplateGrant,
+  mintAfkTemplateGrant as mintAfkTemplateGrantResult,
+  mintClosedVerbTemplateGrant as mintClosedVerbTemplateGrantResult,
+  mintFinishLoopTemplateGrant as mintFinishLoopTemplateGrantResult,
   resolveClosedVerbTemplate,
   resolveFinishLoopTemplate,
 } from "./templates.js";
+
+function mintClosedVerbTemplateGrant(...args: Parameters<typeof mintClosedVerbTemplateGrantResult>) {
+  const r = mintClosedVerbTemplateGrantResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return r.grant;
+}
+function mintAfkTemplateGrant(...args: Parameters<typeof mintAfkTemplateGrantResult>) {
+  const r = mintAfkTemplateGrantResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return r.grant;
+}
+function mintFinishLoopTemplateGrant(...args: Parameters<typeof mintFinishLoopTemplateGrantResult>) {
+  const r = mintFinishLoopTemplateGrantResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return r.grant;
+}
+
 import type { HumanOriginGrant } from "./types.js";
 import {
   builtinReleaseVerbClassification,

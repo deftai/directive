@@ -1,6 +1,10 @@
 /**
  * Operator-facing authz actions: UAT start/suspend, grant mint/revoke (#2944).
  * All mint paths stamp human-origin `operator-cli` provenance.
+ *
+ * UAT store-write refuse (#4233) surfaces as returned failures from these
+ * actions (and from saveGrant/saveAuthzState). Validation of empty campaignId /
+ * operations keeps the pre-existing throw sites.
  */
 
 import { randomBytes } from "node:crypto";
@@ -15,7 +19,7 @@ import {
 } from "./store.js";
 import type { AuthzOperation, AuthzState, HumanOriginGrant, UatLease } from "./types.js";
 import { AUTHZ_OPERATIONS } from "./types.js";
-import type { UatCampaignEndSeal } from "./uat-write-guard.js";
+import type { AuthzUatWriteRefuseCode, UatCampaignEndSeal } from "./uat-write-guard.js";
 
 function newGrantId(now?: Date): string {
   const ts = (now ?? new Date())
@@ -26,6 +30,13 @@ function newGrantId(now?: Date): string {
   return `grant-${ts}-${suffix}`;
 }
 
+/** Returned failure when store SoT refuses a write under active UAT (#4233). */
+export type AuthzActionWriteFailure = {
+  readonly ok: false;
+  readonly code: AuthzUatWriteRefuseCode;
+  readonly reason: string;
+};
+
 export interface StartUatInput {
   readonly projectRoot: string;
   readonly campaignId: string;
@@ -34,7 +45,11 @@ export interface StartUatInput {
   readonly now?: Date;
 }
 
-export function startUatLease(input: StartUatInput): { state: AuthzState; lease: UatLease } {
+export type StartUatResult =
+  | { readonly ok: true; readonly state: AuthzState; readonly lease: UatLease }
+  | AuthzActionWriteFailure;
+
+export function startUatLease(input: StartUatInput): StartUatResult {
   const actor = input.actor ?? "operator";
   const origin = mintOperatorOrigin(actor, "deft authz:uat-start", input.now);
   const lease: UatLease = {
@@ -57,9 +72,9 @@ export function startUatLease(input: StartUatInput): { state: AuthzState; lease:
   };
   const wrote = saveAuthzState(input.projectRoot, state);
   if (!wrote.ok) {
-    throw new Error(wrote.reason);
+    return { ok: false, code: wrote.code, reason: wrote.reason };
   }
-  return { state, lease };
+  return { ok: true, state, lease };
 }
 
 export interface SuspendUatInput {
@@ -73,10 +88,14 @@ export interface SuspendUatInput {
   readonly campaignEndSeal?: UatCampaignEndSeal;
 }
 
-export function suspendUatLease(input: SuspendUatInput): AuthzState {
+export type SuspendUatResult =
+  | { readonly ok: true; readonly state: AuthzState }
+  | AuthzActionWriteFailure;
+
+export function suspendUatLease(input: SuspendUatInput): SuspendUatResult {
   const prev = loadAuthzState(input.projectRoot);
   if (prev.uat === null || !prev.uat.active) {
-    return prev;
+    return { ok: true, state: prev };
   }
   const state: AuthzState = {
     schemaVersion: 1,
@@ -91,9 +110,9 @@ export function suspendUatLease(input: SuspendUatInput): AuthzState {
     campaignEndSeal: input.campaignEndSeal,
   });
   if (!wrote.ok) {
-    throw new Error(wrote.reason);
+    return { ok: false, code: wrote.code, reason: wrote.reason };
   }
-  return state;
+  return { ok: true, state };
 }
 
 export interface MintGrantInput {
@@ -123,7 +142,11 @@ export interface MintGrantInput {
   readonly targetPath?: string | null;
 }
 
-export function mintHumanOriginGrant(input: MintGrantInput): HumanOriginGrant {
+export type MintGrantResult =
+  | { readonly ok: true; readonly grant: HumanOriginGrant }
+  | AuthzActionWriteFailure;
+
+export function mintHumanOriginGrant(input: MintGrantInput): MintGrantResult {
   if (input.operations.length === 0) {
     throw new Error("operations must include at least one AuthzOperation");
   }
@@ -166,7 +189,7 @@ export function mintHumanOriginGrant(input: MintGrantInput): HumanOriginGrant {
   };
   const saved = saveGrant(input.projectRoot, grant);
   if (!saved.ok) {
-    throw new Error(saved.reason);
+    return { ok: false, code: saved.code, reason: saved.reason };
   }
   if (input.pinActive) {
     const prev = loadAuthzState(input.projectRoot);
@@ -178,10 +201,10 @@ export function mintHumanOriginGrant(input: MintGrantInput): HumanOriginGrant {
       activeGrantIds: [...ids],
     });
     if (!pinned.ok) {
-      throw new Error(pinned.reason);
+      return { ok: false, code: pinned.code, reason: pinned.reason };
     }
   }
-  return grant;
+  return { ok: true, grant };
 }
 
 export interface RevokeGrantInput {
@@ -190,10 +213,14 @@ export interface RevokeGrantInput {
   readonly now?: Date;
 }
 
-export function revokeGrant(input: RevokeGrantInput): HumanOriginGrant | null {
+export type RevokeGrantResult =
+  | { readonly ok: true; readonly grant: HumanOriginGrant | null }
+  | AuthzActionWriteFailure;
+
+export function revokeGrant(input: RevokeGrantInput): RevokeGrantResult {
   const all = listGrants(input.projectRoot);
   const found = all.find((g) => g.id === input.grantId);
-  if (found === undefined) return null;
+  if (found === undefined) return { ok: true, grant: null };
   const revoked: HumanOriginGrant = {
     ...found,
     semantics: {
@@ -203,9 +230,9 @@ export function revokeGrant(input: RevokeGrantInput): HumanOriginGrant | null {
   };
   const wrote = saveGrant(input.projectRoot, revoked);
   if (!wrote.ok) {
-    throw new Error(wrote.reason);
+    return { ok: false, code: wrote.code, reason: wrote.reason };
   }
-  return revoked;
+  return { ok: true, grant: revoked };
 }
 
 export function showAuthzSnapshot(projectRoot: string): {

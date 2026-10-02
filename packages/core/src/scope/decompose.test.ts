@@ -8,10 +8,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  mintDecomposeStructuralApplyGrant,
+  mintDecomposeStructuralApplyGrant as mintDecomposeStructuralApplyGrantResult,
   sha256FileHex,
   toProjectRelativePosix,
 } from "../authz/decompose-apply.js";
+
+function mintDecomposeStructuralApplyGrant(...args: Parameters<typeof mintDecomposeStructuralApplyGrantResult>) {
+  const r = mintDecomposeStructuralApplyGrantResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return r.grant;
+}
+
 import { loadGrant, saveGrant } from "../authz/store.js";
 import { SCOPE_DECOMPOSE_APPLY_STRUCTURAL } from "../authz/types.js";
 import { ContainedWriteError } from "../fs/contained-write.js";

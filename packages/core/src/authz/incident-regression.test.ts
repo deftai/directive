@@ -11,7 +11,16 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { decideHook, type HookPolicySeams } from "../hooks/dispatcher.js";
 import type { VerifyResult } from "../session/verify-session-ritual.js";
-import { startUatLease } from "./actions.js";
+import { startUatLease as startUatLeaseResult } from "./actions.js";
+
+/** Test unwraps for #4233 Result-returning actions (throws free in *.test.ts). */
+function startUatLease(
+  ...args: Parameters<typeof startUatLeaseResult>
+): { state: import("./types.js").AuthzState; lease: import("./types.js").UatLease } {
+  const r = startUatLeaseResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return { state: r.state, lease: r.lease };
+}
 import {
   classifyHookAuthzOps,
   harvestDestsOfWriteForRealpath,
