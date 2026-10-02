@@ -670,7 +670,10 @@ export function mutateAuthzState(
       writeJsonContained(projectRoot, authzStatePath(projectRoot), next);
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      return { ...storeWriteFail("store-write-io", `authz state write failed: ${reason}`), state: prev };
+      return {
+        ...storeWriteFail("store-write-io", `authz state write failed: ${reason}`),
+        state: prev,
+      };
     }
     return { ...decision, state: next };
   });
