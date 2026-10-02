@@ -1819,7 +1819,8 @@ export function printCommitGuidance(
 }
 
 function quoteGitPath(path: string): string {
-  if (/[\s"']/.test(path)) return `"${path.replace(/"/g, '\\"')}"`;
+  // Escape backslashes before quotes so Windows paths and embedded quotes stay literal.
+  if (/[\s"'\\]/.test(path)) return `"${path.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
   return path;
 }
 
