@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4233",
-    "updated": "2026-10-02T07:13:51Z"
+    "updated": "2026-10-02T07:23:28Z"
   },
   "plan": {
     "title": "AppSec: 1 HIGH @ 7236655e -- Incomplete #3110: node/tsx can mint/suspend UAT while authz:* CLI denies",
@@ -16,7 +16,7 @@
     "items": [
       {
         "id": "clause.1",
-        "title": "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` a",
+        "title": "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` and thus actions) for write-intent classes: grant create; authority-field mutate (scope / semantics.expiresAt / revokedAt / other non-consume fields); pin mutate. Classify intent against the on-disk grant so usedAt-only consume is not an exists-based waive and cannot widen authority fields.",
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
@@ -32,7 +32,7 @@
       },
       {
         "id": "clause.2",
-        "title": "Campaign-end is a separate sealed core entry (or options token) for `uat.active`",
+        "title": "Campaign-end is a separate sealed core entry (or options token) for `uat.active` true→false only. Only the CLI human-presence path may exercise it after `gateConfirm`. Do not make sealed campaign-end a stringly agent-passable flag in argv or grant JSON. Mint / grant-create / authority-field mutate / pin mutate stay unconditional UAT hard-refuse and must not reuse that sealed entry.",
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
@@ -48,7 +48,7 @@
       },
       {
         "id": "clause.3",
-        "title": "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulte",
+        "title": "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulted by those store writers. Do not move CLI `refuseMintWhileUatActive` stderr/exit helper into core; CLI keeps stderr + exit adaptation over the core decision.",
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
@@ -64,7 +64,7 @@
       },
       {
         "id": "clause.4",
-        "title": "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outs",
+        "title": "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outside UAT, keep today's empty-pin default. Do not bind \"UAT start empties the pin\" (`startUatLease` carries the pin forward).",
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
@@ -80,7 +80,7 @@
       },
       {
         "id": "clause.5",
-        "title": "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as",
+        "title": "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as the control. Literal classify of node/tsx symbol imports is optional defense-in-depth; if kept, emit unknown not settings.",
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
@@ -112,7 +112,7 @@
       },
       {
         "id": "clause.7",
-        "title": "Shared authority-state lock is optional concurrency defense-in-depth only; it do",
+        "title": "Shared authority-state lock is optional concurrency defense-in-depth only; it does not replace write-class refuse (a serialized widen is still a widen).",
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
@@ -128,7 +128,7 @@
       },
       {
         "id": "clause.8",
-        "title": "Thread evidence cites file, line, and classifier verdicts. No runnable mint/susp",
+        "title": "Thread evidence cites file, line, and classifier verdicts. No runnable mint/suspend payloads on this issue.",
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
@@ -190,60 +190,60 @@
       "source_rung": "derived",
       "derived_reason": "Prefer-A leftover pathless clauses from Bound plan.items after product PR #5241",
       "sentences": [
-        "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` a",
-        "Campaign-end is a separate sealed core entry (or options token) for `uat.active`",
-        "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulte",
-        "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outs",
-        "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as",
+        "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` and thus actions) for write-intent classes: grant create; authority-field mutate (scope / semantics.expiresAt / revokedAt / other non-consume fields); pin mutate. Classify intent against the on-disk grant so usedAt-only consume is not an exists-based waive and cannot widen authority fields.",
+        "Campaign-end is a separate sealed core entry (or options token) for `uat.active` true→false only. Only the CLI human-presence path may exercise it after `gateConfirm`. Do not make sealed campaign-end a stringly agent-passable flag in argv or grant JSON. Mint / grant-create / authority-field mutate / pin mutate stay unconditional UAT hard-refuse and must not reuse that sealed entry.",
+        "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulted by those store writers. Do not move CLI `refuseMintWhileUatActive` stderr/exit helper into core; CLI keeps stderr + exit adaptation over the core decision.",
+        "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outside UAT, keep today's empty-pin default. Do not bind \"UAT start empties the pin\" (`startUatLease` carries the pin forward).",
+        "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as the control. Literal classify of node/tsx symbol imports is optional defense-in-depth; if kept, emit unknown not settings.",
         "Human-presence stays the CLI gate, not a TTY check inside SoT.",
-        "Shared authority-state lock is optional concurrency defense-in-depth only; it do",
-        "Thread evidence cites file, line, and classifier verdicts. No runnable mint/susp",
+        "Shared authority-state lock is optional concurrency defense-in-depth only; it does not replace write-class refuse (a serialized widen is still a widen).",
+        "Thread evidence cites file, line, and classifier verdicts. No runnable mint/suspend payloads on this issue.",
         "Motion-process Bound stays on leftover #5188. Pain-field stays on #4514."
       ],
       "admitted_source_sentences": [
-        "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` a",
-        "Campaign-end is a separate sealed core entry (or options token) for `uat.active`",
-        "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulte",
-        "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outs",
-        "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as",
+        "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` and thus actions) for write-intent classes: grant create; authority-field mutate (scope / semantics.expiresAt / revokedAt / other non-consume fields); pin mutate. Classify intent against the on-disk grant so usedAt-only consume is not an exists-based waive and cannot widen authority fields.",
+        "Campaign-end is a separate sealed core entry (or options token) for `uat.active` true→false only. Only the CLI human-presence path may exercise it after `gateConfirm`. Do not make sealed campaign-end a stringly agent-passable flag in argv or grant JSON. Mint / grant-create / authority-field mutate / pin mutate stay unconditional UAT hard-refuse and must not reuse that sealed entry.",
+        "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulted by those store writers. Do not move CLI `refuseMintWhileUatActive` stderr/exit helper into core; CLI keeps stderr + exit adaptation over the core decision.",
+        "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outside UAT, keep today's empty-pin default. Do not bind \"UAT start empties the pin\" (`startUatLease` carries the pin forward).",
+        "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as the control. Literal classify of node/tsx symbol imports is optional defense-in-depth; if kept, emit unknown not settings.",
         "Human-presence stays the CLI gate, not a TTY check inside SoT.",
-        "Shared authority-state lock is optional concurrency defense-in-depth only; it do",
-        "Thread evidence cites file, line, and classifier verdicts. No runnable mint/susp",
+        "Shared authority-state lock is optional concurrency defense-in-depth only; it does not replace write-class refuse (a serialized widen is still a widen).",
+        "Thread evidence cites file, line, and classifier verdicts. No runnable mint/suspend payloads on this issue.",
         "Motion-process Bound stays on leftover #5188. Pain-field stays on #4514."
       ],
-      "admitted_source_digest": "950df3e63456b622a3b4610521f609b5b8d9741c50562f59f510f8b129cef1e8",
+      "admitted_source_digest": "a39529013530a5372741c34ddb57bf28b26c49dcad39003030bef48f9f7665de",
       "clauses": [
         {
           "id": 1,
-          "text": "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` a",
+          "text": "Under active UAT, hard-refuse at the store SoT (`saveGrant` / `saveAuthzState` and thus actions) for write-intent classes: grant create; authority-field mutate (scope / semantics.expiresAt / revokedAt / other non-consume fields); pin mutate. Classify intent against the on-disk grant so usedAt-only consume is not an exists-based waive and cannot widen authority fields.",
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-remedy"
         },
         {
           "id": 2,
-          "text": "Campaign-end is a separate sealed core entry (or options token) for `uat.active`",
+          "text": "Campaign-end is a separate sealed core entry (or options token) for `uat.active` true→false only. Only the CLI human-presence path may exercise it after `gateConfirm`. Do not make sealed campaign-end a stringly agent-passable flag in argv or grant JSON. Mint / grant-create / authority-field mutate / pin mutate stay unconditional UAT hard-refuse and must not reuse that sealed entry.",
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-remedy"
         },
         {
           "id": 3,
-          "text": "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulte",
+          "text": "Put a core pure predicate / throw-or-Result in `@deftai/directive-core` consulted by those store writers. Do not move CLI `refuseMintWhileUatActive` stderr/exit helper into core; CLI keeps stderr + exit adaptation over the core decision.",
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-remedy"
         },
         {
           "id": 4,
-          "text": "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outs",
+          "text": "Under active UAT, empty `activeGrantIds` activates no grants (fail closed). Outside UAT, keep today's empty-pin default. Do not bind \"UAT start empties the pin\" (`startUatLease` carries the pin forward).",
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-remedy"
         },
         {
           "id": 5,
-          "text": "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as",
+          "text": "Do not bind AC1 as three function names. Do not bind AC2/AC3 settings harvest as the control. Literal classify of node/tsx symbol imports is optional defense-in-depth; if kept, emit unknown not settings.",
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-remedy"
@@ -257,14 +257,14 @@
         },
         {
           "id": 7,
-          "text": "Shared authority-state lock is optional concurrency defense-in-depth only; it do",
+          "text": "Shared authority-state lock is optional concurrency defense-in-depth only; it does not replace write-class refuse (a serialized widen is still a widen).",
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-remedy"
         },
         {
           "id": 8,
-          "text": "Thread evidence cites file, line, and classifier verdicts. No runnable mint/susp",
+          "text": "Thread evidence cites file, line, and classifier verdicts. No runnable mint/suspend payloads on this issue.",
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-remedy"
