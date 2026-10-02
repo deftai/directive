@@ -1,0 +1,308 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3875",
+    "updated": "2026-10-02T19:42:39Z"
+  },
+  "plan": {
+    "title": "Route-table closeout invokers for prescribed merge paths (#3875)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(lifecycle): the merge-time closeout gate covers only pr:wait-mergeable-and-merge; other merge routes bypass it",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3875",
+      "Overview": "\n\nCarry forward lean 5918808916 Bound remedy in full, with this amend to the route-table minimum rows:\n\n- Every prescribed merge route either invokes `verify:pr-closeout-attestable` (thin invoker over the existing evaluator) or names the control that closes the row. Record supersession of #3781's single-cascade-call-site decision when adding invokers.\n- Minimum covered rows: cascade wait-mergeable (already); `pr:merge-ready` / prescribed manual sequence; human non-admin UI/CLI with a control named **independently of CI** (required-check home when CI is chosen; otherwise an explicit named open / accident-only statement — do not make human coverage a dependent clause of an optional CI row); CI `pull_request` / branch-gate-class home only if deliberately chosen.\n- `--admin` / admin UI: if Prefer-A keeps cascade `--admin`, those rows are closed against accident via in-process invokers, not against an actor who wants through.\n- Rewrite Acceptance (ingest body) to: refuse closing references against a running brief with unattested criteria; every prescribed route invokes or names its control; local/`push` with no PR number is an explicit skip (orphan-active owns post-merge). Drop \"does not move the brief\" and the withdrawn \"nothing invokes it\" framing. Keep #3868 outside this predicate.\n- Before closeout reads the tree: assert the tree is the PR head that merges (HEAD vs already-fetched PR head SHA, or forge blob); fail exit 2 on mismatch. Apply on cascade and every added working-tree invoker.\n- Edit `core-phase-5-6.md`, `scm/github.md`, and `commands.md` so they stop prescribing ungated `pr:merge-ready && gh pr merge`.\n- CI home if chosen: `pull_request` only. Keep accident-gate language for `recorded_by`. `verify:orphan-active` keeps post-merge role.\n- Non-goals unchanged from lean 5918808916.\n\nA critic after this lean naming audit-targets pain-P1, pain-P2, pain-P3 is required before ingest can complete.\n\n",
+      "Labels": "bug, design, agent-experience, process, source-of-truth, urgent, area:cli, legacy-arced, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Every prescribed merge route either invokes `verify:pr-closeout-attestable` (thi…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5258 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 82c48193436a41d66a27a22deac59c6442c1f934.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:42:08.113Z",
+            "mintedVia": "leftover-complete-after-5258"
+          },
+          "recorded_at": "2026-10-02T19:42:08.113Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Minimum covered rows: cascade wait-mergeable (already); `pr:merge-ready` / presc…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5258 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 82c48193436a41d66a27a22deac59c6442c1f934.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:42:08.113Z",
+            "mintedVia": "leftover-complete-after-5258"
+          },
+          "recorded_at": "2026-10-02T19:42:08.113Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "`--admin` / admin UI: if Prefer-A keeps cascade `--admin`, those rows are closed…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5258 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 82c48193436a41d66a27a22deac59c6442c1f934.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:42:08.113Z",
+            "mintedVia": "leftover-complete-after-5258"
+          },
+          "recorded_at": "2026-10-02T19:42:08.113Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Rewrite Acceptance (ingest body) to: refuse closing references against a running…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5258 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 82c48193436a41d66a27a22deac59c6442c1f934.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:42:08.113Z",
+            "mintedVia": "leftover-complete-after-5258"
+          },
+          "recorded_at": "2026-10-02T19:42:08.113Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Before closeout reads the tree: assert the tree is the PR head that merges (HEAD…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5258 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 82c48193436a41d66a27a22deac59c6442c1f934.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:42:08.113Z",
+            "mintedVia": "leftover-complete-after-5258"
+          },
+          "recorded_at": "2026-10-02T19:42:08.113Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Edit `core-phase-5-6.md`, `scm/github.md`, and `commands.md` so they stop prescr…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5258 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 82c48193436a41d66a27a22deac59c6442c1f934.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:42:08.113Z",
+            "mintedVia": "leftover-complete-after-5258"
+          },
+          "recorded_at": "2026-10-02T19:42:08.113Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "CI home if chosen: `pull_request` only. Keep accident-gate language for `recorde…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5258 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 82c48193436a41d66a27a22deac59c6442c1f934.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:42:08.113Z",
+            "mintedVia": "leftover-complete-after-5258"
+          },
+          "recorded_at": "2026-10-02T19:42:08.113Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "legacy-arced",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3875",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3875: bug(lifecycle): the merge-time closeout gate covers only pr:wait-mergeable-and-merge; other merge routes bypass it"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2321",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2321"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/pr-closeout-attestable"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "sentences": [
+        "Every prescribed merge route either invokes `verify:pr-closeout-attestable` (thin invoker over the existing evaluator) or names the control that closes the row. Record supersession of #3781's single-cascade-call-site decision when adding invokers.",
+        "Minimum covered rows: cascade wait-mergeable (already); `pr:merge-ready` / prescribed manual sequence; human non-admin UI/CLI with a control named independently of CI (required-check home when CI is chosen; otherwise an explicit named open / accident-only statement — do not make human coverage a dependent clause of an optional CI row); CI `pull_request` / branch-gate-class home only if deliberately chosen.",
+        "`--admin` / admin UI: if Prefer-A keeps cascade `--admin`, those rows are closed against accident via in-process invokers, not against an actor who wants through.",
+        "Rewrite Acceptance (ingest body) to: refuse closing references against a running brief with unattested criteria; every prescribed route invokes or names its control; local/`push` with no PR number is an explicit skip (orphan-active owns post-merge). Drop \"does not move the brief\" and the withdrawn \"nothing invokes it\" framing. Keep #3868 outside this predicate.",
+        "Before closeout reads the tree: assert the tree is the PR head that merges (HEAD vs already-fetched PR head SHA, or forge blob); fail exit 2 on mismatch. Apply on cascade and every added working-tree invoker.",
+        "Edit `core-phase-5-6.md`, `scm/github.md`, and `commands.md` so they stop prescribing ungated `pr:merge-ready && gh pr merge`.",
+        "CI home if chosen: `pull_request` only. Keep accident-gate language for `recorded_by`. `verify:orphan-active` keeps post-merge role."
+      ],
+      "admitted_source_sentences": [
+        "Every prescribed merge route either invokes `verify:pr-closeout-attestable` (thin invoker over the existing evaluator) or names the control that closes the row. Record supersession of #3781's single-cascade-call-site decision when adding invokers.",
+        "Minimum covered rows: cascade wait-mergeable (already); `pr:merge-ready` / prescribed manual sequence; human non-admin UI/CLI with a control named independently of CI (required-check home when CI is chosen; otherwise an explicit named open / accident-only statement — do not make human coverage a dependent clause of an optional CI row); CI `pull_request` / branch-gate-class home only if deliberately chosen.",
+        "`--admin` / admin UI: if Prefer-A keeps cascade `--admin`, those rows are closed against accident via in-process invokers, not against an actor who wants through.",
+        "Rewrite Acceptance (ingest body) to: refuse closing references against a running brief with unattested criteria; every prescribed route invokes or names its control; local/`push` with no PR number is an explicit skip (orphan-active owns post-merge). Drop \"does not move the brief\" and the withdrawn \"nothing invokes it\" framing. Keep #3868 outside this predicate.",
+        "Before closeout reads the tree: assert the tree is the PR head that merges (HEAD vs already-fetched PR head SHA, or forge blob); fail exit 2 on mismatch. Apply on cascade and every added working-tree invoker.",
+        "Edit `core-phase-5-6.md`, `scm/github.md`, and `commands.md` so they stop prescribing ungated `pr:merge-ready && gh pr merge`.",
+        "CI home if chosen: `pull_request` only. Keep accident-gate language for `recorded_by`. `verify:orphan-active` keeps post-merge role."
+      ],
+      "admitted_source_digest": "6a8cd29bf9322994d25f59b428a646d3d88e7b0ae95107294fc0eac796ccb11c",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Every prescribed merge route either invokes `verify:pr-closeout-attestable` (thin invoker over the existing evaluator) or names the control that closes the row. Record supersession of #3781's single-cascade-call-site decision when adding invokers.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Minimum covered rows: cascade wait-mergeable (already); `pr:merge-ready` / prescribed manual sequence; human non-admin UI/CLI with a control named independently of CI (required-check home when CI is chosen; otherwise an explicit named open / accident-only statement — do not make human coverage a dependent clause of an optional CI row); CI `pull_request` / branch-gate-class home only if deliberately chosen.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "`--admin` / admin UI: if Prefer-A keeps cascade `--admin`, those rows are closed against accident via in-process invokers, not against an actor who wants through.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Rewrite Acceptance (ingest body) to: refuse closing references against a running brief with unattested criteria; every prescribed route invokes or names its control; local/`push` with no PR number is an explicit skip (orphan-active owns post-merge). Drop \"does not move the brief\" and the withdrawn \"nothing invokes it\" framing. Keep #3868 outside this predicate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Before closeout reads the tree: assert the tree is the PR head that merges (HEAD vs already-fetched PR head SHA, or forge blob); fail exit 2 on mismatch. Apply on cascade and every added working-tree invoker.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 6,
+          "text": "Edit `core-phase-5-6.md`, `scm/github.md`, and `commands.md` so they stop prescribing ungated `pr:merge-ready && gh pr merge`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 7,
+          "text": "CI home if chosen: `pull_request` only. Keep accident-gate language for `recorded_by`. `verify:orphan-active` keeps post-merge role.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "id": 5918873181,
+          "note": "bound lean 5918873181"
+        }
+      ],
+      "issueBody": "# The merge-time closeout gate exists, is correct, and nothing invokes it\n\n## Why this is being filed after #3781 and #3429 were closed as fixed\n\nMaster went red today. PR #3868 merged, closed issue #3828, and left that issue''s brief in `xbrief/active/`. `verify:orphan-active` then failed inside `check:framework-source` on the master push, turning the merge gate red for everyone until a lifecycle PR (#3871) cleared it.\n\nThat is precisely the failure #3781 was filed and closed to prevent. The remedy shipped. It just is not connected to anything.\n\n## Measured at `426b61bd`\n\n**The gate exists and is right about the problem.** `tasks/verify.yml:515` defines `verify:pr-closeout-attestable`, and its own description states the design constraint exactly:\n\n> \"The trigger is the closing reference, not the branch diff — CI runs before the merge and the issue closes on it, so a diff-keyed gate can never fail the PR that creates the orphan.\"\n\n`packages/core/src/pr-closeout-attestable/evaluate.ts:51` types the concept directly: *\"An active/running brief the PR''s closing reference would orphan on merge.\"* The evaluator is 452 lines, tested, and reuses `evaluateAcceptanceEvidenceGate` — the same rule `scope:complete` enforces.\n\n**Nothing routes to it.** Searched at this SHA:\n\n| Surface | Contains the gate? |\n|---|---|\n| `.github/workflows/*.yml` | **no** |\n| `check:merge` / `check:framework-source` deps | **no** (`verify:orphan-active` is there at Taskfile `:450` and `:482`; the closeout gate is not) |\n| `pr:merge-ready` | **no** (`tasks/pr.yml:60` deps are `engine:_ts-build` then `engine:invoke`) |\n| any `content/skills/**/SKILL.md` | **no** (the three \"closeout\" hits are release-commit prose, unrelated) |\n\nSo the gate fires only when an actor already knows to type `task verify:pr-closeout-attestable -- --pr N`. One builder did run it today and was correctly blocked by it, which is how I know it works. Nothing made that happen; nothing made it happen for #3868.\n\n## Why the asymmetry matters\n\n`verify:orphan-active` **is** wired, and it is the wrong instrument for prevention here. It keys on issue state, and the issue is open until the merge closes it — so on the PR run the brief in `active/` is legitimate and the gate passes. The condition it detects is *created by* the merge it just allowed. Its only remaining move is to fail on master afterward.\n\nThat is the observed behaviour: the wired gate can detect this failure but structurally cannot prevent it, while the gate that can prevent it is unwired. The cost is paid by everyone, because a red master blocks every other PR until someone notices and lands a lifecycle fix.\n\n## The design constraint a fix must respect\n\nThis cannot be closed by adding one more dep to `check:framework-source`. The gate takes `--pr N`, because its trigger is the PR''s closing references rather than the diff. Something must supply the PR number:\n\n- **CI**, where `pull_request` events know the number, is the obvious home — but the framework-source check is also run locally and on `push`, where no PR number exists, so it needs to be conditional rather than a plain dep.\n- **`pr:merge-ready`**, which is already the agent''s merge-time question, is the other candidate. That covers the agent path but not a human merging through the GitHub UI.\n- Naming it in the review-cycle or pre-PR skill would raise the hit rate but is behavioural, not enforcement — and today''s recurrence happened with an agent that had the pre-PR skill available.\n\nWhich of those is right is a real decision, not an obvious one, and it should be arced rather than guessed.\n\n## This is the second instance of the same class today\n\n**#3858:** `validateGithubAuthForWorker` performs worker-principal verification, raises `FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE`, and carries deferral pointers — but is reachable only under `depth: \"deep\"`, while the enforcing `requireScmReady` path passes `shallow` and its three production callers pass no depth at all. `depth: \"deep\"` appears in tests only.\n\nSame shape: a fail-closed gate that is written, tested, documented, and referred to in prose as though it enforces — while no enforcing caller reaches it. Both were found by tracing callers rather than by reading the gate, and in both cases the prose around the gate reads as a safety claim that is not true of the system.\n\nWhether that class deserves its own scope — a check that every named fail-closed gate has at least one automatic invoker — is worth asking once this is settled. I am not proposing it here.\n\n## Not measured\n\n- Whether any consumer repository wires this gate. This census is of `deftai/directive` only.\n- Whether `pr:merge-ready` was *intended* to own it. #3781''s arc may have decided the invoker and simply not landed it; I did not read that thread''s history before filing.\n- How many past master-red incidents share this cause. Today''s is confirmed; earlier ones are not attributed.\n\n## Acceptance\n\n1. A PR whose closing reference would orphan an active/running brief is refused **before** merge, by an automatic path rather than by an actor choosing to run a verb.\n2. The invoker is chosen deliberately and recorded, with the local/`push` case (no PR number) handled explicitly rather than by failing open.\n3. A regression pins the #3868 shape: PR closes issue N, brief for N is `active`/`running`, PR does not move it — refused.\n4. `verify:orphan-active` keeps its post-merge role; this does not replace it.\n5. CHANGELOG `[Unreleased]` line.\n\nRefs #2321, #3429, #3781, #3858, #3868, #3871.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5281369954,
+        "origin": "deftai/directive#3875",
+        "id": "github.issue.5281369954"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "5d796ab247e2a07ca0680a6d0344c831f7765187df014a94f76060d95af872d1"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pr-closeout-attestable",
+          "packages/core/src/pr-wait-mergeable",
+          "packages/cli/src/verify-pr-closeout-attestable.ts",
+          "packages/cli/src/dispatch.ts",
+          "content/scm/github.md",
+          "content/commands.md",
+          "CHANGELOG.md",
+          "packages/core/src/pr-merge-readiness",
+          "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+          "xbrief/decisions"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/pr-closeout-attestable"
+        ],
+        "conflict_group": "pr-closeout-route-table"
+      },
+      "productPullRequest": 5258,
+      "mergeCommit": "82c48193436a41d66a27a22deac59c6442c1f934",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5258,
+        "prBase": null,
+        "mergeCommit": "82c48193436a41d66a27a22deac59c6442c1f934",
+        "deliveryBranch": "master",
+        "deliveryCommit": "82c48193436a41d66a27a22deac59c6442c1f934",
+        "verifiedAt": "2026-10-02T19:42:39Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-02T19:42:39Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-02T19:42:39Z"
+      }
+    },
+    "id": "github.issue.5281369954",
+    "updated": "2026-10-02T19:42:39Z"
+  }
+}
