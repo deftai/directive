@@ -1,10 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4015,
+  "issue": 4233,
   "surfaces": [
-    "packages/core/src/consumer-check-contract/evaluate.ts",
+    "vitest.config.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #4015 Greptile residual: stop unknown-uses from suppressing missing-invocation findings on evaluate.ts. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #4233: vitest campaign-end-seal subpath alias must precede the authz index alias. Disclosure only; not #3164 authorization."
 }

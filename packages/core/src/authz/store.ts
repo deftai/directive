@@ -528,32 +528,69 @@ export type SaveAuthzStateOptions = EvaluateAuthzStateWriteOptions;
 function withAuthzStoreWriteLock<T>(projectRoot: string, fn: () => T): T {
   const root = resolve(projectRoot);
   const lockPath = join(root, ".deft", "authz", "locks", "store-write.lock");
-  const lockBody = `${JSON.stringify({ pid: process.pid, startedAt: utcIso() })}\n`;
-  const start = Date.now();
-  for (;;) {
+  const lockToken = randomBytes(8).toString("hex");
+  const lockBody = `${JSON.stringify({
+    pid: process.pid,
+    startedAt: utcIso(),
+    token: lockToken,
+  } satisfies GrantClaimLockRecord)}\n`;
+
+  const tryCreateLock = (): boolean => {
     try {
       containedWrite({ root, target: lockPath, data: lockBody, mode: "create" });
-      break;
+      return true;
     } catch (err) {
-      if (!(err instanceof ContainedWriteError) || err.code !== "CONTAINED_WRITE_EXISTS") {
-        throw err;
+      if (err instanceof ContainedWriteError && err.code === "CONTAINED_WRITE_EXISTS") {
+        return false;
       }
-      if (Date.now() - start > 5000) {
-        throw new Error("authz store write lock timeout");
+      throw err;
+    }
+  };
+
+  const stillOwnLock = (): boolean => {
+    const rec = readGrantClaimLockRecord(lockPath);
+    return rec !== null && rec.token === lockToken && rec.pid === process.pid;
+  };
+
+  const start = Date.now();
+  for (;;) {
+    if (tryCreateLock()) break;
+    // Dead-PID / corrupt reclaim (same rename-away rule as grant claim locks).
+    const existing = readGrantClaimLockRecord(lockPath);
+    if (isGrantClaimLockReclaimable(existing)) {
+      const side = `${lockPath}.reclaim.${randomBytes(6).toString("hex")}`;
+      try {
+        renameSync(lockPath, side);
+        try {
+          rmSync(side, { force: true });
+        } catch {
+          /* best-effort side cleanup */
+        }
+      } catch {
+        // Lost rename race or lock already gone — fall through to retry/create.
       }
-      const waitUntil = Date.now() + 20;
-      while (Date.now() < waitUntil) {
-        /* spin */
-      }
+      if (tryCreateLock()) break;
+    }
+    if (Date.now() - start > 5000) {
+      throw new Error(
+        "authz store write lock timeout (remove leftover `.deft/authz/locks/store-write.lock` after a dead-holder crash if reclaim fails)",
+      );
+    }
+    const waitUntil = Date.now() + 20;
+    while (Date.now() < waitUntil) {
+      /* spin */
     }
   }
   try {
     return fn();
   } finally {
-    try {
-      unlinkSync(lockPath);
-    } catch {
-      // ignore
+    // Never delete a successor's claim after reclaim/timeout races.
+    if (stillOwnLock()) {
+      try {
+        unlinkSync(lockPath);
+      } catch {
+        // ignore
+      }
     }
   }
 }
@@ -624,6 +661,10 @@ export function saveGrant(projectRoot: string, grant: HumanOriginGrant): AuthzUa
  * If the pin write would refuse, the grant file is not written (no orphan active grant).
  * First pin from empty seeds grants that empty-pin currently activates so older
  * still-valid CLI grants keep authorizing outside UAT.
+ *
+ * Pin-before-grant publish (#4233 residual): empty-pin cannot activate a grant that
+ * landed without a pin update. Grant write failure restores the prior pin and never
+ * unlinks a pre-existing same-ID grant.
  */
 export function persistMintedGrant(
   projectRoot: string,
@@ -656,16 +697,16 @@ export function persistMintedGrant(
     const pinDecision = evaluateAuthzStateWriteUnderUat(state, nextState);
     if (!pinDecision.ok) return pinDecision;
 
-    const grantPath = authzGrantPath(projectRoot, grant.id);
-    writeJsonContained(projectRoot, grantPath, grant);
+    // Publish pin first so a crash before the grant write cannot leave an empty-pin orphan.
+    writeJsonContained(projectRoot, authzStatePath(projectRoot), nextState);
     try {
-      writeJsonContained(projectRoot, authzStatePath(projectRoot), nextState);
+      writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
     } catch (err) {
-      // Pin publish failed after grant write — remove orphan so empty-pin cannot activate it.
+      // Restore prior pin; never unlink onDisk — same-ID remint must not delete the earlier grant.
       try {
-        unlinkSync(grantPath);
+        writeJsonContained(projectRoot, authzStatePath(projectRoot), state);
       } catch {
-        // ignore
+        // Best-effort pin restore; surface the original grant-write failure.
       }
       throw err;
     }
