@@ -14,5 +14,18 @@ export * from "./paths.js";
 export * from "./store.js";
 export * from "./templates.js";
 export * from "./types.js";
-export * from "./uat-write-guard.js";
+// Campaign-end seal factory is CLI-only (`./campaign-end-seal` subpath) — not here (#4233).
+export {
+  type AuthzStateWriteIntentClass,
+  type AuthzUatWriteDecision,
+  type AuthzUatWriteRefuseCode,
+  classifyAuthzStateWriteIntent,
+  classifyGrantWriteIntent,
+  type EvaluateAuthzStateWriteOptions,
+  evaluateAuthzStateWriteUnderUat,
+  evaluateGrantWriteUnderUat,
+  type GrantWriteIntentClass,
+  isUatCampaignEndSeal,
+  type UatCampaignEndSeal,
+} from "./uat-write-guard.js";
 export * from "./verb-classification.js";

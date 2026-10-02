@@ -254,6 +254,56 @@ describe("store SoT hard-refuse under active UAT (#4233)", () => {
     ).toThrow(/uat-grant-create|active UAT/i);
   });
 
+  it("refuses usedAt unspend under UAT", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      cohortId: "c1",
+      grantId: "g-spend",
+      singleUse: true,
+      pinActive: true,
+    });
+    startUatLease({ projectRoot: root, campaignId: "uat-1", actor: "op" });
+    const used = markGrantUsed(root, g.id);
+    expect(used?.semantics.usedAt).toBeTruthy();
+    const unspend = saveGrant(root, {
+      ...used!,
+      semantics: { ...used!.semantics, usedAt: null },
+    });
+    expect(unspend.ok).toBe(false);
+    if (!unspend.ok) expect(unspend.code).toBe("uat-authority-field-mutate");
+  });
+
+  it("sealed campaign-end refuses wiping or rewriting campaign identity", () => {
+    const root = tempRoot();
+    startUatLease({ projectRoot: root, campaignId: "uat-1", actor: "op" });
+    const prev = loadAuthzState(root);
+    const wipe = evaluateAuthzStateWriteUnderUat(
+      prev,
+      { ...prev, uat: null },
+      { campaignEndSeal: uatCampaignEndSeal() },
+    );
+    expect(wipe.ok).toBe(false);
+    const rewrite = evaluateAuthzStateWriteUnderUat(
+      prev,
+      {
+        ...prev,
+        uat: prev.uat
+          ? { ...prev.uat, active: false, campaignId: "other", suspendedAt: "2026-10-01T03:00:00Z" }
+          : null,
+      },
+      { campaignEndSeal: uatCampaignEndSeal() },
+    );
+    expect(rewrite.ok).toBe(false);
+  });
+
+  it("public authz barrel does not export uatCampaignEndSeal", async () => {
+    const mod = await import("./index.js");
+    expect("uatCampaignEndSeal" in mod).toBe(false);
+    expect(typeof mod.isUatCampaignEndSeal).toBe("function");
+  });
+
   it("pure predicate stays free of CLI exit helper side effects", () => {
     const state = {
       schemaVersion: 1 as const,

@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Authz store SoT hard-refuse under active UAT (#4233).** `saveGrant` / `saveAuthzState` consult a core pure Result predicate: grant-create, authority-field mutate, and pin mutate hard-refuse while a UAT lease is active; usedAt-only consume stays allowed. Campaign-end (`uat.active` true→false) requires a sealed Symbol token exercised only by CLI `uat-suspend` after `gateConfirm` (not stringly argv/JSON). Empty `activeGrantIds` activates no grants under UAT (fail closed); outside UAT keeps the prior empty-pin default. `startUatLease` still carries the pin forward. CLI `refuseMintWhileUatActive` stderr/exit helper stays in CLI. Tracking #4233.
+- **Authz refuses store writes while UAT is active (#4233).** Grant create, authority-field changes, and pin changes are refused at the store while a UAT lease is active; spending a single-use grant remains allowed, and clearing a spent grant is refused. Ending a campaign requires the CLI human-presence suspend path. An empty active-grant pin activates no grants under UAT. Tracking #4233.
 
 ### Removed
 

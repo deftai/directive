@@ -533,8 +533,12 @@ export function saveAuthzState(
   const prev = loadAuthzState(projectRoot);
   const decision = evaluateAuthzStateWriteUnderUat(prev, state, options);
   if (!decision.ok) return decision;
+  // Re-check latest disk state before write (optional concurrency DoD; #4233).
+  const prev2 = loadAuthzState(projectRoot);
+  const decision2 = evaluateAuthzStateWriteUnderUat(prev2, state, options);
+  if (!decision2.ok) return decision2;
   writeJsonContained(projectRoot, authzStatePath(projectRoot), state);
-  return decision;
+  return decision2;
 }
 
 export function loadGrant(projectRoot: string, grantId: string): HumanOriginGrant | null {
@@ -556,8 +560,13 @@ export function saveGrant(projectRoot: string, grant: HumanOriginGrant): AuthzUa
   const onDisk = loadGrant(projectRoot, grant.id);
   const decision = evaluateGrantWriteUnderUat(state, onDisk, grant);
   if (!decision.ok) return decision;
+  // Re-check latest disk state before write (optional concurrency DoD; #4233).
+  const state2 = loadAuthzState(projectRoot);
+  const onDisk2 = loadGrant(projectRoot, grant.id);
+  const decision2 = evaluateGrantWriteUnderUat(state2, onDisk2, grant);
+  if (!decision2.ok) return decision2;
   writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
-  return decision;
+  return decision2;
 }
 
 export function listGrants(projectRoot: string): HumanOriginGrant[] {

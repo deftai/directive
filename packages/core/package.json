@@ -123,6 +123,10 @@
       "types": "./dist/authz/index.d.ts",
       "default": "./dist/authz/index.js"
     },
+    "./authz/campaign-end-seal": {
+      "types": "./dist/authz/campaign-end-seal.d.ts",
+      "default": "./dist/authz/campaign-end-seal.js"
+    },
     "./one-pr-unit": {
       "types": "./dist/one-pr-unit/index.d.ts",
       "default": "./dist/one-pr-unit/index.js"

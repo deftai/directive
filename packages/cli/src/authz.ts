@@ -44,8 +44,8 @@ import {
   startUatLease,
   suspendUatLease,
   toProjectRelativePosix,
-  uatCampaignEndSeal,
 } from "@deftai/directive-core/authz";
+import { uatCampaignEndSeal } from "@deftai/directive-core/authz/campaign-end-seal";
 import {
   type HumanPresenceMintSeams,
   refuseMintWhileUatActive,
@@ -503,6 +503,7 @@ export function main(
             repo: args.repo,
             expiresAt: args.expiresAt,
             singleUse: args.singleUse,
+            pinActive: true,
           });
           if (!minted.ok) {
             process.stderr.write(`authz:grant: ${minted.reason}\n`);
@@ -608,6 +609,7 @@ export function main(
             storyIds: args.storyIds,
             issueIds: args.issueIds,
             cohortId: args.cohort,
+            pinActive: true,
           });
           if (!minted.ok) {
             process.stderr.write(`authz:grant: ${minted.reason}\n`);
@@ -657,6 +659,7 @@ export function main(
           issueIds: args.issueIds,
           expiresAt: args.expiresAt,
           singleUse: args.singleUse,
+          pinActive: true,
         });
         if (!minted.ok) {
           process.stderr.write(`authz:grant: ${minted.reason}\n`);

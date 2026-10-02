@@ -19,7 +19,11 @@ const UAT_CAMPAIGN_END_SEAL: unique symbol = Symbol("deft.authz.uatCampaignEnd")
 
 export type UatCampaignEndSeal = typeof UAT_CAMPAIGN_END_SEAL;
 
-/** CLI human-presence path obtains this after gateConfirm; agents cannot plant it via JSON. */
+/**
+ * CLI human-presence path obtains this after gateConfirm.
+ * Not exported from `@deftai/directive-core/authz` — use `./authz/campaign-end-seal`.
+ * Agents cannot plant this via JSON/argv; do not import the CLI subpath from agent code.
+ */
 export function uatCampaignEndSeal(): UatCampaignEndSeal {
   return UAT_CAMPAIGN_END_SEAL;
 }
@@ -126,7 +130,11 @@ export function classifyGrantWriteIntent(
     return "authority-field-mutate";
   }
   if (sameNullable(onDisk.semantics.usedAt, incoming.semantics.usedAt)) return "noop";
-  return "usedAt-only-consume";
+  // Consume is null→timestamp only. Unspend / usedAt rewrite is authority mutate (#4233).
+  if (onDisk.semantics.usedAt == null && incoming.semantics.usedAt != null) {
+    return "usedAt-only-consume";
+  }
+  return "authority-field-mutate";
 }
 
 function sameUatLease(a: UatLease, b: UatLease): boolean {
@@ -150,8 +158,17 @@ export function classifyAuthzStateWriteIntent(
   const nextActive = next.uat !== null && next.uat.active;
 
   if (prevActive && !nextActive) {
-    // Campaign-end may also set suspendedAt; pin must stay unchanged for sealed path.
+    // Campaign-end may set suspendedAt; pin + campaign identity must stay unchanged.
     if (pinChanged) return "pin-mutate";
+    if (prev.uat === null || next.uat === null) return "uat-field-mutate";
+    if (
+      next.uat.campaignId !== prev.uat.campaignId ||
+      next.uat.startedAt !== prev.uat.startedAt ||
+      !sameOrigin(next.uat.startedBy, prev.uat.startedBy) ||
+      !sameNullable(next.uat.note, prev.uat.note)
+    ) {
+      return "uat-field-mutate";
+    }
     return "campaign-end";
   }
   if (!prevActive && nextActive) {
