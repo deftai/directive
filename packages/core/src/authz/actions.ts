@@ -13,8 +13,8 @@ import {
   listGrants,
   loadAuthzState,
   mintOperatorOrigin,
+  mutateAuthzState,
   persistMintedGrant,
-  saveAuthzState,
   saveGrant,
   utcIso,
 } from "./store.js";
@@ -53,29 +53,28 @@ export type StartUatResult =
 export function startUatLease(input: StartUatInput): StartUatResult {
   const actor = input.actor ?? "operator";
   const origin = mintOperatorOrigin(actor, "deft authz:uat-start", input.now);
+  const campaignId = input.campaignId.trim();
+  if (campaignId.length === 0) {
+    throw new Error("campaignId must be non-empty");
+  }
   const lease: UatLease = {
     active: true,
-    campaignId: input.campaignId.trim(),
+    campaignId,
     startedAt: origin.mintedAt,
     startedBy: origin,
     suspendedAt: null,
     note: input.note ?? null,
   };
-  if (lease.campaignId.length === 0) {
-    throw new Error("campaignId must be non-empty");
-  }
-  const prev = loadAuthzState(input.projectRoot);
-  const state: AuthzState = {
+  // Pin must be read under the store lock so a concurrent pinned mint is not lost (#4233).
+  const wrote = mutateAuthzState(input.projectRoot, (prev) => ({
     schemaVersion: 1,
     uat: lease,
-    // #4233: carry pin forward — do not empty on UAT start.
     activeGrantIds: prev.activeGrantIds,
-  };
-  const wrote = saveAuthzState(input.projectRoot, state);
+  }));
   if (!wrote.ok) {
     return { ok: false, code: wrote.code, reason: wrote.reason };
   }
-  return { ok: true, state, lease };
+  return { ok: true, state: wrote.state, lease };
 }
 
 export interface SuspendUatInput {
@@ -94,26 +93,28 @@ export type SuspendUatResult =
   | AuthzActionWriteFailure;
 
 export function suspendUatLease(input: SuspendUatInput): SuspendUatResult {
-  const prev = loadAuthzState(input.projectRoot);
-  if (prev.uat === null || !prev.uat.active) {
-    return { ok: true, state: prev };
-  }
-  const state: AuthzState = {
-    schemaVersion: 1,
-    uat: {
-      ...prev.uat,
-      active: false,
-      suspendedAt: utcIso(input.now),
+  const wrote = mutateAuthzState(
+    input.projectRoot,
+    (prev) => {
+      if (prev.uat === null || !prev.uat.active) {
+        return prev;
+      }
+      return {
+        schemaVersion: 1,
+        uat: {
+          ...prev.uat,
+          active: false,
+          suspendedAt: utcIso(input.now),
+        },
+        activeGrantIds: prev.activeGrantIds,
+      };
     },
-    activeGrantIds: prev.activeGrantIds,
-  };
-  const wrote = saveAuthzState(input.projectRoot, state, {
-    campaignEndSeal: input.campaignEndSeal,
-  });
+    { campaignEndSeal: input.campaignEndSeal },
+  );
   if (!wrote.ok) {
     return { ok: false, code: wrote.code, reason: wrote.reason };
   }
-  return { ok: true, state };
+  return { ok: true, state: wrote.state };
 }
 
 export interface MintGrantInput {

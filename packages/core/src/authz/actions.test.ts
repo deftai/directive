@@ -160,6 +160,21 @@ describe("authz actions + helpers (#2944)", () => {
     expect(loadAuthzState(root).activeGrantIds).not.toContain("grant-orphan");
   });
 
+  it("startUatLease keeps a pin committed before the lease write (#4233)", () => {
+    const root = tempRoot();
+    mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      grantId: "grant-pinned",
+      pinActive: true,
+    });
+    expect(loadAuthzState(root).activeGrantIds).toEqual(["grant-pinned"]);
+    const started = startUatLease({ projectRoot: root, campaignId: "uat-keep-pin", actor: "op" });
+    expect(started.state.activeGrantIds).toEqual(["grant-pinned"]);
+    expect(loadAuthzState(root).activeGrantIds).toEqual(["grant-pinned"]);
+    expect(showAuthzSnapshot(root).activeGrants.map((g) => g.id)).toEqual(["grant-pinned"]);
+  });
+
   it("describeScope and grantSatisfies helpers", () => {
     expect(describeScope(null)).toBe("(none)");
     expect(

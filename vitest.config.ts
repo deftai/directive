@@ -118,6 +118,11 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/scope": sub("core", "scope"),
   "@deftai/directive-core/session": sub("core", "session"),
   "@deftai/directive-core/hooks": sub("core", "hooks"),
+  // File subpath must precede `@deftai/directive-core/authz` or the index alias steals it (#4233).
+  "@deftai/directive-core/authz/campaign-end-seal": resolve(
+    import.meta.dirname,
+    "packages/core/src/authz/campaign-end-seal.ts",
+  ),
   "@deftai/directive-core/authz": sub("core", "authz"),
   "@deftai/directive-core/escalation": sub("core", "escalation"),
   "@deftai/directive-core/plan-sequence": sub("core", "plan-sequence"),

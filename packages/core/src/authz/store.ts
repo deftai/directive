@@ -572,6 +572,28 @@ export function saveAuthzState(
   });
 }
 
+/**
+ * Load→mutate→evaluate→write authz state under the store write lock (#4233).
+ * Callers that only flip UAT must use this so a concurrent pin is not overwritten
+ * by a pin snapshot taken before the lock.
+ */
+export function mutateAuthzState(
+  projectRoot: string,
+  mutator: (prev: AuthzState) => AuthzState,
+  options: SaveAuthzStateOptions = {},
+): AuthzUatWriteDecision & { readonly state: AuthzState } {
+  return withAuthzStoreWriteLock(projectRoot, () => {
+    const prev = loadAuthzState(projectRoot);
+    const next = mutator(prev);
+    const decision = evaluateAuthzStateWriteUnderUat(prev, next, options);
+    if (!decision.ok) {
+      return { ...decision, state: prev };
+    }
+    writeJsonContained(projectRoot, authzStatePath(projectRoot), next);
+    return { ...decision, state: next };
+  });
+}
+
 export function loadGrant(projectRoot: string, grantId: string): HumanOriginGrant | null {
   const path = authzGrantPath(projectRoot, grantId);
   if (!existsSync(path)) return null;
@@ -634,8 +656,19 @@ export function persistMintedGrant(
     const pinDecision = evaluateAuthzStateWriteUnderUat(state, nextState);
     if (!pinDecision.ok) return pinDecision;
 
-    writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
-    writeJsonContained(projectRoot, authzStatePath(projectRoot), nextState);
+    const grantPath = authzGrantPath(projectRoot, grant.id);
+    writeJsonContained(projectRoot, grantPath, grant);
+    try {
+      writeJsonContained(projectRoot, authzStatePath(projectRoot), nextState);
+    } catch (err) {
+      // Pin publish failed after grant write — remove orphan so empty-pin cannot activate it.
+      try {
+        unlinkSync(grantPath);
+      } catch {
+        // ignore
+      }
+      throw err;
+    }
     return pinDecision;
   });
 }

@@ -5,12 +5,30 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { mintHumanOriginGrant } from "../authz/actions.js";
+import { mintHumanOriginGrant as mintHumanOriginGrantResult } from "../authz/actions.js";
 import {
   FINISH_LOOP_OPERATIONS,
-  mintFinishLoopTemplateGrant,
+  mintFinishLoopTemplateGrant as mintFinishLoopTemplateGrantResult,
   resolveFinishLoopTemplate,
 } from "../authz/templates.js";
+import type { HumanOriginGrant } from "../authz/types.js";
+
+/** Unwrap #4233 Result-returning mints for assertions that need the grant shape. */
+function mintHumanOriginGrant(
+  ...args: Parameters<typeof mintHumanOriginGrantResult>
+): HumanOriginGrant {
+  const r = mintHumanOriginGrantResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return r.grant;
+}
+function mintFinishLoopTemplateGrant(
+  ...args: Parameters<typeof mintFinishLoopTemplateGrantResult>
+): HumanOriginGrant {
+  const r = mintFinishLoopTemplateGrantResult(...args);
+  if (!r.ok) throw new Error(r.reason);
+  return r.grant;
+}
+
 import { EXIT_CLEAN, EXIT_NEW_P0_P1, VERDICT_MERGED } from "../pr-watch/constants.js";
 import type { WatchResult } from "../pr-watch/types.js";
 import { runDirectiveFinishLoop } from "./directive-finish-loop.js";
