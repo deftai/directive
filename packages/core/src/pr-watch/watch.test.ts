@@ -130,6 +130,21 @@ describe("watch verdict matrix (one-shot, single probe)", () => {
     expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
   });
 
+  it("HEAD-anchored inline blockers with stale summary SHA are NEW_P0_P1 (#3944)", () => {
+    // Probe sets shaMatch from originalCommit HEAD match even when lastReviewedSha lags.
+    const r = runOneShot(
+      makeProbe({
+        hasBlocking: true,
+        p1Count: 1,
+        lastReviewedSha: STALE,
+        shaMatch: true,
+        cleanGateHoldout: "has_blocking",
+      }),
+    );
+    expect(r.verdict).toBe(VERDICT_NEW_P0_P1);
+    expect(r.exitCode).toBe(EXIT_NEW_P0_P1);
+  });
+
   it("merged + sha_match false → MERGED exit 0 immediately (#4288)", () => {
     const r = runOneShot(
       makeProbe({

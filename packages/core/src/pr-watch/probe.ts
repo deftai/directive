@@ -295,9 +295,19 @@ export function probeOnce(
       hasBlocking = true;
     }
   }
-  const shaMatch = lastReviewedSha !== null && lastReviewedSha === headSha;
+  // Inline fetch already filters on originalCommit vs HEAD. When those counts
+  // are > 0, shaMatch the finding commit — not only the rolling summary SHA —
+  // so watch can emit NEW_P0_P1 instead of pending / SHA-stall (#3944).
+  const inlineHeadBlocking =
+    inlineFindings !== null &&
+    inlineFindings.error === null &&
+    inlineFindings.p0Count + inlineFindings.p1Count > 0;
+  const shaMatch =
+    (lastReviewedSha !== null && lastReviewedSha === headSha) || inlineHeadBlocking;
   let [isClean, cleanGateHoldout] = evaluateCleanGate({
-    lastReviewedSha,
+    // Currency from HEAD-anchored inline: gate on headSha so holdout is
+    // has_blocking, not sha_match, while lastReviewedSha stays the summary.
+    lastReviewedSha: inlineHeadBlocking ? headSha : lastReviewedSha,
     headSha,
     hasBlocking,
     confidence,

@@ -599,6 +599,57 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
     expect(probe.cleanGateHoldout).toBe("has_blocking");
   });
 
+  it("stale summary SHA + HEAD-anchored inline P1 → shaMatch + hasBlocking (#3944)", () => {
+    // Rolling summary still names FIXTURE_SHA; live HEAD is OTHER_SHA with an
+    // unresolved greptile-apps inline P1 on originalCommit=OTHER_SHA.
+    const reviewThreads = JSON.stringify({
+      data: {
+        repository: {
+          pullRequest: {
+            reviewThreads: {
+              pageInfo: { hasNextPage: false, endCursor: null },
+              nodes: [
+                {
+                  isResolved: false,
+                  isOutdated: false,
+                  comments: {
+                    nodes: [
+                      {
+                        author: { login: "greptile-apps" },
+                        body: BODY_PR4292_INLINE_P1,
+                        path: "packages/core/src/pr-watch/probe.ts",
+                        commit: { oid: OTHER_SHA },
+                        originalCommit: { oid: OTHER_SHA },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    const probe = probeOnce(
+      3944,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: OTHER_SHA,
+        body: BODY_AC4_MARKDOWN_LINK_CLEAN,
+        checkRuns: GREEN_CI,
+        reviewThreads,
+      }),
+    );
+    expect(probe.error).toBeNull();
+    expect(probe.lastReviewedSha).toBe(FIXTURE_SHA);
+    expect(probe.headSha).toBe(OTHER_SHA);
+    expect(probe.hasBlocking).toBe(true);
+    expect(probe.p1Count).toBeGreaterThanOrEqual(1);
+    expect(probe.shaMatch).toBe(true);
+    expect(probe.isClean).toBe(false);
+    expect(probe.cleanGateHoldout).toBe("has_blocking");
+  });
+
   it("ordinary probe is non-clean when inline GraphQL lookup fails (#3944)", () => {
     const probe = probeOnce(
       3944,
