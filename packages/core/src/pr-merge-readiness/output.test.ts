@@ -1,10 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { computeGateResult } from "./compute.js";
+import { type ComputeGateOptions, computeGateResult } from "./compute.js";
 import { VIA_ERROR, VIA_FALLBACK2 } from "./constants.js";
 import { emitJson, exitCodeFor, gateResultToDict, printHuman } from "./output.js";
 import { emptyVerdict } from "./parse.js";
 import { EMPTY_REVIEW_THREADS_GRAPHQL } from "./test-gh-fixtures.helpers.js";
 import type { GateResult, RunGhFn } from "./types.js";
+
+/** Hermetic Greptile suites must opt out of closeout explicitly (#3875). */
+function computeGate(
+  prNumber: number,
+  repo: string | null,
+  runGh: Parameters<typeof computeGateResult>[2],
+  options: ComputeGateOptions = {},
+) {
+  return computeGateResult(prNumber, repo, runGh, {
+    skipCloseoutAttestable: true,
+    ...options,
+  });
+}
 
 const baseResult: GateResult = {
   prNumber: 1363,
@@ -182,7 +195,7 @@ describe("compute branches", () => {
     const body =
       "## Greptile Summary\n\n**Confidence Score: 5/5**\n\n" +
       "Last reviewed commit: [x](https://github.com/deftai/directive/commit/abc1234567890def1234567890abcdef12345678)\n";
-    const result = computeGateResult(
+    const result = computeGate(
       1,
       "deftai/directive",
       fake({
@@ -208,7 +221,7 @@ describe("compute branches", () => {
   });
 
   it("fallback2 preserves merged state", () => {
-    const result = computeGateResult(
+    const result = computeGate(
       1,
       "deftai/directive",
       fake({

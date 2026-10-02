@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeGateResult } from "./compute.js";
+import { type ComputeGateOptions, computeGateResult } from "./compute.js";
 import {
   CONFIDENCE_RE,
   GREPTILE_ERRORED_SENTINEL,
@@ -11,6 +11,19 @@ import {
 import { evaluateGates, isMergeReady } from "./evaluate.js";
 import { emptyVerdict, isInformalCleanMissingCanonicalFields, parseGreptileBody } from "./parse.js";
 import type { GreptileVerdict, RunGhFn } from "./types.js";
+
+/** Hermetic Greptile suites must opt out of closeout explicitly (#3875). */
+function computeGate(
+  prNumber: number,
+  repo: string | null,
+  runGh: Parameters<typeof computeGateResult>[2],
+  options: ComputeGateOptions = {},
+) {
+  return computeGateResult(prNumber, repo, runGh, {
+    skipCloseoutAttestable: true,
+    ...options,
+  });
+}
 
 const HEAD = "abc1234567890def1234567890abcdef12345678";
 
@@ -433,7 +446,7 @@ describe("computeGateResult layered fallbacks", () => {
   }
 
   it("primary clean via primary", () => {
-    const result = computeGateResult(
+    const result = computeGate(
       1363,
       "deftai/directive",
       installFakeGh({
@@ -447,7 +460,7 @@ describe("computeGateResult layered fallbacks", () => {
   });
 
   it("primary blocked stays primary", () => {
-    const result = computeGateResult(
+    const result = computeGate(
       1363,
       "deftai/directive",
       installFakeGh({
@@ -461,7 +474,7 @@ describe("computeGateResult layered fallbacks", () => {
 
   it("fallback1 when jq fails", () => {
     const rest = JSON.stringify([{ user: { login: "greptile-apps[bot]" }, body: cleanBody() }]);
-    const result = computeGateResult(
+    const result = computeGate(
       1363,
       "deftai/directive",
       installFakeGh({
@@ -476,7 +489,7 @@ describe("computeGateResult layered fallbacks", () => {
   });
 
   it("blocks on failed required check-run", () => {
-    const result = computeGateResult(
+    const result = computeGate(
       1363,
       "deftai/directive",
       installFakeGh({
@@ -500,7 +513,7 @@ describe("computeGateResult layered fallbacks", () => {
   });
 
   it("reports pending check-run as not-ready-yet", () => {
-    const result = computeGateResult(
+    const result = computeGate(
       1363,
       "deftai/directive",
       installFakeGh({
@@ -520,7 +533,7 @@ describe("computeGateResult layered fallbacks", () => {
   });
 
   it("honors ignore list for flaky non-required check", () => {
-    const result = computeGateResult(
+    const result = computeGate(
       1363,
       "deftai/directive",
       installFakeGh({
@@ -539,7 +552,7 @@ describe("computeGateResult layered fallbacks", () => {
   });
 
   it("fallback2 never clean", () => {
-    const result = computeGateResult(
+    const result = computeGate(
       1363,
       "deftai/directive",
       installFakeGh({
@@ -569,7 +582,7 @@ describe("computeGateResult layered fallbacks", () => {
   });
 
   it("total failure returns via error", () => {
-    const result = computeGateResult(
+    const result = computeGate(
       1363,
       "deftai/directive",
       installFakeGh({

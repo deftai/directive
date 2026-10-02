@@ -1,4 +1,4 @@
-import { computeGateResult } from "./compute.js";
+import { type ComputeGateOptions, computeGateResult } from "./compute.js";
 import { defaultRunGh } from "./gh.js";
 import { emitJson, exitCodeFor, printHuman } from "./output.js";
 import type { RunGhFn } from "./types.js";
@@ -116,6 +116,9 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
 
 export interface RunOptions {
   readonly runGh?: RunGhFn;
+  /** Tests that only score Greptile must opt out of closeout explicitly (#3875). */
+  readonly skipCloseoutAttestable?: boolean;
+  readonly closeoutAttestableFn?: ComputeGateOptions["closeoutAttestableFn"];
 }
 
 export function run(argv: readonly string[], options: RunOptions = {}): number {
@@ -130,6 +133,8 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
     skipCi: args.skipCi,
     skipSlizard: args.skipSlizard,
     ignoreCheckNames: args.ciIgnoreChecks,
+    skipCloseoutAttestable: options.skipCloseoutAttestable,
+    closeoutAttestableFn: options.closeoutAttestableFn,
   });
 
   if (args.emitJson) {

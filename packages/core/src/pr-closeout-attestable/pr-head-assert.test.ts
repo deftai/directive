@@ -8,6 +8,7 @@ describe("pr-head-assert helpers (#3875)", () => {
     expect(shasMatch(full.slice(0, 7), full)).toBe(true);
     expect(shasMatch(full, "deadbeef")).toBe(false);
     expect(shasMatch("", full)).toBe(false);
+    expect(shasMatch("abc", full)).toBe(false);
   });
 
   it("parses head.sha from pulls JSON", () => {
@@ -56,5 +57,50 @@ describe("pr-head-assert helpers (#3875)", () => {
       { enabled: false },
     );
     expect(result.ok).toBe(true);
+  });
+
+  it("refuses a dirty lifecycle tree on the matched PR head", () => {
+    const result = assertWorkingTreeIsPrHead(
+      "/tmp/unused",
+      7,
+      "deftai/directive",
+      () => {
+        throw new Error("runGh must not be called");
+      },
+      {
+        localHeadSha: "a".repeat(40),
+        prHeadSha: "a".repeat(40),
+        checkLifecycleDirty: true,
+        resolveLifecycleDirty: () => "?? xbrief/active/story.xbrief.json",
+      },
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message).toContain("uncommitted xbrief/vbrief");
+    }
+  });
+
+  it("resolves a linked worktree when caller HEAD is not the PR head", () => {
+    const prHead = "b".repeat(40);
+    const result = assertWorkingTreeIsPrHead(
+      "/tmp/primary",
+      7,
+      "deftai/directive",
+      () => {
+        throw new Error("runGh must not be called");
+      },
+      {
+        localHeadSha: "a".repeat(40),
+        prHeadSha: prHead,
+        resolveWorktreeAtSha: () => "/tmp/pr-worktree",
+        resolveLocalHeadSha: (root) => (root === "/tmp/pr-worktree" ? prHead : "a".repeat(40)),
+        resolveLifecycleDirty: () => null,
+      },
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.resolvedProjectRoot).toBe("/tmp/pr-worktree");
+      expect(result.localHeadSha).toBe(prHead);
+    }
   });
 });

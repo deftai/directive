@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { computeGateResult } from "./compute.js";
+import { type ComputeGateOptions, computeGateResult } from "./compute.js";
 import type { CheckRunRecord } from "./gh.js";
 import {
   evaluateSlizardGate,
@@ -12,6 +12,19 @@ import {
 } from "./slizard-gate.js";
 import { withGraphqlInlineStub } from "./test-gh-fixtures.helpers.js";
 import type { RunGhFn } from "./types.js";
+
+/** Hermetic Greptile suites must opt out of closeout explicitly (#3875). */
+function computeGate(
+  prNumber: number,
+  repo: string | null,
+  runGh: Parameters<typeof computeGateResult>[2],
+  options: ComputeGateOptions = {},
+) {
+  return computeGateResult(prNumber, repo, runGh, {
+    skipCloseoutAttestable: true,
+    ...options,
+  });
+}
 
 const capturedSummary = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), "fixtures/slizard-check-run-a8a20f3.summary.txt"),
@@ -240,7 +253,7 @@ function fakeRunGh(slizardSummary: string, slizardConclusion = "failure"): RunGh
 
 describe("computeGateResult SLizard integration", () => {
   it("blocks merge when SLizard requests changes even though Greptile + CI are clean", () => {
-    const result = computeGateResult(1, "deftai/directive", fakeRunGh(BLOCKING_SUMMARY));
+    const result = computeGate(1, "deftai/directive", fakeRunGh(BLOCKING_SUMMARY));
     expect(result.failures.some((f) => f.includes("SLizard review is blocking"))).toBe(true);
     const slizard = result.partialData.slizard as Record<string, unknown>;
     expect(slizard.ready_state).toBe("blocked");
@@ -251,14 +264,14 @@ describe("computeGateResult SLizard integration", () => {
   });
 
   it("is merge-ready when SLizard approves", () => {
-    const result = computeGateResult(1, "deftai/directive", fakeRunGh(CLEAN_SUMMARY, "success"));
+    const result = computeGate(1, "deftai/directive", fakeRunGh(CLEAN_SUMMARY, "success"));
     expect(result.failures).toHaveLength(0);
     const slizard = result.partialData.slizard as Record<string, unknown>;
     expect(slizard.ready_state).toBe("ready");
   });
 
   it("--skip-slizard overrides a blocking SLizard verdict", () => {
-    const result = computeGateResult(1, "deftai/directive", fakeRunGh(BLOCKING_SUMMARY), {
+    const result = computeGate(1, "deftai/directive", fakeRunGh(BLOCKING_SUMMARY), {
       skipSlizard: true,
     });
     expect(result.failures.some((f) => f.includes("SLizard"))).toBe(false);

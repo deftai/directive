@@ -141,7 +141,8 @@ export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
   readonly fetchRequiredContextsFn?: FetchRequiredContextsFn;
   /**
    * When true, skip the #3875 closeout invoker (tests that only score Greptile).
-   * Production merge-ready always runs it after a Greptile-clean verdict.
+   * Must be set explicitly — inherited `VITEST=true` does not skip. Production
+   * merge-ready always runs closeout after a Greptile-clean verdict.
    */
   readonly skipCloseoutAttestable?: boolean;
   /** Injectable closeout evaluator; production uses `evaluateCloseoutAttestable`. */
@@ -757,12 +758,8 @@ function defaultCloseoutAttestable(
  * call site. Config errors (exit 2) surface as `via=error`.
  */
 function applyCloseoutAttestableGate(result: GateResult, options: ComputeGateOptions): GateResult {
-  // Hermetic Greptile suites skip unless they inject a closeout seam (#3875).
-  const skipUnderVitest =
-    options.skipCloseoutAttestable === undefined &&
-    options.closeoutAttestableFn === undefined &&
-    process.env.VITEST === "true";
-  if (options.skipCloseoutAttestable === true || skipUnderVitest) {
+  // Explicit opt-out only — never inherit VITEST=true to skip the gate (#3875).
+  if (options.skipCloseoutAttestable === true) {
     return result;
   }
   if (result.via === VIA_ERROR || result.via === VIA_FALLBACK2) {

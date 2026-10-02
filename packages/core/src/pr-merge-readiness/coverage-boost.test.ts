@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { computeGateResult } from "./compute.js";
+import { type ComputeGateOptions, computeGateResult } from "./compute.js";
 import { evaluateGates } from "./evaluate.js";
 import {
   defaultRunGh,
@@ -15,6 +15,19 @@ import { printHuman } from "./output.js";
 import { emptyVerdict, parseGreptileBody } from "./parse.js";
 import { withGraphqlInlineStub } from "./test-gh-fixtures.helpers.js";
 import type { RunGhFn } from "./types.js";
+
+/** Hermetic Greptile suites must opt out of closeout explicitly (#3875). */
+function computeGate(
+  prNumber: number,
+  repo: string | null,
+  runGh: Parameters<typeof computeGateResult>[2],
+  options: ComputeGateOptions = {},
+) {
+  return computeGateResult(prNumber, repo, runGh, {
+    skipCloseoutAttestable: true,
+    ...options,
+  });
+}
 
 const HEAD = "abc1234567890def1234567890abcdef12345678";
 
@@ -90,7 +103,7 @@ describe("coverage boost branches", () => {
       if (j.includes("/pulls/")) return { returncode: 1, stderr: "x", stdout: "" };
       return { returncode: 1, stdout: "", stderr: "x" };
     };
-    const result = computeGateResult(1, null, runGh);
+    const result = computeGate(1, null, runGh);
     expect(result.via).toBe("error");
   });
 
@@ -103,7 +116,7 @@ describe("coverage boost branches", () => {
       if (j.includes("nameWithOwner")) return { returncode: 1, stdout: "", stderr: "bad repo" };
       return { returncode: 1, stdout: "", stderr: "x" };
     };
-    const result = computeGateResult(1, null, runGh);
+    const result = computeGate(1, null, runGh);
     expect(result.via).toBe("error");
     expect(result.partialData.fallback2_error).toBeDefined();
   });
@@ -117,7 +130,7 @@ describe("coverage boost branches", () => {
       if (j.includes("/pulls/")) return { returncode: 0, stdout: "not-json", stderr: "" };
       return { returncode: 1, stdout: "", stderr: "x" };
     };
-    const result = computeGateResult(1, "deftai/directive", runGh);
+    const result = computeGate(1, "deftai/directive", runGh);
     expect(result.via).toBe("error");
   });
 
@@ -248,7 +261,9 @@ describe("coverage boost branches", () => {
       }
       return { returncode: 1, stdout: "", stderr: "" };
     });
-    expect(run(["5", "--repo", "deftai/directive"], { runGh })).toBe(0);
+    expect(run(["5", "--repo", "deftai/directive"], { runGh, skipCloseoutAttestable: true })).toBe(
+      0,
+    );
     expect(String(stdout.mock.calls[0]?.[0])).toContain("MERGE-READY");
     stdout.mockRestore();
   });
@@ -265,7 +280,7 @@ describe("coverage boost branches", () => {
 
   it("computeGateResult walks fallback cascade on gh failures", () => {
     const runGh: RunGhFn = () => ({ returncode: 1, stdout: "", stderr: "fail" });
-    const result = computeGateResult(99, "deftai/directive", runGh);
+    const result = computeGate(99, "deftai/directive", runGh);
     expect(result.error).not.toBeNull();
     expect(result.via.length).toBeGreaterThan(0);
   });
@@ -317,7 +332,7 @@ describe("coverage boost branches", () => {
       }
       return { returncode: 1, stdout: "", stderr: "" };
     });
-    const result = computeGateResult(5, "deftai/directive", runGh);
+    const result = computeGate(5, "deftai/directive", runGh);
     expect(result.via).toBe("primary");
     expect(result.failures).toEqual([]);
   });
@@ -330,7 +345,7 @@ describe("coverage boost branches", () => {
       }
       return { returncode: 1, stdout: "", stderr: "comments failed" };
     });
-    const result = computeGateResult(6, "deftai/directive", runGh);
+    const result = computeGate(6, "deftai/directive", runGh);
     expect(result.via).not.toBe("primary");
   });
 
@@ -387,7 +402,7 @@ describe("coverage boost branches", () => {
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     };
-    const result = computeGateResult(7, null, runGh);
+    const result = computeGate(7, null, runGh);
     expect(result.via).toBe("fallback2");
     expect(result.failures.length).toBeGreaterThan(0);
   });
@@ -406,7 +421,7 @@ describe("coverage boost branches", () => {
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     };
-    const result = computeGateResult(8, null, runGh);
+    const result = computeGate(8, null, runGh);
     expect(result.error).not.toBeNull();
   });
 
@@ -461,7 +476,7 @@ describe("coverage boost branches", () => {
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     });
-    const result = computeGateResult(10, "deftai/directive", runGh);
+    const result = computeGate(10, "deftai/directive", runGh);
     expect(result.via).toBe("fallback1");
     expect(result.failures).toEqual([]);
   });

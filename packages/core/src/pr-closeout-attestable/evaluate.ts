@@ -289,10 +289,12 @@ function configError(
  * closeout / 2 config or closing-reference lookup error. A lookup that cannot be
  * resolved is 2, not 0 — the gate never green-lights a merge it could not check.
  *
- * The brief is read from `projectRoot`'s working tree, which at merge time is the
- * PR head checkout. That is the tree the merge lands, and it is the same
- * working-tree basis `verify:orphan-active` uses. Before that read, #3875 asserts
- * local HEAD equals the PR head SHA (or an injected forge blob) — exit 2 on mismatch.
+ * The brief is read from the PR-head working tree (caller cwd, or a linked
+ * worktree whose HEAD matches the PR head when cascade runs from primary). That
+ * is the tree the merge lands, and it is the same working-tree basis
+ * `verify:orphan-active` uses. Before that read, #3875 asserts HEAD equals the
+ * PR head SHA (or an injected forge blob), refuses a dirty xbrief/vbrief tree,
+ * and exit-2s on mismatch with no matching linked worktree.
  */
 
 export function evaluate(
@@ -305,43 +307,6 @@ export function evaluate(
 
   if (!existsSync(root)) {
     return configError(prNumber, `project root does not exist: ${root}`);
-  }
-
-  let lifecycleRoot: string;
-  try {
-    lifecycleRoot = resolveLifecycleRoot(root);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    // Consumers may still be on a legacy vbrief/-only layout (#2112). Closeout
-    // attestability applies to xbrief/active/ only — skip cleanly, not config fail.
-    if (message.includes("No xbrief/ layout found")) {
-      return {
-        code: 0,
-        message: quiet
-          ? ""
-          : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
-        stream: quiet ? "none" : "stdout",
-        prNumber,
-        closingIssues: [],
-        findings: [],
-        proxied: false,
-      };
-    }
-    return configError(prNumber, message);
-  }
-
-  if (!existsSync(lifecycleRoot)) {
-    return {
-      code: 0,
-      message: quiet
-        ? ""
-        : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
-      stream: quiet ? "none" : "stdout",
-      prNumber,
-      closingIssues: [],
-      findings: [],
-      proxied: false,
-    };
   }
 
   // Pin plain `gh` when it exists: `ghx` is a cached GET proxy and a stale
@@ -361,12 +326,52 @@ export function evaluate(
     );
   }
 
-  // #3875: refuse a wrong-tree brief read before any closing-reference work.
+  // #3875: refuse a wrong-tree / dirty-lifecycle brief read before closing refs.
   const headAssert = assertWorkingTreeIsPrHead(root, prNumber, repo, runner.runGh, {
     ...options.prHeadAssert,
   });
   if (!headAssert.ok) {
     return configError(prNumber, headAssert.message, runner.proxied);
+  }
+
+  const briefRoot =
+    headAssert.resolvedProjectRoot !== undefined ? resolve(headAssert.resolvedProjectRoot) : root;
+
+  let lifecycleRoot: string;
+  try {
+    lifecycleRoot = resolveLifecycleRoot(briefRoot);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    // Consumers may still be on a legacy vbrief/-only layout (#2112). Closeout
+    // attestability applies to xbrief/active/ only — skip cleanly, not config fail.
+    if (message.includes("No xbrief/ layout found")) {
+      return {
+        code: 0,
+        message: quiet
+          ? ""
+          : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
+        stream: quiet ? "none" : "stdout",
+        prNumber,
+        closingIssues: [],
+        findings: [],
+        proxied: false,
+      };
+    }
+    return configError(prNumber, message, runner.proxied);
+  }
+
+  if (!existsSync(lifecycleRoot)) {
+    return {
+      code: 0,
+      message: quiet
+        ? ""
+        : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
+      stream: quiet ? "none" : "stdout",
+      prNumber,
+      closingIssues: [],
+      findings: [],
+      proxied: runner.proxied,
+    };
   }
 
   const linked = fetchClosing(prNumber, repo, runner.runGh);
@@ -386,7 +391,7 @@ export function evaluate(
     options.onePrUnitGrant !== undefined
       ? options.onePrUnitGrant
       : options.onePrUnitId !== undefined && options.onePrUnitId !== null
-        ? loadOnePrUnitGrant(root, options.onePrUnitId)
+        ? loadOnePrUnitGrant(briefRoot, options.onePrUnitId)
         : null;
   const unit = evaluateOnePrUnit({
     closerSet: closerSetFromIssueIds(repo, closingIssues),
@@ -454,13 +459,13 @@ export function evaluate(
           declaresMerge: item !== undefined && itemDeclaresMergeRequirement(item),
         };
       });
-    findings.push({ briefPath: relBriefPath(brief.path, root), issue, unattested });
+    findings.push({ briefPath: relBriefPath(brief.path, briefRoot), issue, unattested });
   }
 
   if (findings.length > 0) {
     return {
       code: 1,
-      message: formatRefusal(prNumber, findings, root, runner.proxied),
+      message: formatRefusal(prNumber, findings, briefRoot, runner.proxied),
       stream: "stderr",
       prNumber,
       closingIssues,
