@@ -396,6 +396,10 @@ export function parseIncludeScopesFlag(argv: readonly string[]): {
       }
       continue;
     }
+    if (arg === "--") {
+      // Ignore bare POSIX end-of-options token; do not latch (#5251 / #548).
+      continue;
+    }
     remaining.push(arg);
   }
   return { includeScopes, includeLegacyArtifacts, itemDepthCap, remaining, errors };
