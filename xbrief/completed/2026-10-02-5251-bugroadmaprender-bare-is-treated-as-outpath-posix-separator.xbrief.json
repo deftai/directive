@@ -1,0 +1,275 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5251",
+    "updated": "2026-10-02T16:30:42Z"
+  },
+  "plan": {
+    "title": "bug(roadmap:render): ignore bare -- as outPath (POSIX separator mis-route)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(roadmap:render): bare -- is treated as outPath (POSIX separator mis-routes ROADMAP write)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5251",
+      "Overview": "## Finding\n\n`deft roadmap:render -- --project-root <root>` treats the bare `--` token as a **positional output path**, so ROADMAP content is written to a file literally named `--` and stdout reports `Rendered ROADMAP.md to --`.\n\nDCR R.4756 (deftai/DevHammer) used that argv shape and then read `ROADMAP.md`, producing a false `active_section=False title=False` fail even though the active brief rendered correctly into the dash file.\n\nWithout the bare `--`, `roadmap:render --project-root <root>` writes `ROADMAP.md` with `## Active` as expected (product #5206).\n\nParent false-fail triage: deftai/directive#4756 → deftai/DevHammer#419 (oracle drops `--`). This issue is the **Directive polish**: ignore bare `--` as POSIX end-of-options so agents/consumers that insert a separator do not mis-route `outPath`.\n\n## Bound remedy (proposed)\n\nIn `packages/core/src/render/roadmap-render.ts` `main()`:\n\n- When argv token is exactly `--`, treat it as end-of-options / ignore (do not push onto `positional`).\n- Keep real positional outPath and pending-dir override behavior for non-`--` args.\n- Add a unit test that `main([\"--\", \"--project-root\", root])` writes `ROADMAP.md` (not a file named `--`) and lists active scopes.\n\n## Non-goals\n\n- Re-opening the #4756 empty-claim / no-flag PD design.\n- Changing `--project-root` / `--check` semantics beyond ignoring bare `--`.\n\n## Refs\n\n- DCR false fail: #4756 / R.4756 / `det.roadmap_render_lists_active`\n- Harbor/oracle tracker: https://github.com/deftai/DevHammer/issues/419\n- Product list-active ship: #5206\n\n",
+      "Labels": "bug, determinism, adoption-blocker, agent-experience, process, source-of-truth, urgent, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:records"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Before the flag loop in packages/core/src/render/roadmap-render.ts main(): if ar…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5254 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 009ae3f584ab303d13b31a6ad4dad1df8f5d5a26.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T16:29:04.680Z",
+            "mintedVia": "leftover-complete-after-5254"
+          },
+          "recorded_at": "2026-10-02T16:29:04.680Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "In the loop: if arg === \"--\", continue (ignore; do not push; no end-of-options l…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5254 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 009ae3f584ab303d13b31a6ad4dad1df8f5d5a26.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T16:29:04.680Z",
+            "mintedVia": "leftover-complete-after-5254"
+          },
+          "recorded_at": "2026-10-02T16:29:04.680Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Else if arg.startsWith(\"-\") and is not --project-root / --project-root= / --chec…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5254 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 009ae3f584ab303d13b31a6ad4dad1df8f5d5a26.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T16:29:04.680Z",
+            "mintedVia": "leftover-complete-after-5254"
+          },
+          "recorded_at": "2026-10-02T16:29:04.680Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Keep real positional outPath / pending-dir override for non-dash tokens.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5254 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 009ae3f584ab303d13b31a6ad4dad1df8f5d5a26.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T16:29:04.680Z",
+            "mintedVia": "leftover-complete-after-5254"
+          },
+          "recorded_at": "2026-10-02T16:29:04.680Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Tests under withCwd(root, …): main([\"--\", \"--project-root\", root]) → exit 0, ## …",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5254 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 009ae3f584ab303d13b31a6ad4dad1df8f5d5a26.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T16:29:04.680Z",
+            "mintedVia": "leftover-complete-after-5254"
+          },
+          "recorded_at": "2026-10-02T16:29:04.680Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Update -- guidance in content/packs/skills/skills-pack-0.1.json for deft-directi…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5254 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 009ae3f584ab303d13b31a6ad4dad1df8f5d5a26.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T16:29:04.680Z",
+            "mintedVia": "leftover-complete-after-5254"
+          },
+          "recorded_at": "2026-10-02T16:29:04.680Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:records"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5251",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5251: bug(roadmap:render): bare -- is treated as outPath (POSIX separator mis-routes ROADMAP write)"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/render/roadmap-render.test.ts packages/core/src/content-contracts/skills/review_cycle_skill.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "sentences": [
+        "Before the flag loop in packages/core/src/render/roadmap-render.ts main(): if argv includes --help or -h, print usage and return 0.",
+        "In the loop: if arg === \"--\", continue (ignore; do not push; no end-of-options latch).",
+        "Else if arg.startsWith(\"-\") and is not --project-root / --project-root= / --check, print Unknown flag + usage and return 2.",
+        "Keep real positional outPath / pending-dir override for non-dash tokens.",
+        "Tests under withCwd(root, …): main([\"--\", \"--project-root\", root]) → exit 0, ## Active in root/ROADMAP.md, no root/--; main([\"--\"]) → same identity refusal as main([]) when no local PROJECT-DEFINITION; main([\"--help\"]) → exit 0, does not overwrite existing ROADMAP.md; unrecognized dash token (e.g. main([\"--bogus\"])) → exit 2, no ROADMAP.md write.",
+        "Update -- guidance in content/packs/skills/skills-pack-0.1.json for deft-directive-review-cycle so that (a) true rejectors such as pr:watch stay reject, (b) roadmap-render is named as ignore bare double-dash after this bind, (c) sibling project-render remains reject bare double-dash, then run task packs:render. Acceptance: task packs:verify-drift clean and packages/core/src/content-contracts/skills/review_cycle_skill.test.ts content pin updated/green. Do not hand-edit generated content/skills/**/SKILL.md."
+      ],
+      "admitted_source_sentences": [
+        "Before the flag loop in packages/core/src/render/roadmap-render.ts main(): if argv includes --help or -h, print usage and return 0.",
+        "In the loop: if arg === \"--\", continue (ignore; do not push; no end-of-options latch).",
+        "Else if arg.startsWith(\"-\") and is not --project-root / --project-root= / --check, print Unknown flag + usage and return 2.",
+        "Keep real positional outPath / pending-dir override for non-dash tokens.",
+        "Tests under withCwd(root, …): main([\"--\", \"--project-root\", root]) → exit 0, ## Active in root/ROADMAP.md, no root/--; main([\"--\"]) → same identity refusal as main([]) when no local PROJECT-DEFINITION; main([\"--help\"]) → exit 0, does not overwrite existing ROADMAP.md; unrecognized dash token (e.g. main([\"--bogus\"])) → exit 2, no ROADMAP.md write.",
+        "Update -- guidance in content/packs/skills/skills-pack-0.1.json for deft-directive-review-cycle so that (a) true rejectors such as pr:watch stay reject, (b) roadmap-render is named as ignore bare double-dash after this bind, (c) sibling project-render remains reject bare double-dash, then run task packs:render. Acceptance: task packs:verify-drift clean and packages/core/src/content-contracts/skills/review_cycle_skill.test.ts content pin updated/green. Do not hand-edit generated content/skills/**/SKILL.md."
+      ],
+      "admitted_source_digest": "16d7d32cdeb8efa4e263b5de5628d5274a978c199fd5e59ec0be705f8e5ca1f3",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Before the flag loop in packages/core/src/render/roadmap-render.ts main(): if argv includes --help or -h, print usage and return 0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "In the loop: if arg === \"--\", continue (ignore; do not push; no end-of-options latch).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Else if arg.startsWith(\"-\") and is not --project-root / --project-root= / --check, print Unknown flag + usage and return 2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Keep real positional outPath / pending-dir override for non-dash tokens.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Tests under withCwd(root, …): main([\"--\", \"--project-root\", root]) → exit 0, ## Active in root/ROADMAP.md, no root/--; main([\"--\"]) → same identity refusal as main([]) when no local PROJECT-DEFINITION; main([\"--help\"]) → exit 0, does not overwrite existing ROADMAP.md; unrecognized dash token (e.g. main([\"--bogus\"])) → exit 2, no ROADMAP.md write.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 6,
+          "text": "Update -- guidance in content/packs/skills/skills-pack-0.1.json for deft-directive-review-cycle so that (a) true rejectors such as pr:watch stay reject, (b) roadmap-render is named as ignore bare double-dash after this bind, (c) sibling project-render remains reject bare double-dash, then run task packs:render. Acceptance: task packs:verify-drift clean and packages/core/src/content-contracts/skills/review_cycle_skill.test.ts content pin updated/green. Do not hand-edit generated content/skills/**/SKILL.md.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374.",
+      "derived_reason": "Prefer-A leftover-complete pathless derived clauses after product PR ship (#5188)"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "id": 5955618821,
+          "note": "bound lean 5955618821"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5678701751,
+        "origin": "deftai/directive#5251",
+        "id": "github.issue.5678701751"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e412f21088dabce7c3a06fdfbfa663db51f02a99a18eec91d8418abfe8d057c7"
+      },
+      "productPullRequest": 5254,
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/render/roadmap-render.ts",
+          "packages/core/src/render/roadmap-render.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/content-contracts/skills/review_cycle_skill.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/render/roadmap-render.test.ts packages/core/src/content-contracts/skills/review_cycle_skill.test.ts"
+        ],
+        "conflict_group": "roadmap-render-argv"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5254,
+        "prBase": null,
+        "mergeCommit": "009ae3f584ab303d13b31a6ad4dad1df8f5d5a26",
+        "deliveryBranch": "master",
+        "deliveryCommit": "009ae3f584ab303d13b31a6ad4dad1df8f5d5a26",
+        "verifiedAt": "2026-10-02T16:30:42Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGZhMjktYmYzYi03ZGEyLWFkYzgtNjY3YmUxZTFhNjY2"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-02T16:30:42Z",
+      "completedSessionId": "host:grok:v1:MDFhMGZhMjktYmYzYi03ZGEyLWFkYzgtNjY3YmUxZTFhNjY2",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-02T16:30:42Z"
+      }
+    },
+    "id": "github.issue.5678701751",
+    "updated": "2026-10-02T16:30:42Z"
+  }
+}
