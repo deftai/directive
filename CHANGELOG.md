@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Release Step 5 coverage-final diagnostic + skip-ci unpaid ledger (#5239).** Step 5 coverage decline messaging no longer depends on parent `DEFT_RELEASE_PREFLIGHT`. Production `--allow-skip-ci=#N` refuses unpaid citations (open/unknown issue or prior CHANGELOG spend) unless `--allow-unpaid-skip-ci=#N` matches. Hang named-cause treats last-file as cursor only. Tracking #5239.
+- **Release Step 5 coverage-final diagnostic + skip-ci unpaid ledger (#5239).** Step 5 coverage decline messaging no longer depends on parent `DEFT_RELEASE_PREFLIGHT`. Production `--allow-skip-ci=#N` refuses unpaid citations (open/unknown issue or prior CHANGELOG spend) unless `--allow-unpaid-skip-ci=#N` matches. Hang named-cause treats last-file as cursor only. Spend record for the v0.119.13 cut: `--allow-skip-ci=5239`. Tracking #5239.
 - **Closeout no-xbrief probe fails closed on missing repo, PR-head lookup, or HEAD verify errors (#3875).** A missing linked worktree still skips cleanly; an unverified slug/forge/HEAD read no longer returns success. Hermetic review suites opt out of closeout explicitly. Tracking #3875.
 - **Completed-write guard validates disposition provenance; item-status default-open inverted (#3819).** Completed xBRIEF writes require typed human-origin dispositions; malformed or missing status no longer skips provenance checks. Tracking #3819.
 - **Consumer upgrade deposit: root `.deft-version` allowlist, binary-safe gitattributes, lock follow-through (#5245).** Root marker is installer-managed; delete-repair runs only when lifecycle root resolves (legacy trees keep root marker and get a migrate hint). `.deft/core/** text=auto eol=lf` replaces forced `text eol=lf` so vendored PNGs keep bytes. pnpm/npm lock checks use full-key freeze-except-additions (necessary new transitives allowed; yarn stays fully frozen). Dirty-escape `--json` emits classified stage sets. Tracking #5245.
@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.119.13] - 2026-10-02
 
-> Residual re-ingest (#5177), first-ship PD/AGENTS gates (#5176/#4544), Windows Step 5 cheapen (#5140), and Fresh-clone completed-land (#4714). Step 5 skipped with --allow-skip-ci=5239 after hang (exit 124; last-file chronology.test.ts as cursor only) per operator approval.
+> Residual re-ingest (#5177), first-ship PD/AGENTS gates (#5176/#4544), Windows Step 5 cheapen (#5140), and Fresh-clone completed-land (#4714).
 
 ### Added
 - **WSL root-runtime ownership guard (#1617).** session:start soft-warns with the resolved filesystem project-owner (uid:gid + account); mutating check/update/preflight fail closed on harm-capable WSL root mismatch unless DEFT_ALLOW_ROOT_WSL_RUNTIME=1. Mount-pinned DrvFs/9p without metadata and native Windows/macOS are exempt. Ships ownership:doctor / ownership:fix / verify:ownership (CLI + task / deft: aliases). Tracking #1617.

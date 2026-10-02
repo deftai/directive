@@ -23,7 +23,7 @@ describe("cmdRelease integration", () => {
     }
   });
 
-  it("rejects unpaid --allow-skip-ci without distinct override (#5239)", () => {
+  it("rejects unpaid --allow-skip-ci without distinct override via runPipeline (#5239)", () => {
     const err: string[] = [];
     const origErr = process.stderr.write.bind(process.stderr);
     process.stderr.write = ((c: string | Uint8Array) => {
@@ -31,20 +31,38 @@ describe("cmdRelease integration", () => {
       return true;
     }) as typeof process.stderr.write;
     const seams: ReleaseSeams = {
+      validateReleaseInputs: passReleaseInputs,
       probeSkipCiIncidentLedger: () => ({
         unpaid: [{ issue: 5239, reasons: ["changelog_spent"] }],
       }),
+      spawnText: (_c, a) => {
+        if (a.includes("status")) return { status: 0, stdout: "", stderr: "" };
+        if (a.includes("branch") || a.includes("rev-parse") || a.includes("symbolic-ref")) {
+          return { status: 0, stdout: "master\n", stderr: "" };
+        }
+        return { status: 0, stdout: "", stderr: "" };
+      },
+      checkTagAvailable: () => [true, "ok"],
+      checkVbriefLifecycleSync: () => [true, 0, ""],
+      fileExists: (p) => p.endsWith("CHANGELOG.md") || p.endsWith("ROADMAP.md"),
+      readFile: () => CHANGELOG,
+      todayIso: () => "2026-06-19",
     };
     try {
-      // Production path (no --dry-run): unpaid ledger must refuse before pipeline.
       expect(
         cmdRelease(
           [
             "0.21.0",
             "--skip-ci",
             "--allow-skip-ci=5239",
+            "--skip-tag",
+            "--skip-release",
+            "--allow-dirty",
+            "--repo",
+            "deftai/directive",
             "--project-root",
             seedReleaseProjectDir(),
+            "--allow-vbrief-drift",
           ],
           seams,
         ),
