@@ -24,7 +24,7 @@ describe("host-capability-stamp (#5229)", () => {
     if (!written.ok) return;
     const raw = JSON.parse(readFileSync(written.path, "utf8")) as unknown;
     expect(parseHostCapabilityStamp(raw)?.primitive).toBe("spawn_subagent");
-    expect(readHostCapabilityStamp(root)?.source).toBe("test");
+    expect(readHostCapabilityStamp(root, { now })?.source).toBe("test");
   });
 
   it("fills DEFT_HAS_SPAWN_SUBAGENT so probe stays Tier 1 without GROK_BUILD env", () => {
