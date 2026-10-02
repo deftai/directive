@@ -62,7 +62,6 @@ export {
   type VerificationAttempt,
 } from "./flag.js";
 export {
-  discoverEmbeddedRequirementSources,
   type EvaluateRequirementSourcesOptions,
   evaluateRequirementSourcesStaleness,
   hashRequirementContent,
