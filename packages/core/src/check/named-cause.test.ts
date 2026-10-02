@@ -171,7 +171,7 @@ describe("named-cause gate failures (#3282)", () => {
     expect(cause).not.toContain("deliberately-bad");
   });
 
-  it("remedies exit 124 with cheapen-first deliberate-raise path (#5024 / #5239)", () => {
+  it("remedies suite-lane exit 124 with cheapen-first deliberate-raise path (#5024 / #5239)", () => {
     const msg = formatNamedCauseFailure({
       gateId: "ts:check-lane",
       exitCode: 124,
@@ -185,6 +185,16 @@ describe("named-cause gate failures (#3282)", () => {
     expect(msg.remedy).toMatch(/raise RELEASE_CHECK_TIMEOUT_MS only via tracked gate change/);
     expect(msg.remedy).not.toMatch(/do not raise RELEASE_CHECK_TIMEOUT_MS/);
     expect(msg.cause).not.toContain("deliberately-bad");
+  });
+
+  it("does not prescribe Step 5 throughput cheapen for non-suite hang remedies (#5239)", () => {
+    const remedy = remedyForGate(
+      "verify:branch",
+      "hang detector timeout (exit 124); last completed test file unknown",
+    );
+    expect(remedy).toMatch(/Investigate the timed-out gate/i);
+    expect(remedy).not.toMatch(/throughput shortfall/i);
+    expect(remedy).not.toMatch(/Windows Step 5/i);
   });
 
   it("does not treat every exit 124 as hang detector (#4744 P2)", () => {

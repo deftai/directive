@@ -36,11 +36,11 @@ describe("cmdRelease integration", () => {
       }),
     };
     try {
+      // Production path (no --dry-run): unpaid ledger must refuse before pipeline.
       expect(
         cmdRelease(
           [
             "0.21.0",
-            "--dry-run",
             "--skip-ci",
             "--allow-skip-ci=5239",
             "--project-root",
@@ -54,6 +54,38 @@ describe("cmdRelease integration", () => {
     } finally {
       process.stderr.write = origErr;
     }
+  });
+
+  it("skips unpaid ledger probe on dry-run so offline rehearsals are not UNKNOWN-refused (#5239)", () => {
+    let probed = false;
+    const seams: ReleaseSeams = {
+      validateReleaseInputs: passReleaseInputs,
+      todayIso: () => "2026-06-19",
+      fileExists: (p) => p.endsWith("CHANGELOG.md"),
+      readFile: () => CHANGELOG,
+      probeSkipCiIncidentLedger: () => {
+        probed = true;
+        return { unpaid: [{ issue: 5239, reasons: ["open_or_unknown"] }] };
+      },
+    };
+    const code = cmdRelease(
+      [
+        "0.21.0",
+        "--dry-run",
+        "--skip-tag",
+        "--skip-release",
+        "--repo",
+        "deftai/directive",
+        "--project-root",
+        seedReleaseProjectDir(),
+        "--allow-vbrief-drift",
+        "--skip-ci",
+        "--allow-skip-ci=5239",
+      ],
+      seams,
+    );
+    expect(probed).toBe(false);
+    expect(code).toBe(0);
   });
 
   it("runs dry-run pipeline end-to-end via seams", () => {

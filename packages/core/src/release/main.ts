@@ -42,7 +42,14 @@ export function cmdRelease(args: readonly string[], seams: ReleaseSeams = {}): n
     return EXIT_CONFIG_ERROR;
   }
 
-  if (flags.skipCi && flags.allowSkipCiIssue !== null && flags.allowSkipCiIssue > 0) {
+  // Production unpaid-ledger probe needs GitHub issue state. Dry-run rehearsals
+  // skip the probe so offline/unauth dry-runs are not refused as UNKNOWN (#5239).
+  if (
+    !flags.dryRun &&
+    flags.skipCi &&
+    flags.allowSkipCiIssue !== null &&
+    flags.allowSkipCiIssue > 0
+  ) {
     const ledger =
       seams.probeSkipCiIncidentLedger?.(repo, projectRoot, flags.allowSkipCiIssue) ??
       probeSkipCiIncidentLedger(repo, projectRoot, flags.allowSkipCiIssue, {
