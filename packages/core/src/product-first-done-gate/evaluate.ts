@@ -665,7 +665,7 @@ export function evaluateVerifyAcFromPlan(
         delete planInput[key];
       }
       Object.assign(planInput, next);
-      writeRequirementSourcesAutofixToXbrief(hintedPath, planInput);
+      writeRequirementSourcesAutofixToXbrief(hintedPath, planInput, projectRootEarly);
     };
   }
   const sourcesVerdict = evaluateRequirementSourcesStaleness(planInput, projectRootEarly, {
@@ -1893,7 +1893,7 @@ export function evaluateVerifyAcFromPath(
           delete plan[key];
         }
         Object.assign(plan, next);
-        writeRequirementSourcesAutofixToXbrief(abs, plan);
+        writeRequirementSourcesAutofixToXbrief(abs, plan, projectRoot);
       }),
   };
   const result = evaluateVerifyAcFromPlan(plan, {

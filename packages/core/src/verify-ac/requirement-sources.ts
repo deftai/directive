@@ -9,8 +9,9 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import {
   type AcceptanceClause,
   deriveAcceptanceClauses,
@@ -544,8 +545,10 @@ export function evaluateRequirementSourcesStaleness(
 export function writeRequirementSourcesAutofixToXbrief(
   xbriefPath: string,
   plan: Record<string, unknown>,
+  projectRoot: string,
 ): void {
-  const abs = resolve(xbriefPath);
+  const root = resolve(projectRoot);
+  const abs = isAbsolute(xbriefPath) ? resolve(xbriefPath) : resolve(root, xbriefPath);
   const raw = JSON.parse(readFileSync(abs, "utf8")) as unknown;
   const doc = asRecord(raw);
   if (doc === null) {
@@ -565,5 +568,10 @@ export function writeRequirementSourcesAutofixToXbrief(
     },
   };
   const next = { ...doc, plan: mergedPlan };
-  writeFileSync(abs, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+  containedWrite({
+    root,
+    target: abs,
+    data: `${JSON.stringify(next, null, 2)}\n`,
+    mode: "replace",
+  });
 }

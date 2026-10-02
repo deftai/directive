@@ -230,7 +230,7 @@ describe("requirement_sources stamp + staleness (#3920)", () => {
     const next = stampRequirementSources(basePlan({ title: "restamped" }), root, [
       { path: "REQUIREMENTS.md", content: "v2\n" },
     ]);
-    writeRequirementSourcesAutofixToXbrief(brief, next);
+    writeRequirementSourcesAutofixToXbrief(brief, next, root);
     const saved = JSON.parse(readFileSync(brief, "utf8")) as {
       plan: Record<string, unknown>;
     };
