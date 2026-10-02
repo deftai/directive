@@ -1,0 +1,608 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3944",
+    "updated": "2026-10-02T04:51:11Z"
+  },
+  "plan": {
+    "title": "bug(pr-watch,review-cycle): the merge-readiness verdict reports summary-only P1 counts, so CLEAN can coexist with an open inline P1",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(pr-watch,review-cycle): the merge-readiness verdict reports summary-only P1 counts, so CLEAN can coexist with an open inline P1",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3944",
+      "Overview": "\n\n1. **One scorer ship unit.** In `evaluateInlineReviewThreads` / shared greptile-inline scorer: match GraphQL `author.login` production form (`greptile-apps`) without treating REST User `greptile-apps` and Bot `greptile-apps[bot]` as interchangeable everywhere; **and** Prefer-A re-anchor liveness must add an inventoried signal that addresses re-anchored-but-unresolved threads (for example `originalCommit` vs mutable `commit { oid }`, or a fresh bot post on HEAD). **Do not** discharge Prefer-A re-anchor by keeping only today's `isResolved || isOutdated` plus the login fix. Do not land login match without that concurrent re-anchor rule.\n\n2. **EXIT on both surfaces.** `pr:watch` EXIT / `isClean` and merge-ready EXIT must refuse unresolved SHA-matched inline P0/P1. Ordinary `pr:watch` probes must load the inline path (not thin-HTML-only). Report fields are secondary and must not be readable as a total that excludes inline.\n\n3. **Repo-lookup non-clean on pr:watch.** When inline lookup cannot run (including unresolved repo / missing `--repo` path that skips inline), `pr:watch` must be distinguishable non-clean. Do not claim this closed by pointing only at merge-ready's existing `appendInlineFailures` error path.\n\n4. **Fixtures.** At least one GraphQL fixture with `author.login: \"greptile-apps\"` proving non-zero inline count; regression for summary-zero + unresolved inline P1 → non-clean on both surfaces; include a re-anchor case that would false-BLOCK under login-only fix.\n\n5. **Surfaces.** `packages/core/src/pr-merge-readiness/greptile-inline.ts`, `compute.ts`, `output.ts`, `pr-watch/probe.ts` / `main.ts`; CHANGELOG Unreleased.\n\n6. **Non-goals.** Do not abandon GraphQL reviewThreads for REST-only counting. Do not invent a third findings detector. Do not auto-ingest after ingest-ready.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\naudit:pain-P1 sha=38277e97dcf90c24bf408a93048ad8682aab0099 pointer=comment:5918590566 reading=asserted\naudit:pain-P2 sha=38277e97dcf90c24bf408a93048ad8682aab0099 pointer=comment:5918590566 reading=asserted\naudit:pain-P3 sha=38277e97dcf90c24bf408a93048ad8682aab0099 pointer=comment:5918590566 reading=asserted\n\n",
+      "Labels": "bug, design, determinism, agent-experience, review-cycle, process, source-of-truth, agent-safety, urgent, area:cli, legacy-arced, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "One scorer ship unit. In `evaluateInlineReviewThreads` / shared greptile-inline scorer: match GraphQL `author.login` production form (`greptile-apps`) without treating REST User `greptile-apps` and Bot `greptile-apps[bot]` as interchangeable everywhere; and Prefer-A re-anchor liveness must add an inventoried signal that addresses re-anchored-but-unresolved threads (for example `originalCommit` vs mutable `commit { oid }`, or a fresh bot post on HEAD). Do not discharge Prefer-A re-anchor by keeping only today's `isResolved || isOutdated` plus the login fix. Do not land login match without that concurrent re-anchor rule.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5243 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 68b51145a019fcd543dced56008214d7022ce0e9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-02T04:49:39.860Z",
+            "mintedVia": "leftover-complete-after-5243"
+          },
+          "recorded_at": "2026-10-02T04:49:39.860Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "EXIT on both surfaces. `pr:watch` EXIT / `isClean` and merge-ready EXIT must refuse unresolved SHA-matched inline P0/P1. Ordinary `pr:watch` probes must load the inline path (not thin-HTML-only). Report fields are secondary and must not be readable as a total that excludes inline.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5243 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 68b51145a019fcd543dced56008214d7022ce0e9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-02T04:49:39.860Z",
+            "mintedVia": "leftover-complete-after-5243"
+          },
+          "recorded_at": "2026-10-02T04:49:39.860Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Repo-lookup non-clean on pr:watch. When inline lookup cannot run (including unresolved repo / missing `--repo` path that skips inline), `pr:watch` must be distinguishable non-clean. Do not claim this closed by pointing only at merge-ready's existing `appendInlineFailures` error path.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5243 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 68b51145a019fcd543dced56008214d7022ce0e9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-02T04:49:39.860Z",
+            "mintedVia": "leftover-complete-after-5243"
+          },
+          "recorded_at": "2026-10-02T04:49:39.860Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Fixtures. At least one GraphQL fixture with `author.login: \"greptile-apps\"` proving non-zero inline count; regression for summary-zero + unresolved inline P1 → non-clean on both surfaces; include a re-anchor case that would false-BLOCK under login-only fix.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5243 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 68b51145a019fcd543dced56008214d7022ce0e9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-02T04:49:39.860Z",
+            "mintedVia": "leftover-complete-after-5243"
+          },
+          "recorded_at": "2026-10-02T04:49:39.860Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Surfaces. `packages/core/src/pr-merge-readiness/greptile-inline.ts`, `compute.ts`, `output.ts`, `pr-watch/probe.ts` / `main.ts`; CHANGELOG Unreleased.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5243 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 68b51145a019fcd543dced56008214d7022ce0e9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-02T04:49:39.860Z",
+            "mintedVia": "leftover-complete-after-5243"
+          },
+          "recorded_at": "2026-10-02T04:49:39.860Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Non-goals. Do not abandon GraphQL reviewThreads for REST-only counting. Do not invent a third findings detector. Do not auto-ingest after ingest-ready.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5243 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 68b51145a019fcd543dced56008214d7022ce0e9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-10-02T04:49:39.860Z",
+            "mintedVia": "leftover-complete-after-5243"
+          },
+          "recorded_at": "2026-10-02T04:49:39.860Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "determinism",
+      "agent-experience",
+      "review-cycle",
+      "process",
+      "source-of-truth",
+      "agent-safety",
+      "urgent",
+      "area:cli",
+      "legacy-arced",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3944",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3944: bug(pr-watch,review-cycle): the merge-readiness verdict reports summary-only P1 counts, so CLEAN can coexist with an open inline P1"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1056",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1056"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/pr-merge-readiness"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "One scorer ship unit. In `evaluateInlineReviewThreads` / shared greptile-inline scorer: match GraphQL `author.login` production form (`greptile-apps`) without treating REST User `greptile-apps` and Bot `greptile-apps[bot]` as interchangeable everywhere; and Prefer-A re-anchor liveness must add an inventoried signal that addresses re-anchored-but-unresolved threads (for example `originalCommit` vs mutable `commit { oid }`, or a fresh bot post on HEAD). Do not discharge Prefer-A re-anchor by keeping only today's `isResolved || isOutdated` plus the login fix. Do not land login match without that concurrent re-anchor rule.",
+        "EXIT on both surfaces. `pr:watch` EXIT / `isClean` and merge-ready EXIT must refuse unresolved SHA-matched inline P0/P1. Ordinary `pr:watch` probes must load the inline path (not thin-HTML-only). Report fields are secondary and must not be readable as a total that excludes inline.",
+        "Repo-lookup non-clean on pr:watch. When inline lookup cannot run (including unresolved repo / missing `--repo` path that skips inline), `pr:watch` must be distinguishable non-clean. Do not claim this closed by pointing only at merge-ready's existing `appendInlineFailures` error path.",
+        "Fixtures. At least one GraphQL fixture with `author.login: \"greptile-apps\"` proving non-zero inline count; regression for summary-zero + unresolved inline P1 → non-clean on both surfaces; include a re-anchor case that would false-BLOCK under login-only fix.",
+        "Surfaces. `packages/core/src/pr-merge-readiness/greptile-inline.ts`, `compute.ts`, `output.ts`, `pr-watch/probe.ts` / `main.ts`; CHANGELOG Unreleased.",
+        "Non-goals. Do not abandon GraphQL reviewThreads for REST-only counting. Do not invent a third findings detector. Do not auto-ingest after ingest-ready."
+      ],
+      "admitted_source_sentences": [
+        "One scorer ship unit. In `evaluateInlineReviewThreads` / shared greptile-inline scorer: match GraphQL `author.login` production form (`greptile-apps`) without treating REST User `greptile-apps` and Bot `greptile-apps[bot]` as interchangeable everywhere; and Prefer-A re-anchor liveness must add an inventoried signal that addresses re-anchored-but-unresolved threads (for example `originalCommit` vs mutable `commit { oid }`, or a fresh bot post on HEAD). Do not discharge Prefer-A re-anchor by keeping only today's `isResolved || isOutdated` plus the login fix. Do not land login match without that concurrent re-anchor rule.",
+        "EXIT on both surfaces. `pr:watch` EXIT / `isClean` and merge-ready EXIT must refuse unresolved SHA-matched inline P0/P1. Ordinary `pr:watch` probes must load the inline path (not thin-HTML-only). Report fields are secondary and must not be readable as a total that excludes inline.",
+        "Repo-lookup non-clean on pr:watch. When inline lookup cannot run (including unresolved repo / missing `--repo` path that skips inline), `pr:watch` must be distinguishable non-clean. Do not claim this closed by pointing only at merge-ready's existing `appendInlineFailures` error path.",
+        "Fixtures. At least one GraphQL fixture with `author.login: \"greptile-apps\"` proving non-zero inline count; regression for summary-zero + unresolved inline P1 → non-clean on both surfaces; include a re-anchor case that would false-BLOCK under login-only fix.",
+        "Surfaces. `packages/core/src/pr-merge-readiness/greptile-inline.ts`, `compute.ts`, `output.ts`, `pr-watch/probe.ts` / `main.ts`; CHANGELOG Unreleased.",
+        "Non-goals. Do not abandon GraphQL reviewThreads for REST-only counting. Do not invent a third findings detector. Do not auto-ingest after ingest-ready."
+      ],
+      "admitted_source_digest": "763d46cd12302729f8f175bb2b69b82fc816cbd400af745912b874816b9fc446",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One scorer ship unit. In `evaluateInlineReviewThreads` / shared greptile-inline scorer: match GraphQL `author.login` production form (`greptile-apps`) without treating REST User `greptile-apps` and Bot `greptile-apps[bot]` as interchangeable everywhere; and Prefer-A re-anchor liveness must add an inventoried signal that addresses re-anchored-but-unresolved threads (for example `originalCommit` vs mutable `commit { oid }`, or a fresh bot post on HEAD). Do not discharge Prefer-A re-anchor by keeping only today's `isResolved || isOutdated` plus the login fix. Do not land login match without that concurrent re-anchor rule.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "EXIT on both surfaces. `pr:watch` EXIT / `isClean` and merge-ready EXIT must refuse unresolved SHA-matched inline P0/P1. Ordinary `pr:watch` probes must load the inline path (not thin-HTML-only). Report fields are secondary and must not be readable as a total that excludes inline.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Repo-lookup non-clean on pr:watch. When inline lookup cannot run (including unresolved repo / missing `--repo` path that skips inline), `pr:watch` must be distinguishable non-clean. Do not claim this closed by pointing only at merge-ready's existing `appendInlineFailures` error path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Fixtures. At least one GraphQL fixture with `author.login: \"greptile-apps\"` proving non-zero inline count; regression for summary-zero + unresolved inline P1 → non-clean on both surfaces; include a re-anchor case that would false-BLOCK under login-only fix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Surfaces. `packages/core/src/pr-merge-readiness/greptile-inline.ts`, `compute.ts`, `output.ts`, `pr-watch/probe.ts` / `main.ts`; CHANGELOG Unreleased.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 6,
+          "text": "Non-goals. Do not abandon GraphQL reviewThreads for REST-only counting. Do not invent a third findings detector. Do not auto-ingest after ingest-ready.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nParent-side measurement pass, recorded before any arc is dispatched on this issue. This is a measurement of shipped behaviour, not a proposed design and not direction to an implementer. It is offered as input to the round-1 ceiling so the arc does not critique an acceptance set that is already known to be incomplete.\n\nMeasured at `41331dea` (delivery tip is now `795181f9`). One finding below was independently audited by a second agent that reproduced the method before extending it; the other was re-derived from the code and from live REST data.\n\n## Third field instance, 2026-08-30\n\nThe body lists two field instances from 2026-08-29. A third occurred on PR #3927 (branch commit `405660f7`): a rolling summary listed one finding while an inline fetch showed three, of which two were already-addressed threads that GitHub had re-anchored onto the newest commit.\n\nThat substrate is durable and re-derivable at any time: `GET /repos/deftai/directive/pulls/3927/comments` returns 13 inline review comments, **7 of which carry `commit_id` different from `original_commit_id`** -- GitHub's re-anchor, preserved on the record.\n\n## Measured defect 1: the inline author filter never matches in production\n\n`evaluateInlineReviewThreads` (`packages/core/src/pr-merge-readiness/greptile-inline.ts`) skips any comment where `authorLogin !== GREPTILE_LOGIN`, and `GREPTILE_LOGIN` is `\"greptile-apps[bot]\"` (`constants.ts:5`). That `authorLogin` is populated by this module's own GraphQL query, which selects `author { login }` on `reviewThreads`.\n\nGitHub returns bot logins in two different forms:\n\n- GraphQL `author.login` -> `greptile-apps` (type `Bot`), no suffix\n- REST `user.login` -> `greptile-apps[bot]`\n\nSo the comparison can never be true on the GraphQL path, and the inline P0/P1 counts are structurally zero in production.\n\nLive evidence, not synthetic: on PRs **3939**, **3949** and **3904** an unresolved, non-outdated, HEAD-SHA-matched Greptile inline P1 exists and the shipped detector scores the body `p1_count=1`, while `fetchUnresolvedGreptileInlineFindings` returns `{ p0Count: 0, p1Count: 0, unresolvedThreadCount: 0, error: null }`. Rewriting only `authorLogin` to the REST form on those same threads flips the result to `p1=1`. The only changed input is the login string.\n\nThe existing unit fixtures hand-construct `authorLogin: \"greptile-apps[bot]\"`, which is the REST form the production query never produces -- so the tests pass while the production path cannot count.\n\nConsumer trace (who is affected):\n\n```\nevaluateInlineReviewThreads\n  <- fetchUnresolvedGreptileInlineFindings\n      <- loadInlineGreptileFindings (compute.ts)\n          <- finalizeVerdictGate -> evaluateGates(..., inline) and verdictBlockIsSoftOnly(..., inline)\n              <- pr:merge-ready, pr-monitor, swarm verify-review-clean\n```\n\n`pr:watch` is a **separate** miss: `pr-watch/probe.ts` reads the latest Greptile issue-comment body over REST and never calls the inline path at all. So the report and the merge-ready exit are both wrong for an inline P1, for two different reasons.\n\nOne trap worth recording for whoever takes this: `greptile-apps` and `greptile-apps[bot]` are different accounts on REST -- a `User` (id 244718400) and a `Bot` (id 165735046). Accepting both strings on every surface is not safe.\n\n## Measured defect 2: the re-anchor false-block already ships\n\nThe re-anchor hazard is not only a risk created by implementing acceptance criterion 1. It is present today. `evaluateInlineReviewThreads` skips a thread only when `isResolved || isOutdated`, and counts a comment when `headShaMatches(comment.commitOid, headSha)` -- where `commitOid` comes from GraphQL `commit { oid }`, the mutable re-anchored oid, not `originalCommit`. A thread that GitHub re-anchors onto the current head, whose content was already addressed but which the bot did not mark resolved, is counted as live.\n\nSo the same function owns both error directions: a false CLEAN and a false block are decided in one loop. Note the interaction with defect 1 -- while the author filter never matches, defect 2 is masked; fixing the filter alone would expose it.\n\n## What this appears to leave unresolved in the current acceptance set\n\nRecorded as observations for the arc to weigh, not as a proposed acceptance set:\n\n1. Criterion 1 requires a working inline **count**, not only a second reported key. A fix that renames or re-exports `greptile_inline` while the author filter still never matches would satisfy the wording and change nothing.\n2. A regression fixture whose GraphQL payload uses `greptile-apps[bot]` cannot catch defect 1. Fixtures need the login GitHub actually returns.\n3. Criterion 5 asks which of **two** candidate defects is real. On this measurement there are at least three: the summary-only report, the never-matching inline author filter, and the re-anchor counting rule.\n4. \"Already addressed\" has no machine signal in that function. `isResolved` is what the bot did not flip; whether liveness should key on `original_commit_id` versus `commit_id`, on `isOutdated`, or on a fresh bot post against the current head is an open design question, not a settled one.\n5. Body question 2 (an unresolved repo silently zeroing the counts) remains a separate miss and is not needed to explain the field instances once defect 1 is in play.\n\nRefs #2620, #1056, #3156.\n\n",
+          "id": 5469605102,
+          "html_url": "https://github.com/deftai/directive/issues/3944#issuecomment-5469605102",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-08-30T15:34:04Z",
+          "updated_at": "2026-08-30T15:34:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Current known state (2026-09-30 Stage A)\n\nStage A `task triage:evaluate -- 3944` on origin/master `38277e97dcf9`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false before mechanism-shaped chip (body claimed mechanism-shaped; catalog chip was missing)\n- sink: `.deft-scratch/issue-eval/38277e97dcf9/070e7914-01bb-4d7d-96de-398a7f9e93ea`\n- Prior measurement comment: 5469605102 (inline author-filter never matches GraphQL; pr:watch separate miss; re-anchor false-block masked)\n\n### Live gap\n\n`pr:watch` / merge-readiness can report summary-only `p1_count=0` / CLEAN while unresolved SHA-matched Greptile inline P1 exists. Measurement shows the GraphQL author filter compares `greptile-apps` to `greptile-apps[bot]` (never matches), and `pr:watch` never calls the inline path.\n\n### Spend recommendation\n\nMerge-readiness / agent-safety gate with open re-anchor design question → recommended Dual-stop **N≥3**.\n\n### Family probe (pre-panel)\n\nBefore panel-deposit: Claude bypass pong did not reply `pong` (orientation essay, rc0); Codex exec pong rc=2; Grok pong ok. **Spend amended to N=1** (single Grok seat). Yolo + no-ingest under #5111 defaults.\n\nCatalog facets added: design, agent-experience, source-of-truth, area:cli, framework-gap. Chip: design-critique:mechanism-shaped → in-progress.\n\n",
+          "id": 5918470276,
+          "html_url": "https://github.com/deftai/directive/issues/3944#issuecomment-5918470276",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:47:22Z",
+          "updated_at": "2026-09-30T19:47:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because pr:watch / merge-readiness can report summary-only p1_count=0 and CLEAN while unresolved SHA-matched Greptile inline P1 exists; measurement shows GraphQL author filter never matches and pr:watch never loads inline findings.\n\ncharter: open critique\nspend-recommend: N≥3\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\n\nOperator directed arc under #5111 defaults. Recommended Dual-stop N≥3 amended to N=1 after Claude/Codex benign pong probes failed (Grok ok). Single Grok seat.\n\npain: P1, P2, P3\n\nP1. A merge-readiness / pr:watch CLEAN (or p1_count=0 read as total) must not coexist with an unresolved, SHA-matched Greptile inline P0/P1 on current HEAD.\nP2. The GraphQL inline author filter must match the login GraphQL actually returns (or normalize bot login forms safely without treating REST User and Bot accounts as interchangeable).\nP3. Unresolved-repo / inline-lookup failure must be a distinguishable non-clean outcome, not a silent zero; re-anchor liveness (commit_id vs original_commit_id / isOutdated) must be an explicit Prefer-A rule, not an accidental false-block after the author filter is fixed.\n\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-3944-dc\norigin-ref: origin/HEAD\ndispatch-sha: 38277e97dcf90c24bf408a93048ad8682aab0099\npin-kind: origin-default\ntarget-digest: sha256:754f412ebcd0e89583e5d4f4aa9b43d89dfde5446b837e61a91f65a7cdbf68ca\n\nPin reads use git show 38277e97dcf90c24bf408a93048ad8682aab0099:. Ceiling includes measurement 5469605102. Single Grok seat. Not dual-launched. Non-goals: do not auto-ingest after ingest-ready; do not invent HMAC; do not expand into unrelated review-cycle skill rewrite beyond the gate contract named here.\n\n",
+          "id": 5918470563,
+          "html_url": "https://github.com/deftai/directive/issues/3944#issuecomment-5918470563",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:47:23Z",
+          "updated_at": "2026-09-30T19:47:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#3944\ncharter: open critique\nround: 1 critic\nseat: grok\nlauncher: grok (process-only)\nid-ceiling: 5918470563\ndispatch-sha: 38277e97dcf90c24bf408a93048ad8682aab0099\narc-mode: no-ingest\naudit-targets: none\n\n## Open critique — Stop 1 Prefer-A shape (P1–P3)\n\nRe-verified at pin `38277e97dcf90c24bf408a93048ad8682aab0099` against measurement `5469605102` and Stop 1 `5918470563`. Measurement is evidence, not a Bound.\n\n### Anchor inventory (existing mechanisms)\n\n- `GREPTILE_LOGIN = \"greptile-apps[bot]\"` (`pr-merge-readiness/constants.ts`).\n- GraphQL `REVIEW_THREADS_QUERY` selects `author { login }` and `commit { oid }` only; no `originalCommit` (`greptile-inline.ts`).\n- `evaluateInlineReviewThreads` skips `isResolved || isOutdated`, then requires `authorLogin === GREPTILE_LOGIN` and `headShaMatches(commitOid, headSha)`.\n- `loadInlineGreptileFindings` / `finalizeVerdictGate` already feed inline into `evaluateGates` → `appendInlineFailures` and into `verdictBlockIsSoftOnly` as a HARD block (`compute.ts`, `evaluate.ts`, `mergeability.ts`). Repo-unresolved returns `error` with zero counts; that error already fails closed on the merge-ready path.\n- Human/JSON merge-ready report still prints summary `p0_count` / `p1_count`; inline lives under `partial_data.greptile_inline` (`output.ts`).\n- `pr-watch/probe.ts` loads inline only when `thinHtmlSummary && repo !== null` via `loadThinHtmlInlineFindings`. Ordinary rolling-summary probes never call `fetchUnresolvedGreptileInlineFindings`. `isClean` / JSON `p1_count` stay summary/channel-driven.\n- `loadThinHtmlInlineFindings` returns successful GraphQL zeros without falling through to REST (REST uses the `[bot]` login form that GraphQL does not).\n- Unit fixtures for GraphQL payloads hand-construct `author: { login: \"greptile-apps[bot]\" }` (`greptile-inline.test.ts`, `compute.test.ts`), so the #2620 regression stays green while production GraphQL login `greptile-apps` never matches.\n\n### Findings\n\n#### 1. `blocks-the-design` — Prefer-A must ship login match and re-anchor liveness as one unit on the GraphQL scorer\n\n**Evidence.** At pin, author compare is exact `!== GREPTILE_LOGIN` against GraphQL `author.login`. Measurement’s live rewrite (REST-form login on the same threads) flips zero → P1; fixtures encode the REST form GraphQL never returns. The same loop keys liveness on mutable `commit { oid }` after only `isResolved || isOutdated`. Measurement’s PR #3927 substrate: many inline comments with `commit_id ≠ original_commit_id`. Defect 2 is masked until defect 1 is fixed.\n\n**Failure mode.** A Prefer-A that lands P2 (GraphQL login match) without a concurrent explicit re-anchor rule flips production from false CLEAN to false BLOCK on addressed-but-unresolved re-anchored threads.\n\n**Disposition consequence.** Bind P2 and the re-anchor half of P3 together for `evaluateInlineReviewThreads` (and any shared scorer). Do not sequence “login now, liveness later.” Choose Prefer-A liveness among inventoried signals (`originalCommit` / `isOutdated` / resolved / fresh bot post on HEAD); do not invent a parallel detector.\n\n#### 2. `blocks-the-design` — Prefer-A must bind EXIT / `isClean` on both `pr:watch` and merge-ready; report reshape alone does not close P1\n\n**Evidence.** Merge-ready already has the #2620 inline HARD path; it is dead because counts stay structurally zero. `pr:watch` is a separate miss: non-thin probes never load inline, so CLEAN/`p1_count` can coexist with an unresolved HEAD-matched inline P1 even after greptile-inline.ts is repaired. AGENTS.md makes `pr:watch` the deterministic terminal wait for drive-to:merge-ready workers.\n\n**Failure mode.** Prefer-A read as “working inline count” via renaming/exporting `greptile_inline` or repairing only `compute`/`evaluate` leaves the mandated poll surface able to exit CLEAN.\n\n**Disposition consequence.** Prefer-A states, for each surface: (a) EXIT / `isClean` / merge_ready must refuse unresolved SHA-matched inline P0/P1; (b) report fields are secondary and must not be readable as a total that excludes inline. Body question 1 at this pin: merge-ready EXIT machinery considers inline; summary `p1_count` does not; both are wrong in production because of finding 1. `pr:watch` EXIT and report both miss inline on the ordinary path.\n\n#### 3. `sharpens-framing` — Split P3’s two concerns; do not bind “silent zero” as if merge-ready still owns that hole\n\n**Evidence.** `loadInlineGreptileFindings` on unresolved repo returns `error: … pass --repo OWNER/REPO` and `appendInlineFailures` pushes a non-clean failure. The live silent path called out by workers using `pr:watch --json` without `--repo` is: probe resolves HEAD/body without loading inline at all, so there is no `greptile_inline` error channel on that surface.\n\n**Failure mode.** A single Prefer-A sentence that “repo failure must not silent-zero” can be “satisfied” by pointing at the existing merge-ready error path while `pr:watch` remains summary-only CLEAN.\n\n**Disposition consequence.** Record two Prefer-A clauses: (3a) `pr:watch` must fail closed or otherwise non-clean when inline lookup cannot run (including unresolved repo); (3b) re-anchor liveness rule (finding 1). Keep measurement item 5’s separation.\n\n#### 4. `sharpens-framing` — Acceptance / regression fixtures must use the login GraphQL actually returns\n\n**Evidence.** Pin tests that claim to cover “summary clean + inline P1 blocks” inject `greptile-apps[bot]` into GraphQL `author.login`. Production returns `greptile-apps` (Bot). REST User `greptile-apps` and Bot `greptile-apps[bot]` are different accounts (measurement trap).\n\n**Failure mode.** Prefer-A can land a normalization helper and still ship green tests that never encode the production GraphQL form, re-creating the false-CLEAN class.\n\n**Disposition consequence.** AC4 (and any Prefer-A test contract) requires at least one GraphQL fixture with `author.login: \"greptile-apps\"` proving a non-zero inline count, plus an explicit rule that REST `[bot]` and GraphQL bare bot login are matched per-surface without treating the two REST accounts as interchangeable everywhere.\n\n#### 5. `footnote` — Thin-HTML GraphQL-success short-circuit\n\n`loadThinHtmlInlineFindings` trusts GraphQL when `error === null`, so REST fallback never runs on false zeros. After finding 1’s login fix on the GraphQL scorer, this short-circuit is coherent; it is not a separate Prefer-A seat.\n\n### Road-not-taken / steelman\n\n**Road not taken.** Abandon GraphQL reviewThreads and count only REST `pulls/.../comments` (correct `[bot]` login today). Rejected: REST has no `isResolved` / `isOutdated`; the file already documents GraphQL as the lifecycle filter (#4289). Prefer fixing GraphQL login + explicit liveness over dropping thread state.\n\n**Steelmans.** Strongest reject: “AC2 rename / side-key is enough; `greptile_inline` already exists on merge-ready.” What would flip: if `pr:watch` EXIT consumed a working inline HARD path and workers were not mandated to treat `pr:watch` CLEAN as terminal. Neither holds at this pin.\n\n### Verdict on Stop 1 Prefer-A shape\n\nP1–P3 name the right pains. Prefer-A is bindable when it: couples login match with re-anchor liveness as one scorer ship unit; binds EXIT on both `pr:watch` and merge-ready before report cosmetics; splits repo-lookup non-clean from re-anchor policy; and requires GraphQL-authentic fixtures. Inventory first: revive and extend the existing #2620 / #4289 machinery; do not add a third findings detector.",
+          "id": 5918516724,
+          "html_url": "https://github.com/deftai/directive/issues/3944#issuecomment-5918516724",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:50:20Z",
+          "updated_at": "2026-09-30T19:50:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`pr:watch` CLEAN can coexist with an open inline P1 because the GraphQL author filter never matches and the ordinary watch path never loads inline. Fixing the login alone would expose re-anchor false-blocks. Prefer-A must ship login match and re-anchor liveness together, bind EXIT on both watch and merge-ready, split repo-lookup non-clean from re-anchor policy, and require GraphQL-authentic fixtures. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5918470563. Critic 5918516724 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** open critique. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5918470563\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 38277e97dcf90c24bf408a93048ad8682aab0099\n\n## Takes\n\n- 5918516724 Prefer-A must ship login match and re-anchor liveness as one unit - accept-into-contract\n- 5918516724 Prefer-A must bind EXIT/isClean on both pr:watch and merge-ready - accept-into-contract\n- 5918516724 Split P3 silent-zero vs re-anchor; pr:watch owns silent miss - accept-into-contract\n- 5918516724 Fixtures must use GraphQL login greptile-apps - accept-into-contract\n- 5918516724 Thin-HTML GraphQL-success short-circuit - footnote\n\nSpec-path:\n\n## Bound remedy\n\n1. **One scorer ship unit.** In `evaluateInlineReviewThreads` / shared greptile-inline scorer: match GraphQL `author.login` production form (`greptile-apps`) without treating REST User `greptile-apps` and Bot `greptile-apps[bot]` as interchangeable everywhere; and set Prefer-A re-anchor liveness using inventoried signals (`originalCommit` and/or `isOutdated` / resolved / fresh bot post on HEAD). Do not land login match without concurrent re-anchor rule.\n\n2. **EXIT on both surfaces.** `pr:watch` EXIT / `isClean` and merge-ready EXIT must refuse unresolved SHA-matched inline P0/P1. Ordinary `pr:watch` probes must load the inline path (not thin-HTML-only). Report fields (`p1_count` include-inline or rename + side-by-side inline) are secondary and must not be readable as a total that excludes inline.\n\n3. **Repo-lookup non-clean on pr:watch.** When inline lookup cannot run (including unresolved repo / missing `--repo` path that skips inline), `pr:watch` must be distinguishable non-clean. Do not claim this closed by pointing only at merge-ready's existing `appendInlineFailures` error path.\n\n4. **Fixtures.** At least one GraphQL fixture with `author.login: \"greptile-apps\"` proving non-zero inline count; regression for summary-zero + unresolved inline P1 → non-clean on both surfaces.\n\n5. **Surfaces.** `packages/core/src/pr-merge-readiness/greptile-inline.ts`, `compute.ts`, `output.ts`, `pr-watch/probe.ts` / `main.ts`; CHANGELOG Unreleased; review-cycle pointer only if EXIT contract wording must move.\n\n6. **Non-goals.** Do not abandon GraphQL reviewThreads for REST-only counting. Do not invent a third findings detector. Do not auto-ingest after ingest-ready.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:754f412ebcd0e89583e5d4f4aa9b43d89dfde5446b837e61a91f65a7cdbf68ca\n\n## Parent-side substantiation\n\nCritic blocked Prefer-A that lands login without re-anchor or report-only reshape; Bound items 1-2 couple those. Item 3 splits silent-zero onto pr:watch. Item 4 lands GraphQL-authentic fixtures. Item 5 is the write-set; item 6 keeps inventory-first #2620/#4289 extension.\n\naudit:login-and-reanchor-one-unit sha=38277e97dcf90c24bf408a93048ad8682aab0099 pointer=comment:5918516724 reading=asserted\naudit:exit-both-surfaces sha=38277e97dcf90c24bf408a93048ad8682aab0099 pointer=comment:5918516724 reading=asserted\naudit:pr-watch-repo-nonclean sha=38277e97dcf90c24bf408a93048ad8682aab0099 pointer=comment:5918516724 reading=asserted\naudit:graphql-authentic-fixtures sha=38277e97dcf90c24bf408a93048ad8682aab0099 pointer=comment:5918516724 reading=asserted\n\n",
+          "id": 5918528672,
+          "html_url": "https://github.com/deftai/directive/issues/3944#issuecomment-5918528672",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:51:08Z",
+          "updated_at": "2026-09-30T19:51:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#3944\ncharter: open critique\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5918528672\ndispatch-sha: 38277e97dcf90c24bf408a93048ad8682aab0099\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\n## Pain-audit of lean 5918528672 asserted coverage\n\nFresh critic. Re-verified at pin `38277e97dcf90c24bf408a93048ad8682aab0099` against Stop 1 pains in `5918470563`, measurement `5469605102`, prior critic `5918516724`, and Bound remedy on successor lean `5918528672`. Ignored comments above the id ceiling.\n\n### Anchor re-check (pin)\n\n- `GREPTILE_LOGIN = \"greptile-apps[bot]\"` (`pr-merge-readiness/constants.ts`).\n- GraphQL `REVIEW_THREADS_QUERY` selects `author { login }` and `commit { oid }` only; no `originalCommit`.\n- `evaluateInlineReviewThreads` skips `isResolved || isOutdated`, then exact `authorLogin !== GREPTILE_LOGIN`, then `headShaMatches(commitOid, headSha)`.\n- Unit GraphQL fixtures hand-construct `author.login: \"greptile-apps[bot]\"` (`greptile-inline.test.ts`, `compute.test.ts`).\n- Merge-ready already routes inline through `loadInlineGreptileFindings` → `evaluateGates` → `appendInlineFailures` (HARD on `error` or nonzero counts); counts stay structurally zero under the GraphQL login miss.\n- Ordinary `pr:watch` (`pr-watch/probe.ts`) scores the rolling-summary body; inline loads only under `thinHtmlSummary && repo !== null` via `loadThinHtmlInlineFindings`. Non-thin probes never call the inline path. Repo-unresolved thin/inline channel is absent, so summary-only CLEAN remains possible.\n\n### Injection / identity lens\n\nBound touches Greptile bot identity (GraphQL bare login vs REST `[bot]`) and merge-gate EXIT authority. Lean item 1 already forbids treating REST User `greptile-apps` and Bot `greptile-apps[bot]` as interchangeable everywhere; keep per-surface match. No new detector authority; extend #2620/#4289.\n\n### pain-P1\n\nStop 1 P1: merge-readiness / `pr:watch` CLEAN (or `p1_count=0` read as total) must not coexist with an unresolved, SHA-matched Greptile inline P0/P1 on current HEAD.\n\n**Coverage.** Lean covers it. Bound item 1 repairs the scorer so inline counts can be nonzero; Bound item 2 binds EXIT / `isClean` on both `pr:watch` and merge-ready to refuse unresolved SHA-matched inline P0/P1, requires ordinary watch probes to load the inline path, and demotes report reshape to secondary so rename-only cannot close the pain. Pin shows merge-ready HARD path already present but dead, and watch ordinary path missing inline — both are named in the Bound.\n\n**Failure mode if unbound.** Report-only or merge-ready-only Prefer-A leaves mandated `pr:watch` CLEAN coexisting with an open inline P1.\n\n**Disposition.** Asserted coverage of P1 stands under items 1–2 as written.\n\nfootnote\n\n### pain-P2\n\nStop 1 P2: GraphQL inline author filter must match the login GraphQL actually returns (safe normalization; no REST User/Bot interchange).\n\n**Coverage.** Lean covers it. Bound item 1 requires matching GraphQL production form `greptile-apps` without equating the two REST accounts everywhere. Bound item 4 requires at least one GraphQL fixture with `author.login: \"greptile-apps\"` proving nonzero inline count. Pin still compares against `greptile-apps[bot]` and fixtures encode that REST form on GraphQL payloads — the Bound points at both.\n\n**Failure mode if unbound.** Login helper lands while green tests never encode production GraphQL login; false-CLEAN class returns.\n\n**Disposition.** Asserted coverage of P2 stands under items 1 and 4.\n\nfootnote\n\n### pain-P3\n\nStop 1 P3: (a) unresolved-repo / inline-lookup failure must be distinguishable non-clean, not silent zero; (b) re-anchor liveness must be an explicit Prefer-A rule, not an accidental false-block after the author filter is fixed.\n\n**Coverage.** Lean covers both halves, with one wording sharpen on (b). Bound item 3 binds `pr:watch` distinguishable non-clean when inline lookup cannot run (including unresolved repo / missing `--repo` skip), and refuses closing that hole by pointing only at merge-ready `appendInlineFailures`. Bound item 1 couples login match with a concurrent re-anchor rule and lists inventoried signals. Pin confirms merge-ready already fails closed on `inline.error`, while watch's ordinary/repo-miss path has no inline error channel — item 3 is the right surface. Re-anchor half is intended by \"Do not land login match without concurrent re-anchor rule,\" but item 1's and/or menu still lists status-quo `isOutdated` / resolved beside `originalCommit` / fresh bot post on HEAD.\n\n**Failure mode.** An implementer could read Prefer-A as \"keep today's `isResolved || isOutdated` + fix login,\" satisfy the menu literally, and ship the measurement's false-BLOCK class the moment GraphQL login starts matching. That would discharge asserted P3 re-anchor relief without changing liveness relative to the pin loop.\n\n**Disposition consequence.** Keep the bind map. Tighten Bound item 1 so Prefer-A re-anchor liveness cannot be discharged by status-quo `isResolved || isOutdated` alone; Prefer-A must add an inventoried signal that addresses re-anchored-but-unresolved threads (for example `originalCommit` vs mutable `commit { oid }`, or fresh bot post on HEAD). Silent-zero half (item 3) needs no change.\n\nsharpens-framing\n\n### Census\n\n| Target | Covered by lean 5918528672? | Class |\n| --- | --- | --- |\n| pain-P1 | yes (Bound items 1–2) | footnote |\n| pain-P2 | yes (Bound items 1, 4) | footnote |\n| pain-P3 | yes, with Prefer-A liveness wording sharpen (items 1, 3) | sharpens-framing |\n\nNo blocking findings. Inventory-first #2620/#4289 extension on the named write-set remains sound. Road not taken: REST-only counting — still rejected; GraphQL keeps `isResolved` / `isOutdated`.\r\n\n",
+          "id": 5918590566,
+          "html_url": "https://github.com/deftai/directive/issues/3944#issuecomment-5918590566",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:55:17Z",
+          "updated_at": "2026-09-30T19:55:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit 5918590566 kept relieves: P1–P3 and sharpened Prefer-A re-anchor wording: status-quo `isResolved || isOutdated` alone must not discharge the re-anchor half after the GraphQL login starts matching. Confirming this map tightens Bound item 1. Dual-stop numbered + reserved seats are spent; a second pain-audit needs a cap raise.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.5 parent authored Stop 1 and these takes. Takes accept pain-audit 5918590566.\n\nForward verdict: harvest recut. Residual: audit:pain-P3.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #3944 after pain-audit 5918590566. Cites 5918516724 and 5918590566. Supersedes successor lean 5918528672.\n\nTarget-digest: sha256:754f412ebcd0e89583e5d4f4aa9b43d89dfde5446b837e61a91f65a7cdbf68ca\n\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 38277e97dcf90c24bf408a93048ad8682aab0099\nspend: N=1\nsiblings: 1\n\n## Takes\n\n- 5918590566 P3 re-anchor Prefer-A must not be dischargeable by status-quo isResolved||isOutdated alone - accept-into-contract\n- 5918590566 P1/P2 covered footnote - census\n\n## Bound remedy\n\n1. **One scorer ship unit.** In `evaluateInlineReviewThreads` / shared greptile-inline scorer: match GraphQL `author.login` production form (`greptile-apps`) without treating REST User `greptile-apps` and Bot `greptile-apps[bot]` as interchangeable everywhere; **and** Prefer-A re-anchor liveness must add an inventoried signal that addresses re-anchored-but-unresolved threads (for example `originalCommit` vs mutable `commit { oid }`, or a fresh bot post on HEAD). **Do not** discharge Prefer-A re-anchor by keeping only today's `isResolved || isOutdated` plus the login fix. Do not land login match without that concurrent re-anchor rule.\n\n2. **EXIT on both surfaces.** `pr:watch` EXIT / `isClean` and merge-ready EXIT must refuse unresolved SHA-matched inline P0/P1. Ordinary `pr:watch` probes must load the inline path (not thin-HTML-only). Report fields are secondary and must not be readable as a total that excludes inline.\n\n3. **Repo-lookup non-clean on pr:watch.** When inline lookup cannot run (including unresolved repo / missing `--repo` path that skips inline), `pr:watch` must be distinguishable non-clean. Do not claim this closed by pointing only at merge-ready's existing `appendInlineFailures` error path.\n\n4. **Fixtures.** At least one GraphQL fixture with `author.login: \"greptile-apps\"` proving non-zero inline count; regression for summary-zero + unresolved inline P1 → non-clean on both surfaces; include a re-anchor case that would false-BLOCK under login-only fix.\n\n5. **Surfaces.** `packages/core/src/pr-merge-readiness/greptile-inline.ts`, `compute.ts`, `output.ts`, `pr-watch/probe.ts` / `main.ts`; CHANGELOG Unreleased.\n\n6. **Non-goals.** Do not abandon GraphQL reviewThreads for REST-only counting. Do not invent a third findings detector. Do not auto-ingest after ingest-ready.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\naudit:pain-P1 sha=38277e97dcf90c24bf408a93048ad8682aab0099 pointer=comment:5918590566 reading=asserted\naudit:pain-P2 sha=38277e97dcf90c24bf408a93048ad8682aab0099 pointer=comment:5918590566 reading=asserted\naudit:pain-P3 sha=38277e97dcf90c24bf408a93048ad8682aab0099 pointer=comment:5918590566 reading=asserted\n\n",
+          "id": 5918603766,
+          "html_url": "https://github.com/deftai/directive/issues/3944#issuecomment-5918603766",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:56:09Z",
+          "updated_at": "2026-09-30T19:56:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nDual-stop cap: 3 posts\n\nOperator raise this turn. Cap was N=1 numbered + reserved pain-audit (spent). One more pain-audit of harvest-recut lean 5918603766 is now in-cap.\n\nThis comment is not a successor lean.\n\n",
+          "id": 5918635646,
+          "html_url": "https://github.com/deftai/directive/issues/3944#issuecomment-5918635646",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T19:58:18Z",
+          "updated_at": "2026-09-30T19:58:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#3944\ncharter: open critique\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5918603766\ndispatch-sha: 38277e97dcf90c24bf408a93048ad8682aab0099\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\n## Pain-audit of lean 5918603766 asserted coverage\n\nFresh critic. Re-verified at pin `38277e97dcf90c24bf408a93048ad8682aab0099` against Stop 1 pains in `5918470563`, prior critic `5918516724`, prior pain-audit `5918590566` (P3 sharpens-framing), and harvest-recut Bound on lean `5918603766`. Ignored comments above the id ceiling (including cap-raise `5918635646`).\n\n### Anchor re-check (pin)\n\n- `GREPTILE_LOGIN = \"greptile-apps[bot]\"` (`pr-merge-readiness/constants.ts`).\n- GraphQL `REVIEW_THREADS_QUERY` selects `author { login }` and `commit { oid }` only; no `originalCommit`.\n- `evaluateInlineReviewThreads` skips `isResolved || isOutdated`, then exact `authorLogin !== GREPTILE_LOGIN`, then `headShaMatches(commitOid, headSha)` on mutable `commit { oid }`.\n- Unit GraphQL fixtures hand-construct `author.login: \"greptile-apps[bot]\"` (`greptile-inline.test.ts`, `compute.test.ts`).\n- Merge-ready routes inline through `loadInlineGreptileFindings` → `evaluateGates` → `appendInlineFailures` (HARD on `error` or nonzero counts); counts stay structurally zero under the GraphQL login miss.\n- Ordinary `pr:watch` (`pr-watch/probe.ts`) scores the rolling-summary body; inline loads only under `thinHtmlSummary && repo !== null` via `loadThinHtmlInlineFindings`. Non-thin probes never call the inline path.\n\n### Injection / identity lens\n\nBound touches Greptile bot identity (GraphQL bare login vs REST `[bot]`) and merge-gate EXIT authority. Harvest item 1 keeps per-surface match and forbids discharging Prefer-A re-anchor by status-quo `isResolved || isOutdated` alone. No new detector authority; extend #2620/#4289.\n\n### pain-P1\n\nStop 1 P1: merge-readiness / `pr:watch` CLEAN (or `p1_count=0` read as total) must not coexist with an unresolved, SHA-matched Greptile inline P0/P1 on current HEAD.\n\n**Coverage.** Lean covers it. Bound item 1 repairs the scorer so inline counts can be nonzero; Bound item 2 binds EXIT / `isClean` on both `pr:watch` and merge-ready to refuse unresolved SHA-matched inline P0/P1, requires ordinary watch probes to load the inline path, and demotes report reshape to secondary. Pin shows merge-ready HARD path already present but dead, and watch ordinary path missing inline — both named in the Bound.\n\n**Failure mode if unbound.** Report-only or merge-ready-only Prefer-A leaves mandated `pr:watch` CLEAN coexisting with an open inline P1.\n\n**Disposition.** Asserted coverage of P1 stands under items 1–2 as written.\n\nfootnote\n\n### pain-P2\n\nStop 1 P2: GraphQL inline author filter must match the login GraphQL actually returns (safe normalization; no REST User/Bot interchange).\n\n**Coverage.** Lean covers it. Bound item 1 requires matching GraphQL production form `greptile-apps` without equating the two REST accounts everywhere. Bound item 4 requires at least one GraphQL fixture with `author.login: \"greptile-apps\"` proving nonzero inline count. Pin still compares against `greptile-apps[bot]` and fixtures encode that REST form on GraphQL payloads — the Bound points at both.\n\n**Failure mode if unbound.** Login helper lands while green tests never encode production GraphQL login; false-CLEAN class returns.\n\n**Disposition.** Asserted coverage of P2 stands under items 1 and 4.\n\nfootnote\n\n### pain-P3\n\nStop 1 P3: (a) unresolved-repo / inline-lookup failure must be distinguishable non-clean, not silent zero; (b) re-anchor liveness must be an explicit Prefer-A rule, not an accidental false-block after the author filter is fixed.\n\n**Coverage.** Lean covers both halves. Prior pain-audit `5918590566` sharpened Prefer-A so status-quo `isResolved || isOutdated` alone cannot discharge the re-anchor half. Harvest Bound item 1 absorbs that sharpen: Prefer-A must add an inventoried signal for re-anchored-but-unresolved threads (for example `originalCommit` vs mutable `commit { oid }`, or a fresh bot post on HEAD) and explicitly forbids discharging Prefer-A re-anchor by keeping only today's `isResolved || isOutdated` plus the login fix. Bound item 3 binds `pr:watch` distinguishable non-clean when inline lookup cannot run. Bound item 4 adds a re-anchor false-BLOCK fixture under a login-only fix. Pin confirms the mutable-oid liveness loop and the watch silent path; harvest wording closes the implementer escape the prior audit named.\n\n**Failure mode if unbound.** Login-only Prefer-A flips false CLEAN into false BLOCK on addressed-but-unresolved re-anchored threads, or `pr:watch` remains summary-only CLEAN when repo/inline lookup cannot run.\n\n**Disposition.** Asserted coverage of P3 stands under items 1, 3, and 4 as written on this harvest. No further Bound wording change required from this seat.\n\nfootnote\n\n### Census\n\n| Target | Covered by lean 5918603766? | Class |\n| --- | --- | --- |\n| pain-P1 | yes (Bound items 1–2) | footnote |\n| pain-P2 | yes (Bound items 1, 4) | footnote |\n| pain-P3 | yes (Bound items 1, 3, 4; prior P3 sharpen absorbed) | footnote |\n\nNo blocking findings. No remaining Bound-remedy sharpening. Inventory-first #2620/#4289 extension on the named write-set remains sound. Road not taken: REST-only counting — still rejected; GraphQL keeps `isResolved` / `isOutdated` as lifecycle filter while Prefer-A adds a non-status-quo re-anchor signal.\r\n\n",
+          "id": 5918677079,
+          "html_url": "https://github.com/deftai/directive/issues/3944#issuecomment-5918677079",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:01:09Z",
+          "updated_at": "2026-09-30T20:01:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Finding | Class | Disposition | Cite |\n| --- | --- | --- | --- |\n| Prefer-A must ship login match and re-anchor liveness as one unit | blocks-the-design | accept-into-contract — Bound item 1 (tightened) | 5918516724 |\n| Prefer-A must bind EXIT/isClean on both pr:watch and merge-ready | blocks-the-design | accept-into-contract — Bound item 2 | 5918516724 |\n| Split P3 silent-zero vs re-anchor; pr:watch owns silent miss | sharpens-framing | accept-into-contract — Bound item 3 | 5918516724 |\n| Fixtures must use GraphQL login greptile-apps | sharpens-framing | accept-into-contract — Bound item 4 | 5918516724 |\n| Thin-HTML GraphQL-success short-circuit | footnote | census only | 5918516724 |\n| P3 re-anchor must not be dischargeable by status-quo isResolved\\|\\|isOutdated alone | sharpens-framing | accept-into-contract — harvest recut Bound item 1 | 5918590566 |\n\nDisagreement set: empty.\nBind lean: 5918603766 (harvest recut after 5918528672).\nPain-audit 5918677079 of lean 5918603766: footnote-only for harvest; coverage of pain-P1, pain-P2, pain-P3 holds. Dual-stop cap raised to 3 (5918635646).\n\n",
+          "id": 5918689721,
+          "html_url": "https://github.com/deftai/directive/issues/3944#issuecomment-5918689721",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:01:58Z",
+          "updated_at": "2026-09-30T20:01:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`pr:watch` / merge-ready must refuse unresolved SHA-matched Greptile inline P0/P1. Prefer-A ships GraphQL author login match and re-anchor liveness as one scorer unit (not status-quo isResolved||isOutdated alone), binds EXIT on both surfaces, makes pr:watch non-clean when inline lookup cannot run, and requires GraphQL-authentic fixtures including a re-anchor false-BLOCK case. Pain-audit 5918677079 of lean 5918603766 was footnote-only after Dual-stop raise to 3. The same parent wrote Stop 1 5918470563. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5918603766\n\n",
+          "id": 5918690015,
+          "html_url": "https://github.com/deftai/directive/issues/3944#issuecomment-5918690015",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:02:00Z",
+          "updated_at": "2026-09-30T20:02:00Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n`pr:watch --json` reports `p1_count` parsed from Greptile's **summary comment**. Unresolved **inline** Greptile findings are not in that number. So the deterministic merge-readiness verdict can report `p1=0` and exit CLEAN while a blocking inline P1 is open on the current HEAD.\n\nTwo independent delivery workers hit this on the same day. In both cases the finding was caught only because the review-cycle skill separately performs a dual-source fetch by hand -- not by the gate.\n\n## Field instances, 2026-08-29\n\n1. **#3930 worker.** \"Greptile's rolling summary reported 0 P0 / 0 P1, but the dual-source fetch found an inline P1 the summary did not count: the active brief would strand under `xbrief/active/` when #3930 closed.\" The finding was valid and was fixed by changing how the brief landed.\n2. **#3933 worker, PR #3939.** \"`pr:watch --json` reported `p1=0` on PR #3939 while an inline P1 badge existed. The dual-source fetch caught it; the triple-tier detector did not.\" The finding was valid -- the lifecycle move left `ROADMAP.md` and a decision record's `activeScopeRefs` pointing at the old `active/` path -- and required a fix batch.\n\nBoth workers were following the mandated procedure. Neither was relying on the gate alone, which is the only reason the findings surfaced.\n\n## Mechanism\n\n`packages/core/src/pr-merge-readiness/output.ts:21-23` emits the summary parse:\n\n```ts\nconfidence: verdict.confidence,\np0_count: verdict.p0Count,\np1_count: verdict.p1Count,\n```\n\nInline findings are computed separately and emitted under a **different key**. `compute.ts:354-355`:\n\n```ts\nconst inline = loadInlineGreptileFindings(prNumber, repo, headSha, runGh);\npartialData.greptile_inline = inlineFindingsToDict(inline);\n```\n\n`packages/core/src/pr-watch/main.ts:164-165` emits `p0_count: p.p0Count, p1_count: p.p1Count` from its own probe, and `pr-watch/probe.ts` initialises those to zero and imports only `parseLastReviewedShaNaiveInline` -- a SHA parser, not a findings source.\n\nSo a reader who checks the documented field sees a number that structurally cannot include inline findings.\n\n## Why this matters more than an output-shape nit\n\n`AGENTS.md` makes `pr:watch` the deterministic terminal verdict a `drive-to: merge-ready` worker polls to decide merge-readiness (#1056), and the review-cycle skill's Step 6 all-of gates on it. The whole point is that \"the invocation IS the wait, so a promise-to-poll cannot silently evaporate.\"\n\nIf CLEAN can coexist with an open inline P1, the gate's guarantee is weaker than its contract says, and the compensating control is a procedure a worker performs by hand. That is the shape #3156 warns about: the deterministic control is not the thing actually catching the defect.\n\n## Not asserted -- for the critic and builder to establish\n\n1. **Does the exit code differ from the reported field?** `compute.ts:376` calls `verdictBlockIsSoftOnly(verdict, headSha, inline, minConfidence)`, so `pr-merge-readiness` does consider inline in its block decision. Whether `pr:watch`'s own exit code inherits that, or only its printed/JSON field is wrong, is unestablished. The two are very different defects: a misleading report versus a gate that passes blocking findings.\n2. **Does an unresolved repo silently zero the inline counts?** `compute.ts:334-341` returns `p0Count: 0, p1Count: 0` with an error string when the repo cannot be resolved for the `reviewThreads` lookup. Both workers invoked `task pr:watch -- <N> --json` without `--repo`. If that path was taken, the counts were zero for a reason unrelated to the review.\n3. **Is `comments(first: 50)` a truncation risk** on a thread with many inline comments?\n4. Whether the SHA-match gate applies to inline findings the same way it applies to the summary.\n\n## Acceptance criteria\n\n1. A verdict cannot report CLEAN while an unresolved, SHA-matched inline P0 or P1 exists on the current HEAD.\n2. The reported `p1_count` either includes inline findings or is renamed so it cannot be read as the total, with the inline count surfaced beside it in both the human and `--json` output.\n3. If the repo cannot be resolved for the inline lookup, that is a distinguishable non-clean outcome, not a silent zero.\n4. A regression test covers a PR whose summary reports zero findings while an unresolved inline P1 exists on the current HEAD, and asserts the non-clean verdict.\n5. Whichever of the two defects in question 1 is real is stated explicitly in the fix, so the record says whether the gate was wrong or only its report.\n\n## Design-critique\n\n`mechanism-shaped: true`\n\nRefs #1056, #2620, #3156, #2261.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5290425089,
+        "origin": "deftai/directive#3944",
+        "id": "github.issue.5290425089"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "754f412ebcd0e89583e5d4f4aa9b43d89dfde5446b837e61a91f65a7cdbf68ca"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pr-merge-readiness/**",
+          "packages/core/src/pr-watch/**",
+          "packages/core/tests/**",
+          "CHANGELOG.md",
+          "packages/core/src/pr-merge-readiness/greptile-inline.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/pr-merge-readiness"
+        ],
+        "expected_outputs": [
+          "inline P1 fails CLEAN",
+          "GraphQL greptile-apps fixture"
+        ],
+        "depends_on": [],
+        "conflict_group": "pr-watch-inline-p1",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "default",
+        "parallel_safe": true,
+        "readiness": "ready"
+      },
+      "productPullRequest": 5243,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5243,
+        "prBase": null,
+        "mergeCommit": "68b51145a019fcd543dced56008214d7022ce0e9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "68b51145a019fcd543dced56008214d7022ce0e9",
+        "verifiedAt": "2026-10-02T04:51:11Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGZhZWItOTZkNC03NTcwLWJjNDgtYjc3M2JmODc3MjE0"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-02T04:51:11Z",
+      "completedSessionId": "host:grok:v1:MDFhMGZhZWItOTZkNC03NTcwLWJjNDgtYjc3M2JmODc3MjE0",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-02T04:51:11Z"
+      }
+    },
+    "id": "github.issue.5290425089",
+    "updated": "2026-10-02T04:51:11Z"
+  }
+}
