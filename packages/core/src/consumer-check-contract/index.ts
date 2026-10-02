@@ -18,3 +18,12 @@ export {
   textReferencesGate,
   workflowExecutesCheck,
 } from "./evaluate.js";
+
+export {
+  attachRunCommands,
+  classifyPullRequestCondition,
+  findingsForWorkflowGraph,
+  parseWorkflowJobGraph,
+  type ReachabilityFinding,
+  type WorkflowJobGraph,
+} from "./reachability.js";

@@ -12,6 +12,13 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { taskDefinedInTaskfileYaml } from "../check/consumer-gate-integrity.js";
 import { type CheckGateSpec, CONSUMER_CHECK_GATES, checkGateId } from "../check/gate-lists.js";
+import {
+  attachRunCommands,
+  findingsForWorkflowGraph,
+  type JobGateCarry,
+  parseWorkflowJobGraph,
+  type ReachabilityFinding,
+} from "./reachability.js";
 
 /** Gates that #3145 requires on consumer check composition (beyond baseline). */
 export const REQUIRED_CONSUMER_ENFORCEMENT_GATES: readonly string[] = [
@@ -1070,21 +1077,54 @@ export function evaluateConsumerCheckContract(
   }
 
   if (workflows.size > 0) {
-    const allCi = [...workflows.values()].join("\n");
-    const runCmds = extractWorkflowRunCommands(allCi);
-    const fullCheck =
-      runCmds.some(runCommandIsFullCheck) &&
+    // Per-workflow job-graph parse (#4015) — do not concatenate workflow text.
+    const runCmds: string[] = [];
+    const reachabilityRaw: ReachabilityFinding[] = [];
+    for (const [wfPath, wfText] of workflows.entries()) {
+      const graph = parseWorkflowJobGraph(wfText);
+      const jobsWithCmds =
+        graph.jobs.length === 0
+          ? []
+          : graph.jobs.map((job) => attachRunCommands(job, extractWorkflowRunCommands(job.body)));
+      if (jobsWithCmds.length === 0) {
+        // Unstructured fixture / snippet without jobs: — keep prior extractor behavior.
+        runCmds.push(...extractWorkflowRunCommands(wfText));
+      } else {
+        const carry = new Map<string, JobGateCarry>();
+        for (const job of jobsWithCmds) {
+          runCmds.push(...job.runCommands);
+          const gates: string[] = [];
+          let fullCheckJob = false;
+          for (const cmd of job.runCommands) {
+            if (runCommandIsFullCheck(cmd)) fullCheckJob = true;
+            for (const gateId of required) {
+              if (runCommandInvokesGate(cmd, gateId) && !gates.includes(gateId)) gates.push(gateId);
+            }
+          }
+          carry.set(job.id, { fullCheck: fullCheckJob, gates });
+        }
+        reachabilityRaw.push(
+          ...findingsForWorkflowGraph(wfPath, { ...graph, jobs: jobsWithCmds }, carry),
+        );
+      }
+    }
+
+    const verifyDefinesAll =
       verifyText !== null &&
       required.every((gateId) => {
         if (!gateId.startsWith("verify:")) return true;
         return taskDefinedInTaskfileYaml(verifyText, gateId.slice("verify:".length));
       });
+    const fullCheck = runCmds.some(runCommandIsFullCheck) && verifyDefinesAll;
 
     for (const gateId of required) {
       const direct = runCmds.some((c) => runCommandInvokesGate(c, gateId));
       // Single gate does NOT satisfy the whole trio (Greptile P1).
       const mentioned = direct || fullCheck;
       if (!mentioned) {
+        // Do not let an unrelated unknown-uses finding suppress missing-invocation
+        // notes for required gates (Greptile P1 / #4015). Unknown stays a soft
+        // never-clean reachability note alongside missing composition findings.
         const finding: ConsumerCheckContractFinding = {
           gateId,
           surface: "ci-workflow",
@@ -1094,6 +1134,16 @@ export function evaluateConsumerCheckContract(
         if (ciWarnOnly) soft.push(finding);
         else findings.push(finding);
       }
+    }
+
+    // PR reachability: warn by default; unknown / skippable never read as clean (#4015).
+    for (const r of reachabilityRaw) {
+      soft.push({
+        gateId: "verify:consumer-check-contract",
+        surface: "ci-workflow",
+        detail: r.detail,
+        remediation: r.remediation,
+      });
     }
   }
 
