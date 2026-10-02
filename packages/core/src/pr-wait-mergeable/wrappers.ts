@@ -141,9 +141,11 @@ export function runProtectedCheck(
 }
 
 /**
- * Merge-time closeout attestability gate (#3781). In-process: the evaluator lives
- * in this package, and a subprocess hop would only add a script-path failure mode
- * to a gate that must fail closed.
+ * Merge-time closeout attestability gate (#3781 / #3875). In-process thin invoker
+ * over the shared evaluator — one of N route-table call sites (cascade +
+ * `pr:merge-ready`); supersedes #3781's single-cascade-call-site decision. A
+ * subprocess hop would only add a script-path failure mode to a gate that must
+ * fail closed. The evaluator asserts HEAD equals the PR head before reading briefs.
  */
 export function runCloseoutAttestableCheck(
   prNumber: number,

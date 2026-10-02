@@ -41,6 +41,10 @@ import {
   type StrictAcceptanceAxis,
 } from "../scope/acceptance-evidence.js";
 import { resolveRepo } from "../triage/queue/repo.js";
+import {
+  assertWorkingTreeIsPrHead,
+  type PrHeadAssertOptions,
+} from "./pr-head-assert.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -99,6 +103,11 @@ export interface EvaluateOptions {
   readonly quiet?: boolean;
   /** Closing-reference seam so tests do not need a forge. */
   readonly fetchClosingIssues?: FetchClosingIssuesFn;
+  /**
+   * Before reading briefs, assert local HEAD equals the PR head that merges (#3875).
+   * Exit 2 on mismatch or unreadable SHA. Inject seams for hermetic tests.
+   */
+  readonly prHeadAssert?: PrHeadAssertOptions;
   readonly onePrUnitGrant?: OnePrUnitGrant | null;
   readonly onePrUnitId?: string | null;
   readonly prNodeId?: string | null;
@@ -285,7 +294,8 @@ function configError(
  *
  * The brief is read from `projectRoot`'s working tree, which at merge time is the
  * PR head checkout. That is the tree the merge lands, and it is the same
- * working-tree basis `verify:orphan-active` uses.
+ * working-tree basis `verify:orphan-active` uses. Before that read, #3875 asserts
+ * local HEAD equals the PR head SHA (or an injected forge blob) — exit 2 on mismatch.
  */
 
 export function evaluate(
@@ -352,6 +362,14 @@ export function evaluate(
         "set $GH_REPO, or run inside a checkout with a GitHub origin remote.",
       runner.proxied,
     );
+  }
+
+  // #3875: refuse a wrong-tree brief read before any closing-reference work.
+  const headAssert = assertWorkingTreeIsPrHead(root, prNumber, repo, runner.runGh, {
+    ...options.prHeadAssert,
+  });
+  if (!headAssert.ok) {
+    return configError(prNumber, headAssert.message, runner.proxied);
   }
 
   const linked = fetchClosing(prNumber, repo, runner.runGh);

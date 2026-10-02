@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "closeout-route-table-supersedes-3781-single-cascade-call-site",
+  "decision": "Every prescribed merge route either invokes verify:pr-closeout-attestable (thin invoker over the existing evaluator) or names the control that closes the row. One evaluator, N thin invokers — cascade wait-mergeable and pr:merge-ready invoke in-process; human non-admin UI/CLI is named accident-only / open for first-ship (no CI required-check home chosen); local/push with no PR number is an explicit skip for orphan-active. Cascade --admin stays accident-closed via in-process invokers. Before closeout reads the tree, assert local HEAD equals the PR head SHA (exit 2 on mismatch).",
+  "governingRule": {
+    "description": "#3875 route-table Prefer-A; #3781 evaluator retained; #3156 gate integrity; #3265 thin fail-closed",
+    "path": null,
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep #3781 single cascade call site and treat other routes as documentation-only"
+    },
+    {
+      "option": "Add a pull_request required-check CI home in the same ship"
+    },
+    {
+      "option": "Remove cascade --admin so required checks could cover admin merges"
+    }
+  ],
+  "whyWinner": "Drift across call sites is answered by one evaluator plus thin invokers, not by a single site. Human non-admin coverage must be named independently of an optional CI row; first-ship deliberately leaves CI unchosen and names that row accident-only while orphan-active keeps post-merge. Prefer-A keeps cascade --admin, so admin rows close against accident via in-process invokers rather than against an actor who wants through. HEAD/PR-head assert stops wrong-tree brief reads on every working-tree invoker.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-10-02-3875-buglifecycle-the-merge-time-closeout-gate-covers-only-prwait.xbrief.json"
+  ],
+  "supersedes": [
+    "the-merge-time-closeout-gate-triggers-on-the-pr-s-structured-clo"
+  ],
+  "timestamp": "2026-10-02T18:00:00Z",
+  "revisitTrigger": "If a CI pull_request required-check home is deliberately chosen, rename the human non-admin row to that check; if cascade --admin is removed, re-evaluate admin accident-close claims."
+}

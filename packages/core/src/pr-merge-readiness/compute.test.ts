@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { computeGateResult } from "./compute.js";
+import { isMergeReady } from "./evaluate.js";
 import { exitCodeFor, printHuman } from "./output.js";
 import { MERGE_READY_NO_REVIEWER_FAILURE } from "./reviewer-presence.js";
 import type { RunGhFn } from "./types.js";
@@ -530,5 +531,73 @@ describe("computeGateResult #2260 reconciliation", () => {
       result.failures.some((f) => f.includes("Could not verify Greptile inline review comments")),
     ).toBe(true);
     expect((result.partialData as Record<string, unknown>).verdict_override).toBeUndefined();
+  });
+});
+
+describe("pr:merge-ready closeout invoker (#3875)", () => {
+  it("refuses a Greptile-clean verdict when closeout reports unattested criteria", () => {
+    const result = computeGateResult(
+      3875,
+      "deftai/directive",
+      fakeRunGh({
+        commentBody: cleanGreptileBody(HEAD),
+        mergeableState: "clean",
+        mergeable: true,
+      }),
+      {
+        skipCi: true,
+        skipSlizard: true,
+        closeoutAttestableFn: () => ({
+          code: 1,
+          message: "verify:pr-closeout-attestable: PR #3875 closes #3609, leaving 5 unattested",
+        }),
+      },
+    );
+    expect(isMergeReady(result.failures)).toBe(false);
+    expect(result.failures.some((f) => f.includes("unattested"))).toBe(true);
+    expect((result.partialData as Record<string, unknown>).closeout_attestable).toEqual({
+      code: 1,
+      message: "verify:pr-closeout-attestable: PR #3875 closes #3609, leaving 5 unattested",
+    });
+  });
+
+  it("surfaces closeout config errors as via=error", () => {
+    const result = computeGateResult(
+      3875,
+      "deftai/directive",
+      fakeRunGh({
+        commentBody: cleanGreptileBody(HEAD),
+        mergeableState: "clean",
+        mergeable: true,
+      }),
+      {
+        skipCi: true,
+        skipSlizard: true,
+        closeoutAttestableFn: () => ({
+          code: 2,
+          message: "verify:pr-closeout-attestable: working tree HEAD is not PR head",
+        }),
+      },
+    );
+    expect(result.via).toBe("error");
+    expect(result.error).toContain("not PR head");
+  });
+
+  it("keeps Greptile-clean when closeout is clean", () => {
+    const result = computeGateResult(
+      3875,
+      "deftai/directive",
+      fakeRunGh({
+        commentBody: cleanGreptileBody(HEAD),
+        mergeableState: "clean",
+        mergeable: true,
+      }),
+      {
+        skipCi: true,
+        skipSlizard: true,
+        closeoutAttestableFn: () => ({ code: 0, message: "ok" }),
+      },
+    );
+    expect(isMergeReady(result.failures)).toBe(true);
   });
 });

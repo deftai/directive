@@ -306,10 +306,27 @@ Rationale + recurrence record + cross-references: `docs/analysis/2026-07-02-agen
 
 - ! Cascade automation on the Grok Build hybrid path MUST go through `task pr:wait-mergeable-and-merge -- <N> --repo <owner>/<repo>`. Do NOT hand-roll a `while ...; do task pr:merge-ready ...; done` shell loop or a per-cascade ad-hoc Python monitor. The helper composes the resilient wait-until-ready loop (#1368) with the Layer-3 protected-issue check (#701) and the `gh pr merge --squash --delete-branch --admin` invocation behind a single three-state exit (0 merged / 1 timeout-or-escalation / 2 config error).
 - ! Multi-PR merge cascades MUST pass `--cascade` on each `task pr:wait-mergeable-and-merge` invocation so merge-tree-clean PRs whose base SHA is behind the current target branch HEAD are refused (semantically stale pre-spine CI, #2385). After the first merge in a cascade, also pass `--require-master-ci-green` before merging the next PR. Rebase/update-branch onto the post-spine target and wait for fresh green CI before re-invoking.
-- ! The per-PR atomic gate (`task pr:merge-ready -- <N> && gh pr merge <N> --squash --delete-branch --admin`) documented in `content/skills/deft-directive-swarm/SKILL.md` Phase 5 -> 6 STILL applies for any in-cascade merge an operator runs by hand. The Wave-3 cascade surface is the automated wrapper; the per-PR atomic gate is the manual freshness-window-atomic check. The two co-exist -- one does not retire the other.
+- ! The per-PR atomic gate for a hand merge from the PR head worktree is `task pr:merge-ready -- <N> && gh pr merge <N> --squash --delete-branch` (#3875). `pr:merge-ready` invokes `verify:pr-closeout-attestable` after a Greptile-clean verdict; the ungated pre-#3875 `pr:merge-ready && gh pr merge` sequence is withdrawn. Prefer `task pr:wait-mergeable-and-merge` for automation (closeout already last before merge). Cascade `--admin` is accident-closed by that in-process invoker, not by a required check.
 - ! When `--protected <issue-numbers>` is supplied, the helper runs the protected-issue check (#701) BEFORE the wait loop. A persistent `closingIssuesReferences` link short-circuits the cascade with exit 1 (escalation) AHEAD of any `gh pr merge` call. New cascade scripts MUST preserve this ordering -- the protected-issue check is structurally a pre-condition that cannot be resolved by waiting.
 - ⊗ Hand-roll a cascade `while ... task pr:merge-ready` shell loop (or equivalent ad-hoc Python monitor) when `task pr:wait-mergeable-and-merge` is available. The Wave-1+2 hardening is in the helpers the new task composes; hand-rolled loops re-introduce the `head: None` / babysit-each-PR failure mode #1369 closes.
 - ⊗ Run `gh pr merge <N>` from inside a cascade automation script without first chaining the Layer-3 protected-issue check (#701) when the PR is known to reference any umbrella / staying-OPEN issue. The cascade surface (`task pr:wait-mergeable-and-merge` with `--protected`) is the canonical compose-point; hand-rolled merges that skip the chain re-surface the PR #700 / PR #401 persistent-link recurrence.
+
+## Closeout route table (#3875)
+
+Every prescribed merge route either invokes `verify:pr-closeout-attestable` (thin invoker over the existing evaluator) or names the control that closes the row. One evaluator, N thin invokers — supersedes #3781's single-cascade-call-site decision.
+
+| Route | Control |
+|---|---|
+| `pr:wait-mergeable-and-merge` (cascade) | In-process invoker last before `gh pr merge` (already #3781; keeps `--admin` accident-closed) |
+| `pr:merge-ready` / prescribed manual sequence | In-process invoker after Greptile-clean; hand merge from PR head worktree only |
+| Human non-admin UI/CLI | Named **accident-only / open** for first-ship (no CI required-check home chosen). `verify:orphan-active` owns post-merge. |
+| CI `pull_request` / branch-gate | Not chosen for first-ship. If added later: `pull_request` only (not `pull_request_target`). |
+| Local / `push` with no PR number | Explicit skip — orphan-active owns post-merge. |
+
+! Before closeout reads the tree, assert local HEAD equals the PR head SHA (or forge blob); exit 2 on mismatch.
+⊗ Prescribe ungated `pr:merge-ready && gh pr merge` without the closeout invoker.
+⊗ Claim a required-check home closes admin / `--admin` merges.
+
 
 ## Merge-path durable wait and pr:watch --json (#4882 / #5015)
 

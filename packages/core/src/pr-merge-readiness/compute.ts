@@ -4,6 +4,7 @@ import {
 } from "../content-contracts/skills/greptile-detector.js";
 import { resolveMinGreptileConfidence } from "../policy/min-greptile-confidence.js";
 import { resolveReviewers } from "../policy/reviewers.js";
+import { evaluate as evaluateCloseoutAttestable } from "../pr-closeout-attestable/evaluate.js";
 import type { CiGateOptions } from "./ci-gate.js";
 import { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
 import {
@@ -108,6 +109,13 @@ export type FetchRequiredContextsFn = (
   resolutionFailed?: boolean;
 };
 
+/** Thin closeout invoker seam for `pr:merge-ready` (#3875 / supersedes #3781 single site). */
+export type CloseoutAttestableGateFn = (
+  projectRoot: string,
+  prNumber: number,
+  repo: string | null,
+) => { readonly code: 0 | 1 | 2; readonly message: string };
+
 export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
   /** Override the GitHub-mergeability read (defaults to the REST reader). */
   readonly fetchMergeabilityFn?: FetchMergeabilityFn;
@@ -117,8 +125,8 @@ export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
    */
   readonly disableMergeabilityReconcile?: boolean;
   /**
-   * Project root for resolving plan.policy.review.minGreptileConfidence (#3095).
-   * Defaults to process.cwd() when omitted.
+   * Project root for resolving plan.policy.review.minGreptileConfidence (#3095)
+   * and for the #3875 closeout invoker. Defaults to process.cwd() when omitted.
    */
   readonly projectRoot?: string | null;
   /**
@@ -131,6 +139,13 @@ export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
    * REST fetch. Production callers leave unset; tests inject hermetic lists.
    */
   readonly fetchRequiredContextsFn?: FetchRequiredContextsFn;
+  /**
+   * When true, skip the #3875 closeout invoker (tests that only score Greptile).
+   * Production merge-ready always runs it after a Greptile-clean verdict.
+   */
+  readonly skipCloseoutAttestable?: boolean;
+  /** Injectable closeout evaluator; production uses `evaluateCloseoutAttestable`. */
+  readonly closeoutAttestableFn?: CloseoutAttestableGateFn;
 }
 
 function resolvedMinConfidence(options: ComputeGateOptions): number {
@@ -727,6 +742,74 @@ function errorResult(
 }
 
 /** Run the primary->fallback1->fallback2 cascade and return a result. */
+function defaultCloseoutAttestable(
+  projectRoot: string,
+  prNumber: number,
+  repo: string | null,
+): { code: 0 | 1 | 2; message: string } {
+  const result = evaluateCloseoutAttestable(projectRoot, prNumber, { repo });
+  return { code: result.code, message: result.message };
+}
+
+/**
+ * After a Greptile-clean primary/fallback1 verdict, run the closeout invoker
+ * (#3875). One evaluator, N thin invokers — supersedes #3781's single cascade
+ * call site. Config errors (exit 2) surface as `via=error`.
+ */
+function applyCloseoutAttestableGate(
+  result: GateResult,
+  options: ComputeGateOptions,
+): GateResult {
+  // Hermetic Greptile suites skip unless they inject a closeout seam (#3875).
+  const skipUnderVitest =
+    options.skipCloseoutAttestable === undefined &&
+    options.closeoutAttestableFn === undefined &&
+    process.env.VITEST === "true";
+  if (options.skipCloseoutAttestable === true || skipUnderVitest) {
+    return result;
+  }
+  if (result.via === VIA_ERROR || result.via === VIA_FALLBACK2) {
+    return result;
+  }
+  if (!isMergeReady(result.failures)) {
+    return result;
+  }
+
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const closeoutFn = options.closeoutAttestableFn ?? defaultCloseoutAttestable;
+  const closeout = closeoutFn(projectRoot, result.prNumber, result.repo);
+  if (closeout.code === 0) {
+    return result;
+  }
+
+  const message =
+    closeout.message.trim().length > 0
+      ? closeout.message.trim()
+      : `verify:pr-closeout-attestable refused PR #${result.prNumber} (code ${closeout.code})`;
+
+  if (closeout.code === 2) {
+    return {
+      ...result,
+      failures: [...result.failures, message],
+      via: VIA_ERROR,
+      error: message,
+      partialData: {
+        ...result.partialData,
+        closeout_attestable: { code: 2, message },
+      },
+    };
+  }
+
+  return {
+    ...result,
+    failures: [...result.failures, message],
+    partialData: {
+      ...result.partialData,
+      closeout_attestable: { code: 1, message },
+    },
+  };
+}
+
 export function computeGateResult(
   prNumber: number,
   repo: string | null,
@@ -735,12 +818,12 @@ export function computeGateResult(
 ): GateResult {
   let { result, partial } = computePrimary(prNumber, repo, runGh, options);
   if (result !== null) {
-    return result;
+    return applyCloseoutAttestableGate(result, options);
   }
 
   ({ result, partial } = computeFallback1(prNumber, repo, partial, runGh, options));
   if (result !== null) {
-    return result;
+    return applyCloseoutAttestableGate(result, options);
   }
 
   ({ result, partial } = computeFallback2(prNumber, repo, partial, runGh));

@@ -86,8 +86,16 @@ const NEVER_CALLED: RunGhFn = () => {
   throw new Error("runGh must not be called");
 };
 
+const MATCHING_HEAD = "a".repeat(40);
+
 function opts(fetchClosingIssues: FetchClosingIssuesFn, proxied = false) {
-  return { repo: REPO, runner: { runGh: NEVER_CALLED, proxied }, fetchClosingIssues };
+  return {
+    repo: REPO,
+    runner: { runGh: NEVER_CALLED, proxied },
+    fetchClosingIssues,
+    // Hermetic suites pin matching SHAs so the #3875 assert does not hit git/gh.
+    prHeadAssert: { localHeadSha: MATCHING_HEAD, prHeadSha: MATCHING_HEAD },
+  };
 }
 
 describe("pr-closeout-attestable evaluate", () => {
@@ -611,5 +619,71 @@ describe("one-PR-unit at forge closing references (#4494)", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).not.toMatch(/OK:/);
+  });
+});
+
+describe("pr-closeout-attestable PR-head assert (#3875)", () => {
+  it("fails exit 2 when local HEAD is not the PR head", () => {
+    const root = makeRepo();
+    writeBrief(root, "2026-10-02-3875-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(3875)],
+      items: [attestedItem("ok")],
+    });
+
+    const result = evaluate(root, 99, {
+      ...opts(closing(3875)),
+      prHeadAssert: {
+        localHeadSha: "b".repeat(40),
+        prHeadSha: "c".repeat(40),
+      },
+    });
+
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("is not PR #99 head");
+    expect(result.message).toContain("tree that merges");
+  });
+
+  it("fails exit 2 when the PR head SHA cannot be read", () => {
+    const root = makeRepo();
+    writeBrief(root, "2026-10-02-3875-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(3875)],
+      items: [attestedItem("ok")],
+    });
+
+    const result = evaluate(root, 99, {
+      ...opts(closing(3875)),
+      prHeadAssert: {
+        localHeadSha: MATCHING_HEAD,
+        prHeadSha: null,
+      },
+    });
+
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("cannot read PR #99 head SHA");
+  });
+
+  it("passes the assert when abbreviated and full SHAs name the same commit", () => {
+    const root = makeRepo();
+    writeBrief(root, "2026-10-02-3875-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(3875)],
+      items: [attestedItem("ok")],
+    });
+
+    const full = "abcdef0123456789abcdef0123456789abcdef01";
+    const result = evaluate(root, 99, {
+      ...opts(closing(3875)),
+      prHeadAssert: {
+        localHeadSha: full.slice(0, 12),
+        prHeadSha: full,
+      },
+    });
+
+    expect(result.code).toBe(0);
   });
 });

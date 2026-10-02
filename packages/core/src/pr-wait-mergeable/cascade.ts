@@ -371,9 +371,10 @@ export function waitMergeableAndMerge(
     }
   }
 
-  // #3781: last gate before the merge call. A PR may leave a brief unattested; it
-  // may not merge one whose issue it closes in the same act. Keyed on the PR's
-  // closing references, so it fires even when the brief is not in the branch diff.
+  // #3781 / #3875: last gate before the merge call (route-table invoker). A PR may
+  // leave a brief unattested; it may not merge one whose issue it closes in the
+  // same act. Keyed on the PR's closing references, so it fires even when the
+  // brief is not in the branch diff. Evaluator asserts HEAD == PR head first.
   const skipCloseoutGate =
     options.skipCloseoutAttestableGate === true ||
     (options.skipCloseoutAttestableGate === undefined && options.skipHumanMergeGate === true);
