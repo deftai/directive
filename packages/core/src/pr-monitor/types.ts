@@ -28,6 +28,8 @@ export interface MonitorOptions {
    * monitored project's root so confidence policy is not resolved from cwd.
    */
   readonly projectRoot?: string | null;
+  /** Hermetic Greptile suites must opt out of closeout explicitly (#3875). */
+  readonly skipCloseoutAttestable?: boolean;
 }
 
 export interface MonitorRunResult {
@@ -41,4 +43,6 @@ export interface CallReadinessOptions {
   readonly timeoutMs?: number;
   /** Project root for minGreptileConfidence resolve (#3095). */
   readonly projectRoot?: string | null;
+  /** Hermetic Greptile suites must opt out of closeout explicitly (#3875). */
+  readonly skipCloseoutAttestable?: boolean;
 }

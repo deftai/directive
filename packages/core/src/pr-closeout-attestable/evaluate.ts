@@ -302,9 +302,11 @@ function configError(
  * is the tree the merge lands, and it is the same working-tree basis
  * `verify:orphan-active` uses. When the caller has no xbrief/, closeout still
  * probes a linked PR-head worktree before declaring nothing to check; only when
- * neither tree has xbrief/ does it exit 0 (legacy vbrief/-only). When briefs
- * would be read, #3875 asserts HEAD equals the PR head SHA, refuses a dirty
- * xbrief/vbrief tree, and exit-2s on mismatch with no matching linked worktree.
+ * neither tree has xbrief/ (or no repo slug is available to probe) does it exit
+ * 0 (legacy vbrief/-only). A failed PR-head SHA fetch or HEAD verification on a
+ * found worktree is exit 2 — never a silent skip. When briefs would be read,
+ * #3875 asserts HEAD equals the PR head SHA, refuses a dirty xbrief/vbrief
+ * tree, and exit-2s on mismatch with no matching linked worktree.
  */
 
 export function evaluate(
@@ -351,24 +353,18 @@ export function evaluate(
   }
 
   const repo = resolveRepo(options.repo, root);
-  if (repo === null || repo.length === 0) {
-    // Closing references are repository-scoped. Without the slug this gate could
-    // only compare bare numbers, and a same-numbered issue in an unrelated
-    // repository would block a valid merge.
-    return configError(
-      prNumber,
-      "cannot resolve OWNER/REPO for the closing-reference read. Pass --repo OWNER/REPO, " +
-        "set $GH_REPO, or run inside a checkout with a GitHub origin remote.",
-      runner.proxied,
-    );
-  }
 
   let briefRoot = root;
   let lifecycleRoot: string;
 
   if (callerLifecycle === null) {
-    // No xbrief on caller: look for a linked PR-head worktree that has one
-    // before declaring nothing to check (outside-diff residual on #5258).
+    // No local xbrief: without a repo slug we cannot probe a linked PR-head
+    // worktree — same as a bare/legacy checkout with nothing to attest.
+    if (repo === null || repo.length === 0) {
+      return nothingToCheck();
+    }
+    // Probe a linked PR-head worktree before declaring nothing to check
+    // (outside-diff residual on #5258). Fail closed on an unverified lookup.
     const assertOpts = options.prHeadAssert ?? {};
     const fetchPrHead = assertOpts.fetchPrHeadSha ?? fetchPrHeadShaViaApi;
     const resolveWorktree = assertOpts.resolveWorktreeAtSha ?? findWorktreeAtSha;
@@ -379,15 +375,35 @@ export function evaluate(
         ? assertOpts.prHeadSha
         : fetchPrHead(prNumber, repo, runner.runGh);
     if (prHead === null || prHead.trim().length === 0) {
-      return nothingToCheck();
+      return configError(
+        prNumber,
+        `cannot read PR #${prNumber} head SHA (repo=${repo}) before closeout. ` +
+          "Refusing to certify briefs on an unverified tree — retry after fixing gh auth or network.",
+        runner.proxied,
+      );
     }
     const alt = resolveWorktree(root, prHead.trim());
     if (alt === null || alt.trim().length === 0) {
+      // Searched: no linked worktree at the PR head — nothing to attest.
       return nothingToCheck();
     }
     const altHead = resolveLocal(alt);
-    if (altHead === null || !shasMatch(altHead, prHead)) {
-      return nothingToCheck();
+    if (altHead === null || altHead.trim().length === 0) {
+      return configError(
+        prNumber,
+        `cannot resolve local HEAD in ${alt} before reading closeout briefs. ` +
+          "Run from the PR head checkout (or a worktree at that SHA).",
+        runner.proxied,
+      );
+    }
+    if (!shasMatch(altHead, prHead)) {
+      return configError(
+        prNumber,
+        `working tree HEAD ${altHead} is not PR #${prNumber} head ${prHead}. ` +
+          "Closeout reads the tree that merges — check out the PR head (or pass " +
+          "--project-root to its worktree) and retry.",
+        runner.proxied,
+      );
     }
     let altLifecycle: string | null = null;
     try {
@@ -417,6 +433,17 @@ export function evaluate(
     briefRoot = resolve(alt);
     lifecycleRoot = altLifecycle;
   } else {
+    if (repo === null || repo.length === 0) {
+      // Closing references are repository-scoped. Without the slug this gate could
+      // only compare bare numbers, and a same-numbered issue in an unrelated
+      // repository would block a valid merge.
+      return configError(
+        prNumber,
+        "cannot resolve OWNER/REPO for the closing-reference read. Pass --repo OWNER/REPO, " +
+          "set $GH_REPO, or run inside a checkout with a GitHub origin remote.",
+        runner.proxied,
+      );
+    }
     // #3875: refuse a wrong-tree / dirty-lifecycle brief read before closing refs.
     const headAssert = assertWorkingTreeIsPrHead(root, prNumber, repo, runner.runGh, {
       ...options.prHeadAssert,
@@ -441,6 +468,16 @@ export function evaluate(
         return nothingToCheck();
       }
     }
+  }
+
+  // Both branches above return when repo is missing; narrow for the forge read.
+  if (repo === null || repo.length === 0) {
+    return configError(
+      prNumber,
+      "cannot resolve OWNER/REPO for the closing-reference read. Pass --repo OWNER/REPO, " +
+        "set $GH_REPO, or run inside a checkout with a GitHub origin remote.",
+      runner.proxied,
+    );
   }
 
   const linked = fetchClosing(prNumber, repo, runner.runGh);

@@ -176,6 +176,7 @@ export function monitor(
       callReadiness(n, r, {
         runGh: options.runGh,
         projectRoot: options.projectRoot ?? process.cwd(),
+        skipCloseoutAttestable: options.skipCloseoutAttestable,
       }));
 
   const startedAt = clockFn.now();

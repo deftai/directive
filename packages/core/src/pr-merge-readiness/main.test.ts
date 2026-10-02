@@ -78,7 +78,10 @@ describe("parseArgs", () => {
 describe("run CLI", () => {
   it("returns 0 for clean json run", () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    const code = run(["1", "--repo", "deftai/directive", "--json"], { runGh: fakeRunGh() });
+    const code = run(["1", "--repo", "deftai/directive", "--json"], {
+      runGh: fakeRunGh(),
+      skipCloseoutAttestable: true,
+    });
     expect(code).toBe(0);
     expect(stdout.mock.calls[0]?.[0]).toContain('"merge_ready": true');
     stdout.mockRestore();
@@ -92,7 +95,10 @@ describe("run CLI", () => {
 
   it("cmdPrMergeReadiness delegates to run", () => {
     expect(
-      cmdPrMergeReadiness(["1", "--repo", "deftai/directive", "--json"], { runGh: fakeRunGh() }),
+      cmdPrMergeReadiness(["1", "--repo", "deftai/directive", "--json"], {
+        runGh: fakeRunGh(),
+        skipCloseoutAttestable: true,
+      }),
     ).toBe(0);
   });
 });

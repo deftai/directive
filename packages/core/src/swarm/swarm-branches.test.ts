@@ -81,7 +81,7 @@ describe("swarm verify-review-clean", () => {
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     });
-    const per = evaluatePr(1, "deftai/directive", runGh);
+    const per = evaluatePr(1, "deftai/directive", runGh, { skipCloseoutAttestable: true });
     expect(per?.clean).toBe(true);
   });
 

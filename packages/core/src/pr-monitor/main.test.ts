@@ -70,7 +70,10 @@ describe("callReadiness", () => {
   });
 
   it("returns primary clean payload", () => {
-    const result = callReadiness(1, "deftai/directive", { runGh: fakeRunGh() });
+    const result = callReadiness(1, "deftai/directive", {
+      runGh: fakeRunGh(),
+      skipCloseoutAttestable: true,
+    });
     expect(result.payload.via).toBe("primary");
     expect(result.payload.merge_ready).toBe(true);
     expect(result.rawStdout).toContain('"merge_ready": true');
@@ -165,6 +168,7 @@ describe("integration monitor with runGh", () => {
       sleepFn: () => undefined,
       clockFn: { now: () => 0 },
       runGh: fakeRunGh(),
+      skipCloseoutAttestable: true,
     });
     expect(result.exitCode).toBe(EXIT_CLEAN);
     stderr.mockRestore();

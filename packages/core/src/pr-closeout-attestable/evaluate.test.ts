@@ -304,6 +304,41 @@ describe("pr-closeout-attestable evaluate", () => {
     expect(result.message).toContain("nothing to check");
   });
 
+  it("no-xbrief fails closed when PR-head SHA lookup fails (#3875)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-closeout-nolayout-fetchfail-"));
+    temps.push(root);
+    const result = evaluate(root, 1, {
+      repo: REPO,
+      runner: { runGh: NEVER_CALLED, proxied: false },
+      fetchClosingIssues: closing(1),
+      prHeadAssert: {
+        prHeadSha: null,
+        resolveWorktreeAtSha: () => {
+          throw new Error("must not probe worktree after failed PR-head lookup");
+        },
+      },
+    });
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("cannot read PR #1 head SHA");
+  });
+
+  it("no-xbrief fails closed when a found worktree HEAD mismatches (#3875)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-closeout-nolayout-headfail-"));
+    temps.push(root);
+    const result = evaluate(root, 1, {
+      repo: REPO,
+      runner: { runGh: NEVER_CALLED, proxied: false },
+      fetchClosingIssues: closing(1),
+      prHeadAssert: {
+        prHeadSha: "b".repeat(40),
+        resolveWorktreeAtSha: () => root,
+        resolveLocalHeadSha: () => "a".repeat(40),
+      },
+    });
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("is not PR #1 head");
+  });
+
   it("no-xbrief caller still reads a linked PR-head worktree with xbrief (#3875)", () => {
     const primary = mkdtempSync(join(tmpdir(), "deft-closeout-primary-"));
     const dest = makeRepo();
