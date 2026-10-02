@@ -13,7 +13,9 @@ describe("verify-scope-provenance CLI (#3145)", () => {
     expect(parseArgs(["--bad"]).error).toMatch(/unrecognized/);
   });
 
-  it("runs against framework root", () => {
+  // evaluateScopeProvenance does git/membership work; under merge-gate load the
+  // default 5s vitest budget flakes (PR #5244 Merge gate, twice).
+  it("runs against framework root", { timeout: 20_000 }, () => {
     // Exit 2 is config/network (e.g. PR-aware base resolution) — still a successful CLI smoke.
     const code = run(["--project-root", ".", "--quiet", "--base-ref", "HEAD"]);
     expect([0, 1, 2]).toContain(code);
