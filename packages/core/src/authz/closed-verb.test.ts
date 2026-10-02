@@ -20,7 +20,9 @@ import {
   resolveFinishLoopTemplate,
 } from "./templates.js";
 
-function mintClosedVerbTemplateGrant(...args: Parameters<typeof mintClosedVerbTemplateGrantResult>) {
+function mintClosedVerbTemplateGrant(
+  ...args: Parameters<typeof mintClosedVerbTemplateGrantResult>
+) {
   const r = mintClosedVerbTemplateGrantResult(...args);
   if (!r.ok) throw new Error(r.reason);
   return r.grant;
@@ -30,7 +32,9 @@ function mintAfkTemplateGrant(...args: Parameters<typeof mintAfkTemplateGrantRes
   if (!r.ok) throw new Error(r.reason);
   return r.grant;
 }
-function mintFinishLoopTemplateGrant(...args: Parameters<typeof mintFinishLoopTemplateGrantResult>) {
+function mintFinishLoopTemplateGrant(
+  ...args: Parameters<typeof mintFinishLoopTemplateGrantResult>
+) {
   const r = mintFinishLoopTemplateGrantResult(...args);
   if (!r.ok) throw new Error(r.reason);
   return r.grant;

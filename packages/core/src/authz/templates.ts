@@ -8,11 +8,7 @@
  *   that agents can self-mint as alternate permission.
  */
 
-import {
-  type MintGrantInput,
-  type MintGrantResult,
-  mintHumanOriginGrant,
-} from "./actions.js";
+import { type MintGrantInput, type MintGrantResult, mintHumanOriginGrant } from "./actions.js";
 import { normaliseClosedVerbTarget, targetSurfaceCandidates } from "./closed-verb.js";
 import type { AuthzOperation } from "./types.js";
 import {
@@ -244,9 +240,7 @@ export function mintClosedVerbTemplateGrant(input: MintClosedVerbTemplateInput):
  * Covers edit/push/pr/merge only — never release-cut / release-publish / release-rollback.
  * **Sole mint path:** mintHumanOriginGrant (operator-cli).
  */
-export function mintFinishLoopTemplateGrant(
-  input: MintFinishLoopTemplateInput,
-): MintGrantResult {
+export function mintFinishLoopTemplateGrant(input: MintFinishLoopTemplateInput): MintGrantResult {
   const dualMint = assertNoIndependentSessionAuthMint();
   if (dualMint.sessionAuthIsAuthority || dualMint.mintPath !== "mintHumanOriginGrant") {
     throw new Error(

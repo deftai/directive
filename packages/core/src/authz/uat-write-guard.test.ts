@@ -19,9 +19,10 @@ function mintHumanOriginGrant(
   if (!r.ok) throw new Error(r.reason);
   return r.grant;
 }
-function startUatLease(
-  ...args: Parameters<typeof startUatLeaseResult>
-): { state: import("./types.js").AuthzState; lease: import("./types.js").UatLease } {
+function startUatLease(...args: Parameters<typeof startUatLeaseResult>): {
+  state: import("./types.js").AuthzState;
+  lease: import("./types.js").UatLease;
+} {
   const r = startUatLeaseResult(...args);
   if (!r.ok) throw new Error(r.reason);
   return { state: r.state, lease: r.lease };
@@ -33,6 +34,7 @@ function suspendUatLease(
   if (!r.ok) throw new Error(r.reason);
   return r.state;
 }
+
 import {
   listActiveHumanGrants,
   loadAuthzState,

@@ -6,7 +6,13 @@
  * Sealed campaign-end is a Symbol token — not stringly argv/grant JSON.
  */
 
-import type { AuthzState, GrantScope, GrantSemantics, HumanOriginGrant, UatLease } from "./types.js";
+import type {
+  AuthzState,
+  GrantScope,
+  GrantSemantics,
+  HumanOriginGrant,
+  UatLease,
+} from "./types.js";
 
 /** Opaque seal for `uat.active` true→false only. Not reconstructible from JSON/argv. */
 const UAT_CAMPAIGN_END_SEAL: unique symbol = Symbol("deft.authz.uatCampaignEnd");
@@ -89,10 +95,7 @@ function sameScope(a: GrantScope, b: GrantScope): boolean {
   );
 }
 
-function sameOrigin(
-  a: HumanOriginGrant["origin"],
-  b: HumanOriginGrant["origin"],
-): boolean {
+function sameOrigin(a: HumanOriginGrant["origin"], b: HumanOriginGrant["origin"]): boolean {
   return (
     a.kind === b.kind &&
     a.actor === b.actor &&
@@ -240,7 +243,11 @@ export function evaluateAuthzStateWriteUnderUat(
     return { ok: true, intent };
   }
   if (intent === "uat-activate") {
-    return refuse("uat-activate", intent, "refusing UAT activate/replace while lease already active");
+    return refuse(
+      "uat-activate",
+      intent,
+      "refusing UAT activate/replace while lease already active",
+    );
   }
   return refuse("uat-field-mutate", intent, "refusing UAT field mutate while lease active");
 }

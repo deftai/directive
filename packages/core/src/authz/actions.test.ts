@@ -22,9 +22,10 @@ function mintHumanOriginGrant(
   if (!r.ok) throw new Error(r.reason);
   return r.grant;
 }
-function startUatLease(
-  ...args: Parameters<typeof startUatLeaseResult>
-): { state: import("./types.js").AuthzState; lease: import("./types.js").UatLease } {
+function startUatLease(...args: Parameters<typeof startUatLeaseResult>): {
+  state: import("./types.js").AuthzState;
+  lease: import("./types.js").UatLease;
+} {
   const r = startUatLeaseResult(...args);
   if (!r.ok) throw new Error(r.reason);
   return { state: r.state, lease: r.lease };
@@ -101,7 +102,9 @@ describe("authz actions + helpers (#2944)", () => {
     expect(snap.state.activeGrantIds).toContain(g.id);
 
     // Revoke under UAT is authority-field mutate — store refuse.
-    expect(() => revokeGrant({ projectRoot: root, grantId: g.id })).toThrow(/active UAT|authority/i);
+    expect(() => revokeGrant({ projectRoot: root, grantId: g.id })).toThrow(
+      /active UAT|authority/i,
+    );
     expect(revokeGrant({ projectRoot: root, grantId: "missing" })).toBeNull();
 
     suspendUatLease({ projectRoot: root, campaignEndSeal: uatCampaignEndSeal() });

@@ -7,13 +7,16 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { mintHumanOriginGrant as mintHumanOriginGrantResult } from "./actions.js";
+
 function mintHumanOriginGrant(...args: Parameters<typeof mintHumanOriginGrantResult>) {
   const r = mintHumanOriginGrantResult(...args);
   if (!r.ok) throw new Error(r.reason);
   return r.grant;
 }
 
-function mintDecomposeStructuralApplyGrant(...args: Parameters<typeof mintDecomposeStructuralApplyGrantResult>) {
+function mintDecomposeStructuralApplyGrant(
+  ...args: Parameters<typeof mintDecomposeStructuralApplyGrantResult>
+) {
   const r = mintDecomposeStructuralApplyGrantResult(...args);
   if (!r.ok) throw new Error(r.reason);
   return r.grant;

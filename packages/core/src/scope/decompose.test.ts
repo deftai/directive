@@ -13,7 +13,9 @@ import {
   toProjectRelativePosix,
 } from "../authz/decompose-apply.js";
 
-function mintDecomposeStructuralApplyGrant(...args: Parameters<typeof mintDecomposeStructuralApplyGrantResult>) {
+function mintDecomposeStructuralApplyGrant(
+  ...args: Parameters<typeof mintDecomposeStructuralApplyGrantResult>
+) {
   const r = mintDecomposeStructuralApplyGrantResult(...args);
   if (!r.ok) throw new Error(r.reason);
   return r.grant;
