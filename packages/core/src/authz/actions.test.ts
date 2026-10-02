@@ -175,6 +175,34 @@ describe("authz actions + helpers (#2944)", () => {
     expect(showAuthzSnapshot(root).activeGrants.map((g) => g.id)).toEqual(["grant-pinned"]);
   });
 
+  it("saveAuthzState UAT activate carries locked pin over a stale caller snapshot (#4233)", async () => {
+    const root = tempRoot();
+    const { saveAuthzState, mintOperatorOrigin } = await import("./store.js");
+    mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      grantId: "grant-concurrent",
+      pinActive: true,
+    });
+    const origin = mintOperatorOrigin("op", "deft authz:uat-start");
+    // Stale pre-lock snapshot with empty pin — must not drop the concurrent pin.
+    const wrote = saveAuthzState(root, {
+      schemaVersion: 1,
+      uat: {
+        active: true,
+        campaignId: "uat-stale-pin",
+        startedAt: origin.mintedAt,
+        startedBy: origin,
+        suspendedAt: null,
+        note: null,
+      },
+      activeGrantIds: [],
+    });
+    expect(wrote.ok).toBe(true);
+    expect(loadAuthzState(root).activeGrantIds).toEqual(["grant-concurrent"]);
+    expect(loadAuthzState(root).uat?.active).toBe(true);
+  });
+
   it("describeScope and grantSatisfies helpers", () => {
     expect(describeScope(null)).toBe("(none)");
     expect(

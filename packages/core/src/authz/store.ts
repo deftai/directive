@@ -334,6 +334,43 @@ function readGrantClaimLockRecord(lockPath: string): GrantClaimLockRecord | null
   }
 }
 
+/**
+ * Rename-away reclaim that refuses to steal a live replacement lock (#4233).
+ * After rename, the side file must still match the dead record we inspected;
+ * otherwise restore and fail closed so two reclaimers cannot both enter.
+ */
+function tryReclaimDeadLock(lockPath: string): boolean {
+  const existing = readGrantClaimLockRecord(lockPath);
+  if (!isGrantClaimLockReclaimable(existing)) return false;
+  const expectedPid = existing?.pid ?? null;
+  const expectedToken = existing?.token ?? null;
+  const side = `${lockPath}.reclaim.${randomBytes(6).toString("hex")}`;
+  try {
+    renameSync(lockPath, side);
+  } catch {
+    return false;
+  }
+  const got = readGrantClaimLockRecord(side);
+  const sameDead =
+    existing === null
+      ? got === null
+      : got !== null && got.pid === expectedPid && got.token === expectedToken;
+  if (!sameDead) {
+    try {
+      renameSync(side, lockPath);
+    } catch {
+      /* best-effort restore of live replacement */
+    }
+    return false;
+  }
+  try {
+    rmSync(side, { force: true });
+  } catch {
+    /* best-effort side cleanup */
+  }
+  return true;
+}
+
 export interface ClaimSingleUseGrantOptions {
   readonly now?: Date;
   /**
@@ -410,21 +447,8 @@ export function claimSingleUseGrantForApply(
 
   let locked = tryCreateLock();
   if (!locked) {
-    // Dead-PID / corrupt reclaim: rename the old lock aside (atomic contention) then create.
-    // Blind rmSync is forbidden — a second reclaimer must not delete a winner's new lock.
-    const existing = readGrantClaimLockRecord(lockPath);
-    if (isGrantClaimLockReclaimable(existing)) {
-      const side = `${lockPath}.reclaim.${randomBytes(6).toString("hex")}`;
-      try {
-        renameSync(lockPath, side);
-        try {
-          rmSync(side, { force: true });
-        } catch {
-          /* best-effort side cleanup */
-        }
-      } catch {
-        // Lost rename race or lock already gone — fall through to exclusive create.
-      }
+    // Dead-PID / corrupt reclaim: rename-away only when side still matches the dead record.
+    if (tryReclaimDeadLock(lockPath)) {
       locked = tryCreateLock();
     }
   }
@@ -555,22 +579,8 @@ function withAuthzStoreWriteLock<T>(projectRoot: string, fn: () => T): T {
   const start = Date.now();
   for (;;) {
     if (tryCreateLock()) break;
-    // Dead-PID / corrupt reclaim (same rename-away rule as grant claim locks).
-    const existing = readGrantClaimLockRecord(lockPath);
-    if (isGrantClaimLockReclaimable(existing)) {
-      const side = `${lockPath}.reclaim.${randomBytes(6).toString("hex")}`;
-      try {
-        renameSync(lockPath, side);
-        try {
-          rmSync(side, { force: true });
-        } catch {
-          /* best-effort side cleanup */
-        }
-      } catch {
-        // Lost rename race or lock already gone — fall through to retry/create.
-      }
-      if (tryCreateLock()) break;
-    }
+    // Dead-PID / corrupt reclaim — token-checked so a stale reclaim cannot rename a live lock.
+    if (tryReclaimDeadLock(lockPath) && tryCreateLock()) break;
     if (Date.now() - start > 5000) {
       throw new Error(
         "authz store write lock timeout (remove leftover `.deft/authz/locks/store-write.lock` after a dead-holder crash if reclaim fails)",
@@ -602,9 +612,19 @@ export function saveAuthzState(
 ): AuthzUatWriteDecision {
   return withAuthzStoreWriteLock(projectRoot, () => {
     const prev = loadAuthzState(projectRoot);
-    const decision = evaluateAuthzStateWriteUnderUat(prev, state, options);
+    // UAT activate must carry the pin observed under the lock so a pre-lock
+    // snapshot cannot drop a concurrent pinned mint (#4233).
+    const next: AuthzState =
+      prev.uat?.active !== true && state.uat?.active === true
+        ? {
+            schemaVersion: state.schemaVersion,
+            uat: state.uat,
+            activeGrantIds: [...prev.activeGrantIds],
+          }
+        : state;
+    const decision = evaluateAuthzStateWriteUnderUat(prev, next, options);
     if (!decision.ok) return decision;
-    writeJsonContained(projectRoot, authzStatePath(projectRoot), state);
+    writeJsonContained(projectRoot, authzStatePath(projectRoot), next);
     return decision;
   });
 }
@@ -662,9 +682,10 @@ export function saveGrant(projectRoot: string, grant: HumanOriginGrant): AuthzUa
  * First pin from empty seeds grants that empty-pin currently activates so older
  * still-valid CLI grants keep authorizing outside UAT.
  *
- * Pin-before-grant publish (#4233 residual): empty-pin cannot activate a grant that
- * landed without a pin update. Grant write failure restores the prior pin and never
- * unlinks a pre-existing same-ID grant.
+ * Publish order (#4233 residual):
+ * - New grant (no on-disk id): pin first, then grant — empty-pin cannot activate an orphan.
+ * - Remint (same id on disk): grant first, then pin — interrupt cannot pin old authority.
+ * Failures restore the prior pin or prior grant bytes; never unlink a pre-existing same-ID grant.
  */
 export function persistMintedGrant(
   projectRoot: string,
@@ -697,18 +718,35 @@ export function persistMintedGrant(
     const pinDecision = evaluateAuthzStateWriteUnderUat(state, nextState);
     if (!pinDecision.ok) return pinDecision;
 
-    // Publish pin first so a crash before the grant write cannot leave an empty-pin orphan.
-    writeJsonContained(projectRoot, authzStatePath(projectRoot), nextState);
-    try {
-      writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
-    } catch (err) {
-      // Restore prior pin; never unlink onDisk — same-ID remint must not delete the earlier grant.
+    const grantPath = authzGrantPath(projectRoot, grant.id);
+    const statePath = authzStatePath(projectRoot);
+
+    if (onDisk === null) {
+      // New mint: pin before grant so empty-pin cannot activate a half-written grant.
+      writeJsonContained(projectRoot, statePath, nextState);
       try {
-        writeJsonContained(projectRoot, authzStatePath(projectRoot), state);
-      } catch {
-        // Best-effort pin restore; surface the original grant-write failure.
+        writeJsonContained(projectRoot, grantPath, grant);
+      } catch (err) {
+        try {
+          writeJsonContained(projectRoot, statePath, state);
+        } catch {
+          /* best-effort pin restore */
+        }
+        throw err;
       }
-      throw err;
+    } else {
+      // Remint: replace grant bytes first so an interrupt cannot leave old authority pinned.
+      writeJsonContained(projectRoot, grantPath, grant);
+      try {
+        writeJsonContained(projectRoot, statePath, nextState);
+      } catch (err) {
+        try {
+          writeJsonContained(projectRoot, grantPath, onDisk);
+        } catch {
+          /* best-effort grant restore */
+        }
+        throw err;
+      }
     }
     return pinDecision;
   });

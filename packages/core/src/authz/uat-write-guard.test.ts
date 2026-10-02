@@ -307,6 +307,12 @@ describe("store SoT hard-refuse under active UAT (#4233)", () => {
     expect(typeof mod.isUatCampaignEndSeal).toBe("function");
   });
 
+  it("write-guard module does not export the campaign-end seal factory (#4233)", async () => {
+    const mod = await import("./uat-write-guard.js");
+    expect("uatCampaignEndSeal" in mod).toBe(false);
+    expect(typeof mod.isUatCampaignEndSeal).toBe("function");
+  });
+
   it("pure predicate stays free of CLI exit helper side effects", () => {
     const state = {
       schemaVersion: 1 as const,

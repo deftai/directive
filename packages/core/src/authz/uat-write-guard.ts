@@ -4,8 +4,10 @@
  * Pure predicates consulted by saveGrant / saveAuthzState. CLI keeps
  * refuseMintWhileUatActive stderr/exit adaptation; human-presence stays CLI-only.
  * Sealed campaign-end is a Symbol token — not stringly argv/grant JSON.
+ * Factory lives only on `./authz/campaign-end-seal` (not this module).
  */
 
+import { isUatCampaignEndSeal, type UatCampaignEndSeal } from "./seal-symbol.js";
 import type {
   AuthzState,
   GrantScope,
@@ -14,23 +16,8 @@ import type {
   UatLease,
 } from "./types.js";
 
-/** Opaque seal for `uat.active` true→false only. Not reconstructible from JSON/argv. */
-const UAT_CAMPAIGN_END_SEAL: unique symbol = Symbol("deft.authz.uatCampaignEnd");
-
-export type UatCampaignEndSeal = typeof UAT_CAMPAIGN_END_SEAL;
-
-/**
- * CLI human-presence path obtains this after gateConfirm.
- * Not exported from `@deftai/directive-core/authz` — use `./authz/campaign-end-seal`.
- * Agents cannot plant this via JSON/argv; do not import the CLI subpath from agent code.
- */
-export function uatCampaignEndSeal(): UatCampaignEndSeal {
-  return UAT_CAMPAIGN_END_SEAL;
-}
-
-export function isUatCampaignEndSeal(value: unknown): value is UatCampaignEndSeal {
-  return value === UAT_CAMPAIGN_END_SEAL;
-}
+export type { UatCampaignEndSeal } from "./seal-symbol.js";
+export { isUatCampaignEndSeal } from "./seal-symbol.js";
 
 export type GrantWriteIntentClass =
   | "grant-create"

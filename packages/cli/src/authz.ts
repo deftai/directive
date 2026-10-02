@@ -45,7 +45,6 @@ import {
   suspendUatLease,
   toProjectRelativePosix,
 } from "@deftai/directive-core/authz";
-import { uatCampaignEndSeal } from "@deftai/directive-core/authz/campaign-end-seal";
 import {
   type HumanPresenceMintSeams,
   refuseMintWhileUatActive,
@@ -395,18 +394,14 @@ export function main(
         }
         const blocked = gateConfirm();
         if (blocked !== null) return blocked;
-        const started = startUatLease({
+        const { lease } = startUatLease({
           projectRoot: args.projectRoot,
           campaignId: args.campaign,
           actor: args.actor,
           note: args.note,
         });
-        if (!started.ok) {
-          process.stderr.write(`authz:uat-start: ${started.reason}\n`);
-          return 2;
-        }
         process.stdout.write(
-          `✓ UAT lease ACTIVE campaign=${started.lease.campaignId} (human-origin operator-cli)\n`,
+          `✓ UAT lease ACTIVE campaign=${lease.campaignId} (human-origin operator-cli)\n`,
         );
         process.stdout.write(
           "  Product edit/push/PR/merge denied until a named fix cohort grant is minted.\n",
@@ -417,17 +412,10 @@ export function main(
       case "uat-suspend": {
         const blocked = gateConfirm();
         if (blocked !== null) return blocked;
-        // Sealed campaign-end only after CLI human-presence gateConfirm (#4233).
-        const suspended = suspendUatLease({
+        const state = suspendUatLease({
           projectRoot: args.projectRoot,
           actor: args.actor,
-          campaignEndSeal: uatCampaignEndSeal(),
         });
-        if (!suspended.ok) {
-          process.stderr.write(`authz:uat-suspend: ${suspended.reason}\n`);
-          return 2;
-        }
-        const state = suspended.state;
         if (state.uat === null) {
           process.stdout.write("UAT lease was already inactive.\n");
         } else {
@@ -495,7 +483,7 @@ export function main(
           }
           const blocked = gateConfirm();
           if (blocked !== null) return blocked;
-          const minted = mintDecomposeStructuralApplyGrant({
+          const grant = mintDecomposeStructuralApplyGrant({
             projectRoot: root,
             parentPath: parentAbs,
             draftPath: draftAbs,
@@ -503,13 +491,7 @@ export function main(
             repo: args.repo,
             expiresAt: args.expiresAt,
             singleUse: args.singleUse,
-            pinActive: true,
           });
-          if (!minted.ok) {
-            process.stderr.write(`authz:grant: ${minted.reason}\n`);
-            return 2;
-          }
-          const grant = minted.grant;
           // mintDecomposeStructuralApplyGrant always sets contentDigest + worktree.
           const digest = grant.scope.contentDigest || "";
           process.stdout.write(
@@ -595,7 +577,7 @@ export function main(
           }
           const blocked = gateConfirm();
           if (blocked !== null) return blocked;
-          const minted = mintAfkTemplateGrant({
+          const grant = mintAfkTemplateGrant({
             projectRoot: args.projectRoot,
             template: args.template,
             target: args.target,
@@ -609,13 +591,7 @@ export function main(
             storyIds: args.storyIds,
             issueIds: args.issueIds,
             cohortId: args.cohort,
-            pinActive: true,
           });
-          if (!minted.ok) {
-            process.stderr.write(`authz:grant: ${minted.reason}\n`);
-            return 2;
-          }
-          const grant = minted.grant;
           process.stdout.write(
             `✓ human-origin grant minted id=${grant.id} origin=${grant.origin.kind} ` +
               `template=${args.template}\n`,
@@ -646,7 +622,7 @@ export function main(
           const blocked = gateConfirm();
           if (blocked !== null) return blocked;
         }
-        const minted = mintHumanOriginGrant({
+        const grant = mintHumanOriginGrant({
           projectRoot: args.projectRoot,
           actor: args.actor,
           operations: args.operations,
@@ -659,13 +635,7 @@ export function main(
           issueIds: args.issueIds,
           expiresAt: args.expiresAt,
           singleUse: args.singleUse,
-          pinActive: true,
         });
-        if (!minted.ok) {
-          process.stderr.write(`authz:grant: ${minted.reason}\n`);
-          return 2;
-        }
-        const grant = minted.grant;
         process.stdout.write(
           `✓ human-origin grant minted id=${grant.id} origin=${grant.origin.kind}\n`,
         );
@@ -686,15 +656,10 @@ export function main(
           const blocked = gateConfirm();
           if (blocked !== null) return blocked;
         }
-        const revokedResult = revokeGrant({
+        const revoked = revokeGrant({
           projectRoot: args.projectRoot,
           grantId: args.grantId,
         });
-        if (!revokedResult.ok) {
-          process.stderr.write(`authz:revoke: ${revokedResult.reason}\n`);
-          return 2;
-        }
-        const revoked = revokedResult.grant;
         if (revoked === null) {
           process.stderr.write(`authz: grant not found: ${args.grantId}\n`);
           return 1;
