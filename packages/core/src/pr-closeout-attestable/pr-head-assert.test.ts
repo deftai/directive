@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  assertWorkingTreeIsPrHead,
-  fetchPrHeadShaViaApi,
-  shasMatch,
-} from "./pr-head-assert.js";
+import { assertWorkingTreeIsPrHead, fetchPrHeadShaViaApi, shasMatch } from "./pr-head-assert.js";
 
 describe("pr-head-assert helpers (#3875)", () => {
   it("matches full and abbreviated SHAs either way", () => {

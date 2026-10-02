@@ -41,10 +41,7 @@ import {
   type StrictAcceptanceAxis,
 } from "../scope/acceptance-evidence.js";
 import { resolveRepo } from "../triage/queue/repo.js";
-import {
-  assertWorkingTreeIsPrHead,
-  type PrHeadAssertOptions,
-} from "./pr-head-assert.js";
+import { assertWorkingTreeIsPrHead, type PrHeadAssertOptions } from "./pr-head-assert.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 

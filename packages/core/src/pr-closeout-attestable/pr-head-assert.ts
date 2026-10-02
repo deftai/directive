@@ -11,11 +11,7 @@ import type { RunGhFn } from "../pr-protected-issues/types.js";
 
 export type ResolveLocalHeadShaFn = (projectRoot: string) => string | null;
 
-export type FetchPrHeadShaFn = (
-  prNumber: number,
-  repo: string,
-  runGh: RunGhFn,
-) => string | null;
+export type FetchPrHeadShaFn = (prNumber: number, repo: string, runGh: RunGhFn) => string | null;
 
 export interface PrHeadAssertOptions {
   /** When false, skip the assert (tests only). Production default is enabled. */

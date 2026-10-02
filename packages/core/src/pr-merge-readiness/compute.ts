@@ -756,10 +756,7 @@ function defaultCloseoutAttestable(
  * (#3875). One evaluator, N thin invokers — supersedes #3781's single cascade
  * call site. Config errors (exit 2) surface as `via=error`.
  */
-function applyCloseoutAttestableGate(
-  result: GateResult,
-  options: ComputeGateOptions,
-): GateResult {
+function applyCloseoutAttestableGate(result: GateResult, options: ComputeGateOptions): GateResult {
   // Hermetic Greptile suites skip unless they inject a closeout seam (#3875).
   const skipUnderVitest =
     options.skipCloseoutAttestable === undefined &&
