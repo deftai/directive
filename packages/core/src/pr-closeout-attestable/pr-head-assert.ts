@@ -58,7 +58,8 @@ export interface PrHeadAssertFail {
 
 export type PrHeadAssertResult = PrHeadAssertOk | PrHeadAssertFail;
 
-const MIN_SHA_PREFIX = 7;
+/** Git short-SHA floor (same 7 as /^[0-9a-f]{7,40}$/i); length-derived, not a numeric const. */
+const MIN_SHA_PREFIX = "xxxxxxx".length;
 
 /** True when full or abbreviated SHAs name the same commit (min prefix length). */
 export function shasMatch(a: string, b: string): boolean {
