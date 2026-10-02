@@ -280,8 +280,10 @@ describe("authz store (#2944)", () => {
       },
       semantics: { expiresAt: null, singleUse: false, usedAt: null, revokedAt: null },
     };
-    // Leaf symlink refused by assertWriteTargetSafe (ProjectionContainmentError) before publish.
-    expect(() => saveGrant(root, grant)).toThrow();
+    // Leaf symlink refused by assertWriteTargetSafe before publish → store-write-io Result.
+    const wrote = saveGrant(root, grant);
+    expect(wrote.ok).toBe(false);
+    if (!wrote.ok) expect(wrote.code).toBe("store-write-io");
     expect(readFileSync(victim, "utf8")).toBe('{"stolen":true}\n');
   });
 
@@ -386,7 +388,10 @@ describe("authz store (#2944)", () => {
       },
       semantics: { expiresAt: null, singleUse: false, usedAt: null, revokedAt: null },
     };
-    expect(() => saveGrant(root, grant)).toThrow();
+    // Parent authz symlink fails closed on lock create (store-write-io), not throw.
+    const wrote = saveGrant(root, grant);
+    expect(wrote.ok).toBe(false);
+    if (!wrote.ok) expect(wrote.code).toBe("store-write-io");
   });
 });
 

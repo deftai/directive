@@ -639,7 +639,12 @@ export function saveAuthzState(
         : state;
     const decision = evaluateAuthzStateWriteUnderUat(prev, next, options);
     if (!decision.ok) return decision;
-    writeJsonContained(projectRoot, authzStatePath(projectRoot), next);
+    try {
+      writeJsonContained(projectRoot, authzStatePath(projectRoot), next);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      return storeWriteFail("store-write-io", `authz state write failed: ${reason}`);
+    }
     return decision;
   });
 }
@@ -661,7 +666,12 @@ export function mutateAuthzState(
     if (!decision.ok) {
       return { ...decision, state: prev };
     }
-    writeJsonContained(projectRoot, authzStatePath(projectRoot), next);
+    try {
+      writeJsonContained(projectRoot, authzStatePath(projectRoot), next);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      return { ...storeWriteFail("store-write-io", `authz state write failed: ${reason}`), state: prev };
+    }
     return { ...decision, state: next };
   });
   if ("state" in locked) return locked;
@@ -688,7 +698,12 @@ export function saveGrant(projectRoot: string, grant: HumanOriginGrant): AuthzUa
     const onDisk = loadGrant(projectRoot, grant.id);
     const decision = evaluateGrantWriteUnderUat(state, onDisk, grant);
     if (!decision.ok) return decision;
-    writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
+    try {
+      writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      return storeWriteFail("store-write-io", `authz grant write failed: ${reason}`);
+    }
     return decision;
   });
 }
@@ -716,7 +731,12 @@ export function persistMintedGrant(
     if (!grantDecision.ok) return grantDecision;
 
     if (options.pinActive !== true) {
-      writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
+      try {
+        writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        return storeWriteFail("store-write-io", `authz grant write failed: ${reason}`);
+      }
       return grantDecision;
     }
 
@@ -740,7 +760,12 @@ export function persistMintedGrant(
 
     if (onDisk === null) {
       // New mint: pin before grant so empty-pin cannot activate a half-written grant.
-      writeJsonContained(projectRoot, statePath, nextState);
+      try {
+        writeJsonContained(projectRoot, statePath, nextState);
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        return storeWriteFail("store-write-io", `authz pin write failed: ${reason}`);
+      }
       try {
         writeJsonContained(projectRoot, grantPath, grant);
       } catch (err) {
@@ -754,7 +779,13 @@ export function persistMintedGrant(
       }
     } else {
       // Remint: replace grant bytes first so an interrupt cannot leave old authority pinned.
-      writeJsonContained(projectRoot, grantPath, grant);
+      // Containment/IO refuse before publish must not unlink the prior same-ID path.
+      try {
+        writeJsonContained(projectRoot, grantPath, grant);
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        return storeWriteFail("store-write-io", `authz remint grant write failed: ${reason}`);
+      }
       try {
         writeJsonContained(projectRoot, statePath, nextState);
       } catch (err) {
