@@ -20,7 +20,7 @@
         "id": "clause.1",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "reason": "First-ship Bound Prefer-A clause delivered by product PR #5265 (merge 83ad86f5161b). Wave-2 remainder is separately deferred on later items.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
@@ -37,7 +37,7 @@
         "id": "clause.2",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "reason": "First-ship Bound Prefer-A clause delivered by product PR #5265 (merge 83ad86f5161b). Wave-2 remainder is separately deferred on later items.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
@@ -54,7 +54,7 @@
         "id": "clause.3",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "reason": "First-ship Bound Prefer-A clause delivered by product PR #5265 (merge 83ad86f5161b). Wave-2 remainder is separately deferred on later items.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
@@ -71,7 +71,7 @@
         "id": "clause.4",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "reason": "First-ship Bound Prefer-A clause delivered by product PR #5265 (merge 83ad86f5161b). Wave-2 remainder is separately deferred on later items.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
@@ -88,7 +88,7 @@
         "id": "clause.5",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "reason": "First-ship Bound Prefer-A clause delivered by product PR #5265 (merge 83ad86f5161b). Wave-2 remainder is separately deferred on later items.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
@@ -104,16 +104,16 @@
         "status": "completed",
         "id": "clause.6",
         "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "disposition": "deferred",
+          "reason": "Not part of first-ship PR #5265. Wave-2 / remainder tracked under #2741 (and #2742/#835 where named). Disposition deferred — do not read as delivered by #5265.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
             "eventRef": "leftover-complete-after-5265",
-            "mintedAt": "2026-10-02T22:47:44.402Z",
-            "mintedVia": "leftover-complete-after-5265"
+            "mintedAt": "2026-10-02T23:03:47.743Z",
+            "mintedVia": "leftover-5282-wave2-defer-clarify"
           },
-          "recorded_at": "2026-10-02T22:47:44.402Z"
+          "recorded_at": "2026-10-02T23:03:47.743Z"
         }
       },
       {
@@ -122,15 +122,15 @@
         "id": "clause.7",
         "x-directive/disposition": {
           "disposition": "deferred",
-          "reason": "Wave-2 / remainder under #2741 (and related #2742/#835 coordination). Not delivered by first-ship product PR #5265; tracked deferred rather than completed-as-shipped.",
+          "reason": "Not part of first-ship PR #5265. Wave-2 / remainder tracked under #2741 (and #2742/#835 where named). Disposition deferred — do not read as delivered by #5265.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
             "eventRef": "leftover-complete-after-5265",
-            "mintedAt": "2026-10-02T22:55:38.056Z",
-            "mintedVia": "leftover-complete-after-5265-wave2-defer"
+            "mintedAt": "2026-10-02T23:03:47.743Z",
+            "mintedVia": "leftover-5282-wave2-defer-clarify"
           },
-          "recorded_at": "2026-10-02T22:55:38.056Z"
+          "recorded_at": "2026-10-02T23:03:47.743Z"
         }
       },
       {
@@ -139,15 +139,15 @@
         "id": "clause.8",
         "x-directive/disposition": {
           "disposition": "deferred",
-          "reason": "Wave-2 / remainder under #2741 (and related #2742/#835 coordination). Not delivered by first-ship product PR #5265; tracked deferred rather than completed-as-shipped.",
+          "reason": "Not part of first-ship PR #5265. Wave-2 / remainder tracked under #2741 (and #2742/#835 where named). Disposition deferred — do not read as delivered by #5265.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
             "eventRef": "leftover-complete-after-5265",
-            "mintedAt": "2026-10-02T22:55:38.056Z",
-            "mintedVia": "leftover-complete-after-5265-wave2-defer"
+            "mintedAt": "2026-10-02T23:03:47.743Z",
+            "mintedVia": "leftover-5282-wave2-defer-clarify"
           },
-          "recorded_at": "2026-10-02T22:55:38.056Z"
+          "recorded_at": "2026-10-02T23:03:47.743Z"
         }
       },
       {
@@ -156,15 +156,15 @@
         "id": "clause.9",
         "x-directive/disposition": {
           "disposition": "deferred",
-          "reason": "Wave-2 / remainder under #2741 (and related #2742/#835 coordination). Not delivered by first-ship product PR #5265; tracked deferred rather than completed-as-shipped.",
+          "reason": "Not part of first-ship PR #5265. Wave-2 / remainder tracked under #2741 (and #2742/#835 where named). Disposition deferred — do not read as delivered by #5265.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
             "eventRef": "leftover-complete-after-5265",
-            "mintedAt": "2026-10-02T22:55:38.056Z",
-            "mintedVia": "leftover-complete-after-5265-wave2-defer"
+            "mintedAt": "2026-10-02T23:03:47.743Z",
+            "mintedVia": "leftover-5282-wave2-defer-clarify"
           },
-          "recorded_at": "2026-10-02T22:55:38.056Z"
+          "recorded_at": "2026-10-02T23:03:47.743Z"
         }
       },
       {
@@ -173,15 +173,15 @@
         "id": "clause.10",
         "x-directive/disposition": {
           "disposition": "deferred",
-          "reason": "Wave-2 / remainder under #2741 (and related #2742/#835 coordination). Not delivered by first-ship product PR #5265; tracked deferred rather than completed-as-shipped.",
+          "reason": "Not part of first-ship PR #5265. Wave-2 / remainder tracked under #2741 (and #2742/#835 where named). Disposition deferred — do not read as delivered by #5265.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
             "eventRef": "leftover-complete-after-5265",
-            "mintedAt": "2026-10-02T22:55:38.056Z",
-            "mintedVia": "leftover-complete-after-5265-wave2-defer"
+            "mintedAt": "2026-10-02T23:03:47.743Z",
+            "mintedVia": "leftover-5282-wave2-defer-clarify"
           },
-          "recorded_at": "2026-10-02T22:55:38.056Z"
+          "recorded_at": "2026-10-02T23:03:47.743Z"
         }
       },
       {
@@ -190,7 +190,7 @@
         "id": "clause.11",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "reason": "First-ship constraint kept by product PR #5265 (TrustLevel enum/promotion prohibition unchanged).",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams",
