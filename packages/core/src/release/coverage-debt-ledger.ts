@@ -221,9 +221,7 @@ export function probeSkipCiIncidentLedger(
   const ghPath = resolveGh({ whichGh: which, spawnText: seams.spawnText });
   const state =
     seams.viewIssueState?.(repo, projectRoot, citedIssue) ??
-    (ghPath === null
-      ? "UNKNOWN"
-      : viewIssueState(ghPath, repo, projectRoot, citedIssue, seams));
+    (ghPath === null ? "UNKNOWN" : viewIssueState(ghPath, repo, projectRoot, citedIssue, seams));
   if (state === "OPEN" || state === "UNKNOWN") {
     reasons.add("open_or_unknown");
   }

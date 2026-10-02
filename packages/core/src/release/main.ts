@@ -3,10 +3,7 @@ import { probeSkipCiIncidentLedger } from "./coverage-debt-ledger.js";
 import { formatReleaseHelp, parseReleaseFlags } from "./flags.js";
 import { resolveProjectRoot, resolveRepo } from "./paths.js";
 import { runPipeline } from "./pipeline.js";
-import {
-  validateSkipCiIncident,
-  validateSkipCiUnpaidLedger,
-} from "./skip-ci-incident.js";
+import { validateSkipCiIncident, validateSkipCiUnpaidLedger } from "./skip-ci-incident.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { validateVersion } from "./version.js";
 

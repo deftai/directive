@@ -1,9 +1,6 @@
 import { parseCoverageDebtIssueNumber } from "../vitest-runner/coverage-debt.js";
 import { DEFAULT_BASE_BRANCH, RELEASE_HELP } from "./constants.js";
-import {
-  parseAllowUnpaidSkipCiArgv,
-  parseSkipCiIncidentArgv,
-} from "./skip-ci-incident.js";
+import { parseAllowUnpaidSkipCiArgv, parseSkipCiIncidentArgv } from "./skip-ci-incident.js";
 import type { ReleaseFlags } from "./types.js";
 
 export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {

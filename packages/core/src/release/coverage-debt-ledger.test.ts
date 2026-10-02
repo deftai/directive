@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { extractSkipCiIncidentCitationsFromChangelog } from "./auto-hatch.js";
 import { probeSkipCiIncidentLedger } from "./coverage-debt-ledger.js";
-import {
-  parseAllowUnpaidSkipCiArgv,
-  validateSkipCiUnpaidLedger,
-} from "./skip-ci-incident.js";
+import { parseAllowUnpaidSkipCiArgv, validateSkipCiUnpaidLedger } from "./skip-ci-incident.js";
 
 describe("skip-ci CHANGELOG spend scan (#5239 S1)", () => {
   it("extracts allow-skip-ci citations from Unreleased + recent versions", () => {

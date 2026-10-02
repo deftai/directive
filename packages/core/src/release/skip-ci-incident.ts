@@ -19,10 +19,7 @@ export const ALLOW_UNPAID_SKIP_CI_FLAG = "--allow-unpaid-skip-ci";
 /** Set by `task release:e2e` worker subprocesses — permits `--skip-ci` without issue citation. */
 export const RELEASE_E2E_ENV = "DEFT_RELEASE_E2E";
 
-function parseIssueFlag(
-  argv: readonly string[],
-  flag: string,
-): SkipCiIncidentResolution {
+function parseIssueFlag(argv: readonly string[], flag: string): SkipCiIncidentResolution {
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i] ?? "";
     if (token === flag) {
