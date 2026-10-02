@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  assertWorkingTreeIsPrHead,
-  fetchPrHeadShaViaApi,
-  shasMatch,
-  WorktreeLookupError,
-} from "./pr-head-assert.js";
+import { assertWorkingTreeIsPrHead, fetchPrHeadShaViaApi, shasMatch } from "./pr-head-assert.js";
 
 describe("pr-head-assert helpers (#3875)", () => {
   it("matches full and abbreviated SHAs either way", () => {
@@ -46,7 +41,7 @@ describe("pr-head-assert helpers (#3875)", () => {
       {
         localHeadSha: "a".repeat(40),
         prHeadSha: "b".repeat(40),
-        resolveWorktreeAtSha: () => null,
+        resolveWorktreeAtSha: () => ({ status: "absent" }),
       },
     );
     expect(result.ok).toBe(false);
@@ -66,11 +61,10 @@ describe("pr-head-assert helpers (#3875)", () => {
       {
         localHeadSha: "a".repeat(40),
         prHeadSha: "b".repeat(40),
-        resolveWorktreeAtSha: () => {
-          throw new WorktreeLookupError(
-            "cannot list linked worktrees under /tmp/unused (git worktree list exited 128)",
-          );
-        },
+        resolveWorktreeAtSha: () => ({
+          status: "error",
+          message: "cannot list linked worktrees under /tmp/unused (git worktree list exited 128)",
+        }),
       },
     );
     expect(result.ok).toBe(false);
@@ -125,7 +119,7 @@ describe("pr-head-assert helpers (#3875)", () => {
       {
         localHeadSha: "a".repeat(40),
         prHeadSha: prHead,
-        resolveWorktreeAtSha: () => "/tmp/pr-worktree",
+        resolveWorktreeAtSha: () => ({ status: "found", path: "/tmp/pr-worktree" }),
         resolveLocalHeadSha: (root) => (root === "/tmp/pr-worktree" ? prHead : "a".repeat(40)),
         resolveLifecycleDirty: () => null,
       },

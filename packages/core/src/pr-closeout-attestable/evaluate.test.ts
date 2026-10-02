@@ -309,7 +309,7 @@ describe("pr-closeout-attestable evaluate", () => {
       prHeadAssert: {
         localHeadSha: MATCHING_HEAD,
         prHeadSha: MATCHING_HEAD,
-        resolveWorktreeAtSha: () => null,
+        resolveWorktreeAtSha: () => ({ status: "absent" }),
       },
     });
     expect(result.code).toBe(0);
@@ -349,7 +349,7 @@ describe("pr-closeout-attestable evaluate", () => {
       prHeadAssert: {
         localHeadSha: "a".repeat(40),
         prHeadSha: "b".repeat(40),
-        resolveWorktreeAtSha: () => null,
+        resolveWorktreeAtSha: () => ({ status: "absent" }),
       },
     });
     expect(result.code).toBe(0);
@@ -365,9 +365,10 @@ describe("pr-closeout-attestable evaluate", () => {
       fetchClosingIssues: closing(1),
       prHeadAssert: {
         prHeadSha: "b".repeat(40),
-        resolveWorktreeAtSha: () => {
-          throw new Error("cannot list linked worktrees under /tmp (git worktree list exited 128)");
-        },
+        resolveWorktreeAtSha: () => ({
+          status: "error",
+          message: "cannot list linked worktrees under /tmp (git worktree list exited 128)",
+        }),
       },
     });
     expect(result.code).toBe(2);
@@ -401,7 +402,7 @@ describe("pr-closeout-attestable evaluate", () => {
       fetchClosingIssues: closing(1),
       prHeadAssert: {
         prHeadSha: "b".repeat(40),
-        resolveWorktreeAtSha: () => root,
+        resolveWorktreeAtSha: () => ({ status: "found", path: root }),
         resolveLocalHeadSha: () => "a".repeat(40),
       },
     });
@@ -426,7 +427,7 @@ describe("pr-closeout-attestable evaluate", () => {
       fetchClosingIssues: closing(3609),
       prHeadAssert: {
         prHeadSha: prHead,
-        resolveWorktreeAtSha: () => dest,
+        resolveWorktreeAtSha: () => ({ status: "found", path: dest }),
         resolveLocalHeadSha: (root) => (root === dest ? prHead : "a".repeat(40)),
         resolveLifecycleDirty: () => null,
       },
@@ -786,7 +787,7 @@ describe("pr-closeout-attestable PR-head assert (#3875)", () => {
       prHeadAssert: {
         localHeadSha: "b".repeat(40),
         prHeadSha: "c".repeat(40),
-        resolveWorktreeAtSha: () => null,
+        resolveWorktreeAtSha: () => ({ status: "absent" }),
       },
     });
 

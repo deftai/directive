@@ -391,22 +391,20 @@ export function evaluate(
         runner.proxied,
       );
     }
-    let alt: string | null;
-    try {
-      alt = resolveWorktree(root, prHead.trim());
-    } catch (err: unknown) {
-      const detail = err instanceof Error ? err.message : String(err);
+    const lookup = resolveWorktree(root, prHead.trim());
+    if (lookup.status === "error") {
       return configError(
         prNumber,
-        `${detail}. Refusing to certify briefs when the PR-head worktree lookup ` +
+        `${lookup.message}. Refusing to certify briefs when the PR-head worktree lookup ` +
           "is unverified — fix git and retry.",
         runner.proxied,
       );
     }
-    if (alt === null || alt.trim().length === 0) {
+    if (lookup.status === "absent" || lookup.path.trim().length === 0) {
       // Verified list: no linked worktree at the PR head — nothing to attest.
       return nothingToCheck();
     }
+    const alt = lookup.path;
     const altHead = resolveLocal(alt);
     if (altHead === null || altHead.trim().length === 0) {
       return configError(
