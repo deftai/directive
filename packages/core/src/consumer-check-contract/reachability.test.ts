@@ -369,6 +369,40 @@ jobs:
     expect(kinds).toContain("workflow-filter");
   });
 
+  it("does not treat comments under quoted 'on': as a pull_request trigger", () => {
+    const ci = `
+'on':
+  # Mentions pull_request only in a comment — push-only workflow.
+  push:
+jobs:
+  check:
+    steps:
+      - run: task check
+`;
+    const graph = parseWorkflowJobGraph(ci);
+    expect(graph.hasPullRequestTrigger).toBe(false);
+    expect(reachabilityOf(ci).some((f) => f.detail.includes("no pull_request trigger"))).toBe(true);
+  });
+
+  it("does not let nested env.if overwrite a skippable step if:", () => {
+    const ci = `
+on:
+  pull_request:
+jobs:
+  check:
+    steps:
+      - if: github.event_name == 'push'
+        run: task check
+        env:
+          if: always()
+`;
+    const graph = parseWorkflowJobGraph(ci);
+    const gate = graph.jobs[0]?.steps.find((s) => (s.runText ?? "").includes("task check"));
+    expect(gate?.ifExpr).toMatch(/push/);
+    expect(classifyPullRequestCondition(gate?.ifExpr ?? null)).toBe("skippable");
+    expect(reachabilityOf(ci).map((f) => f.kind)).toContain("skippable-if");
+  });
+
   it("does not let unrelated unknown-uses hide missing gate invocations", () => {
     const ci = `
 on:

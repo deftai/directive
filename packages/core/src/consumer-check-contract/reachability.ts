@@ -108,7 +108,12 @@ function parseContinueOnErrorValue(raw: string): ContinueOnErrorClass {
   return "unknown";
 }
 
-function parseIfScalar(rest: string, lines: readonly string[], lineIndex: number, indent: number): string {
+function parseIfScalar(
+  rest: string,
+  lines: readonly string[],
+  lineIndex: number,
+  indent: number,
+): string {
   const trimmed = rest.trim();
   if (trimmed === "|" || trimmed === ">" || trimmed.startsWith("|") || trimmed.startsWith(">")) {
     const collected: string[] = [];
@@ -170,7 +175,13 @@ function extractTopLevelBlock(lines: readonly string[], key: string): string[] {
 }
 
 function onMentionsPullRequest(onLines: readonly string[]): boolean {
-  return /\bpull_request\b/i.test(onLines.join("\n"));
+  // Comments must not count as triggers (quoted 'on': + "# …pull_request…" false clean).
+  for (const raw of onLines) {
+    const stripped = raw.trim();
+    if (!stripped || stripped.startsWith("#")) continue;
+    if (/\bpull_request\b/i.test(stripInlineComment(stripped))) return true;
+  }
+  return false;
 }
 
 function parsePullRequestFilters(onLines: readonly string[]): WorkflowPullRequestFilters {
@@ -237,7 +248,9 @@ function parseJobNodes(jobBlockLines: readonly string[]): WorkflowJobNode[] {
     }
     const indent = lineIndent(raw);
     // Quoted keys (`"check":` / `'check':`) are valid workflow job ids.
-    const jobKey = /^(?:["']([A-Za-z_][\w-]*)["']|([A-Za-z_][\w-]*))\s*:\s*(?:#.*)?$/.exec(stripped);
+    const jobKey = /^(?:["']([A-Za-z_][\w-]*)["']|([A-Za-z_][\w-]*))\s*:\s*(?:#.*)?$/.exec(
+      stripped,
+    );
     if (jobKey !== null && (jobIndent === null || indent === jobIndent || currentId === null)) {
       if (currentId === null) jobIndent = indent;
       if (indent === jobIndent) {
@@ -296,6 +309,8 @@ function parseJobSteps(lines: readonly string[], baseIndent: number | null): Wor
   const steps: WorkflowStepNode[] = [];
   let inStep = false;
   let itemIndent: number | null = null;
+  /** Indent of direct step keys (`if:`/`run:`/`env:`); nested map keys are deeper. */
+  let stepFieldIndent: number | null = null;
   let stepIf: string | null = null;
   let stepCoe: ContinueOnErrorClass = false;
   let stepRun: string | null = null;
@@ -305,6 +320,7 @@ function parseJobSteps(lines: readonly string[], baseIndent: number | null): Wor
     steps.push({ ifExpr: stepIf, continueOnError: stepCoe, runText: stepRun });
     inStep = false;
     itemIndent = null;
+    stepFieldIndent = null;
     stepIf = null;
     stepCoe = false;
     stepRun = null;
@@ -338,6 +354,10 @@ function parseJobSteps(lines: readonly string[], baseIndent: number | null): Wor
     }
 
     if (!inStep || itemIndent === null || indent <= itemIndent) continue;
+
+    // Only direct step fields — ignore nested keys under env:/with:/etc. (env.if overwrite).
+    if (stepFieldIndent === null) stepFieldIndent = indent;
+    if (indent !== stepFieldIndent) continue;
 
     const ifMatch = /^if\s*:\s*(.*)$/i.exec(stripped);
     if (ifMatch !== null) {
@@ -429,7 +449,9 @@ export function parseWorkflowJobGraph(text: string): WorkflowJobGraph {
   if (!hasPr) {
     for (const raw of lines) {
       const stripped = raw.trim();
-      if (/^['"]?on['"]?\s*:\s*.*\bpull_request\b/i.test(stripped) && lineIndent(raw) === 0) {
+      if (!stripped || stripped.startsWith("#")) continue;
+      const code = stripInlineComment(stripped);
+      if (/^['"]?on['"]?\s*:\s*.*\bpull_request\b/i.test(code) && lineIndent(raw) === 0) {
         hasPr = true;
         break;
       }
@@ -585,7 +607,7 @@ export function findingsForWorkflowGraph(
         remediation: remediationFor(
           workflowPath,
           jobId,
-          "set continue-on-error: false (or remove it) on the gate " + scope,
+          `set continue-on-error: false (or remove it) on the gate ${scope}`,
         ),
       });
       return;
@@ -600,7 +622,7 @@ export function findingsForWorkflowGraph(
       remediation: remediationFor(
         workflowPath,
         jobId,
-        "set continue-on-error: false (or remove it) on the gate " + scope,
+        `set continue-on-error: false (or remove it) on the gate ${scope}`,
       ),
     });
   };
