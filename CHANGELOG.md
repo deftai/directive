@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Dispatch postcondition acceptance seat for fabricated child handbacks (#3979).** Envelope-declared comment-id postconditions bind to the dispatched obligation (issue/round/seat/ceiling) via parent/host verification reads; `acceptDispatchPostcondition` reclassifies failed verification to dispatch-failure (or unverifiable) before success is booked. Design-critique panel path consumes it through `evaluatePanelSeatDelivery` / `evaluatePanelSeatDeliveryFromThread` (wired onto auto-stamp path-1 when a seat-bearing deposit is present) so unverified handbacks cannot count as posted same-round siblings. Distinct from handoff-evidence (#3120); child probes stay untrusted; shape-2 telemetry is complementary only; #3850 behavioural panel-completeness half stays held; unbounded fan-out host gate deferred. Tracking #3979.
+
 ### Changed
 
 ### Fixed

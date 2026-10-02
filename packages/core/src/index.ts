@@ -22,6 +22,7 @@ export * as codebase from "./codebase/index.js";
 export * as consumerCheckContract from "./consumer-check-contract/index.js";
 export * from "./coverage-hotspots/index.js";
 export * as deliveryAttempt from "./delivery-attempt/index.js";
+export * as dispatchPostcondition from "./dispatch-postcondition/index.js";
 export * as doctor from "./doctor/index.js";
 export * as durableEffectAcquisition from "./durable-effect-acquisition/index.js";
 export * from "./encoding/index.js";

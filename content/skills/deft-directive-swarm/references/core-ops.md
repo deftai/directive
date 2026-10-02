@@ -168,6 +168,7 @@ CONSTRAINTS:
 - ⊗ Unlimited auto-retry or parent self-implement after dual-stop without new operator consent (#3273 / #2843 / #2442)
 - ⊗ Hard-code 5/5 as the continue-until target, treat one-shot `pursue residual` as standing, or park a class A already-touched leftover as a new story (#3448 / #2881 / #3095)
 - ⊗ Treat dual-stop skill defaults as a durable delivery-attempt ledger — mechanical cross-revision circuit breaker is #3143 (`packages/core/src/delivery-attempt/`), not prompt-only thrashing control (#2442)
+- ⊗ Book a design-critique child handback as a posted same-round sibling from host `success: true` / claimed comment id alone — run `evaluatePanelSeatDelivery` / `acceptDispatchPostcondition` over parent/host reads first (#3979); unbounded every-fan-out host gate stays deferred
 - ⊗ Spawn a second implement leaf without `task swarm:pre-dispatch` exit 0, or while exit 1 (`DENY_DUPLICATE_ACTIVE`) — gate is authoritative (#3228 / #3143); takeover is cancel-then-begin, not dual active
 - ⊗ Force a second full dispatch on a retain-capable host solely because a mid-scope approval gate exists — re-message the live child (message-later / steer-mid-flight) instead (#3158)
 - ⊗ Claim retained-child / continue-by-agent-id semantics on hosts whose adapter marks one-shot only — capability-gate first; default split-dispatch (#3158 / #954)
