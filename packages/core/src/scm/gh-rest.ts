@@ -751,11 +751,7 @@ export function restIssueListPaginated(
 /** Shared REST page-row budget (100 pages × 100/page) for #3495 discovery walks. */
 export const REST_SHARED_ROW_BUDGET = REST_PAGINATION_MAX_PAGES * REST_MAX_PER_PAGE;
 
-export type ClosedPullWalkOutcome =
-  | "window-exhausted"
-  | "list-exhausted"
-  | "cap"
-  | "error";
+export type ClosedPullWalkOutcome = "window-exhausted" | "list-exhausted" | "cap" | "error";
 
 export interface ClosedPullWalkResult {
   readonly outcome: ClosedPullWalkOutcome;
@@ -865,8 +861,7 @@ export function restWalkClosedPullsUpdatedDesc(
         rawRows += 1;
 
         const updatedRaw = item.updated_at;
-        const updatedMs =
-          typeof updatedRaw === "string" ? Date.parse(updatedRaw) : Number.NaN;
+        const updatedMs = typeof updatedRaw === "string" ? Date.parse(updatedRaw) : Number.NaN;
         if (Number.isFinite(updatedMs) && updatedMs < windowStartMs) {
           return {
             outcome: "window-exhausted",
@@ -882,11 +877,7 @@ export function restWalkClosedPullsUpdatedDesc(
           continue;
         }
         const mergedMs = Date.parse(mergedRaw);
-        if (
-          Number.isFinite(mergedMs) &&
-          mergedMs >= windowStartMs &&
-          mergedMs <= windowEndMs
-        ) {
+        if (Number.isFinite(mergedMs) && mergedMs >= windowStartMs && mergedMs <= windowEndMs) {
           merged.push(item);
         }
       }

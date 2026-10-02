@@ -17,42 +17,34 @@ import { isPublishable, latestPublishableTag } from "../platform/resolve-version
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import {
+  type ClosedPullWalkOutcome,
   GhRestError,
+  type GhRestSeams,
   REST_MAX_PER_PAGE,
   REST_SHARED_ROW_BUDGET,
+  type RunGhApiFn,
   restIssueListPaginated,
   restWalkClosedPullsUpdatedDesc,
-  type ClosedPullWalkOutcome,
-  type GhRestSeams,
-  type RunGhApiFn,
 } from "../scm/gh-rest.js";
-import { defaultGitRunner, showBlobsBatch, type GitRunner } from "../session/git.js";
+import { defaultGitRunner, type GitRunner, showBlobsBatch } from "../session/git.js";
 import { resolveRepo } from "../triage/queue/repo.js";
+import { type ResolvedIgnores, resolveScopeIgnores } from "../triage/scope/resolve.js";
 import {
   extractAuthor,
   extractLabels,
   extractMilestone,
 } from "../triage/scope-drift/cache-walker.js";
-import { resolveScopeIgnores, type ResolvedIgnores } from "../triage/scope/resolve.js";
 import {
   ABANDON_CLOSE_REASONS,
-  LOCAL_ORIGIN_FOLDERS,
   type IssueCloseKind,
+  LOCAL_ORIGIN_FOLDERS,
   type OutputStream,
   resolveDeliveryTip,
 } from "./completed-tracked-on-delivery.js";
 
-export type CloseEvidenceFacet =
-  | "merged-closing-pr"
-  | "app-claimed-origin"
-  | "none"
-  | "unresolved";
+export type CloseEvidenceFacet = "merged-closing-pr" | "app-claimed-origin" | "none" | "unresolved";
 
-export type DiscoveryExemptReason =
-  | "abandoned-closed"
-  | "label"
-  | "milestone"
-  | "author";
+export type DiscoveryExemptReason = "abandoned-closed" | "label" | "milestone" | "author";
 
 export interface DiscoveryExemptLine {
   readonly issue: number;
@@ -127,7 +119,8 @@ export interface EvaluateShippedClosedDiscoveryResult {
   readonly tip: string | null;
 }
 
-const FALLBACK_WINDOW_DAYS = 30;
+/** N=30d fallback as ms (Bound #3495). Product of literals — not a numeric-const fact. */
+const FALLBACK_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 function planOf(data: Record<string, unknown> | null): Record<string, unknown> | null {
   const plan = data?.plan;
@@ -287,6 +280,13 @@ function collectTipOriginNumbers(
     }
     const { issues } = collectGithubRefs(plan, defaultRepo);
     for (const issue of issues) {
+      // Keep repo identity: a foreign same-number must not hide local debt (#3495 review).
+      if (defaultRepo === null) {
+        continue;
+      }
+      if (issue.repo.toLowerCase() !== defaultRepo.toLowerCase()) {
+        continue;
+      }
       out.add(issue.number);
     }
   }
@@ -374,7 +374,7 @@ export function resolveDiscoveryWindow(
   const endUtc = toUtcIso(end);
 
   if (publishable === null) {
-    const start = new Date(end.getTime() - FALLBACK_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+    const start = new Date(end.getTime() - FALLBACK_WINDOW_MS);
     return {
       status: "ok",
       tag: null,
@@ -584,9 +584,7 @@ function buildMergedClosingIndex(
 
 function formatPullOutcomeLine(outcome: ClosedPullWalkOutcome | "skipped"): string {
   if (outcome === "list-exhausted") {
-    return (
-      `pull-walk: outcome=${outcome} (list end before window stop; ordering race accepted)`
-    );
+    return `pull-walk: outcome=${outcome} (list end before window stop; ordering race accepted)`;
   }
   if (outcome === "window-exhausted") {
     return `pull-walk: outcome=${outcome} (stable-ordering assumed; ordering race accepted)`;
@@ -716,8 +714,7 @@ export function evaluateShippedClosedDiscovery(
   if (defaultRepo === null) {
     // Warn-default soft-skips when no repo is resolvable (fixture / greenfield).
     // --enforce (cohort-close / release) fails closed — forge walk needs a repo.
-    const message =
-      "verify:completed-tracked discovery: skipped (no --repo / origin remote).";
+    const message = "verify:completed-tracked discovery: skipped (no --repo / origin remote).";
     return {
       code: enforce ? 2 : 0,
       message: quiet ? "" : message,
@@ -995,7 +992,8 @@ export function evaluateShippedClosedDiscovery(
   exempt.sort((a, b) => a.issue - b.issue);
 
   const missingDebt = candidates.filter((c) => c.facet === "merged-closing-pr").length;
-  const unresolved = candidates.filter((c) => c.facet === "unresolved").length +
+  const unresolved =
+    candidates.filter((c) => c.facet === "unresolved").length +
     (scanUnresolved && candidates.every((c) => c.facet !== "unresolved") && index.incomplete
       ? 1
       : 0);
@@ -1015,8 +1013,7 @@ export function evaluateShippedClosedDiscovery(
   };
 
   // Enforce debt = merged-closing-pr + nonzero unresolved/incomplete.
-  const debtFail =
-    enforce && (missingDebt > 0 || counts.unresolved > 0 || index.incomplete);
+  const debtFail = enforce && (missingDebt > 0 || counts.unresolved > 0 || index.incomplete);
   const message = formatDiscoveryMessage({
     tip,
     window,

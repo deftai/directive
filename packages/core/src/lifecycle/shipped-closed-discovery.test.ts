@@ -3,8 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import type { RunGhApiFn } from "../scm/gh-rest.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
+import type { RunGhApiFn } from "../scm/gh-rest.js";
 import {
   authorMatchesIgnore,
   evaluateShippedClosedDiscovery,
@@ -86,10 +86,7 @@ describe("matchScopeIgnoreAttribution", () => {
       ),
     ).toMatchObject({ reason: "milestone", matchedRule: "parked" });
     expect(
-      matchScopeIgnoreAttribution(
-        { number: 3, labels: [], user: { login: "Bot" } },
-        ignores,
-      ),
+      matchScopeIgnoreAttribution({ number: 3, labels: [], user: { login: "Bot" } }, ignores),
     ).toMatchObject({ reason: "author" });
   });
 });
@@ -115,7 +112,12 @@ describe("resolveDiscoveryWindow", () => {
         };
       }
     };
-    const window = resolveDiscoveryWindow(root, tip, runGit, () => new Date("2026-10-02T00:00:00Z"));
+    const window = resolveDiscoveryWindow(
+      root,
+      tip,
+      runGit,
+      () => new Date("2026-10-02T00:00:00Z"),
+    );
     expect(window.status).toBe("ok");
     expect(window.dateField).toBe("fallback-30d");
     expect(window.note).toMatch(/unfetched-or-no-releases indistinguishable/);
@@ -204,9 +206,9 @@ describe("evaluateShippedClosedDiscovery (#3495)", () => {
     expect(warn.counts.missingDebt).toBe(1);
     expect(warn.message).toMatch(/facet=merged-closing-pr/);
     expect(warn.message).toMatch(/pull-walk: outcome=/);
-    expect(warn.pullWalk.outcome === "list-exhausted" || warn.pullWalk.outcome === "window-exhausted").toBe(
-      true,
-    );
+    expect(
+      warn.pullWalk.outcome === "list-exhausted" || warn.pullWalk.outcome === "window-exhausted",
+    ).toBe(true);
 
     const enforced = evaluateShippedClosedDiscovery(root, {
       repo: "deftai/directive",
@@ -379,5 +381,69 @@ describe("evaluateShippedClosedDiscovery (#3495)", () => {
       now: () => new Date("2026-10-02T00:00:00Z"),
     });
     expect(result.candidates).toEqual([]);
+  });
+
+  it("does not treat a foreign same-number tip origin as local coverage", () => {
+    const root = makeGitRepo();
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "completed", "foreign.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          status: "completed",
+          references: [
+            {
+              uri: "https://github.com/other-org/other-repo/issues/19",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    git(root, ["add", "xbrief/completed/foreign.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "foreign land"]);
+
+    const closedAt = "2026-09-20T12:00:00Z";
+    const issuePage = [
+      {
+        number: 19,
+        state: "closed",
+        state_reason: "completed",
+        closed_at: closedAt,
+        labels: [],
+        user: { login: "dev" },
+      },
+    ];
+    const runGhApiFn = apiPages([
+      issuePage,
+      [
+        {
+          number: 99,
+          state: "closed",
+          merged_at: closedAt,
+          updated_at: closedAt,
+        },
+      ],
+      [],
+    ]);
+    const result = evaluateShippedClosedDiscovery(root, {
+      repo: "deftai/directive",
+      tip: "HEAD",
+      enforce: true,
+      runGhApiFn,
+      runGh: () => ({
+        returncode: 0,
+        stdout: JSON.stringify({ closingIssuesReferences: [{ number: 19 }] }),
+        stderr: "",
+      }),
+      scopeIgnores: { labels: new Set(), milestones: new Set(), authors: new Set() },
+      now: () => new Date("2026-10-02T00:00:00Z"),
+    });
+    expect(result.candidates).toEqual([
+      expect.objectContaining({ issue: 19, facet: "merged-closing-pr" }),
+    ]);
+    expect(result.code).toBe(1);
   });
 });
