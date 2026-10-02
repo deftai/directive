@@ -742,7 +742,10 @@ function validateNoFlagRootIdentity(cwd: string): RootIdentityResult {
 }
 
 const USAGE =
-  "Usage: roadmap-render [--help] [--check] [--project-root <dir>] [outPath|pendingDir ...]\n";
+  "Usage:\n" +
+  "  roadmap-render [--help] [--check] [--project-root <dir>] [outPath]\n" +
+  "  roadmap-render [--help] [--check] <pendingDir> [outPath]\n" +
+  "Note: bare -- is ignored (not end-of-options). Dash-leading paths: use ./name.\n";
 
 /** CLI entry (mirrors ``scripts/roadmap_render.main``). */
 export function main(argv: readonly string[]): number {

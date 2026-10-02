@@ -1095,9 +1095,24 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     const sentinel = "SENTINEL-ROADMAP-CONTENT\n";
     writeFileSync(roadmapPath, sentinel, "utf8");
 
-    const exit = withCwd(root, () => roadmapRenderMain(["--help"]));
+    const outChunks: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array, ...rest: unknown[]) => {
+      outChunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+      return (origWrite as (c: string | Uint8Array, ...a: unknown[]) => boolean)(chunk, ...rest);
+    }) as typeof process.stdout.write;
+    let exit: number;
+    try {
+      exit = withCwd(root, () => roadmapRenderMain(["--help"]));
+    } finally {
+      process.stdout.write = origWrite;
+    }
     expect(exit).toBe(0);
     expect(readFileSync(roadmapPath, "utf8")).toBe(sentinel);
+    const help = outChunks.join("");
+    expect(help).toContain("[--project-root <dir>] [outPath]");
+    expect(help).toContain("<pendingDir> [outPath]");
+    expect(help).toContain("not end-of-options");
   });
 
   it("main([--bogus]) exits 2 without writing ROADMAP.md (#5251)", () => {
