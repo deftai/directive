@@ -24,7 +24,6 @@ describe("host-capability-stamp (#5229)", () => {
     if (!written.ok) return;
     const raw = JSON.parse(readFileSync(written.path, "utf8")) as unknown;
     expect(parseHostCapabilityStamp(raw)?.primitive).toBe("spawn_subagent");
-    // Same fixture `now` as write — wall-clock read expires the 8h max-age (#5229).
     expect(readHostCapabilityStamp(root, { now })?.source).toBe("test");
   });
 
