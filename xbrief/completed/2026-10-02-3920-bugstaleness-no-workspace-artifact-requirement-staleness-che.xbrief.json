@@ -1,0 +1,250 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3920",
+    "updated": "2026-10-02T19:15:27Z"
+  },
+  "plan": {
+    "title": "Workspace requirement_sources staleness at intake + verify:ac/completion (#3920)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(staleness): no workspace-artifact requirement staleness check - origin freshness is GitHub-REST-only, so a requirements file changing on disk mid-run trips nothing (measured 0/4 on a bank built for this dimension)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3920",
+      "Overview": "\n\n- At intake/stamp, record plan.metadata.requirement_sources[] as {path, content_sha256, recorded_at} for every workspace artifact the acceptance derivation already reads.\n- At verify:ac and the completion walk, re-hash those recorded paths. A digest change is a positive, independently recomputable fact derived from a primary artifact and satisfies the bound #3813 three-predicate autofix line.\n- Autofix half (required): on detected change, the verb re-reads the changed source, re-derives clauses, re-stamps, and REPORTS the delta. Ordinary path pays no refusal round-trip.\n- Residual trip population (must be non-empty): recorded source missing on disk; re-derivation conflicts with already-completed plan items; change arriving after scope:complete. Each fails closed with one remediation string.\n- Fixtures: stamp then mutate then verify:ac -> re-derivation + delta, zero refusals; mutate then delete recorded source -> fail-closed with remediation; unchanged sources -> no re-derivation work / no added turns. Telemetry: acceptance events carry sources_rechecked and sources_changed.\n- Out of scope: replacing forge-shaped evaluateOriginFreshness (#3363 stays the GitHub sibling); inventing new derivation sources the intake did not already read; treating admitted-source Overview sentence digests (#5055) or independent_rederivation oracle trust as coverage of workspace file bytes.\n- Relates #3363, #3383, #3823, #3549, #3813. CHANGELOG [Unreleased].\n\n",
+      "Labels": "bug, design, agent-experience, process, source-of-truth, urgent, area:cli, eval-signal, design-critique:ingest-ready, framework-gap, core-capabilities, promise:requirements"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "At intake/stamp, record plan.metadata.requirement_sources[] as {path, content_sh…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5257 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 61be6614064932dd6ea7682b8612103582376c95.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:15:26.345Z",
+            "mintedVia": "leftover-complete-after-5257"
+          },
+          "recorded_at": "2026-10-02T19:15:26.345Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "At verify:ac and the completion walk, re-hash those recorded paths. A digest cha…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5257 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 61be6614064932dd6ea7682b8612103582376c95.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:15:26.345Z",
+            "mintedVia": "leftover-complete-after-5257"
+          },
+          "recorded_at": "2026-10-02T19:15:26.345Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Autofix half (required): on detected change, the verb re-reads the changed sourc…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5257 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 61be6614064932dd6ea7682b8612103582376c95.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:15:26.345Z",
+            "mintedVia": "leftover-complete-after-5257"
+          },
+          "recorded_at": "2026-10-02T19:15:26.345Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Residual trip population (must be non-empty): recorded source missing on disk; r…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5257 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 61be6614064932dd6ea7682b8612103582376c95.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:15:26.345Z",
+            "mintedVia": "leftover-complete-after-5257"
+          },
+          "recorded_at": "2026-10-02T19:15:26.345Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Fixtures: stamp then mutate then verify:ac -> re-derivation + delta, zero refusa…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5257 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 61be6614064932dd6ea7682b8612103582376c95.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T19:15:26.345Z",
+            "mintedVia": "leftover-complete-after-5257"
+          },
+          "recorded_at": "2026-10-02T19:15:26.345Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "eval-signal",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:requirements"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3920",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3920: bug(staleness): no workspace-artifact requirement staleness check - origin freshness is GitHub-REST-only, so a requirements file changing on disk mid-run trips nothing (measured 0/4 on a bank built for this dimension)"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/preflight packages/core/src/verify-ac"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "sentences": [
+        "At intake/stamp, record plan.metadata.requirement_sources[] as {path, content_sha256, recorded_at} for every workspace artifact the acceptance derivation already reads.",
+        "At verify:ac and the completion walk, re-hash those recorded paths. A digest change is a positive, independently recomputable fact derived from a primary artifact and satisfies the bound #3813 three-predicate autofix line.",
+        "Autofix half (required): on detected change, the verb re-reads the changed source, re-derives clauses, re-stamps, and REPORTS the delta. Ordinary path pays no refusal round-trip.",
+        "Residual trip population (must be non-empty): recorded source missing on disk; re-derivation conflicts with already-completed plan items; change arriving after scope:complete. Each fails closed with one remediation string.",
+        "Fixtures: stamp then mutate then verify:ac -> re-derivation + delta, zero refusals; mutate then delete recorded source -> fail-closed with remediation; unchanged sources -> no re-derivation work / no added turns. Telemetry: acceptance events carry sources_rechecked and sources_changed."
+      ],
+      "admitted_source_sentences": [
+        "At intake/stamp, record plan.metadata.requirement_sources[] as {path, content_sha256, recorded_at} for every workspace artifact the acceptance derivation already reads.",
+        "At verify:ac and the completion walk, re-hash those recorded paths. A digest change is a positive, independently recomputable fact derived from a primary artifact and satisfies the bound #3813 three-predicate autofix line.",
+        "Autofix half (required): on detected change, the verb re-reads the changed source, re-derives clauses, re-stamps, and REPORTS the delta. Ordinary path pays no refusal round-trip.",
+        "Residual trip population (must be non-empty): recorded source missing on disk; re-derivation conflicts with already-completed plan items; change arriving after scope:complete. Each fails closed with one remediation string.",
+        "Fixtures: stamp then mutate then verify:ac -> re-derivation + delta, zero refusals; mutate then delete recorded source -> fail-closed with remediation; unchanged sources -> no re-derivation work / no added turns. Telemetry: acceptance events carry sources_rechecked and sources_changed."
+      ],
+      "admitted_source_digest": "9b3027d58e1cac24c8efab0e4b182bc322a3300f5213e0d4df3a110a16b10069",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "At intake/stamp, record plan.metadata.requirement_sources[] as {path, content_sha256, recorded_at} for every workspace artifact the acceptance derivation already reads.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "At verify:ac and the completion walk, re-hash those recorded paths. A digest change is a positive, independently recomputable fact derived from a primary artifact and satisfies the bound #3813 three-predicate autofix line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Autofix half (required): on detected change, the verb re-reads the changed source, re-derives clauses, re-stamps, and REPORTS the delta. Ordinary path pays no refusal round-trip.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Residual trip population (must be non-empty): recorded source missing on disk; re-derivation conflicts with already-completed plan items; change arriving after scope:complete. Each fails closed with one remediation string.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Fixtures: stamp then mutate then verify:ac -> re-derivation + delta, zero refusals; mutate then delete recorded source -> fail-closed with remediation; unchanged sources -> no re-derivation work / no added turns. Telemetry: acceptance events carry sources_rechecked and sources_changed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "id": 5918829175,
+          "note": "bound lean 5918829175"
+        }
+      ],
+      "issueBody": "**TL;DR: directive has no staleness detection for requirement sources that live in the WORKSPACE. Origin freshness (#3363) fetches live GitHub `updated_at` via REST and compares to `xBRIEFInfo.updated` — forge-shaped by construction. A requirements file that changes on disk mid-run trips nothing, and #3383's live-contract discipline depends on the agent independently noticing. Measured consequence: on a candidate test bank built specifically for mid-run requirement change (internal test results, private), directive scored 0 of 4 while a peer framework on the SAME model scored 2 of 4 at roughly a third of the cost. We nominated that dimension as a strength. It is a gap.**\n\n**Evidence.** Pilot of a four-task bank where a revised requirements artifact replaces the original in the workspace partway through the run; the hidden verifier holds the REVISED contract. Directive: 0/4, highest wall time and highest cost of every stack tested. Code at HEAD confirms the mechanism gap: `evaluateOriginFreshness` (via `packages/core/src/preflight/evaluate.ts`) is the only freshness gate and it is GitHub-REST-only; no scope or done-gate path hashes or re-reads a workspace requirement artifact after intake.\n\n## Fix (thin, fail-closed WITH verb-side autofix per the bound #3813 contract)\n\n1. **Record the sources.** At intake/stamp, `plan.metadata.requirement_sources[]` records `{path, content_sha256, recorded_at}` for every workspace artifact the acceptance was derived from (the derivation already reads them).\n2. **Re-check at the gates.** `verify:ac` and the completion walk re-hash those paths. A digest change is a positive, independently recomputable fact derived from a primary artifact — it satisfies the bound three-predicate autofix line.\n3. **Autofix half (required, not optional).** On a detected change the verb re-reads the changed source, re-derives clauses, re-stamps, and REPORTS the delta. The agent pays no refusal round-trip on the ordinary path.\n4. **Residual trip population (must be non-empty, per the contract):** a recorded source that no longer exists; a re-derivation that conflicts with already-completed plan items; a change arriving after `scope:complete`. Those fail closed with one remediation.\n\n## Acceptance sketch\n\n- Fixture: stamp against a requirements file, mutate the file, run verify:ac -> re-derivation occurs, delta reported, zero refusals.\n- Fixture: mutate then delete a recorded source -> fails closed with the remediation string.\n- Fixture: unchanged sources -> no re-derivation work, no added turns (the ceremony-budget condition).\n- Telemetry: acceptance events carry `sources_rechecked` and `sources_changed`.\n\nRelates #3363 (forge-shaped freshness — this is its workspace sibling, not a replacement), #3383 (live-contract discipline this makes mechanical), #3823 (program umbrella), #3549 (sweep pattern this instance follows), #3813 (bound autofix contract).\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5289766062,
+        "origin": "deftai/directive#3920",
+        "id": "github.issue.5289766062"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "8885e4512984e899bf009dd48432b6a219c92d5a355c5378db55a56621197efe"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/preflight/evaluate.ts",
+          "packages/core/src/verify-ac",
+          "packages/core/src/xbrief",
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/intake/clause-derivation.ts",
+          "packages/core/src/run-summary/types.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/preflight packages/core/src/verify-ac"
+        ],
+        "conflict_group": "requirement-sources-staleness"
+      },
+      "productPullRequest": 5257,
+      "mergeCommit": "61be6614064932dd6ea7682b8612103582376c95",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5257,
+        "prBase": null,
+        "mergeCommit": "61be6614064932dd6ea7682b8612103582376c95",
+        "deliveryBranch": "master",
+        "deliveryCommit": "61be6614064932dd6ea7682b8612103582376c95",
+        "verifiedAt": "2026-10-02T19:15:27Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-02T19:15:27Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-02T19:15:27Z"
+      }
+    },
+    "id": "github.issue.5289766062",
+    "updated": "2026-10-02T19:15:27Z"
+  }
+}
