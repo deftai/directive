@@ -1044,6 +1044,79 @@ describe("roadmap-render main() Prefer-A #4756 false-empty boundary", () => {
     expect(existsSync(join(root, "ROADMAP.md"))).toBe(false);
     expect(withCwd(root, () => roadmapRenderMain(["--check"]))).not.toBe(0);
   });
+
+  it("main([--, --project-root, root]) ignores bare -- and writes ROADMAP.md (#5251)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-roadmap-5251-sep-"));
+    tmpDirs.push(root);
+    const xbrief = join(root, "xbrief");
+    const active = join(xbrief, "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
+    writeActiveStory(active, "2026-01-01-story.xbrief.json", "Active Story");
+
+    const exit = withCwd(root, () => roadmapRenderMain(["--", "--project-root", root]));
+    expect(exit).toBe(0);
+    const content = readFileSync(join(root, "ROADMAP.md"), "utf8");
+    expect(content).toContain("## Active");
+    expect(content).toContain("Active Story");
+    expect(existsSync(join(root, "--"))).toBe(false);
+  });
+
+  it("main([--]) refuses identity like main([]) without local PROJECT-DEFINITION (#5251)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-roadmap-5251-bare-"));
+    tmpDirs.push(root);
+    mkdirSync(root, { recursive: true });
+
+    const emptyExit = withCwd(root, () => roadmapRenderMain([]));
+    const bareExit = withCwd(root, () => roadmapRenderMain(["--"]));
+    expect(emptyExit).toBe(2);
+    expect(bareExit).toBe(2);
+    expect(existsSync(join(root, "ROADMAP.md"))).toBe(false);
+    expect(existsSync(join(root, "--"))).toBe(false);
+  });
+
+  it("main([--help]) exits 0 without overwriting ROADMAP.md (#5251)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-roadmap-5251-help-"));
+    tmpDirs.push(root);
+    const xbrief = join(root, "xbrief");
+    const active = join(xbrief, "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
+    writeActiveStory(active, "2026-01-01-story.xbrief.json", "Active Story");
+    const roadmapPath = join(root, "ROADMAP.md");
+    const sentinel = "SENTINEL-ROADMAP-CONTENT\n";
+    writeFileSync(roadmapPath, sentinel, "utf8");
+
+    const exit = withCwd(root, () => roadmapRenderMain(["--help"]));
+    expect(exit).toBe(0);
+    expect(readFileSync(roadmapPath, "utf8")).toBe(sentinel);
+  });
+
+  it("main([--bogus]) exits 2 without writing ROADMAP.md (#5251)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-roadmap-5251-bogus-"));
+    tmpDirs.push(root);
+    const xbrief = join(root, "xbrief");
+    const active = join(xbrief, "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(validProjectDefinition()),
+      "utf8",
+    );
+    writeActiveStory(active, "2026-01-01-story.xbrief.json", "Active Story");
+
+    const exit = withCwd(root, () => roadmapRenderMain(["--bogus"]));
+    expect(exit).toBe(2);
+    expect(existsSync(join(root, "ROADMAP.md"))).toBe(false);
+  });
 });
 
 describe("ROADMAP producer stays off complete/finalize (#4316)", () => {

@@ -373,7 +373,7 @@ Deep-think gates (`pr:watch`, `pr:merge-ready`, `review-monitor:*`) have **three
 3. **#2878 gh-only fallback last** — only when both CLI and namespaced task probes fail, classify **missing-task: pr:watch** (or **missing-task: review-monitor**) and use the official gh-only subset below.
 
 ⊗ Treat bare `task pr:watch` / `task review-monitor:register` as the only prescribed consumer form — under include key `deft:` those un-namespaced names are absent; that probe failure is not proof the gate is unavailable if `deft` or `task deft:` works (#2893).
-⊗ Pass go-task's bare `--` separator into `deft`/`directive` CLI forms (e.g. `deft pr:watch -- --help`) — CLI parsers reject the standalone `--` and the probe fails falsely (#2893).
+⊗ Pass go-task's bare `--` separator into `deft`/`directive` CLI forms that reject it (e.g. `deft pr:watch -- --help`) — true rejectors such as `pr:watch` and sibling `project-render` reject the standalone `--` and the probe fails falsely (#2893). After #5251, `roadmap-render` ignores bare `--` (does not treat it as outPath); do not generalize that ignore to `pr:watch` or `project-render`.
 
 ### Missing gate surface / consumer gh-only fallback (#2878)
 

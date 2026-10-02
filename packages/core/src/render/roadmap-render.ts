@@ -741,13 +741,27 @@ function validateNoFlagRootIdentity(cwd: string): RootIdentityResult {
   return { ok: true };
 }
 
+const USAGE =
+  "Usage: roadmap-render [--help] [--check] [--project-root <dir>] [outPath|pendingDir ...]\n";
+
 /** CLI entry (mirrors ``scripts/roadmap_render.main``). */
 export function main(argv: readonly string[]): number {
+  // Handle --help / -h before any other parsing so the flag is never treated
+  // as a positional outPath (#5251; sibling project-render #2236).
+  if (argv.includes("--help") || argv.includes("-h")) {
+    process.stdout.write(USAGE);
+    return 0;
+  }
+
   let projectRoot: string | undefined;
   let check = false;
   const positional: string[] = [];
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] as string;
+    if (arg === "--") {
+      // Ignore bare POSIX end-of-options token; do not latch (#5251).
+      continue;
+    }
     if (arg === "--project-root") {
       projectRoot = argv[i + 1] as string | undefined;
       i += 1;
@@ -755,6 +769,9 @@ export function main(argv: readonly string[]): number {
       projectRoot = arg.slice("--project-root=".length);
     } else if (arg === "--check") {
       check = true;
+    } else if (arg.startsWith("-")) {
+      process.stderr.write(`Unknown flag: ${arg}\n${USAGE}`);
+      return 2;
     } else {
       positional.push(arg);
     }
