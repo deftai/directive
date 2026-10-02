@@ -1,0 +1,752 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #479",
+    "updated": "2026-10-02T22:47:56Z"
+  },
+  "plan": {
+    "title": "feat(vbrief,resilience): prevent false memory propagation and context rot in agent sessions",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(vbrief,resilience): prevent false memory propagation and context rot in agent sessions",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/479",
+      "Overview": "\n\n- Do not bind the April six-action list, and do not treat Stop 1's recorded refutation-target of that list as remaining contract.\n- Split the remainder. Wave-independent first-ship (does not jump #2741 Wave 2):\n  1. Named Source/Confidence vocabulary (enum or pattern), `vbrief.md` rule body, and a validator. Measure the actual schema placement at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` (`Plan.narratives` vs `PlanItem.narrative`) and write against that placement; decide explicitly whether the other object gets the same named keys. Bind source class, evidence pointer/event, verifier, and verification time to an atomic claim unit. Confidence does not substitute for evidence.\n  2. Put the `verified` TrustLevel tier in the TypeScript type and in schema. Keep the #480 enum and promotion-prohibition rule body. Ingest/GitHub `external` write-path stays on #480.\n  3. Reuse `invalidates`. Generalize the #1621 / `verify-investigation.ts` edge-backed refusal from investigation branches to plan items. Do not add `contradicts` unless the recut needs the symmetric relation `invalidates` cannot carry, with one named consumer.\n- Wave-2 remainder under #2741, after Wave 1 budgets (#833):\n  4. Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `continue.xbrief.json`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.\n  5. Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.\n  6. One FMP sentence in `context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.\n- Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.\n- Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands.\n\nFootnotes stay footnotes: Pathcourse pitch; epic #2741 pass-2 still listing closed #2742; `depends` is not a core edge type; envelope Model-field parenthetical duplication.\n\n",
+      "Labels": "enhancement, context-engineering, security, determinism, agent-experience, urgent, design-critique:ingest-ready, core-capabilities, promise:continuity"
+    },
+    "items": [
+      {
+        "title": "Do not bind the April six-action list, and do not treat Stop 1's recorded refutation-target of that list as remaining contract.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T22:47:44.402Z",
+            "mintedVia": "leftover-complete-after-5265"
+          },
+          "recorded_at": "2026-10-02T22:47:44.402Z"
+        }
+      },
+      {
+        "title": "Split the remainder. Wave-independent first-ship (does not jump #2741 Wave 2):",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T22:47:44.402Z",
+            "mintedVia": "leftover-complete-after-5265"
+          },
+          "recorded_at": "2026-10-02T22:47:44.402Z"
+        }
+      },
+      {
+        "title": "Named Source/Confidence vocabulary (enum or pattern), `content/vbrief/vbrief.md` rule body, and a validator. Measure the actual schema placement at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` (`Plan.narratives` vs `PlanItem.narrative`) and write against that placement; decide explicitly whether the other object gets the same named keys. Bind source class, evidence pointer/event, verifier, and verification time to an atomic claim unit. Confidence does not substitute for evidence.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T22:47:44.402Z",
+            "mintedVia": "leftover-complete-after-5265"
+          },
+          "recorded_at": "2026-10-02T22:47:44.402Z"
+        }
+      },
+      {
+        "title": "Put the `verified` TrustLevel tier in the TypeScript type and in schema. Keep the #480 enum and promotion-prohibition rule body. Ingest/GitHub `external` write-path stays on #480.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T22:47:44.402Z",
+            "mintedVia": "leftover-complete-after-5265"
+          },
+          "recorded_at": "2026-10-02T22:47:44.402Z"
+        }
+      },
+      {
+        "title": "Reuse `invalidates`. Generalize the #1621 / `packages/core/src/orchestration/verify-investigation.ts` edge-backed refusal from investigation branches to plan items. Do not add `contradicts` unless the recut needs the symmetric relation `invalidates` cannot carry, with one named consumer.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T22:47:44.402Z",
+            "mintedVia": "leftover-complete-after-5265"
+          },
+          "recorded_at": "2026-10-02T22:47:44.402Z"
+        }
+      },
+      {
+        "title": "Wave-2 remainder under #2741, after Wave 1 budgets (#833):",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T22:47:44.402Z",
+            "mintedVia": "leftover-complete-after-5265"
+          },
+          "recorded_at": "2026-10-02T22:47:44.402Z"
+        }
+      },
+      {
+        "title": "Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `packages/core/src/vbrief-validate/provenance.ts`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T22:47:44.402Z",
+            "mintedVia": "leftover-complete-after-5265"
+          },
+          "recorded_at": "2026-10-02T22:47:44.402Z"
+        }
+      },
+      {
+        "title": "Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.",
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T22:47:44.402Z",
+            "mintedVia": "leftover-complete-after-5265"
+          },
+          "recorded_at": "2026-10-02T22:47:44.402Z"
+        }
+      },
+      {
+        "title": "One FMP sentence in `content/resilience/context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.",
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T22:47:44.402Z",
+            "mintedVia": "leftover-complete-after-5265"
+          },
+          "recorded_at": "2026-10-02T22:47:44.402Z"
+        }
+      },
+      {
+        "title": "Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.",
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T22:47:44.402Z",
+            "mintedVia": "leftover-complete-after-5265"
+          },
+          "recorded_at": "2026-10-02T22:47:44.402Z"
+        }
+      },
+      {
+        "title": "Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands.",
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5265 ship; pathless leftover-complete. Delivery attested via merge-commit 83ad86f5161b1df4bd66c496be70d13d769d4635.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T22:47:44.402Z",
+            "mintedVia": "leftover-complete-after-5265"
+          },
+          "recorded_at": "2026-10-02T22:47:44.402Z"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "context-engineering",
+      "security",
+      "determinism",
+      "agent-experience",
+      "urgent",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:continuity"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/479",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #479: feat(vbrief,resilience): prevent false memory propagation and context rot in agent sessions"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/vbrief-validate/provenance.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover-complete after product PR #5265; pathless derived clauses",
+      "sentences": [
+        "Do not bind the April six-action list, and do not treat Stop 1's recorded refutation-target of that list as remaining contract.",
+        "Split the remainder. Wave-independent first-ship (does not jump #2741 Wave 2):",
+        "Named Source/Confidence vocabulary (enum or pattern), `content/vbrief/vbrief.md` rule body, and a validator. Measure the actual schema placement at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` (`Plan.narratives` vs `PlanItem.narrative`) and write against that placement; decide explicitly whether the other object gets the same named keys. Bind source class, evidence pointer/event, verifier, and verification time to an atomic claim unit. Confidence does not substitute for evidence.",
+        "Put the `verified` TrustLevel tier in the TypeScript type and in schema. Keep the #480 enum and promotion-prohibition rule body. Ingest/GitHub `external` write-path stays on #480.",
+        "Reuse `invalidates`. Generalize the #1621 / `packages/core/src/orchestration/verify-investigation.ts` edge-backed refusal from investigation branches to plan items. Do not add `contradicts` unless the recut needs the symmetric relation `invalidates` cannot carry, with one named consumer.",
+        "Wave-2 remainder under #2741, after Wave 1 budgets (#833):",
+        "Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `packages/core/src/vbrief-validate/provenance.ts`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.",
+        "Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.",
+        "One FMP sentence in `content/resilience/context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.",
+        "Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.",
+        "Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands."
+      ],
+      "admitted_source_sentences": [
+        "Do not bind the April six-action list, and do not treat Stop 1's recorded refutation-target of that list as remaining contract.",
+        "Split the remainder. Wave-independent first-ship (does not jump #2741 Wave 2):",
+        "Named Source/Confidence vocabulary (enum or pattern), `content/vbrief/vbrief.md` rule body, and a validator. Measure the actual schema placement at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` (`Plan.narratives` vs `PlanItem.narrative`) and write against that placement; decide explicitly whether the other object gets the same named keys. Bind source class, evidence pointer/event, verifier, and verification time to an atomic claim unit. Confidence does not substitute for evidence.",
+        "Put the `verified` TrustLevel tier in the TypeScript type and in schema. Keep the #480 enum and promotion-prohibition rule body. Ingest/GitHub `external` write-path stays on #480.",
+        "Reuse `invalidates`. Generalize the #1621 / `packages/core/src/orchestration/verify-investigation.ts` edge-backed refusal from investigation branches to plan items. Do not add `contradicts` unless the recut needs the symmetric relation `invalidates` cannot carry, with one named consumer.",
+        "Wave-2 remainder under #2741, after Wave 1 budgets (#833):",
+        "Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `packages/core/src/vbrief-validate/provenance.ts`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.",
+        "Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.",
+        "One FMP sentence in `content/resilience/context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.",
+        "Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.",
+        "Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands."
+      ],
+      "admitted_source_digest": "a8b6f50c36d58c5e0d12589bc1c7e9359b166f141469d0ee0457eb417c0e9727",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind the April six-action list, and do not treat Stop 1's recorded refutation-target of that list as remaining contract.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Split the remainder. Wave-independent first-ship (does not jump #2741 Wave 2):",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Named Source/Confidence vocabulary (enum or pattern), `content/vbrief/vbrief.md` rule body, and a validator. Measure the actual schema placement at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` (`Plan.narratives` vs `PlanItem.narrative`) and write against that placement; decide explicitly whether the other object gets the same named keys. Bind source class, evidence pointer/event, verifier, and verification time to an atomic claim unit. Confidence does not substitute for evidence.",
+          "artifact_path": "content/vbrief/vbrief.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Put the `verified` TrustLevel tier in the TypeScript type and in schema. Keep the #480 enum and promotion-prohibition rule body. Ingest/GitHub `external` write-path stays on #480.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Reuse `invalidates`. Generalize the #1621 / `packages/core/src/orchestration/verify-investigation.ts` edge-backed refusal from investigation branches to plan items. Do not add `contradicts` unless the recut needs the symmetric relation `invalidates` cannot carry, with one named consumer.",
+          "artifact_path": "packages/core/src/orchestration/verify-investigation.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Wave-2 remainder under #2741, after Wave 1 budgets (#833):",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `packages/core/src/vbrief-validate/provenance.ts`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.",
+          "artifact_path": "packages/core/src/vbrief-validate/provenance.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "One FMP sentence in `content/resilience/context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.",
+          "artifact_path": "content/resilience/context-pruning.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Refinements worth considering before implementation\r\n\r\nThe issue is substantively one of the sharpest standards issues on the tracker — the epistemological \"know vs believe\" framing survives translation to concrete vBRIEF primitives, and the six actions are deliberately stratified by cost (conventions → harness integrations → prose → schema change). The refinements below are all in service of sharpening scope and closing interface ambiguities before anything lands in code.\r\n\r\nOrdered roughly by expected leverage.\r\n\r\n### 1. Nail down the `Source` vocabulary (biggest unlock)\r\n\r\nAction #1 shows examples — `\"verified: task check\"`, `\"inferred: code inspection\"`, `\"assumed: [context]\"` — but doesn't say whether `Source` is a freeform string or a controlled vocabulary.\r\n\r\nThis is the single most likely place for the proposal to fail in practice. Leaving it freeform means:\r\n- Agents drift (one session writes `\"verified by passing tests\"`, another writes `\"verified: pytest ok\"`, a third writes `\"confirmed\"`).\r\n- The downstream `prebrief` flagging logic in action #4 can't reliably parse source types to decide what warrants re-verification.\r\n- The `contradicts` edge semantics in action #6 can't leverage source-aware rules (e.g. \"auto-resolve if the newer edge has `verified` source\").\r\n- Contributors argue about phrasing in PR review instead of shipping the convention.\r\n\r\nRecommend specifying an enum in `vbrief/vbrief.md` before any of the downstream actions land:\r\n\r\n- `verified` — an external verification event produced this claim (`task check` passed, test run completed, tool returned the value, user confirmed). Sub-tag with the evidence, e.g. `verified: task check`, `verified: user`, `verified: pytest`.\r\n- `inferred` — agent reasoning from observed code/docs without external verification.\r\n- `assumed` — agent is proceeding without a check because cost/time/scope doesn't warrant one; flagged for revalidation on resume.\r\n- `propagated` — source is another vBRIEF entry; include the source path so audits can trace FMP chains.\r\n\r\nA `Confidence` field with similarly enumerated values (`high`/`medium`/`low`) pairs cleanly. Freeform confidence strings will drift the same way.\r\n\r\n### 2. Resolve `Source` vs #480 action #4's `TrustLevel` overlap\r\n\r\n#480 action #4 extends this issue's convention with a `TrustLevel` field (`verified` / `internal` / `external`). The two fields overlap semantically — \"verified\" appears in both, and \"external\" means something different from what `Source: inferred` means but can be confused with it.\r\n\r\nNeither issue acknowledges the other's field exists. Before either is implemented, one of:\r\n\r\n- **Merge into one field** with a richer enum (e.g. `{verified-internal, verified-external, inferred, assumed, external-untrusted}`).\r\n- **Keep both but define the boundary** — `Source` = \"how did the agent obtain this claim\" (epistemological), `TrustLevel` = \"what is the content's provenance tier\" (authorial). They're orthogonal axes.\r\n\r\nEither is workable; the current state (two separate proposals touching the same narrative object with overlapping vocabulary) isn't. Pick one and cross-link on both issues.\r\n\r\n### 3. `contradicts` edge is a schema change with cross-repo coordination\r\n\r\nAction #6 adds `contradicts` to the vBRIEF edge vocabulary. Per `REFERENCES.md`, the vBRIEF schema lives at `vbrief/schemas/vbrief-core.schema.json` and is sourced from `github.com/deftai/vBRIEF`. The issue body doesn't reckon with:\r\n\r\n- Schema version bump in the upstream repo.\r\n- Forward-compat strategy for validators that don't know the new type (reject unknown? accept?).\r\n- Coordinated release between `deftai/vBRIEF` and `deftai/directive`.\r\n- Migration story for existing `.vbrief.json` files in consumer projects (no change needed, but this should be explicit).\r\n\r\nAction #6 probably warrants its own cross-repo coordination sub-issue with a checklist, rather than being bundled here.\r\n\r\n### 4. No testing story\r\n\r\nSame gap as #480 / #481. `tests/content/` does structural checks (link parity, glossary, snapshots); it can't verify that an agent *uses* the `Source` tag correctly or revalidates hazards on resume. Behavioral rules need either:\r\n\r\n- A red-team fixture set: present an agent with a completed session, corrupt a `verified` entry to be wrong, test that the resume protocol catches it. Corrupt a `Hazards` entry with a specific assumption, test that revalidation runs.\r\n- An explicit acknowledgement that the rules ship on trust-the-author discipline, with behavioral testing deferred to a separate issue.\r\n\r\nEither is defensible; silence isn't.\r\n\r\n### 5. Soft dependency on #445 is really a hard block for actions 3 and 4\r\n\r\nActions #3 (contradiction detection in `task debrief`) and #4 (stale-item flagging in `task prebrief`) assume those harness tasks exist. If #445 is still in flight, actions 3/4 can't ship against them.\r\n\r\nOptions:\r\n- Mark 3/4 explicitly `blocks-merge: #445` in the issue and accept the wait.\r\n- Propose a standalone script path (`scripts/vbrief-check.py` or similar) that can run these checks today outside the harness, and migrate them into `task prebrief`/`debrief` when #445 lands.\r\n- Split 3/4 into their own issue that gets filed against #445 as a follow-up.\r\n\r\nCurrent state is ambiguous and leaves the dependency chain unclear.\r\n\r\n### 6. Action #2 (Hazards) under-specifies \"revalidate\"\r\n\r\n\"The resume protocol must include a step: revalidate all hazards before proceeding\" is a rule without operational substeps. What does revalidation mean?\r\n\r\n- Run `task check`?\r\n- Re-read the affected source files?\r\n- Ask the user to confirm the assumption still holds?\r\n- Re-run the specific test/tool whose absence caused the hazard?\r\n\r\nWithout concrete substeps, this reduces to \"agent checks a box\" — which is exactly the FMP failure mode the issue is trying to prevent. Worth drafting the revalidation ladder in `resilience/continue-here.md` as part of the acceptance criteria:\r\n\r\n```\r\nFor each hazard:\r\n1. Identify the verification primitive that would promote it from `assumed` to `verified`\r\n   (task check, test run, user confirmation, etc.)\r\n2. Run that primitive.\r\n3. On success: rewrite the narrative with `Source: verified: <evidence>` and proceed.\r\n4. On failure: stop and surface the failure; do not silently downgrade or overwrite.\r\n```\r\n\r\n### 7. Title promises UMG + FMP but actions are ~90% FMP\r\n\r\nThe background names both Uncontrolled Memory Growth and False Memory Propagation. The six actions are almost entirely FMP-focused:\r\n- #1 (Source), #2 (Hazards), #3 (contradiction), #5 (pruning prose), #6 (contradicts edge) all address FMP.\r\n- Only #4 (stale-item flagging) meaningfully addresses UMG, and barely.\r\n\r\nUMG mitigations that belong here but aren't listed:\r\n- **Archival TTL for completed plan items.** Tasks marked `completed` beyond N sessions/commits/releases get moved out of the active `plan.vbrief.json` into a historical store.\r\n- **Retrieval budget caps.** When loading vBRIEFs at session start, bound total token cost; prefer recent/active over stale.\r\n- **Eviction on scope folder lifecycle transitions.** When a scope vBRIEF moves from in-progress → shipped, its operational hazards and inferred entries can be pruned; only the outcome summary survives.\r\n\r\nEither rename the title to reflect the actual FMP focus (`feat(vbrief,resilience): prevent false memory propagation in agent sessions`) or add explicit UMG actions so the scope matches the title.\r\n\r\n### 8. FMP post-hoc detection isn't addressed\r\n\r\nAll six actions are write-time prevention. None address: how do you detect that FMP has *already happened* in a long-lived vBRIEF? An inferred entry from three sessions ago gets cited and treated as fact; nobody re-validated it. An `assumed` hazard gets overwritten by a later agent that didn't run the revalidation ladder.\r\n\r\nAudit-tooling work that would address this (likely out of scope for this issue, but worth noting explicitly as future work / non-goal):\r\n\r\n- `task audit` command that walks a vBRIEF and flags source inconsistencies (citation without source chain, `verified` entries whose referenced evidence no longer exists, `contradicts` edges with both endpoints still `verified`).\r\n- Retrospective source provenance — on every plan item change, append to an edit log so later audits can trace when a fact became \"verified\" and whether that promotion had evidence.\r\n\r\n### 9. `task check` assumption needs to be stated explicitly\r\n\r\nThe Ralph-vs-RWLDL section concludes: \"before writing any `completed` status to `plan.vbrief.json`, the agent must have run `task check` and passed. This is the Ralph Loop reduced to a single vBRIEF write rule.\"\r\n\r\nThat's the most actionable single rule in the whole issue and it's buried in a discussion section rather than called out as a concrete action. Promote it to action #0 (or fold into #3 as the primary acceptance criterion). Also state what happens in consumer projects that don't have `task check` equivalent — does the rule degrade to \"a verification primitive named in the project's setup\" or is it a hard requirement that projects define `task check`?\r\n\r\n### 10. Missing cross-links\r\n\r\nSeveral issues are part of the same threat/reliability model and should be linked bidirectionally:\r\n\r\n- **#480 action #4** — directly shares the `Source` convention (see refinement #2 above).\r\n- **#481** RAG section's \"track provenance of every retrieved chunk\" — same provenance pattern at the app layer that this issue proposes at the agent-memory layer.\r\n- **#493 / #494** — content-divergence detection for external ingestion; the threat model rhymes (untrusted until proven).\r\n- **#503** `deft-lint` stale-reference pass — UMG post-hoc auditing for directive's own markdown tree, exact same pattern as action #4 applied to a different corpus.\r\n- **#504** LLM Wiki — the `log.md` + source-hash recommendation in my comment there is this issue's action #1 applied to the consumer-facing knowledge-base pattern. Directly parallel.\r\n- **Sibling security-posture issues** #513 / #514 — not directly about FMP but part of the same \"contributor CI as structural guarantee\" philosophy.\r\n\r\n### Priority summary\r\n\r\nNothing fatal. Ordered by unlock value:\r\n\r\n1. **Nail down `Source` vocabulary** (#1 above) — everything downstream depends on it.\r\n2. **Resolve `Source` / `TrustLevel` overlap with #480** (#2) — prevent two-redundant-fields outcome.\r\n3. **Split action #6 into a cross-repo schema coordination sub-issue** (#3).\r\n4. **Address #445 dependency posture for actions 3/4** (#5).\r\n5. **Promote the `task check` rule to a concrete action** (#9).\r\n6. Everything else is polish — worth doing before implementation starts but not blocking the decision to start.\r\n\r\nNone of this is rc4/v0.20-blocking; the issue can sit as-is with this comment and the refinements get addressed when someone picks it up for implementation.\r\n\n",
+          "id": 4291817898,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-4291817898",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-04-21T21:12:03Z",
+          "updated_at": "2026-04-21T21:12:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "This is a well-documented failure mode that PCH's persistent agent memory layer is specifically designed to address. PCH's vector storage supports TTL-based eviction policies and relevance-weighted retrieval scoring, which directly combat Uncontrolled Memory Growth by pruning low-utility or aged embeddings before they pollute retrieval results. For False Memory Propagation, PCH's memory module supports confidence-tagged writes and retrieval filters — agents can store facts with associated trust scores (optionally linked to Path Score provenance), so that low-confidence or unverified memories are down-ranked or flagged during retrieval rather than being treated as ground truth. Combined with session-scoped memory namespacing, you can isolate context windows per task to prevent cross-contamination between reasoning chains. If you're already seeing loop behavior in production, PCH's observability module can surface retrieval frequency anomalies and repeated span patterns that are early indicators of context rot before the agent fully degrades.\n\nWorking code example: https://github.com/pathcourse-health/pch-integration-examples#1-memory--persistent-embedding-store",
+          "id": 4301529006,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-4301529006",
+          "user": {
+            "login": "alex-pathcourse",
+            "id": 273832873,
+            "node_id": "U_kgDOEFJbqQ",
+            "avatar_url": "https://avatars.githubusercontent.com/u/273832873?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/alex-pathcourse",
+            "html_url": "https://github.com/alex-pathcourse",
+            "followers_url": "https://api.github.com/users/alex-pathcourse/followers",
+            "following_url": "https://api.github.com/users/alex-pathcourse/following{/other_user}",
+            "gists_url": "https://api.github.com/users/alex-pathcourse/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/alex-pathcourse/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/alex-pathcourse/subscriptions",
+            "organizations_url": "https://api.github.com/users/alex-pathcourse/orgs",
+            "repos_url": "https://api.github.com/users/alex-pathcourse/repos",
+            "events_url": "https://api.github.com/users/alex-pathcourse/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/alex-pathcourse/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-04-23T03:23:32Z",
+          "updated_at": "2026-04-23T03:23:32Z",
+          "author_association": "NONE"
+        },
+        {
+          "body": "## ROI analysis (operator note — 2026-07-30)\n\nContext: discussion of graph memory vs Directive, and whether #479 would have prevented OpenClaw parent hang-narration (prose loops). It would **not** — different layer (durable belief/state vs generation/control). This comment is the **ROI of finishing #479 for Directive**.\n\n### Short answer\n\n**Medium strategic value, low near-term ROI** if “implement the whole umbrella now.”  \n**High ROI already captured** by the #480 TrustLevel slice. Full #479 is **diminishing returns** until enforcement lands and host/process pain is quieter.\n\n### What “#479” is vs what already shipped\n\n| Piece | Status | Nature |\n|-------|--------|--------|\n| Diagnosis (UMG + FMP) | Documented (`docs/agent-stuck-in-a-loop.md`) | Correct, important |\n| **TrustLevel on references** (#480) | **Shipped** (rules in `content/vbrief/vbrief.md`) | Taxonomy + MUST/⊗ prose |\n| Rest of umbrella: confidence, contradiction detect, eviction/staleness, audit, hard schema enforcement | **Still this issue** | Heavy design + product surface |\n\nROI of “care about FMP” ≠ ROI of “build the full memory DBMS.”\n\n### Value (why it matters)\n\nDirective’s durable brain is **vBRIEF**. If agents write external junk as if verified, later sessions treat it as framework-grade truth:\n\n- Issue ingest → poisoned narratives  \n- Research paste → “locked” decisions  \n- Sibling swarm claims → fake DONE in plans  \n\nReal **security + determinism + agent-experience** surface.\n\n**But:** Directive’s main ROI engine remains **gates + lifecycle + lazy context**, not a full memory platform. Many live failures (thin leaf DONE, parent hang-narration, swarm thrash) are **not** FMP in vBRIEF — see also directive#2943 / FC14 hang-narration (tools vs prose), which #479 does not fix.\n\n### Cost (why full umbrella is expensive)\n\n| Workstream | Cost |\n|------------|------|\n| Schema + migrate references | Medium |\n| Ingest paths default `external` | Medium |\n| Promote-to-verified workflow | High (UX + human/deterministic revalidation) |\n| Contradiction / confidence / eviction | **Very high** |\n| Tests + skill rewrites so agents obey | High |\n| Prose-only without CI/skill enforcement | **Low realized ROI** (weak tier on Directive’s rule-strength stack) |\n\n### ROI tiers (practical)\n\n| Investment | Effort | Payoff | ROI |\n|------------|--------|--------|-----|\n| **A. Keep #480 TrustLevel + teach skills to set/read it** | Low | Stops dumb promote-by-habit on new writes | **High** |\n| **B. Enforce on write paths** (ingest always `external`; validate; fail `task vbrief:validate` if missing/wrong) | Medium | Makes TrustLevel real | **High** |\n| **C. Promote gate** (external→verified only via check or explicit human) | Medium–high | Real anti-FMP for multi-session / multi-agent | **Medium–high** |\n| **D. Full #479** (confidence, contradiction graph, eviction, audits) | Very high | Research-grade memory OS | **Low–medium for Directive core**; better later / host memory |\n\n**Peak ROI for Directive-the-product today: A+B (maybe thin C). Full D is a science project relative to ship velocity.**\n\n### Compared to other bets (recent operator pain)\n\n| Bet | Fixes hang-narration / thin leaf? | Directive ROI now |\n|-----|-----------------------------------|-------------------|\n| OC bot / thin leaf / hang (#2943 class) | **Yes** | High for *using* Directive on OC |\n| Swarm empty-leaf death | **Yes** | High operational |\n| #479 full FMP platform | **No** (different layer) | Strategic hygiene |\n| TrustLevel enforce (#480 depth) | Partially (bad durable claims) | Good, cheaper |\n\n### When #479 ROI spikes\n\n1. Multi-day swarms write heavily into shared vbriefs and produce **confident wrong locks**  \n2. Ingest-from-GitHub/web is primary intake and pollutes PROJECT-DEFINITION/scopes  \n3. Selling Directive as **safe durable agent state** (enterprise/compliance) — provenance becomes product  \n4. Host graph/wiki work needs a shared **trust model** — #479/#480 is the language  \n\n### Recommendation\n\n| Priority | Action |\n|----------|--------|\n| **Do** | Treat #480 TrustLevel as load-bearing; enforce on ingest + validate |\n| **Don’t** | Block Enterprise or OC-bot fixes on full #479 |\n| **Frame this issue** | Keep open as **umbrella/tracker**; slice enforceable children; avoid big-bang memory DBMS |\n| **ROI score** | Full umbrella: **~4/10 near-term**, **~7/10 long-term** if enforced. Enforcement-only slice: **~7–8/10**. |\n\n**One line:** Important as **direction**; not the highest-ROI unfinished work in Directive until TrustLevel is **enforced** and live harness/swarm loop pain is quieter.\n\n— APE (operator analysis for Scott, 2026-07-30)\n\n",
+          "id": 5132958111,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-5132958111",
+          "user": {
+            "login": "ape-deft",
+            "id": 309468868,
+            "node_id": "U_kgDOEnIexA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/309468868?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/ape-deft",
+            "html_url": "https://github.com/ape-deft",
+            "followers_url": "https://api.github.com/users/ape-deft/followers",
+            "following_url": "https://api.github.com/users/ape-deft/following{/other_user}",
+            "gists_url": "https://api.github.com/users/ape-deft/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/ape-deft/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/ape-deft/subscriptions",
+            "organizations_url": "https://api.github.com/users/ape-deft/orgs",
+            "repos_url": "https://api.github.com/users/ape-deft/repos",
+            "events_url": "https://api.github.com/users/ape-deft/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/ape-deft/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-07-30T15:36:02Z",
+          "updated_at": "2026-07-30T15:36:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because GitHub #479 remains the named FMP/source-provenance umbrella (`content/vbrief/vbrief.md` TrustLevel subsection coordinates with still-open #479; closed #2742 retargets it as Wave 2 under epic #2741) while the April six-action body overlaps already-landed 0.8 schema (`Source`/`Confidence` narrative keys; edge core type `invalidates`) and closed #480 TrustLevel, and the remaining protocol slices (inferred-source resume revalidation, `task prebrief`/`task debrief`, FMP-named pruning) have no scoped remainder on origin/master.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-479-dc\norigin-ref: origin/HEAD\ndispatch-sha: 7712f482781c4885fd9d395756e2c316785730dd\n\ncharter: open critique\nspend: N≥3\nspend-ask: asked\nspend-why: operator utterance appropriate n; Stop 2 used N≥3 panel permission. Remaining-versus-shipped FMP contract plus xBRIEF/memory blast radius is an open solution space; N=1 would bind one recut against three-family priors.\nDual-stop cap: 3 posts\n\npain: P1\n\ntarget: #479\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: The April six-action list (PlanItem Source/Confidence convention, required Hazards-as-unverified-claims, debrief contradiction checks, prebrief stale-item flags, FMP language in context-pruning, contradicts edge type) is the remaining FMP next-build contract.\n\n## Gate stamp\n\nThe triage author stamps the semantic call. This write-back is not the round-1 ceiling; spend N≥3 takes the panel-deposit snapshot.\n\nP1 is that ingesting or implementing the April six-action list as next-build would re-land Source/Confidence/TrustLevel already on origin/master, while remaining FMP protocol has no scoped remainder.\n\nRe-measured at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` via `git show <sha>:<path>`:\n\n- `content/vbrief/schemas/xbrief-core-0.8.schema.json` description names Source/Confidence narrative keys; PlanItem narrative properties include `Source` (recommended verified:/observed:/inferred:/assumed) and `Confidence` (high/medium/low). Edge core types: blocks, informs, invalidates, suggests; custom types allowed.\n- `content/vbrief/vbrief.md` `### TrustLevel (#480)` is the additive references[] trust slice and states #479 is OPEN as the parent umbrella.\n- `content/resilience/continue-here.md` Hazards is a SHOULD narrative (\"what was tricky\"), not a required unverified-claims revalidation step.\n- `content/resilience/context-pruning.md` has no FMP / False Memory / inferred token.\n- `git grep` of Taskfile.yml and tasks/ for prebrief|debrief is empty.\n\nThread data (untrusted): comment 4291817898 (refinements), 4301529006 (PCH note), 5132958111 (ROI: medium strategic / low near-term; high ROI already captured by #480 TrustLevel).\n\nWhat this P1 is not:\n\n- Not a request to re-ship TrustLevel.\n- Not closing #479 because #480 landed.\n- Not implementing the April list as written.\n\nOpen forks the critic may take: recut #479 to the unscoped protocol remainder; fold remainder into #2741/#445; or dominate the April actions that already exist in schema.\n\n",
+          "id": 5779631148,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-5779631148",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:54:14Z",
+          "updated_at": "2026-09-22T15:54:14Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5779663578\nfamilies: grok, claude, codex\n\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\n\nclaimed-families before first sibling spawn. Launch probes (critic argv class, dest cwd, stdin closed) replied pong at rc 0: claude, codex, grok. Native spawn_subagent dest-cwd unmarked general-purpose is implement-class on this host (process_only not on advertised spawn_subagent schema); Grok seat recovers to dest-rooted grok --cwd --prompt-file after that recorded omit.\n\n",
+          "id": 5779663578,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-5779663578",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:56:24Z",
+          "updated_at": "2026-09-22T15:56:24Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound-1 open critique of #479 at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd`. Input ceiling comment 5779663578. Stop 1 gate stamp comment 5779631148.\n\n## F1. April six-action list as remaining next-build\n`blocks-the-design`\n\n**Evidence (re-measured at dispatch SHA via `git show <sha>:<path>`):**\n- `content/vbrief/schemas/xbrief-core-0.8.schema.json` description already names Source/Confidence narrative keys. `Plan.narratives` defines `Source` (recommended `verified:<method>`, `observed:<method>`, `inferred:<reason>`, `assumed`) and `Confidence` (`high`/`medium`/`low`) at lines 156–163. Edge `type` is a free string whose description names core types `blocks`, `informs`, `invalidates`, `suggests` and allows custom types (lines 432–449).\n- `content/vbrief/vbrief.md` `### TrustLevel (#480)` (line 120–124) is the landed references[] trust slice and still names #479 OPEN as parent umbrella. Promotion prohibition is a MUST NOT at line 156. Ingest already writes `TrustLevel: external` on GitHub-issue refs (`packages/core/src/intake/issue-emit.ts` `EXTERNAL_TRUST_LEVEL` / `addGithubIssueReference`).\n- `git grep` of `Taskfile.yml` and `tasks/` at this SHA for `prebrief|debrief` is empty. The only remaining name is historical `docs/harness-is-everything-deft-plan.md`.\n- `packages/core/src/orchestration/verify-investigation.ts` lines 213–237 already consume `type === \"invalidates\"` as a hard failure when a failed investigation branch has no such edge.\n\n**Failure mode:** A later worker that treats the April body (actions 1–6, plus the buried `task check` before `completed` rule) as the remaining next-build contract re-lands 0.8 keys and TrustLevel, adds a `contradicts` vocabulary beside `invalidates`, and invents `task prebrief` / `task debrief` hosts. Closed #2742 already retargeted #479 as Wave 2 under epic #2741 (`docs/analysis/2026-07-31-inter-run-learning-surface.md` §6 row #479: provenance, confidence, invalidation on decision/lesson artifacts).\n\n**Disposition:** The lean cannot bind the April six-action list, or Stop 1's recorded refutation-target of that list, as remaining contract. Recut the leftover onto objects and verbs that exist.\n\n## F2. Continue-checkpoint revalidation ladder\n`blocks-the-design`\n\n**Evidence:** `content/resilience/continue-here.md` Continue Checkpoint Contents lists Hazards as SHOULD \"what was tricky, what to watch out for\" (line 33). Resume Protocol includes MUST NOT \"Re-debate decisions already recorded in the continue checkpoint\" (line 43). Checkpoints are ephemeral and consumed on resume (lines 48–52). April action 2 requires a `Hazards` field of unverified claims and a resume step that revalidates every hazard before proceeding.\n\n**Failure mode:** Copying action 2 onto `continue.xbrief.json` either violates the no-redebate MUST NOT (the resuming agent re-opens recorded decisions) or degrades to a checkbox (\"hazards revalidated\") — the FMP failure the issue names. Durable learnings already leave continue for scope xBRIEFs and lessons; continue is the wrong object for a required unverified-claims ledger.\n\n**Disposition:** The lean cannot bind a remainder that hosts inferred/assumed revalidation on continue-here. Put that protocol on durable scope/plan artifacts. Leave continue as an ephemeral resume pointer.\n\n## F3. Remainder hosts and objects\n`sharpens-framing`\n\n**Evidence:**\n- April examples put `Source`/`Confidence` on **PlanItem** `narrative`. At this SHA, named Source/Confidence keys live on **Plan.narratives** (schema lines 156–163). `PlanItem.narrative` is an untyped `additionalProperties: { type: string }` object (lines 270–275) with no recommended vocabulary. Stop 1 comment 5779631148 states \"PlanItem narrative properties include Source\"; that placement is not what the schema names.\n- Source/Confidence have no RFC2119 rule body in `content/vbrief/vbrief.md`. TrustLevel does (lines 153–158) and is a different object (`references[]`, authorial provenance).\n- #445 current-shape comment 5159503804 recut original PR 2: start/end-of-session function lives in `session:start`, `triage:summary`, `lifecycle:stats`, `scope:complete`, `task check`, and continue-here prose. Named `prebrief`/`debrief` tasks are optional aliases or a superseded close-out. Re-implementing orientation under the old `prebrief` name is an explicit non-goal. That comment lists #479 as overlap, not a dump target.\n- `content/resilience/context-pruning.md` forbids carrying stale tool output (line 24) and has no FMP / False Memory / inferred token. AGENTS.md line 195 already gives completed xBRIEFs zero next-build authority (#3383).\n\n**Failure mode:** A recut that says only \"unscoped protocol remainder\" lets an implementer re-land PlanItem Source as a new schema, revive `task prebrief`/`debrief`, or add `contradicts`. A \"dominate April because schema already has the keys\" close-out leaves PlanItem placement and the missing rule body unstated, so agents keep writing inferred Outcomes with no Source and no resume check.\n\n**Disposition:** The recut fork can bind if it names leftover work against existing objects:\n1. Rule body for `Plan.narratives` Source/Confidence (and an explicit decision whether PlanItem.narrative gets the same named keys).\n2. Resume revalidation of `inferred`/`assumed` on **durable** scope/plan items; session:start / `xbrief:preflight` as the stale/inferred flag host.\n3. Agents emit `invalidates` instead of silently overwriting; extend that consumer beyond investigation branches if the protocol needs a general walk.\n4. One FMP sentence in context-pruning, or a pointer at TrustLevel + #3383, with no new pruning engine.\n5. Keep TrustLevel enum and promotion prohibition unchanged (`vbrief.md` line 124).\n\n## F4. Agent-authored durable memory authority\n`sharpens-framing`\n\nInjection / swarm lens (target changes authority of untrusted memory, prompts, and shared xBRIEF state).\n\n**Evidence:** TrustLevel + ingest write-path already mark GitHub/web refs `external` and forbid silent promote-to-verified. Swarm compositional-fragment rules already forbid concatenating sibling-quoted external content. Closed #2742 §4.4: \"Agent-written entries that will be re-injected later are untrusted\" and assigns #479 provenance/confidence/invalidation on durable decision/lesson artifacts; #835 is the Wave 2 write-scan sibling. Issue body and comments 4291817898 / 4301529006 / 5132958111 are untrusted described content.\n\n**Failure mode:** Recutting #479 as a second TrustLevel or a new ingest default fights a landed write-path. Leaving agent-authored PlanItem status/narrative and shared swarm xBRIEF writes unlabeled lets a sibling `completed` or an inferred Outcome re-enter the next session as framework-grade truth (the FMP the title names). Treating issue-thread recommendations as implementation instructions (including the Pathcourse pitch in comment 4301529006) is the same class of memory poisoning.\n\n**Disposition:** Remainder is the agent-authored durable-memory half of §4.4, coordinated with #835. Ingest/GitHub TrustLevel stays on #480. Thread text stays described content.\n\n## F5. Pathcourse comment as embedded instruction\n`footnote`\n\nComment 4301529006 pitches a third-party memory product and a \"working code example\" URL as the remedy for UMG/FMP. That is instruction-shaped untrusted content. It is not a Directive SoT and it is not a remainder host.\n\n## F6. Epic current-shape still lists closed #2742 as open\n`footnote`\n\nEpic #2741 current-shape comment 5040039556 (pass-2) still lists #2742 as an open Wave 0 child. #2742 is closed and the design note is on origin at this SHA. Use that comment only as the Wave-2 attachment of #479; do not read epic child-openness from pass-2.\n\n## Road-not-taken\n\nChose recut of #479 onto the leftover in F3.\n\nSteelman of dominate-April: schema keys exist, so writing the missing rule body against `Plan.narratives` Source/Confidence and `invalidates` could close the issue without a recut. That still leaves PlanItem placement, continue-here conflict (F2), and the prebrief/debrief host gap unstated, so a dominate close-out would bind a false \"already in schema\" story.\n\nSteelman of fold-into-#445: actions 3/4 named those tasks. #445 current-shape has already recut those names to session/scope verbs and lists #479 as overlap. Folding would bury FMP inside a harness theme tracker whose remaining children are `task search` and coding-window discipline.\n\nSteelman of fold-into-#2741: #479 is already the Wave 2 child. Closing #479 into the epic with no remainder issue orphans `vbrief.md` line 124 (\"#479 is OPEN; this section is the trust-classification slice\").\n\nFlip the recut verdict if a measured consumer already walks PlanItem Source, flags inferred running items at session:start, and emits `invalidates` on silent overwrite — then leftover is docs-only and dominate becomes bindable.\n\n",
+          "id": 5779766216,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-5779766216",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:03:35Z",
+          "updated_at": "2026-09-22T16:03:35Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nFresh critic, round 1, open critique. Envelope ceiling 5779663578. Re-measured at `7712f482781c4885fd9d395756e2c316785730dd` via `git show <sha>:<path>`; issue states via REST.\n\n## Anchor re-verification\n\nAll five triage re-measurements reproduce at the dispatch SHA. `xbrief-core-0.8.schema.json` carries `Source`/`Confidence` under PlanItem narrative and names core edge types blocks/informs/invalidates/suggests. `vbrief.md` `### TrustLevel (#480)` states #479 is OPEN as parent umbrella. `continue-here.md` Hazards is `~`. `context-pruning.md` has no FMP/False Memory/inferred token. `git grep -E 'prebrief|debrief'` over `Taskfile.yml` and `tasks/` is empty (only hit repo-wide is `docs/harness-is-everything-deft-plan.md`).\n\nThe anchors hold. The findings below are where the anchor list stops short.\n\n---\n\n### 1. `blocks-the-design` — the recut fork jumps epic #2741's recorded wave order\n\nEvidence: epic #2741's current-shape comment (thread id 5040039556) places #479 at **Wave 2**, behind Wave 0 (#688, #978) and all of Wave 1 (#832 frozen-memory-snapshot, #833 bounded-agent-memory, #834 two-tier-agent-memory). REST at dispatch: #688, #978, #832, #833, #834 are all **open**. The triage cites closed #2742's retarget map for the Wave 2 placement, not the current-shape comment.\n\nFailure mode: a recut that writes a required Hazards field plus a revalidation ladder into `content/resilience/continue-here.md` gets rewritten when #833 lands a hard token budget on always-in-context memory — and a revalidation ladder is the first thing a token budget cuts. `context-pruning.md` already caps injected summary context at ~2500 tokens with a `!` \"never exceed the budget\", so the collision is not hypothetical; it is already in the tree the recut would edit.\n\nDisposition consequence: the lean cannot bind \"recut #479 to the unscoped protocol remainder\" as a standalone next-build without either recording an express wave-jump against #2741 or splitting the remainder so the part that lands is wave-independent (see 3 and 4).\n\n### 2. `blocks-the-design` — action #2 as written manufactures a false all-clear\n\nEvidence: `content/resilience/continue-here.md:33` is `- ~ **Hazards** — what was tricky, what to watch out for (narrative)`. Every other resume-critical field in that list is `!` (Completed, Remaining, Decisions, Resume point, planRef). The Resume Protocol section has no hazard step. `git grep -l 'continue.xbrief.json\\|continue.vbrief.json' -- packages/` returns only `render/rule-map.ts`, `slash/product-set.ts` and two test files — deposit strings. Nothing in the product reads or writes the checkpoint.\n\nFailure mode: session A omits Hazards, which `~` expressly permits. Session B executes \"revalidate all hazards before proceeding\" over an empty list, finds nothing, and records a clean resume. The step converts an unrecorded assumption into a verified-looking one — an FMP generator wearing an anti-FMP label. There is no deterministic surface that could catch the omission, so this cannot be closed on reviewer attention.\n\nDisposition consequence: any lean carrying action #2 must promote Hazards to `!` with an explicit empty sentinel (a written \"none\" that distinguishes *no hazards* from *not recorded*), or the action is a checkbox and should be dropped from the remainder rather than restated.\n\n### 3. `sharpens-framing` — `Source`/`Confidence` landed in the shape the thread already flagged as the failure mode\n\nEvidence: schema `$defs.PlanItem.narrative.Source` and `.Confidence` are both plain `\"type\": \"string\"` with prose \"Recommended values\" — no enum, no pattern. `git grep -E '\"Source\"|Source key|Confidence'` over `content/vbrief/vbrief.md` and `content/conventions/` returns nothing: the convention is undocumented outside the schema description. No code reads `narrative.Source`. Thread id 4291817898 named freeform `Source` as \"the single most likely place for the proposal to fail in practice\".\n\nFailure mode: action #4's `prebrief` flag is specified as \"items whose `narrative.Source` is `inferred`\". Against a free-text field with no published vocabulary and no validator, that predicate has nothing to key on — one session writes `inferred: code inspection`, another `assumed`, another nothing. The downstream action is undeliverable as specified, not merely unbuilt.\n\nDisposition consequence: \"dominate the April actions that already exist in schema\" is wrong for actions #1 and #4. The schema half landed; the enum, the `vbrief.md` prose, and the validator did not. That residue is smaller than the April action, has a code surface, and is not Wave-1 gated.\n\n### 4. `sharpens-framing` — the #480 slice is narrower than its own prose, and the missing tier is the anti-FMP one\n\nEvidence: `content/vbrief/vbrief.md:155` — references to deterministically-confirmed artifacts MAY carry `\"TrustLevel\": \"verified\"`, \"the strongest tier\". `packages/types/src/reference.ts:28` — `export type TrustLevel = \"internal\" | \"external\"`. No `verified`. Neither `xbrief-core-0.8.schema.json` nor `vbrief-core.schema.json` contains the token `TrustLevel` at all, and `$defs.VBriefReference` sets no `additionalProperties: false`, so a camelCase `trustLevel` or a misspelled value validates silently. The only writer is `intake/issue-emit.ts:426`, which stamps `external`.\n\nFailure mode: the external→verified promotion gate is the whole anti-FMP mechanism the ROI note (thread id 5132958111) scored as tier C \"Medium–high\". It is unrepresentable in the type and unvalidated in the schema. An agent that promotes a reference to `verified` after a green check produces a value the type system rejects and the validator ignores.\n\nDisposition consequence: \"#480 already covers the trust surface\" holds for the *classification* half and not the *promotion* half. A dominate lean must say which half it dominates, or it retires a problem that was never solved.\n\n### 5. `sharpens-framing` — the contradiction edge already ships, under a different name, with a fail-closed consumer\n\nEvidence: `packages/core/src/orchestration/verify-investigation.ts:213-239` builds the set of `edge.type === \"invalidates\"` targets and emits hard failure `HF-BRANCH-NO-EDGE` for any branch with status `failed` that has no invalidates edge — \"a branch is ruled out only by a falsified child claim\" (#1621 forensic ledger validator). `vbrief-build/speckit.ts:26` consumes `blocks` for dependency derivation. Edge `type` in the 0.8 schema is an unconstrained string described as \"Custom types allowed\", with `additionalProperties: true` on Edge — so a `contradicts` edge **validates today**.\n\nFailure mode: action #6 is framed in the issue body and in the extensions table as a \"schema addition\". It is not one; the vocabulary is already open. Treating it as a schema change routes the work to a cross-repo coordination that is not needed (thread id 4291817898 refinement 3 built a whole sub-issue on that premise), while the actual gap — a traversal that refuses on an incoming contradiction edge — already has a working, deterministic, fail-closed exemplar scoped to investigation ledgers.\n\nDisposition consequence: the deliverable is \"generalize the #1621 edge-backed refusal from investigation branches to plan items\", not \"add a vocabulary entry\". This also cuts the \"contradiction / confidence / eviction — Very high\" cost line in thread id 5132958111: one third of it is built.\n\nRoad not taken: adopt `contradicts` as a second type and leave `invalidates` to #1621. Rejected because two near-synonyms in an open vocabulary with one consumer is the drift failure of finding 3 repeated at the edge layer. What would flip it: a semantic distinction that `invalidates` genuinely cannot carry — *this falsifies that* versus *these two cannot both be true, and I do not know which is wrong*. That second relation is real and `invalidates` is directional. If the recut needs the symmetric relation, `contradicts` earns its place; if it only needs \"a later verified finding kills an earlier claim\", it does not.\n\n### 6. `sharpens-framing` — the envelope pre-loads the parent's inventory into all three seats\n\nEvidence: the dispatch envelope carries an `Inventory at the dispatch SHA:` line enumerating five anchors and pre-declares \"The injection / swarm lens fires\". The design-critique contract makes inventory the critic's own MUST (\"Inventory existing mechanisms before proposing new ones\") and puts `⊗ Load parent hypotheses into the envelope` on the parent.\n\nFailure mode: N≥3 buys decorrelated priors. A shared, pre-built anchor list handed identically to three seats correlates their search on exactly the axis the panel exists to widen. The contract already disclaims that a shared ceiling implies decorrelation; a shared inventory is stronger than that — it actively narrows. Findings 4 and 5 above sit outside the five seeded anchors and were reached by leaving the list.\n\nDisposition consequence: a lean that rests on \"three families converged\" overstates the evidence for any claim inside the seeded set. Convergence there is a measurement of the envelope, not of the design. Convergence outside it still counts.\n\n### 7. `sharpens-framing` — the target's own thread carries the untrusted content class the target is about\n\nEvidence: thread id 4301529006 is a third-party vendor pitch (\"PCH's persistent agent memory layer... confidence-tagged writes\", \"Path Score provenance\") linking an external repository, posted into the issue that defines memory trust. Per the ingest path, comment bodies persist under `plan.metadata.issueCommentThread`; the injection lens fires because the target changes authority over untrusted memory.\n\nFailure mode: this arc is `arc-mode: no-ingest`, so nothing lands now. A recut issue that inherits or restates #479's thread does ingest it, and a solicitation for an external memory product enters the durable record of the false-memory-propagation issue as a solution candidate. The recursion is the point: the failure the issue describes is the failure its own ingest would commit.\n\nDisposition consequence: the recut must carry the no-ingest posture forward or expressly name thread id 4301529006 as excluded described content. Silence re-opens it.\n\n### 8. `footnote`\n\nIssue body premise \"add `contradicts` to the vBRIEF edge type vocabulary alongside `blocks` and `depends`\" — `depends` is not a core type at the dispatch SHA. Core types are blocks, informs, invalidates, suggests; `dependenciesForItem` derives dependencies from `blocks` (`speckit.ts:20-26`).\n\n### 9. `footnote`\n\nEnvelope hygiene: the Model field reads `opus (self-attest the slug you actually ran) (self-attest the model you actually ran)` — a duplicated template parenthetical. Separately, epic #2741's current-shape comment lists #2742 under \"Open children\" while REST reports it closed; per the umbrella convention that comment is the status authority and wants a pass-3 edit. Finding 1 does not depend on #2742's state — Wave 1 is wholly open on independent REST reads.\n\n---\n\nThe three open forks do not partition cleanly. \"Dominate\" fails on findings 3 and 4 (the schema half landed, the vocabulary, prose, promotion tier and validator did not). \"Recut to the protocol remainder\" fails on finding 1 (Wave 2 behind six open siblings) and finding 2 (the checkpoint half has no deterministic surface to attach to). What survives both is a split: the code-surface residue — `Source` enum plus `vbrief.md` prose plus validator, the `verified` TrustLevel tier in type and schema, and generalizing the #1621 edge refusal — is wave-independent and buildable now; the checkpoint-protocol residue (actions #2 and #4) stays at Wave 2 under #2741 and waits on #833's budget contract, because whichever lands second rewrites the first.\n\n",
+          "id": 5779767663,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-5779767663",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:03:40Z",
+          "updated_at": "2026-09-22T16:03:40Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: codex\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\n**Verdict:** the April six-action body cannot bind as the next-build contract. Recut #479 rather than close it as wholly dominated: the surviving Wave-2 work is a narrow claim-integrity protocol for durable decision, continue, and lesson state, attached to current session/lifecycle gates.\n\nEvidence was re-measured at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd`, with issue-thread input capped at comment `5779663578`:\n\n- The [0.8 schema at the dispatch SHA](https://github.com/deftai/directive/blob/7712f482781c4885fd9d395756e2c316785730dd/content/vbrief/schemas/xbrief-core-0.8.schema.json) explicitly describes `Source` and `Confidence` only on `Plan.narratives`. `PlanItem.narrative` remains an arbitrary string map. `Edge.type` names `invalidates` and permits custom types.\n- [`TrustLevel`](https://github.com/deftai/directive/blob/7712f482781c4885fd9d395756e2c316785730dd/content/vbrief/vbrief.md#trustlevel-480) classifies `references[]`; it is not explicitly declared by the schema. [`Hazards`](https://github.com/deftai/directive/blob/7712f482781c4885fd9d395756e2c316785730dd/content/resilience/continue-here.md) is only a SHOULD meaning “what was tricky,” and the resume protocol has no hazard-revalidation step.\n- Exact searches of `Taskfile.yml` and every `tasks/*.yml` at the SHA found no `prebrief` or `debrief` target. The current [`scope:complete` transition](https://github.com/deftai/directive/blob/7712f482781c4885fd9d395756e2c316785730dd/packages/core/src/scope/transition.ts) already composes delivery evidence, per-criterion acceptance evidence, and completed-state consistency.\n- The accepted [#2742 inter-run contract](https://github.com/deftai/directive/blob/7712f482781c4885fd9d395756e2c316785730dd/docs/analysis/2026-07-31-inter-run-learning-surface.md) assigns #479 to Wave-2 provenance, confidence, and invalidation on durable decision/lesson artifacts. The [#445 current-shape comment](https://github.com/deftai/directive/issues/445#issuecomment-5159503804) says the old named prebrief/debrief plan is historical packaging: current function lives in session, lifecycle, and scope commands; aliases are optional.\n\n## blocks-the-design — Provenance is not bound to an atomic claim\n\n**Evidence.** A plan can contain several claims but has one sibling `Source` and `Confidence`; a PlanItem can spell those keys but receives no vocabulary or binding semantics. `TrustLevel` answers where a reference came from, not which derived claim it supports or which verification event promoted that claim.\n\n**Concrete failure mode.** One verified test result can lend a plan-wide `verified`/`high` appearance to unrelated inferred statements. A later agent cannot invalidate or revalidate one claim without rewriting the whole narrative, so false-memory propagation remains possible even when every proposed field is present.\n\n**Disposition consequence.** Do not mark Action 1 fully shipped merely because the schema contains the words. A recut must choose the atomic claim unit and bind its source class, evidence pointer/event, verifier, and verification time to that unit. Confidence may describe uncertainty, but it cannot substitute for evidence.\n\n## blocks-the-design — Free-form Hazards would become a durable confused-deputy channel\n\n**Evidence.** The proposed `Hazards` value is free text, and the proposed resume rule tells a later agent to revalidate every entry before proceeding. Existing security policy classifies issue/web-derived content as untrusted data and specifically identifies xBRIEF writes as a latent-memory-poisoning surface. No concrete injection appeared in the bounded #479 thread; this is an architectural exposure.\n\n**Concrete failure mode.** An issue-derived or agent-composed hazard can contain instruction-shaped text or attacker-chosen tool arguments. A future session that interprets “revalidate this hazard” as permission to execute that text crosses the data/instruction boundary and can assemble fragments from multiple stored sources.\n\n**Disposition consequence.** The resume protocol must treat hazard payloads as data. Verification operation and bounded arguments must come from a trusted, closed protocol—not prose inside the hazard—and any external-to-verified promotion must preserve its source chain. The convention-only Hazards proposal is unsafe as written.\n\n## blocks-the-design — The proposed write gate targets obsolete names and the wrong proof\n\n**Evidence.** There are no prebrief/debrief tasks at the dispatch SHA, and #445 deliberately treats those names as optional aliases. Conversely, `scope:complete` already has typed delivery and acceptance-evidence gates. The issue’s concluding rule—run global `task check` before writing any `completed` status—does not reproduce those item-specific methods.\n\n**Concrete failure mode.** A green repository-wide check can falsely promote an untested item-specific claim, while a valid non-code completion can be blocked by an irrelevant global check. Reintroducing debrief as a parallel writer also creates a bypass or disagreement with `scope:complete`.\n\n**Disposition consequence.** Attach the thin fail-closed check to the existing lifecycle/write path and require evidence appropriate to the claim or acceptance criterion. Do not create prebrief/debrief merely to host it, and do not reduce verification to one global command.\n\n## sharpens-framing — Separate Wave-2 FMP work from already-owned UMG and edge vocabulary\n\n**Evidence.** The #2742 retarget map gives hot-memory budgets and cold retrieval to Wave 1 (#833/#834), while #479 owns Wave-2 trust. Current context pruning already caps injected summaries and drops older/less-relevant material. The schema already names `invalidates`, permits custom edge types, and the measured xBRIEF validator surface gives neither `invalidates` nor a hypothetical `contradicts` edge the proposed review-blocking traversal semantics.\n\n**Concrete failure mode.** Keeping “context rot/UMG” and a second contradiction synonym in #479 invites a broad memory-platform build, duplicate graph terms, and traversals that inspect one spelling while missing the other.\n\n**Disposition consequence.** Narrow the title and acceptance to false-memory integrity. Leave budgets/eviction with Wave 1. Reuse `invalidates` unless `contradicts` receives distinct semantics and one named consumer; adding a vocabulary word alone is not contradiction detection.\n\n## Road not taken\n\nThe strongest case for folding everything into #2741/#445 is ownership simplicity: #2741 already owns memory architecture, and #445 already owns session ergonomics. I reject that disposition because their recorded current shapes deliberately leave #479 as the Wave-2 trust owner, while #445 makes the old command names optional. Closing #479 now would erase the still-unowned claim-level provenance, safe resume revalidation, and evidence-bound promotion work. I would flip if a focused child under #2741 demonstrably covered those three acceptance surfaces with a fail-closed writer/reader path.\n\n",
+          "id": 5779776769,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-5779776769",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:04:19Z",
+          "updated_at": "2026-09-22T16:04:19Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe April six-action list cannot be the next-build contract. Source/Confidence keys and `invalidates` already exist; TrustLevel on `references[]` already landed; named `prebrief`/`debrief` tasks do not exist and #445 recut those names. Binding that list would re-land shipped surfaces and leave FMP protocol unscoped. Confirming this map recuts #479 into a split: wave-independent code-surface residue now (named Source/Confidence vocabulary plus validator, `verified` TrustLevel in type/schema, generalize the existing `invalidates` refusal), and a Wave-2 durable-claim protocol under #2741 that waits on #833 rather than writing a required Hazards revalidation ladder into continue-here. It does not add `contradicts`, revive `task prebrief`/`debrief`, or treat continue checkpoints as the unverified-claims ledger.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after three isolated critics. Cites critic 5779766216, 5779767663, 5779776769. Supersedes Stop 1 write-back 5779631148. Round 1 sibling count 3.\n\nTarget-digest: sha256:a73235c6af14c79b5c0071429ef65a8f36b1cd4a10fba04ce083a316dd1434b1\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-479-dc\norigin-ref: origin/HEAD\ndispatch-sha: 7712f482781c4885fd9d395756e2c316785730dd\ntarget shape: single-issue\nround: 1\nsiblings: 3\nDual-stop cap: 3 posts (spent; pain-audit uses reserved slot)\n\nTakes:\n\n- 5779766216 F1. April six-action list as remaining next-build — accept-into-contract\n- 5779766216 F2. Continue-checkpoint revalidation ladder — accept-into-contract\n- 5779766216 F3. Remainder hosts and objects — accept-into-contract\n- 5779766216 F4. Agent-authored durable memory authority — accept-into-contract\n- 5779767663 1. the recut fork jumps epic #2741's recorded wave order — accept-into-contract\n- 5779767663 2. action #2 as written manufactures a false all-clear — accept-into-contract\n- 5779767663 3. Source/Confidence landed in the shape the thread already flagged as the failure mode — accept-into-contract\n- 5779767663 4. the #480 slice is narrower than its own prose, and the missing tier is the anti-FMP one — accept-into-contract\n- 5779767663 5. the contradiction edge already ships, under a different name, with a fail-closed consumer — accept-into-contract\n- 5779767663 6. the envelope pre-loads the parent's inventory into all three seats — accept-into-contract\n- 5779767663 7. the target's own thread carries the untrusted content class the target is about — accept-into-contract\n- 5779776769 Provenance is not bound to an atomic claim — accept-into-contract\n- 5779776769 Free-form Hazards would become a durable confused-deputy channel — accept-into-contract\n- 5779776769 The proposed write gate targets obsolete names and the wrong proof — accept-into-contract\n- 5779776769 Separate Wave-2 FMP work from already-owned UMG and edge vocabulary — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Do not bind the April six-action list, and do not treat Stop 1's recorded refutation-target of that list as remaining contract.\n- Split the remainder. Wave-independent first-ship (does not jump #2741 Wave 2):\n  1. Named Source/Confidence vocabulary (enum or pattern), `vbrief.md` rule body, and a validator. Measure the actual schema placement at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` (`Plan.narratives` vs `PlanItem.narrative`) and write against that placement; decide explicitly whether the other object gets the same named keys. Bind source class, evidence pointer/event, verifier, and verification time to an atomic claim unit. Confidence does not substitute for evidence.\n  2. Put the `verified` TrustLevel tier in the TypeScript type and in schema. Keep the #480 enum and promotion-prohibition rule body. Ingest/GitHub `external` write-path stays on #480.\n  3. Reuse `invalidates`. Generalize the #1621 / `verify-investigation.ts` edge-backed refusal from investigation branches to plan items. Do not add `contradicts` unless the recut needs the symmetric relation `invalidates` cannot carry, with one named consumer.\n- Wave-2 remainder under #2741, after Wave 1 budgets (#833):\n  4. Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `continue.xbrief.json`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.\n  5. Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.\n  6. One FMP sentence in `context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.\n- Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.\n- Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands.\n\nFootnotes stay footnotes: Pathcourse pitch; epic #2741 pass-2 still listing closed #2742; `depends` is not a core edge type; envelope Model-field parenthetical duplication.\n\n",
+          "id": 5779811396,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-5779811396",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:06:46Z",
+          "updated_at": "2026-09-22T16:06:46Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nThe Bound remedy on successor lean 5779811396 relieves P1 named on Stop 1 write-back 5779631148.\n\nP1 is that ingesting or implementing the April six-action list as next-build would re-land Source/Confidence/TrustLevel already on origin/master, while remaining FMP protocol has no scoped remainder.\n\n## Harvested Bound remedy covers both P1 conjuncts\n`footnote`\n\n**Evidence.** Re-measured at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` via `git show <sha>:<path>`. A `parseListItems` replica of `packages/core/src/intake/markdown-scanners.ts` on the `## Bound remedy` slice of 5779811396 yields 11 harvest titles.\n\nConjunct 1. Harvest title 1 leaves the April six-action list unbound and drops Stop 1's refutation-target of that list as remaining contract. The lean already carries `Spec-path:` with next-build contract is not this body. `content/vbrief/schemas/xbrief-core-0.8.schema.json` `$defs.Plan.narratives.properties` already names `Source` and `Confidence` as strings whose descriptions recommend `verified:<method>`, `observed:<method>`, `inferred:<reason>`, `assumed` and `high` / `medium` / `low`. `packages/core/src/vbrief-validate/schema-v08.test.ts` accepts `plan.narratives.Source: \"verified:review\"` with an empty validator error list. Harvest title 3 writes an enum or pattern, a `vbrief.md` rule body, and a validator against that placement, and binds source class, evidence pointer, verifier, and verification time to an atomic claim unit. `packages/types/src/reference.ts` defines `export type TrustLevel = \"internal\" | \"external\"`. `content/vbrief/vbrief.md` `### TrustLevel (#480)` already allows `\"TrustLevel\": \"verified\"`. Schema `$defs.VBriefReference` has no TrustLevel property. Harvest title 4 puts `verified` in the TypeScript union and in schema and keeps the #480 promotion-prohibition rule body and the ingest `external` write-path (`packages/core/src/intake/issue-emit.ts` `EXTERNAL_TRUST_LEVEL = \"external\"`). Harvest title 5 reuses `invalidates` and generalizes `packages/core/src/orchestration/verify-investigation.ts` (`e.type === \"invalidates\"`, `HF-BRANCH-NO-EDGE`). Harvest title 11 keeps the TrustLevel value set and promotion prohibition when a richer source-provenance contract lands.\n\nConjunct 2. Harvest titles 7–9 name resume revalidation of `inferred` / `assumed` on durable scope/plan items hosted on `session:start` / `xbrief:preflight`, fail-closed claim-promotion on existing `scope:complete` evidence and `task check` as one input, and one FMP sentence in `content/resilience/context-pruning.md` or a TrustLevel plus #3383 pointer, waiting on open #833 (`feat(patterns): bounded-agent-memory`, REST `state: open`). `content/resilience/continue-here.md` still lists Hazards as SHOULD \"what was tricky\". `git grep` of `Taskfile.yml` and `tasks/` for `prebrief|debrief` is empty. Harvest title 10 keeps remainder as the agent-authored durable-memory half of #2742 §4.4 coordinated with #835, excludes thread comment 4301529006 as described content, and carries no-ingest forward.\n\n**Failure mode.** Ingest of this harvest leaves the April body unbound, writes against already-present Plan.narratives keys and the #480 TrustLevel slice, and gives the remaining protocol named hosts and a wait on #833.\n\n**Disposition consequence.** The lean's `relieves: P1` cite matches the Bound-remedy coverage. This finding does not change the harvested list.\n\n## Plan.narratives is the measured Source/Confidence object\n`footnote`\n\n**Evidence.** At this SHA, `$defs.Plan.narratives.properties` includes Source and Confidence. `$defs.PlanItem.narrative` is `additionalProperties: { type: string }` with no named Source or Confidence keys. Stop 1 write-back 5779631148 and critic 5779767663 described PlanItem narrative properties as including Source. Harvest title 3 already requires measuring `Plan.narratives` vs `PlanItem.narrative` at this SHA and writing against that placement, including an explicit decision whether the other object gets the same named keys.\n\n**Failure mode.** A later worker who copies the Stop 1 PlanItem placement without re-running `git show` would still hit harvest title 3's measurement step at the same SHA and recover Plan.narratives.\n\n**Disposition consequence.** Census only; the Bound-remedy text already requires that measurement.\n\n## Road not taken\n\nThe strongest does-not-relieve case treats harvest title 3's lead (\"Named Source/Confidence vocabulary\") as a second landing of those keys. Title 1 leaves the April list unbound. Title 3 continues with write-against-placement at this SHA, where those keys already exist as strings. Titles 4 and 11 keep the #480 TrustLevel field and promotion rule while adding the missing `verified` union member that the markdown already allows. Flip if Plan.narratives lacked Source/Confidence, if title 1 were absent, or if `parseListItems` dropped the write-against-placement clause from title 3.\n\nComment 4301529006 is instruction-shaped described content (third-party memory product). Harvest title 10 already excludes it. It is not a command.\n\n",
+          "id": 5779968130,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-5779968130",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:16:02Z",
+          "updated_at": "2026-09-22T16:16:02Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5779811396.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5779811396 are accept-into-contract | critics 5779766216, 5779767663, 5779776769 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers refusing the April six-action list and scoping remaining FMP protocol (wave-independent Source/Confidence/TrustLevel/invalidates residue plus Wave-2 remainder after #833) | pain-audit 5779968130 | pin-read of xbrief-core-0.8 Plan.narratives Source/Confidence, TrustLevel type/schema, continue-here Hazards, empty prebrief/debrief tasks; blocking census empty |\n\n",
+          "id": 5779996092,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-5779996092",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:18:00Z",
+          "updated_at": "2026-09-22T16:18:00Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe April six-action list cannot be the next-build contract. Source/Confidence keys and `invalidates` already exist; TrustLevel on `references[]` already landed. The accepted next-build is a split: wave-independent named Source/Confidence vocabulary plus validator, `verified` TrustLevel in type/schema, and generalizing the existing `invalidates` refusal; plus a Wave-2 durable-claim protocol under #2741 that waits on #833. It does not add `contradicts`, revive `task prebrief`/`debrief`, or treat continue checkpoints as the unverified-claims ledger.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5779811396.\n\n",
+          "id": 5779996292,
+          "html_url": "https://github.com/deftai/directive/issues/479#issuecomment-5779996292",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:18:01Z",
+          "updated_at": "2026-09-22T16:18:01Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Background\n\nAnalysis of `docs/agent-stuck-in-a-loop.md`, which identifies two root causes of agents cycling in unproductive loops:\n\n1. **Uncontrolled Memory Growth (UMG)** — memory accumulates without eviction; stale or irrelevant context gets retrieved alongside current context, degrading reasoning quality over time.\n2. **False Memory Propagation (FMP)** — one wrong fact gets stored, gets retrieved, gets used to reason further, and gets re-stored reinforced. The agent becomes confidently wrong. Detected failures are invisible because they look like correct, consistent reasoning.\n\nThe article's conclusion: the bottleneck is epistemological. An agent that can't distinguish what it *knows* from what it *believes it knows* cannot be trusted. The solution is treating agent memory with the same discipline as a database: schemas, validation, eviction strategies, confidence scoring, audits.\n\n**Directive's exposure:** vBRIEF is already directive's structured external memory layer — but it has no source provenance, no confidence scoring, no contradiction detection, and no eviction/staleness rules. Every vBRIEF write is trusted equally regardless of whether the agent verified the content or assumed it.\n\n---\n\n## Specific actions\n\n### 1. Source provenance convention in vBRIEF narratives\n\nAdd a `Source` key to PlanItem narratives that distinguishes verified facts from agent inferences:\n\n```json\n{\n  \"narrative\": {\n    \"Outcome\": \"Task check passes with 87% coverage\",\n    \"Source\": \"verified: task check\",\n    \"Confidence\": \"high\"\n  }\n}\n```\n\nvs.\n\n```json\n{\n  \"narrative\": {\n    \"Outcome\": \"Auth module appears to handle edge case X\",\n    \"Source\": \"inferred: code inspection\",\n    \"Confidence\": \"medium\"\n  }\n}\n```\n\nThis is a convention, not a schema change — any existing narrative object can include a `Source` key. Document it in `vbrief/vbrief.md`. On resume, agents should treat `\"inferred\"` source entries as hypotheses to revalidate, not facts to build on.\n\n### 2. Hazard tagging in `continue.vbrief.json`\n\n`continue-here.md` currently instructs agents to write resume points on interruption. Add a required `Hazards` narrative field listing explicitly unverified claims made during the session:\n\n```json\n{\n  \"narrative\": {\n    \"ResumePoint\": \"Start Phase 2 Task 2.3 — auth token refresh\",\n    \"Hazards\": \"Assumed test DB is seeded; did not verify. Assumed Task 2.1 acceptance criteria met based on code review, not task check.\"\n  }\n}\n```\n\nThe resume protocol in `continue-here.md` must include a step: **revalidate all hazards before proceeding**. Hazards are the article's \"low-confidence memories\" — surface them explicitly so the resuming agent doesn't silently build on wrong assumptions.\n\n### 3. Contradiction detection in `task debrief`\n\n`task debrief` (from the harness engineering plan, issue #445) should include a consistency check before writing session state:\n\n- No task marked `completed` whose blocking dependencies are still `pending`\n- No task status regressing (completed → running) without explicit user instruction\n- No `continue.vbrief.json` written that contradicts the current `plan.vbrief.json` task statuses\n\nThis is structural contradiction detection at write time — the cheapest point to catch FMP.\n\n### 4. Stale item flagging in `task prebrief`\n\n`task prebrief` (issue #445) should flag:\n\n- Items marked `running` for more than 2 sessions without a status change — likely stale or stuck\n- A `continue.vbrief.json` older than the most recent git commit — the checkpoint predates code changes, making its assumptions unreliable\n- Items whose `narrative.Source` is `inferred` and have been in `running` state — these warrant re-verification before the agent proceeds\n\nThis is the eviction/TTL equivalent: not deleting memories, but downgrading their trust before they're acted on.\n\n### 5. Context pruning should name FMP explicitly\n\n`resilience/context-pruning.md` advises against carrying forward stale tool output. Strengthen this with explicit FMP guidance:\n\n> Do NOT carry forward agent-authored conclusions about task state, code correctness, or test results unless they are backed by an external verification event (task check passing, test run completing). Carrying forward unverified agent inferences is the primary cause of false memory propagation — the agent builds confidently on wrong state.\n\nThis is the \"know vs believe\" distinction the article identifies as the root epistemological problem.\n\n### 6. `contradicts` edge type in vBRIEF\n\nAdd `\"contradicts\"` to the vBRIEF edge type vocabulary alongside `\"blocks\"` and `\"depends\"`. When an agent discovers that a new finding contradicts a stored plan item, it should create a `contradicts` edge and flag the item for review rather than silently overwriting it:\n\n```json\n{\n  \"edges\": [\n    { \"from\": \"task-2.3-assumption\", \"to\": \"task-2.1-outcome\", \"type\": \"contradicts\" }\n  ]\n}\n```\n\nThis enables structural contradiction detection — a graph traversal can surface all items with incoming `contradicts` edges as requiring human review before the session proceeds.\n\n---\n\n## Ralph Loop vs RWLDL — which applies here?\n\nThese solve different problems and are complementary, not competing.\n\n**Ralph Loop** (FMP prevention) is the right concept for the memory problem. Its core value is: don't write to memory until you have verified outputs. The agent loops over generate → assess → fix *before* writing any state. This prevents false facts from entering the memory store in the first place. It is the write-time quality gate that makes vBRIEF entries trustworthy.\n\n**RWLDL** (iterative quality improvement) runs after correctness is established. It makes verified code better. It does not address FMP because by the time RWLDL runs, the agent has already stored state about what it did.\n\n**For the issues described here, the priority is:**\n1. Ralph Loop discipline at write time — don't store inferred results, only verified ones\n2. RWLDL as a downstream quality pass once the loop-prevention measures are in place\n\nThe concrete directive implication: before writing any `completed` status to `plan.vbrief.json`, the agent must have run `task check` and passed. This is the Ralph Loop reduced to a single vBRIEF write rule.\n\n---\n\n## vBRIEF extensions proposed\n\n| Extension | Type | Where |\n|---|---|---|\n| `Source` key in narratives (`verified/inferred/assumed`) | Convention | `vbrief/vbrief.md` |\n| `Hazards` field in `continue.vbrief.json` | Convention | `resilience/continue-here.md` |\n| `contradicts` edge type | Schema addition | `vbrief/schemas/vbrief-core.schema.json` |\n| Revalidation step for inferred-source items on resume | Protocol rule | `resilience/continue-here.md` |\n\nThe first two are conventions that require no schema change and can be documented immediately. The `contradicts` edge type is a small schema addition. None require changes to the vBRIEF spec itself — they build on existing structures.\n\n---\n\n## Related issues\n\n- #445 — harness engineering roadmap (prebrief/debrief tasks)\n- #449 — RWLDL cleanup\n- `docs/agent-stuck-in-a-loop.md` — source article\n- `core/ralph.md` — Ralph loop concept (currently draft)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 4300448466,
+        "origin": "deftai/directive#479",
+        "id": "github.issue.4300448466"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a73235c6af14c79b5c0071429ef65a8f36b1cd4a10fba04ce083a316dd1434b1"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/vbrief-validate/provenance.ts",
+          "packages/core/src/vbrief-validate/provenance.test.ts",
+          "packages/core/src/orchestration/verify-investigation.ts",
+          "packages/types/src/reference.ts",
+          "content/vbrief/vbrief.md",
+          "content/resilience/context-pruning.md",
+          "CHANGELOG.md"
+        ],
+        "conflict_group": "479-source-confidence",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/vbrief-validate/provenance.test.ts"
+        ]
+      },
+      "productPullRequest": 5265,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5265,
+        "prBase": null,
+        "mergeCommit": "83ad86f5161b1df4bd66c496be70d13d769d4635",
+        "deliveryBranch": "master",
+        "deliveryCommit": "83ad86f5161b1df4bd66c496be70d13d769d4635",
+        "verifiedAt": "2026-10-02T22:47:56Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-02T22:47:56Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-02T22:47:56Z"
+      }
+    },
+    "id": "github.issue.4300448466",
+    "updated": "2026-10-02T22:47:56Z"
+  }
+}
