@@ -39,16 +39,17 @@ describe("headShaMatches", () => {
 });
 
 describe("evaluateInlineReviewThreads", () => {
-  it("counts unresolved Greptile inline P1 on current HEAD (#2620)", () => {
+  it("counts unresolved Greptile inline P1 on current HEAD with GraphQL login (#3944)", () => {
     const findings = evaluateInlineReviewThreads(
       [
         thread({
           comments: [
             {
-              authorLogin: "greptile-apps[bot]",
+              authorLogin: "greptile-apps",
               body: INLINE_P1_BODY,
               path: "server/src/register/github.ts",
               commitOid: HEAD,
+              originalCommitOid: HEAD,
             },
           ],
         }),
@@ -63,6 +64,49 @@ describe("evaluateInlineReviewThreads", () => {
     });
   });
 
+  it("does not match REST Bot [bot] login on the GraphQL scorer (#3944)", () => {
+    const findings = evaluateInlineReviewThreads(
+      [
+        thread({
+          comments: [
+            {
+              authorLogin: "greptile-apps[bot]",
+              body: INLINE_P1_BODY,
+              path: "server/src/register/github.ts",
+              commitOid: HEAD,
+              originalCommitOid: HEAD,
+            },
+          ],
+        }),
+      ],
+      HEAD,
+    );
+    expect(findings.p1Count).toBe(0);
+  });
+
+  it("ignores re-anchored unresolved threads whose originalCommit is not HEAD (#3944)", () => {
+    // Login-only fix would false-BLOCK: mutable commit.oid == HEAD.
+    const findings = evaluateInlineReviewThreads(
+      [
+        thread({
+          comments: [
+            {
+              authorLogin: "greptile-apps",
+              body: INLINE_P1_BODY,
+              path: "server/src/register/github.ts",
+              commitOid: HEAD,
+              originalCommitOid: OLD,
+            },
+          ],
+        }),
+      ],
+      HEAD,
+    );
+    expect(findings.p0Count).toBe(0);
+    expect(findings.p1Count).toBe(0);
+    expect(findings.unresolvedThreadCount).toBe(0);
+  });
+
   it("ignores resolved threads even when summary badge counts are zero", () => {
     const findings = evaluateInlineReviewThreads(
       [
@@ -70,10 +114,11 @@ describe("evaluateInlineReviewThreads", () => {
           isResolved: true,
           comments: [
             {
-              authorLogin: "greptile-apps[bot]",
+              authorLogin: "greptile-apps",
               body: INLINE_P1_BODY,
               path: "server/src/register/github.ts",
               commitOid: HEAD,
+              originalCommitOid: HEAD,
             },
           ],
         }),
@@ -91,10 +136,11 @@ describe("evaluateInlineReviewThreads", () => {
           isOutdated: true,
           comments: [
             {
-              authorLogin: "greptile-apps[bot]",
+              authorLogin: "greptile-apps",
               body: INLINE_P1_BODY,
               path: "server/src/cli/program.ts",
               commitOid: OLD,
+              originalCommitOid: OLD,
             },
           ],
         }),
@@ -104,16 +150,17 @@ describe("evaluateInlineReviewThreads", () => {
     expect(findings.p1Count).toBe(0);
   });
 
-  it("ignores Greptile inline comments pinned to a stale commit on current HEAD", () => {
+  it("ignores Greptile inline comments whose originalCommit is stale", () => {
     const findings = evaluateInlineReviewThreads(
       [
         thread({
           comments: [
             {
-              authorLogin: "greptile-apps[bot]",
+              authorLogin: "greptile-apps",
               body: INLINE_P1_BODY,
               path: "server/src/cli/program.ts",
               commitOid: OLD,
+              originalCommitOid: OLD,
             },
           ],
         }),
@@ -133,6 +180,7 @@ describe("evaluateInlineReviewThreads", () => {
               body: "**P1** inline from SLizard",
               path: "server/src/register/github.ts",
               commitOid: HEAD,
+              originalCommitOid: HEAD,
             },
           ],
         }),
@@ -144,7 +192,7 @@ describe("evaluateInlineReviewThreads", () => {
 });
 
 describe("fetchUnresolvedGreptileInlineFindings", () => {
-  it("parses GraphQL reviewThreads payload", () => {
+  it("parses GraphQL reviewThreads with production author.login greptile-apps (#3944)", () => {
     const payload = {
       data: {
         repository: {
@@ -158,10 +206,11 @@ describe("fetchUnresolvedGreptileInlineFindings", () => {
                   comments: {
                     nodes: [
                       {
-                        author: { login: "greptile-apps[bot]" },
+                        author: { login: "greptile-apps" },
                         body: INLINE_P1_BODY,
                         path: "server/src/register/github.ts",
                         commit: { oid: HEAD },
+                        originalCommit: { oid: HEAD },
                       },
                     ],
                   },
@@ -174,10 +223,50 @@ describe("fetchUnresolvedGreptileInlineFindings", () => {
     };
     const runGh: RunGhFn = (cmd) => {
       expect(cmd.join(" ")).toContain("graphql");
+      expect(cmd.join(" ")).toContain("originalCommit");
       return { returncode: 0, stdout: JSON.stringify(payload), stderr: "" };
     };
     const findings = fetchUnresolvedGreptileInlineFindings(120, "deftai/statusreport", HEAD, runGh);
     expect(findings.p1Count).toBe(1);
+    expect(findings.error).toBeNull();
+  });
+
+  it("does not count re-anchored GraphQL threads that would false-BLOCK under login-only (#3944)", () => {
+    const payload = {
+      data: {
+        repository: {
+          pullRequest: {
+            reviewThreads: {
+              pageInfo: { hasNextPage: false, endCursor: null },
+              nodes: [
+                {
+                  isResolved: false,
+                  isOutdated: false,
+                  comments: {
+                    nodes: [
+                      {
+                        author: { login: "greptile-apps" },
+                        body: INLINE_P1_BODY,
+                        path: "server/src/register/github.ts",
+                        commit: { oid: HEAD },
+                        originalCommit: { oid: OLD },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const runGh: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify(payload),
+      stderr: "",
+    });
+    const findings = fetchUnresolvedGreptileInlineFindings(3927, "deftai/directive", HEAD, runGh);
+    expect(findings.p1Count).toBe(0);
     expect(findings.error).toBeNull();
   });
 
@@ -206,8 +295,8 @@ describe("fetchUnresolvedGreptileInlineFindings", () => {
   });
 });
 
-describe("fetchGreptilePullCommentsRest (#4289)", () => {
-  it("counts HEAD-pinned Greptile P1 from REST pulls comments", () => {
+describe("fetchGreptilePullCommentsRest (#4289 / #3944)", () => {
+  it("counts HEAD-pinned Greptile P1 via original_commit_id", () => {
     const runGh: RunGhFn = () => ({
       returncode: 0,
       stdout: JSON.stringify([
@@ -215,6 +304,7 @@ describe("fetchGreptilePullCommentsRest (#4289)", () => {
           user: { login: "greptile-apps[bot]" },
           body: INLINE_P1_BODY,
           commit_id: HEAD,
+          original_commit_id: HEAD,
         },
       ]),
       stderr: "",
@@ -222,6 +312,40 @@ describe("fetchGreptilePullCommentsRest (#4289)", () => {
     const findings = fetchGreptilePullCommentsRest(4292, "deftai/directive", HEAD, runGh);
     expect(findings.error).toBeNull();
     expect(findings.p1Count).toBeGreaterThanOrEqual(1);
+  });
+
+  it("ignores REST User greptile-apps (not the Bot account) (#3944)", () => {
+    const runGh: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify([
+        {
+          user: { login: "greptile-apps" },
+          body: INLINE_P1_BODY,
+          commit_id: HEAD,
+          original_commit_id: HEAD,
+        },
+      ]),
+      stderr: "",
+    });
+    const findings = fetchGreptilePullCommentsRest(4292, "deftai/directive", HEAD, runGh);
+    expect(findings.p1Count).toBe(0);
+  });
+
+  it("ignores re-anchored REST comments (commit_id HEAD, original_commit_id old)", () => {
+    const runGh: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify([
+        {
+          user: { login: "greptile-apps[bot]" },
+          body: INLINE_P1_BODY,
+          commit_id: HEAD,
+          original_commit_id: OLD,
+        },
+      ]),
+      stderr: "",
+    });
+    const findings = fetchGreptilePullCommentsRest(4292, "deftai/directive", HEAD, runGh);
+    expect(findings.p1Count).toBe(0);
   });
 
   it("returns error when REST fails", () => {
@@ -235,12 +359,14 @@ describe("fetchGreptilePullCommentsRest (#4289)", () => {
       user: { login: "human" },
       body: `note ${i}`,
       commit_id: HEAD,
+      original_commit_id: HEAD,
     }));
     const page2 = [
       {
         user: { login: "greptile-apps[bot]" },
         body: INLINE_P1_BODY,
         commit_id: HEAD,
+        original_commit_id: HEAD,
       },
     ];
     const runGh: RunGhFn = (cmd) => {
@@ -253,12 +379,15 @@ describe("fetchGreptilePullCommentsRest (#4289)", () => {
   });
 
   it("decodes concatenated --paginate arrays (#4289)", () => {
-    const page1 = JSON.stringify([{ user: { login: "human" }, body: "note", commit_id: HEAD }]);
+    const page1 = JSON.stringify([
+      { user: { login: "human" }, body: "note", commit_id: HEAD, original_commit_id: HEAD },
+    ]);
     const page2 = JSON.stringify([
       {
         user: { login: "greptile-apps[bot]" },
         body: INLINE_P1_BODY,
         commit_id: HEAD,
+        original_commit_id: HEAD,
       },
     ]);
     const runGh: RunGhFn = (cmd) => {
@@ -286,10 +415,11 @@ describe("loadThinHtmlInlineFindings (#4289)", () => {
                   comments: {
                     nodes: [
                       {
-                        author: { login: "greptile-apps[bot]" },
+                        author: { login: "greptile-apps" },
                         body: INLINE_P1_BODY,
                         path: "greptile-inline.ts",
                         commit: { oid: HEAD },
+                        originalCommit: { oid: HEAD },
                       },
                     ],
                   },
@@ -312,6 +442,7 @@ describe("loadThinHtmlInlineFindings (#4289)", () => {
             user: { login: "greptile-apps[bot]" },
             body: INLINE_P1_BODY,
             commit_id: HEAD,
+            original_commit_id: HEAD,
           },
         ]),
         stderr: "",
@@ -335,6 +466,7 @@ describe("loadThinHtmlInlineFindings (#4289)", () => {
             user: { login: "greptile-apps[bot]" },
             body: INLINE_P1_BODY,
             commit_id: HEAD,
+            original_commit_id: HEAD,
           },
         ]),
         stderr: "",

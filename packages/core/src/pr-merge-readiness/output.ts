@@ -19,6 +19,8 @@ function verdictToDict(verdict: GreptileVerdict): Record<string, unknown> {
     errored: verdict.errored,
     last_reviewed_sha: verdict.lastReviewedSha,
     confidence: verdict.confidence,
+    // Summary-comment badge counts only (#3944). Inline lives under
+    // partial_data.greptile_inline — do not read these as the total.
     p0_count: verdict.p0Count,
     p1_count: verdict.p1Count,
     p2_count: verdict.p2Count,
@@ -73,9 +75,22 @@ export function printHuman(result: GateResult): string {
     const confidenceStr =
       result.verdict.confidence !== null ? String(result.verdict.confidence) : "<not parsed>";
     lines.push(`  Confidence:         ${confidenceStr}/5`);
+    const inlineBlock = result.partialData.greptile_inline;
+    let inlineNote = "";
+    if (inlineBlock !== null && typeof inlineBlock === "object" && !Array.isArray(inlineBlock)) {
+      const inline = inlineBlock as Record<string, unknown>;
+      const iP0 = typeof inline.p0_count === "number" ? inline.p0_count : 0;
+      const iP1 = typeof inline.p1_count === "number" ? inline.p1_count : 0;
+      const iErr = typeof inline.error === "string" ? inline.error : null;
+      if (iErr !== null) {
+        inlineNote = `  (summary; inline lookup error — not a total)`;
+      } else {
+        inlineNote = `  (summary; inline P0=${iP0} P1=${iP1})`;
+      }
+    }
     lines.push(
       `  Findings:           P0=${result.verdict.p0Count}  ` +
-        `P1=${result.verdict.p1Count}  P2=${result.verdict.p2Count}`,
+        `P1=${result.verdict.p1Count}  P2=${result.verdict.p2Count}${inlineNote}`,
     );
     lines.push(
       `  Advisory should-not-merge: ${result.verdict.shouldNotMerge ? "True" : "False"} (#3225)`,

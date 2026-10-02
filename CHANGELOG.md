@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`verify:consumer-check-contract` reachability: do not let `- env:`/`- with:` nested maps steal step-field indent (#4015).** Gate step `if:` / `run:` / `continue-on-error` after a leading env/with block stay visible so skippable or soft-fail gates cannot read clean. Tracking #4015.
+- `pr:watch` and merge-readiness treat unresolved Greptile inline P0/P1 on the current head as blocking, including when the rolling summary still names an older commit (#3944).
 
 ### Removed
 

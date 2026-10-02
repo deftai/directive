@@ -2,7 +2,25 @@ export const EXIT_OK = 0;
 export const EXIT_MERGE_BLOCKED = 1;
 export const EXIT_EXTERNAL_ERROR = 2;
 
+/** REST Bot login (`user.login` on issue/PR comments). Do not use on GraphQL. */
 export const GREPTILE_LOGIN = "greptile-apps[bot]";
+
+/**
+ * GraphQL Bot `author.login` (#3944). Production reviewThreads return this bare
+ * form; REST Bot uses `GREPTILE_LOGIN`. Do not treat REST User `greptile-apps`
+ * and REST Bot `greptile-apps[bot]` as interchangeable on every surface.
+ */
+export const GREPTILE_GRAPHQL_LOGIN = "greptile-apps";
+
+/** True for GraphQL reviewThreads Greptile Bot author.login (#3944). */
+export function isGreptileGraphqlAuthorLogin(login: string): boolean {
+  return login === GREPTILE_GRAPHQL_LOGIN;
+}
+
+/** True for REST Greptile Bot login only (not the separate User account). */
+export function isGreptileRestBotLogin(login: string): boolean {
+  return login === GREPTILE_LOGIN;
+}
 
 export const GREPTILE_ERRORED_SENTINEL = "Greptile encountered an error while reviewing this PR";
 

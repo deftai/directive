@@ -23,7 +23,11 @@ import {
   fetchPrHeadShaRest,
   resolveRepo,
 } from "../pr-merge-readiness/gh.js";
-import { loadThinHtmlInlineFindings } from "../pr-merge-readiness/greptile-inline.js";
+import {
+  fetchUnresolvedGreptileInlineFindings,
+  type InlineGreptileFindings,
+  loadThinHtmlInlineFindings,
+} from "../pr-merge-readiness/greptile-inline.js";
 import {
   botReviewCheckPresent,
   evaluateReviewerExpectation,
@@ -254,12 +258,17 @@ export function probeOnce(
     // summary === null → leave greptileReviewInFlight true (inventory unknown).
   }
 
+  // #3944: ordinary probes must load inline (not thin-HTML-only). Repo miss /
+  // lookup error is distinguishable non-clean — not a silent summary CLEAN.
+  let inlineFindings: InlineGreptileFindings | null = null;
+  if (repo !== null) {
+    inlineFindings = thinHtmlSummary
+      ? loadThinHtmlInlineFindings(prNumber, repo, headSha, runGh)
+      : fetchUnresolvedGreptileInlineFindings(prNumber, repo, headSha, runGh);
+  }
   let restPullComments: { p0Count: number; p1Count: number } | null = null;
-  if (thinHtmlSummary && repo !== null) {
-    const inline = loadThinHtmlInlineFindings(prNumber, repo, headSha, runGh);
-    if (inline.error === null) {
-      restPullComments = { p0Count: inline.p0Count, p1Count: inline.p1Count };
-    }
+  if (inlineFindings !== null && inlineFindings.error === null) {
+    restPullComments = { p0Count: inlineFindings.p0Count, p1Count: inlineFindings.p1Count };
   }
 
   const sha = resolveShaCurrency({
@@ -275,11 +284,22 @@ export function probeOnce(
     commentsAdded,
     restPullComments,
   });
+  // Report counts must not read as a total that excludes inline (#3944).
+  let p0Count = channel.p0Count;
+  let p1Count = channel.p1Count;
+  let hasBlocking = channel.hasBlocking;
+  if (!thinHtmlSummary && inlineFindings !== null && inlineFindings.error === null) {
+    p0Count = Math.max(p0Count, inlineFindings.p0Count);
+    p1Count = Math.max(p1Count, inlineFindings.p1Count);
+    if (inlineFindings.p0Count + inlineFindings.p1Count > 0) {
+      hasBlocking = true;
+    }
+  }
   const shaMatch = lastReviewedSha !== null && lastReviewedSha === headSha;
   let [isClean, cleanGateHoldout] = evaluateCleanGate({
     lastReviewedSha,
     headSha,
-    hasBlocking: channel.hasBlocking,
+    hasBlocking,
     confidence,
     ciFailures,
     errored,
@@ -317,15 +337,38 @@ export function probeOnce(
     cleanGateHoldout = "no_reviewer_installed";
   }
 
+  // #3944 Bound item 3: unresolved repo / inline lookup → non-clean on pr:watch.
+  if (repo === null) {
+    if (isClean) {
+      isClean = false;
+      cleanGateHoldout = "inline_repo_unresolved";
+    }
+  } else if (inlineFindings !== null && inlineFindings.error !== null) {
+    isClean = false;
+    if (cleanGateHoldout === null || cleanGateHoldout === "findings_channel") {
+      cleanGateHoldout = "inline_lookup_error";
+    }
+  } else if (
+    inlineFindings !== null &&
+    inlineFindings.error === null &&
+    (inlineFindings.p0Count > 0 || inlineFindings.p1Count > 0)
+  ) {
+    isClean = false;
+    hasBlocking = true;
+    if (cleanGateHoldout === null) {
+      cleanGateHoldout = "has_blocking";
+    }
+  }
+
   return {
     found,
     headSha,
     lastReviewedSha,
     shaMatch,
     confidence,
-    p0Count: channel.p0Count,
-    p1Count: channel.p1Count,
-    hasBlocking: channel.hasBlocking,
+    p0Count,
+    p1Count,
+    hasBlocking,
     errored,
     ciFailures,
     ciFailedChecks,
