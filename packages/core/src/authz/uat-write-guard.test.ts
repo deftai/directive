@@ -35,6 +35,7 @@ function suspendUatLease(
   return r.state;
 }
 
+import { uatCampaignEndSeal } from "./campaign-end-seal.js";
 import {
   listActiveHumanGrants,
   loadAuthzState,
@@ -48,7 +49,6 @@ import {
   classifyGrantWriteIntent,
   evaluateAuthzStateWriteUnderUat,
   evaluateGrantWriteUnderUat,
-  uatCampaignEndSeal,
 } from "./uat-write-guard.js";
 
 const temps: string[] = [];
@@ -267,9 +267,12 @@ describe("store SoT hard-refuse under active UAT (#4233)", () => {
     startUatLease({ projectRoot: root, campaignId: "uat-1", actor: "op" });
     const used = markGrantUsed(root, g.id);
     expect(used?.semantics.usedAt).toBeTruthy();
+    if (used === null || used === undefined) {
+      throw new Error("expected markGrantUsed to return grant");
+    }
     const unspend = saveGrant(root, {
-      ...used!,
-      semantics: { ...used!.semantics, usedAt: null },
+      ...used,
+      semantics: { ...used.semantics, usedAt: null },
     });
     expect(unspend.ok).toBe(false);
     if (!unspend.ok) expect(unspend.code).toBe("uat-authority-field-mutate");

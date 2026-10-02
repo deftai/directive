@@ -3,7 +3,7 @@
  */
 
 import { randomBytes } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
@@ -525,20 +525,51 @@ export type SaveAuthzStateOptions = EvaluateAuthzStateWriteOptions;
  * pin mutate / unsealed campaign-end / other UAT field mutate return ok:false.
  * Sealed campaign-end (CLI after gateConfirm) may flip uat.active true→false only.
  */
+function withAuthzStoreWriteLock<T>(projectRoot: string, fn: () => T): T {
+  const root = resolve(projectRoot);
+  const lockPath = join(root, ".deft", "authz", "locks", "store-write.lock");
+  const lockBody = `${JSON.stringify({ pid: process.pid, startedAt: utcIso() })}\n`;
+  const start = Date.now();
+  for (;;) {
+    try {
+      containedWrite({ root, target: lockPath, data: lockBody, mode: "create" });
+      break;
+    } catch (err) {
+      if (!(err instanceof ContainedWriteError) || err.code !== "CONTAINED_WRITE_EXISTS") {
+        throw err;
+      }
+      if (Date.now() - start > 5000) {
+        throw new Error("authz store write lock timeout");
+      }
+      const waitUntil = Date.now() + 20;
+      while (Date.now() < waitUntil) {
+        /* spin */
+      }
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    try {
+      unlinkSync(lockPath);
+    } catch {
+      // ignore
+    }
+  }
+}
+
 export function saveAuthzState(
   projectRoot: string,
   state: AuthzState,
   options: SaveAuthzStateOptions = {},
 ): AuthzUatWriteDecision {
-  const prev = loadAuthzState(projectRoot);
-  const decision = evaluateAuthzStateWriteUnderUat(prev, state, options);
-  if (!decision.ok) return decision;
-  // Re-check latest disk state before write (optional concurrency DoD; #4233).
-  const prev2 = loadAuthzState(projectRoot);
-  const decision2 = evaluateAuthzStateWriteUnderUat(prev2, state, options);
-  if (!decision2.ok) return decision2;
-  writeJsonContained(projectRoot, authzStatePath(projectRoot), state);
-  return decision2;
+  return withAuthzStoreWriteLock(projectRoot, () => {
+    const prev = loadAuthzState(projectRoot);
+    const decision = evaluateAuthzStateWriteUnderUat(prev, state, options);
+    if (!decision.ok) return decision;
+    writeJsonContained(projectRoot, authzStatePath(projectRoot), state);
+    return decision;
+  });
 }
 
 export function loadGrant(projectRoot: string, grantId: string): HumanOriginGrant | null {
@@ -556,17 +587,57 @@ export function loadGrant(projectRoot: string, grantId: string): HumanOriginGran
  * mutate refuse (returned failure); usedAt-only consume is allowed.
  */
 export function saveGrant(projectRoot: string, grant: HumanOriginGrant): AuthzUatWriteDecision {
-  const state = loadAuthzState(projectRoot);
-  const onDisk = loadGrant(projectRoot, grant.id);
-  const decision = evaluateGrantWriteUnderUat(state, onDisk, grant);
-  if (!decision.ok) return decision;
-  // Re-check latest disk state before write (optional concurrency DoD; #4233).
-  const state2 = loadAuthzState(projectRoot);
-  const onDisk2 = loadGrant(projectRoot, grant.id);
-  const decision2 = evaluateGrantWriteUnderUat(state2, onDisk2, grant);
-  if (!decision2.ok) return decision2;
-  writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
-  return decision2;
+  return withAuthzStoreWriteLock(projectRoot, () => {
+    const state = loadAuthzState(projectRoot);
+    const onDisk = loadGrant(projectRoot, grant.id);
+    const decision = evaluateGrantWriteUnderUat(state, onDisk, grant);
+    if (!decision.ok) return decision;
+    writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
+    return decision;
+  });
+}
+
+/**
+ * Persist a minted grant and optionally pin it in one locked transaction (#4233).
+ * If the pin write would refuse, the grant file is not written (no orphan active grant).
+ * First pin from empty seeds grants that empty-pin currently activates so older
+ * still-valid CLI grants keep authorizing outside UAT.
+ */
+export function persistMintedGrant(
+  projectRoot: string,
+  grant: HumanOriginGrant,
+  options: { readonly pinActive?: boolean } = {},
+): AuthzUatWriteDecision {
+  return withAuthzStoreWriteLock(projectRoot, () => {
+    const state = loadAuthzState(projectRoot);
+    const onDisk = loadGrant(projectRoot, grant.id);
+    const grantDecision = evaluateGrantWriteUnderUat(state, onDisk, grant);
+    if (!grantDecision.ok) return grantDecision;
+
+    if (options.pinActive !== true) {
+      writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
+      return grantDecision;
+    }
+
+    const ids = new Set(state.activeGrantIds);
+    if (ids.size === 0) {
+      for (const active of listActiveHumanGrants(projectRoot, state)) {
+        ids.add(active.id);
+      }
+    }
+    ids.add(grant.id);
+    const nextState: AuthzState = {
+      schemaVersion: 1,
+      uat: state.uat,
+      activeGrantIds: [...ids],
+    };
+    const pinDecision = evaluateAuthzStateWriteUnderUat(state, nextState);
+    if (!pinDecision.ok) return pinDecision;
+
+    writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
+    writeJsonContained(projectRoot, authzStatePath(projectRoot), nextState);
+    return pinDecision;
+  });
 }
 
 export function listGrants(projectRoot: string): HumanOriginGrant[] {
@@ -599,7 +670,7 @@ export function listActiveHumanGrants(
 ): HumanOriginGrant[] {
   const all = listGrants(projectRoot);
   const pin = state.activeGrantIds;
-  const uatActive = state.uat !== null && state.uat.active;
+  const uatActive = state.uat?.active === true;
   // Outside UAT: empty pin = no filter. Under UAT: empty pin = activate none.
   const pinSet = pin.length > 0 ? new Set(pin) : uatActive ? new Set<string>() : null;
   const nowMs = now.getTime();

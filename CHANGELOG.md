@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Authz refuses store writes while UAT is active (#4233).** Grant create, authority-field changes, and pin changes are refused at the store while a UAT lease is active; spending a single-use grant remains allowed, and clearing a spent grant is refused. Ending a campaign requires the CLI human-presence suspend path. An empty active-grant pin activates no grants under UAT. Tracking #4233.
+- **Authz refuses store writes while UAT is active (#4233).** Grant create, authority-field changes, and pin changes are refused at the store while a UAT lease is active; spending a single-use grant remains allowed, and clearing a spent grant is refused. Ending a campaign requires the CLI human-presence suspend path. An empty active-grant pin activates no grants under UAT. Grant mint with an active pin is one store transaction (failed mint leaves no authorizing grant), and the first pin from empty keeps older still-valid grants active outside UAT. Tracking #4233.
 
 ### Removed
 

@@ -154,8 +154,8 @@ export function classifyAuthzStateWriteIntent(
   next: AuthzState,
 ): AuthzStateWriteIntentClass {
   const pinChanged = !sameStringArray(prev.activeGrantIds, next.activeGrantIds);
-  const prevActive = prev.uat !== null && prev.uat.active;
-  const nextActive = next.uat !== null && next.uat.active;
+  const prevActive = prev.uat?.active === true;
+  const nextActive = next.uat?.active === true;
 
   if (prevActive && !nextActive) {
     // Campaign-end may set suspendedAt; pin + campaign identity must stay unchanged.
@@ -211,7 +211,7 @@ export function evaluateGrantWriteUnderUat(
   incoming: HumanOriginGrant,
 ): AuthzUatWriteDecision {
   const intent = classifyGrantWriteIntent(onDisk, incoming);
-  if (state.uat === null || !state.uat.active) {
+  if (state.uat?.active !== true) {
     return { ok: true, intent };
   }
   if (intent === "grant-create") {
@@ -241,7 +241,7 @@ export function evaluateAuthzStateWriteUnderUat(
   options: EvaluateAuthzStateWriteOptions = {},
 ): AuthzUatWriteDecision {
   const intent = classifyAuthzStateWriteIntent(prev, next);
-  const prevActive = prev.uat !== null && prev.uat.active;
+  const prevActive = prev.uat?.active === true;
   if (!prevActive) {
     return { ok: true, intent };
   }

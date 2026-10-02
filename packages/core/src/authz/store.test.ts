@@ -7,7 +7,7 @@ import {
   startUatLease as startUatLeaseResult,
   suspendUatLease as suspendUatLeaseResult,
 } from "./actions.js";
-import { uatCampaignEndSeal } from "./uat-write-guard.js";
+import { uatCampaignEndSeal } from "./campaign-end-seal.js";
 
 /** Test unwraps for #4233 Result-returning actions (throws free in *.test.ts). */
 function mintHumanOriginGrant(

@@ -13,6 +13,7 @@ import {
   listGrants,
   loadAuthzState,
   mintOperatorOrigin,
+  persistMintedGrant,
   saveAuthzState,
   saveGrant,
   utcIso,
@@ -187,22 +188,13 @@ export function mintHumanOriginGrant(input: MintGrantInput): MintGrantResult {
       revokedAt: null,
     },
   };
-  const saved = saveGrant(input.projectRoot, grant);
+  // Grant + optional pin are one store transaction: pin refuse does not leave
+  // an authorizing grant on disk; empty→first pin seeds older active grants (#4233).
+  const saved = persistMintedGrant(input.projectRoot, grant, {
+    pinActive: input.pinActive === true,
+  });
   if (!saved.ok) {
     return { ok: false, code: saved.code, reason: saved.reason };
-  }
-  if (input.pinActive) {
-    const prev = loadAuthzState(input.projectRoot);
-    const ids = new Set(prev.activeGrantIds);
-    ids.add(grant.id);
-    const pinned = saveAuthzState(input.projectRoot, {
-      schemaVersion: 1,
-      uat: prev.uat,
-      activeGrantIds: [...ids],
-    });
-    if (!pinned.ok) {
-      return { ok: false, code: pinned.code, reason: pinned.reason };
-    }
   }
   return { ok: true, grant };
 }

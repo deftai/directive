@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -9,10 +9,11 @@ import {
   startUatLease as startUatLeaseResult,
   suspendUatLease as suspendUatLeaseResult,
 } from "./actions.js";
+import { uatCampaignEndSeal } from "./campaign-end-seal.js";
 import { describeScope, shouldConsumeSingleUseGrant } from "./evaluate.js";
 import { isHumanOriginGrant } from "./origin.js";
 import { authzGrantPath } from "./paths.js";
-import { uatCampaignEndSeal } from "./uat-write-guard.js";
+import { listActiveHumanGrants, loadAuthzState, loadGrant } from "./store.js";
 
 /** Test unwraps for #4233 Result-returning actions (throws free in *.test.ts). */
 function mintHumanOriginGrant(
@@ -114,6 +115,49 @@ describe("authz actions + helpers (#2944)", () => {
 
     const revoked = revokeGrant({ projectRoot: root, grantId: g.id });
     expect(revoked?.semantics.revokedAt).toBeTruthy();
+  });
+
+  it("first pinActive mint seeds older empty-pin grants (#4233)", () => {
+    const root = tempRoot();
+    mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      cohortId: "older",
+      grantId: "grant-older",
+      pinActive: false,
+    });
+    expect(loadAuthzState(root).activeGrantIds).toEqual([]);
+    expect(listActiveHumanGrants(root).some((g) => g.id === "grant-older")).toBe(true);
+
+    mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["push"],
+      cohortId: "newer",
+      grantId: "grant-newer",
+      pinActive: true,
+    });
+    const pin = loadAuthzState(root).activeGrantIds;
+    expect(pin).toContain("grant-older");
+    expect(pin).toContain("grant-newer");
+    const activeIds = listActiveHumanGrants(root).map((g) => g.id);
+    expect(activeIds).toContain("grant-older");
+    expect(activeIds).toContain("grant-newer");
+  });
+
+  it("failed pinActive mint under UAT leaves no grant on disk (#4233)", () => {
+    const root = tempRoot();
+    startUatLease({ projectRoot: root, campaignId: "uat-1", actor: "op" });
+    const minted = mintHumanOriginGrantResult({
+      projectRoot: root,
+      operations: ["edit"],
+      cohortId: "c1",
+      grantId: "grant-orphan",
+      pinActive: true,
+    });
+    expect(minted.ok).toBe(false);
+    expect(loadGrant(root, "grant-orphan")).toBeNull();
+    expect(existsSync(authzGrantPath(root, "grant-orphan"))).toBe(false);
+    expect(loadAuthzState(root).activeGrantIds).not.toContain("grant-orphan");
   });
 
   it("describeScope and grantSatisfies helpers", () => {
