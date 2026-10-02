@@ -12,7 +12,7 @@ import {
 } from "./closed-verb-gate.js";
 import { EXIT_OK, EXIT_VIOLATION } from "./constants.js";
 import { runPipeline } from "./pipeline.js";
-import { seedReleaseProjectDir } from "./pipeline-fixture.js";
+import { paidSkipCiLedgerSeam, seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { passReleaseInputs } from "./release-input.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 
@@ -79,6 +79,7 @@ function recordingSeams(
   const seams: ReleaseSeams & { gitMutations: string[][] } = {
     gitMutations,
     validateReleaseInputs: passReleaseInputs,
+    probeSkipCiIncidentLedger: paidSkipCiLedgerSeam,
     spawnText: (_cmd, args) => {
       const argv = [...args];
       if (argv.includes("tag") || argv.includes("push")) {

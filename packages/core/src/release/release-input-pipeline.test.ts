@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { EXIT_VIOLATION } from "./constants.js";
 import { runPipeline } from "./pipeline.js";
+import { paidSkipCiLedgerSeam } from "./pipeline-fixture.js";
 import { passReleaseInputs, type ReleaseInputPhase } from "./release-input.js";
 import type { ReleaseConfig } from "./types.js";
 
@@ -130,6 +131,7 @@ describe("pipeline release-input hook sites (#4317)", () => {
     try {
       const rc = runPipeline(config(root, { allowVbriefDrift: true, allowDirty: true }), {
         todayIso: () => "2026-04-28",
+        probeSkipCiIncidentLedger: paidSkipCiLedgerSeam,
         spawnText: (_c, a) => {
           if (a.includes("status")) return { status: 0, stdout: " M x\n", stderr: "" };
           if (a.includes("branch")) return { status: 0, stdout: "master\n", stderr: "" };
@@ -167,6 +169,7 @@ describe("pipeline release-input hook sites (#4317)", () => {
     try {
       const rc = runPipeline(config(root, { skipCi: true }), {
         todayIso: () => "2026-04-28",
+        probeSkipCiIncidentLedger: paidSkipCiLedgerSeam,
         spawnText: (_c, a) => {
           if (a.includes("status")) return { status: 0, stdout: "", stderr: "" };
           if (a.includes("branch")) return { status: 0, stdout: "master\n", stderr: "" };

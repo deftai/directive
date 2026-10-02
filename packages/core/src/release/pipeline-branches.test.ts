@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createGithubRelease, verifyReleaseDraft } from "./gh.js";
 import { checkGitClean, commitReleaseArtifacts, createTag, pushRelease } from "./git.js";
 import { runPipeline } from "./pipeline.js";
-import { seedReleaseProjectDir } from "./pipeline-fixture.js";
+import { paidSkipCiLedgerSeam, seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { passReleaseInputs } from "./release-input.js";
 import { spawnText } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
@@ -14,6 +14,7 @@ const CHANGELOG = `## [Unreleased]\n\n### Added\n- x\n`;
 function baseSeams(overrides: ReleaseSeams = {}): ReleaseSeams {
   return {
     validateReleaseInputs: passReleaseInputs,
+    probeSkipCiIncidentLedger: paidSkipCiLedgerSeam,
     spawnText: (_c, a) => {
       if (a.includes("status")) return { status: 0, stdout: "", stderr: "" };
       if (a.includes("branch")) return { status: 0, stdout: "master\n", stderr: "" };

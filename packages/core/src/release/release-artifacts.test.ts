@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { EXIT_VIOLATION } from "./constants.js";
 import { runPipeline } from "./pipeline.js";
+import { paidSkipCiLedgerSeam } from "./pipeline-fixture.js";
 import {
   closePreparedArtifacts,
   prepareReleaseArtifacts,
@@ -79,6 +80,7 @@ function pipelineConfig(root: string, overrides: Partial<ReleaseConfig> = {}): R
 function seams(): ReleaseSeams {
   return {
     validateReleaseInputs: passReleaseInputs,
+    probeSkipCiIncidentLedger: paidSkipCiLedgerSeam,
     todayIso: () => "2026-04-28",
     spawnText: (_c, a) => {
       if (a.includes("status")) return { status: 0, stdout: "", stderr: "" };

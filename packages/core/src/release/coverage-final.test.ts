@@ -8,7 +8,7 @@ import {
   runPipeline,
   suiteExpectedToWriteLocalCoverage,
 } from "./pipeline.js";
-import { seedReleaseProjectDir } from "./pipeline-fixture.js";
+import { paidSkipCiLedgerSeam, seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { passReleaseInputs } from "./release-input.js";
 import { defaultWhich } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
@@ -45,6 +45,7 @@ describe("pipeline write path", () => {
   it("writes changelog on happy path", () => {
     const seams: ReleaseSeams = {
       validateReleaseInputs: passReleaseInputs,
+      probeSkipCiIncidentLedger: paidSkipCiLedgerSeam,
       spawnText: (_c, a) => {
         if (a.includes("status")) return { status: 0, stdout: "", stderr: "" };
         if (a.includes("branch")) return { status: 0, stdout: "master\n", stderr: "" };
