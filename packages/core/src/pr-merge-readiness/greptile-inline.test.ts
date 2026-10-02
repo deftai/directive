@@ -61,6 +61,7 @@ describe("evaluateInlineReviewThreads", () => {
       p1Count: 1,
       unresolvedThreadCount: 1,
       error: null,
+      resolutionKnown: true,
     });
   });
 
@@ -312,6 +313,7 @@ describe("fetchGreptilePullCommentsRest (#4289 / #3944)", () => {
     const findings = fetchGreptilePullCommentsRest(4292, "deftai/directive", HEAD, runGh);
     expect(findings.error).toBeNull();
     expect(findings.p1Count).toBeGreaterThanOrEqual(1);
+    expect(findings.resolutionKnown).toBe(false);
   });
 
   it("ignores REST User greptile-apps (not the Bot account) (#3944)", () => {

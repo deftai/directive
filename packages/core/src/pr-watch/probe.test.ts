@@ -599,6 +599,35 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
     expect(probe.cleanGateHoldout).toBe("has_blocking");
   });
 
+  it("thin HTML REST fallback does not shaMatch when summary SHA is unknown (#3944)", () => {
+    // GraphQL fail → REST may count resolved comments (no isResolved). Without a
+    // known summary SHA, do not force shaMatch / false NEW_P0_P1.
+    const probe = probeOnce(
+      4292,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: OTHER_SHA,
+        body: BODY_PR4292_THIN_HTML,
+        checkRuns: GREEN_CI,
+        graphqlError: true,
+        pullComments: [
+          {
+            user: { login: "greptile-apps[bot]" },
+            body: BODY_PR4292_INLINE_P1,
+            commit_id: OTHER_SHA,
+            original_commit_id: OTHER_SHA,
+          },
+        ],
+      }),
+    );
+    expect(probe.error).toBeNull();
+    expect(probe.lastReviewedSha).toBeNull();
+    expect(probe.hasBlocking).toBe(true);
+    expect(probe.p1Count).toBeGreaterThanOrEqual(1);
+    expect(probe.shaMatch).toBe(false);
+    expect(probe.isClean).toBe(false);
+  });
+
   it("stale summary SHA + HEAD-anchored inline P1 → shaMatch + hasBlocking (#3944)", () => {
     // Rolling summary still names FIXTURE_SHA; live HEAD is OTHER_SHA with an
     // unresolved greptile-apps inline P1 on originalCommit=OTHER_SHA.

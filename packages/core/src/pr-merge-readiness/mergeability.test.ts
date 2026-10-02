@@ -220,6 +220,7 @@ describe("verdictBlockIsSoftOnly", () => {
         p1Count: 1,
         unresolvedThreadCount: 1,
         error: null,
+        resolutionKnown: true,
       }),
     ).toBe(false);
   });
@@ -231,6 +232,7 @@ describe("verdictBlockIsSoftOnly", () => {
         p1Count: 0,
         unresolvedThreadCount: 0,
         error: "graphql reviewThreads failed",
+        resolutionKnown: true,
       }),
     ).toBe(false);
   });

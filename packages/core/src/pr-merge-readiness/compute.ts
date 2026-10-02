@@ -357,6 +357,7 @@ function loadInlineGreptileFindings(
       unresolvedThreadCount: 0,
       error:
         resolved.error || "repo unresolved for inline reviewThreads lookup; pass --repo OWNER/REPO",
+      resolutionKnown: true,
     };
   }
   if (thinHtmlSummary) {

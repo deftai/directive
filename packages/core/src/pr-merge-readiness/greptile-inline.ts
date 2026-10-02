@@ -8,6 +8,11 @@ export interface InlineGreptileFindings {
   readonly p1Count: number;
   readonly unresolvedThreadCount: number;
   readonly error: string | null;
+  /**
+   * True when counts came from GraphQL reviewThreads (isResolved/isOutdated known).
+   * False for REST pulls/comments fallback — REST has no resolution state (#3944).
+   */
+  readonly resolutionKnown: boolean;
 }
 
 export interface InlineReviewComment {
@@ -58,6 +63,7 @@ const EMPTY_INLINE: InlineGreptileFindings = {
   p1Count: 0,
   unresolvedThreadCount: 0,
   error: null,
+  resolutionKnown: true,
 };
 
 /** True when a review comment commit SHA matches the current PR head (#2620 AC-2). */
@@ -71,6 +77,7 @@ export function inlineFindingsToDict(findings: InlineGreptileFindings): Record<s
     p1_count: findings.p1Count,
     unresolved_thread_count: findings.unresolvedThreadCount,
     error: findings.error,
+    resolution_known: findings.resolutionKnown,
   };
 }
 
@@ -242,7 +249,7 @@ export function evaluateInlineReviewThreads(
     }
   }
 
-  return { p0Count, p1Count, unresolvedThreadCount, error: null };
+  return { p0Count, p1Count, unresolvedThreadCount, error: null, resolutionKnown: true };
 }
 
 /** Fetch unresolved Greptile inline P0/P1 on the current HEAD via reviewThreads GraphQL (#2620). */
@@ -430,7 +437,9 @@ function scoreRestPullComments(items: readonly unknown[], headSha: string): Inli
       unresolvedThreadCount += 1;
     }
   }
-  return { p0Count, p1Count, unresolvedThreadCount, error: null };
+  // REST has no isResolved — callers must not shaMatch on these alone when
+  // the rolling summary SHA is stale (#3944 / #4289).
+  return { p0Count, p1Count, unresolvedThreadCount, error: null, resolutionKnown: false };
 }
 
 /** Fetch Greptile inline P0/P1 via REST pulls comments (paginated; no GraphQL) (#4289). */
@@ -449,12 +458,13 @@ export function fetchGreptilePullCommentsRest(
   if (rc.returncode !== 0) {
     return {
       ...EMPTY_INLINE,
+      resolutionKnown: false,
       error: `REST pulls comments failed: ${rc.stderr.trim() || rc.stdout.trim()}`,
     };
   }
   const parsed = parsePaginatedRestComments(rc.stdout);
   if (parsed.error !== null) {
-    return { ...EMPTY_INLINE, error: parsed.error };
+    return { ...EMPTY_INLINE, resolutionKnown: false, error: parsed.error };
   }
   return scoreRestPullComments(parsed.items, headSha);
 }

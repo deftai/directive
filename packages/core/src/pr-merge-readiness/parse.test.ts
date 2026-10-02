@@ -239,7 +239,7 @@ describe("evaluateGates", () => {
         p0Count: 0,
         p1Count: 0,
       }),
-      { p0Count: 0, p1Count: 0, unresolvedThreadCount: 0, error: null },
+      { p0Count: 0, p1Count: 0, unresolvedThreadCount: 0, error: null, resolutionKnown: true },
       { greptileReviewTerminalOnHead: true, commentsAdded: 0 },
     );
     expect(failures).toEqual([]);
@@ -267,7 +267,7 @@ describe("evaluateGates", () => {
         p0Count: 0,
         p1Count: 0,
       }),
-      { p0Count: 0, p1Count: 1, unresolvedThreadCount: 1, error: null },
+      { p0Count: 0, p1Count: 1, unresolvedThreadCount: 1, error: null, resolutionKnown: true },
       { greptileReviewTerminalOnHead: true, commentsAdded: 1 },
     );
     expect(failures.some((f) => f.includes("findings channel"))).toBe(true);
@@ -284,7 +284,13 @@ describe("evaluateGates", () => {
         p0Count: 0,
         p1Count: 0,
       }),
-      { p0Count: 0, p1Count: 0, unresolvedThreadCount: 0, error: "graphql rate limit" },
+      {
+        p0Count: 0,
+        p1Count: 0,
+        unresolvedThreadCount: 0,
+        error: "graphql rate limit",
+        resolutionKnown: true,
+      },
       { greptileReviewTerminalOnHead: true, commentsAdded: 1 },
     );
     expect(failures.some((f) => f.includes("0 P0 and 0 P1"))).toBe(false);
@@ -319,6 +325,7 @@ describe("evaluateGates", () => {
       p1Count: 1,
       unresolvedThreadCount: 1,
       error: null,
+      resolutionKnown: true,
     });
     expect(failures.some((f) => f.includes("unresolved inline P1"))).toBe(true);
   });
@@ -329,6 +336,7 @@ describe("evaluateGates", () => {
       p1Count: 0,
       unresolvedThreadCount: 0,
       error: "graphql reviewThreads failed: rate limit",
+      resolutionKnown: true,
     });
     expect(
       failures.some((f) => f.includes("Could not verify Greptile inline review comments")),
@@ -345,6 +353,7 @@ describe("evaluateGates", () => {
         p1Count: 1,
         unresolvedThreadCount: 1,
         error: null,
+        resolutionKnown: true,
       },
     );
     expect(failures.some((f) => f.includes("unresolved inline P1"))).toBe(true);

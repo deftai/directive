@@ -296,14 +296,16 @@ export function probeOnce(
     }
   }
   // Inline fetch already filters on originalCommit vs HEAD. When those counts
-  // are > 0, shaMatch the finding commit — not only the rolling summary SHA —
-  // so watch can emit NEW_P0_P1 instead of pending / SHA-stall (#3944).
+  // are > 0 and resolution is known (GraphQL), shaMatch the finding commit —
+  // not only the rolling summary SHA — so watch can emit NEW_P0_P1 instead of
+  // pending / SHA-stall. REST-only thin-HTML lacks isResolved: do not shaMatch
+  // from that path when the summary SHA is stale (#3944).
   const inlineHeadBlocking =
     inlineFindings !== null &&
     inlineFindings.error === null &&
+    inlineFindings.resolutionKnown &&
     inlineFindings.p0Count + inlineFindings.p1Count > 0;
-  const shaMatch =
-    (lastReviewedSha !== null && lastReviewedSha === headSha) || inlineHeadBlocking;
+  const shaMatch = (lastReviewedSha !== null && lastReviewedSha === headSha) || inlineHeadBlocking;
   let [isClean, cleanGateHoldout] = evaluateCleanGate({
     // Currency from HEAD-anchored inline: gate on headSha so holdout is
     // has_blocking, not sha_match, while lastReviewedSha stays the summary.
