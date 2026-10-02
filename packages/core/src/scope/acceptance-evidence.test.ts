@@ -735,17 +735,26 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
     expect(gate.reports[0]?.outcome).not.toBe("already_terminal");
   });
 
-  it("empty and done stay outside the landing-set refuse (#4879 clause 3)", () => {
-    for (const status of ["", "done"] as const) {
+  it("missing or unrecognized item.status no longer skips typed provenance (#3819)", () => {
+    for (const status of ["", "done", "bogus"] as const) {
       const gate = evaluateAcceptanceEvidenceGate({
         items: [{ title: `outside ${status || "empty"}`, status }],
       });
       expect({ status, ok: gate.ok, outcome: gate.reports[0]?.outcome }).toEqual({
         status,
-        ok: true,
-        outcome: "already_terminal",
+        ok: false,
+        outcome: "missing",
       });
+      expect(gate.reports[0]?.outcome).not.toBe("already_terminal");
     }
+  });
+
+  it("recognized fail/cancel/historical terminals still skip when landing evidence is present (#3819)", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [withEvidence({ title: "failed with evidence", status: "failed" })],
+    });
+    expect(gate.ok).toBe(true);
+    expect(gate.reports[0]?.outcome).toBe("already_terminal");
   });
 
   it("scope:complete refuses pre-marked completed without typed evidence (#4879)", () => {

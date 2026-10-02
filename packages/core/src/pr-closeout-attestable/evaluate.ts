@@ -16,6 +16,10 @@
  * `verify:completed-tracked`, orphan-active triage, and a human reading the PR
  * (#5120). It does not mint evidence and does not `git fetch`.
  * complete-cohort dry-run vs live provenance timing is follow-up, not P1 relief.
+ *
+ * #3819 item-status allowlist inversion is inherited here via that shared gate
+ * (no carve-out): missing/unrecognized item.status no longer skips typed
+ * provenance at closeout either.
  */
 
 import { existsSync } from "node:fs";

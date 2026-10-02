@@ -116,6 +116,28 @@ describe("pr-closeout-attestable evaluate", () => {
     expect(result.findings[0]?.unattested).toHaveLength(5);
   });
 
+  it("inherits #3819 missing/unrecognized item.status inversion via the shared gate", () => {
+    const root = makeRepo();
+    writeBrief(root, "2026-10-02-3819-closeout.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(3819)],
+      items: [
+        { title: "empty status", status: "" },
+        { title: "unrecognized status", status: "done" },
+      ],
+    });
+
+    const result = evaluate(root, 5260, opts(closing(3819)));
+
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.issue).toBe(3819);
+    expect(result.findings[0]?.unattested).toHaveLength(2);
+    expect(
+      result.findings[0]?.unattested.every((row) => !row.detail.includes("already_terminal")),
+    ).toBe(true);
+  });
+
   it("passes when every non-terminal criterion carries evidence", () => {
     const root = makeRepo();
     writeBrief(root, "2026-08-26-3609-story.xbrief.json", {

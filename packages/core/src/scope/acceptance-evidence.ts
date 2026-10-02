@@ -127,9 +127,9 @@ export const MERGE_POINTER_SHAPE_REMEDIATION =
 const NON_TERMINAL_ITEM_STATUSES = new Set(["pending", "proposed", "running"]);
 
 /**
- * Non-clause statuses that currently land in completed/ via the already_terminal
- * skip when typed evidence is absent (#4879 Prefer-A / lean 5781675816).
- * Empty and done stay outside this list; completed-folder consistency refuses them.
+ * Recognized fail/cancel/historical terminals that may use the already_terminal
+ * skip after landing-set evidence checks (#4879 Prefer-A / lean 5781675816 / #3819).
+ * Missing or unrecognized statuses are not in this set and no longer default-open.
  */
 const COMPLETED_LANDING_WITHOUT_EVIDENCE_STATUSES = new Set([
   "completed",
@@ -488,7 +488,11 @@ function parseEvidence(
   };
 }
 
-function parseDisposition(raw: unknown):
+/**
+ * Parse a typed acceptance disposition and require human-origin provenance (#3240 / #3819).
+ * Shared by scope:complete and evaluateCompletedWriteGuard — do not fork a second parser.
+ */
+export function parseDisposition(raw: unknown):
   | {
       ok: true;
       record: AcceptanceDispositionRecord;
@@ -1377,7 +1381,7 @@ function evaluateOneItem(
     // #4879 Prefer-A: landing-set statuses cannot enter completed/ without typed
     // evidence. Only historical kind:uat may skip pointer-shape (#4563); other
     // kinds keep requirePointerShape. Empty {} / malformed do not count
-    // (Greptile P1). empty/done stay outside this list.
+    // (Greptile P1).
     if (COMPLETED_LANDING_WITHOUT_EVIDENCE_STATUSES.has(status)) {
       const landingFields = readNamespacedAcceptanceFields(item);
       let landingEvidence: ReturnType<typeof parseEvidence> | null = null;
@@ -1412,13 +1416,17 @@ function evaluateOneItem(
             `${shapeHint}${bareHint} missing typed evidence blocks completed/ entry (#4879)`,
         };
       }
+      // Recognized fail/cancel/historical terminals keep the skip once landing
+      // evidence is present — do not demand a disposition on every terminal (#3819).
+      return {
+        path,
+        title,
+        outcome: "already_terminal",
+        detail: `status=${status || "(empty)"} (not advanced; typed evidence not re-checked)`,
+      };
     }
-    return {
-      path,
-      title,
-      outcome: "already_terminal",
-      detail: `status=${status || "(empty)"} (not advanced; typed evidence not re-checked)`,
-    };
+    // #3819: missing or unrecognized item.status no longer default-open
+    // already_terminal. Fall through to typed evidence / disposition checks.
   }
 
   const fields = readNamespacedAcceptanceFields(item);
