@@ -84,10 +84,19 @@ export function resolveLocalHeadSha(projectRoot: string): string | null {
   return /^[0-9a-f]{7,40}$/i.test(sha) ? sha : null;
 }
 
+/** Raised when `git worktree list` cannot be verified (not the same as no match). */
+export class WorktreeLookupError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "WorktreeLookupError";
+  }
+}
+
 /**
  * First linked worktree (same common dir) whose HEAD matches `sha`.
  * Used when cascade/`pr:merge-ready` runs from primary but a dest worktree
- * already holds the PR head.
+ * already holds the PR head. Throws WorktreeLookupError when the list cannot
+ * be read; returns null only when the list is verified and no match exists.
  */
 export function findWorktreeAtSha(projectRoot: string, sha: string): string | null {
   const result = spawnSync("git", ["-C", projectRoot, "worktree", "list", "--porcelain"], {
@@ -95,7 +104,11 @@ export function findWorktreeAtSha(projectRoot: string, sha: string): string | nu
     windowsHide: true,
   });
   if (result.error !== undefined || (result.status ?? 1) !== 0) {
-    return null;
+    const detail =
+      result.error !== undefined
+        ? result.error.message
+        : `git worktree list exited ${String(result.status ?? 1)}`;
+    throw new WorktreeLookupError(`cannot list linked worktrees under ${projectRoot} (${detail})`);
   }
   const text = typeof result.stdout === "string" ? result.stdout : "";
   let currentPath: string | null = null;
@@ -238,7 +251,18 @@ export function assertWorkingTreeIsPrHead(
   let resolvedProjectRoot: string | undefined;
 
   if (!shasMatch(localHead, prHead)) {
-    const alt = resolveWorktree(projectRoot, prHead.trim());
+    let alt: string | null;
+    try {
+      alt = resolveWorktree(projectRoot, prHead.trim());
+    } catch (err: unknown) {
+      const detail = err instanceof Error ? err.message : String(err);
+      return {
+        ok: false,
+        message:
+          `${detail}. Refusing to certify briefs when the PR-head worktree lookup ` +
+          "is unverified — fix git and retry.",
+      };
+    }
     if (alt === null || alt.trim().length === 0) {
       return {
         ok: false,

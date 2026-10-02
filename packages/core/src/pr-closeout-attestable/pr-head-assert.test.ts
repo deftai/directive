@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { assertWorkingTreeIsPrHead, fetchPrHeadShaViaApi, shasMatch } from "./pr-head-assert.js";
+import {
+  assertWorkingTreeIsPrHead,
+  fetchPrHeadShaViaApi,
+  shasMatch,
+  WorktreeLookupError,
+} from "./pr-head-assert.js";
 
 describe("pr-head-assert helpers (#3875)", () => {
   it("matches full and abbreviated SHAs either way", () => {
@@ -38,11 +43,39 @@ describe("pr-head-assert helpers (#3875)", () => {
       () => {
         throw new Error("runGh must not be called");
       },
-      { localHeadSha: "a".repeat(40), prHeadSha: "b".repeat(40) },
+      {
+        localHeadSha: "a".repeat(40),
+        prHeadSha: "b".repeat(40),
+        resolveWorktreeAtSha: () => null,
+      },
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.message).toContain("is not PR #7 head");
+    }
+  });
+
+  it("assertWorkingTreeIsPrHead fails closed when worktree list errors", () => {
+    const result = assertWorkingTreeIsPrHead(
+      "/tmp/unused",
+      7,
+      "deftai/directive",
+      () => {
+        throw new Error("runGh must not be called");
+      },
+      {
+        localHeadSha: "a".repeat(40),
+        prHeadSha: "b".repeat(40),
+        resolveWorktreeAtSha: () => {
+          throw new WorktreeLookupError(
+            "cannot list linked worktrees under /tmp/unused (git worktree list exited 128)",
+          );
+        },
+      },
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message).toMatch(/cannot list linked worktrees|unverified/);
     }
   });
 
