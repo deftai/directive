@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Workspace requirement_sources staleness at intake + verify:ac/completion (#3920).** Stamp `plan.metadata.requirement_sources[]` `{path, content_sha256, recorded_at}` for workspace artifacts acceptance derivation already read; re-hash at verify:ac and completion; verb-side autofix re-derives/re-stamps/reports on digest change; missing source, completed-item conflict, and post-`scope:complete` change fail closed. Acceptance telemetry carries `sources_rechecked` / `sources_changed`. Tracking #3920.
 - **Panel handback checks before design-critique success (#3979).** A child report only counts when the parent can see the matching critic comment on the issue thread. Tracking #3979.
 - **Gate reachability on pull_request for `verify:consumer-check-contract` (#4015).** Parses each consumer workflow as a YAML job graph (reuses existing run/script extractors; no concatenation). Warns on skippable gate jobs (`if:` false on PR, `continue-on-error: true`, matrix exclude) and workflow `paths` / `paths-ignore` / `branches` filters (pending-required-check consequence). Accepts `if: always()` and PR-true-by-construction; `uses:` / undecidable `github.event.*`/`vars`/`secrets` report unknown (never clean). Warn by default; requiredness stays on #4012. Tracking #4015.
 

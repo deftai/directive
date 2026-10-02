@@ -201,6 +201,10 @@ export interface AcceptanceRunSummaryPayload {
   readonly behavioral_clause_count?: number;
   /** Statement sentences that are neither a clause nor an explicit confession (#3550). */
   readonly unmapped_sentence_count?: number;
+  /** Workspace requirement_sources re-hashed this walk (#3920). */
+  readonly sources_rechecked?: number;
+  /** Workspace requirement_sources whose digest changed this walk (#3920). */
+  readonly sources_changed?: number;
 }
 
 /** Intake-time stamp: which rung locked, whether commands were stated, counts (#3323). */

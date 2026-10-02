@@ -61,3 +61,22 @@ export {
   unresolvedMethodChangePasses,
   type VerificationAttempt,
 } from "./flag.js";
+export {
+  evaluateRequirementSourcesStaleness,
+  type EvaluateRequirementSourcesOptions,
+  hashRequirementContent,
+  normalizeRequirementSourcePath,
+  readRequirementSources,
+  type RequirementSource,
+  type RequirementSourceDelta,
+  type RequirementSourcesFail,
+  type RequirementSourcesOk,
+  type RequirementSourcesVerdict,
+  REQUIREMENT_SOURCE_COMPLETED_CONFLICT_REMEDIATION,
+  REQUIREMENT_SOURCE_MISSING_REMEDIATION,
+  REQUIREMENT_SOURCE_POST_COMPLETE_REMEDIATION,
+  REQUIREMENT_SOURCES_KEY,
+  stampRequirementSources,
+  type WorkspaceSourceInput,
+  writeRequirementSourcesAutofixToXbrief,
+} from "./requirement-sources.js";

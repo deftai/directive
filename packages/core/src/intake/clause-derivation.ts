@@ -21,6 +21,10 @@ import {
   serializeAcceptanceClauses,
   stripInlineMarkdownBold,
 } from "../verify-ac/clauses.js";
+import {
+  stampRequirementSources,
+  type WorkspaceSourceInput,
+} from "../verify-ac/requirement-sources.js";
 
 /** One-line remediation when a stamp has no statement-traceable clause (#3398). */
 export const CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION =
@@ -416,7 +420,13 @@ function formatAmbiguousClauseNotice(clauses: readonly AcceptanceClause[]): stri
  */
 export function applyClauseDerivationToPlan(
   plan: Record<string, unknown>,
-  options: { readonly projectRoot?: string; readonly emitStamp?: boolean } = {},
+  options: {
+    readonly projectRoot?: string;
+    readonly emitStamp?: boolean;
+    /** Workspace artifacts this stamp already read (#3920). */
+    readonly workspaceSources?: readonly WorkspaceSourceInput[];
+    readonly now?: () => string;
+  } = {},
 ): ClauseDerivationResult {
   if (!needsClauseDerivation(plan.acceptance)) {
     return {
@@ -455,6 +465,13 @@ export function applyClauseDerivationToPlan(
     derived_reason: `derived ${clauses.length} independently testable clauses from the task statement before product edit (#3323)`,
     clauses: serializeAcceptanceClauses(clauses),
   };
+  const workspaceSources = options.workspaceSources ?? [];
+  if (workspaceSources.length > 0 && options.projectRoot !== undefined) {
+    const stamped = stampRequirementSources(plan, options.projectRoot, workspaceSources, {
+      now: options.now,
+    });
+    plan.metadata = stamped.metadata;
+  }
   const quality = applyClauseQualityToPlan(plan);
   if (!quality.applied) {
     const existing = asRecord(previousAcceptance);

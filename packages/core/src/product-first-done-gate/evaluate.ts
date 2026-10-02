@@ -67,6 +67,10 @@ import {
   mergeOracleVerdict,
 } from "../verify-ac/evaluate.js";
 import {
+  evaluateRequirementSourcesStaleness,
+  writeRequirementSourcesAutofixToXbrief,
+} from "../verify-ac/requirement-sources.js";
+import {
   digestAdmittedSourceSentences,
   extractAdmittedSourceSentencesFromText,
   readAdmittedSourceDigest,
@@ -115,6 +119,10 @@ export interface VerifyAcResult extends LiteralAcceptanceGateResult {
   readonly unmappedSentenceCount?: number;
   /** Reuse-gate miss cause when servedFrom is executed (#3558). */
   readonly missReason?: string;
+  /** Workspace requirement_sources re-hashed this walk (#3920). */
+  readonly sourcesRechecked?: number;
+  /** Workspace requirement_sources whose digest changed this walk (#3920). */
+  readonly sourcesChanged?: number;
 }
 
 export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOptions {
@@ -204,6 +212,17 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
    * evaluateVerifyAcFromPath — so scope:complete cannot skip missing-pin recovery.
    */
   readonly xbriefPath?: string | null;
+  /**
+   * Persist requirement_sources autofix restamp (#3920). Path helper writes the
+   * xBRIEF; tests may inject. Default: in-memory plan only.
+   */
+  readonly persistRequirementSourcesAutofix?: (plan: Record<string, unknown>) => void;
+  /** Internal: stamped by evaluateVerifyAcFromPlan after the #3920 re-hash. */
+  readonly requirementSourcesTelemetry?: {
+    readonly sourcesRechecked: number;
+    readonly sourcesChanged: number;
+    readonly autofixMessage?: string;
+  };
 }
 
 /** Cause when an admitted-source identity left the inspected clause set (#5055). */
@@ -629,11 +648,38 @@ function resolveAdmittedSourceGitPin(
  * Evaluate product AC from an in-memory plan.
  */
 export function evaluateVerifyAcFromPlan(
-  plan: Record<string, unknown>,
+  planInput: Record<string, unknown>,
   options: EvaluateVerifyAcOptions = {},
 ): VerifyAcResult {
-  const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
   const projectRootEarly = resolve(options.projectRoot ?? process.cwd());
+  const sourcesVerdict = evaluateRequirementSourcesStaleness(planInput, projectRootEarly, {
+    writePlan: options.persistRequirementSourcesAutofix,
+  });
+  if (!sourcesVerdict.ok) {
+    const quiet = options.quiet === true;
+    return applyOracle(
+      {
+        ok: false,
+        code: 1,
+        message: quiet
+          ? ""
+          : `${sourcesVerdict.message}\n  Remediation: ${sourcesVerdict.remediation}`,
+        commands: [],
+        runs: [],
+        sourceRung: readPlanAcceptance(planInput).source_rung,
+        noneStated: readPlanAcceptance(planInput).none_stated,
+        acceptance: readPlanAcceptance(planInput),
+        resolution: "fail",
+        resolvedCommandCount: 0,
+        sourcesRechecked: sourcesVerdict.sources_rechecked,
+        sourcesChanged: sourcesVerdict.sources_changed,
+      },
+      options,
+      planInput,
+    );
+  }
+  const plan = sourcesVerdict.plan;
+  const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
   const admittedSourceMergeBase = resolveAdmittedSourceGitPin(plan, options, projectRootEarly);
   const optionsWithScope: EvaluateVerifyAcOptions = {
     ...options,
@@ -642,6 +688,13 @@ export function evaluateVerifyAcFromPlan(
     observedAcceptance:
       options.observedAcceptance !== undefined ? options.observedAcceptance : plan.acceptance,
     ...(admittedSourceMergeBase !== undefined ? { admittedSourceMergeBase } : {}),
+    requirementSourcesTelemetry: {
+      sourcesRechecked: sourcesVerdict.sources_rechecked,
+      sourcesChanged: sourcesVerdict.sources_changed,
+      ...(sourcesVerdict.kind === "autofixed" && sourcesVerdict.message.length > 0
+        ? { autofixMessage: sourcesVerdict.message }
+        : {}),
+    },
   };
   const acceptance = readPlanAcceptance(plan);
   const schemaErrors = validatePlanAcceptance(plan.acceptance ?? acceptance);
@@ -1021,6 +1074,10 @@ function emitAcceptanceOutcome(
       ...(result.unmappedSentenceCount !== undefined
         ? { unmapped_sentence_count: result.unmappedSentenceCount }
         : {}),
+      ...(result.sourcesRechecked !== undefined
+        ? { sources_rechecked: result.sourcesRechecked }
+        : {}),
+      ...(result.sourcesChanged !== undefined ? { sources_changed: result.sourcesChanged } : {}),
       miss_reason: (result.servedFrom ?? "executed") === "executed" ? result.missReason : undefined,
     });
   } catch {
@@ -1238,12 +1295,31 @@ function applyOracle(
     });
     if (reuse.kind === "miss") missReason = reuse.reason;
   }
-  const stamped: VerifyAcResult = {
+  const telemetry = options.requirementSourcesTelemetry;
+  const withSources: VerifyAcResult = {
     ...next,
     message: options.quiet === true ? next.message : labelVerdict(next),
     servedFrom,
     missReason: servedFrom === "executed" ? missReason : undefined,
+    ...(telemetry !== undefined
+      ? {
+          sourcesRechecked: telemetry.sourcesRechecked,
+          sourcesChanged: telemetry.sourcesChanged,
+        }
+      : {}),
   };
+  const stamped: VerifyAcResult =
+    options.quiet === true ||
+    telemetry?.autofixMessage === undefined ||
+    telemetry.autofixMessage.length === 0
+      ? withSources
+      : {
+          ...withSources,
+          message:
+            withSources.message.trim().length > 0
+              ? `${telemetry.autofixMessage}\n${withSources.message}`
+              : telemetry.autofixMessage,
+        };
   persistVerifyAcSessionCache(stamped, options, projectRoot, plan);
   if (options.skipAcceptanceEmit !== true) {
     emitAcceptanceTelemetry(stamped, options, projectRoot);
@@ -1794,6 +1870,15 @@ export function evaluateVerifyAcFromPath(
     oracleScopeKey,
     observedAcceptance: plan.acceptance,
     ...(admittedSourceMergeBase !== undefined ? { admittedSourceMergeBase } : {}),
+    persistRequirementSourcesAutofix:
+      options.persistRequirementSourcesAutofix ??
+      ((next) => {
+        for (const key of Object.keys(plan)) {
+          delete plan[key];
+        }
+        Object.assign(plan, next);
+        writeRequirementSourcesAutofixToXbrief(abs, plan);
+      }),
   };
   const result = evaluateVerifyAcFromPlan(plan, {
     ...emitOptions,
