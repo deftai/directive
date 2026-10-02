@@ -32,6 +32,7 @@ describe("parseReleaseFlags", () => {
     expect(flags.allowVbriefDrift).toBe(true);
     expect(flags.skipCi).toBe(true);
     expect(flags.allowSkipCiIssue).toBe(716);
+    expect(flags.allowUnpaidSkipCiIssue).toBeNull();
     expect(flags.skipBuild).toBe(true);
     expect(flags.draft).toBe(false);
     expect(flags.repo).toBe("org/repo");
@@ -115,6 +116,18 @@ describe("parseReleaseFlags", () => {
     expect(flags.allowSkipCiIssue).toBeNull();
     expect(flags.unknown.some((u) => u.includes("allow-skip-ci"))).toBe(true);
     expect(parseReleaseFlags(["0.21.0", "--allow-skip-ci=0"]).allowSkipCiIssue).toBeNull();
+  });
+
+  it("parses --allow-unpaid-skip-ci (#5239)", () => {
+    const flags = parseReleaseFlags([
+      "0.21.0",
+      "--skip-ci",
+      "--allow-skip-ci=5239",
+      "--allow-unpaid-skip-ci=5239",
+    ]);
+    expect(flags.allowSkipCiIssue).toBe(5239);
+    expect(flags.allowUnpaidSkipCiIssue).toBe(5239);
+    expect(flags.unknown).toEqual([]);
   });
 
   it("sets help flag", () => {

@@ -6,6 +6,7 @@ import {
   countFailedTestsFromSanitizedOutput,
   evaluateAutoHatch,
   extractCoverageDebtCitationsFromChangelog,
+  extractSkipCiIncidentCitationsFromChangelog,
   filterOpenCoverageDebtIssues,
   formatAutoHatchBanner,
   issueHasCoverageDebtMarkers,
@@ -174,6 +175,19 @@ describe("ledger helpers", () => {
       "no debt",
     ].join("\n");
     expect(extractCoverageDebtCitationsFromChangelog(cl)).toEqual([3103, 3185]);
+  });
+
+  it("extracts skip-ci spend citations (#5239 S1)", () => {
+    const cl = [
+      "## [Unreleased]",
+      "",
+      "## [0.119.13]",
+      "skipped with --allow-skip-ci=5239",
+      "",
+      "## [0.119.10]",
+      "allow-skip-ci=#5107",
+    ].join("\n");
+    expect(extractSkipCiIncidentCitationsFromChangelog(cl)).toEqual([5107, 5239]);
   });
 
   it("merges ledger sets", () => {

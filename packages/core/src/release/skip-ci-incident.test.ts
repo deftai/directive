@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   formatSkipCiIncidentWarning,
+  parseAllowUnpaidSkipCiArgv,
   parseSkipCiIncidentArgv,
   parseSkipCiIncidentIssueNumber,
   RELEASE_E2E_ENV,
   validateSkipCiIncident,
+  validateSkipCiUnpaidLedger,
 } from "./skip-ci-incident.js";
 
 describe("skip-ci incident (#2652)", () => {
@@ -55,5 +57,20 @@ describe("skip-ci incident (#2652)", () => {
     expect(parseSkipCiIncidentArgv(["release", "--allow-skip-ci", "--skip-ci"]).kind).toBe(
       "invalid",
     );
+  });
+
+  it("parses --allow-unpaid-skip-ci (#5239)", () => {
+    expect(parseAllowUnpaidSkipCiArgv(["--allow-unpaid-skip-ci=5239"]).kind).toBe("valid");
+    expect(parseAllowUnpaidSkipCiArgv(["--allow-unpaid-skip-ci"]).kind).toBe("invalid");
+  });
+
+  it("refuses unpaid skip-ci without matching override (#5239)", () => {
+    const gate = validateSkipCiUnpaidLedger({
+      skipCi: true,
+      allowSkipCiIssue: 5239,
+      allowUnpaidSkipCiIssue: null,
+      unpaidIssues: [{ issue: 5239, reasons: ["open_or_unknown"] }],
+    });
+    expect(gate.kind).toBe("invalid");
   });
 });

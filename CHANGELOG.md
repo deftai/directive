@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Release Step 5 coverage-final diagnostic + skip-ci unpaid ledger (#5239).** Thread child-lane `hostCoverage` into `formatSuiteBoundCoverageDecline` so the #5026 no-coverage path prints "not expected to write a local report" without relying on parent `DEFT_RELEASE_PREFLIGHT`. Production `--allow-skip-ci=#N` probes issue state (OPEN/UNKNOWN unpaid) and CHANGELOG spend-record reuse (prior `--allow-skip-ci=#N` stays unpaid after close) unless `--allow-unpaid-skip-ci=#N` matches. Hang named-cause treats last-file as cursor only (throughput shortfall, not hung unit). Incident tee precondition: `%TEMP%\release-5239-incident-tee-40192-698efc5d.log` sha256:6f2d9058ba6c22800f21a46f9a4cbf4e92d22ef9bdb30c1e2d7308fd3fab095b. Tracking #5239.
 - **Closeout no-xbrief probe fails closed on missing repo, PR-head lookup, or HEAD verify errors (#3875).** A missing linked worktree still skips cleanly; an unverified slug/forge/HEAD read no longer returns success. Hermetic review suites opt out of closeout explicitly. Tracking #3875.
 - **Completed-write guard validates disposition provenance; item-status default-open inverted (#3819).** New completed/ adds and mods parse present typed dispositions through shared `parseDisposition` / `isHumanOrigin` only (refuses the #3610 bare-string `human-origin/operator` shape; no parallel `eventRef` limb). Malformed completed/ modifications fail closed. Missing or unrecognized `item.status` no longer skips typed provenance in `evaluateAcceptanceEvidenceGate` (pr-closeout-attestable inherits). Historical merge-base corpus stays grandfathered. Worktree-list lookup failures fail closed (not treated as absent). Tracking #3819.
 - **Consumer upgrade deposit: root `.deft-version` allowlist, binary-safe gitattributes, lock follow-through (#5245).** Root marker is installer-managed; delete-repair runs only when lifecycle root resolves (legacy trees keep root marker and get a migrate hint). `.deft/core/** text=auto eol=lf` replaces forced `text eol=lf` so vendored PNGs keep bytes. pnpm/npm lock checks use full-key freeze-except-additions (necessary new transitives allowed; yarn stays fully frozen). Dirty-escape `--json` emits classified stage sets. Tracking #5245.
@@ -48,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.119.13] - 2026-10-02
 
-> Residual re-ingest (#5177), first-ship PD/AGENTS gates (#5176/#4544), Windows Step 5 cheapen (#5140), and Fresh-clone completed-land (#4714).
+> Residual re-ingest (#5177), first-ship PD/AGENTS gates (#5176/#4544), Windows Step 5 cheapen (#5140), and Fresh-clone completed-land (#4714). Step 5 skipped with --allow-skip-ci=5239 after hang (exit 124; last-file chronology.test.ts as cursor only) per operator approval.
 
 ### Added
 - **WSL root-runtime ownership guard (#1617).** session:start soft-warns with the resolved filesystem project-owner (uid:gid + account); mutating check/update/preflight fail closed on harm-capable WSL root mismatch unless DEFT_ALLOW_ROOT_WSL_RUNTIME=1. Mount-pinned DrvFs/9p without metadata and native Windows/macOS are exempt. Ships ownership:doctor / ownership:fix / verify:ownership (CLI + task / deft: aliases). Tracking #1617.

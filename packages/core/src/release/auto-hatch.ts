@@ -169,6 +169,32 @@ export function extractCoverageDebtCitationsFromChangelog(
   return [...found].sort((a, b) => a - b);
 }
 
+/**
+ * Parse `--allow-skip-ci=#N` / `allow-skip-ci=#N` spend markers from CHANGELOG
+ * Unreleased + recent version sections (#5239 S1). Same window shape as
+ * coverage-debt citations so a prior production cut that already spent an
+ * incident citation remains unpaid for later reuse even after the issue closes.
+ */
+export function extractSkipCiIncidentCitationsFromChangelog(
+  changelog: string,
+  maxVersionSections = 3,
+): number[] {
+  const versionHeader = /^## \[(?!Unreleased)/m;
+  const parts = changelog.split(versionHeader);
+  const windows = [parts[0] ?? "", ...parts.slice(1, maxVersionSections + 1)];
+  const found = new Set<number>();
+  const re = /allow-skip-ci=#?(\d+)/gi;
+  for (const section of windows) {
+    let m: RegExpExecArray | null = re.exec(section);
+    while (m) {
+      const n = Number.parseInt(m[1] ?? "", 10);
+      if (Number.isFinite(n) && n > 0) found.add(n);
+      m = re.exec(section);
+    }
+  }
+  return [...found].sort((a, b) => a - b);
+}
+
 /** Union marker-search hits with CHANGELOG-cited open issues. */
 export function mergeOpenDebtLedger(
   markerHits: readonly number[],

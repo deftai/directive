@@ -52,7 +52,7 @@ export const PYPROJECT_VERSION_LINE_RE = /version\s*=\s*"[^"]*"/;
 export const RELEASE_HELP =
   "usage: release [-h] [--dry-run] [--skip-tag] [--skip-release] [--allow-dirty]\n" +
   "               [--allow-vbrief-drift] [--allow-coverage-debt #N]\n" +
-  "               [--allow-skip-ci #N]\n" +
+  "               [--allow-skip-ci #N] [--allow-unpaid-skip-ci #N]\n" +
   "               [--skip-ci] [--skip-build] [--no-draft]\n" +
   "               [--repo OWNER/REPO] [--base-branch BRANCH]\n" +
   "               [--project-root PATH] [--summary TEXT]\n" +
@@ -100,6 +100,10 @@ export const RELEASE_HELP =
   "                        Emits a loud WARN — npm ships without vitest coverage.\n" +
   "                        PowerShell: use --allow-skip-ci=N (no bare #) or quote\n" +
   '                        "#N"; unquoted # starts a comment (#2621).\n' +
+  "  --allow-unpaid-skip-ci #N\n" +
+  "                        Distinct override when --allow-skip-ci=#N is unpaid\n" +
+  "                        (OPEN/UNKNOWN issue or CHANGELOG spend-record reuse;\n" +
+  "                        #5239). Must cite the same issue number.\n" +
   "  --skip-build          Skip Step 8 (task build). Used by `task release:e2e`\n" +
   "                        to keep wall-clock manageable; build artefacts are not\n" +
   "                        needed for the draft-release verification step.\n" +

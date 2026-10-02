@@ -9,6 +9,7 @@ import { containedWrite } from "../fs/contained-write.js";
 import {
   type CoverageDebtIssueProbe,
   extractCoverageDebtCitationsFromChangelog,
+  extractSkipCiIncidentCitationsFromChangelog,
   filterOpenCoverageDebtIssues,
   mergeOpenDebtLedger,
 } from "./auto-hatch.js";
@@ -31,6 +32,14 @@ export interface CoverageDebtLedgerSeams {
     title: string,
     body: string,
   ) => number;
+  /** Override issue state probe (tests; skip-ci unpaid ledger). */
+  readonly viewIssueState?: (
+    repo: string,
+    projectRoot: string,
+    issue: number,
+  ) => "OPEN" | "CLOSED" | "UNKNOWN";
+  /** Override CHANGELOG skip-ci spend scan (tests). */
+  readonly listSkipCiSpendCitations?: (projectRoot: string) => number[];
 }
 
 function spawn(
@@ -171,6 +180,78 @@ export function probeOpenCoverageDebtLedger(
   }
 
   return mergeOpenDebtLedger(fromMarkers, citedOpen);
+}
+
+export type SkipCiUnpaidReason = "open_or_unknown" | "changelog_spent";
+
+export interface SkipCiUnpaidEntry {
+  readonly issue: number;
+  readonly reasons: readonly SkipCiUnpaidReason[];
+}
+
+export interface SkipCiIncidentLedgerResult {
+  readonly unpaid: readonly SkipCiUnpaidEntry[];
+}
+
+/**
+ * Sibling of `probeOpenCoverageDebtLedger` for production `--allow-skip-ci=#N`
+ * (#5239 R3 + S1).
+ *
+ * A cited issue is unpaid when:
+ * - its forge state is OPEN or UNKNOWN (fail closed), or
+ * - CHANGELOG already records an `allow-skip-ci=#N` spend on a prior cut
+ *   (reuse refused even after the issue closes).
+ *
+ * Callers refuse `--skip-ci` citing an unpaid issue unless a distinct
+ * `--allow-unpaid-skip-ci=#N` override matches.
+ */
+export function probeSkipCiIncidentLedger(
+  repo: string,
+  projectRoot: string,
+  citedIssue: number,
+  seams: CoverageDebtLedgerSeams = {},
+): SkipCiIncidentLedgerResult {
+  if (!Number.isFinite(citedIssue) || citedIssue <= 0) {
+    return { unpaid: [] };
+  }
+
+  const reasons = new Set<SkipCiUnpaidReason>();
+
+  const which = seams.whichGh ?? defaultWhich;
+  const ghPath = resolveGh({ whichGh: which, spawnText: seams.spawnText });
+  const state =
+    seams.viewIssueState?.(repo, projectRoot, citedIssue) ??
+    (ghPath === null
+      ? "UNKNOWN"
+      : viewIssueState(ghPath, repo, projectRoot, citedIssue, seams));
+  if (state === "OPEN" || state === "UNKNOWN") {
+    reasons.add("open_or_unknown");
+  }
+
+  const changelogPath = join(projectRoot, "CHANGELOG.md");
+  const exists = seams.fileExists ?? ((p: string) => existsSync(p));
+  const read = seams.readFile ?? ((p: string) => readFileSync(p, "utf8"));
+  let spent: number[] = [];
+  if (seams.listSkipCiSpendCitations) {
+    spent = seams.listSkipCiSpendCitations(projectRoot);
+  } else {
+    const changelogSafety = guardChangelogReadSafety(projectRoot);
+    if (changelogSafety.ok && exists(changelogPath)) {
+      try {
+        spent = extractSkipCiIncidentCitationsFromChangelog(read(changelogPath));
+      } catch {
+        // ignore unreadable changelog
+      }
+    }
+  }
+  if (spent.includes(citedIssue)) {
+    reasons.add("changelog_spent");
+  }
+
+  if (reasons.size === 0) return { unpaid: [] };
+  return {
+    unpaid: [{ issue: citedIssue, reasons: [...reasons].sort() }],
+  };
 }
 
 /** Create a coverage-debt issue; returns issue number or throws. */

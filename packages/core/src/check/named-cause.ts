@@ -352,14 +352,15 @@ function extractHangDetectorCause(
     hangTimeout === true || SUITE_HANG_DETECTOR_GATES.has(gateHint) || lastFile !== null;
   if (!hangPath) return null;
   if (lastFile !== null) {
-    return `hang detector timeout (exit 124); last completed test file: ${lastFile}`;
+    // Last-file is a progress cursor only — not the hung unit (#5239).
+    return `hang detector timeout (exit 124); last completed test file (cursor only): ${lastFile}`;
   }
   return "hang detector timeout (exit 124); last completed test file unknown";
 }
 
 export function remedyForGate(gateId: string, cause: string): string {
   if (/hang detector timeout/i.test(cause)) {
-    return "Cheapen remaining Windows Step 5 vitest wall-clock first; raise RELEASE_CHECK_TIMEOUT_MS only via tracked gate change + intent-constraint mint";
+    return "Treat exit 124 as a throughput shortfall under the hang detector (last-file is a cursor, not the hung unit); cheapen remaining Windows Step 5 vitest wall-clock first; raise RELEASE_CHECK_TIMEOUT_MS only via tracked gate change + intent-constraint mint";
   }
   if (/global deft\/directive CLI not found/i.test(cause)) {
     return CLI_SPAWN_ERROR_REMEDY;

@@ -21,6 +21,8 @@ export interface ReleaseConfig {
   readonly allowVbriefDrift: boolean;
   readonly allowCoverageDebtIssue: number | null;
   readonly allowSkipCiIssue: number | null;
+  /** Distinct override for unpaid skip-ci citations (#5239). Optional; default null. */
+  readonly allowUnpaidSkipCiIssue?: number | null;
 }
 
 export interface ReleaseFlags {
@@ -40,6 +42,7 @@ export interface ReleaseFlags {
   readonly summary: string | null;
   readonly allowCoverageDebtIssue: number | null;
   readonly allowSkipCiIssue: number | null;
+  readonly allowUnpaidSkipCiIssue: number | null;
   readonly unknown: readonly string[];
 }
 
@@ -125,6 +128,22 @@ export interface ReleaseSeams {
   readonly resolveCoverageOfRecord?: (
     projectRoot: string,
   ) => import("./preflight.js").CoverageOfRecordResult;
+  /**
+   * #5239 F1 — whether Step 5 child lane wrote local coverage-final.json.
+   * Production defaults to false (#5026 no-coverage host lane). Tests inject
+   * true to exercise the "missing after suite" diagnostic without setting
+   * parent `DEFT_RELEASE_PREFLIGHT`.
+   */
+  readonly step5HostCoverage?: boolean;
+  /**
+   * #5239 R3+S1 — override skip-ci unpaid ledger probe (tests).
+   * When omitted, production uses probeSkipCiIncidentLedger.
+   */
+  readonly probeSkipCiIncidentLedger?: (
+    repo: string,
+    projectRoot: string,
+    citedIssue: number,
+  ) => import("./coverage-debt-ledger.js").SkipCiIncidentLedgerResult;
   /**
    * #3527 — closed-verb grants for the tag-push / npm-publish gate.
    * When omitted, production loads active human-origin grants from disk.

@@ -96,24 +96,40 @@ function resolveCoverageReportMtimeMs(
   }
 }
 
+/** Options for suite-bound coverage-final expectation (#5026 / #5239 F1). */
+export interface SuiteBoundCoverageDeclineOptions {
+  /**
+   * When false, the child lane was the #5026 no-coverage host path.
+   * When omitted, derive from `env` via `DEFT_RELEASE_PREFLIGHT` (tests only —
+   * production Step 5 must pass an explicit value so parent ambient env cannot
+   * mask the child lane).
+   */
+  readonly hostCoverage?: boolean;
+  /** Env used only when `hostCoverage` is omitted. */
+  readonly env?: NodeJS.ProcessEnv;
+}
+
 /** True only when this Step 5 invocation was expected to write coverage-final.json. */
-function suiteExpectedToWriteLocalCoverage(
+export function suiteExpectedToWriteLocalCoverage(
   reason: string,
-  env: NodeJS.ProcessEnv = process.env,
+  options: SuiteBoundCoverageDeclineOptions = {},
 ): boolean {
-  if (isStep5HostNoCoverage(env)) return false;
+  const env = options.env ?? process.env;
+  const hostCoverage = options.hostCoverage ?? !isStep5HostNoCoverage(env);
+  if (!hostCoverage) return false;
   if (countFailedTestsFromSanitizedOutput(reason) !== null) return true;
   return /\bts:check-lane\b/i.test(reason);
 }
 
-function formatSuiteBoundCoverageDecline(
+export function formatSuiteBoundCoverageDecline(
   coverageReportMtimeMs: number | null,
   reason: string,
+  options: SuiteBoundCoverageDeclineOptions = {},
 ): string {
   if (coverageReportMtimeMs != null) {
     return "coverage-final.json mtime not strictly after suite start";
   }
-  if (!suiteExpectedToWriteLocalCoverage(reason)) {
+  if (!suiteExpectedToWriteLocalCoverage(reason, options)) {
     return "coverage-final.json not produced (suite was not expected to write a local report)";
   }
   return "coverage-final.json missing after suite";
@@ -368,7 +384,13 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
               ? coverageReportMtimeMs
               : null;
         if (coverageReportMtimeMs !== undefined && suiteBoundMtime === null) {
-          const declined = formatSuiteBoundCoverageDecline(coverageReportMtimeMs, reason);
+          // Step 5 always runs releaseCheckEnv (#5026 no-coverage). Tests may
+          // inject seams.step5HostCoverage to exercise the coverage-expecting
+          // diagnostic without mutating parent process.env (#5239 F1).
+          const hostCoverage = seams.step5HostCoverage ?? false;
+          const declined = formatSuiteBoundCoverageDecline(coverageReportMtimeMs, reason, {
+            hostCoverage,
+          });
           process.stderr.write(`auto-hatch: suite-bound coverage mtime declined (${declined})\n`);
         }
         const exitCode = parseExitCodeFromReason(reason);

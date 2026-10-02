@@ -406,6 +406,8 @@ describe("pipeline Step 5 auto-hatch + suite stamp (#3187)", () => {
       runCi: () => [false, "task check failed (exit 1; 2 failed tests)"],
       listOpenCoverageDebtIssues: () => [],
       createCoverageDebtIssue: () => 1,
+      // Coverage-expecting lane (not #5026 Step 5): inject via seam (#5239 F1).
+      step5HostCoverage: true,
       fileExists: (p) => p.endsWith("CHANGELOG.md") || p.endsWith("ROADMAP.md"),
       readFile: () => CHANGELOG,
       writeFile: () => undefined,
@@ -456,10 +458,9 @@ describe("pipeline Step 5 auto-hatch + suite stamp (#3187)", () => {
     }
   });
 
-  it("does not say missing-after-suite on the no-coverage host lane (#4244 P2 / #5026)", () => {
+  it("does not say missing-after-suite on the no-coverage host lane (#4244 P2 / #5026 / #5239 F1)", () => {
     const cap = captureStderr();
-    const prev = process.env.DEFT_RELEASE_PREFLIGHT;
-    process.env.DEFT_RELEASE_PREFLIGHT = "1";
+    // Inject child-lane no-coverage via seam — not parent process.env (#5239 F1).
     const seams: ReleaseSeams = {
       validateReleaseInputs: passReleaseInputs,
       todayIso: () => "2026-08-07",
@@ -475,6 +476,7 @@ describe("pipeline Step 5 auto-hatch + suite stamp (#3187)", () => {
       runCi: () => [false, "task check failed (exit 1; 2 failed tests)"],
       listOpenCoverageDebtIssues: () => [],
       createCoverageDebtIssue: () => 1,
+      step5HostCoverage: false,
       fileExists: (p) => p.endsWith("CHANGELOG.md") || p.endsWith("ROADMAP.md"),
       readFile: () => CHANGELOG,
       writeFile: () => undefined,
@@ -489,8 +491,6 @@ describe("pipeline Step 5 auto-hatch + suite stamp (#3187)", () => {
       expect(cap.lines.join("")).not.toMatch(/missing after suite/);
     } finally {
       cap.restore();
-      if (prev === undefined) delete process.env.DEFT_RELEASE_PREFLIGHT;
-      else process.env.DEFT_RELEASE_PREFLIGHT = prev;
     }
   });
 

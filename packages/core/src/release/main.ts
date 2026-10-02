@@ -1,8 +1,12 @@
 import { EXIT_CONFIG_ERROR } from "./constants.js";
+import { probeSkipCiIncidentLedger } from "./coverage-debt-ledger.js";
 import { formatReleaseHelp, parseReleaseFlags } from "./flags.js";
 import { resolveProjectRoot, resolveRepo } from "./paths.js";
 import { runPipeline } from "./pipeline.js";
-import { validateSkipCiIncident } from "./skip-ci-incident.js";
+import {
+  validateSkipCiIncident,
+  validateSkipCiUnpaidLedger,
+} from "./skip-ci-incident.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { validateVersion } from "./version.js";
 
@@ -41,6 +45,27 @@ export function cmdRelease(args: readonly string[], seams: ReleaseSeams = {}): n
     return EXIT_CONFIG_ERROR;
   }
 
+  if (flags.skipCi && flags.allowSkipCiIssue !== null && flags.allowSkipCiIssue > 0) {
+    const ledger =
+      seams.probeSkipCiIncidentLedger?.(repo, projectRoot, flags.allowSkipCiIssue) ??
+      probeSkipCiIncidentLedger(repo, projectRoot, flags.allowSkipCiIssue, {
+        spawnText: seams.spawnText,
+        whichGh: seams.whichGh,
+        readFile: seams.readFile,
+        fileExists: seams.fileExists,
+      });
+    const unpaidGate = validateSkipCiUnpaidLedger({
+      skipCi: flags.skipCi,
+      allowSkipCiIssue: flags.allowSkipCiIssue,
+      allowUnpaidSkipCiIssue: flags.allowUnpaidSkipCiIssue,
+      unpaidIssues: ledger.unpaid,
+    });
+    if (unpaidGate.kind === "invalid") {
+      process.stderr.write(`release: error: ${unpaidGate.reason}\n`);
+      return EXIT_CONFIG_ERROR;
+    }
+  }
+
   const config: ReleaseConfig = {
     version: flags.version,
     repo,
@@ -57,6 +82,7 @@ export function cmdRelease(args: readonly string[], seams: ReleaseSeams = {}): n
     allowVbriefDrift: flags.allowVbriefDrift,
     allowCoverageDebtIssue: flags.allowCoverageDebtIssue,
     allowSkipCiIssue: flags.allowSkipCiIssue,
+    allowUnpaidSkipCiIssue: flags.allowUnpaidSkipCiIssue,
   };
 
   return runPipeline(config, seams);

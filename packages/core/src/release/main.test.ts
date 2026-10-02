@@ -23,6 +23,39 @@ describe("cmdRelease integration", () => {
     }
   });
 
+  it("rejects unpaid --allow-skip-ci without distinct override (#5239)", () => {
+    const err: string[] = [];
+    const origErr = process.stderr.write.bind(process.stderr);
+    process.stderr.write = ((c: string | Uint8Array) => {
+      err.push(String(c));
+      return true;
+    }) as typeof process.stderr.write;
+    const seams: ReleaseSeams = {
+      probeSkipCiIncidentLedger: () => ({
+        unpaid: [{ issue: 5239, reasons: ["changelog_spent"] }],
+      }),
+    };
+    try {
+      expect(
+        cmdRelease(
+          [
+            "0.21.0",
+            "--dry-run",
+            "--skip-ci",
+            "--allow-skip-ci=5239",
+            "--project-root",
+            seedReleaseProjectDir(),
+          ],
+          seams,
+        ),
+      ).toBe(2);
+      expect(err.join("")).toMatch(/unpaid/);
+      expect(err.join("")).toMatch(/allow-unpaid-skip-ci=#5239/);
+    } finally {
+      process.stderr.write = origErr;
+    }
+  });
+
   it("runs dry-run pipeline end-to-end via seams", () => {
     const err: string[] = [];
     const origErr = process.stderr.write.bind(process.stderr);
@@ -36,6 +69,8 @@ describe("cmdRelease integration", () => {
       todayIso: () => "2026-06-19",
       fileExists: (p) => p.endsWith("CHANGELOG.md"),
       readFile: () => CHANGELOG,
+      // Avoid live gh unpaid probe on fixture citation (#5239).
+      probeSkipCiIncidentLedger: () => ({ unpaid: [] }),
     };
 
     try {

@@ -167,10 +167,11 @@ describe("named-cause gate failures (#3282)", () => {
     );
     expect(cause).toMatch(/hang detector timeout/i);
     expect(cause).toContain("packages/core/src/hooks/scope.test.ts");
+    expect(cause).toMatch(/cursor only/i);
     expect(cause).not.toContain("deliberately-bad");
   });
 
-  it("remedies exit 124 with cheapen-first deliberate-raise path (#5024)", () => {
+  it("remedies exit 124 with cheapen-first deliberate-raise path (#5024 / #5239)", () => {
     const msg = formatNamedCauseFailure({
       gateId: "ts:check-lane",
       exitCode: 124,
@@ -178,7 +179,9 @@ describe("named-cause gate failures (#3282)", () => {
       stderr: "",
     });
     expect(msg.cause).toMatch(/hang detector timeout/i);
-    expect(msg.remedy).toMatch(/Cheapen remaining Windows Step 5 vitest wall-clock first/i);
+    expect(msg.remedy).toMatch(/throughput shortfall/i);
+    expect(msg.remedy).toMatch(/cursor/i);
+    expect(msg.remedy).toMatch(/cheapen remaining Windows Step 5 vitest wall-clock first/i);
     expect(msg.remedy).toMatch(/raise RELEASE_CHECK_TIMEOUT_MS only via tracked gate change/);
     expect(msg.remedy).not.toMatch(/do not raise RELEASE_CHECK_TIMEOUT_MS/);
     expect(msg.cause).not.toContain("deliberately-bad");

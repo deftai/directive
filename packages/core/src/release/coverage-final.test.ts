@@ -3,7 +3,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { promoteChangelog } from "./changelog.js";
 import { cmdRelease } from "./main.js";
-import { runPipeline } from "./pipeline.js";
+import {
+  formatSuiteBoundCoverageDecline,
+  runPipeline,
+  suiteExpectedToWriteLocalCoverage,
+} from "./pipeline.js";
 import { seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { passReleaseInputs } from "./release-input.js";
 import { defaultWhich } from "./spawn.js";
@@ -69,5 +73,43 @@ describe("promoteChangelog greenfield footer", () => {
     const out = promoteChangelog(text, "0.21.0", "deftai/directive", "2026-01-01");
     expect(out).toContain("[Unreleased]:");
     expect(out).toContain("[0.21.0]:");
+  });
+});
+
+describe("suite-bound coverage decline diagnostic (#5026 / #5239 F1)", () => {
+  it("prints no-coverage branch when hostCoverage is false", () => {
+    expect(
+      formatSuiteBoundCoverageDecline(null, "task check failed (exit 1; 2 failed tests)", {
+        hostCoverage: false,
+      }),
+    ).toMatch(/not expected to write a local report/);
+    expect(
+      suiteExpectedToWriteLocalCoverage("task check failed (exit 1; 2 failed tests)", {
+        hostCoverage: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("prints missing-after-suite when hostCoverage is true and failed-tests reason", () => {
+    expect(
+      formatSuiteBoundCoverageDecline(null, "task check failed (exit 1; 2 failed tests)", {
+        hostCoverage: true,
+      }),
+    ).toBe("coverage-final.json missing after suite");
+  });
+
+  it("does not rely on parent DEFT_RELEASE_PREFLIGHT when hostCoverage is explicit", () => {
+    const prev = process.env.DEFT_RELEASE_PREFLIGHT;
+    delete process.env.DEFT_RELEASE_PREFLIGHT;
+    try {
+      expect(
+        formatSuiteBoundCoverageDecline(null, "task check failed (exit 1; 2 failed tests)", {
+          hostCoverage: false,
+        }),
+      ).toMatch(/not expected to write a local report/);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_RELEASE_PREFLIGHT;
+      else process.env.DEFT_RELEASE_PREFLIGHT = prev;
+    }
   });
 });
