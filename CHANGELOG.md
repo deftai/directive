@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **erify:class-checks treats packages/cli/src/authz.ts as a composition companion for core authz landings (#4233).** Result-returning store APIs and the human-presence suspend seal can ship with the CLI unwrap in one change set. Tracking #4233.
+- **Authz CLI exits cleanly when grant or UAT writes are refused (#4233).** Tracking #4233.
 - **Authz refuses grant and pin changes while UAT is active (#4233).** Ending UAT without the human-presence suspend path is refused; spending a single-use grant still works. Empty pins activate no grants under UAT. Tracking #4233.
 - **Authz store writes stay consistent under interrupt and dead locks (#4233).** Dead lock holders no longer block later writes; remints and pins cannot leave half-applied authority; UAT start keeps the locked pin. Tracking #4233.
 - **Host capability stamp unit test no longer depends on wall clock (#5229).** The write/read fixture uses one shared timestamp so the 8-hour max-age window does not flake CI. Tracking #5229.
