@@ -172,7 +172,7 @@ describe("acceptDispatchPostcondition (#3979)", () => {
     expect(verdict.reasons.join(" ")).toMatch(/never accepts/i);
   });
 
-  it("wrong-issue verification is mismatch; claimed id not in bound set is mismatch", () => {
+  it("wrong-issue verification is mismatch; stale claimed id does not veto verified post", () => {
     const wrongIssue = acceptDispatchPostcondition({
       postcondition: POSTCONDITION,
       verification: threadOk([{ id: 5918223700, body: criticBody("grok") }], 3961),
@@ -184,15 +184,16 @@ describe("acceptDispatchPostcondition (#3979)", () => {
       failClass: "mismatch",
     });
 
-    const wrongClaim = acceptDispatchPostcondition({
+    const staleClaim = acceptDispatchPostcondition({
       postcondition: POSTCONDITION,
       verification: threadOk([{ id: 5918223700, body: criticBody("grok") }]),
       handback: { hostSuccess: true, claimedCommentId: 5470174383 },
     });
-    expect(wrongClaim).toMatchObject({
-      accepted: false,
-      deliveryStatus: "dispatch-failure",
-      failClass: "mismatch",
+    expect(staleClaim).toMatchObject({
+      accepted: true,
+      deliveryStatus: "verified",
+      failClass: "none",
+      boundCommentId: 5918223700,
     });
   });
 

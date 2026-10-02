@@ -19,6 +19,7 @@ import {
 import { isPanelDepositBody, type ThreadComment } from "./completed-arc-record.js";
 
 const SEAT_LINE_RE = /(?:^|\n)\s*seat:\s*(\S+)/gi;
+const FAMILIES_FIELD_RE = /(?:^|\n)\s*families:\s*([^\n]+)/i;
 const ROUND_FIELD_RE = /(?:^|\n)\s*round:\s*(\d+)\b/i;
 const INPUT_CEILING_RE = /(?:^|\n)\s*input-ceiling:\s*(\d+)\b/i;
 const SIBLINGS_RE = /(?:^|\n)\s*siblings:\s*(\d+)\b/i;
@@ -84,6 +85,16 @@ export function parsePanelDeposit(comment: ThreadComment): ParsedPanelDeposit | 
     seen.add(id);
     seatIds.push(id);
   }
+  // Canonical deposits list seats under families: with no seat: lines.
+  if (seatIds.length === 0) {
+    const familiesRaw = comment.body.match(FAMILIES_FIELD_RE)?.[1] ?? "";
+    for (const part of familiesRaw.split(",")) {
+      const id = part.trim();
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      seatIds.push(id);
+    }
+  }
   const siblings = parsePositiveInt(comment.body.match(SIBLINGS_RE)?.[1]);
   return {
     commentId: comment.id,
@@ -125,15 +136,32 @@ export function evaluatePanelSeatDelivery(input: {
   const rows: PanelSeatDeliveryRow[] = [];
   for (const seat of input.expectedSeats) {
     const handback = handbackBySeat.get(seat.seatId);
-    const claim: ChildHandbackClaim | undefined =
-      handback === undefined
-        ? undefined
-        : {
-            hostSuccess: handback.hostSuccess,
-            claimedCommentId: handback.claimedCommentId,
-            toolCallCount: handback.toolCallCount,
-            childProbes: handback.childProbes,
-          };
+    // Missing handback for this dispatch must not inherit an earlier matching
+    // comment as success for the current obligation (repeat-dispatch case).
+    if (handback === undefined) {
+      rows.push({
+        seatId: seat.seatId,
+        verdict: {
+          accepted: false,
+          deliveryStatus: "dispatch-failure",
+          failClass: "missing",
+          reasons: [
+            `no handback for seat ${seat.seatId} on this dispatch obligation`,
+            "earlier matching comments do not satisfy a missing handback",
+          ],
+          boundCommentId: null,
+          complementaryToolCallCount: null,
+        },
+        countsAsPostedSibling: false,
+      });
+      continue;
+    }
+    const claim: ChildHandbackClaim = {
+      hostSuccess: handback.hostSuccess,
+      claimedCommentId: handback.claimedCommentId,
+      toolCallCount: handback.toolCallCount,
+      childProbes: handback.childProbes,
+    };
     const verdict = acceptDispatchPostcondition({
       postcondition: {
         artifactClass: "comment-id",
@@ -190,10 +218,16 @@ export function evaluatePanelSeatDeliveryFromThread(input: {
 }): PanelSeatDeliveryVerdict | null {
   const deposit = latestPanelDeposit(input.comments);
   if (deposit === null) return null;
+  const fromHandbacks = [
+    ...new Set((input.handbacks ?? []).map((handback) => handback.seatId).filter(Boolean)),
+  ];
   const expectedIds =
     input.expectedSeatIds !== undefined && input.expectedSeatIds.length > 0
       ? input.expectedSeatIds
-      : deposit.seatIds;
+      : deposit.seatIds.length > 0
+        ? deposit.seatIds
+        : fromHandbacks;
+  // Seat-bound verification is required once a panel-deposit is present.
   if (expectedIds.length === 0) return null;
 
   const status = input.verificationStatus ?? "ok";
