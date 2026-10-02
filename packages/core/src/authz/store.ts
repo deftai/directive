@@ -549,7 +549,14 @@ export type SaveAuthzStateOptions = EvaluateAuthzStateWriteOptions;
  * pin mutate / unsealed campaign-end / other UAT field mutate return ok:false.
  * Sealed campaign-end (CLI after gateConfirm) may flip uat.active true→false only.
  */
-function withAuthzStoreWriteLock<T>(projectRoot: string, fn: () => T): T {
+function storeWriteFail(
+  code: "store-write-lock-timeout" | "store-write-io",
+  reason: string,
+): AuthzUatWriteDecision {
+  return { ok: false, code, reason, intent: "noop" };
+}
+
+function withAuthzStoreWriteLock<T>(projectRoot: string, fn: () => T): T | AuthzUatWriteDecision {
   const root = resolve(projectRoot);
   const lockPath = join(root, ".deft", "authz", "locks", "store-write.lock");
   const lockToken = randomBytes(8).toString("hex");
@@ -559,7 +566,7 @@ function withAuthzStoreWriteLock<T>(projectRoot: string, fn: () => T): T {
     token: lockToken,
   } satisfies GrantClaimLockRecord)}\n`;
 
-  const tryCreateLock = (): boolean => {
+  const tryCreateLock = (): boolean | AuthzUatWriteDecision => {
     try {
       containedWrite({ root, target: lockPath, data: lockBody, mode: "create" });
       return true;
@@ -567,7 +574,8 @@ function withAuthzStoreWriteLock<T>(projectRoot: string, fn: () => T): T {
       if (err instanceof ContainedWriteError && err.code === "CONTAINED_WRITE_EXISTS") {
         return false;
       }
-      throw err;
+      const reason = err instanceof Error ? err.message : String(err);
+      return storeWriteFail("store-write-io", `authz store lock create failed: ${reason}`);
     }
   };
 
@@ -578,11 +586,18 @@ function withAuthzStoreWriteLock<T>(projectRoot: string, fn: () => T): T {
 
   const start = Date.now();
   for (;;) {
-    if (tryCreateLock()) break;
+    const created = tryCreateLock();
+    if (created === true) break;
+    if (created !== false) return created;
     // Dead-PID / corrupt reclaim — token-checked so a stale reclaim cannot rename a live lock.
-    if (tryReclaimDeadLock(lockPath) && tryCreateLock()) break;
+    if (tryReclaimDeadLock(lockPath)) {
+      const again = tryCreateLock();
+      if (again === true) break;
+      if (again !== false) return again;
+    }
     if (Date.now() - start > 5000) {
-      throw new Error(
+      return storeWriteFail(
+        "store-write-lock-timeout",
         "authz store write lock timeout (remove leftover `.deft/authz/locks/store-write.lock` after a dead-holder crash if reclaim fails)",
       );
     }
@@ -639,7 +654,7 @@ export function mutateAuthzState(
   mutator: (prev: AuthzState) => AuthzState,
   options: SaveAuthzStateOptions = {},
 ): AuthzUatWriteDecision & { readonly state: AuthzState } {
-  return withAuthzStoreWriteLock(projectRoot, () => {
+  const locked = withAuthzStoreWriteLock(projectRoot, () => {
     const prev = loadAuthzState(projectRoot);
     const next = mutator(prev);
     const decision = evaluateAuthzStateWriteUnderUat(prev, next, options);
@@ -649,6 +664,8 @@ export function mutateAuthzState(
     writeJsonContained(projectRoot, authzStatePath(projectRoot), next);
     return { ...decision, state: next };
   });
+  if ("state" in locked) return locked;
+  return { ...locked, state: loadAuthzState(projectRoot) };
 }
 
 export function loadGrant(projectRoot: string, grantId: string): HumanOriginGrant | null {
@@ -732,7 +749,8 @@ export function persistMintedGrant(
         } catch {
           /* best-effort pin restore */
         }
-        throw err;
+        const reason = err instanceof Error ? err.message : String(err);
+        return storeWriteFail("store-write-io", `authz grant write failed after pin: ${reason}`);
       }
     } else {
       // Remint: replace grant bytes first so an interrupt cannot leave old authority pinned.
@@ -745,7 +763,8 @@ export function persistMintedGrant(
         } catch {
           /* best-effort grant restore */
         }
-        throw err;
+        const reason = err instanceof Error ? err.message : String(err);
+        return storeWriteFail("store-write-io", `authz pin write failed after grant: ${reason}`);
       }
     }
     return pinDecision;

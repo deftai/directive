@@ -38,7 +38,9 @@ export type AuthzUatWriteRefuseCode =
   | "uat-pin-mutate"
   | "uat-campaign-end-unsealed"
   | "uat-field-mutate"
-  | "uat-activate";
+  | "uat-activate"
+  | "store-write-lock-timeout"
+  | "store-write-io";
 
 export type AuthzUatWriteDecision =
   | { readonly ok: true; readonly intent: GrantWriteIntentClass | AuthzStateWriteIntentClass }

@@ -340,14 +340,13 @@ describe("authz store (#2944)", () => {
       return;
     }
 
-    expect(() =>
-      mintHumanOriginGrant({
-        projectRoot: root,
-        operations: ["push"],
-        grantId: "grant-keep",
-        pinActive: true,
-      }),
-    ).toThrow();
+    const reminted = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["push"],
+      grantId: "grant-keep",
+      pinActive: true,
+    });
+    expect(reminted.ok).toBe(false);
     // Rollback must not unlink the prior same-ID path; pin returns to empty.
     expect(existsSync(grantPath)).toBe(true);
     expect(loadGrant(root, "grant-keep")?.id).toBe("grant-keep");
