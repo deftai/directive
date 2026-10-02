@@ -41,7 +41,15 @@ import {
   type StrictAcceptanceAxis,
 } from "../scope/acceptance-evidence.js";
 import { resolveRepo } from "../triage/queue/repo.js";
-import { assertWorkingTreeIsPrHead, type PrHeadAssertOptions } from "./pr-head-assert.js";
+import {
+  assertWorkingTreeIsPrHead,
+  fetchPrHeadShaViaApi,
+  findWorktreeAtSha,
+  type PrHeadAssertOptions,
+  resolveLifecycleDirty,
+  resolveLocalHeadSha,
+  shasMatch,
+} from "./pr-head-assert.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -292,10 +300,11 @@ function configError(
  * The brief is read from the PR-head working tree (caller cwd, or a linked
  * worktree whose HEAD matches the PR head when cascade runs from primary). That
  * is the tree the merge lands, and it is the same working-tree basis
- * `verify:orphan-active` uses. No-xbrief layouts exit 0 before the HEAD assert
- * so legacy vbrief/-only checkouts are not blocked. When briefs would be read,
- * #3875 asserts HEAD equals the PR head SHA, refuses a dirty xbrief/vbrief tree,
- * and exit-2s on mismatch with no matching linked worktree.
+ * `verify:orphan-active` uses. When the caller has no xbrief/, closeout still
+ * probes a linked PR-head worktree before declaring nothing to check; only when
+ * neither tree has xbrief/ does it exit 0 (legacy vbrief/-only). When briefs
+ * would be read, #3875 asserts HEAD equals the PR head SHA, refuses a dirty
+ * xbrief/vbrief tree, and exit-2s on mismatch with no matching linked worktree.
  */
 
 export function evaluate(
@@ -315,42 +324,30 @@ export function evaluate(
   const runner = options.runner ?? makeGateRunner();
   const fetchClosing = options.fetchClosingIssues ?? fetchClosingIssuesReferences;
 
-  // No-xbrief layouts have nothing to attest — exit 0 before HEAD assert so a
-  // legacy vbrief/-only (or empty) checkout is not blocked by PR-head mismatch.
-  let callerLifecycle: string;
+  const nothingToCheck = (): PrCloseoutAttestableResult => ({
+    code: 0,
+    message: quiet
+      ? ""
+      : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
+    stream: quiet ? "none" : "stdout",
+    prNumber,
+    closingIssues: [],
+    findings: [],
+    proxied: runner.proxied,
+  });
+
+  // Probe caller xbrief/ first. A miss is not yet "nothing to check" — cascade
+  // from primary may still find briefs on a linked PR-head worktree (#3875).
+  let callerLifecycle: string | null = null;
   try {
-    callerLifecycle = resolveLifecycleRoot(root);
+    const resolved = resolveLifecycleRoot(root);
+    callerLifecycle = existsSync(resolved) ? resolved : null;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    // Consumers may still be on a legacy vbrief/-only layout (#2112). Closeout
-    // attestability applies to xbrief/active/ only — skip cleanly, not config fail.
-    if (message.includes("No xbrief/ layout found")) {
-      return {
-        code: 0,
-        message: quiet
-          ? ""
-          : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
-        stream: quiet ? "none" : "stdout",
-        prNumber,
-        closingIssues: [],
-        findings: [],
-        proxied: false,
-      };
+    // Consumers may still be on a legacy vbrief/-only layout (#2112).
+    if (!message.includes("No xbrief/ layout found")) {
+      return configError(prNumber, message, runner.proxied);
     }
-    return configError(prNumber, message, runner.proxied);
-  }
-  if (!existsSync(callerLifecycle)) {
-    return {
-      code: 0,
-      message: quiet
-        ? ""
-        : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
-      stream: quiet ? "none" : "stdout",
-      prNumber,
-      closingIssues: [],
-      findings: [],
-      proxied: runner.proxied,
-    };
   }
 
   const repo = resolveRepo(options.repo, root);
@@ -366,50 +363,83 @@ export function evaluate(
     );
   }
 
-  // #3875: refuse a wrong-tree / dirty-lifecycle brief read before closing refs.
-  const headAssert = assertWorkingTreeIsPrHead(root, prNumber, repo, runner.runGh, {
-    ...options.prHeadAssert,
-  });
-  if (!headAssert.ok) {
-    return configError(prNumber, headAssert.message, runner.proxied);
-  }
+  let briefRoot = root;
+  let lifecycleRoot: string;
 
-  const briefRoot =
-    headAssert.resolvedProjectRoot !== undefined ? resolve(headAssert.resolvedProjectRoot) : root;
-
-  let lifecycleRoot = callerLifecycle;
-  if (briefRoot !== root) {
+  if (callerLifecycle === null) {
+    // No xbrief on caller: look for a linked PR-head worktree that has one
+    // before declaring nothing to check (outside-diff residual on #5258).
+    const assertOpts = options.prHeadAssert ?? {};
+    const fetchPrHead = assertOpts.fetchPrHeadSha ?? fetchPrHeadShaViaApi;
+    const resolveWorktree = assertOpts.resolveWorktreeAtSha ?? findWorktreeAtSha;
+    const resolveLocal = assertOpts.resolveLocalHeadSha ?? resolveLocalHeadSha;
+    const resolveDirty = assertOpts.resolveLifecycleDirty ?? resolveLifecycleDirty;
+    const prHead =
+      assertOpts.prHeadSha !== undefined
+        ? assertOpts.prHeadSha
+        : fetchPrHead(prNumber, repo, runner.runGh);
+    if (prHead === null || prHead.trim().length === 0) {
+      return nothingToCheck();
+    }
+    const alt = resolveWorktree(root, prHead.trim());
+    if (alt === null || alt.trim().length === 0) {
+      return nothingToCheck();
+    }
+    const altHead = resolveLocal(alt);
+    if (altHead === null || !shasMatch(altHead, prHead)) {
+      return nothingToCheck();
+    }
+    let altLifecycle: string | null = null;
     try {
-      lifecycleRoot = resolveLifecycleRoot(briefRoot);
+      const resolved = resolveLifecycleRoot(alt);
+      altLifecycle = existsSync(resolved) ? resolved : null;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      if (message.includes("No xbrief/ layout found")) {
-        return {
-          code: 0,
-          message: quiet
-            ? ""
-            : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
-          stream: quiet ? "none" : "stdout",
-          prNumber,
-          closingIssues: [],
-          findings: [],
-          proxied: runner.proxied,
-        };
+      if (!message.includes("No xbrief/ layout found")) {
+        return configError(prNumber, message, runner.proxied);
       }
-      return configError(prNumber, message, runner.proxied);
     }
-    if (!existsSync(lifecycleRoot)) {
-      return {
-        code: 0,
-        message: quiet
-          ? ""
-          : "verify:pr-closeout-attestable: no xbrief/ lifecycle root; nothing to check.",
-        stream: quiet ? "none" : "stdout",
-        prNumber,
-        closingIssues: [],
-        findings: [],
-        proxied: runner.proxied,
-      };
+    if (altLifecycle === null) {
+      return nothingToCheck();
+    }
+    if (assertOpts.checkLifecycleDirty !== false) {
+      const dirty = resolveDirty(alt);
+      if (dirty !== null) {
+        return configError(
+          prNumber,
+          `lifecycle tree under ${alt} has uncommitted xbrief/vbrief changes ` +
+            `(${dirty}). Closeout reads the committed PR-head brief — commit, ` +
+            "stash, or discard local lifecycle edits and retry.",
+          runner.proxied,
+        );
+      }
+    }
+    briefRoot = resolve(alt);
+    lifecycleRoot = altLifecycle;
+  } else {
+    // #3875: refuse a wrong-tree / dirty-lifecycle brief read before closing refs.
+    const headAssert = assertWorkingTreeIsPrHead(root, prNumber, repo, runner.runGh, {
+      ...options.prHeadAssert,
+    });
+    if (!headAssert.ok) {
+      return configError(prNumber, headAssert.message, runner.proxied);
+    }
+    briefRoot =
+      headAssert.resolvedProjectRoot !== undefined ? resolve(headAssert.resolvedProjectRoot) : root;
+    lifecycleRoot = callerLifecycle;
+    if (briefRoot !== root) {
+      try {
+        lifecycleRoot = resolveLifecycleRoot(briefRoot);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes("No xbrief/ layout found")) {
+          return nothingToCheck();
+        }
+        return configError(prNumber, message, runner.proxied);
+      }
+      if (!existsSync(lifecycleRoot)) {
+        return nothingToCheck();
+      }
     }
   }
 

@@ -287,17 +287,48 @@ describe("pr-closeout-attestable evaluate", () => {
     expect(result.message).toContain("nothing to check");
   });
 
-  it("no-xbrief skip wins over a PR-head mismatch (#3875 residual)", () => {
+  it("no-xbrief skip wins over a PR-head mismatch when no linked worktree (#3875)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-closeout-nolayout-mismatch-"));
     temps.push(root);
     const result = evaluate(root, 1, {
       repo: REPO,
       runner: { runGh: NEVER_CALLED, proxied: false },
       fetchClosingIssues: closing(1),
-      prHeadAssert: { localHeadSha: "a".repeat(40), prHeadSha: "b".repeat(40) },
+      prHeadAssert: {
+        localHeadSha: "a".repeat(40),
+        prHeadSha: "b".repeat(40),
+        resolveWorktreeAtSha: () => null,
+      },
     });
     expect(result.code).toBe(0);
     expect(result.message).toContain("nothing to check");
+  });
+
+  it("no-xbrief caller still reads a linked PR-head worktree with xbrief (#3875)", () => {
+    const primary = mkdtempSync(join(tmpdir(), "deft-closeout-primary-"));
+    const dest = makeRepo();
+    temps.push(primary);
+    writeBrief(dest, "2026-08-26-3609-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(3609)],
+      items: bareItems(2),
+    });
+    const prHead = "b".repeat(40);
+    const result = evaluate(primary, 3786, {
+      repo: REPO,
+      runner: { runGh: NEVER_CALLED, proxied: false },
+      fetchClosingIssues: closing(3609),
+      prHeadAssert: {
+        prHeadSha: prHead,
+        resolveWorktreeAtSha: () => dest,
+        resolveLocalHeadSha: (root) => (root === dest ? prHead : "a".repeat(40)),
+        resolveLifecycleDirty: () => null,
+      },
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]?.issue).toBe(3609);
   });
 
   it("walks nested subItems and items", () => {
