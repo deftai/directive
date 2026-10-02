@@ -129,7 +129,7 @@ export function runPublish(config: PublishConfig, seams: ReleasePublishSeams = {
     const spent = spend(projectRoot, gate.humanApprovalRef);
     if (spent === null) {
       const onDisk = loadGrant(projectRoot, gate.humanApprovalRef);
-      if (onDisk !== null && onDisk.semantics.singleUse && onDisk.semantics.usedAt === null) {
+      if (onDisk?.semantics.singleUse && onDisk.semantics.usedAt === null) {
         emit(
           `Spend grant ${gate.humanApprovalRef}`,
           "FAIL (usedAt write refused; release is public but approval remains reusable)",

@@ -334,7 +334,7 @@ describe("runPublish", () => {
       mkdirSync(grantsDir, { recursive: true });
       writeFileSync(
         join(grantsDir, "grant-publish-single.json"),
-        JSON.stringify(unusedSingleUse, null, 2) + "\n",
+        `${JSON.stringify(unusedSingleUse, null, 2)}\n`,
         "utf8",
       );
       const rc = runPublish({ ...baseConfig, projectRoot: root }, seams);
