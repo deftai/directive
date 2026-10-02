@@ -176,44 +176,6 @@ function withRequirementSources(
 }
 
 /**
- * Known workspace requirement filenames whose bytes already appear in the
- * task statement (embedded at intake). Does not invent unread files (#3920).
- */
-const EMBEDDED_REQUIREMENT_CANDIDATES = [
-  "REQUIREMENTS.md",
-  "SPECIFICATION.md",
-  "requirements.md",
-  "docs/REQUIREMENTS.md",
-] as const;
-
-export function discoverEmbeddedRequirementSources(
-  projectRoot: string,
-  taskStatement: string,
-): WorkspaceSourceInput[] {
-  const statement = taskStatement.trim();
-  if (statement.length < 20) {
-    return [];
-  }
-  const root = resolve(projectRoot);
-  const out: WorkspaceSourceInput[] = [];
-  const seen = new Set<string>();
-  for (const rel of EMBEDDED_REQUIREMENT_CANDIDATES) {
-    const abs = resolve(root, rel);
-    if (!existsSync(abs)) continue;
-    const content = readFileSync(abs, "utf8");
-    const needle = content.trim().replace(/\s+/g, " ").slice(0, 48);
-    if (needle.length < 16) continue;
-    const haystack = statement.replace(/\s+/g, " ");
-    if (!haystack.includes(needle)) continue;
-    const norm = normalizeRequirementSourcePath(root, rel);
-    if (seen.has(norm)) continue;
-    seen.add(norm);
-    out.push({ path: rel, content });
-  }
-  return out;
-}
-
-/**
  * Record digests for workspace artifacts the caller already read (or paths to
  * read once now). Does not invent sources beyond the provided list (#3920).
  */

@@ -22,7 +22,6 @@ import {
   stripInlineMarkdownBold,
 } from "../verify-ac/clauses.js";
 import {
-  discoverEmbeddedRequirementSources,
   stampRequirementSources,
   type WorkspaceSourceInput,
 } from "../verify-ac/requirement-sources.js";
@@ -458,7 +457,6 @@ export function applyClauseDerivationToPlan(
         : "stated"
       : "derived";
   const previousAcceptance = plan.acceptance;
-  const previousMetadata = plan.metadata;
   plan.acceptance = {
     ...(existing ?? {}),
     commands: hasCommands ? commands : [],
@@ -479,7 +477,6 @@ export function applyClauseDerivationToPlan(
     } else {
       plan.acceptance = previousAcceptance;
     }
-    plan.metadata = previousMetadata;
     return {
       applied: false,
       clauses: quality.clauses,
@@ -487,24 +484,15 @@ export function applyClauseDerivationToPlan(
     };
   }
   // Stamp only after quality accepts — avoids orphan requirement_sources on
-  // quality rollback (#3920). Prefer explicit caller sources; else discover
-  // known requirement files whose bytes are already embedded in the statement.
-  // Never stamp the brief path itself (lifecycle moves rename it).
-  if (options.projectRoot !== undefined) {
-    const explicit = options.workspaceSources ?? [];
-    const sources =
-      explicit.length > 0
-        ? explicit
-        : discoverEmbeddedRequirementSources(
-            options.projectRoot,
-            collectTaskStatementFromPlan(plan),
-          );
-    if (sources.length > 0) {
-      const stamped = stampRequirementSources(plan, options.projectRoot, sources, {
-        now: options.now,
-      });
-      plan.metadata = stamped.metadata;
-    }
+  // quality rollback (#3920). Callers must pass already-read external paths;
+  // do not invent candidates (prefix-match discovery false-stamped files) and
+  // never stamp the brief path (lifecycle moves rename it).
+  const workspaceSources = options.workspaceSources ?? [];
+  if (workspaceSources.length > 0 && options.projectRoot !== undefined) {
+    const stamped = stampRequirementSources(plan, options.projectRoot, workspaceSources, {
+      now: options.now,
+    });
+    plan.metadata = stamped.metadata;
   }
   if (options.emitStamp !== false && options.projectRoot !== undefined) {
     emitAcceptanceStampFromPlan(options.projectRoot, plan);
