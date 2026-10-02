@@ -488,10 +488,11 @@ describe("computeGateResult #2260 reconciliation", () => {
                   comments: {
                     nodes: [
                       {
-                        author: { login: "greptile-apps[bot]" },
+                        author: { login: "greptile-apps" },
                         body: inlineP1Body,
                         path: "server/src/register/github.ts",
                         commit: { oid: HEAD },
+                        originalCommit: { oid: HEAD },
                       },
                     ],
                   },

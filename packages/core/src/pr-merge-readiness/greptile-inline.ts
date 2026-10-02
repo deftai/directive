@@ -1,5 +1,5 @@
 import { detect } from "../content-contracts/skills/greptile-detector.js";
-import { GREPTILE_LOGIN } from "./constants.js";
+import { isGreptileGraphqlAuthorLogin, isGreptileRestBotLogin } from "./constants.js";
 import type { RunGhFn } from "./types.js";
 
 /** Unresolved Greptile inline P0/P1 on the current PR HEAD (#2620). */
@@ -8,13 +8,24 @@ export interface InlineGreptileFindings {
   readonly p1Count: number;
   readonly unresolvedThreadCount: number;
   readonly error: string | null;
+  /**
+   * True when counts came from GraphQL reviewThreads (isResolved/isOutdated known).
+   * False for REST pulls/comments fallback — REST has no resolution state (#3944).
+   */
+  readonly resolutionKnown: boolean;
 }
 
 export interface InlineReviewComment {
   readonly authorLogin: string;
   readonly body: string;
   readonly path: string | null;
+  /** Mutable re-anchored oid from GraphQL `commit { oid }` / REST `commit_id`. */
   readonly commitOid: string | null;
+  /**
+   * Prefer-A re-anchor signal (#3944): GraphQL `originalCommit { oid }` /
+   * REST `original_commit_id`. Live HEAD match uses this, not `commitOid`.
+   */
+  readonly originalCommitOid: string | null;
 }
 
 export interface InlineReviewThread {
@@ -38,6 +49,7 @@ query($owner: String!, $repo: String!, $pr: Int!, $after: String) {
               body
               path
               commit { oid }
+              originalCommit { oid }
             }
           }
         }
@@ -51,6 +63,7 @@ const EMPTY_INLINE: InlineGreptileFindings = {
   p1Count: 0,
   unresolvedThreadCount: 0,
   error: null,
+  resolutionKnown: true,
 };
 
 /** True when a review comment commit SHA matches the current PR head (#2620 AC-2). */
@@ -64,6 +77,7 @@ export function inlineFindingsToDict(findings: InlineGreptileFindings): Record<s
     p1_count: findings.p1Count,
     unresolved_thread_count: findings.unresolvedThreadCount,
     error: findings.error,
+    resolution_known: findings.resolutionKnown,
   };
 }
 
@@ -98,12 +112,16 @@ function parseReviewComment(node: unknown): InlineReviewComment | null {
   }
   const commit = asRecord(record.commit);
   const oid = commit?.oid;
+  const originalCommit = asRecord(record.originalCommit);
+  const originalOid = originalCommit?.oid;
   const path = record.path;
   return {
     authorLogin: login,
     body,
     path: typeof path === "string" ? path : null,
     commitOid: typeof oid === "string" && oid.length > 0 ? oid : null,
+    originalCommitOid:
+      typeof originalOid === "string" && originalOid.length > 0 ? originalOid : null,
   };
 }
 
@@ -186,7 +204,13 @@ function parseGraphqlReviewThreadsPage(stdout: string): GraphqlReviewThreadsPage
   };
 }
 
-/** Score unresolved Greptile inline P0/P1 threads pinned to the current HEAD (#2620). */
+/**
+ * Score unresolved Greptile inline P0/P1 threads pinned to the current HEAD (#2620 / #3944).
+ *
+ * Prefer-A liveness: match GraphQL `author.login` (`greptile-apps`) and require
+ * `originalCommit` HEAD match. Do not treat mutable re-anchored `commit.oid` as
+ * live alone — that is the false-BLOCK class after a login-only fix.
+ */
 export function evaluateInlineReviewThreads(
   threads: readonly InlineReviewThread[],
   headSha: string,
@@ -203,10 +227,14 @@ export function evaluateInlineReviewThreads(
     let threadP0 = 0;
     let threadP1 = 0;
     for (const comment of thread.comments) {
-      if (comment.authorLogin !== GREPTILE_LOGIN) {
+      if (!isGreptileGraphqlAuthorLogin(comment.authorLogin)) {
         continue;
       }
-      if (comment.commitOid === null || !headShaMatches(comment.commitOid, headSha)) {
+      // Prefer-A (#3944): originalCommit vs mutable commit.oid.
+      if (
+        comment.originalCommitOid === null ||
+        !headShaMatches(comment.originalCommitOid, headSha)
+      ) {
         continue;
       }
       const findings = detect(comment.body);
@@ -221,7 +249,7 @@ export function evaluateInlineReviewThreads(
     }
   }
 
-  return { p0Count, p1Count, unresolvedThreadCount, error: null };
+  return { p0Count, p1Count, unresolvedThreadCount, error: null, resolutionKnown: true };
 }
 
 /** Fetch unresolved Greptile inline P0/P1 on the current HEAD via reviewThreads GraphQL (#2620). */
@@ -373,8 +401,9 @@ function parsePaginatedRestComments(stdout: string): { items: unknown[]; error: 
 /**
  * Score REST pull-review comments pinned to HEAD.
  *
- * REST has no isResolved / isOutdated. Count matching-HEAD Greptile comments
- * only. GraphQL `evaluateInlineReviewThreads` remains the lifecycle filter (#4289).
+ * REST has no isResolved / isOutdated. Count Greptile Bot comments whose
+ * `original_commit_id` matches HEAD (#3944 Prefer-A). GraphQL
+ * `evaluateInlineReviewThreads` remains the lifecycle filter (#4289).
  */
 function scoreRestPullComments(items: readonly unknown[], headSha: string): InlineGreptileFindings {
   let p0Count = 0;
@@ -391,11 +420,13 @@ function scoreRestPullComments(items: readonly unknown[], headSha: string): Inli
       const raw = (user as Record<string, unknown>).login;
       login = typeof raw === "string" ? raw : "";
     }
-    if (login !== GREPTILE_LOGIN) {
+    // REST Bot only — never bare `greptile-apps` (separate User account) (#3944).
+    if (!isGreptileRestBotLogin(login)) {
       continue;
     }
-    const commitId = typeof rec.commit_id === "string" ? rec.commit_id : null;
-    if (commitId === null || !headShaMatches(commitId, headSha)) {
+    const originalCommitId =
+      typeof rec.original_commit_id === "string" ? rec.original_commit_id : null;
+    if (originalCommitId === null || !headShaMatches(originalCommitId, headSha)) {
       continue;
     }
     const body = typeof rec.body === "string" ? rec.body : "";
@@ -406,7 +437,9 @@ function scoreRestPullComments(items: readonly unknown[], headSha: string): Inli
       unresolvedThreadCount += 1;
     }
   }
-  return { p0Count, p1Count, unresolvedThreadCount, error: null };
+  // REST has no isResolved — callers must not shaMatch on these alone when
+  // the rolling summary SHA is stale (#3944 / #4289).
+  return { p0Count, p1Count, unresolvedThreadCount, error: null, resolutionKnown: false };
 }
 
 /** Fetch Greptile inline P0/P1 via REST pulls comments (paginated; no GraphQL) (#4289). */
@@ -425,12 +458,13 @@ export function fetchGreptilePullCommentsRest(
   if (rc.returncode !== 0) {
     return {
       ...EMPTY_INLINE,
+      resolutionKnown: false,
       error: `REST pulls comments failed: ${rc.stderr.trim() || rc.stdout.trim()}`,
     };
   }
   const parsed = parsePaginatedRestComments(rc.stdout);
   if (parsed.error !== null) {
-    return { ...EMPTY_INLINE, error: parsed.error };
+    return { ...EMPTY_INLINE, resolutionKnown: false, error: parsed.error };
   }
   return scoreRestPullComments(parsed.items, headSha);
 }

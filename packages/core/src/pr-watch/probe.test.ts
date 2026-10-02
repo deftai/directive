@@ -17,6 +17,19 @@ import { fetchPrLifecycleRest, probeOnce } from "./probe.js";
 const FIXTURE_SHA = "abcdef1234567";
 const OTHER_SHA = "9999999deadbee";
 
+const EMPTY_REVIEW_THREADS = JSON.stringify({
+  data: {
+    repository: {
+      pullRequest: {
+        reviewThreads: {
+          pageInfo: { hasNextPage: false, endCursor: null },
+          nodes: [],
+        },
+      },
+    },
+  },
+});
+
 interface FakeGhConfig {
   headSha?: string | null;
   body?: string;
@@ -30,6 +43,10 @@ interface FakeGhConfig {
   prMerged?: boolean;
   /** Force pulls REST failure (lifecycle unresolved → continue / HEAD error). */
   pullsRestError?: boolean;
+  /** GraphQL reviewThreads JSON. Default empty success (#3944 ordinary inline path). */
+  reviewThreads?: string;
+  /** Force GraphQL reviewThreads failure (thin-HTML REST fallback / lookup error). */
+  graphqlError?: boolean;
 }
 
 /** Route the canonical pr-merge-readiness gh calls to canned responses. */
@@ -41,6 +58,10 @@ function makeFakeGh(cfg: FakeGhConfig) {
     if (cmd[1] === "pr" && cmd[2] === "view") {
       if (cfg.headError === true) return fail("no such PR");
       return ok(cfg.headSha === null ? "" : `${cfg.headSha ?? FIXTURE_SHA}\n`);
+    }
+    if (joined.includes("graphql")) {
+      if (cfg.graphqlError === true) return fail("graphql unavailable");
+      return ok(cfg.reviewThreads ?? EMPTY_REVIEW_THREADS);
     }
     if (joined.includes("/pulls/") && joined.includes("/comments")) {
       if (cfg.pullCommentsError === true) return fail("comments unavailable");
@@ -445,11 +466,12 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
           ...GREEN_CI,
           { name: "Greptile Review", status: "completed", conclusion: "success" },
         ],
+        graphqlError: true,
         pullCommentsError: true,
       }),
     );
     expect(probe.isClean).toBe(false);
-    expect(probe.cleanGateHoldout).toBe("findings_channel");
+    expect(["findings_channel", "inline_lookup_error"]).toContain(probe.cleanGateHoldout);
   });
 
   it("thin HTML 4292 inline P1 is NEW_P0_P1 without a body SHA", () => {
@@ -460,11 +482,13 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
         headSha: FIXTURE_SHA,
         body: BODY_PR4292_THIN_HTML,
         checkRuns: [...GREEN_CI, GREPTILE_DIRTY],
+        graphqlError: true,
         pullComments: [
           {
             user: { login: "greptile-apps[bot]" },
             body: BODY_PR4292_INLINE_P1,
             commit_id: FIXTURE_SHA,
+            original_commit_id: FIXTURE_SHA,
           },
         ],
       }),
@@ -491,10 +515,11 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
                   comments: {
                     nodes: [
                       {
-                        author: { login: "greptile-apps[bot]" },
+                        author: { login: "greptile-apps" },
                         body: BODY_PR4292_INLINE_P1,
                         path: "greptile-inline.ts",
                         commit: { oid: FIXTURE_SHA },
+                        originalCommit: { oid: FIXTURE_SHA },
                       },
                     ],
                   },
@@ -505,28 +530,179 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
         },
       },
     };
-    const gh = makeFakeGh({
-      headSha: FIXTURE_SHA,
-      body: BODY_PR4292_THIN_HTML,
-      checkRuns: [...GREEN_CI, GREPTILE_CLEAN],
-      pullComments: [
-        {
-          user: { login: "greptile-apps[bot]" },
-          body: BODY_PR4292_INLINE_P1,
-          commit_id: FIXTURE_SHA,
-        },
-      ],
-    });
-    const runGh = (cmd: readonly string[]) => {
-      if (cmd.join(" ").includes("graphql")) {
-        return { returncode: 0, stdout: JSON.stringify(graphqlPayload), stderr: "" };
-      }
-      return gh(cmd);
-    };
-    const probe = probeOnce(4303, "deftai/directive", runGh);
+    const probe = probeOnce(
+      4303,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: FIXTURE_SHA,
+        body: BODY_PR4292_THIN_HTML,
+        checkRuns: [...GREEN_CI, GREPTILE_CLEAN],
+        reviewThreads: JSON.stringify(graphqlPayload),
+        pullComments: [
+          {
+            user: { login: "greptile-apps[bot]" },
+            body: BODY_PR4292_INLINE_P1,
+            commit_id: FIXTURE_SHA,
+            original_commit_id: FIXTURE_SHA,
+          },
+        ],
+      }),
+    );
     expect(probe.error).toBeNull();
     expect(probe.hasBlocking).toBe(false);
     expect(probe.isClean).toBe(true);
+  });
+
+  it("ordinary summary-clean + GraphQL greptile-apps inline P1 is not CLEAN (#3944)", () => {
+    const reviewThreads = JSON.stringify({
+      data: {
+        repository: {
+          pullRequest: {
+            reviewThreads: {
+              pageInfo: { hasNextPage: false, endCursor: null },
+              nodes: [
+                {
+                  isResolved: false,
+                  isOutdated: false,
+                  comments: {
+                    nodes: [
+                      {
+                        author: { login: "greptile-apps" },
+                        body: BODY_PR4292_INLINE_P1,
+                        path: "server/src/register/github.ts",
+                        commit: { oid: FIXTURE_SHA },
+                        originalCommit: { oid: FIXTURE_SHA },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    const probe = probeOnce(
+      3944,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: FIXTURE_SHA,
+        body: BODY_AC4_MARKDOWN_LINK_CLEAN,
+        checkRuns: GREEN_CI,
+        reviewThreads,
+      }),
+    );
+    expect(probe.error).toBeNull();
+    expect(probe.isClean).toBe(false);
+    expect(probe.hasBlocking).toBe(true);
+    expect(probe.p1Count).toBeGreaterThanOrEqual(1);
+    expect(probe.cleanGateHoldout).toBe("has_blocking");
+  });
+
+  it("thin HTML REST fallback does not shaMatch when summary SHA is unknown (#3944)", () => {
+    // GraphQL fail → REST may count resolved comments (no isResolved). Without a
+    // known summary SHA, do not force shaMatch / false NEW_P0_P1.
+    const probe = probeOnce(
+      4292,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: OTHER_SHA,
+        body: BODY_PR4292_THIN_HTML,
+        checkRuns: GREEN_CI,
+        graphqlError: true,
+        pullComments: [
+          {
+            user: { login: "greptile-apps[bot]" },
+            body: BODY_PR4292_INLINE_P1,
+            commit_id: OTHER_SHA,
+            original_commit_id: OTHER_SHA,
+          },
+        ],
+      }),
+    );
+    expect(probe.error).toBeNull();
+    expect(probe.lastReviewedSha).toBeNull();
+    expect(probe.hasBlocking).toBe(true);
+    expect(probe.p1Count).toBeGreaterThanOrEqual(1);
+    expect(probe.shaMatch).toBe(false);
+    expect(probe.isClean).toBe(false);
+  });
+
+  it("stale summary SHA + HEAD-anchored inline P1 → shaMatch + hasBlocking (#3944)", () => {
+    // Rolling summary still names FIXTURE_SHA; live HEAD is OTHER_SHA with an
+    // unresolved greptile-apps inline P1 on originalCommit=OTHER_SHA.
+    const reviewThreads = JSON.stringify({
+      data: {
+        repository: {
+          pullRequest: {
+            reviewThreads: {
+              pageInfo: { hasNextPage: false, endCursor: null },
+              nodes: [
+                {
+                  isResolved: false,
+                  isOutdated: false,
+                  comments: {
+                    nodes: [
+                      {
+                        author: { login: "greptile-apps" },
+                        body: BODY_PR4292_INLINE_P1,
+                        path: "packages/core/src/pr-watch/probe.ts",
+                        commit: { oid: OTHER_SHA },
+                        originalCommit: { oid: OTHER_SHA },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    const probe = probeOnce(
+      3944,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: OTHER_SHA,
+        body: BODY_AC4_MARKDOWN_LINK_CLEAN,
+        checkRuns: GREEN_CI,
+        reviewThreads,
+      }),
+    );
+    expect(probe.error).toBeNull();
+    expect(probe.lastReviewedSha).toBe(FIXTURE_SHA);
+    expect(probe.headSha).toBe(OTHER_SHA);
+    expect(probe.hasBlocking).toBe(true);
+    expect(probe.p1Count).toBeGreaterThanOrEqual(1);
+    expect(probe.shaMatch).toBe(true);
+    expect(probe.isClean).toBe(false);
+    expect(probe.cleanGateHoldout).toBe("has_blocking");
+  });
+
+  it("ordinary probe is non-clean when inline GraphQL lookup fails (#3944)", () => {
+    const probe = probeOnce(
+      3944,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: FIXTURE_SHA,
+        body: BODY_AC4_MARKDOWN_LINK_CLEAN,
+        checkRuns: GREEN_CI,
+        graphqlError: true,
+      }),
+    );
+    expect(probe.isClean).toBe(false);
+    expect(probe.cleanGateHoldout).toBe("inline_lookup_error");
+  });
+
+  it("does not CLEAN when --repo is missing and cwd repo resolve fails (#3944)", () => {
+    // resolveRepo + body fetch both need `gh repo view`; failure → error probe (non-clean).
+    const probe = probeOnce(
+      3944,
+      null,
+      makeFakeGh({ headSha: FIXTURE_SHA, body: BODY_AC4_MARKDOWN_LINK_CLEAN }),
+    );
+    expect(probe.isClean).toBe(false);
+    expect(probe.error !== null || probe.cleanGateHoldout === "inline_repo_unresolved").toBe(true);
   });
 });
 

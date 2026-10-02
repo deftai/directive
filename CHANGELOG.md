@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Authz store lock recovers dead holders; pinned mint publishes pin before grant (#4233).** A killed holder of `store-write.lock` no longer blocks later authz writes until manual delete. Pinned mint updates the pin first so an empty pin cannot activate a half-written grant, and a failed remint restores the prior pin without deleting an existing same-ID grant. Tracking #4233.
 - **Repeat panel dispatch no longer trusts a bad handback claim (#3979).** A wrong or missing comment id does not reuse an earlier matching post; failed panel checks also block path-1 auto-stamp. Tracking #3979.
 - **`verify:consumer-check-contract` reachability: do not let `- env:`/`- with:` nested maps steal step-field indent (#4015).** Gate step `if:` / `run:` / `continue-on-error` after a leading env/with block stay visible so skippable or soft-fail gates cannot read clean. Tracking #4015.
+- `pr:watch` and merge-readiness treat unresolved Greptile inline P0/P1 on the current head as blocking, including when the rolling summary still names an older commit; a thin REST fallback without resolution state does not force that match when the summary is stale (#3944).
 
 ### Removed
 
