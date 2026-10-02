@@ -10,7 +10,7 @@
     "narratives": {
       "Description": "feat(vbrief,resilience): prevent false memory propagation and context rot in agent sessions",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/479",
-      "Overview": "\n\n- Do not bind the April six-action list, and do not treat Stop 1's recorded refutation-target of that list as remaining contract.\n- Split the remainder. Wave-independent first-ship (does not jump #2741 Wave 2):\n  1. Named Source/Confidence vocabulary (enum or pattern), `vbrief.md` rule body, and a validator. Measure the actual schema placement at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` (`Plan.narratives` vs `PlanItem.narrative`) and write against that placement; decide explicitly whether the other object gets the same named keys. Bind source class, evidence pointer/event, verifier, and verification time to an atomic claim unit. Confidence does not substitute for evidence.\n  2. Put the `verified` TrustLevel tier in the TypeScript type and in schema. Keep the #480 enum and promotion-prohibition rule body. Ingest/GitHub `external` write-path stays on #480.\n  3. Reuse `invalidates`. Generalize the #1621 / `verify-investigation.ts` edge-backed refusal from investigation branches to plan items. Do not add `contradicts` unless the recut needs the symmetric relation `invalidates` cannot carry, with one named consumer.\n- Wave-2 remainder under #2741, after Wave 1 budgets (#833):\n  4. Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `continue.xbrief.json`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.\n  5. Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.\n  6. One FMP sentence in `context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.\n- Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.\n- Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands.\n\nFootnotes stay footnotes: Pathcourse pitch; epic #2741 pass-2 still listing closed #2742; `depends` is not a core edge type; envelope Model-field parenthetical duplication.\n\n",
+      "Overview": "\n\n- Do not bind the April six-action list, and do not treat Stop 1's recorded refutation-target of that list as remaining contract.\n- Split the remainder. Wave-independent first-ship (does not jump #2741 Wave 2):\n  1. Named Source/Confidence vocabulary (enum or pattern), `vbrief.md` rule body, and a validator. Measure the actual schema placement at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` (`Plan.narratives` vs `PlanItem.narrative`) and write against that placement; decide explicitly whether the other object gets the same named keys. Bind source class, evidence pointer/event, verifier, and verification time to an atomic claim unit. Confidence does not substitute for evidence.\n  2. Put the `verified` TrustLevel tier in the TypeScript type and in schema. Keep the #480 enum and promotion-prohibition rule body. Ingest/GitHub `external` write-path stays on #480.\n  3. Reuse `invalidates`. Generalize the #1621 / `verify-investigation.ts` edge-backed refusal from investigation branches to plan items. Do not add `contradicts` unless the recut needs the symmetric relation `invalidates` cannot carry, with one named consumer.\n- Wave-2 remainder under #2741, after Wave 1 budgets (#833):\n  4. Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `continue.xbrief.json`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.\n  5. Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.\n  6. One FMP sentence in `context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.\n- Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.\n- Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands.\n\nFootnotes stay footnotes: Pathcourse pitch; epic #2741 pass-2 still listing closed #2742; `depends` is not a core edge type; envelope Model-field parenthetical duplication.\n\nLeftover-complete note: first-ship delivered by PR #5265; Wave-2 remainder (items 6-10) disposition deferred under #2741 / #2742 — not delivered by #5265. admitted_source_* pin preserved from ingest.",
       "Labels": "enhancement, context-engineering, security, determinism, agent-experience, urgent, design-critique:ingest-ready, core-capabilities, promise:continuity"
     },
     "items": [
@@ -100,6 +100,91 @@
         }
       },
       {
+        "title": "Wave-2 remainder under #2741, after Wave 1 budgets (#833):",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Not part of first-ship PR #5265. Wave-2 / remainder tracked under #2741 (and #2742/#835 where named). Disposition deferred — do not read as delivered by #5265.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T23:03:47.743Z",
+            "mintedVia": "leftover-5282-wave2-defer-clarify"
+          },
+          "recorded_at": "2026-10-02T23:03:47.743Z"
+        }
+      },
+      {
+        "title": "Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `packages/core/src/vbrief-validate/provenance.ts`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Not part of first-ship PR #5265. Wave-2 / remainder tracked under #2741 (and #2742/#835 where named). Disposition deferred — do not read as delivered by #5265.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T23:03:47.743Z",
+            "mintedVia": "leftover-5282-wave2-defer-clarify"
+          },
+          "recorded_at": "2026-10-02T23:03:47.743Z"
+        }
+      },
+      {
+        "title": "Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.",
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Not part of first-ship PR #5265. Wave-2 / remainder tracked under #2741 (and #2742/#835 where named). Disposition deferred — do not read as delivered by #5265.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T23:03:47.743Z",
+            "mintedVia": "leftover-5282-wave2-defer-clarify"
+          },
+          "recorded_at": "2026-10-02T23:03:47.743Z"
+        }
+      },
+      {
+        "title": "One FMP sentence in `content/resilience/context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.",
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Not part of first-ship PR #5265. Wave-2 / remainder tracked under #2741 (and #2742/#835 where named). Disposition deferred — do not read as delivered by #5265.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T23:03:47.743Z",
+            "mintedVia": "leftover-5282-wave2-defer-clarify"
+          },
+          "recorded_at": "2026-10-02T23:03:47.743Z"
+        }
+      },
+      {
+        "title": "Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.",
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Not part of first-ship PR #5265. Wave-2 / remainder tracked under #2741 (and #2742/#835 where named). Disposition deferred — do not read as delivered by #5265.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5265",
+            "mintedAt": "2026-10-02T23:03:47.743Z",
+            "mintedVia": "leftover-5282-wave2-defer-clarify"
+          },
+          "recorded_at": "2026-10-02T23:03:47.743Z"
+        }
+      },
+      {
         "title": "Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands.",
         "status": "completed",
         "id": "clause.11",
@@ -143,13 +228,18 @@
       ],
       "none_stated": false,
       "source_rung": "derived",
-      "derived_reason": "Prefer-A leftover-complete after product PR #5265; first-ship clauses only. Wave-2 remainder stays on #2741 (not recorded as completed here).",
+      "derived_reason": "Prefer-A leftover-complete after product PR #5265; pathless derived clauses",
       "sentences": [
         "Do not bind the April six-action list, and do not treat Stop 1's recorded refutation-target of that list as remaining contract.",
         "Split the remainder. Wave-independent first-ship (does not jump #2741 Wave 2):",
         "Named Source/Confidence vocabulary (enum or pattern), `content/vbrief/vbrief.md` rule body, and a validator. Measure the actual schema placement at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` (`Plan.narratives` vs `PlanItem.narrative`) and write against that placement; decide explicitly whether the other object gets the same named keys. Bind source class, evidence pointer/event, verifier, and verification time to an atomic claim unit. Confidence does not substitute for evidence.",
         "Put the `verified` TrustLevel tier in the TypeScript type and in schema. Keep the #480 enum and promotion-prohibition rule body. Ingest/GitHub `external` write-path stays on #480.",
         "Reuse `invalidates`. Generalize the #1621 / `packages/core/src/orchestration/verify-investigation.ts` edge-backed refusal from investigation branches to plan items. Do not add `contradicts` unless the recut needs the symmetric relation `invalidates` cannot carry, with one named consumer.",
+        "Wave-2 remainder under #2741, after Wave 1 budgets (#833):",
+        "Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `packages/core/src/vbrief-validate/provenance.ts`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.",
+        "Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.",
+        "One FMP sentence in `content/resilience/context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.",
+        "Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.",
         "Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands."
       ],
       "admitted_source_sentences": [
@@ -158,9 +248,14 @@
         "Named Source/Confidence vocabulary (enum or pattern), `content/vbrief/vbrief.md` rule body, and a validator. Measure the actual schema placement at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` (`Plan.narratives` vs `PlanItem.narrative`) and write against that placement; decide explicitly whether the other object gets the same named keys. Bind source class, evidence pointer/event, verifier, and verification time to an atomic claim unit. Confidence does not substitute for evidence.",
         "Put the `verified` TrustLevel tier in the TypeScript type and in schema. Keep the #480 enum and promotion-prohibition rule body. Ingest/GitHub `external` write-path stays on #480.",
         "Reuse `invalidates`. Generalize the #1621 / `packages/core/src/orchestration/verify-investigation.ts` edge-backed refusal from investigation branches to plan items. Do not add `contradicts` unless the recut needs the symmetric relation `invalidates` cannot carry, with one named consumer.",
+        "Wave-2 remainder under #2741, after Wave 1 budgets (#833):",
+        "Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `packages/core/src/vbrief-validate/provenance.ts`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.",
+        "Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.",
+        "One FMP sentence in `content/resilience/context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.",
+        "Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.",
         "Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands."
       ],
-      "admitted_source_digest": "96829f619fb5960aa652aa6d59a45d0bf0916f666c1000154e53550a82d94f50",
+      "admitted_source_digest": "a8b6f50c36d58c5e0d12589bc1c7e9359b166f141469d0ee0457eb417c0e9727",
       "clauses": [
         {
           "id": 1,
@@ -179,7 +274,7 @@
         {
           "id": 3,
           "text": "Named Source/Confidence vocabulary (enum or pattern), `content/vbrief/vbrief.md` rule body, and a validator. Measure the actual schema placement at dispatch SHA `7712f482781c4885fd9d395756e2c316785730dd` (`Plan.narratives` vs `PlanItem.narrative`) and write against that placement; decide explicitly whether the other object gets the same named keys. Bind source class, evidence pointer/event, verifier, and verification time to an atomic claim unit. Confidence does not substitute for evidence.",
-          "artifact_path": null,
+          "artifact_path": "content/vbrief/vbrief.md",
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -193,12 +288,47 @@
         {
           "id": 5,
           "text": "Reuse `invalidates`. Generalize the #1621 / `packages/core/src/orchestration/verify-investigation.ts` edge-backed refusal from investigation branches to plan items. Do not add `contradicts` unless the recut needs the symmetric relation `invalidates` cannot carry, with one named consumer.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/orchestration/verify-investigation.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
+          "text": "Wave-2 remainder under #2741, after Wave 1 budgets (#833):",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Resume revalidation of `inferred`/`assumed` on durable scope/plan items. Host stale/inferred flags on `session:start` / `xbrief:preflight`. Do not host a required unverified-claims ledger on ephemeral continue-here. Do not copy April action 2 onto `packages/core/src/vbrief-validate/provenance.ts`. A Hazards field, if it exists later, is `!` with an explicit empty sentinel, and hazard payloads stay data.",
+          "artifact_path": "packages/core/src/vbrief-validate/provenance.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Attach fail-closed claim-promotion checks to existing lifecycle/write paths (`scope:complete` evidence, `task check` as one input). Do not create `task prebrief`/`task debrief`. Do not reduce verification to one global command.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "One FMP sentence in `content/resilience/context-pruning.md`, or a pointer at TrustLevel plus #3383. No new pruning engine. Leave UMG/eviction/hot budgets with Wave 1.",
+          "artifact_path": "content/resilience/context-pruning.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Remainder is the agent-authored durable-memory half of #2742 §4.4, coordinated with #835. Thread comment 4301529006 is excluded described content; recut must carry no-ingest forward or name that exclusion.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
           "text": "Keep TrustLevel value enum and promotion prohibition unchanged when any richer source-provenance contract lands.",
           "artifact_path": null,
           "ambiguous": false,
