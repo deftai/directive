@@ -39,6 +39,18 @@ describe("spec-render bare -- (#548 / #5251 shape)", () => {
     expect(parsed.remaining).toEqual(["spec.json", "out.md"]);
   });
 
+  it("parseIncludeScopesFlag still honors flags after bare -- (no latch)", () => {
+    const parsed = parseIncludeScopesFlag([
+      "spec.json",
+      "--",
+      "--include-scopes=current",
+      "out.md",
+    ]);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.includeScopes).toBe("current");
+    expect(parsed.remaining).toEqual(["spec.json", "out.md"]);
+  });
+
   it('main(["--", specPath, outPath]) exits 0 and writes SPECIFICATION.md', () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-548-sep-"));
     tmpDirs.push(root);
