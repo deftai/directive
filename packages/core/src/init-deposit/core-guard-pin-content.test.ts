@@ -36,7 +36,7 @@ describe("core-guard pin-content SoT (#3193 / #3427)", () => {
     expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain("pnpm_importer_deps");
     expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain("freeze-except-additions");
     expect(CORE_GUARD_PIN_CONTENT_PYTHON).not.toContain("def pnpm_packages_by_name");
-    expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain(String.raw`^ {2}(\S[^:]*):\s*$`);
+    expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain(String.raw`^ {2}(\S.*):\s*$`);
   });
 
   it("leaves no tracked .py files in this repo (#3427)", () => {

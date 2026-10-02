@@ -588,7 +588,8 @@ export function pnpmLockImporterDeps(raw: string): Record<string, string> {
       break;
     }
     // Importer path at exactly 2-space indent (`.` or `packages/foo`).
-    const importerMatch = line.match(/^ {2}(\S[^:]*):\s*$/);
+    // `\S.*` allows colon-bearing keys (e.g. file: protocol); 4-space nested still rejected.
+    const importerMatch = line.match(/^ {2}(\S.*):\s*$/);
     if (importerMatch) {
       currentImporter = pnpmUnquote(importerMatch[1] ?? "");
       inDepBlock = false;
@@ -612,7 +613,7 @@ export function pnpmLockImporterDeps(raw: string): Record<string, string> {
       continue;
     }
     if (!inDepBlock) continue;
-    const pkgMatch = line.match(/^ {6}(\S[^:]*):\s*$/);
+    const pkgMatch = line.match(/^ {6}(\S.*):\s*$/);
     if (pkgMatch) {
       currentPkg = pnpmUnquote(pkgMatch[1] ?? "");
       pendingSpecifier = null;
@@ -686,7 +687,8 @@ function pnpmNamedSectionByFullKey(
       break;
     }
     // Exact 2-space package key; `\S` rejects deeper-indented nested keys.
-    const keyMatch = line.match(/^ {2}(\S[^:]*):\s*$/);
+    // `\S.*` keeps colon-bearing keys (e.g. 'pkg@file:../pkg') in the full-key map.
+    const keyMatch = line.match(/^ {2}(\S.*):\s*$/);
     if (keyMatch) {
       flush();
       currentKey = pnpmUnquote(keyMatch[1] ?? "");

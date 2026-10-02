@@ -2402,6 +2402,46 @@ describe("expected-verdict corpus (#5245 P3/P5)", () => {
     expect(isPnpmLockDirectivePinFollowThrough(basePnpm, head)).toBe(false);
   });
 
+  it("colon-bearing full keys stay in the freeze map (#5245 Greptile P1)", () => {
+    const withFileKey = [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    dependencies:",
+      "      local-pkg:",
+      "        specifier: file:../local-pkg",
+      "        version: link:../local-pkg",
+      "    devDependencies:",
+      "      '@deftai/directive':",
+      "        specifier: 0.97.0",
+      "        version: 0.97.0",
+      "",
+      "packages:",
+      "",
+      "  'local-pkg@file:../local-pkg':",
+      "    resolution: {directory: ../local-pkg, type: directory}",
+      "",
+      "  '@deftai/directive@0.97.0':",
+      "    resolution: {integrity: sha512-pin-head}",
+      "",
+      "snapshots:",
+      "",
+      "  'local-pkg@file:../local-pkg':",
+      "    {}",
+      "",
+      "  '@deftai/directive@0.97.0':",
+      "    {}",
+      "",
+    ].join("\n");
+    const changedFileKey = withFileKey.replace(
+      "resolution: {directory: ../local-pkg, type: directory}",
+      "resolution: {directory: ../local-pkg-moved, type: directory}",
+    );
+    expect(isPnpmLockDirectivePinFollowThrough(withFileKey, changedFileKey)).toBe(false);
+  });
+
   it("npm path-key freeze-except-additions ACCEPT for new node_modules path", () => {
     const base = JSON.stringify({
       lockfileVersion: 3,

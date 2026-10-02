@@ -182,7 +182,7 @@ def pnpm_importer_deps(raw):
             continue
         if re.match(r"^[^\s#]", line) and not line.startswith("importers"):
             break
-        m_imp = re.match(r"^ {2}(\S[^:]*):\s*$", line)
+        m_imp = re.match(r"^ {2}(\S.*):\s*$", line)
         if m_imp:
             cur_imp, in_dep, cur, pending_spec = unq(m_imp.group(1)), False, None, None
             continue
@@ -199,7 +199,7 @@ def pnpm_importer_deps(raw):
             continue
         if not in_dep:
             continue
-        m = re.match(r"^ {6}(\S[^:]*):\s*$", line)
+        m = re.match(r"^ {6}(\S.*):\s*$", line)
         if m:
             cur, pending_spec = unq(m.group(1)), None
             continue
@@ -248,7 +248,7 @@ def pnpm_section_by_full_key(raw, section):
         if re.match(r"^[^\s#]", line) and not line.startswith(section):
             flush()
             break
-        m = re.match(r"^ {2}(\S[^:]*):\s*$", line)
+        m = re.match(r"^ {2}(\S.*):\s*$", line)
         if m:
             flush()
             cur = unq(m.group(1))

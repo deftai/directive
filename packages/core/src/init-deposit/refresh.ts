@@ -1304,9 +1304,11 @@ export async function runRefreshDeposit(
   // Always repair these cheap projections, including on the #2118 no-op path.
   const wroteBeforeMarker = snapshotMutationSummary().wrote;
   if (alreadyCurrent) {
-    syncExistingBareVersionMarker(projectDir, contentVersion);
+    syncExistingBareVersionMarker(projectDir, contentVersion, {
+      printf: (t) => io.printf(t),
+    });
   } else {
-    syncBareVersionMarker(projectDir, contentVersion);
+    syncBareVersionMarker(projectDir, contentVersion, { printf: (t) => io.printf(t) });
   }
   for (const path of wroteSince(wroteBeforeMarker, snapshotMutationSummary().wrote)) {
     if (path.endsWith(".deft-version") || path === ".deft-version") {

@@ -440,7 +440,7 @@ export async function runInitDeposit(
     // Seeding PROJECT-DEFINITION.xbrief.json makes resolveLifecycleRoot succeed.
     // Align the same consumer derivatives update repairs (#2595 / #2806) so
     // init + git add -A is already clean under core.autocrlf=true (#2118 / #3013).
-    syncBareVersionMarker(projectDir, version);
+    syncBareVersionMarker(projectDir, version, { printf: (t) => io.printf(t) });
     removeStaleMigratedFrameworkNarrative(projectDir);
     writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);
     writeAgentHookDeposit(projectDir, io);
