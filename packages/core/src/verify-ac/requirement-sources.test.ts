@@ -2,13 +2,15 @@ import { mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { readAcceptanceClauses } from "./clauses.js";
 import {
   evaluateRequirementSourcesStaleness,
   hashRequirementContent,
-  readRequirementSources,
   REQUIREMENT_SOURCE_COMPLETED_CONFLICT_REMEDIATION,
+  REQUIREMENT_SOURCE_MALFORMED_REMEDIATION,
   REQUIREMENT_SOURCE_MISSING_REMEDIATION,
   REQUIREMENT_SOURCE_POST_COMPLETE_REMEDIATION,
+  readRequirementSources,
   stampRequirementSources,
   writeRequirementSourcesAutofixToXbrief,
 } from "./requirement-sources.js";
@@ -62,9 +64,12 @@ describe("requirement_sources stamp + staleness (#3920)", () => {
     const reqPath = join(root, "REQUIREMENTS.md");
     const content = "# Acceptance\n\n- keep the ship green\n- report the delta\n";
     writeFileSync(reqPath, content, "utf8");
-    const stamped = stampRequirementSources(basePlan(), root, [
-      { path: "REQUIREMENTS.md", content },
-    ], { now: () => "2026-10-02T00:00:00.000Z" });
+    const stamped = stampRequirementSources(
+      basePlan(),
+      root,
+      [{ path: "REQUIREMENTS.md", content }],
+      { now: () => "2026-10-02T00:00:00.000Z" },
+    );
     const sources = readRequirementSources(stamped);
     expect(sources).toEqual([
       {
@@ -78,14 +83,13 @@ describe("requirement_sources stamp + staleness (#3920)", () => {
   it("stamp then mutate then evaluate autofixes with delta and zero refusals", () => {
     const root = tempRoot();
     const reqPath = join(root, "REQUIREMENTS.md");
-    const original =
-      "## AcceptanceCriteria\n\n- keep the ship green\n- report the delta\n";
+    const original = "## Acceptance Criteria\n\n- keep the ship green\n- report the delta\n";
     writeFileSync(reqPath, original, "utf8");
     let plan = stampRequirementSources(basePlan(), root, [{ path: reqPath }], {
       now: () => "2026-10-02T00:00:00.000Z",
     });
     const revised =
-      "## AcceptanceCriteria\n\n- keep the ship green\n- report the delta\n- also cover telemetry\n";
+      "## Acceptance Criteria\n\n- keep the ship green\n- report the delta\n- also cover telemetry\n";
     writeFileSync(reqPath, revised, "utf8");
     const writes: Record<string, unknown>[] = [];
     const verdict = evaluateRequirementSourcesStaleness(plan, root, {
@@ -146,11 +150,9 @@ describe("requirement_sources stamp + staleness (#3920)", () => {
     const root = tempRoot();
     const reqPath = join(root, "REQUIREMENTS.md");
     writeFileSync(reqPath, "v1\n", "utf8");
-    const plan = stampRequirementSources(
-      basePlan({ status: "completed" }),
-      root,
-      [{ path: "REQUIREMENTS.md" }],
-    );
+    const plan = stampRequirementSources(basePlan({ status: "completed" }), root, [
+      { path: "REQUIREMENTS.md" },
+    ]);
     writeFileSync(reqPath, "v2\n", "utf8");
     const verdict = evaluateRequirementSourcesStaleness(plan, root);
     expect(verdict.ok).toBe(false);
@@ -162,8 +164,7 @@ describe("requirement_sources stamp + staleness (#3920)", () => {
   it("fails closed when re-derivation conflicts with completed plan items", () => {
     const root = tempRoot();
     const reqPath = join(root, "REQUIREMENTS.md");
-    const original =
-      "## AcceptanceCriteria\n\n- keep the ship green\n- report the delta\n";
+    const original = "## Acceptance Criteria\n\n- keep the ship green\n- report the delta\n";
     writeFileSync(reqPath, original, "utf8");
     // No plan narratives / items surface: clause set comes from the requirements file.
     const plan = stampRequirementSources(
@@ -192,7 +193,7 @@ describe("requirement_sources stamp + staleness (#3920)", () => {
     );
     writeFileSync(
       reqPath,
-      "## AcceptanceCriteria\n\n- keep the ship green\n- a different completed contract\n",
+      "## Acceptance Criteria\n\n- keep the ship green\n- a different completed contract\n",
       "utf8",
     );
     const verdict = evaluateRequirementSourcesStaleness(plan, root);
@@ -212,13 +213,19 @@ describe("requirement_sources stamp + staleness (#3920)", () => {
     });
   });
 
-  it("writeRequirementSourcesAutofixToXbrief persists the restamped plan", () => {
+  it("writeRequirementSourcesAutofixToXbrief merges sources without clobbering plan edits", () => {
     const root = tempRoot();
     const brief = join(root, "story.xbrief.json");
     const plan = stampRequirementSources(basePlan(), root, [
       { path: "REQUIREMENTS.md", content: "v1\n" },
     ]);
     writeFileSync(brief, `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }, null, 2)}\n`);
+    // Intervening edit on disk after the in-memory autofix plan was prepared.
+    const disk = JSON.parse(readFileSync(brief, "utf8")) as {
+      plan: Record<string, unknown>;
+    };
+    disk.plan.title = "edited-on-disk";
+    writeFileSync(brief, `${JSON.stringify(disk, null, 2)}\n`);
     const next = stampRequirementSources(basePlan({ title: "restamped" }), root, [
       { path: "REQUIREMENTS.md", content: "v2\n" },
     ]);
@@ -226,9 +233,79 @@ describe("requirement_sources stamp + staleness (#3920)", () => {
     const saved = JSON.parse(readFileSync(brief, "utf8")) as {
       plan: Record<string, unknown>;
     };
-    expect(saved.plan.title).toBe("restamped");
+    expect(saved.plan.title).toBe("edited-on-disk");
     expect(readRequirementSources(saved.plan)[0]?.content_sha256).toBe(
       hashRequirementContent("v2\n"),
     );
+  });
+
+  it("fails closed when a recorded source is missing recorded_at", () => {
+    const root = tempRoot();
+    const plan = basePlan({
+      metadata: {
+        requirement_sources: [{ path: "REQUIREMENTS.md", content_sha256: "abc" }],
+      },
+    });
+    const verdict = evaluateRequirementSourcesStaleness(plan, root);
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.kind).toBe("malformed");
+    expect(verdict.remediation).toBe(REQUIREMENT_SOURCE_MALFORMED_REMEDIATION);
+  });
+
+  it("autofix preserves artifact_path bindings for matching clause text", () => {
+    const root = tempRoot();
+    const reqPath = join(root, "REQUIREMENTS.md");
+    const original = "## Acceptance Criteria\n\n- keep the ship green\n- report the delta\n";
+    writeFileSync(reqPath, original, "utf8");
+    let plan = stampRequirementSources(
+      basePlan({
+        narratives: {},
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          clauses: [
+            {
+              id: 1,
+              text: "keep the ship green",
+              artifact_path: "src/ship.ts",
+              ambiguous: false,
+            },
+            {
+              id: 2,
+              text: "report the delta",
+              artifact_path: "src/delta.ts",
+              ambiguous: false,
+            },
+          ],
+          ambiguity_attestation: "none_found",
+        },
+        items: [
+          { id: "clause.1", title: "keep the ship green", status: "proposed" },
+          { id: "clause.2", title: "report the delta", status: "proposed" },
+        ],
+      }),
+      root,
+      [{ path: "REQUIREMENTS.md" }],
+    );
+    writeFileSync(
+      reqPath,
+      "## Acceptance Criteria\n\n- keep the ship green\n- report the delta\n- also cover telemetry\n",
+      "utf8",
+    );
+    const verdict = evaluateRequirementSourcesStaleness(plan, root, {
+      writePlan: (next) => {
+        plan = next;
+      },
+    });
+    expect(verdict.ok).toBe(true);
+    if (!verdict.ok) return;
+    expect(verdict.kind).toBe("autofixed");
+    const clauses = readAcceptanceClauses(plan.acceptance);
+    const ship = clauses.find((c) => /keep the ship green/i.test(c.text));
+    const delta = clauses.find((c) => /report the delta/i.test(c.text));
+    expect(ship?.artifact_path).toBe("src/ship.ts");
+    expect(delta?.artifact_path).toBe("src/delta.ts");
   });
 });

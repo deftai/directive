@@ -4,13 +4,15 @@
  * At intake/stamp, record path+sha256 for workspace artifacts derivation already
  * read. verify:ac and the completion walk re-hash; digest change autofixes
  * (re-read / re-derive / re-stamp / report) per the #3813 autofix line.
- * Residuals fail closed: missing source, completed-item conflict, post-complete.
+ * Residuals fail closed: missing source, malformed stamp, completed-item
+ * conflict, post-complete.
  */
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import {
+  type AcceptanceClause,
   deriveAcceptanceClauses,
   readAcceptanceClauses,
   serializeAcceptanceClauses,
@@ -26,6 +28,9 @@ export const REQUIREMENT_SOURCE_COMPLETED_CONFLICT_REMEDIATION =
 
 export const REQUIREMENT_SOURCE_POST_COMPLETE_REMEDIATION =
   "requirement sources must not change after scope:complete; open a new scope or restore the recorded bytes";
+
+export const REQUIREMENT_SOURCE_MALFORMED_REMEDIATION =
+  "repair plan.metadata.requirement_sources entries to include non-empty path, content_sha256, and recorded_at, or drop the malformed rows and re-stamp";
 
 export interface RequirementSource {
   readonly path: string;
@@ -57,7 +62,7 @@ export interface RequirementSourcesOk {
 
 export interface RequirementSourcesFail {
   readonly ok: false;
-  readonly kind: "missing" | "completed_conflict" | "post_complete";
+  readonly kind: "missing" | "completed_conflict" | "post_complete" | "malformed";
   readonly sources_rechecked: number;
   readonly sources_changed: number;
   readonly deltas: readonly RequirementSourceDelta[];
@@ -105,30 +110,48 @@ export function normalizeRequirementSourcePath(projectRoot: string, pathValue: s
   return rel.replace(/^\.\//, "");
 }
 
-/** Read stamped requirement_sources from plan.metadata (empty when absent). */
-export function readRequirementSources(plan: unknown): RequirementSource[] {
+export type ReadRequirementSourcesResult =
+  | { readonly ok: true; readonly sources: RequirementSource[] }
+  | { readonly ok: false; readonly message: string };
+
+/**
+ * Read stamped requirement_sources from plan.metadata.
+ * Absent key → empty ok. Malformed rows fail closed (#3920 Greptile).
+ */
+export function readRequirementSourcesStrict(plan: unknown): ReadRequirementSourcesResult {
   const metadata = asRecord(asRecord(plan)?.metadata);
   if (metadata === null || !Array.isArray(metadata[REQUIREMENT_SOURCES_KEY])) {
-    return [];
+    return { ok: true, sources: [] };
   }
   const out: RequirementSource[] = [];
+  let index = 0;
   for (const entry of metadata[REQUIREMENT_SOURCES_KEY]) {
     const row = asRecord(entry);
-    if (row === null) continue;
     if (
+      row === null ||
       !isNonEmptyString(row.path) ||
       !isNonEmptyString(row.content_sha256) ||
       !isNonEmptyString(row.recorded_at)
     ) {
-      continue;
+      return {
+        ok: false,
+        message: `verify:ac requirement_sources (#3920): malformed entry at index ${index} (need path, content_sha256, recorded_at)`,
+      };
     }
     out.push({
       path: row.path.trim(),
       content_sha256: row.content_sha256.trim().toLowerCase(),
       recorded_at: row.recorded_at.trim(),
     });
+    index += 1;
   }
-  return out;
+  return { ok: true, sources: out };
+}
+
+/** Read stamped requirement_sources from plan.metadata (empty when absent). */
+export function readRequirementSources(plan: unknown): RequirementSource[] {
+  const result = readRequirementSourcesStrict(plan);
+  return result.ok ? result.sources : [];
 }
 
 function withRequirementSources(
@@ -221,7 +244,84 @@ function planIsCompleted(plan: Record<string, unknown>): boolean {
 
 function clauseFingerprint(plan: Record<string, unknown>): string {
   const clauses = readAcceptanceClauses(plan.acceptance);
-  return clauses.map((c) => `${c.id}:${c.text}`).join("\n");
+  return clauses.map((c) => `${c.id}:${c.text}|${c.artifact_path ?? ""}`).join("\n");
+}
+
+/** Prefer task-statement text when a source is an xBRIEF / plan JSON blob. */
+function taskStatementFromSourceContent(content: string): string {
+  const trimmed = content.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    return trimmed;
+  }
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    const doc = asRecord(parsed);
+    const plan = asRecord(doc?.plan) ?? doc;
+    if (plan === null) {
+      return trimmed;
+    }
+    const parts: string[] = [];
+    if (isNonEmptyString(plan.title)) {
+      parts.push(plan.title.trim());
+    }
+    const narratives = asRecord(plan.narratives);
+    if (narratives !== null) {
+      for (const value of Object.values(narratives)) {
+        if (isNonEmptyString(value)) {
+          parts.push(value.trim());
+        }
+      }
+    }
+    if (Array.isArray(plan.items)) {
+      for (const item of plan.items) {
+        const row = asRecord(item);
+        if (row === null) continue;
+        const narrative = asRecord(row.narrative);
+        const declared = narrative?.Acceptance;
+        const text = isNonEmptyString(declared) ? declared : row.title;
+        if (isNonEmptyString(text)) {
+          parts.push(text.trim());
+        }
+      }
+    }
+    if (parts.length > 0) {
+      return parts.join("\n\n");
+    }
+  } catch {
+    // Not JSON — fall through to raw content.
+  }
+  return trimmed;
+}
+
+function normalizeClauseText(text: string): string {
+  return text.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/** Keep prior artifact_path / ambiguity when clause text still matches. */
+function preserveClauseBindings(
+  previous: readonly AcceptanceClause[],
+  next: readonly AcceptanceClause[],
+): AcceptanceClause[] {
+  const byText = new Map<string, AcceptanceClause>();
+  for (const clause of previous) {
+    const key = normalizeClauseText(clause.text);
+    if (!byText.has(key)) {
+      byText.set(key, clause);
+    }
+  }
+  return next.map((clause) => {
+    const prior = byText.get(normalizeClauseText(clause.text));
+    if (prior === undefined) {
+      return clause;
+    }
+    return {
+      ...clause,
+      artifact_path: prior.artifact_path,
+      ambiguous: prior.ambiguous,
+      ...(prior.readings !== undefined ? { readings: prior.readings } : {}),
+      ...(prior.chosen_reading !== undefined ? { chosen_reading: prior.chosen_reading } : {}),
+    };
+  });
 }
 
 function autofixRederive(
@@ -233,22 +333,29 @@ function autofixRederive(
   // Re-derive from the re-read workspace sources only (#3920). Passing the
   // pre-change plan item / narrative surfaces would freeze the old clause set
   // and defeat the autofix half.
-  const statement = sourceContents.map((c) => c.trim()).filter((c) => c.length > 0).join("\n\n");
-  const clauses = deriveAcceptanceClauses(statement);
+  const statement = sourceContents
+    .map((c) => taskStatementFromSourceContent(c))
+    .filter((c) => c.length > 0)
+    .join("\n\n");
+  const derived = deriveAcceptanceClauses(statement);
+  const previous = readAcceptanceClauses(plan.acceptance);
+  // Empty re-parse must not wipe prior bindings (#3920 Greptile). Digest still
+  // restamps below; clause text updates only when the source yields clauses.
+  const clauses = derived.length > 0 ? preserveClauseBindings(previous, derived) : previous;
   const acceptance = asRecord(plan.acceptance) ?? {};
   const nextAcceptance: Record<string, unknown> = {
     ...acceptance,
     clauses: serializeAcceptanceClauses(clauses),
   };
   if (
-    acceptance.none_stated === true ||
-    !Array.isArray(acceptance.commands) ||
-    acceptance.commands.length === 0
+    derived.length > 0 &&
+    (acceptance.none_stated === true ||
+      !Array.isArray(acceptance.commands) ||
+      acceptance.commands.length === 0)
   ) {
     nextAcceptance.none_stated = true;
     nextAcceptance.source_rung = "derived";
-    nextAcceptance.derived_reason =
-      `re-derived ${clauses.length} clauses after requirement_sources digest change (#3920)`;
+    nextAcceptance.derived_reason = `re-derived ${clauses.length} clauses after requirement_sources digest change (#3920)`;
   }
   const nextPlan = withRequirementSources(
     {
@@ -274,14 +381,27 @@ function formatDeltaReport(deltas: readonly RequirementSourceDelta[]): string {
 
 /**
  * Re-hash recorded requirement_sources. Digest change autofixes (re-derive /
- * re-stamp / report). Missing / completed-conflict / post-complete fail closed.
+ * re-stamp / report). Missing / malformed / completed-conflict / post-complete
+ * fail closed.
  */
 export function evaluateRequirementSourcesStaleness(
   plan: Record<string, unknown>,
   projectRoot: string,
   options: EvaluateRequirementSourcesOptions = {},
 ): RequirementSourcesVerdict {
-  const recorded = readRequirementSources(plan);
+  const recordedResult = readRequirementSourcesStrict(plan);
+  if (!recordedResult.ok) {
+    return {
+      ok: false,
+      kind: "malformed",
+      sources_rechecked: 0,
+      sources_changed: 0,
+      deltas: [],
+      message: recordedResult.message,
+      remediation: REQUIREMENT_SOURCE_MALFORMED_REMEDIATION,
+    };
+  }
+  const recorded = recordedResult.sources;
   if (recorded.length === 0) {
     return {
       ok: true,
@@ -391,7 +511,10 @@ export function evaluateRequirementSourcesStaleness(
   };
 }
 
-/** Persist plan onto an xBRIEF document already loaded from disk. */
+/**
+ * Merge autofix acceptance + requirement_sources into the on-disk brief plan.
+ * Preserves intervening plan edits outside those fields (#3920 Greptile).
+ */
 export function writeRequirementSourcesAutofixToXbrief(
   xbriefPath: string,
   plan: Record<string, unknown>,
@@ -402,6 +525,19 @@ export function writeRequirementSourcesAutofixToXbrief(
   if (doc === null) {
     return;
   }
-  const next = { ...doc, plan };
+  const diskPlan = asRecord(doc.plan) ?? {};
+  const diskMeta = asRecord(diskPlan.metadata) ?? {};
+  const nextMeta = asRecord(plan.metadata) ?? {};
+  const mergedPlan: Record<string, unknown> = {
+    ...diskPlan,
+    ...(plan.acceptance !== undefined ? { acceptance: plan.acceptance } : {}),
+    metadata: {
+      ...diskMeta,
+      ...(REQUIREMENT_SOURCES_KEY in nextMeta
+        ? { [REQUIREMENT_SOURCES_KEY]: nextMeta[REQUIREMENT_SOURCES_KEY] }
+        : {}),
+    },
+  };
+  const next = { ...doc, plan: mergedPlan };
   writeFileSync(abs, `${JSON.stringify(next, null, 2)}\n`, "utf8");
 }

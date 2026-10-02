@@ -652,8 +652,24 @@ export function evaluateVerifyAcFromPlan(
   options: EvaluateVerifyAcOptions = {},
 ): VerifyAcResult {
   const projectRootEarly = resolve(options.projectRoot ?? process.cwd());
+  // Completion / path walks pass xbriefPath — default a persist callback so
+  // autofix restamps reach disk and mutate the caller's plan (#3920 Greptile).
+  let persistAutofix = options.persistRequirementSourcesAutofix;
+  const hintedPath =
+    typeof options.xbriefPath === "string" && options.xbriefPath.trim().length > 0
+      ? resolve(projectRootEarly, options.xbriefPath.trim())
+      : null;
+  if (persistAutofix === undefined && hintedPath !== null) {
+    persistAutofix = (next) => {
+      for (const key of Object.keys(planInput)) {
+        delete planInput[key];
+      }
+      Object.assign(planInput, next);
+      writeRequirementSourcesAutofixToXbrief(hintedPath, planInput);
+    };
+  }
   const sourcesVerdict = evaluateRequirementSourcesStaleness(planInput, projectRootEarly, {
-    writePlan: options.persistRequirementSourcesAutofix,
+    writePlan: persistAutofix,
   });
   if (!sourcesVerdict.ok) {
     const quiet = options.quiet === true;
