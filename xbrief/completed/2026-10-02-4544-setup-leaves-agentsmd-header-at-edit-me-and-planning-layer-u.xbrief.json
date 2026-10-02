@@ -1,0 +1,262 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4544",
+    "updated": "2026-10-02T16:24:27Z"
+  },
+  "plan": {
+    "title": "Fail-closed AGENTS header completion chokepoint after #5178 (DCR residual #4544)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Setup leaves AGENTS.md header at \"edit me\" and planning layer unused on a single-prompt greenfield build",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4544",
+      "Overview": "\n\n1. Fail-closed at a first-ship / greenfield completion chokepoint weak stacks already hit (setup/first-ship product-mutation completion, story-complete / scope:complete adjacent, and/or the durable marker write path itself) so exact unmanaged-header match of CONSUMER_HEADER_PLACEHOLDER_ONELINER cannot remain after product work lands when Prefer-A would otherwise pass only because the marker was never stamped or check never ran.\n2. Remediate through confirmed-Overview compareAndSetConsumerHeaderOneLiner when Overview is available; refuse with a clear remediation when it is not.\n3. Keep Process-only and leave-custom legal — match CONSUMER_HEADER_PLACEHOLDER_ONELINER only.\n4. Keep Prefer-A #5178 verify:consumer-header-placeholder as the check-surface evaluator; this residual adds chokepoint coverage so the gate's refuse conjuncts are reached without depending on the agent remembering to stamp .deft/cache/product-mutation-completion.json or invoke check / verify:consumer-header-placeholder by name.\n5. Honesty: pin evidence (critic 5955270940) shows recordProductMutationCompletion is only written from occupancy Prefer-A product-write allow, and no production call of evaluateConsumerHeaderPlaceholderAtRoot from scope:complete / story-complete / setup first-ship exists at dispatch-sha f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb.\n\n\n",
+      "Labels": "bug, design, determinism, adoption-blocker, agent-experience, process, source-of-truth, urgent, area:cli, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities, promise:planning"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Fail-closed at a first-ship / greenfield completion chokepoint weak stacks alrea…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5253 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 13ffe5832373572ac5571381e523e3c2a6ba58c6.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T16:23:02.534Z",
+            "mintedVia": "leftover-complete-after-5253"
+          },
+          "recorded_at": "2026-10-02T16:23:02.534Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Remediate through confirmed-Overview compareAndSetConsumerHeaderOneLiner when Ov…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5253 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 13ffe5832373572ac5571381e523e3c2a6ba58c6.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T16:23:02.534Z",
+            "mintedVia": "leftover-complete-after-5253"
+          },
+          "recorded_at": "2026-10-02T16:23:02.534Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Keep Process-only and leave-custom legal — match CONSUMER_HEADER_PLACEHOLDER_ONE…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5253 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 13ffe5832373572ac5571381e523e3c2a6ba58c6.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T16:23:02.534Z",
+            "mintedVia": "leftover-complete-after-5253"
+          },
+          "recorded_at": "2026-10-02T16:23:02.534Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Keep Prefer-A #5178 verify:consumer-header-placeholder as the check-surface eval…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5253 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 13ffe5832373572ac5571381e523e3c2a6ba58c6.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T16:23:02.534Z",
+            "mintedVia": "leftover-complete-after-5253"
+          },
+          "recorded_at": "2026-10-02T16:23:02.534Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Honesty: pin evidence (critic 5955270940) shows recordProductMutationCompletion …",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A clause satisfied by product PR #5253 ship; pathless derived clause has no bindable artifact_path for leftover-complete. Delivery attested via merge-commit 13ffe5832373572ac5571381e523e3c2a6ba58c6.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T16:23:02.534Z",
+            "mintedVia": "leftover-complete-after-5253"
+          },
+          "recorded_at": "2026-10-02T16:23:02.534Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "determinism",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:planning"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4544",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4544: Setup leaves AGENTS.md header at \"edit me\" and planning layer unused on a single-prompt greenfield build"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/check/consumer-header-placeholder.test.ts packages/core/src/check/orchestrator.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "sentences": [
+        "Fail-closed at a first-ship / greenfield completion chokepoint weak stacks already hit (setup/first-ship product-mutation completion, story-complete / scope:complete adjacent, and/or the durable marker write path itself) so exact unmanaged-header match of CONSUMER_HEADER_PLACEHOLDER_ONELINER cannot remain after product work lands when Prefer-A would otherwise pass only because the marker was never stamped or check never ran.",
+        "Remediate through confirmed-Overview compareAndSetConsumerHeaderOneLiner when Overview is available; refuse with a clear remediation when it is not.",
+        "Keep Process-only and leave-custom legal — match CONSUMER_HEADER_PLACEHOLDER_ONELINER only.",
+        "Keep Prefer-A #5178 verify:consumer-header-placeholder as the check-surface evaluator; this residual adds chokepoint coverage so the gate's refuse conjuncts are reached without depending on the agent remembering to stamp .deft/cache/product-mutation-completion.json or invoke check / verify:consumer-header-placeholder by name.",
+        "Honesty: pin evidence (critic 5955270940) shows recordProductMutationCompletion is only written from occupancy Prefer-A product-write allow, and no production call of evaluateConsumerHeaderPlaceholderAtRoot from scope:complete / story-complete / setup first-ship exists at dispatch-sha f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb."
+      ],
+      "admitted_source_sentences": [
+        "Fail-closed at a first-ship / greenfield completion chokepoint weak stacks already hit (setup/first-ship product-mutation completion, story-complete / scope:complete adjacent, and/or the durable marker write path itself) so exact unmanaged-header match of CONSUMER_HEADER_PLACEHOLDER_ONELINER cannot remain after product work lands when Prefer-A would otherwise pass only because the marker was never stamped or check never ran.",
+        "Remediate through confirmed-Overview compareAndSetConsumerHeaderOneLiner when Overview is available; refuse with a clear remediation when it is not.",
+        "Keep Process-only and leave-custom legal — match CONSUMER_HEADER_PLACEHOLDER_ONELINER only.",
+        "Keep Prefer-A #5178 verify:consumer-header-placeholder as the check-surface evaluator; this residual adds chokepoint coverage so the gate's refuse conjuncts are reached without depending on the agent remembering to stamp .deft/cache/product-mutation-completion.json or invoke check / verify:consumer-header-placeholder by name.",
+        "Honesty: pin evidence (critic 5955270940) shows recordProductMutationCompletion is only written from occupancy Prefer-A product-write allow, and no production call of evaluateConsumerHeaderPlaceholderAtRoot from scope:complete / story-complete / setup first-ship exists at dispatch-sha f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb."
+      ],
+      "admitted_source_digest": "6d2f8aad9cb15c816b78fdb2eabaf48d26f337404eeaa1e8710b1a18adbe702e",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Fail-closed at a first-ship / greenfield completion chokepoint weak stacks already hit (setup/first-ship product-mutation completion, story-complete / scope:complete adjacent, and/or the durable marker write path itself) so exact unmanaged-header match of CONSUMER_HEADER_PLACEHOLDER_ONELINER cannot remain after product work lands when Prefer-A would otherwise pass only because the marker was never stamped or check never ran.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Remediate through confirmed-Overview compareAndSetConsumerHeaderOneLiner when Overview is available; refuse with a clear remediation when it is not.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Keep Process-only and leave-custom legal — match CONSUMER_HEADER_PLACEHOLDER_ONELINER only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Keep Prefer-A #5178 verify:consumer-header-placeholder as the check-surface evaluator; this residual adds chokepoint coverage so the gate's refuse conjuncts are reached without depending on the agent remembering to stamp .deft/cache/product-mutation-completion.json or invoke check / verify:consumer-header-placeholder by name.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Honesty: pin evidence (critic 5955270940) shows recordProductMutationCompletion is only written from occupancy Prefer-A product-write allow, and no production call of evaluateConsumerHeaderPlaceholderAtRoot from scope:complete / story-complete / setup first-ship exists at dispatch-sha f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "derived_reason": "Prefer-A leftover-complete pathless derived clauses after product PR ship (#5188)"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "id": 5955284035,
+          "note": "bound lean 5955284035"
+        }
+      ],
+      "issueBody": "## Summary\n\nOn a greenfield consumer build driven by one operator prompt, the framework loaded its full rule surface (~60KB across `AGENTS.md`, `main.md`, session-start ritual) but none of the planning layer was populated or used. The build finished with:\n\n- `AGENTS.md` unmanaged header still reading `One-line project description (edit me).`\n- `xbrief/{proposed,pending,active,completed,cancelled}/` all empty except `.gitkeep`\n- `PROJECT-DEFINITION.xbrief.json` with `\"items\": []` and `ProjectRules: \"No project-specific rules defined.\"`\n- No `deft triage:queue` / `plan-sequence` usage; ceremony dial stayed at `rapid` (`dial_escalation_evaluation: declined, insufficient evidence`)\n\nThe product code shipped fine (branches, commits, tests), so this is a cost/benefit issue, not a correctness one: the session paid the context cost of the planning machinery and got none of its value.\n\n## Environment\n\n- `@deftai/directive` 0.118.1, consumer deposit layout\n- Host: Grok Build; `.deft-run-summary.json` shows `ceremony_tier: cold`, `depth: rapid`, `orientation_call_count: 4`\n- Operator prompt was a complete feature spec (~40 lines) for a small CRUD web app, ending with an explicit scope limit\n\n## Expected\n\nWhen the operator's first prompt is itself a full spec, the session-start path should capture it rather than leave the planning surface blank. Something like:\n\n1. Write the project one-liner into the unmanaged `AGENTS.md` header from the prompt (it's one sentence away).\n2. Seed a single `xbrief/active/` brief from the prompt's requirement list, so `scope:complete` / `verify:orphan-active` have something to close.\n3. If the dial stays at `rapid`, say so once in the handback so the operator knows the planning layer was intentionally skipped.\n\n## Why it matters\n\nFor operators evaluating Directive on a first small project (the most common on-ramp), the visible outcome is \"lots of ceremony, empty planning folders, 'edit me' still in the header.\" That reads as the framework not doing its job even when the gates that matter did fire.\n\n## Related\n\n- #2065 (unmanaged header), #1813 (setup Phase 1/2), #3383 (xBRIEF authority), #4543 (placeholder tests from the same build)",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-residual",
+        "github_issue_id": 5453269518,
+        "origin": "deftai/directive#4544",
+        "id": "github.issue.residual.5453269518.lean.5955284035"
+      },
+      "x-directive/residual-lineage": {
+        "schema": "deft.scope.residual-lineage.v1",
+        "predecessor_plan_id": "github.issue.residual.5453269518.lean.5913432618",
+        "predecessor_path": "completed/2026-09-30-4544-setup-leaves-agentsmd-header-at-edit-me-and-planning-layer-u.xbrief.json",
+        "bound_lean_comment_id": 5955284035
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "2ddcbd7dda7021f6e2f278edf2aeaae367b3e5471259a879ad25b5c8915caa8d"
+      },
+      "productPullRequest": 5253,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5253,
+        "prBase": null,
+        "mergeCommit": "13ffe5832373572ac5571381e523e3c2a6ba58c6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "13ffe5832373572ac5571381e523e3c2a6ba58c6",
+        "verifiedAt": "2026-10-02T16:24:27Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGZhMjktYmYzYi03ZGEyLWFkYzgtNjY3YmUxZTFhNjY2"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-02T16:24:27Z",
+      "completedSessionId": "host:grok:v1:MDFhMGZhMjktYmYzYi03ZGEyLWFkYzgtNjY3YmUxZTFhNjY2",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-02T16:24:27Z"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/check/consumer-header-placeholder.ts",
+          "packages/core/src/check/consumer-header-placeholder.test.ts",
+          "packages/core/src/check/product-mutation-completion.ts",
+          "packages/core/src/check/cached-orchestrator.ts",
+          "packages/core/src/check/orchestrator.test.ts",
+          "packages/cli/src/verify-consumer-header-placeholder.ts",
+          "CHANGELOG.md",
+          "packages/core/src/check/product-mutation-completion.test.ts",
+          "packages/core/src/check/orchestrator.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/check/consumer-header-placeholder.test.ts packages/core/src/check/orchestrator.test.ts"
+        ],
+        "conflict_group": "consumer-header-placeholder-chokepoint"
+      }
+    },
+    "id": "github.issue.residual.5453269518.lean.5955284035",
+    "updated": "2026-10-02T16:24:27Z"
+  }
+}
