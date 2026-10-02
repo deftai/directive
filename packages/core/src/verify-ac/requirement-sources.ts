@@ -32,6 +32,9 @@ export const REQUIREMENT_SOURCE_POST_COMPLETE_REMEDIATION =
 export const REQUIREMENT_SOURCE_MALFORMED_REMEDIATION =
   "repair plan.metadata.requirement_sources entries to include non-empty path, content_sha256, and recorded_at, or drop the malformed rows and re-stamp";
 
+export const REQUIREMENT_SOURCE_UNPARSEABLE_REMEDIATION =
+  "restore parseable acceptance content in the recorded requirement source (list items under an Acceptance Criteria heading), or re-ingest after updating plan.acceptance clauses";
+
 export interface RequirementSource {
   readonly path: string;
   readonly content_sha256: string;
@@ -62,7 +65,7 @@ export interface RequirementSourcesOk {
 
 export interface RequirementSourcesFail {
   readonly ok: false;
-  readonly kind: "missing" | "completed_conflict" | "post_complete" | "malformed";
+  readonly kind: "missing" | "completed_conflict" | "post_complete" | "malformed" | "unparseable";
   readonly sources_rechecked: number;
   readonly sources_changed: number;
   readonly deltas: readonly RequirementSourceDelta[];
@@ -170,6 +173,44 @@ function withRequirementSources(
       })),
     },
   };
+}
+
+/**
+ * Known workspace requirement filenames whose bytes already appear in the
+ * task statement (embedded at intake). Does not invent unread files (#3920).
+ */
+const EMBEDDED_REQUIREMENT_CANDIDATES = [
+  "REQUIREMENTS.md",
+  "SPECIFICATION.md",
+  "requirements.md",
+  "docs/REQUIREMENTS.md",
+] as const;
+
+export function discoverEmbeddedRequirementSources(
+  projectRoot: string,
+  taskStatement: string,
+): WorkspaceSourceInput[] {
+  const statement = taskStatement.trim();
+  if (statement.length < 20) {
+    return [];
+  }
+  const root = resolve(projectRoot);
+  const out: WorkspaceSourceInput[] = [];
+  const seen = new Set<string>();
+  for (const rel of EMBEDDED_REQUIREMENT_CANDIDATES) {
+    const abs = resolve(root, rel);
+    if (!existsSync(abs)) continue;
+    const content = readFileSync(abs, "utf8");
+    const needle = content.trim().replace(/\s+/g, " ").slice(0, 48);
+    if (needle.length < 16) continue;
+    const haystack = statement.replace(/\s+/g, " ");
+    if (!haystack.includes(needle)) continue;
+    const norm = normalizeRequirementSourcePath(root, rel);
+    if (seen.has(norm)) continue;
+    seen.add(norm);
+    out.push({ path: rel, content });
+  }
+  return out;
 }
 
 /**
@@ -324,11 +365,15 @@ function preserveClauseBindings(
   });
 }
 
+type AutofixRederiveResult =
+  | { readonly ok: true; readonly plan: Record<string, unknown>; readonly clausesChanged: boolean }
+  | { readonly ok: false; readonly kind: "unparseable"; readonly message: string };
+
 function autofixRederive(
   plan: Record<string, unknown>,
   sourceContents: readonly string[],
   nextSources: readonly RequirementSource[],
-): { readonly plan: Record<string, unknown>; readonly clausesChanged: boolean } {
+): AutofixRederiveResult {
   const before = clauseFingerprint(plan);
   // Re-derive from the re-read workspace sources only (#3920). Passing the
   // pre-change plan item / narrative surfaces would freeze the old clause set
@@ -338,20 +383,27 @@ function autofixRederive(
     .filter((c) => c.length > 0)
     .join("\n\n");
   const derived = deriveAcceptanceClauses(statement);
+  if (derived.length === 0) {
+    // Digest changed but the source no longer yields clauses — do not keep
+    // stale acceptance while pretending the source is current (#3920 Greptile).
+    return {
+      ok: false,
+      kind: "unparseable",
+      message:
+        "verify:ac requirement_sources (#3920): source digest changed but re-derivation yielded no parseable clauses",
+    };
+  }
   const previous = readAcceptanceClauses(plan.acceptance);
-  // Empty re-parse must not wipe prior bindings (#3920 Greptile). Digest still
-  // restamps below; clause text updates only when the source yields clauses.
-  const clauses = derived.length > 0 ? preserveClauseBindings(previous, derived) : previous;
+  const clauses = preserveClauseBindings(previous, derived);
   const acceptance = asRecord(plan.acceptance) ?? {};
   const nextAcceptance: Record<string, unknown> = {
     ...acceptance,
     clauses: serializeAcceptanceClauses(clauses),
   };
   if (
-    derived.length > 0 &&
-    (acceptance.none_stated === true ||
-      !Array.isArray(acceptance.commands) ||
-      acceptance.commands.length === 0)
+    acceptance.none_stated === true ||
+    !Array.isArray(acceptance.commands) ||
+    acceptance.commands.length === 0
   ) {
     nextAcceptance.none_stated = true;
     nextAcceptance.source_rung = "derived";
@@ -365,6 +417,7 @@ function autofixRederive(
     nextSources,
   );
   return {
+    ok: true,
     plan: nextPlan,
     clausesChanged: clauseFingerprint(nextPlan) !== before,
   };
@@ -482,6 +535,17 @@ export function evaluateRequirementSourcesStaleness(
   }
 
   const fixed = autofixRederive(plan, sourceContents, nextSources);
+  if (!fixed.ok) {
+    return {
+      ok: false,
+      kind: "unparseable",
+      sources_rechecked: rechecked,
+      sources_changed: deltas.length,
+      deltas,
+      message: `${fixed.message}\n${formatDeltaReport(deltas)}`,
+      remediation: REQUIREMENT_SOURCE_UNPARSEABLE_REMEDIATION,
+    };
+  }
   if (fixed.clausesChanged && planHasCompletedItems(plan)) {
     return {
       ok: false,

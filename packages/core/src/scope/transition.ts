@@ -319,12 +319,13 @@ export function runTransition(
   const previousAcceptance = planObj.acceptance;
   let derivationNotice = "";
   if (act === "activate" || act === "promote") {
-    // Stamp the brief already read for this transition (#3920). Derivation
-    // consumes plan fields loaded from that workspace artifact.
+    // Do not stamp the brief path itself (#3920): promote/activate moves the
+    // file, so a pre-move path becomes a false missing-source residual. External
+    // workspaceSources the caller already read may be passed via a future
+    // TransitionOptions seam; derivation here still runs on the in-memory plan.
     const derivation = applyClauseDerivationToPlan(planObj, {
       projectRoot,
       emitStamp: false,
-      workspaceSources: [{ path: resolvedPath }],
     });
     // #4768: a 0-clause no-op must not commit the intake floor. Post-call
     // clause count covers a quality-strip that returns clauses but restores

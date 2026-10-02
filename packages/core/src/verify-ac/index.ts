@@ -62,6 +62,7 @@ export {
   type VerificationAttempt,
 } from "./flag.js";
 export {
+  discoverEmbeddedRequirementSources,
   type EvaluateRequirementSourcesOptions,
   evaluateRequirementSourcesStaleness,
   hashRequirementContent,
@@ -70,6 +71,7 @@ export {
   REQUIREMENT_SOURCE_MALFORMED_REMEDIATION,
   REQUIREMENT_SOURCE_MISSING_REMEDIATION,
   REQUIREMENT_SOURCE_POST_COMPLETE_REMEDIATION,
+  REQUIREMENT_SOURCE_UNPARSEABLE_REMEDIATION,
   REQUIREMENT_SOURCES_KEY,
   type ReadRequirementSourcesResult,
   type RequirementSource,

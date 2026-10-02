@@ -10,6 +10,7 @@ import {
   REQUIREMENT_SOURCE_MALFORMED_REMEDIATION,
   REQUIREMENT_SOURCE_MISSING_REMEDIATION,
   REQUIREMENT_SOURCE_POST_COMPLETE_REMEDIATION,
+  REQUIREMENT_SOURCE_UNPARSEABLE_REMEDIATION,
   readRequirementSources,
   stampRequirementSources,
   writeRequirementSourcesAutofixToXbrief,
@@ -307,5 +308,24 @@ describe("requirement_sources stamp + staleness (#3920)", () => {
     const delta = clauses.find((c) => /report the delta/i.test(c.text));
     expect(ship?.artifact_path).toBe("src/ship.ts");
     expect(delta?.artifact_path).toBe("src/delta.ts");
+  });
+
+  it("fails closed when digest changes but re-derivation yields no clauses", () => {
+    const root = tempRoot();
+    const reqPath = join(root, "REQUIREMENTS.md");
+    writeFileSync(
+      reqPath,
+      "## Acceptance Criteria\n\n- keep the ship green\n- report the delta\n",
+      "utf8",
+    );
+    const plan = stampRequirementSources(basePlan({ narratives: {} }), root, [
+      { path: "REQUIREMENTS.md" },
+    ]);
+    writeFileSync(reqPath, "totally blank rewritten contract with no list items\n", "utf8");
+    const verdict = evaluateRequirementSourcesStaleness(plan, root);
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.kind).toBe("unparseable");
+    expect(verdict.remediation).toBe(REQUIREMENT_SOURCE_UNPARSEABLE_REMEDIATION);
   });
 });
