@@ -225,6 +225,29 @@ describe("evaluateClassChecks (#4980)", () => {
     expect(result.findings.filter((f) => f.kind === "protected-glob")).toHaveLength(0);
   });
 
+  it("allows protected authz + CLI authz companion (#4233)", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: [
+        "packages/core/src/authz/store.ts",
+        "packages/cli/src/authz.ts",
+        "CHANGELOG.md",
+      ],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["packages/*/src/**"],
+        testRoots: ["packages/*/src/**/*.test.*"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        ["packages/core/src/authz/store.ts", "export {}\n"],
+        ["packages/cli/src/authz.ts", "export {}\n"],
+        ["CHANGELOG.md", "## Unreleased\n"],
+      ]),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.filter((f) => f.kind === "protected-glob")).toHaveLength(0);
+  });
+
   it("fails class 4 when protected mixes with check runtime outside registration", () => {
     const result = evaluateClassChecks("/tmp/proj", {
       baseRef: "origin/master",

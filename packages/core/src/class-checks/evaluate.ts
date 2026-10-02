@@ -481,6 +481,8 @@ function isStoryProductPath(
     posix === "packages/core/src/consumer-check-contract/evaluate.ts" ||
     posix === "packages/core/src/evaluator-surface/evaluate.ts" ||
     posix === "packages/cli/src/dispatch.ts" ||
+    // CLI authz must ship with Result-returning core authz APIs (#4233 / #4980).
+    posix === "packages/cli/src/authz.ts" ||
     posix.endsWith(".test.ts") ||
     posix.endsWith(".test.tsx")
   ) {
