@@ -1,5 +1,5 @@
 import { closedVerbEnvBypassKey, type EnvMap, evaluateClosedVerb } from "../authz/closed-verb.js";
-import { listActiveHumanGrants, loadAuthzState, markGrantUsed } from "../authz/store.js";
+import { listActiveHumanGrants, loadAuthzState, loadGrant, markGrantUsed } from "../authz/store.js";
 import type { ClosedVerbDecision, HumanOriginGrant } from "../authz/types.js";
 import { loadVerbClassification } from "../authz/verb-classification.js";
 import { EXIT_OK, EXIT_VIOLATION } from "../release/constants.js";
@@ -120,8 +120,26 @@ export function runPublish(config: PublishConfig, seams: ReleasePublishSeams = {
   emit(verifyLabel, `OK (${tag} is now public)`);
 
   // Consume single-use grant after successful draft→public (#1095).
+  // saveGrant now returns Result; a silent null spend would leave approval reusable (#4233).
   if (gate.humanApprovalRef !== null && gate.code === "closed-verb-allow") {
-    markGrantUsed(projectRoot, gate.humanApprovalRef);
+    const gateSeamsSpend = seams as ReleasePublishSeams & {
+      spendGrant?: typeof markGrantUsed;
+    };
+    const spend = gateSeamsSpend.spendGrant ?? markGrantUsed;
+    const spent = spend(projectRoot, gate.humanApprovalRef);
+    if (spent === null) {
+      const onDisk = loadGrant(projectRoot, gate.humanApprovalRef);
+      if (onDisk !== null && onDisk.semantics.singleUse && onDisk.semantics.usedAt === null) {
+        emit(
+          `Spend grant ${gate.humanApprovalRef}`,
+          "FAIL (usedAt write refused; release is public but approval remains reusable)",
+        );
+        process.stderr.write(
+          `Release ${tag} is public on ${repo}, but grant ${gate.humanApprovalRef} was not spent; remint or revoke before reuse.\n`,
+        );
+        return EXIT_VIOLATION;
+      }
+    }
   }
 
   process.stderr.write(`Release ${tag} published successfully on ${repo}.\n`);

@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HumanOriginGrant } from "../authz/types.js";
 import { EXIT_OK, EXIT_VIOLATION } from "../release/constants.js";
@@ -283,5 +286,63 @@ describe("runPublish", () => {
     const out = spy.mock.calls.map((c) => String(c[0])).join("");
     expect(out).toContain("closed-verb-allow");
     expect(out).toContain("published successfully");
+  });
+
+  it("fails closed when single-use grant spend returns null after publish (#4233)", () => {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    let viewCalls = 0;
+    const unusedSingleUse: HumanOriginGrant = {
+      ...operatorPublishGrant(),
+      id: "grant-publish-single",
+      semantics: {
+        expiresAt: null,
+        singleUse: true,
+        usedAt: null,
+        revokedAt: null,
+      },
+    };
+    const seams = {
+      whichGh: () => "/usr/bin/gh",
+      closedVerbEnv: {} as Record<string, string>,
+      closedVerbGrants: [unusedSingleUse],
+      spendGrant: () => null,
+      // loadGrant is real; point projectRoot at a temp tree with the unused grant on disk.
+      spawnText: (_cmd: string, args: readonly string[]) => {
+        if (args.includes("--paginate")) {
+          viewCalls += 1;
+          const draft = viewCalls === 1;
+          return {
+            status: 0,
+            stdout: JSON.stringify([
+              {
+                id: 42,
+                draft,
+                tag_name: "v0.21.0",
+                html_url: "https://example.com/r",
+              },
+            ]),
+            stderr: "",
+          };
+        }
+        return { status: 0, stdout: "{}", stderr: "" };
+      },
+    };
+    // Materialize grant so loadGrant sees unused single-use after mocked spend null.
+    const root = mkdtempSync(join(tmpdir(), "publish-spend-"));
+    try {
+      const grantsDir = join(root, ".deft", "authz", "grants");
+      mkdirSync(grantsDir, { recursive: true });
+      writeFileSync(
+        join(grantsDir, "grant-publish-single.json"),
+        JSON.stringify(unusedSingleUse, null, 2) + "\n",
+        "utf8",
+      );
+      const rc = runPublish({ ...baseConfig, projectRoot: root }, seams);
+      expect(rc).toBe(EXIT_VIOLATION);
+      const out = spy.mock.calls.map((c) => String(c[0])).join("");
+      expect(out).toMatch(/usedAt write refused|was not spent/i);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
