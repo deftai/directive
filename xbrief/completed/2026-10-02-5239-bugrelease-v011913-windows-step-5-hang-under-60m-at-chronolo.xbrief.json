@@ -1,0 +1,702 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5239",
+    "updated": "2026-10-02T21:43:19Z"
+  },
+  "plan": {
+    "title": "bug(release): v0.119.13 Windows Step 5 hang under 60m at chronology.test.ts",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(release): v0.119.13 Windows Step 5 hang under 60m at chronology.test.ts",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5239",
+      "Overview": "1. **Preserve incident tee (precondition).** Copy at `%TEMP%\\release-5239-incident-tee-40192-698efc5d.log` sha256:6f2d9058ba6c22800f21a46f9a4cbf4e92d22ef9bdb30c1e2d7308fd3fab095b (291320 bytes). Cite this hash on any implement brief.\n\n2. **Host-versus-suite partition first (R1).** Re-run supervised no-coverage `ts:check-lane` on this Windows host at #5140 tip `bc060886b` and compare specs-completed-per-minute / wall against the preserved #5239 tee. Host/toolchain-low → diagnose host first. Throughput recovers near #5140 class → search `git log bc060886b..<tip>` over test/config and cheapen measured dominant cost.\n\n3. **Acceptance evidence (green path).** Windows production-shaped Step 5 / `ts:check-lane` completes selected suite with zero failures, valid tip-SHA GHA coverage-of-record, no `--skip-ci`, under current 60m detector. Record SHA, suite size, conditions, per-project workers, elapsed wall, exit status, retained tee path+hash. Distinguish real full run from suite-stamp hit. Budget per project (unit at winMaxWorkers, spawn-heavy at 1); include a run where spawn-heavy completes.\n\n4. **Deliberate cheapen/gate alternative.** Land deliberate cheapen or tracked gate change with before/after wall-clock (or ranked tee delta) under comparable conditions. Numeric raise of `RELEASE_CHECK_TIMEOUT_MS` only as tracked gate + intent-constraint mint with evidence — never sole unmeasured Prefer-A.\n\n5. **Fix coverage-decline diagnostic (F1).** Thread child `DEFT_RELEASE_PREFLIGHT` / hostCoverage into `formatSuiteBoundCoverageDecline` so production prints the #5026 no-coverage branch when the child lane is no-coverage. Rewrite the guard test to inject through that seam (not parent-only env).\n\n6. **Skip-ci unpaid ledger (R3 + S1).** Sibling of `probeOpenCoverageDebtLedger` for `--allow-skip-ci`: probe cited issue state; treat OPEN/UNKNOWN as unpaid without a distinct explicit override. **Spend-record seam (S1):** reuse the coverage-debt CHANGELOG citation scan shape so a citation already recorded as spent on a prior production cut (for example a CHANGELOG / release-notes incident marker naming `#5239` on v0.119.13) counts as unpaid for a later cut even after the issue closes — refuse second production `--skip-ci` citing that spent incident without a distinct explicit override. Banner-only cut-scoping is residual without this control.\n\n7. **Duration fixture provenance (F5) when touched.** If refreshing `vitest-file-durations.json`, add provenance fields (host, cpus, coverage mode, SHA, date) and a presence check.\n\n8. **Discharge constraint.** Measurement / evidence clause carries a bindable artifact path. Do not `scope:complete` / chip ingest-ready while that clause is `deferred`. Split late measurement to a leftover issue rather than defer-inside-complete (#5140 recurrence).\n\nBound lean: 5960051863 (Prefer-A Recut after pain-audit 5960332266; supersedes 5959960840).\nSynthesis: 5960349756. Target-digest sha256:7e626ced1a9a551b0c488e1106e57d541bdceedb2ec6c99ffe50f18921491198.\nIncident tee precondition: %TEMP%\\release-5239-incident-tee-40192-698efc5d.log sha256:6f2d9058ba6c22800f21a46f9a4cbf4e92d22ef9bdb30c1e2d7308fd3fab095b.\nRoad not taken: detector-only bump; chronology-only rewrite; subset/warm-stamp/Linux coverage as acceptance; completing with deferred measurement.\n\nLeftover-complete after #5271: product Prefer-A seams only. Class A R1/Step5 measurement residual owned by #5276.\n",
+      "Labels": "bug, ci-cd, agent-experience, process, source-of-truth, urgent, area:cli, area:release, platform:windows, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, release"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Preserve incident tee precondition (cite tee sha256:6f2d9058ba6c22800f21a46f9a4cbf4e92d22ef9bdb30c1e2d7308fd3fab095b on PR).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A product clause satisfied by PR #5271 ship; pathless leftover-complete. Class A measurement (R1 / full Step 5 green / cheapen) split to #5276. Delivery attested via merge-commit 5296f0e2713d7587ab3e9676cd612cc82a4b88f9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5271",
+            "mintedAt": "2026-10-02T21:43:17.993Z",
+            "mintedVia": "leftover-complete-after-5271"
+          },
+          "recorded_at": "2026-10-02T21:43:17.993Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Fix coverage-decline diagnostic (F1): thread child DEFT_RELEASE_PREFLIGHT / hostCoverage into formatSuiteBoundCoverageDecline; production Step 5 defaults no-coverage.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A product clause satisfied by PR #5271 ship; pathless leftover-complete. Class A measurement (R1 / full Step 5 green / cheapen) split to #5276. Delivery attested via merge-commit 5296f0e2713d7587ab3e9676cd612cc82a4b88f9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5271",
+            "mintedAt": "2026-10-02T21:43:17.993Z",
+            "mintedVia": "leftover-complete-after-5271"
+          },
+          "recorded_at": "2026-10-02T21:43:17.993Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Skip-ci unpaid ledger (R3 + S1): probeSkipCiIncidentLedger + --allow-unpaid-skip-ci; CHANGELOG spend-record seam for prior production --allow-skip-ci=5239.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A product clause satisfied by PR #5271 ship; pathless leftover-complete. Class A measurement (R1 / full Step 5 green / cheapen) split to #5276. Delivery attested via merge-commit 5296f0e2713d7587ab3e9676cd612cc82a4b88f9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5271",
+            "mintedAt": "2026-10-02T21:43:17.993Z",
+            "mintedVia": "leftover-complete-after-5271"
+          },
+          "recorded_at": "2026-10-02T21:43:17.993Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Named-cause: last-file is cursor only; throughput-shortfall remedy (not hung chronology unit).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A product clause satisfied by PR #5271 ship; pathless leftover-complete. Class A measurement (R1 / full Step 5 green / cheapen) split to #5276. Delivery attested via merge-commit 5296f0e2713d7587ab3e9676cd612cc82a4b88f9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5271",
+            "mintedAt": "2026-10-02T21:43:17.993Z",
+            "mintedVia": "leftover-complete-after-5271"
+          },
+          "recorded_at": "2026-10-02T21:43:17.993Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Duration fixture provenance (F5) when touched — N/A if vitest-file-durations.json not refreshed.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A product clause satisfied by PR #5271 ship; pathless leftover-complete. Class A measurement (R1 / full Step 5 green / cheapen) split to #5276. Delivery attested via merge-commit 5296f0e2713d7587ab3e9676cd612cc82a4b88f9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5271",
+            "mintedAt": "2026-10-02T21:43:17.993Z",
+            "mintedVia": "leftover-complete-after-5271"
+          },
+          "recorded_at": "2026-10-02T21:43:17.993Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Discharge constraint: measurement / evidence clauses split to leftover issue #5276 (no deferred-inside-complete).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A product clause satisfied by PR #5271 ship; pathless leftover-complete. Class A measurement (R1 / full Step 5 green / cheapen) split to #5276. Delivery attested via merge-commit 5296f0e2713d7587ab3e9676cd612cc82a4b88f9.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5271",
+            "mintedAt": "2026-10-02T21:43:17.993Z",
+            "mintedVia": "leftover-complete-after-5271"
+          },
+          "recorded_at": "2026-10-02T21:43:17.993Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "area:release",
+      "platform:windows",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5239",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5239: bug(release): v0.119.13 Windows Step 5 hang under 60m at chronology.test.ts"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git log bc060886b..<tip>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/release/pipeline.ts",
+          "packages/core/src/release/coverage-debt-ledger.ts",
+          "packages/core/src/release/coverage-debt-ledger.test.ts",
+          "packages/core/src/release/coverage-final.test.ts",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/named-cause.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/release/coverage-debt-ledger.test.ts packages/core/src/release/coverage-final.test.ts packages/core/src/check/named-cause.test.ts"
+        ],
+        "conflict_group": "windows-step5-throughput-skip-ci"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Incident cite for production cut `v0.119.13`: ran with `--skip-ci --allow-skip-ci=5239` after Step 5 hang (exit 124; last file `chronology.test.ts`). Tag/npm shipped; next patch should prefer a green Step 5 without skip-ci.",
+          "id": 5943325165,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5943325165",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T00:32:44Z",
+          "updated_at": "2026-10-02T00:32:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Windows production release Step 5 (ts:check-lane) hit the 60-minute hang detector (exit 124) on the v0.119.13 cut with last completed file packages/core/src/vbrief-validate/chronology.test.ts and coverage-final.json missing, #5140 already deferred a measured sub-60m residual after a prior hang, and #5091 already raised the detector 45→60m so another bump alone is not a durable Prefer-A.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-5239-dc\norigin-ref: origin/HEAD\ndispatch-sha: 5aac3ef3f8d0bd818bec862bba6b56391bfa9884\ndest-wo: leftover-complete\n\nspend: N≥3\nspend-ask: asked\nspend-recommend: N≥3\nspend-why: operator \"use recommended\" after Dual-stop ask; whole-motion Windows release hang with open remedy space across green Step 5 under current detector, deliberate gate/cheapen follow-on with evidence, and hang root-cause past chronology.test.ts; core-capabilities / promise:lifecycle / urgent.\nDual-stop cap: 3 posts\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\n\npain: P1, P2, P3, P4\n\n- P1. Production Step 5 hang: on this Windows release host, `task release` / local-bin `release 0.119.13` Step 5 (`ts:check-lane`) hit the 60-minute hang detector (exit 124); last completed test file was `packages/core/src/vbrief-validate/chronology.test.ts`; auto-hatch reported real failure/hang because coverage-final.json was missing after the suite. Incident tip SHA e38c4e72c0c4d33537d0f83a708fff0fc0ff2686; log `%TEMP%\\release-0.119.13.log`.\n- P2. Detector raise is not the durable sole remedy: #5091 already raised the Windows Step 5 hang detector 45→60m for suite growth; #5140 (v0.119.11 hang / cheapen) closed with a deferred measured sub-60m residual. Prefer-A must not bind \"raise the detector again\" as the only Bound when acceptance already admits green Step 5 under the current detector or a deliberate gate/cheapen follow-on with evidence.\n- P3. Incident skip-ci is cut-scoped: comment 5943325165 records production cut v0.119.13 ran with `--skip-ci --allow-skip-ci=5239` after the hang; acceptance says this issue may be cited for that cut only and the next patch should prefer a green Step 5 without skip-ci.\n- P4. Evidence-shaped Bound: acceptance requires a recorded Windows production Step 5 that completes under the current hang detector without `--skip-ci`, OR a deliberate gate/cheapen follow-on that lands with evidence. Bound must name the measurement/evidence path (which suite, which host, what wall-clock or cheapen delta) rather than an unmeasured hope that chronology.test.ts was the hung unit.\n\nverification-path: pin-read git show 5aac3ef3f8d0bd818bec862bba6b56391bfa9884:; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:7e626ced1a9a551b0c488e1106e57d541bdceedb2ec6c99ffe50f18921491198\ntarget: #5239\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #5140 (v0.119.11 hang / cheapen; closed design-critique:ingest-ready with deferred measured sub-60m residual) #5091 (45→60m detector raise; closed)\n\n## Gate stamp\n\nRound-1 ceiling is this write-back plus panel-deposit (spend N≥3). Families: grok, claude, codex.\n\n## Plain-language summary\n\nThe Windows release host again failed Step 5 under the 60-minute hang detector while running the TypeScript check lane, with the last finished file at chronology.test.ts. The prior hang issue already deferred a measured sub-60m fix, and the detector was already raised once. This arc should Bound either a proven green Step 5 under the current detector or a deliberate cheapen/gate change with evidence — not another silent detector bump or a permanent skip-ci habit.\r\n\n",
+          "id": 5959669133,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5959669133",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:15:59Z",
+          "updated_at": "2026-10-02T19:15:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5959688481\nfamilies: grok, claude, codex\nlaunchers: spawn_subagent|grok-cli, claude, codex\ndispatch-sha: 5aac3ef3f8d0bd818bec862bba6b56391bfa9884\narc-mode: no-ingest\nspend: N≥3\nlaunch-probe: claude=pong rc0; codex=pong rc0; grok=pong rc0\nverification-path: pin-read git show 5aac3ef3f8d0bd818bec862bba6b56391bfa9884:; dest cwd-without-occupy\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-5239-dc\norigin-ref: origin/HEAD\npin-kind: origin-default\nStop-1: 5959669133\nTarget-digest cite (Stop 1 only): sha256:7e626ced1a9a551b0c488e1106e57d541bdceedb2ec6c99ffe50f18921491198\n\n## Seat plan\n\n- grok: fresh critic, id-ceiling = this panel-deposit after self-patch\n- claude: fresh critic, same ceiling\n- codex: fresh critic, same ceiling\n\nCritics read Stop 1 + this deposit only. Post findings; EXIT after post.\r\n\n",
+          "id": 5959688481,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5959688481",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:17:11Z",
+          "updated_at": "2026-10-02T19:17:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\ncharter: open critique\nspend: N>=3\nround: 1\ncritic-role: fresh\ntarget: #5239\naudit-targets: none\nseat: codex\nlauncher: codex\nid-ceiling: 5959688481\ndispatch-sha: 5aac3ef3f8d0bd818bec862bba6b56391bfa9884\narc-mode: no-ingest\nverification-path: pin-read git show 5aac3ef3f8d0bd818bec862bba6b56391bfa9884:; dest cwd-without-occupy\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-5239-dc\nStop-1: 5959669133\npanel-deposit: 5959688481\nDual-stop reserved literacy: recorded on Stop 1\n\n## Verification scope\n\nRead the two authorized REST comments and inspected source with git show/git grep at the dispatch SHA. No release execution, fixture execution, occupancy, or destination writes. The historical 60-minute run, incident log, and cut authorization remain reported evidence from Stop 1, not independently reproduced measurements. Panel deposit and envelope ceilings match; sibling completion is not observable from this seat.\n\n## P1 - sharpens-framing: retain the timeout pain, separate diagnosis from fallback text\n\nEvidence: [release/constants.ts](https://github.com/deftai/directive/blob/5aac3ef3f8d0bd818bec862bba6b56391bfa9884/packages/core/src/release/constants.ts) fixes the wall cap at 60 minutes. [release/preflight.ts](https://github.com/deftai/directive/blob/5aac3ef3f8d0bd818bec862bba6b56391bfa9884/packages/core/src/release/preflight.ts) sets DEFT_RELEASE_PREFLIGHT=1 and an absolute deadline for the check dispatcher. [ts-check-lane/run-lane.ts](https://github.com/deftai/directive/blob/5aac3ef3f8d0bd818bec862bba6b56391bfa9884/packages/core/src/ts-check-lane/run-lane.ts) uses that environment to select vitest WITHOUT coverage. Local coverage-final.json is therefore not an expected success artifact for the normal pinned Step 5 path. The pipeline's missing-report diagnostic does not establish a coverage merge hang.\n\nFailure mode: treating the missing JSON or last completed chronology.test.ts as the causal unit selects the wrong remediation. [progress-reporter.ts](https://github.com/deftai/directive/blob/5aac3ef3f8d0bd818bec862bba6b56391bfa9884/packages/core/src/ts-check-lane/progress-reporter.ts) records last-file at module completion and separately tracks in-flight modules. A completed file is not the unfinished offender; the whole Step 5 deadline also includes work outside that file.\n\nConsequence: preserve P1 as a reported Step 5 timeout, but require actual lane argv/coverage condition and phase/in-flight evidence before binding a root-cause claim. The discrepancy could reflect incident-version behavior or diagnostic fallback; this pin-read does not refute the incident log.\n\n## P2 - sharpens-framing: retain cheapen-first, account for mechanisms already shipped\n\nEvidence: [CHANGELOG.md](https://github.com/deftai/directive/blob/5aac3ef3f8d0bd818bec862bba6b56391bfa9884/CHANGELOG.md) records #5091's 45-to-60-minute raise and #5140's duration-fixture refresh, preservation of omitted slow timings, share-plus-reset for the durable-effect unit git tail, and overlapping unit/spawn-heavy projects. The current source already has the no-coverage host lane, duration sequencing, project/file progress, and tip-SHA GHA coverage-of-record.\n\nFailure mode: proposing removal of host coverage or a generic duration refresh as new relief merely repeats landed work; a larger cap can hide continued regression without reducing work.\n\nConsequence: name the incremental change beyond these mechanisms and its measured delta. Reject a detector-only raise as the durable sole remedy under this Stop 1. Do not turn that into an absolute ban on a separately justified gate change: existing changelog doctrine permits deliberate tracked gate changes with intent-constraint mint. What would change that assessment is measured healthy completion and an explicit revised latency requirement, not another timeout report.\n\n## P3 - sharpens-framing: cut-scoped authorization is not enforced by the issue-number parser\n\nEvidence: [skip-ci-incident.ts](https://github.com/deftai/directive/blob/5aac3ef3f8d0bd818bec862bba6b56391bfa9884/packages/core/src/release/skip-ci-incident.ts) accepts a numeric incident citation and prints a next-production-patch warning; validateSkipCiIncident receives no release-version scope and does not check that the cited incident authorizes that version. Stop 1 supplies the v0.119.13-only limit; the original authorization comment is outside the allowed reads.\n\nFailure mode: a later cut can syntactically reuse --allow-skip-ci=5239 even though this arc supplies no such permission. A cited number is not evidence of a green run or reusable authorization.\n\nConsequence: keep v0.119.13 as the reported exception and explicitly exclude skip-ci from the acceptance measurement. A new authorization subsystem is not needed to diagnose this hang; if a proposed Bound claims mechanical prevention of reuse, it must add and test version binding rather than rely on the existing warning.\n\n## P4 - blocks-the-design: a cheaper subset or cached Step 5 is not proof of full-path recovery\n\nEvidence: runReleaseCheck requires the suite to have run and a successful tip-SHA GHA coverage-of-record cite. [release/pipeline.ts](https://github.com/deftai/directive/blob/5aac3ef3f8d0bd818bec862bba6b56391bfa9884/packages/core/src/release/pipeline.ts) also has a clean-HEAD suite-stamp path that can report Step 5 OK while skipping the suite. A targeted chronology test, a warm stamp hit, or a Linux coverage job can all pass without measuring the Windows full-check wall-clock that P1 names.\n\nFailure mode: binding relief from one of those proxies repeats the unproven sub-60-minute residual. A follow-on issue being filed, without a landed change and measurement, likewise does not meet Stop 1's alternative.\n\nConsequence: do not bind a remedy with only subset timing or a generic green Step 5 label. The evidence path must distinguish an actual full run from a stamp hit and include the Windows host, tested SHA, resolved command/environment, tool versions, cold/warm state, worker/project configuration, file census, phase times, full Step 5 elapsed time and exit status, absence of skip-ci, and the tip-SHA GHA coverage cite. Measure the enclosing check against its current 60-minute deadline, not just Vitest time. For the deliberate gate/cheapen alternative, name the landed change and before/after measurement under comparable conditions, with remaining full-run uncertainty explicit.\n\n## Bound-shaped recommendation - sharpens-framing\n\nUse the existing timeline, in-flight reporting, phase timings, and duration ranking to identify which part exhausts the shared deadline; then cheapen the measured dominant work and record the full-path result. A focused rerun is diagnostic evidence, not the acceptance oracle. If the selected change alters worker concurrency or shared git fixtures, preserve isolation/reset semantics and measure under suite load: an isolated speedup can become shared-state interference or a timeout when projects overlap. The existing #5140 overlap and share-plus-reset decisions make that a concrete constraint, not a reason to serialize the whole suite by default.\n\nRoad not taken: another cap increase is the smallest implementation and could be appropriate for demonstrably healthy necessary work whose accepted latency changed. It is not supported here as the sole durable remedy. No lean is posted; these are findings for parent disposition.",
+          "id": 5959741967,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5959741967",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:20:35Z",
+          "updated_at": "2026-10-02T19:20:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\ncharter: open critique\narc-mode: no-ingest\nspend: N≥3\nround: 1 critic\ncritic-role: fresh\ntarget: #5239\naudit-targets: none\nseat: grok\nlauncher: grok-cli\nid-ceiling: 5959688481\ndispatch-sha: 5aac3ef3f8d0bd818bec862bba6b56391bfa9884\nverification-path: pin-read git show 5aac3ef3f8d0bd818bec862bba6b56391bfa9884:; dest cwd-without-occupy\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-5239-dc\nStop-1: 5959669133\npanel-deposit: 5959688481\n\n## Verification (pin-read / dest cwd-without-occupy)\n\n- Dest HEAD == dispatch-sha `5aac3ef3f8d0bd818bec862bba6b56391bfa9884`.\n- Pin `packages/core/src/release/constants.ts`: `RELEASE_CHECK_TIMEOUT_MS = 60 * 60 * 1000` (60m).\n- Pin `docs/RELEASING.md`: cheapen-first on exit 124; numeric raise only via tracked gate + mint; history 20→30 (#5022) →30→45 (#5024) →45→60 (#5091).\n- Pin CHANGELOG: #5091 closed detector raise; #5140 closed with keep-60m + deferred measured sub-60m residual.\n- Live log `%TEMP%\\release-0.119.13.log`: exit 124 at `ts:check-lane`; last completed file `packages/core/src/vbrief-validate/chronology.test.ts`; auto-hatch real failure/hang; Step 5 hard timeout 60m.\n- Tip SHA `e38c4e72c0c4d33537d0f83a708fff0fc0ff2686` resolves (`chore(policy): allow direct commits for v0.119.13`).\n- Comment 5943325165: incident `--skip-ci --allow-skip-ci=5239` for v0.119.13; next patch prefer green Step 5.\n- REST: #5140 closed + `design-critique:ingest-ready`; #5091 closed.\n- Existing mechanisms inventoried: `RELEASE_CHECK_TIMEOUT_*`, #5026 host no-coverage lane (`isStep5HostNoCoverage` / `DEFT_RELEASE_PREFLIGHT`), #5027 tee duration ranking, #5140 cold-worktree + git-tail cheapen, RELEASING.md hang recovery + skip-ci incident doctrine.\n\nInjection / swarm lens: Bound that only retunes `RELEASE_CHECK_TIMEOUT_MS` is a local gate constant (lens idle). Bound that edits shared vitest / worktree fixtures must preserve share-plus-reset and spawn-heavy isolation already landed under #4567 / #5140; do not reintroduce per-`it` worktree add cost.\n\n## Pain dispositions (Stop 1 P1–P4)\n\n### P1 — Production Step 5 hang\n**blocks-the-design**\n\nEvidence: release log exit 124 + last-completed `chronology.test.ts` + tip `e38c4e72…` + pin 60m constant. Failure mode: Prefer-A that treats the hang as unproven, ambient flake, or already-closed by #5140 leaves production Step 5 red under the current detector. Disposition consequence: a lean that omits relief of this hang cannot bind.\n\nSharpening note on the same pain (does not retract the block): Stop 1's \"coverage-final.json missing after suite\" clause matches the log string, but under #5026 `formatSuiteBoundCoverageDecline` should emit \"not produced (suite was not expected to write a local report)\" when `DEFT_RELEASE_PREFLIGHT=1`. Observed \"missing after suite\" means the formatter did not see host-no-coverage. Prefer-A must anchor on exit 124 + last-completed-file + wall-clock, and must not treat missing `coverage-final.json` as independent hang proof.\n\n### P2 — Detector raise is not the durable sole remedy\n**blocks-the-design**\n\nEvidence: pin CHANGELOG #5091 (45→60m already shipped); #5140 closed with keep-60m + deferred measured sub-60m; RELEASING.md cheapen-first / raise-only-via-tracked-gate+mint. Failure mode: Prefer-A whose only Bound is another silent bump of `RELEASE_CHECK_TIMEOUT_MS` repeats the #5091 pattern and ignores acceptance's green-under-current-detector OR deliberate-gate-with-evidence fork. Disposition consequence: raise-alone Bound cannot bind.\n\n### P3 — Incident skip-ci is cut-scoped\n**sharpens-framing**\n\nEvidence: comment 5943325165 records `--skip-ci --allow-skip-ci=5239` for v0.119.13; issue Acceptance mirrors cut-only cite + next-patch green preference; RELEASING.md marks production skip-ci as incident. Failure mode: Prefer-A that normalizes skip-ci or leaves the next cut without a green-Step-5 / evidence path softens the cut-scope into habit. Disposition consequence: lean can bind while stating cut-scope explicitly and requiring the next patch path; do not elevate skip-ci into standing remedy.\n\n### P4 — Evidence-shaped Bound\n**blocks-the-design**\n\nEvidence: Acceptance requires recorded Windows production Step 5 under current detector without `--skip-ci`, OR deliberate gate/cheapen follow-on with evidence; RELEASING.md names tee ranking under `.deft/check-tees/**` (#5027) and warns last-completed-file is a hang cursor. Failure mode: Prefer-A that hopes `chronology.test.ts` was the hung unit, or promises unmeasured cheapen, binds hope. Disposition consequence: Bound must name measurement path (suite, host, wall-clock or cheapen delta, tee/rank command or retained log) or it cannot bind.\n\n## Classified findings (Bound-shaped recommendations — not a lean)\n\n### F1. Prefer measured cheapen or evidenced gate change over detector bump\n**blocks-the-design**\n\nEvidence: P2 + pin RELEASING.md + #5091/#5140 history. Failure mode: lean text that \"raises timeout to clear the cut\" as sole remedy. Disposition consequence: Prefer-A Bound must be (a) green Windows production Step 5 under current 60m without `--skip-ci`, with named host/log/tee evidence, and/or (b) a deliberate cheapen or gate change that lands with before/after wall-clock (or ranked tee delta) on this release host. Numeric raise remains allowed only as tracked gate + intent-constraint mint, never as the unmeasured default.\n\n### F2. Do not bind last-completed-file as the hung unit\n**sharpens-framing**\n\nEvidence: RELEASING.md — last-completed-file is hang cursor; durable ranking is tee `ts:check-lane timeline file …` ≥30s heartbeat (#5027). Failure mode: Bound scoped only to rewrite `chronology.test.ts` while the wall still burns elsewhere. Disposition consequence: Prefer-A may investigate that file, but acceptance evidence must be whole Step 5 (or ranked remaining cost), not a single-file guess.\n\n### F3. Reuse landed cheapen / no-coverage / ranking seams\n**sharpens-framing**\n\nEvidence: #5026 host no-coverage lane, #5027 duration-rank helper, #5140 cold-worktree + durable-effect git-tail share-plus-reset, vitest `spawn-heavy` project. Failure mode: inventing a parallel hang harness or resurrecting host `--coverage` under Step 5. Disposition consequence: Prefer-A should extend those seams (measure via retained tee, cheapen remaining spawn/git cost, keep #5026 coverage-of-record on GHA) rather than new detector theater.\n\n### F4. Target-digest drift after Stop 1\n**footnote**\n\nStop 1 cites Target-digest `sha256:7e626ced1a9a551b0c488e1106e57d541bdceedb2ec6c99ffe50f18921491198`. Live REST body hash at critic time is `sha256:a028d3679e85db579ad30d33b89172ce9d5d431325c9c9af9e9fc59b23926a62`. Pain text still matches Acceptance/Evidence; no disposition weight. Parent may refresh digest on later bind/synthesis if required by ingest gates.\n\n## Plain-language summary\n\nThe Windows release host hung again in Step 5 at the 60-minute detector with chronology.test.ts as the last finished file. The detector was already raised to 60m, and the prior cheapen issue left a measured sub-60m residual. A bindable Prefer-A needs a proven green Step 5 under the current detector or a cheapen/gate change with real numbers — not another bare timeout bump and not a permanent skip-ci habit.\r\n\n",
+          "id": 5959747088,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5959747088",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:20:56Z",
+          "updated_at": "2026-10-02T19:20:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nround: 1 critic\ncritic-role: fresh\nseat: claude\nlauncher: claude\ncharter: open critique\ntarget: #5239\naudit-targets: none\nid-ceiling: 5959688481\ndispatch-sha: 5aac3ef3f8d0bd818bec862bba6b56391bfa9884\nspend: N>=3\narc-mode: no-ingest\nverification-path: pin-read `git show 5aac3ef3f8d0bd818bec862bba6b56391bfa9884:`; dest cwd-without-occupy\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-5239-dc\nin-envelope inputs read: Stop 1 (5959669133), panel-deposit (5959688481). No later or sibling comments read.\n\n## Method note\n\nRe-verified by pin-read at the dispatch SHA plus read-only inspection of the two host artifacts Stop 1 itself names as evidence (`%TEMP%\\release-0.119.13.log`, and the supervised tee that lane wrote). No dest mutation, no occupancy claim, no launch probe.\n\n**The incident tee is retained and it answers most of what Stop 1 left open.** `C:\\Repos\\deft\\directive\\.deft\\check-tees\\no-session\\40192-698efc5d.log`, mtime 2026-10-01 19:24, the same minute as `release end ... exit=1`. Measured from it:\n\n| Measured | Value |\n| --- | --- |\n| lane conditions line | `coverage=false supervised=true host=win32 cpus=32 cold=false` |\n| last recorded progress tick | `last-file ... chronology.test.ts (153/1366 files)` |\n| per-file completion lines parsed | 156, every one of them unit-project |\n| spawn-heavy project completion lines | **0** (the token `spawn-heavy` appears 0 times in the whole 60m tee) |\n| serial cost of those 156 files | 26,708,405 ms = **445.1 min** |\n| win32 unit workers at cpus=32 | `winMaxWorkers = max(1, min(12, floor(32*0.25))) = 8` |\n| 445.1 / 8 | **55.6 min** of the 60m wall under perfect packing |\n| in-flight set at kill (recorded) | `eval/health`, `cli/occupancy-steal`, `wip-cap/evaluate`, `verify-source/coverage-boost`, `gates-cli/validate-platform-cli`, `vbrief-validate/branches`, `triage/welcome/welcome` |\n| slowest single file | `packages/core/src/session/occupancy.test.ts` at **1612.4 s (26.9 min)** |\n\nThat reconciles the whole wall arithmetically. **Nothing hung.** The suite completed 11.2% of 1366 specs in 60 minutes at full 8-worker occupancy, and the detector fired on a throughput shortfall. Stop 1 P1 through P4 are all written on the hang reading.\n\nSecond anchor, also measured: `%TEMP%\\release-0.119.13-skipci.log` lines 9-14 carry `*** WARNING: release Step 5 CI/coverage SKIPPED (--skip-ci) ***`, `*** Incident citation: #5239 ... ***`, and `[5/13] ... SKIP (--skip-ci)`. The skip-ci recut is verified from the host log. I did not fetch comment 5943325165 (out of envelope), so P3's comment-level attribution is unverified by me; its product-level facts are verified.\n\n## Pain dispositions\n\n### P1 -- Production Step 5 hang\n\n`sharpens-framing`\n\n**Evidence.** The exit-124 half is verbatim true: `release-0.119.13.log:5728-5732` carries `check: gate ts:check-lane failed (exit 124)`, `cause: hang detector timeout (exit 124); last completed test file: ...vbrief-validate/chronology.test.ts`, and `FAIL (task check timed out after 60m ...)`. Two other halves of P1 do not survive measurement.\n\n(a) *\"auto-hatch reported real failure/hang because coverage-final.json was missing after the suite\"* -- the causal `because` is wrong twice over. Classification is `classifyStep5FailureWithFreshness({ ..., timedOut: reasonLooksLikeTimeout(reason) || exitCode === 124 })` in `packages/core/src/release/pipeline.ts`; exit 124 decides it, and the coverage line is a trust decline printed alongside, never an input to that verdict. And the decline string itself is wrong: the tee's own conditions line reads `coverage=false`, so the #5026 no-coverage lane *was* active and the correct branch of `formatSuiteBoundCoverageDecline` was `not produced (suite was not expected to write a local report)`. Finding F1 is why production can never print that branch.\n\n(b) *\"last completed file was chronology.test.ts\"* is true, and it is a cursor, not a suspect. `chronology.test.ts` is the 153rd **completed** file. The seven files actually resident in workers at the kill are recorded verbatim in the tee's final `timeline in-flight` line and are listed above.\n\n**Failure mode.** A Bound that inherits \"hang\" plus \"chronology.test.ts\" plus \"coverage-final.json missing\" hunts a stalled unit and an instrumentation regression, neither of which occurred, and leaves 445 minutes of measured serial unit cost against a 60-minute wall unaddressed.\n\n**Disposition consequence.** P1 still warrants the arc; the production cut did fail Step 5 at 60m. Restate its mechanism as *throughput shortfall on the no-coverage win32 lane, 153/1366 specs in 60m at 8 workers*, cite the tee, and drop the coverage-final clause from the warrant entirely.\n\n### P2 -- Detector raise is not the durable sole remedy\n\n`sharpens-framing`\n\n**Evidence.** The prohibition and its history check out on-pin: `RELEASE_CHECK_TIMEOUT_MS = 60 * 60 * 1000` (`packages/core/src/release/constants.ts:42-43`), and `content/skills/deft-directive-release/SKILL.md:268` records `20->30 under #5022, then 30->45 under #5024, then 45->60 under #5091`, with \"for ordinary exit 124, cheapen the Windows Step 5 suite first; numeric raise is not the default recovery\". So far so good. The problem is the remedy space P2 draws around that prohibition: *raise* versus *deliberate gate/cheapen follow-on*. Measurement puts a third variable in front of both. #5140 killed at **1314/1334 (98.5%)** on 2026-09-29; #5239 killed at **153/1366 (11.2%)** on 2026-10-01. The suite grew by 32 specs in those 48 hours. Throughput fell by roughly 9x. Per-case costs in the tee are the signature: `occupancy-steal` \"steals when confirm and occupant match\" at 8480 ms, `wip-cap/evaluate` cases at 1664-2390 ms -- uniform spawn-bound inflation, which is exactly the class `vitest.config.ts:302-321` attributes to the win32 execute-time AV filter chokepoint, and exactly what #5140 clause 2 (\"Host diagnosis -- record, do not invent\") was written to catch before it was dispositioned `not_applicable`.\n\n**Failure mode.** No cheapen of suite composition closes a 9x delta on a suite that grew 2.4%. A Bound restricted to P2's two-way space spends the arc trimming test cost while the actual regression sits in host or toolchain state, and the next production cut fails again with a cheaper suite.\n\n**Disposition consequence.** Keep P2's refusal of another numeric raise; it is correct and on-pin supported. Widen the admitted remedy space to three: host/toolchain regression, suite composition, and runner configuration. Make the host-versus-suite discriminator the first step of the Bound rather than optional colour (R1).\n\n### P3 -- Incident skip-ci is cut-scoped\n\n`blocks-the-design`\n\n**Evidence.** The product facts verify. `validateSkipCiIncident` (`packages/core/src/release/skip-ci-incident.ts:48`) returns `{kind:\"valid\"}` for **any** non-null `allowSkipCiIssue`, and `parseSkipCiIncidentIssueNumber` accepts any positive integer. There is no existence check, no open/closed probe, no repeat-use check, no cross-cut memory. \"Cut-scoped\" is carried by exactly two things: the stderr line `*** Next production patch MUST cut without --skip-ci once the hang is fixed. ***` from `formatSkipCiIncidentWarning` (verified present at `release-0.119.13-skipci.log:12`), and the prose at `SKILL.md:266`. Both are attention, not control. The asymmetry is the finding: the sibling hatch on the same Step 5 already has the mechanism. `probeOpenCoverageDebtLedger` (`packages/core/src/release/coverage-debt-ledger.ts:126`) marker-searches the repo, scans CHANGELOG citations, probes each cited issue via `gh api .../issues/N --jq .state`, and counts `OPEN` **or** `UNKNOWN` as unpaid -- fail-closed, and fail-closed again when `gh` is absent. `--allow-skip-ci` has no counterpart.\n\n**Failure mode.** The next patch cut passes `--allow-skip-ci=5239` again, or `--allow-skip-ci=1`, which validates identically, and ships another untested npm publish. Nothing in the pipeline notices that #5239 was already spent on v0.119.13, that it is still open, or that two consecutive production cuts skipped Step 5. The critic method refuses a safety case that ends at reviewer attention; P3's does.\n\n**Disposition consequence.** P3 cannot be cited `relieves` by a Bound that only re-asserts cut scoping in prose or a CHANGELOG note. Either the Bound names a deterministic control (R3), or P3 is restated as an unenforced convention and carried as residual. As written, a Bound citing P3 relieved does not bind.\n\n### P4 -- Evidence-shaped Bound\n\n`blocks-the-design`\n\n**Evidence.** Two independent reasons, both verified at the pin.\n\n(a) *The wording is not what failed last time.* `xbrief/completed/2026-09-30-5140-bugrelease-v011911-windows-step-5-hang-at-13141334-under-60m.xbrief.json` clause.5 is already the requirement P4 asks for: \"First-ship success is a Windows production-shaped Step 5 / `ts:check-lane` that completes the selected suite with zero test failures, valid tip-SHA coverage-of-record, no `--skip-ci`, under the existing detector. Record SHA, suite size, conditions, elapsed time, and retained tee on this issue.\" Its recorded disposition at the pin is `deferred`, reason \"full Windows production Step 5 under-60m measurement (SHA/suite/elapsed/tee + ubuntu ratio) remains a tracked performance residual\". The other six clauses are `not_applicable`, reason \"pathless derived clause has no bindable artifact_path for leftover-complete\". The issue is nonetheless `status: completed` and tagged `design-critique:ingest-ready`. So the measurement clause was already written in P4's shape, and the arc completed with it undischarged. P4 repeats the sentence and not the control.\n\n(b) *P4's premise about missing measurement is itself out of date.* P4 asks the Bound to name \"which suite, which host, what wall-clock or cheapen delta ... rather than an unmeasured hope that chronology.test.ts was the hung unit\". The suite, host, CPU count, coverage mode, per-file wall-clock, project split, and in-flight set at kill are all already recorded in the retained tee, and Stop 1 cites neither the tee nor its path. The real gap is not absent measurement; it is an uncited, unpinned, expiring measurement (F3).\n\n**Failure mode.** A successor that restates P4 verbatim can be discharged the identical way: a product PR lands the cheapen, the derived clauses go `not_applicable` as pathless, the measurement clause goes `deferred` as a tracked residual, the issue completes and chips ingest-ready, and the next production cut hits the wall again. That is a two-arc recurrence of one discharge path, not a near miss.\n\n**Disposition consequence.** P4 does not bind as a wording requirement. It binds only with a discharge constraint attached: the measurement clause carries a bindable artifact path, and no `relieves` of P4 while that clause is `deferred`. Absent that, a Bound citing P4 relieved asserts the same premise #5140 asserted and did not keep.\n\n## Findings\n\n### F1 -- the no-coverage decline branch is unreachable in production, and its guard test proves the wrong thing\n\n`blocks-the-design`\n\n**Evidence.** `formatSuiteBoundCoverageDecline` calls `suiteExpectedToWriteLocalCoverage(reason)` with the default env argument, so it reads the **release parent's** `process.env`. But `RELEASE_PREFLIGHT_ENV` is never set on that parent: `releaseCheckEnv()` (`packages/core/src/release/preflight.ts:39-57`) builds a *separate* env object carrying `[RELEASE_PREFLIGHT_ENV]: \"1\"` and hands it to the Step 5 child, while `releaseSubprocessEnv()` (`packages/core/src/release/git.ts:10`) sets only the two `DEFT_ALLOW_*` keys. So on every real production cut `isStep5HostNoCoverage(process.env)` is false in the parent, the function falls through to `/\\bts:check-lane\\b/i.test(reason)` -- true for this gate -- and the message is always `coverage-final.json missing after suite`. The guard test in `pipeline-auto-hatch.test.ts`, \"does not say missing-after-suite on the no-coverage host lane (#4244 P2 / #5026)\", passes because it sets `process.env.DEFT_RELEASE_PREFLIGHT = \"1\"` **on the parent**, which is the one thing the pipeline does not do. Confirmed end to end on this incident: the tee says `coverage=false`, the release log says `missing after suite`.\n\n**Failure mode.** The diagnostic states the opposite of the configured lane on every no-coverage Step 5 failure, and a green test asserts that is impossible. Stop 1 P1 is the live instance of the damage: a triage write-back read the string as fact and built a warrant clause on it.\n\n**Disposition consequence.** Any Bound that cites Step 5 stderr as evidence inherits this. The fix is small and pathed: thread the child env, or the already-computed `hostCoverage`, into the decline formatter, and rewrite the guard test to inject through that seam rather than the parent process. Fold it into this arc's Bound or split it, but the Bound cannot rely on that output surface while it is wrong.\n\n### F2 -- spawn-heavy never ran, so 60 minutes is not even the full wall\n\n`sharpens-framing`\n\n**Evidence.** Zero occurrences of `spawn-heavy` in the entire 60-minute tee; all 156 completion lines are unit-project; the 7 in-flight paths at kill are all outside the 19-entry `spawnHeavyGlobs` list at `vitest.config.ts:218-238`. That project pins `maxWorkers: Number(isWin32)` = 1 on win32. `DurationSequencer`'s comparator (`compareSpecsForDurationSequence`) orders by `groupOrder`, then **project name**, then duration, and `\"spawn-heavy\" < \"unit\"` -- yet not one spawn-heavy spec reached completion. Separately, the committed fixture `packages/core/fixtures/vitest-file-durations.json` carries 124 entries summing to 367.9 min, of which the 19 spawn-heavy paths account for 11.2 min across the 7 that are listed at all; the remaining 356.7 min is unit-side. `chronology.test.ts` is not in the fixture, and neither are roughly 1242 of the 1366 specs.\n\n**Failure mode.** Sizing a cheapen against \"the 60m wall\" sizes it against the unit project alone. Whatever those 19 serial spawn-heavy files cost sits entirely outside every number this incident produced and lands on top of any recovered unit wall. A Bound tuned to make unit finish in 55 minutes still fails.\n\n**Disposition consequence.** The Bound's wall-clock budget must be stated per project with the measured worker counts (unit at 8, spawn-heavy at 1), and must include at least one run in which spawn-heavy completes, or it is budgeting against a partial. #5140 clause 6 asked whether the project-name tiebreak re-serialises the two projects and was closed `not_applicable`; this tee is the instrumented win32 run that clause wanted, and it shows the partition question is still open.\n\n### F3 -- the arc's only root-cause evidence is scheduled for deletion\n\n`blocks-the-design`\n\n**Evidence.** `pruneSuiteTees` (`packages/core/src/check/suite-gate-supervisor-lib.ts:191-234`) walks `.deft/check-tees` and, for any `*.log` older than both `SUITE_TEE_HANG_CEILING_MS` (= `RELEASE_CHECK_TIMEOUT_MS`, 60 min) and `SUITE_TEE_PRUNE_AGE_MS` (25 min) whose owner pid is not alive, calls `containedRemove`. The incident tee is `no-session/40192-698efc5d.log`; pid 40192 is long dead and the file is roughly 19 hours old. It is prunable by the next supervised `task check` in the primary checkout. It is the sole surviving record of `coverage=false`, cpus=32, 153/1366, the 445.1 min of per-file durations, and the in-flight set at kill. None of that is on the issue thread, in the repo, or in either `%TEMP%` release log.\n\n**Failure mode.** Any agent or operator runs `task check` in `C:\\Repos\\deft\\directive` and the evidence P4 depends on is gone, with no copy anywhere. The arc then has to re-run a 60-minute failing release Step 5 to recover what it already had.\n\n**Disposition consequence.** Preserving and citing this tee is a precondition on the Bound, not a step inside it. Copy it out of the prune path and record its path plus a hash on the thread before any further `task check` on that checkout. This is the highest-urgency item in the arc.\n\n### F4 -- injection / swarm lens\n\n`sharpens-framing`\n\nThe lens fires: the target touches authority (`--skip-ci` ships unvalidated npm artifacts), concurrency (win32 worker caps, two vitest projects, the spawn chokepoint), and shared host state (the tee directory, the suite stamp).\n\n*Authority.* `--allow-skip-ci=#N` accepts any positive integer with no existence or state probe (P3). An agent operating the release from issue text can mint a plausible-looking citation -- a closed issue, a PR number, a typo -- and `validateSkipCiIncident` returns `valid`. The loud banner is the only signal, and it lands on stderr in a 5 kB log nobody re-reads. The coverage-debt sibling on the same step fails closed on `UNKNOWN`; this one fails open on anything numeric.\n\n*Shared state.* The incident tee landed under `no-session`, so the release ran with no session identity and the tee is attributable by pid alone. `.deft/check-tees` lives in the primary checkout and is shared across every worktree and concurrent agent on this host. Prune is pid-liveness-guarded for live runs and unguarded for exactly the dead-pid forensic artifact an open arc depends on (F3).\n\n*Suite stamp.* Not a live hole on this incident. `recordSuiteStamp` is reached only on a passing suite, so the failed cut wrote none, and the `stampEval.kind === \"hit\"` path still demands a tip-SHA GHA coverage-of-record cite before it skips. Recorded because any Bound that touches Step 5 sequencing must not loosen that second gate.\n\n### F5 -- the duration fixture has no provenance\n\n`sharpens-framing`\n\n**Evidence.** `packages/core/fixtures/vitest-file-durations.json` at the dispatch SHA has exactly two top-level keys, `schema` and `files`, and `parseFileDurationsDocument` validates only those. The prior generation of this fixture carried `source: seeded-from-primary-node_modules-...-until-5027` and `dependsOnIssue: 5027`; the post-#5174 refresh dropped them and added nothing in their place. Nothing records which host, which SHA, which coverage mode, or which date produced the 124 numbers the sequencer now sorts on. Independently, the tee disagrees with the fixture by large margins on the same files: `presentation-coverage/gates.test.ts` is 471,898 ms in the fixture and 1,451,700 ms in the incident run.\n\n**Failure mode.** A 3x disagreement between committed and observed durations is unresolvable: it could be host regression, coverage-mode mismatch, or a stale fixture, and the artifact cannot say which. The arc cannot use its own sequencer input as a baseline, which is precisely the comparison F2 and R1 need.\n\n**Disposition consequence.** If the Bound touches the fixture, it adds provenance fields (host, cpus, coverage mode, SHA, date) and a check that they are present. Without them \"measured\" is unauditable and the next arc repeats this paragraph.\n\n### F6 -- stale comment on the tee prune constant\n\n`footnote`\n\n`SUITE_TEE_PRUNE_AGE_MS = 25 * 60 * 1000` still carries the comment \"Age bound sits above the 20-minute hang ceiling (freshness 25)\" while `SUITE_TEE_HANG_CEILING_MS = RELEASE_CHECK_TIMEOUT_MS` is 60 minutes, so the 25-minute value has not been the effective bound since #5022. Comment drift only; no behaviour change and no disposition weight.\n\n## Bound-shaped recommendations\n\nFindings, not a lean. Each names a mechanism already on tip.\n\n**R1 -- make host-versus-suite the first measurement, not an optional one.** Before any cheapen, re-run `ts:check-lane` on this host at #5140's tip `bc060886b` under the same no-coverage supervised lane and compare specs-completed-per-minute against this tee. Same suite, 48 hours apart, 9x apart. If the old SHA also runs at roughly 150 specs/hour, the regression is host or toolchain and suite cheapen is the wrong lever. If it runs at roughly 1300, the regression is in what landed between the two tips, and `git log bc060886b..5aac3ef3f` over `packages/**/*.test.ts` plus `vitest.config.ts` is a bounded search. One measurement partitions the whole remedy space, and it is cheaper than any cheapen.\n\n**R2 -- state the wall budget per project against measured worker counts.** Unit at `winMaxWorkers` (8 on this 32-CPU host) and spawn-heavy at 1. Any acceptance number has to survive `serial_cost / workers` arithmetic against 60 minutes, including the 19 spawn-heavy files that contributed nothing to this incident (F2). A single 26.9-minute unit file against a 60-minute wall is a structural statement independent of which remedy wins.\n\n**R3 -- give `--allow-skip-ci` the ledger `--allow-coverage-debt` already has.** Reuse the `probeOpenCoverageDebtLedger` shape: probe the cited issue's state via `gh api`, treat `OPEN` and `UNKNOWN` as an unpaid incident, and refuse a second production `--skip-ci` citing an unpaid one without a distinct explicit override. The code, the fail-closed policy, the `gh`-absent fallback, and the CHANGELOG citation scan all exist on tip; this is a sibling call site, not a new mechanism. It converts P3 from a banner into a control.\n\n**R4 -- preserve the tee before anything else touches the checkout.** Copy `no-session/40192-698efc5d.log` out of `.deft/check-tees`, record its path and hash on this issue, and treat that as a precondition of the arc rather than a step within it (F3).\n\n**R5 -- attach a discharge constraint to the evidence clause.** Whatever the Bound's measurement clause says, it carries a bindable artifact path, and the arc does not complete while that clause is `deferred`. #5140 proved the sentence alone does not hold (P4a). If the operator wants the deliverable remainder to land before the measurement exists, that is a leftover split into a separate issue, not a `deferred` clause inside a completed one.\n\n## Road not taken\n\nI considered leading with suite cheapen. The tee's top ten unit files cost 2.2 hours of serial time between them, and that is indefensible on its own terms. I did not, because the 1314/1334 to 153/1366 delta across 48 hours and 32 added specs cannot be produced by suite composition, and binding cheapen first spends the arc on a real but secondary problem while the primary one stays unnamed. Cheapen belongs in the Bound; it is not the first step.\n\n**Steelman.** The strongest case against me: the duration numbers are self-reported by the same degraded run, 32 CPUs does not mean 32 free CPUs, and #5140's 1314/1334 is a single data point from a differently-conditioned cut that I read from an xBRIEF narrative rather than measured myself. If the host were simply loaded that day, every per-case number inflates uniformly and looks exactly like what I am calling a regression; the honest reading then is that the suite has been marginal since #5091 and finally lost a coin flip, which is the cheapen story. What flips my verdict is R1: a same-host run at `bc060886b` landing near this run's throughput. That result makes the delta suite-composition-plus-noise, retires the host hypothesis, and makes cheapen the first step. I would rather be refuted by that measurement than bind either story without it.\n\n",
+          "id": 5959940129,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5959940129",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:31:51Z",
+          "updated_at": "2026-10-02T19:31:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A\n**Spec-path:** Bound remedy below\nTarget-digest: sha256:7e626ced1a9a551b0c488e1106e57d541bdceedb2ec6c99ffe50f18921491198\nStop-1: 5959669133\npanel-deposit: 5959688481\ncritics: codex 5959741967; grok 5959747088; claude 5959940129\ndispatch-sha: 5aac3ef3f8d0bd818bec862bba6b56391bfa9884\narc-mode: no-ingest\nyolo-standing: yes\nspend: N≥3\n\n## In plain English\n\nWindows release Step 5 did not hang on a stuck chronology.test.ts. The retained tee shows a throughput shortfall: about 153 of 1366 specs finished in 60 minutes under the no-coverage win32 lane at 8 unit workers, with spawn-heavy never completing. The detector was already raised to 60m, and skip-ci for v0.119.13 was only an incident hatch. Prefer-A binds measured recovery under the current detector (or a deliberate cheapen/gate with evidence), fixes the false coverage-final diagnostic, hardens skip-ci against unpaid reuse, and forbids completing again with a deferred measurement clause.\n\n## Take map (round-1 panel)\n\n### From Claude 5959940129\n- P1 restatement (throughput shortfall; drop coverage-final hang proof; chronology as cursor) — accept-into-contract\n- P2 widen (host/toolchain vs suite vs runner; keep refuse raise-alone) — accept-into-contract\n- P3 skip-ci needs ledger control (R3) — accept-into-contract\n- P4 discharge constraint (no deferred measurement on complete) — accept-into-contract\n- F1 coverage-decline parent-env bug — accept-into-contract\n- F2 spawn-heavy never ran / per-project wall budget — accept-into-contract\n- F3 tee prune urgency — accept-into-contract (parent preserved copy; see Bound)\n- F4 injection/swarm lens (authority + shared tee state) — accept-into-contract\n- F5 duration fixture provenance — accept-into-contract\n- F6 prune-age comment drift — accept-into-contract (footnote)\n- R1–R5 — accept-into-contract\n\n### From Grok 5959747088\n- P1 blocks (exit 124 + last-file + wall) with coverage-final sharpen — accept-into-contract (aligned to Claude restatement)\n- P2 blocks raise-alone — accept-into-contract\n- P3 sharpens cut-scope — accept-into-contract (strengthened by R3)\n- P4 blocks unmeasured Bound — accept-into-contract\n- F1 measured cheapen / evidenced gate over bump — accept-into-contract\n- F2 do not bind last-completed as hung unit — accept-into-contract\n- F3 reuse #5026/#5027/#5140 seams — accept-into-contract\n- F4 Target-digest drift footnote — accept-into-contract (live REST body hash re-checked = Stop 1 digest)\n\n### From Codex 5959741967\n- P1 sharpens (timeout pain; separate diagnosis from coverage fallback) — accept-into-contract\n- P2 sharpens cheapen-first; account for shipped mechanisms — accept-into-contract\n- P3 sharpens (issue-number parser is not version scope) — accept-into-contract\n- P4 blocks subset/stamp/cached Step 5 as full-path proof — accept-into-contract\n- Bound-shaped: measure dominant work via timeline/in-flight/ranking then cheapen — accept-into-contract\n\n## Pain cites (honest)\n\n- P1: relieves — mechanism restated as throughput shortfall on no-coverage win32 lane (tee evidence); Bound requires green full Step 5 under current 60m without `--skip-ci` or measured cheapen/gate; coverage-final missing is not hang proof; chronology.test.ts is hang cursor only\n- P2: relieves — refuse detector-raise-alone; Bound requires host-versus-suite partition (R1) before suite cheapen; tracked gate raise only with intent-constraint mint + evidence, never unmeasured default\n- P3: relieves — Bound includes skip-ci unpaid-incident ledger sibling to coverage-debt (R3); cut-scoped prose alone is not enough\n- P4: relieves — Bound attaches discharge constraint: measurement clause carries bindable artifact path; arc must not complete while that clause is `deferred`; full-path evidence (not subset/stamp/Linux-only)\n\n## Bound remedy\n\n1. **Preserve incident tee (precondition, done on parent).** Copy of `.deft/check-tees/no-session/40192-698efc5d.log` retained at `%TEMP%\\release-5239-incident-tee-40192-698efc5d.log` with sha256:6f2d9058ba6c22800f21a46f9a4cbf4e92d22ef9bdb30c1e2d7308fd3fab095b (291320 bytes). Cite this hash on any implement brief; do not rely on the prunable primary path alone.\n\n2. **Host-versus-suite partition first (R1).** On this Windows release host, re-run supervised no-coverage `ts:check-lane` at #5140 tip `bc060886b` (or the recorded #5140 production tip) and compare specs-completed-per-minute / wall against the preserved #5239 tee. If throughput is similarly low, treat host/toolchain regression as primary and record diagnosis before suite cheapen. If throughput recovers near #5140’s 1314/1334 class, bound the search to `git log bc060886b..<tip>` over test/config surfaces and cheapen measured dominant cost.\n\n3. **Acceptance evidence (green path).** First-ship success is a Windows production-shaped Step 5 / `ts:check-lane` that completes the selected suite with zero test failures, valid tip-SHA GHA coverage-of-record, no `--skip-ci`, under the current 60m detector. Record SHA, suite size, conditions (`coverage`/`supervised`/`host`/`cpus`/`cold`), per-project worker counts, elapsed wall, exit status, and retained tee path+hash on the issue. Distinguish a real full run from suite-stamp hit. Budget wall per project (unit at winMaxWorkers, spawn-heavy at 1) and include at least one run where spawn-heavy completes.\n\n4. **Deliberate cheapen/gate alternative.** If green-under-current-detector is not chosen, land a deliberate cheapen or tracked gate change with before/after wall-clock (or ranked tee delta) under comparable conditions, remaining full-run uncertainty explicit. Numeric raise of `RELEASE_CHECK_TIMEOUT_MS` is allowed only as tracked gate + intent-constraint mint, never as the sole unmeasured Prefer-A.\n\n5. **Fix coverage-decline diagnostic (F1).** Thread child `DEFT_RELEASE_PREFLIGHT` / already-computed hostCoverage into `formatSuiteBoundCoverageDecline` so production prints the #5026 no-coverage branch when the child lane is no-coverage. Rewrite the guard test to inject through that seam rather than setting the env only on the parent process.\n\n6. **Skip-ci unpaid ledger (R3).** Give `--allow-skip-ci` a fail-closed sibling of `probeOpenCoverageDebtLedger`: probe cited issue state; treat OPEN/UNKNOWN (and already-spent cut citation once a spend record exists) as unpaid without a distinct explicit override; refuse second production skip citing an unpaid incident. Banner-only cut-scoping is residual without this control.\n\n7. **Duration fixture provenance (F5) when touched.** If the Bound refreshes `vitest-file-durations.json`, add provenance fields (host, cpus, coverage mode, SHA, date) and a presence check.\n\n8. **Discharge constraint.** The measurement / evidence clause on the implement brief carries a bindable artifact path. Do not `scope:complete` / chip ingest-ready while that clause is `deferred`. If measurement must land later, split it to a leftover issue rather than defer-inside-complete (#5140 recurrence).\n\n## Reuse / do not invent\n\nExtend #5026 host no-coverage, #5027 tee duration ranking, #5140 cold-worktree + share-plus-reset / spawn-heavy partition, and RELEASING.md cheapen-first doctrine. Do not resurrect host `--coverage` under Step 5. Do not bind last-completed-file as the hung unit.\n\n## Road not taken\n\nDetector-only bump; chronology.test.ts-only rewrite; subset/warm-stamp/Linux coverage as acceptance; completing with deferred measurement again.\r\n\n",
+          "id": 5959960840,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5959960840",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:33:20Z",
+          "updated_at": "2026-10-02T19:33:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\ncharter: open critique\ncritic-role: fresh\nround: pain-audit after Prefer-A lean\ntarget: #5239\nstop1: 5959669133\nlean: 5959960840\nid-ceiling: 5959960840\ndispatch-sha: 5aac3ef3f8d0bd818bec862bba6b56391bfa9884\nverification-path: pin-read git show 5aac3ef3f8d0bd818bec862bba6b56391bfa9884:; dest cwd-without-occupy\narc-mode: no-ingest\nspend: N≥3\nseat: grok\nlauncher: grok-cli\ndual-stop-seat: reserved\ndual-stop-raise: reserved\n\nRead Stop 1 `5959669133` and Prefer-A lean `5959960840` via REST only; re-opened round-1 critics `5959741967` / `5959747088` / `5959940129` for disposition check. Pin-read at dispatch SHA on dest cwd-without-occupy. No dest mutation, no occupancy, no release re-run, no fixtures executed.\n\n## Verdicts\n\n| target | verdict | basis |\n|---|---|---|\n| `pain-P1` | **supported** | Bound items 2–5 cover Stop 1 P1: green full Step 5 under current 60m without `--skip-ci` or measured cheapen/gate; coverage-final is diagnostic-only (item 5); chronology.test.ts is cursor, not hung unit |\n| `pain-P2` | **supported** | Bound items 2 and 4 refuse detector-raise-alone; host-versus-suite partition (R1) is first; numeric raise only via tracked gate + intent-constraint mint with evidence |\n| `pain-P3` | **supported** | Bound item 6 lands Claude R3 unpaid skip-ci ledger sibling to `probeOpenCoverageDebtLedger`; cut-scoped prose alone is residual; acceptance path still prefers next green Step 5 without skip-ci |\n| `pain-P4` | **supported** | Bound items 3, 4, and 8 name measurement path (suite/host/conditions/workers/wall/tee hash) and attach discharge constraint: no `scope:complete` / ingest-ready while measurement is `deferred`; subset/stamp/Linux-only refused |\n\n**Bind map must retract.** One `blocks-the-design` (D1). One `sharpens-framing` that changes harvested Bound item 6 (S1). Two `footnote`. Substance of Bound-vs-Stop-1 for P1–P4 is supported; the lean cannot bind as written because it carries **zero** operative closed-form pain cites.\n\n### Round-1 disposition check\n\nLean accept-into-contract rows for Claude P1 restatement / P2 widen / P3 R3 / P4 discharge, Grok P1–P4 / F1–F3, and Codex P1–P4 / Bound-shaped measure-then-cheapen all appear in Bound items 1–8. No accepted round-1 pain disposition is orphaned from the Bound. Panel-deposit ceiling and Stop 1 pain list P1–P4 match the audited ids.\n\n---\n\n### D1 -- `blocks-the-design` -- Prefer-A claims honest `relieves` for P1–P4 but posts zero closed-form operative cites\n\n**Evidence.** Contract closed cite forms are `relieves: P1` / `relieves P1` (`citation-grammar.ts` `PAIN_CITE_RE`: disposition token then id). Lean `5959960840` § Pain cites (honest) writes list lines `P1: relieves - …` through `P4: relieves - …` (id then disposition). Live REST body scan at audit time: `relieves:\\s*P1` false, `relieves\\s+P1\\b` false, closed-form match count **0**. `scanPainCites` therefore yields an empty cite set. Uncited Stop 1 ids stay `unrelieved-pain`; lean also carries operative `Spec-path:`, so Handoff print condition 1 applies. Reserved-slot literacy assumes asserted coverage (`relieves` / different-issue deferred); with zero operative cites, asserted coverage is empty even though the English section title says otherwise.\n\n**Failure mode.** Path-1 / `evaluateCompletedArcRecord` treat this map as uncited. Parent and later auditors reading the English bullets as relief launder a non-operative disposition into bind clearance. Dual-stop reserved admission for \"first post-lean pain-audit of asserted coverage\" was predicated on cites the engine does not see.\n\n**Disposition consequence.** Retract the bind map. Recut Prefer-A must carry closed forms (`relieves: P1`, `relieves: P2`, `relieves: P3`, `relieves: P4`) on operative lines. Bound substance for P1–P4 can carry forward once cites parse; English `P1: relieves` lines do not.\n\n**Steelman.** The bullets are unambiguous to a human and Bound items 1–8 match the intended relief. That is why per-target substance verdicts are supported. What flips the block is the closed grammar itself: fence/quote/inline-code and non-closed order do not count (`classifyPosition` / `PAIN_CITE_RE`). One Recut that writes the four closed cite lines removes D1.\n\n---\n\n### S1 -- `sharpens-framing` -- Bound item 6 names \"already-spent cut citation once a spend record exists\" without naming the durable spend-record seam\n\n**Evidence.** Pin `validateSkipCiIncident` returns `{kind:\"valid\"}` for any non-null allow-skip issue (`skip-ci-incident.ts`). Pin `probeOpenCoverageDebtLedger` fail-closes on OPEN/UNKNOWN via issue state + CHANGELOG citation scan (`coverage-debt-ledger.ts`). Bound item 6 correctly requires a sibling of that probe for `--allow-skip-ci`. The extra conjunct \"already-spent cut citation once a spend record exists\" is what blocks reuse after #5239 closes, but the lean never names where that spend record is written or read (CHANGELOG marker, issue comment token, release log, new ledger file).\n\n**Failure mode.** Builder implements OPEN/UNKNOWN-only (the coverage-debt half) and ships a second production skip citing closed #5239 after this arc completes. Cut-scope from Stop 1 P3 / Codex version-binding concern returns as CLOSED-reuse.\n\n**Disposition consequence.** Recut Bound item 6 names the spend-record seam (reuse coverage-debt CHANGELOG citation scan, or an explicit release spend marker with probe). This changes harvested Bound remedy item 6. Not a re-open of P3's ledger ask; it completes the already-spent half the lean already asserted.\n\n**Steelman.** OPEN while #5239 is in flight already blocks unpaid reuse for the next cut, and acceptance forbids skip-ci on the green path. That covers the near term. What keeps S1 is the lean's own already-spent sentence: once the issue closes, OPEN/UNKNOWN alone is insufficient for the control the Bound claims.\n\n---\n\n### N1 -- `footnote` -- preserved tee hash on Bound item 1 matches host bytes\n\n`%TEMP%\\release-5239-incident-tee-40192-698efc5d.log` exists at audit time; SHA-256 `6F2D9058BA6C22800F21A46F9A4CBF4E92D22EF9BDB30C1E2D7308FD3FAB095B` matches Bound item 1 (291320 bytes). No disposition weight; records that the precondition claim is currently true on this host.\n\n### N2 -- `footnote` -- `#5140` tip `bc060886b` resolves as a commit at the dest\n\nBound item 2's partition tip is reachable (`git cat-file -t bc060886b` → `commit`). No disposition weight; the comparison SHA is not a dangling ref on this pin.\n\n---\n\n## Continue raise\n\n**continue-raise: yes**\n\n1. D1 is blocking → parent posts a retraction map (parent-class; spends no numbered Dual-stop post), then Handoff. Yolo standing does not carry past a blocking audit.\n2. Recut Prefer-A should keep Bound substance for supported P1–P4, write closed `relieves: P1`…`P4`, and fold S1 into Bound item 6 (name the spend-record seam).\n3. This post spends the Dual-stop **reserved** seat (first post-lean pain-audit of asserted coverage). The pain-audit of that Recut needs a Dual-stop **raise** (+1); it is not a second reserved admission.\n4. No halt on repeat primary blocking heading (first PA). Finish remains possible after Recut + raised PA with strictly fewer blocking findings.\n\n## What this critique is not\n\n- Not a claim that Bound items 2–8 fail Stop 1 P1–P4 on substance; all four targets are **supported** on Bound-vs-warrant coverage.\n- Not a re-litigation of throughput-shortfall vs hang, host-versus-suite partition, or discharge-constraint doctrine already accepted from the round-1 panel.\n- Not path-1 clearance, not ingest-ready, not dest-place, not a lean, not a chip write. `arc-mode: no-ingest`.\n\n## Summary\n\nBound remedy covers Stop 1 P1–P4 on substance (`supported` ×4). The Prefer-A map still cannot bind: it has zero closed-form `relieves:` cites (D1 blocks; retract), and Bound item 6's already-spent half needs a named spend-record seam (S1 harvest change). Reserved seat spent; recommend Dual-stop raise for the Recut pain-audit.\n\nProcess-only. Critic EXIT after this single post.",
+          "id": 5960031911,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5960031911",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:37:57Z",
+          "updated_at": "2026-10-02T19:37:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Retraction map\n\nRetracts Prefer-A lean 5959960840 as bind-capable.\n\n**Why:** Pain-audit 5960031911 D1 `blocks-the-design` — lean claimed honest `relieves` for Stop 1 P1–P4 but posted zero closed-form operative cites (`relieves: P1` / `relieves P1`). `scanPainCites` yields empty set; Path-1 / completed-arc cannot treat the English `P1: relieves` bullets as relief.\n\n**What carries:** Bound substance for P1–P4 was pain-audit **supported** ×4. Round-1 accept-into-contract rows and Bound items 1–8 (with S1 sharpen on item 6) remain harvestable into a Recut.\n\n**What does not carry:** Bind clearance from 5959960840. Reserved Dual-stop seat is spent by 5960031911. Yolo standing does not carry past this blocking audit.\n\n**Spend note:** This retraction is parent-class and spends no numbered Dual-stop post.\r\n\n",
+          "id": 5960048332,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5960048332",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:39:09Z",
+          "updated_at": "2026-10-02T19:39:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Handoff\n\nPrefer-A lean 5959960840 retracted after reserved-seat pain-audit 5960031911 (D1 blocking: missing closed-form `relieves: P1`…`P4` cites). Bound substance vs Stop 1 P1–P4 remains supported.\n\n**Next envelope:** Recut Prefer-A keeping Bound items 1–8, writing closed cites `relieves: P1` … `relieves: P4`, and folding S1 into Bound item 6 (name the skip-ci spend-record seam). Pain-audit of that Recut needs Dual-stop **raise** (+1); reserved seat is already spent.\n\n**Continue-raise recommendation from PA:** yes. Finish remains possible after Recut + raised PA with strictly fewer blocking findings.\n\n**Do not:** treat 5959960840 as bindable; chip ingest-ready; run `task issue:ingest` on this retracted map.\r\n\n",
+          "id": 5960048544,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5960048544",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:39:10Z",
+          "updated_at": "2026-10-02T19:39:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Recut\n**Spec-path:** Bound remedy below\n**Recut-supersedes:** 5959960840\nTarget-digest: sha256:7e626ced1a9a551b0c488e1106e57d541bdceedb2ec6c99ffe50f18921491198\nStop-1: 5959669133\npanel-deposit: 5959688481\ncritics: codex 5959741967; grok 5959747088; claude 5959940129\npain-audit (retracted lean): 5960031911\nretraction: 5960048332\nhandoff: 5960048544\ndispatch-sha: 5aac3ef3f8d0bd818bec862bba6b56391bfa9884\narc-mode: no-ingest\ndual-stop-reserved: spent\nspend: N≥3\n\n## In plain English\n\nSame Prefer-A Bound as before: Windows Step 5 failed as a throughput shortfall (not a hung chronology unit). Recut keeps that Bound and only fixes what the reserved pain-audit blocked: closed-form pain cites, plus a named spend-record seam for the skip-ci already-spent half.\n\n## Pain cites (closed form)\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\n- P1 covers throughput-shortfall restatement, green full Step 5 under current 60m without `--skip-ci` or measured cheapen/gate, coverage-final diagnostic fix, chronology as cursor only\n- P2 covers refuse detector-raise-alone and host-versus-suite partition before suite cheapen\n- P3 covers skip-ci unpaid ledger with named spend-record seam (S1)\n- P4 covers full-path evidence plus discharge constraint (no deferred-complete)\n\n## Take map\n\nCarries forward all-accept rows from Prefer-A 5959960840 and reserved PA 5960031911 supported×4. Absorbs D1 by closed cites above. Absorbs S1 into Bound item 6 below. Footnotes N1/N2 retained as notes only.\n\n## Bound remedy\n\n1. **Preserve incident tee (precondition).** Copy at `%TEMP%\\release-5239-incident-tee-40192-698efc5d.log` sha256:6f2d9058ba6c22800f21a46f9a4cbf4e92d22ef9bdb30c1e2d7308fd3fab095b (291320 bytes). Cite this hash on any implement brief.\n\n2. **Host-versus-suite partition first (R1).** Re-run supervised no-coverage `ts:check-lane` on this Windows host at #5140 tip `bc060886b` and compare specs-completed-per-minute / wall against the preserved #5239 tee. Host/toolchain-low → diagnose host first. Throughput recovers near #5140 class → search `git log bc060886b..<tip>` over test/config and cheapen measured dominant cost.\n\n3. **Acceptance evidence (green path).** Windows production-shaped Step 5 / `ts:check-lane` completes selected suite with zero failures, valid tip-SHA GHA coverage-of-record, no `--skip-ci`, under current 60m detector. Record SHA, suite size, conditions, per-project workers, elapsed wall, exit status, retained tee path+hash. Distinguish real full run from suite-stamp hit. Budget per project (unit at winMaxWorkers, spawn-heavy at 1); include a run where spawn-heavy completes.\n\n4. **Deliberate cheapen/gate alternative.** Land deliberate cheapen or tracked gate change with before/after wall-clock (or ranked tee delta) under comparable conditions. Numeric raise of `RELEASE_CHECK_TIMEOUT_MS` only as tracked gate + intent-constraint mint with evidence — never sole unmeasured Prefer-A.\n\n5. **Fix coverage-decline diagnostic (F1).** Thread child `DEFT_RELEASE_PREFLIGHT` / hostCoverage into `formatSuiteBoundCoverageDecline` so production prints the #5026 no-coverage branch when the child lane is no-coverage. Rewrite the guard test to inject through that seam (not parent-only env).\n\n6. **Skip-ci unpaid ledger (R3 + S1).** Sibling of `probeOpenCoverageDebtLedger` for `--allow-skip-ci`: probe cited issue state; treat OPEN/UNKNOWN as unpaid without a distinct explicit override. **Spend-record seam (S1):** reuse the coverage-debt CHANGELOG citation scan shape so a citation already recorded as spent on a prior production cut (for example a CHANGELOG / release-notes incident marker naming `#5239` on v0.119.13) counts as unpaid for a later cut even after the issue closes — refuse second production `--skip-ci` citing that spent incident without a distinct explicit override. Banner-only cut-scoping is residual without this control.\n\n7. **Duration fixture provenance (F5) when touched.** If refreshing `vitest-file-durations.json`, add provenance fields (host, cpus, coverage mode, SHA, date) and a presence check.\n\n8. **Discharge constraint.** Measurement / evidence clause carries a bindable artifact path. Do not `scope:complete` / chip ingest-ready while that clause is `deferred`. Split late measurement to a leftover issue rather than defer-inside-complete (#5140 recurrence).\n\n## Reuse / do not invent\n\nExtend #5026 / #5027 / #5140 / RELEASING.md cheapen-first. Do not resurrect host `--coverage` under Step 5. Do not bind last-completed-file as the hung unit.\n\n## Road not taken\n\nDetector-only bump; chronology-only rewrite; subset/warm-stamp/Linux coverage as acceptance; completing with deferred measurement; OPEN/UNKNOWN-only skip-ci probe without the already-spent CHANGELOG citation seam.\r\n\n",
+          "id": 5960051863,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5960051863",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:39:25Z",
+          "updated_at": "2026-10-02T19:39:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\ncharter: open critique\ncritic-role: fresh\nround: pain-audit after Prefer-A Recut\ntarget: #5239\nstop1: 5959669133\nlean: 5960051863\nid-ceiling: 5960051863\npain-audit (retracted lean): 5960031911\nretraction: 5960048332\nhandoff: 5960048544\ndispatch-sha: 5aac3ef3f8d0bd818bec862bba6b56391bfa9884\nverification-path: pin-read git show 5aac3ef3f8d0bd818bec862bba6b56391bfa9884:; dest cwd-without-occupy\narc-mode: no-ingest\nspend: N≥3\nseat: grok\nlauncher: grok-cli\ndual-stop-raise: +1\n\nRead Stop 1 `5959669133` and Recut Prefer-A `5960051863` via REST only; also reserved PA `5960031911`, retraction `5960048332`, Handoff `5960048544`. Pin-read at dispatch SHA on dest cwd-without-occupy. No dest mutation, no occupancy, no release re-run, no fixtures executed.\n\n## Closed-form cite check\n\nOperative lines on lean `5960051863`:\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nPin `PAIN_CITE_RE` / `ACCEPTED_PAIN_CITE_FORMS` accept `relieves: P1` / `relieves P1`. Live REST body match count for disposition-then-id = **4**. None inside fence/quote/inline-code. Reserved-PA D1 (zero closed cites on `5959960840`) is cleared on this Recut.\n\n## S1 / Bound item 6 seam check\n\nBound item 6 names **Spend-record seam (S1):** reuse coverage-debt CHANGELOG citation scan shape (`extractCoverageDebtCitationsFromChangelog` / `probeOpenCoverageDebtLedger` sibling) so a prior-cut spent citation (example: CHANGELOG / release-notes incident marker naming `#5239` on v0.119.13) stays unpaid for a later production `--skip-ci` even after the issue closes. Reserved-PA S1 (unnamed spend-record write/read seam) is folded into harvested Bound item 6.\n\n## Verdicts\n\n| target | verdict | basis |\n|---|---|---|\n| `pain-P1` | **supported** | Bound items 2–5: host-versus-suite partition, green full Step 5 under current 60m without `--skip-ci` or measured cheapen/gate, coverage-final diagnostic fix (F1), chronology as cursor only — covers Stop 1 production hang / missing coverage-final |\n| `pain-P2` | **supported** | Bound items 2 and 4 refuse detector-raise-alone; numeric `RELEASE_CHECK_TIMEOUT_MS` raise only as tracked gate + intent-constraint mint with evidence; Road-not-taken lists detector-only bump |\n| `pain-P3` | **supported** | Bound item 6 unpaid skip-ci ledger (OPEN/UNKNOWN) plus named S1 spend-record seam; Bound item 3 still prefers next green Step 5 without `--skip-ci` — covers cut-scoped skip-ci |\n| `pain-P4` | **supported** | Bound items 3, 4, and 8 name measurement path (suite/host/conditions/workers/wall/tee hash) and discharge constraint (no `scope:complete` / ingest-ready while measurement is `deferred`) |\n\n**Bind map stays bindable.** Zero `blocks-the-design`. Zero harvest-changing `sharpens-framing`. Footnotes only (below). Prior reserved-PA blocking heading (D1 missing closed cites) does not repeat.\n\n### Disposition vs reserved PA / Handoff\n\nReserved PA `5960031911` supported×4 on Bound substance, blocked on D1 cites, and required S1 fold into item 6. Retraction `5960048332` + Handoff `5960048544` asked for closed `relieves: P1`…`P4` and named spend-record seam. This Recut carries both. Round-1 accept-into-contract rows remain reflected in Bound items 1–8; no orphaned accepted pain disposition.\n\n---\n\n### N1 -- `footnote` -- preserved tee hash still matches host bytes\n\n`%TEMP%\\release-5239-incident-tee-40192-698efc5d.log` exists; SHA-256 `6F2D9058BA6C22800F21A46F9A4CBF4E92D22EF9BDB30C1E2D7308FD3FAB095B` (291320 bytes) matches Bound item 1. No disposition weight.\n\n### N2 -- `footnote` -- `#5140` tip `bc060886b` still resolves\n\n`git cat-file -t bc060886b` → `commit` on dest pin. No disposition weight.\n\n### N3 -- `footnote` -- pin CHANGELOG `[0.119.13]` has no `#5239` skip-ci spend marker yet\n\nNamed S1 seam is present in Bound item 6. At dispatch SHA, `CHANGELOG.md` section `0.119.13` does not yet cite `#5239` / `--allow-skip-ci=5239`. Implement must backfill (or otherwise write) that spend marker so the already-spent half has a durable artifact to scan for this incident. Does not change harvested Bound item 6; does not retract the map.\n\n---\n\n## Continue raise\n\n**continue-raise: no**\n\n1. All four audit-targets are **supported**; closed cites parse; S1 seam is named in Bound item 6.\n2. Footnote-only findings keep the lean bindable (Yolo leftover-pain / `evaluatePainAuditFollowThrough`). No retraction map. No harvest-changing Recut owed from this seat.\n3. This post spends the operator Dual-stop **raise** (+1) after reserved seat `5960031911` was spent. No further raise recommended from this audit.\n4. Finish remains possible; primary blocking heading from the reserved PA does not repeat.\n\n## What this critique is not\n\n- Not path-1 clearance, not ingest-ready, not dest-place, not a lean, not a chip write.\n- Not a re-litigation of throughput-shortfall vs hang, host-versus-suite partition, or discharge-constraint doctrine already accepted from round-1 / reserved PA.\n- `arc-mode: no-ingest`.\n\n## Summary\n\nRecut Prefer-A `5960051863` relieves Stop 1 P1–P4 with operative closed cites and Bound coverage (`supported` ×4). Bound item 6 names the S1 spend-record seam. Bind map stays bindable. continue-raise: no.\n\nProcess-only. Critic EXIT after this single post.\r\n\n",
+          "id": 5960332266,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5960332266",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:55:06Z",
+          "updated_at": "2026-10-02T19:55:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| claim | status | basis |\n|---|---|---|\n| Stop 1 P1–P4 relieved by Recut Prefer-A Bound items 1–8 | verified | closed cites `relieves: P1`…`P4` on lean 5960051863; pain-audit 5960332266 supported×4 |\n| Mechanism is throughput shortfall on no-coverage win32 lane, not hung chronology.test.ts | verified | Claude 5959940129 tee measurement; Grok/Codex sharpen; Bound items 2–3 |\n| Detector-raise-alone is not Prefer-A | verified | Bound items 2, 4; Road not taken; PA supported on P2 |\n| Skip-ci needs unpaid ledger + named already-spent CHANGELOG citation seam | verified | Bound item 6 (R3+S1); PA supported on P3; N3 footnote notes marker not yet on pin CHANGELOG |\n| Evidence/discharge: full-path green Step 5 or measured cheapen/gate; no deferred-complete | verified | Bound items 3, 4, 8; PA supported on P4 |\n| Coverage-final “missing after suite” is parent-env diagnostic bug under #5026 | verified | Claude F1; Bound item 5 |\n| Incident tee preserved | verified | Bound item 1; PA N1 hash match sha256:6f2d9058… |\n| Reserved-PA D1 (missing closed cites) cleared on Recut | verified | PA 5960332266 closed-form cite check count 4 |\n| Disagreement set | empty | all-accept take map; footnote-only PA; continue-raise: no |\n\nSuccessor lean: 5960051863\nPain-audit: 5960332266\nStop-1: 5959669133\r\n\n",
+          "id": 5960349356,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5960349356",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:55:57Z",
+          "updated_at": "2026-10-02T19:55:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\n\nWindows release Step 5 on the v0.119.13 cut hit the 60-minute detector because the no-coverage win32 suite was too slow (about 153 of 1366 specs finished), not because chronology.test.ts hung. Prefer-A Recut binds measured recovery under the current detector or a deliberate cheapen/gate with evidence, fixes the false coverage-final diagnostic, hardens skip-ci against unpaid reuse with a CHANGELOG spend-record seam, and forbids completing again with a deferred measurement clause.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\nBound contract: successor lean 5960051863.\nVerified-claims table: 5960349356.\nPain-audit: 5960332266 (supported×4; footnote-only; continue-raise: no).\narc-mode: no-ingest\r\n\n",
+          "id": 5960349756,
+          "html_url": "https://github.com/deftai/directive/issues/5239#issuecomment-5960349756",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T19:55:58Z",
+          "updated_at": "2026-10-02T19:55:58Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\nProduction `task release` / local-bin `release 0.119.13` Step 5 (`ts:check-lane`) hit the 60-minute hang detector (exit 124) on this Windows release host.\n\n## Evidence\n- Tip SHA: e38c4e72c0c4d33537d0f83a708fff0fc0ff2686\n- Last completed test file: `packages/core/src/vbrief-validate/chronology.test.ts`\n- Auto-hatch: real failure / hang (coverage-final.json missing after suite)\n- Log: `%TEMP%\\release-0.119.13.log`\n- Prior related: #5140 (v0.119.11 hang / cheapen; closed with deferred measured sub-60m residual), #5091 (45->60m detector)\n\n## Acceptance\n- [ ] Recorded Windows production Step 5 completes under the current hang detector without `--skip-ci`, OR a deliberate gate/cheapen follow-on lands with evidence.\n- [ ] This issue may be cited for an incident `--skip-ci --allow-skip-ci=<this>` on the v0.119.13 cut only; next patch should prefer a green Step 5.\n\n## Labels intent\nbug, release, windows",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5671089514,
+        "origin": "deftai/directive#5239",
+        "id": "github.issue.5671089514"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7e626ced1a9a551b0c488e1106e57d541bdceedb2ec6c99ffe50f18921491198"
+      },
+      "x-directive/bound-lean": {
+        "schema": "deft.scope.bound-lean.v1",
+        "comment_id": 5960051863,
+        "synthesis_comment_id": 5960349756,
+        "pain_audit_comment_id": 5960332266,
+        "incident_tee_sha256": "6f2d9058ba6c22800f21a46f9a4cbf4e92d22ef9bdb30c1e2d7308fd3fab095b"
+      },
+      "productPullRequest": 5271,
+      "mergeCommit": "5296f0e2713d7587ab3e9676cd612cc82a4b88f9",
+      "classAFollowOnIssue": 5276,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5271,
+        "prBase": null,
+        "mergeCommit": "5296f0e2713d7587ab3e9676cd612cc82a4b88f9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5296f0e2713d7587ab3e9676cd612cc82a4b88f9",
+        "verifiedAt": "2026-10-02T21:43:19Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-02T21:43:19Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-02T21:43:19Z"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/release/coverage-debt-ledger.test.ts packages/core/src/release/coverage-final.test.ts packages/core/src/check/named-cause.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Preserve incident tee precondition (cite tee sha256:6f2d9058ba6c22800f21a46f9a4cbf4e92d22ef9bdb30c1e2d7308fd3fab095b on PR).",
+        "Fix coverage-decline diagnostic (F1): thread child DEFT_RELEASE_PREFLIGHT / hostCoverage into formatSuiteBoundCoverageDecline; production Step 5 defaults no-coverage.",
+        "Skip-ci unpaid ledger (R3 + S1): probeSkipCiIncidentLedger + --allow-unpaid-skip-ci; CHANGELOG spend-record seam for prior production --allow-skip-ci=5239.",
+        "Named-cause: last-file is cursor only; throughput-shortfall remedy (not hung chronology unit).",
+        "Duration fixture provenance (F5) when touched — N/A if vitest-file-durations.json not refreshed.",
+        "Discharge constraint: measurement / evidence clauses split to leftover issue #5276 (no deferred-inside-complete)."
+      ],
+      "admitted_source_sentences": [
+        "Preserve incident tee precondition (cite tee sha256:6f2d9058ba6c22800f21a46f9a4cbf4e92d22ef9bdb30c1e2d7308fd3fab095b on PR).",
+        "Fix coverage-decline diagnostic (F1): thread child DEFT_RELEASE_PREFLIGHT / hostCoverage into formatSuiteBoundCoverageDecline; production Step 5 defaults no-coverage.",
+        "Skip-ci unpaid ledger (R3 + S1): probeSkipCiIncidentLedger + --allow-unpaid-skip-ci; CHANGELOG spend-record seam for prior production --allow-skip-ci=5239.",
+        "Named-cause: last-file is cursor only; throughput-shortfall remedy (not hung chronology unit).",
+        "Duration fixture provenance (F5) when touched — N/A if vitest-file-durations.json not refreshed.",
+        "Discharge constraint: measurement / evidence clauses split to leftover issue #5276 (no deferred-inside-complete)."
+      ],
+      "admitted_source_digest": "5f4cc72f19da10af4f60f54f9bc6c5a0a4cf4846b8cd689e4e81726c052996da",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Preserve incident tee precondition (cite tee sha256:6f2d9058ba6c22800f21a46f9a4cbf4e92d22ef9bdb30c1e2d7308fd3fab095b on PR).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Fix coverage-decline diagnostic (F1): thread child DEFT_RELEASE_PREFLIGHT / hostCoverage into formatSuiteBoundCoverageDecline; production Step 5 defaults no-coverage.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Skip-ci unpaid ledger (R3 + S1): probeSkipCiIncidentLedger + --allow-unpaid-skip-ci; CHANGELOG spend-record seam for prior production --allow-skip-ci=5239.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Named-cause: last-file is cursor only; throughput-shortfall remedy (not hung chronology unit).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Duration fixture provenance (F5) when touched — N/A if vitest-file-durations.json not refreshed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 6,
+          "text": "Discharge constraint: measurement / evidence clauses split to leftover issue #5276 (no deferred-inside-complete).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5671089514",
+    "updated": "2026-10-02T21:43:19Z"
+  }
+}
