@@ -340,7 +340,7 @@ describe("authz store (#2944)", () => {
       return;
     }
 
-    const reminted = mintHumanOriginGrant({
+    const reminted = mintHumanOriginGrantResult({
       projectRoot: root,
       operations: ["push"],
       grantId: "grant-keep",
