@@ -1,0 +1,225 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #548",
+    "updated": "2026-10-02T18:52:45Z"
+  },
+  "plan": {
+    "title": "fix(spec-render): ignore bare -- in parseIncludeScopesFlag (DCR R.548 residual)",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(verification): diff-as-regression-detection for SPECIFICATION.md and SKILL.md changes",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/548",
+      "Overview": "\n\n- In `packages/core/src/render/spec-render.ts` `parseIncludeScopesFlag`, `continue` on `arg === \"--\"` with no POSIX end-of-options latch (same shape as landed #5251 roadmap-render).\n- Unit/withCwd test: `main([\"--\", specPath, outPath])` exits 0 and writes SPECIFICATION.md containing the plan title and AUTO-GENERATED.\n- Keep prior #548 pack/ROM Bound remainder and leftover #4911 out of this residual; optional CLI-wrapper continue is footnote hygiene only.\n- Reject: true end-of-options latch; reject-bare-`--` exit 2 (would still fail DCR); widening to reject-all-unknown-dash / `--help` parity in this residual.\n\n",
+      "Labels": "enhancement, design, determinism, agent-experience, process, source-of-truth, urgent, area:skills, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "In packages/core/src/render/spec-render.ts parseIncludeScopesFlag, continue on a…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A residual clause satisfied by product PR #5262 ship (or out-of-residual pack/ROM remainder); pathless leftover-complete. Delivery attested via merge-commit 684ffc803468e94ba8f94fd6dc723897c5b639c7.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T18:52:43.911Z",
+            "mintedVia": "leftover-complete-after-5262"
+          },
+          "recorded_at": "2026-10-02T18:52:43.911Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Unit/withCwd test: main([\"--\", specPath, outPath]) exits 0 and writes SPECIFICAT…",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A residual clause satisfied by product PR #5262 ship (or out-of-residual pack/ROM remainder); pathless leftover-complete. Delivery attested via merge-commit 684ffc803468e94ba8f94fd6dc723897c5b639c7.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T18:52:43.911Z",
+            "mintedVia": "leftover-complete-after-5262"
+          },
+          "recorded_at": "2026-10-02T18:52:43.911Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "clause.3",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A residual clause satisfied by product PR #5262 ship (or out-of-residual pack/ROM remainder); pathless leftover-complete. Delivery attested via merge-commit 684ffc803468e94ba8f94fd6dc723897c5b639c7.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T18:52:43.911Z",
+            "mintedVia": "leftover-complete-after-5262"
+          },
+          "recorded_at": "2026-10-02T18:52:43.911Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound Prefer-A residual clause satisfied by product PR #5262 ship (or out-of-residual pack/ROM remainder); pathless leftover-complete. Delivery attested via merge-commit 684ffc803468e94ba8f94fd6dc723897c5b639c7.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-10-02T18:52:43.911Z",
+            "mintedVia": "leftover-complete-after-5262"
+          },
+          "recorded_at": "2026-10-02T18:52:43.911Z"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "determinism",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:skills",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/548",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #548: feat(verification): diff-as-regression-detection for SPECIFICATION.md and SKILL.md changes"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/render/spec-render.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "sentences": [
+        "In `packages/core/src/render/spec-render.ts` `parseIncludeScopesFlag`, `continue` on `arg === \"--\"` with no POSIX end-of-options latch (same shape as landed #5251 roadmap-render).",
+        "Unit/withCwd test: `main([\"--\", specPath, outPath])` exits 0 and writes SPECIFICATION.md containing the plan title and AUTO-GENERATED.",
+        "Keep prior #548 pack/ROM Bound remainder and leftover #4911 out of this residual; optional CLI-wrapper continue is footnote hygiene only.",
+        "Reject: true end-of-options latch; reject-bare-`--` exit 2 (would still fail DCR); widening to reject-all-unknown-dash / `--help` parity in this residual."
+      ],
+      "admitted_source_sentences": [
+        "In `packages/core/src/render/spec-render.ts` `parseIncludeScopesFlag`, `continue` on `arg === \"--\"` with no POSIX end-of-options latch (same shape as landed #5251 roadmap-render).",
+        "Unit/withCwd test: `main([\"--\", specPath, outPath])` exits 0 and writes SPECIFICATION.md containing the plan title and AUTO-GENERATED.",
+        "Keep prior #548 pack/ROM Bound remainder and leftover #4911 out of this residual; optional CLI-wrapper continue is footnote hygiene only.",
+        "Reject: true end-of-options latch; reject-bare-`--` exit 2 (would still fail DCR); widening to reject-all-unknown-dash / `--help` parity in this residual."
+      ],
+      "admitted_source_digest": "566996a0fcdfbab3baeebe0bc31bafe491c81d09220115619ee590b90dc5e26b",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "In `packages/core/src/render/spec-render.ts` `parseIncludeScopesFlag`, `continue` on `arg === \"--\"` with no POSIX end-of-options latch (same shape as landed #5251 roadmap-render).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Unit/withCwd test: `main([\"--\", specPath, outPath])` exits 0 and writes SPECIFICATION.md containing the plan title and AUTO-GENERATED.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Keep prior #548 pack/ROM Bound remainder and leftover #4911 out of this residual; optional CLI-wrapper continue is footnote hygiene only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Reject: true end-of-options latch; reject-bare-`--` exit 2 (would still fail DCR); widening to reject-all-unknown-dash / `--help` parity in this residual.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "fix(spec-render): ignore bare -- in parseIncludeScopesFlag (DCR R.548 residual)"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "id": 5957738252,
+          "note": "bound lean 5957738252"
+        }
+      ],
+      "issueBody": "## Source\n\ngoogle-labs-code/design.md — https://github.com/google-labs-code/design.md\n\n## The pattern\n\n`npx @google/design.md diff before.md after.md` detects regressions between two spec versions:\n\n```json\n{\n  \"tokens\": {\n    \"colors\": { \"added\": [\"accent\"], \"removed\": [], \"modified\": [\"tertiary\"] }\n  },\n  \"regression\": false\n}\n```\n\nExit code 1 if the \"after\" file has more errors or warnings than \"before\" — automated regression gate that runs in CI on every PR touching a spec file.\n\n## The gap in directive\n\nSPECIFICATION.md files and SKILL.md files change across PRs. There is no automated way to detect whether a change is a regression (removes coverage, weakens constraints, breaks references) vs. an improvement. The `deft-pre-pr` skill does a manual Read-Write-Lint-Diff cycle but no semantic diff exists.\n\n## Changes\n\n### `verification/verification.md` — spec regression as a verification tier\n\nWhen a PR modifies SPECIFICATION.md or a SKILL.md file, the diff should be evaluated for regressions:\n- Removed acceptance criteria (coverage regression)\n- Removed `!` rules (constraint weakening)\n- Broken internal cross-references\n- Removed sections without replacement\n\nThis is a specific application of the harness audit methodology (issue #445 PR 10).\n\n### `task verify:spec-diff` (future)\n\nCompares SPECIFICATION.md against the base branch and flags regressions — analogous to `@google/design.md diff`. Structured JSON output so `deft-pre-pr` can consume and surface specific findings.\n\n### `task verify:skill-diff` (future)\n\nSame for SKILL.md changes: detect when a skill update removes `requires`, weakens `ensures`, or drops anti-patterns without justification.\n\n## Related\n\n- `verification/verification.md` — target\n- `skills/deft-pre-pr/SKILL.md` — consumer of the diff output\n- Issue #445 PR 10 — harness audit methodology\n- Issue #489 — requires/ensures frontmatter (the structured fields that would be diffed)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 4306475632,
+        "origin": "deftai/directive#548",
+        "id": "github.issue.4306475632"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "5519f7a2888eb176303a63977fe5b3368d0f97fcb578744cc432bb5b69b2455e"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/render/spec-render.ts",
+          "packages/core/src/render/spec-render.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/render/spec-render.test.ts"
+        ],
+        "conflict_group": "spec-render-argv-bare-dash"
+      },
+      "productPullRequest": 5262,
+      "mergeCommit": "684ffc803468e94ba8f94fd6dc723897c5b639c7",
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5262,
+        "prBase": null,
+        "mergeCommit": "684ffc803468e94ba8f94fd6dc723897c5b639c7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "358555732230b3405d3dc3fe825e4bdf21630efd",
+        "verifiedAt": "2026-10-02T18:52:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "completedAt": "2026-10-02T18:52:45Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-02T18:52:45Z"
+      }
+    },
+    "id": "github.issue.4306475632",
+    "updated": "2026-10-02T18:52:45Z"
+  }
+}
