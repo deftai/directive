@@ -1,0 +1,322 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Prefer-A leftover-complete for GitHub issue #4912 after product PR #5280",
+    "updated": "2026-10-03T23:23:04.954Z"
+  },
+  "plan": {
+    "title": "leftover(#633): pre-PR skill skip and omitted checklist stay undetectable",
+    "status": "completed",
+    "narratives": {
+      "Description": "leftover(#633): pre-PR skill skip and omitted checklist stay undetectable",
+      "Origin": "Prefer-A leftover-complete after product PR #5280; Bound leftover-deliver lean 5799283607 (Target-digest sha256:630330e440cbd9da518bee0ecbfdbb2de2b53cfc8e8b5e77b8cac575a319ebf5).",
+      "Overview": "Controller-issued pre-PR completion records (Limbs 1–4 + Limb 6 tests) landed in #5280. Merge authority is a private-store record matching the live PR binding. App/ruleset enrollment and live skip detection stay on #4976. Filed implementing-agent skip P1 remains does-not-relieve until that enrollment harvest.\n\nBound remedy clauses:\n1. Recut merge-authority on this number: a required check proves a controller-observed pre-PR workflow for the bound inputs. Local implementing-agent skill invocation stays outside that proof. Change `content/skills/deft-directive-pre-pr/SKILL.md` in the same unit so the anti-pattern matches that recut.\n2. Reuse the Directive GitHub App private store (#4494 remaining deploy) or SLizard's hosted App identity. Do not mint a third App, store, or ruleset product. Sequence enrollment behind that remaining deploy.\n3. Name a versioned per-phase observable table the controller fail-closes without reviewer prose as authority. Reviewer emits a closed-schema report. Publisher validates schema and file-manifest equality. Missing Diff, truncated delivery, or post-gate fix without rereview fails.\n4. Name the authoritative scope and criteria snapshot from base-approved provenance. Compose existing `scope-provenance` and intent-evaluate. Same-PR criteria weakening and PR-substituted gate definitions fail closed.\n5. Enrollment: required context name plus `integration_id` of that App. Turn `strict_required_status_checks_policy` on if base SHA is merge-authority. Live probe: after success, change a supported non-head input and attempt merge; stale success must not merge.\n6. Artifact-only: publish a positive success record with reason artifact-only. Do not skip the check.\n7. Merge authority is a matching successful record on the final head. Pre-creation pass is telemetry on the existing #1703 Tier-1 surface, not a second merge gate.\n8. Fail-closed read-only Write: the controller refuses until the snapshot would be a no-change pass. The authoring agent still Writes.",
+      "Labels": "design, determinism, agent-experience, review-cycle, process, scm, urgent, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates",
+      "Constraint": "Next-build enrollment remainder is #4976. This leftover record does not claim to relieve filed P1 (does-not-relieve: P1).",
+      "Action": "Land completed xBRIEF for #4912 after #5280 squash-merge; defer enrollment clauses under #4976."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "First-ship controller Limbs 1–4 + Limb 6 tests delivered by product PR #5280 (merge 6155b15167f7). App/ruleset enrollment and live skip detection remain on #4976.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5280",
+            "mintedAt": "2026-10-03T23:23:04.954Z",
+            "mintedVia": "leftover-complete-after-5280"
+          },
+          "recorded_at": "2026-10-03T23:23:04.954Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "App/ruleset enrollment, required-check binding, and live skip probe stay on leftover #4976 (PR #5280 product-only first-ship).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "deferred-under-4976",
+            "mintedAt": "2026-10-03T23:23:04.954Z",
+            "mintedVia": "leftover-complete-after-5280"
+          },
+          "recorded_at": "2026-10-03T23:23:04.954Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "First-ship controller Limbs 1–4 + Limb 6 tests delivered by product PR #5280 (merge 6155b15167f7). App/ruleset enrollment and live skip detection remain on #4976.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5280",
+            "mintedAt": "2026-10-03T23:23:04.954Z",
+            "mintedVia": "leftover-complete-after-5280"
+          },
+          "recorded_at": "2026-10-03T23:23:04.954Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "First-ship controller Limbs 1–4 + Limb 6 tests delivered by product PR #5280 (merge 6155b15167f7). App/ruleset enrollment and live skip detection remain on #4976.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5280",
+            "mintedAt": "2026-10-03T23:23:04.954Z",
+            "mintedVia": "leftover-complete-after-5280"
+          },
+          "recorded_at": "2026-10-03T23:23:04.954Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "App/ruleset enrollment, required-check binding, and live skip probe stay on leftover #4976 (PR #5280 product-only first-ship).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "deferred-under-4976",
+            "mintedAt": "2026-10-03T23:23:04.954Z",
+            "mintedVia": "leftover-complete-after-5280"
+          },
+          "recorded_at": "2026-10-03T23:23:04.954Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "First-ship controller Limbs 1–4 + Limb 6 tests delivered by product PR #5280 (merge 6155b15167f7). App/ruleset enrollment and live skip detection remain on #4976.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5280",
+            "mintedAt": "2026-10-03T23:23:04.954Z",
+            "mintedVia": "leftover-complete-after-5280"
+          },
+          "recorded_at": "2026-10-03T23:23:04.954Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "First-ship controller Limbs 1–4 + Limb 6 tests delivered by product PR #5280 (merge 6155b15167f7). App/ruleset enrollment and live skip detection remain on #4976.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5280",
+            "mintedAt": "2026-10-03T23:23:04.954Z",
+            "mintedVia": "leftover-complete-after-5280"
+          },
+          "recorded_at": "2026-10-03T23:23:04.954Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "First-ship controller Limbs 1–4 + Limb 6 tests delivered by product PR #5280 (merge 6155b15167f7). App/ruleset enrollment and live skip detection remain on #4976.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "eventRef": "leftover-complete-after-5280",
+            "mintedAt": "2026-10-03T23:23:04.954Z",
+            "mintedVia": "leftover-complete-after-5280"
+          },
+          "recorded_at": "2026-10-03T23:23:04.954Z"
+        }
+      }
+    ],
+    "tags": [
+      "design",
+      "determinism",
+      "agent-experience",
+      "review-cycle",
+      "process",
+      "scm",
+      "urgent",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4912",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4912: leftover(#633): pre-PR skill skip and omitted checklist stay undetectable"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/5280",
+        "type": "x-xbrief/github-pull-request",
+        "title": "PR #5280: feat(pre-pr): controller-issued completion records (#4912)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4976",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4976: leftover(#4912): controller-observed pre-PR required-check gap"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/pre-pr-controller packages/cli/src/pre-pr-run.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover-complete after product PR #5280; pathless derived clauses from leftover-deliver Bound lean 5799283607",
+      "sentences": [
+        "Recut merge-authority on this number: a required check proves a controller-observed pre-PR workflow for the bound inputs. Local implementing-agent skill invocation stays outside that proof. Change `content/skills/deft-directive-pre-pr/SKILL.md` in the same unit so the anti-pattern matches that recut.",
+        "Reuse the Directive GitHub App private store (#4494 remaining deploy) or SLizard's hosted App identity. Do not mint a third App, store, or ruleset product. Sequence enrollment behind that remaining deploy.",
+        "Name a versioned per-phase observable table the controller fail-closes without reviewer prose as authority. Reviewer emits a closed-schema report. Publisher validates schema and file-manifest equality. Missing Diff, truncated delivery, or post-gate fix without rereview fails.",
+        "Name the authoritative scope and criteria snapshot from base-approved provenance. Compose existing `scope-provenance` and intent-evaluate. Same-PR criteria weakening and PR-substituted gate definitions fail closed.",
+        "Enrollment: required context name plus `integration_id` of that App. Turn `strict_required_status_checks_policy` on if base SHA is merge-authority. Live probe: after success, change a supported non-head input and attempt merge; stale success must not merge.",
+        "Artifact-only: publish a positive success record with reason artifact-only. Do not skip the check.",
+        "Merge authority is a matching successful record on the final head. Pre-creation pass is telemetry on the existing #1703 Tier-1 surface, not a second merge gate.",
+        "Fail-closed read-only Write: the controller refuses until the snapshot would be a no-change pass. The authoring agent still Writes."
+      ],
+      "admitted_source_sentences": [
+        "Recut merge-authority on this number: a required check proves a controller-observed pre-PR workflow for the bound inputs. Local implementing-agent skill invocation stays outside that proof. Change `content/skills/deft-directive-pre-pr/SKILL.md` in the same unit so the anti-pattern matches that recut.",
+        "Reuse the Directive GitHub App private store (#4494 remaining deploy) or SLizard's hosted App identity. Do not mint a third App, store, or ruleset product. Sequence enrollment behind that remaining deploy.",
+        "Name a versioned per-phase observable table the controller fail-closes without reviewer prose as authority. Reviewer emits a closed-schema report. Publisher validates schema and file-manifest equality. Missing Diff, truncated delivery, or post-gate fix without rereview fails.",
+        "Name the authoritative scope and criteria snapshot from base-approved provenance. Compose existing `scope-provenance` and intent-evaluate. Same-PR criteria weakening and PR-substituted gate definitions fail closed.",
+        "Enrollment: required context name plus `integration_id` of that App. Turn `strict_required_status_checks_policy` on if base SHA is merge-authority. Live probe: after success, change a supported non-head input and attempt merge; stale success must not merge.",
+        "Artifact-only: publish a positive success record with reason artifact-only. Do not skip the check.",
+        "Merge authority is a matching successful record on the final head. Pre-creation pass is telemetry on the existing #1703 Tier-1 surface, not a second merge gate.",
+        "Fail-closed read-only Write: the controller refuses until the snapshot would be a no-change pass. The authoring agent still Writes."
+      ],
+      "admitted_source_digest": "1fba700bbb58ca3f4f409a2a024887ea66dfccde351bf36d755fa156a076b9dd",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut merge-authority on this number: a required check proves a controller-observed pre-PR workflow for the bound inputs. Local implementing-agent skill invocation stays outside that proof. Change `content/skills/deft-directive-pre-pr/SKILL.md` in the same unit so the anti-pattern matches that recut.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 2,
+          "text": "Reuse the Directive GitHub App private store (#4494 remaining deploy) or SLizard's hosted App identity. Do not mint a third App, store, or ruleset product. Sequence enrollment behind that remaining deploy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 3,
+          "text": "Name a versioned per-phase observable table the controller fail-closes without reviewer prose as authority. Reviewer emits a closed-schema report. Publisher validates schema and file-manifest equality. Missing Diff, truncated delivery, or post-gate fix without rereview fails.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 4,
+          "text": "Name the authoritative scope and criteria snapshot from base-approved provenance. Compose existing `scope-provenance` and intent-evaluate. Same-PR criteria weakening and PR-substituted gate definitions fail closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 5,
+          "text": "Enrollment: required context name plus `integration_id` of that App. Turn `strict_required_status_checks_policy` on if base SHA is merge-authority. Live probe: after success, change a supported non-head input and attempt merge; stale success must not merge.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 6,
+          "text": "Artifact-only: publish a positive success record with reason artifact-only. Do not skip the check.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 7,
+          "text": "Merge authority is a matching successful record on the final head. Pre-creation pass is telemetry on the existing #1703 Tier-1 surface, not a second merge gate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        },
+        {
+          "id": 8,
+          "text": "Fail-closed read-only Write: the controller refuses until the snapshot would be a no-change pass. The authoring agent still Writes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-remedy"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5543242123,
+        "origin": "deftai/directive#4912",
+        "id": "github.issue.5543242123"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "630330e440cbd9da518bee0ecbfdbb2de2b53cfc8e8b5e77b8cac575a319ebf5"
+      },
+      "kind": "story",
+      "productPullRequest": 5280,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5280,
+        "prBase": null,
+        "mergeCommit": "6155b15167f79854eb22bdd19a33029684e2d704",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6155b15167f79854eb22bdd19a33029684e2d704",
+        "verifiedAt": "2026-10-03T23:23:04.954Z",
+        "verifier": "leftover-complete-prefer-a",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-03T23:23:04.954Z",
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-03T23:23:04.954Z"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pre-pr-controller/",
+          "packages/cli/src/pre-pr-run.ts",
+          "packages/cli/src/pre-pr-run.test.ts",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "size": "M",
+        "conflict_group": "4912-pre-pr-controller"
+      }
+    },
+    "id": "github.issue.5543242123",
+    "updated": "2026-10-03T23:23:04.954Z"
+  }
+}
