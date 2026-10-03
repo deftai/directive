@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Prefer-A leftover-complete for GitHub issue #4912 after product PR #5280",
-    "updated": "2026-10-03T23:23:04.954Z"
+    "updated": "2026-10-03T23:34:27.917Z"
   },
   "plan": {
     "title": "leftover(#633): pre-PR skill skip and omitted checklist stay undetectable",
@@ -30,7 +30,8 @@
             "mintedVia": "leftover-complete-after-5280"
           },
           "recorded_at": "2026-10-03T23:23:04.954Z"
-        }
+        },
+        "title": "Recut merge-authority on this number: a required check proves a controller-observed pre-PR workflow for the bound inputs. Local implementing-agent skill invocation stays outside that proof. Change `content/skills/deft-directive-pre-pr/SKILL.md` in the same unit so the anti-pattern matches that recut."
       },
       {
         "id": "clause.2",
@@ -46,7 +47,8 @@
             "mintedVia": "leftover-complete-after-5280"
           },
           "recorded_at": "2026-10-03T23:23:04.954Z"
-        }
+        },
+        "title": "Reuse the Directive GitHub App private store (#4494 remaining deploy) or SLizard's hosted App identity. Do not mint a third App, store, or ruleset product. Sequence enrollment behind that remaining deploy."
       },
       {
         "id": "clause.3",
@@ -62,7 +64,8 @@
             "mintedVia": "leftover-complete-after-5280"
           },
           "recorded_at": "2026-10-03T23:23:04.954Z"
-        }
+        },
+        "title": "Name a versioned per-phase observable table the controller fail-closes without reviewer prose as authority. Reviewer emits a closed-schema report. Publisher validates schema and file-manifest equality. Missing Diff, truncated delivery, or post-gate fix without rereview fails."
       },
       {
         "id": "clause.4",
@@ -78,7 +81,8 @@
             "mintedVia": "leftover-complete-after-5280"
           },
           "recorded_at": "2026-10-03T23:23:04.954Z"
-        }
+        },
+        "title": "Name the authoritative scope and criteria snapshot from base-approved provenance. Compose existing `scope-provenance` and intent-evaluate. Same-PR criteria weakening and PR-substituted gate definitions fail closed."
       },
       {
         "id": "clause.5",
@@ -94,7 +98,8 @@
             "mintedVia": "leftover-complete-after-5280"
           },
           "recorded_at": "2026-10-03T23:23:04.954Z"
-        }
+        },
+        "title": "Enrollment: required context name plus `integration_id` of that App. Turn `strict_required_status_checks_policy` on if base SHA is merge-authority. Live probe: after success, change a supported non-head input and attempt merge; stale success must not merge."
       },
       {
         "id": "clause.6",
@@ -110,7 +115,8 @@
             "mintedVia": "leftover-complete-after-5280"
           },
           "recorded_at": "2026-10-03T23:23:04.954Z"
-        }
+        },
+        "title": "Artifact-only: publish a positive success record with reason artifact-only. Do not skip the check."
       },
       {
         "id": "clause.7",
@@ -126,7 +132,8 @@
             "mintedVia": "leftover-complete-after-5280"
           },
           "recorded_at": "2026-10-03T23:23:04.954Z"
-        }
+        },
+        "title": "Merge authority is a matching successful record on the final head. Pre-creation pass is telemetry on the existing #1703 Tier-1 surface, not a second merge gate."
       },
       {
         "id": "clause.8",
@@ -142,7 +149,8 @@
             "mintedVia": "leftover-complete-after-5280"
           },
           "recorded_at": "2026-10-03T23:23:04.954Z"
-        }
+        },
+        "title": "Fail-closed read-only Write: the controller refuses until the snapshot would be a no-change pass. The authoring agent still Writes."
       }
     ],
     "tags": [
@@ -317,6 +325,6 @@
       }
     },
     "id": "github.issue.5543242123",
-    "updated": "2026-10-03T23:23:04.954Z"
+    "updated": "2026-10-03T23:34:27.917Z"
   }
 }
