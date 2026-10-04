@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3703",
-    "updated": "2026-10-04T02:00:22Z"
+    "updated": "2026-10-04T02:27:51Z"
   },
   "plan": {
     "title": "bug(swarm): verify:routing is a fail-closed pre-dispatch gate that nothing invokes",
@@ -732,9 +732,10 @@
         "conflict_group": "verify-routing-honor-dispatch",
         "size": "L",
         "model_tier": "default"
-      }
+      },
+      "productPullRequest": 5286
     },
     "id": "github.issue.5240474407",
-    "updated": "2026-10-04T02:00:22Z"
+    "updated": "2026-10-04T02:27:51Z"
   }
 }
