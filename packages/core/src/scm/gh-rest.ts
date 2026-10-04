@@ -328,6 +328,7 @@ export const PUBLIC_HELPERS = [
   "restGetUser",
   "restUpdateIssue",
   "restCreateLabel",
+  "restGetLabel",
   "restCloseIssue",
   "restOpenPr",
   "restMergePr",
@@ -481,6 +482,24 @@ export function restCreateLabel(
     hint: "verify repo permissions; label may already exist (422 is acceptable for idempotent bootstrap)",
     ...seams,
   });
+}
+
+/** `GET /repos/{owner}/{repo}/labels/{name}` — preflight existence (#5326). */
+export function restGetLabel(
+  repo: string,
+  name: string,
+  seams: GhRestSeams = {},
+): Record<string, unknown> {
+  const [owner, repoName] = splitRepo(repo);
+  const encoded = encodeURIComponent(name);
+  const endpoint = `repos/${owner}/${repoName}/labels/${encoded}`;
+  return execApi([endpoint, "--method", "GET"], {
+    endpoint,
+    payload: null,
+    hint: "HTTP 404 means the label is missing on the repo; 401/403 are auth-or-permission",
+    runGhApiFn: seams.runGhApiFn,
+    whichFn: seams.whichFn,
+  }) as Record<string, unknown>;
 }
 
 export interface RestCloseIssueSeams extends GhRestSeams {

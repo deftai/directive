@@ -50,7 +50,7 @@ Yolo leftover-pain (split/defer/deliver): Dual stop. Pain coverage. Confirm conj
 Yolo first-lean cites: Yolo leftover-pain. Honest pain cites. Not operator next-envelope.
 Walk / walk all. Auto-stamp when agents agree: Operator verbs.
 Parent chip write: scm:issue:design-critique-chip. Stale ingest-ready query: scm:issue:design-critique-stale-ready.
-Chip apply miss is non-blocking convenience; do not halt. Ingest waits on the completed-arc record, not a catalog chip.
+Chip apply miss is non-blocking convenience; do not halt. On missing-repo-label chip miss, follow contract ensure-or-doctor recovery. Ingest waits on the completed-arc record, not a catalog chip.
 Run posture: missing defaults to no-ingest via resolveArcRunPostureForHost; ingest resolves checkout; closed collisions ask. Field lives in the contract.
 Spend: closed n= or spend-recommend; else ask. Field lives in the contract. Consume parseOperatorSpend.
 Yolo standing: default on; noyolo clears; yolo affirms. Confirm conjunct only. Not ingest.

@@ -9,11 +9,26 @@ import * as scm from "./call.js";
 import {
   CHIP_ALIASES,
   DESIGN_CRITIQUE_CHIP_USAGE,
+  type DesignCritiqueChipSeams,
   parseDesignCritiqueChipArgs,
   resolveDesignCritiqueChipArg,
   resolveRepoFromGitOrigin,
   runDesignCritiqueChip,
 } from "./design-critique-chip.js";
+
+/** Unit tests stub ensure so FakeLabelClient paths do not hit live REST (#5326). */
+const ensurePresent: NonNullable<DesignCritiqueChipSeams["ensureCatalogChip"]> = () => ({
+  ok: true,
+  created: false,
+  skippedExisting: true,
+});
+
+function runChip(
+  extra: readonly string[],
+  seams: DesignCritiqueChipSeams = {},
+): ReturnType<typeof runDesignCritiqueChip> {
+  return runDesignCritiqueChip(extra, { ensureCatalogChip: ensurePresent, ...seams });
+}
 
 const LEAN_ID = 5442939496;
 const TABLE_ID = 5443106967;
@@ -253,7 +268,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("replaces mechanism-shaped with ingest-ready in one apply", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped", "area:cli"]);
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "3642", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
       { client, fetchComments: completeFetch, fetchIssueBody: unpinnedBodyFetch },
     );
@@ -278,7 +293,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("applies in-progress in one remaining-set write (#4298)", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped", "area:cli"]);
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "4205", "--chip", "in-progress", "--repo", "deftai/directive", "--json"],
       { client },
     );
@@ -293,7 +308,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("recuts to mechanism-shaped and keeps other facets", () => {
     const client = new FakeLabelClient(["enhancement", "design-critique:ingest-ready"]);
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r"],
       { client },
     );
@@ -307,7 +322,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("skips write when already exclusive", () => {
     const client = new FakeLabelClient(["process", "design-critique:ingest-ready"]);
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "3642", "--chip", "ingest-ready", "--repo", "deftai/directive"],
       { client, fetchComments: completeFetch, fetchIssueBody: unpinnedBodyFetch },
     );
@@ -318,7 +333,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("fails closed on unknown chip without writing", () => {
     const client = new FakeLabelClient(["bug"]);
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "1", "--chip", "design-critique:halted", "--repo", "deftai/directive"],
       { client },
     );
@@ -328,20 +343,20 @@ describe("runDesignCritiqueChip", () => {
   });
 
   it("prints usage on --help", () => {
-    const result = runDesignCritiqueChip(["--help"]);
+    const result = runChip(["--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain(DESIGN_CRITIQUE_CHIP_USAGE.trim());
   });
 
   it("prints usage on -h", () => {
-    const result = runDesignCritiqueChip(["-h"]);
+    const result = runChip(["-h"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("scm issue design-critique-chip");
   });
 
   it("adds the chip when no catalog name is present", () => {
     const client = new FakeLabelClient(["enhancement"]);
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r"],
       { client },
     );
@@ -351,7 +366,7 @@ describe("runDesignCritiqueChip", () => {
   });
 
   it("fails closed on invalid repo", () => {
-    const result = runDesignCritiqueChip([
+    const result = runChip([
       "--issue",
       "1",
       "--chip",
@@ -372,7 +387,7 @@ describe("runDesignCritiqueChip", () => {
         throw new Error("should not write");
       },
     };
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive"],
       { client, fetchComments: completeFetch, fetchIssueBody: unpinnedBodyFetch },
     );
@@ -385,7 +400,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("treats ingest-ready comment fetch failure as blocking proof-fail (#4700)", () => {
     const client = new FakeLabelClient(["bug"]);
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
       {
         client,
@@ -404,7 +419,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("treats ingest-ready body fetch failure as blocking proof-fail (#4995)", () => {
     const client = new FakeLabelClient(["bug"]);
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
       {
         client,
@@ -434,7 +449,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("resolves omitted --repo from git origin", () => {
     const client = new FakeLabelClient(["bug"]);
-    const result = runDesignCritiqueChip(["--issue", "1", "--chip", "ingest-ready", "--json"], {
+    const result = runChip(["--issue", "1", "--chip", "ingest-ready", "--json"], {
       client,
       resolveDefaultRepo: () => "deftai/directive",
       fetchComments: completeFetch,
@@ -448,7 +463,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("fails closed when --repo is omitted and origin cannot be resolved", () => {
     const client = new FakeLabelClient(["bug"]);
-    const result = runDesignCritiqueChip(["--issue", "1", "--chip", "ingest-ready"], {
+    const result = runChip(["--issue", "1", "--chip", "ingest-ready"], {
       client,
       resolveDefaultRepo: () => null,
     });
@@ -464,7 +479,7 @@ describe("runDesignCritiqueChip", () => {
         throw new Error("HTTP 403 Forbidden");
       },
     };
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
       { client, fetchComments: completeFetch, fetchIssueBody: unpinnedBodyFetch },
     );
@@ -487,13 +502,13 @@ describe("runDesignCritiqueChip", () => {
       fetches += 1;
       return completeComments;
     };
-    const shaped = runDesignCritiqueChip(
+    const shaped = runChip(
       ["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r"],
       { client, fetchComments },
     );
     expect(shaped.exitCode).toBe(0);
     expect(fetches).toBe(0);
-    const progress = runDesignCritiqueChip(
+    const progress = runChip(
       ["--issue", "1", "--chip", "in-progress", "--repo", "o/r"],
       { client, fetchComments },
     );
@@ -503,7 +518,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("refuses malformed canonical record plus label (#4700)", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "652", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
       {
         client,
@@ -525,7 +540,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("refuses unresolved pain audit plus label (#4700)", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "657", "--chip", "ingest-ready", "--repo", "deftai/directive"],
       {
         client,
@@ -557,7 +572,7 @@ describe("runDesignCritiqueChip", () => {
       },
     ];
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "4995", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
       {
         client,
@@ -584,7 +599,7 @@ describe("runDesignCritiqueChip", () => {
         stderr: "",
       })
       .mockReturnValueOnce({ args: [], returncode: 0, stdout: "", stderr: "" });
-    const result = runDesignCritiqueChip(
+    const result = runChip(
       ["--issue", "3637", "--chip", "ingest-ready", "--repo", "deftai/directive"],
       {
         client: new ScmLabelClient(),
@@ -598,5 +613,69 @@ describe("runDesignCritiqueChip", () => {
     const editArgs = spy.mock.calls[1]?.[2] ?? [];
     expect(editArgs).toContain("edit");
     expect(editArgs).toContain("design-critique:ingest-ready");
+  });
+
+  it("ensure-on-write then apply succeeds for virgin missing-repo-label (#5326)", () => {
+    const client = new FakeLabelClient(["bug"]);
+    let ensured = false;
+    const result = runChip(
+      ["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r", "--json"],
+      {
+        client,
+        ensureCatalogChip: () => {
+          ensured = true;
+          return { ok: true, created: true, skippedExisting: false };
+        },
+      },
+    );
+    expect(ensured).toBe(true);
+    expect(result.exitCode).toBe(0);
+    expect(client.applyCalls).toHaveLength(1);
+    const payload = JSON.parse(result.stdout) as { chip: string; add: string[] };
+    expect(payload.chip).toBe("design-critique:mechanism-shaped");
+    expect(payload.add).toContain("design-critique:mechanism-shaped");
+  });
+
+  it("ensure-failed falls through as non-blocking miss (#5326)", () => {
+    const client = new FakeLabelClient(["bug"]);
+    const result = runChip(
+      ["--issue", "1", "--chip", "in-progress", "--repo", "o/r", "--json"],
+      {
+        client,
+        ensureCatalogChip: () => ({
+          ok: false,
+          missClass: "ensure-failed",
+          error: "Forbidden create",
+        }),
+      },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(client.applyCalls).toHaveLength(0);
+    const payload = JSON.parse(result.stdout) as {
+      miss: boolean;
+      missClass: string;
+      blocking: boolean;
+      error: string;
+    };
+    expect(payload).toMatchObject({ miss: true, missClass: "ensure-failed", blocking: false });
+    expect(payload.error).toMatch(/ensure-failed/);
+  });
+
+  it("auth-or-permission ensure miss stays non-blocking exit 0 (#5326)", () => {
+    const client = new FakeLabelClient(["bug"]);
+    const result = runChip(["--issue", "1", "--chip", "ingest-ready", "--repo", "o/r"], {
+      client,
+      fetchComments: completeFetch,
+      fetchIssueBody: unpinnedBodyFetch,
+      ensureCatalogChip: () => ({
+        ok: false,
+        missClass: "auth-or-permission",
+        error: "label probe auth-or-permission",
+      }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toMatch(/chip apply missed/);
+    expect(result.stderr).toMatch(/ensure-failed|auth-or-permission/);
+    expect(client.applyCalls).toHaveLength(0);
   });
 });
