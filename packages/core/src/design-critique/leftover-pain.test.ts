@@ -855,23 +855,28 @@ describe("pain-audit follow-through gate Prefer-A Bound (#5233)", () => {
       explicitEmpty: false,
     });
     expect(extractOperativeFindingClasses("finding-classes: none, blocking\n")?.ok).toBe(false);
+    expect(extractOperativeFindingClasses("finding-classes: \n")?.ok).toBe(false);
+    expect(
+      extractOperativeFindingClasses("finding-classes: blocking\nfinding-classes: none\n")?.ok,
+    ).toBe(false);
     expect(extractOperativeHarvestChanged("harvest-changed: true\n")).toEqual({
       ok: true,
       harvestChanged: true,
     });
     expect(extractOperativeHarvestChanged("harvest-changed: maybe\n")?.ok).toBe(false);
-    expect(
-      extractOperativeFindingClasses("```\nfinding-classes: blocking\n```\n"),
-    ).toBeNull();
+    expect(extractOperativeFindingClasses("```\nfinding-classes: blocking\n```\n")).toBeNull();
     expect(extractOperativeHarvestChanged("> harvest-changed: true\n")).toBeNull();
   });
 
-  it("hashes Bound-remedy slices as harvest identity", () => {
+  it("hashes Bound-remedy list titles; hyphen heading and relieves churn are stable", () => {
     const a = leanWithRemedy(1, "1. first harvest\n");
     const b = leanWithRemedy(2, "1. first harvest\n");
     const c = leanWithRemedy(3, "1. changed harvest\n");
     expect(hashBoundRemedyBytes(a.body)).toBe(hashBoundRemedyBytes(b.body));
     expect(hashBoundRemedyBytes(a.body)).not.toBe(hashBoundRemedyBytes(c.body));
+    const hyphen =
+      "**Lean:** Prefer-A Bound.\n\n## Bound-remedy\n\n1. first harvest\n\nrelieves: P9\n";
+    expect(hashBoundRemedyBytes(hyphen)).toBe(hashBoundRemedyBytes(a.body));
   });
 
   it("refuses raw #5192 blocking ceiling 5919579871 without follow-through clearance", () => {
@@ -1006,7 +1011,12 @@ describe("pain-audit follow-through gate Prefer-A Bound (#5233)", () => {
       LEAN_ID + 10,
       "audit-targets: pain-P1\nfinding-classes: sharpening\nharvest-changed: true\n",
     );
-    const lean2 = leanWithRemedy(LEAN_ID + 50, "1. changed harvest after audit\n");
+    const lean2 = {
+      id: LEAN_ID + 50,
+      body:
+        leanWithRemedy(LEAN_ID + 50, "1. changed harvest after audit\n").body +
+        `disposes critic ${adverse.id}\n`,
+    };
     const later = critic(
       lean2.id + 1,
       "audit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n",
@@ -1036,6 +1046,67 @@ describe("pain-audit follow-through gate Prefer-A Bound (#5233)", () => {
         comments: [stop1, lean1, adverse, lean2, later],
         issueNumber: 5233,
       }).writePath1,
+    ).toBe(true);
+  });
+
+  it("refuses changed digest without citing the prior harvest-changing audit", () => {
+    const lean1 = leanWithRemedy(LEAN_ID, "1. original harvest\n");
+    const adverse = critic(
+      LEAN_ID + 10,
+      "audit-targets: pain-P1\nfinding-classes: sharpening\nharvest-changed: true\n",
+    );
+    const lean2 = leanWithRemedy(LEAN_ID + 50, "1. changed harvest after audit\n");
+    const later = critic(
+      lean2.id + 1,
+      "audit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n",
+    );
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [
+          stop1,
+          lean1,
+          adverse,
+          lean2,
+          table,
+          later,
+          {
+            id: SYNTHESIS_ID + 21,
+            body:
+              "model: grok-4.6\nrole: parent\n\n" +
+              "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+              `Citing successor lean ${lean2.id} and verified-claims table ${TABLE_ID}.\n`,
+          },
+        ],
+        issueNumber: 5233,
+      }),
+    ).toMatchObject({ status: "blocked", reason: "unresolved-pain-audit" });
+  });
+
+  it("refuses non-harvest sharpening without a recording parent takes comment", () => {
+    const lean = leanWithRemedy(LEAN_ID, "1. harvest\n");
+    const sharpen = critic(
+      LEAN_ID + 1,
+      "audit-targets: pain-P1\nfinding-classes: sharpening\nharvest-changed: false\n",
+    );
+    expect(
+      evaluateAccumulatedPainAuditFollowThrough({
+        comments: [lean, sharpen],
+        citedLeanId: LEAN_ID,
+        assertedPainIds: ["P1"],
+        isSuccessorLeanBody,
+      }),
+    ).toMatchObject({ ok: false, recovery: "record-parent-takes" });
+    const recorded: ThreadComment = {
+      id: LEAN_ID + 2,
+      body: `role: parent\n\nrecorded takes for audit ${sharpen.id}\n`,
+    };
+    expect(
+      evaluateAccumulatedPainAuditFollowThrough({
+        comments: [lean, sharpen, recorded],
+        citedLeanId: LEAN_ID,
+        assertedPainIds: ["P1"],
+        isSuccessorLeanBody,
+      }).ok,
     ).toBe(true);
   });
 
