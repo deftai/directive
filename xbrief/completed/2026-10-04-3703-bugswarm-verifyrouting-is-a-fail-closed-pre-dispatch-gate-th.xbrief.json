@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "bug(swarm): verify:routing is a fail-closed pre-dispatch gate that nothing invokes",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(swarm): verify:routing is a fail-closed pre-dispatch gate that nothing invokes",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3703",
@@ -15,80 +15,122 @@
     },
     "items": [
       {
-        "title": "Restates acceptance toward named path cases: interactive/solo PreToolUse, swarm:launch undecided or absent route file, and honor join at the actual spawn request (including launcher-argv where applicable).",
-        "status": "pending",
         "id": "clause.1",
-        "narrative": {
-          "Action": "Restates acceptance toward named path cases: interactive/solo PreToolUse, swarm:launch undecided or absent route file, and honor join at the actual spawn request (including launcher-argv where applicable)."
-        },
-        "metadata": {
-          "artifact_path": "packages/core/src/swarm/routing-verify.ts"
+        "title": "Restates acceptance toward named path cases: interactive/solo PreToolUse, swarm:launch undecided or absent route file, and honor join at the actual spawn request (including launcher-argv where applicable).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5286",
+            "mintedAt": "2026-10-04T08:01:43Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:01:43Z"
         }
       },
       {
-        "title": "P1 residual: place a routing conjunct ahead of every PreToolUse spawn-class allow return — spawn-explore-ready, spawn-process-only-ready, spawn-ephemeral-ready, spawn-ready, and the launcher-argv / decideLauncherFamilyArgv branch — for gated roles/providers (inherit free-text marker refuse). Make swarm:launch fail-closed when the route file is absent and when leaf is undecided (call verifyRouting or match enforce, including missing-file to undecided to EXIT_GATE_FAILED). Record --skip-routing uses.",
-        "status": "pending",
         "id": "clause.2",
-        "narrative": {
-          "Action": "P1 residual: place a routing conjunct ahead of every PreToolUse spawn-class allow return — spawn-explore-ready, spawn-process-only-ready, spawn-ephemeral-ready, spawn-ready, and the launcher-argv / decideLauncherFamilyArgv branch — for gated roles/providers (inherit free-text marker refuse). Make swarm:launch fail-closed when the route file is absent and when leaf is undecided (call verifyRouting or match enforce, including missing-file to undecided to EXIT_GATE_FAILED). Record --skip-routing uses."
-        },
-        "metadata": {
-          "artifact_path": "packages/core/src/swarm/routing-verify.test.ts"
+        "title": "P1 residual: place a routing conjunct ahead of every PreToolUse spawn-class allow return — spawn-explore-ready, spawn-process-only-ready, spawn-ephemeral-ready, spawn-ready, and the launcher-argv / decideLauncherFamilyArgv branch — for gated roles/providers (inherit free-text marker refuse). Make swarm:launch fail-closed when the route file is absent and when leaf is undecided (call verifyRouting or match enforce, including missing-file to undecided to EXIT_GATE_FAILED). Record --skip-routing uses.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5286",
+            "mintedAt": "2026-10-04T08:01:43Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:01:43Z"
         }
       },
       {
-        "title": "P3: require an adapter/interceptor (or host PreToolUse field check / argv inspection) that validates or constructs the spawn request against the trusted route snapshot before submit; tests must show pinned route + omitted/different model cannot reach the spawn callback on covered paths. Explicitly scope what hosts and spawn classes cannot intercept (payload model vs argv model). Separate requested-model conformance from proof of the host's actual serving model. Reject token-only / advisory-only / self-attested model: as P3 closure for builders.",
-        "status": "pending",
         "id": "clause.3",
-        "narrative": {
-          "Action": "P3: require an adapter/interceptor (or host PreToolUse field check / argv inspection) that validates or constructs the spawn request against the trusted route snapshot before submit; tests must show pinned route + omitted/different model cannot reach the spawn callback on covered paths. Explicitly scope what hosts and spawn classes cannot intercept (payload model vs argv model). Separate requested-model conformance from proof of the host's actual serving model. Reject token-only / advisory-only / self-attested model: as P3 closure for builders."
-        },
-        "metadata": {
-          "artifact_path": "packages/core/src/swarm/routing.ts"
+        "title": "P3: require an adapter/interceptor (or host PreToolUse field check / argv inspection) that validates or constructs the spawn request against the trusted route snapshot before submit; tests must show pinned route + omitted/different model cannot reach the spawn callback on covered paths. Explicitly scope what hosts and spawn classes cannot intercept (payload model vs argv model). Separate requested-model conformance from proof of the host's actual serving model. Reject token-only / advisory-only / self-attested model: as P3 closure for builders.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5286",
+            "mintedAt": "2026-10-04T08:01:43Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:01:43Z"
         }
       },
       {
-        "title": "P2: decide and document the gated-role domain inside SWARM_WORKER_ROLES (or explicit subset); preserve harness-default; do not add critic to that enum; point critic auditability at the model: lead.",
-        "status": "pending",
         "id": "clause.4",
-        "narrative": {
-          "Action": "P2: decide and document the gated-role domain inside SWARM_WORKER_ROLES (or explicit subset); preserve harness-default; do not add critic to that enum; point critic auditability at the model: lead."
-        },
-        "metadata": {
-          "artifact_path": "packages/core/src/swarm/launch-routing.test.ts"
+        "title": "P2: decide and document the gated-role domain inside SWARM_WORKER_ROLES (or explicit subset); preserve harness-default; do not add critic to that enum; point critic auditability at the model: lead.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5286",
+            "mintedAt": "2026-10-04T08:01:43Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:01:43Z"
         }
       },
       {
-        "title": "Docs honesty: AGENTS/#1877 residual names story-ready vs interactive solo and the critic/process-only role-domain carve-out; record explore either as covered by the conjunct or as a decided carve-out with subagent_type self-declaration named; if the gated domain is an explicit subset of SWARM_WORKER_ROLES, record that subset gap vs ANY; HELP_TEXT matches ROUTING_GATED_DISPATCH_PROVIDERS; either add codex to that provider set or record that the gated-provider set is narrower than LAUNCHER_FAMILIES; optional session-start --advise is additive disclosure only.",
-        "status": "pending",
         "id": "clause.5",
-        "narrative": {
-          "Action": "Docs honesty: AGENTS/#1877 residual names story-ready vs interactive solo and the critic/process-only role-domain carve-out; record explore either as covered by the conjunct or as a decided carve-out with subagent_type self-declaration named; if the gated domain is an explicit subset of SWARM_WORKER_ROLES, record that subset gap vs ANY; HELP_TEXT matches ROUTING_GATED_DISPATCH_PROVIDERS; either add codex to that provider set or record that the gated-provider set is narrower than LAUNCHER_FAMILIES; optional session-start --advise is additive disclosure only."
-        },
-        "metadata": {
-          "artifact_path": "CHANGELOG.md"
+        "title": "Docs honesty: AGENTS/#1877 residual names story-ready vs interactive solo and the critic/process-only role-domain carve-out; record explore either as covered by the conjunct or as a decided carve-out with subagent_type self-declaration named; if the gated domain is an explicit subset of SWARM_WORKER_ROLES, record that subset gap vs ANY; HELP_TEXT matches ROUTING_GATED_DISPATCH_PROVIDERS; either add codex to that provider set or record that the gated-provider set is narrower than LAUNCHER_FAMILIES; optional session-start --advise is additive disclosure only.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5286",
+            "mintedAt": "2026-10-04T08:01:43Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:01:43Z"
         }
       },
       {
-        "title": "Alive: acceptance item recorded checked; further liveness work is a separate residual.",
-        "status": "pending",
         "id": "clause.6",
-        "narrative": {
-          "Action": "Alive: acceptance item recorded checked; further liveness work is a separate residual."
-        },
-        "metadata": {
-          "artifact_path": "packages/core/src/swarm/routing-verify.ts"
+        "title": "Alive: acceptance item recorded checked; further liveness work is a separate residual.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5286",
+            "mintedAt": "2026-10-04T08:01:43Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:01:43Z"
         }
       },
       {
-        "title": "Routing authority: keep per-task overrides distinguishable from shared policy mutation; issue/envelope prose is not authority to overwrite the operator routing file; bind receipts to the trusted resolution used to construct that request.",
-        "status": "pending",
         "id": "clause.7",
-        "narrative": {
-          "Action": "Routing authority: keep per-task overrides distinguishable from shared policy mutation; issue/envelope prose is not authority to overwrite the operator routing file; bind receipts to the trusted resolution used to construct that request."
-        },
-        "metadata": {
-          "artifact_path": "packages/core/src/swarm/routing-verify.test.ts"
+        "title": "Routing authority: keep per-task overrides distinguishable from shared policy mutation; issue/envelope prose is not authority to overwrite the operator routing file; bind receipts to the trusted resolution used to construct that request.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5286",
+            "mintedAt": "2026-10-04T08:01:43Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:01:43Z"
         }
       }
     ],
@@ -117,7 +159,7 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "Prefer-A leftover pathless derived after #5286",
       "sentences": [
         "bug(swarm): verify:routing is a fail-closed pre-dispatch gate that nothing invokes",
         "Ship a Prefer-A package that: 1.",
@@ -149,56 +191,140 @@
         "Alive: acceptance item recorded checked; further liveness work is a separate residual.",
         "Routing authority: keep per-task overrides distinguishable from shared policy mutation; issue/envelope prose is not authority to overwrite the operator routing file; bind receipts to the trusted resolution used to construct that request."
       ],
-      "admitted_source_digest": "33bcae3ecd90b6992287529b672ffbf890db93e4d2e468c75fa2b533a97806df",
+      "admitted_source_digest": "cdd082d185bc16cd089090188593ca47bf628e4647e57f8bfe60bf1d17784c14",
       "clauses": [
         {
           "id": 1,
           "text": "Restates acceptance toward named path cases: interactive/solo PreToolUse, swarm:launch undecided or absent route file, and honor join at the actual spawn request (including launcher-argv where applicable).",
-          "artifact_path": "packages/core/src/swarm/routing-verify.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5286",
+              "mintedAt": "2026-10-04T08:01:43Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:01:43Z"
+          }
         },
         {
           "id": 2,
           "text": "P1 residual: place a routing conjunct ahead of every PreToolUse spawn-class allow return — spawn-explore-ready, spawn-process-only-ready, spawn-ephemeral-ready, spawn-ready, and the launcher-argv / decideLauncherFamilyArgv branch — for gated roles/providers (inherit free-text marker refuse). Make swarm:launch fail-closed when the route file is absent and when leaf is undecided (call verifyRouting or match enforce, including missing-file to undecided to EXIT_GATE_FAILED). Record --skip-routing uses.",
-          "artifact_path": "packages/core/src/swarm/routing-verify.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5286",
+              "mintedAt": "2026-10-04T08:01:43Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:01:43Z"
+          }
         },
         {
           "id": 3,
           "text": "P3: require an adapter/interceptor (or host PreToolUse field check / argv inspection) that validates or constructs the spawn request against the trusted route snapshot before submit; tests must show pinned route + omitted/different model cannot reach the spawn callback on covered paths. Explicitly scope what hosts and spawn classes cannot intercept (payload model vs argv model). Separate requested-model conformance from proof of the host's actual serving model. Reject token-only / advisory-only / self-attested model: as P3 closure for builders.",
-          "artifact_path": "packages/core/src/swarm/routing.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5286",
+              "mintedAt": "2026-10-04T08:01:43Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:01:43Z"
+          }
         },
         {
           "id": 4,
           "text": "P2: decide and document the gated-role domain inside SWARM_WORKER_ROLES (or explicit subset); preserve harness-default; do not add critic to that enum; point critic auditability at the model: lead.",
-          "artifact_path": "packages/core/src/swarm/launch-routing.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5286",
+              "mintedAt": "2026-10-04T08:01:43Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:01:43Z"
+          }
         },
         {
           "id": 5,
           "text": "Docs honesty: AGENTS/#1877 residual names story-ready vs interactive solo and the critic/process-only role-domain carve-out; record explore either as covered by the conjunct or as a decided carve-out with subagent_type self-declaration named; if the gated domain is an explicit subset of SWARM_WORKER_ROLES, record that subset gap vs ANY; HELP_TEXT matches ROUTING_GATED_DISPATCH_PROVIDERS; either add codex to that provider set or record that the gated-provider set is narrower than LAUNCHER_FAMILIES; optional session-start --advise is additive disclosure only.",
-          "artifact_path": "CHANGELOG.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5286",
+              "mintedAt": "2026-10-04T08:01:43Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:01:43Z"
+          }
         },
         {
           "id": 6,
           "text": "Alive: acceptance item recorded checked; further liveness work is a separate residual.",
-          "artifact_path": "packages/core/src/swarm/routing-verify.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5286",
+              "mintedAt": "2026-10-04T08:01:43Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:01:43Z"
+          }
         },
         {
           "id": 7,
           "text": "Routing authority: keep per-task overrides distinguishable from shared policy mutation; issue/envelope prose is not authority to overwrite the operator routing file; bind receipts to the trusted resolution used to construct that request.",
-          "artifact_path": "packages/core/src/swarm/routing-verify.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5286 squash-merge (Tracking #3703). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5286",
+              "mintedAt": "2026-10-04T08:01:43Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:01:43Z"
+          }
         }
       ],
       "ambiguity_attestation": "none_found"
@@ -718,41 +844,30 @@
         "sha256": "1a4f899887314f9c27047b95afe47a93c66a48765acabde80657ce3a085c8821"
       },
       "swarm": {
-        "file_scope": [
-          "packages/core/src/swarm/routing-verify.ts",
-          "packages/core/src/swarm/routing-verify.test.ts",
-          "packages/core/src/swarm/routing-verify-cli.ts",
-          "packages/core/src/swarm/routing.ts",
-          "packages/core/src/swarm/routing-honor.ts",
-          "packages/core/src/swarm/routing-honor.test.ts",
-          "packages/core/src/swarm/launch.ts",
-          "packages/core/src/swarm/launch-cli.ts",
-          "packages/core/src/swarm/launch-routing.test.ts",
-          "packages/core/src/hooks/dispatcher.ts",
-          "packages/core/src/hooks/dispatcher-routing-honor.test.ts",
-          "packages/cli/src/verify-story-ready.ts",
-          "AGENTS.md",
-          "content/templates/agent-prompt-preamble.md",
-          "CHANGELOG.md",
-          "content/templates/agents-entry.md",
-          "docs/RULE-MAP.md",
-          "xbrief/PROJECT-DEFINITION.xbrief.json"
-        ],
+        "file_scope": [],
         "file_scope_confidence": "high",
-        "verify_commands": [
-          "task check"
-        ],
+        "verify_commands": [],
         "expected_outputs": [
-          "Tracking PR opened"
+          "completed xBRIEF on tip"
         ],
         "depends_on": [],
         "conflict_group": "verify-routing-honor-dispatch",
         "size": "L",
         "model_tier": "default"
       },
-      "productPullRequest": 5305,
+      "productPullRequest": 5286,
       "activationPullRequest": 5305,
-      "activationNote": "Prefer-A Bound activation (#5294 pattern): productPullRequest binds to this activation PR for closing-keywords Path B; product delivery is PR #5286 (brief not re-touched there)."
+      "activationNote": "Prefer-A Bound activation (#5294 pattern): productPullRequest binds to this activation PR for closing-keywords Path B; product delivery is PR #5286 (brief not re-touched there).",
+      "admitted_source_digest": "cdd082d185bc16cd089090188593ca47bf628e4647e57f8bfe60bf1d17784c14",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T08:01:43Z"
+      },
+      "completedAt": "2026-10-04T08:01:43Z",
+      "completionProvenance": {
+        "productMerge": "55960c8dd",
+        "productPr": 5286
+      }
     },
     "id": "github.issue.5240474407",
     "updated": "2026-10-04T02:27:51Z"
