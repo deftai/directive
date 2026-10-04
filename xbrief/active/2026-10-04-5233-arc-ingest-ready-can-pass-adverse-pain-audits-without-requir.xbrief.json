@@ -6,7 +6,6 @@
   },
   "plan": {
     "title": "ARC ingest-ready can pass adverse pain audits without required follow-through",
-    "status": "running",
     "narratives": {
       "Description": "ARC ingest-ready can pass adverse pain audits without required follow-through",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5233",
@@ -16,61 +15,40 @@
     "items": [
       {
         "id": "bound-1",
-        "title": "Carrier (critic-authored): pain-audit critic posts MUST carry closed operative line-start fields declaring finding class set (incl. explicit empty) + closed harvest-changed boolean; operative-position filtering; reconcile L667 by closed grammar + one shared completed-arc consumer (not parallel stamp gate)",
-        "status": "pending"
+        "title": "Carrier (critic-authored): pain-audit critic posts MUST carry closed operative line-start fields declaring finding class set (incl. explicit empty) + closed harvest-changed boolean; operative-position filtering; reconcile L667 by closed grammar + one shared completed-arc consumer (not parallel stamp gate)"
       },
       {
         "id": "bound-2",
-        "title": "Shared consumer: compose evaluatePainAuditFollowThrough from closed fields + disposition; consume from completed-arc pain-coverage so evaluateAutoStampPath1Write, applyIngestReadyRemainingSet, and intake refuse together",
-        "status": "pending"
+        "title": "Shared consumer: compose evaluatePainAuditFollowThrough from closed fields + disposition; consume from completed-arc pain-coverage so evaluateAutoStampPath1Write, applyIngestReadyRemainingSet, and intake refuse together"
       },
       {
         "id": "bound-3",
-        "title": "Accumulated denominator: readiness refuses while any post-lean targeting audit against asserted coverage lacks disposed follow-through; later footnote-only/non-harvest does not erase prior undisposed adverse on that harvest",
-        "status": "pending"
+        "title": "Accumulated denominator: readiness refuses while any post-lean targeting audit against asserted coverage lacks disposed follow-through; later footnote-only/non-harvest does not erase prior undisposed adverse on that harvest"
       },
       {
         "id": "bound-4",
-        "title": "Blocking retires harvest: retraction map then Handoff; recording retraction/Handoff never makes rejected harvest ingest-ready; resumed bind needs new lean + later independent audit; negative fixtures for Handoff-as-clearance",
-        "status": "pending"
+        "title": "Blocking retires harvest: retraction map then Handoff; recording retraction/Handoff never makes rejected harvest ingest-ready; resumed bind needs new lean + later independent audit; negative fixtures for Handoff-as-clearance"
       },
       {
         "id": "bound-5",
-        "title": "Harvest-changing continuation: refuse until changed lean AND later independent audit; harvest identity = sha256 of Bound-remedy bytes; byte-identical re-post does not discharge; semantic disposition still required",
-        "status": "pending"
+        "title": "Harvest-changing continuation: refuse until changed lean AND later independent audit; harvest identity = sha256 of Bound-remedy bytes; byte-identical re-post does not discharge; semantic disposition still required"
       },
       {
         "id": "bound-6",
-        "title": "Absence/malformed default: missing/malformed/conflicting/parent-understated finding declarations after targeting audit refuse path-1/chip/completed-record/intake; parent must not overwrite critic classes; independence clearance (#4442) unchanged",
-        "status": "pending"
+        "title": "Absence/malformed default: missing/malformed/conflicting/parent-understated finding declarations after targeting audit refuse path-1/chip/completed-record/intake; parent must not overwrite critic classes; independence clearance (#4442) unchanged"
       },
       {
         "id": "bound-7",
-        "title": "Refuse reason + gate-evolution: dedicated completed-arc block reason (or fold into unresolved-pain-audit with distinguishing detail) + reason-specific recovery; fixtures for both shapes",
-        "status": "pending"
+        "title": "Refuse reason + gate-evolution: dedicated completed-arc block reason (or fold into unresolved-pain-audit with distinguishing detail) + reason-specific recovery; fixtures for both shapes"
       },
       {
         "id": "bound-8",
-        "title": "Legacy/fixture policy: raw #5192 adverse snapshots MUST refuse; successful original/final pass only when augmented with valid closure grammar (or documented compatibility that does not reopen hole); no silent Target-digest restamp; no auto label revocation",
-        "status": "pending"
+        "title": "Legacy/fixture policy: raw #5192 adverse snapshots MUST refuse; successful original/final pass only when augmented with valid closure grammar (or documented compatibility that does not reopen hole); no silent Target-digest restamp; no auto label revocation"
       },
       {
         "id": "bound-9",
-        "title": "Regression fixtures: ceilings 5919579871 blocking + 5938850553 harvest-changing; positive controls; Handoff-not-clearance; byte-identical lean rotation; footnote-no-launder; missing carrier refuse; authorized continuation after genuine change + later audit",
-        "status": "pending"
+        "title": "Regression fixtures: ceilings 5919579871 blocking + 5938850553 harvest-changing; positive controls; Handoff-not-clearance; byte-identical lean rotation; footnote-no-launder; missing carrier refuse; authorized continuation after genuine change + later audit"
       }
-    ],
-    "tags": [
-      "bug",
-      "agent-experience",
-      "process",
-      "source-of-truth",
-      "urgent",
-      "design-critique:ingest-ready",
-      "framework-gap",
-      "core-capabilities",
-      "promise:gates",
-      "promise:swarm"
     ],
     "references": [
       {
@@ -449,18 +427,7 @@
           "content/contracts/design-critique.md",
           "content/skills/deft-directive-design-critique/SKILL.md",
           "CHANGELOG.md"
-        ],
-        "file_scope_confidence": "medium",
-        "verify_commands": [
-          "pnpm exec vitest run packages/core/src/design-critique/leftover-pain.test.ts packages/core/src/design-critique/auto-stamp-path1.test.ts packages/core/src/design-critique/completed-arc-record.test.ts packages/core/src/design-critique/exclusive-chip.test.ts"
-        ],
-        "expected_outputs": [
-          "Tracking PR opened"
-        ],
-        "depends_on": [],
-        "conflict_group": "arc-pain-audit-follow-through",
-        "size": "L",
-        "model_tier": "default"
+        ]
       },
       "bound": {
         "lean_comment_id": 5981085050,
@@ -472,9 +439,8 @@
           "leftover-role-auth"
         ]
       },
-      "productPullRequest": 5341
+      "productPullRequest": 5325
     },
-    "id": "github.issue.5668365121",
-    "updated": "2026-10-04T14:42:51Z"
+    "id": "github.issue.5668365121"
   }
 }
