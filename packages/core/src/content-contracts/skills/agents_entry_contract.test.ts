@@ -31,6 +31,9 @@ const PROPAGATION_COMMAND_MARKERS: ReadonlyArray<readonly [string, string]> = [
   ["deft verify:cache-fresh", "task verify:cache-fresh"],
   ["deft codebase:map", "task codebase:map"],
   ["deft verify:codebase-map-fresh", "task verify:codebase-map-fresh"],
+  ["deft spec:reconstruct", "task spec:reconstruct"],
+  ["deft verify:spec-drift", "task verify:spec-drift"],
+  ["deft policy:show --field=specGuard", "task policy:show --field=specGuard"],
   ["deft verify:branch", "task verify:branch"],
   ["deft verify:forward-coverage", "task verify:forward-coverage"],
   ["deft verify:story-ready", "task verify:story-ready"],
@@ -98,6 +101,7 @@ const PROPAGATION_POLICY_KEY_MARKERS = [
   "plan.policy.sessionRitualStalenessHours",
   "plan.policy.forgeOutageRetryMinutes",
   "plan.policy.valueFeedback",
+  "plan.policy.specGuard",
   "plan.policy.requireHumanMerge",
 ] as const;
 
@@ -118,6 +122,7 @@ const PROPAGATION_HEADER_MARKERS = [
   "## Parent-steer inbox (#4286)",
   "## WIP cap",
   "## Codebase MAP Projection (#1595 / #1498)",
+  "## Spec reconstruction + drift guard (#1589)",
   "### Story Start Gate",
   "## Contextual guardrails (runtime-detect lazy-load)",
   "## Content packs",

@@ -69,6 +69,12 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! `plan.architecture.codeStructure` is durable SoT; `.planning/codebase/MAP.md` is generated — `deft codebase:map` / `deft verify:codebase-map-fresh` (`commands.md`). ⊗ Do not hand-edit MAP, block on stale/absent MAP, or elevate projection above xBRIEF (#1595 / #1498).
 
+## Spec reconstruction + drift guard (#1589)
+
+! Brownfield recover: `deft spec:reconstruct` (draft-only; never auto-promote) + skill `deft-directive-spec-reconstruct`. Code oracle = `#1595` MAP. Sufficiency feeds `resolveSpecAuthority`.
+! Advise drift: `plan.policy.specGuard` via `deft policy:show --field=specGuard`; completion impact `x-directive/specImpact` (`none|delta|new`); audit `deft verify:spec-drift` (0/1/2). Extends `syncSpecificationAfterScopeMove` (#2566). `sqaPass` schema-only in v1.
+⊗ Treat registry/render/`verify:spec-prd-fresh` alone as requirements-match proof; ⊗ bare `specImpact` / bare `plan.policy.specGuard`; ⊗ splice into `deft check` in v1.
+
 ## Skills
 
 ! **Skills Index** (Level-0): `npx deft packs:slice skills list` (text, not `--json`; local also `.\node_modules\.bin\deft`) — scan before improvising; read `SKILL.md` on match. `welcome` / `onboard triage` → `deft triage:welcome --onboard`.

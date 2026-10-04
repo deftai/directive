@@ -198,6 +198,7 @@ export const CLI_MODULE_VERBS = [
   "verify-stubs",
   "verify-xbrief-drift",
   "verify-spec-prd-fresh",
+  "verify-spec-drift",
   "rule-ownership-lint",
   "verify-story-ready",
   "verify-review-monitor",
@@ -267,6 +268,7 @@ export const CORE_MODULE_VERBS = [
   "roadmap-render",
   "rule-map",
   "spec-render",
+  "spec-reconstruct",
   "spec-validate",
   "code-structure-validate",
   "pack-migrate-skills",
@@ -480,6 +482,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:scm-boundary": "verify-scm-boundary",
   "verify:xbrief-drift": "verify-xbrief-drift",
   "verify:spec-prd-fresh": "verify-spec-prd-fresh",
+  "verify:spec-drift": "verify-spec-drift",
   "verify:capacity": "verify-capacity",
   "verify:session-ritual": "verify-session-ritual",
   "verify:plan-sequence": "verify-plan-sequence",
@@ -522,6 +525,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "ts:check-lane": "ts-check-lane",
   "spec:validate": "spec-validate",
   "spec:render": "spec-render",
+  "spec:reconstruct": "spec-reconstruct",
   "prd:render": "prd-render",
   "project:render": "project-render",
   "project:write-narratives": "project-write-narratives",
@@ -573,6 +577,7 @@ const SUBDIR_CLI_STEMS: Readonly<Record<string, string>> = {
   "verify-scm-boundary": "verify-source-cli/verify-scm-boundary",
   "verify-xbrief-drift": "verify-source-cli/verify-xbrief-drift",
   "verify-spec-prd-fresh": "verify-source-cli/verify-spec-prd-fresh",
+  "verify-spec-drift": "verify-source-cli/verify-spec-drift",
   "verify-go-freeze": "gates-cli/verify-go-freeze",
   "verify-bridge-drift": "gates-cli/verify-bridge-drift",
   "validate-links": "content-validate-cli/validate-links",
@@ -2928,6 +2933,10 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
     case "spec-validate": {
       const { runSpecValidateCli } = await import("./render-cli/spec-validate-cli.js");
       return (argv) => runSpecValidateCli(argv);
+    }
+    case "spec-reconstruct": {
+      const { runSpecReconstructCliEntry } = await import("./render-cli/spec-reconstruct-cli.js");
+      return (argv) => runSpecReconstructCliEntry(argv);
     }
     case "spec-render": {
       const { runSpecRenderCli } = await import("./render-cli/spec-render-cli.js");

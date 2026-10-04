@@ -69,6 +69,10 @@ Same managed `#1149` / `#2402` rules below (`task` for `deft`; `task triage:queu
 
 Same as managed below; `task codebase:map`, `task verify:codebase-map-fresh`.
 
+## Spec reconstruction + drift guard (#1589)
+
+Same as managed below; `task spec:reconstruct`, `task verify:spec-drift`, `task policy:show --field=specGuard`. Brownfield draft-only reconstruct + advise `plan.policy.specGuard` / `x-directive/specImpact` / `verify:spec-drift`; `sqaPass` schema-only in v1.
+
 ## Skills
 
 See managed `## Skills` below and the **Skills Index** in `REFERENCES.md`; maintainer skill paths use `content/skills/`. The `welcome` / `onboard triage` trigger invokes `task triage:welcome --onboard` (N3 / #1143). Pin policy: `content/docs/skill-pin-policy.md` (#2508).

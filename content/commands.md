@@ -258,6 +258,8 @@ Edit the xBRIEF source, then render the markdown view.
   - `--include-scopes=off` (default) / `current` (pending+active) / `all` (include completed archive)
   - `--include-legacy-artifacts=on|off` (default off)
   - `--item-depth=N` (default `3`: phase, subphase, task). Unknown tokens fail closed. Truncation is announced in the markdown, not omitted silently. Same nested-on default applies to `task project:export-spec`.
+- `deft spec:reconstruct` / `task spec:reconstruct` -- brownfield draft-only reconstruct from `xbrief/completed/` + `#1595` MAP oracle (#1589). Writes a draft candidate under `.deft/`; never auto-promotes to `xbrief/specification.xbrief.json`. Sufficiency feeds `resolveSpecAuthority`. Skill: `deft-directive-spec-reconstruct`.
+- `deft verify:spec-drift` / `task verify:spec-drift` -- three-state semantic drift audit (0 clean / 1 drift / 2 unassessable|config) under namespaced `plan.policy.specGuard` (#1589). Distinct from fail-closed `verify:spec-prd-fresh`. Advise path extends `syncSpecificationAfterScopeMove` via `x-directive/specImpact` (`none|delta|new`). Inspect policy: `deft policy:show --field=specGuard`. `sqaPass` is schema-only in v1.
 - `task prd:render` -- render a stakeholder PRD view from the specification xBRIEF.
 - `task roadmap:render` -- render `ROADMAP.md` from lifecycle scope xBRIEFs (`pending/` + `proposed/` + `active/` forward; `completed/` capped).
 - `task project:render` -- refresh the `PROJECT-DEFINITION.xbrief.json` items registry from lifecycle folders.

@@ -491,6 +491,20 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:spec-prd-fresh --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  spec-drift:
+    desc: >-
+      Three-state semantic spec-vs-reality drift audit (#1589). Exit 0 clean /
+      1 drift / 2 unassessable. Distinct from fail-closed verify:spec-prd-fresh.
+      Advise-first; not spliced into task check in v1. Consumer alias:
+      task deft:verify:spec-drift.
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:spec-drift --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   rule-map-fresh:
     desc: "Fail-closed docs/RULE-MAP.md renderer freshness (#4095). Alias for docs:rule-map:check. Asserts byte-identical renderer output, filled grouping purposes, pack entries from named arrays, and Taskfile declaration counts. Not a consumer gate."
     dir: '{{.USER_WORKING_DIR}}'

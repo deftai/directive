@@ -37,6 +37,20 @@ tasks:
         vars:
           ENGINE_CMD: 'spec-render --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  reconstruct:
+    desc: >-
+      Draft-only brownfield spec reconstruction (#1589). Emits a candidate under
+      xbrief/.audit/spec-reconstruct-draft.json; never auto-promotes to
+      specification.xbrief.json. Consumes #1595 codebase MAP as code oracle.
+      Consumer alias: task deft:spec:reconstruct.
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'spec-reconstruct --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   pipeline:
     desc: Run full spec pipeline (validate then render)
     cmds:

@@ -170,6 +170,10 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/vbrief-activate": sub("core", "vbrief-activate"),
   "@deftai/directive-core/verify-env": sub("core", "verify-env"),
   "@deftai/directive-core/verify-source": sub("core", "verify-source"),
+  "@deftai/directive-core/spec-reconstruct": resolve(
+    import.meta.dirname,
+    "packages/core/src/spec-reconstruct/reconstruct.ts",
+  ),
   "@deftai/directive-core/validate-content": sub("core", "validate-content"),
   "@deftai/directive-core/render": sub("core", "render"),
   "@deftai/directive-core/codebase": sub("core", "codebase"),
