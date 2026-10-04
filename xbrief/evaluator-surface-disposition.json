@@ -1,10 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5278,
+  "issue": 5318,
   "surfaces": [
-    "Taskfile.yml",
+    "tasks/verify.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5278: Taskfile includes optional tasks/subagent.yml for pre-cancel/steer verbs. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5318: tasks/verify.yml registers verify:cohort-review-monitors. Disclosure only; not #3164 authorization."
 }
