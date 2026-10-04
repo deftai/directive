@@ -4,14 +4,11 @@
  * Wraps writeSteer so status steers are reachable before pre-cancel.
  * Writer authority is checked against child occupancy / heartbeat — not self-attested.
  */
-import { existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  defaultScratchDir,
   defaultSteerDir,
   isSafeAgentId,
-  parseHeartbeatFile,
   STEER_KINDS,
   STEER_WRITER_KINDS,
   type SteerKind,
@@ -38,9 +35,9 @@ Options:
   --ttl-seconds N         Expiry TTL (default: 1800)
   --target-id PATH        Worktree root for dest inbox
   --steer-dir PATH        Inbox directory override
-  --scratch-dir PATH      Heartbeat dir for independent parent_id check
-  --parent-id ID          Must match child occupancy parentId or heartbeat parent_id
-  --occupancy-owner-id ID Must match child occupancy / live occupancy owner
+  --scratch-dir PATH      Heartbeat dir (not used for writer authority)
+  --parent-id ID          Must match child occupancy lease parentId
+  --occupancy-owner-id ID Must match live occupancy session under --target-id
   --json                  Emit written record
 
 Exit codes:
@@ -66,71 +63,69 @@ export interface SubagentSteerWriteArgs {
   error?: string;
 }
 
-/** Resolve parent/owner from child occupancy lease or heartbeat — never self-default. */
+/**
+ * Resolve parent/owner from dispatcher-recorded child occupancy + live occupancy.
+ * Heartbeat alone is never authority (caller-selected --scratch-dir cannot mint parent_id).
+ */
 export function resolveIndependentSteerAuthority(input: {
   root: string;
   agentId: string;
   writerKind: SteerWriterKind;
   writerId: string;
-  scratchDir: string;
   claimedParentId?: string | null;
   claimedOccupancyOwnerId?: string | null;
-  now?: Date;
 }): { parentId?: string; occupancyOwnerId?: string; error?: string } {
   const writerId = input.writerId.trim();
   const lease = readChildOccupancyLease(input.root, input.agentId);
   const occupancy = readOccupancy(input.root);
-  const hbPath = join(input.scratchDir, `${input.agentId}.json`);
-  const hb = existsSync(hbPath)
-    ? parseHeartbeatFile(hbPath, {
-        now: input.now ?? new Date(),
-        thresholdSeconds: 30 * 60,
-      })
-    : null;
 
   if (input.writerKind === "dispatching-parent") {
-    const expected =
-      (lease?.parentId ?? "").trim() ||
-      (typeof hb?.parent_id === "string" ? hb.parent_id.trim() : "");
+    const expected = (lease?.parentId ?? "").trim();
     if (expected.length === 0) {
       return {
         error:
-          "dispatching-parent requires independent parent identity from child occupancy lease or heartbeat parent_id",
+          "dispatching-parent requires child occupancy lease parentId under --target-id (heartbeat alone is not authority)",
       };
     }
     if (writerId !== expected) {
       return {
-        error: `dispatching-parent writer_id ${JSON.stringify(writerId)} does not match independent parent ${JSON.stringify(expected)}`,
+        error: `dispatching-parent writer_id ${JSON.stringify(writerId)} does not match child occupancy parent ${JSON.stringify(expected)}`,
       };
     }
     const claimed = input.claimedParentId?.trim() ?? "";
     if (claimed.length > 0 && claimed !== expected) {
       return {
-        error: `--parent-id ${JSON.stringify(claimed)} does not match independent parent ${JSON.stringify(expected)}`,
+        error: `--parent-id ${JSON.stringify(claimed)} does not match child occupancy parent ${JSON.stringify(expected)}`,
       };
     }
     return { parentId: expected };
   }
 
-  const expectedOwner = (lease?.occupancyOwner ?? "").trim() || (occupancy?.sessionId ?? "").trim();
-  if (expectedOwner.length === 0) {
+  // occupancy-owner: live occupancy is SoT; stale child-lease owner alone is refuse-closed.
+  const liveOwner = (occupancy?.sessionId ?? "").trim();
+  if (liveOwner.length === 0) {
     return {
-      error:
-        "occupancy-owner requires independent occupancy owner from child occupancy lease or live occupancy",
+      error: "occupancy-owner requires a live occupancy session under --target-id",
     };
   }
-  if (writerId !== expectedOwner) {
+  const leaseOwner = (lease?.occupancyOwner ?? "").trim();
+  if (leaseOwner.length > 0 && leaseOwner !== liveOwner) {
     return {
-      error: `occupancy-owner writer_id ${JSON.stringify(writerId)} does not match independent owner ${JSON.stringify(expectedOwner)}`,
+      error: `child occupancy owner ${JSON.stringify(leaseOwner)} is superseded by live occupancy ${JSON.stringify(liveOwner)}`,
+    };
+  }
+  if (writerId !== liveOwner) {
+    return {
+      error: `occupancy-owner writer_id ${JSON.stringify(writerId)} does not match live occupancy ${JSON.stringify(liveOwner)}`,
     };
   }
   const claimedOwner = input.claimedOccupancyOwnerId?.trim() ?? "";
-  if (claimedOwner.length > 0 && claimedOwner !== expectedOwner) {
+  if (claimedOwner.length > 0 && claimedOwner !== liveOwner) {
     return {
-      error: `--occupancy-owner-id ${JSON.stringify(claimedOwner)} does not match independent owner ${JSON.stringify(expectedOwner)}`,
+      error: `--occupancy-owner-id ${JSON.stringify(claimedOwner)} does not match live occupancy ${JSON.stringify(liveOwner)}`,
     };
   }
-  return { occupancyOwnerId: expectedOwner };
+  return { occupancyOwnerId: liveOwner };
 }
 
 export function parseSubagentSteerWriteArgs(argv: readonly string[]): SubagentSteerWriteArgs {
@@ -311,7 +306,6 @@ export function run(argv: readonly string[], cwd: string = process.cwd()): numbe
   const root =
     args.targetId !== null && args.targetId.trim().length > 0 ? resolve(cwd, args.targetId) : cwd;
   const steerDir = resolve(root, args.steerDir ?? defaultSteerDir(root));
-  const scratchDir = resolve(root, args.scratchDir ?? defaultScratchDir(root));
   const writerId = args.writerId.trim();
 
   const authority = resolveIndependentSteerAuthority({
@@ -319,7 +313,6 @@ export function run(argv: readonly string[], cwd: string = process.cwd()): numbe
     agentId: args.agentId,
     writerKind: args.writerKind,
     writerId,
-    scratchDir,
     claimedParentId: args.parentId,
     claimedOccupancyOwnerId: args.occupancyOwnerId,
   });
