@@ -805,6 +805,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify-review-monitor {{.CLI_ARGS}}'
 
+  cohort-review-monitors:
+    desc: "Fail-closed cohort babysit inventory (#5318): classify each listed PR armed-live / halted-explicit / unarmed via per-PR merge-path-arm --live-wait. Exit 0 only when all listed are armed-live or halted-explicit; empty/malformed PR set exit 2. swarm:verify-review-clean CLEAN does not satisfy this inventory."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-cohort-review-monitors {{.CLI_ARGS}}'
+
   l4-owner:
     desc: "Owner Continuity / L4 owner gate (#3090): exit 0 only if sticky review-owner lease is fresh or --review-cycle done (forbid freeform started/pending). Three-state exit (0 ready / 1 silent hold / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
