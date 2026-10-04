@@ -779,7 +779,8 @@
       "productPullRequest": 5297,
       "admitted_source_digest": "44e5ccb994070aee95a1697172a069acb8c88528924b2bdb47a046c82b254dbc",
       "lifecycleWrite": {
-        "action": "complete"
+        "action": "complete",
+        "writtenAt": "2026-10-04T06:29:09Z"
       },
       "completedAt": "2026-10-04T06:14:00Z",
       "completionProvenance": {
