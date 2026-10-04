@@ -222,7 +222,12 @@ export function extractRepoScopedPullNumber(
   if (expectedRepo !== null && expectedRepo.includes("/")) {
     const repoNeedle = expectedRepo.toLowerCase();
     const lower = uri.toLowerCase();
-    if (!(lower.includes(`github.com/${repoNeedle}/`) || lower.includes(`repos/${repoNeedle}/`))) {
+    // Accept github.com, api.github.com/repos/, and GitHub Enterprise hosts (*/*/<owner>/<repo>/pull[s]/).
+    const githubDotCom =
+      lower.includes(`github.com/${repoNeedle}/`) || lower.includes(`repos/${repoNeedle}/`);
+    const enterprisePath =
+      lower.includes(`/${repoNeedle}/pull/`) || lower.includes(`/${repoNeedle}/pulls/`);
+    if (!(githubDotCom || enterprisePath)) {
       return null;
     }
   }

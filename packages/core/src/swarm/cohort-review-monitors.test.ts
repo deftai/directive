@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { approach1RemediationForUnarmedPrs } from "./approach1-babysitter.js";
 import {
   cohortInventorySatisfiedByReviewClean,
+  extractRepoScopedPullNumber,
   hasMergePathExplicitFinishAttestation,
   parsePrsCsv,
   prsFromLaunchManifest,
@@ -316,6 +317,26 @@ describe("verifyCohortReviewMonitors (#5318)", () => {
     });
     expect(result.prs).toEqual([1]);
     expect(result.exitCode).toBe(0);
+  });
+});
+
+describe("extractRepoScopedPullNumber", () => {
+  it("accepts github.com and enterprise host paths for the expected repo", () => {
+    expect(
+      extractRepoScopedPullNumber(
+        "https://github.com/deftai/directive/pull/12",
+        "deftai/directive",
+      ),
+    ).toBe(12);
+    expect(
+      extractRepoScopedPullNumber(
+        "https://ghe.example.com/deftai/directive/pull/34",
+        "deftai/directive",
+      ),
+    ).toBe(34);
+    expect(
+      extractRepoScopedPullNumber("https://github.com/other/other/pull/56", "deftai/directive"),
+    ).toBeNull();
   });
 });
 

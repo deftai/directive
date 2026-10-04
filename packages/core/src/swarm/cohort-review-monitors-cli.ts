@@ -141,20 +141,32 @@ function resolveOpenTrackingContext(projectRoot: string): {
     return { expectedRepo: null, openPrNumbers: null };
   }
   try {
-    const raw = execFileSync(
-      "gh",
-      ["api", `repos/${expectedRepo}/pulls?state=open&per_page=100`, "--jq", ".[].number"],
-      {
-        cwd: projectRoot,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-      },
-    );
     const openPrNumbers = new Set<number>();
-    for (const line of raw.split(/\r?\n/)) {
-      const trimmed = line.trim();
-      if (!/^\d+$/.test(trimmed)) continue;
-      openPrNumbers.add(Number.parseInt(trimmed, 10));
+    // Paginate — a single page of 100 can hide open siblings (#5318 Greptile).
+    for (let page = 1; page <= 20; page += 1) {
+      const raw = execFileSync(
+        "gh",
+        [
+          "api",
+          `repos/${expectedRepo}/pulls?state=open&per_page=100&page=${page}`,
+          "--jq",
+          ".[].number",
+        ],
+        {
+          cwd: projectRoot,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
+      const lines = raw
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => /^\d+$/.test(line));
+      if (lines.length === 0) break;
+      for (const line of lines) {
+        openPrNumbers.add(Number.parseInt(line, 10));
+      }
+      if (lines.length < 100) break;
     }
     return { expectedRepo, openPrNumbers };
   } catch {
