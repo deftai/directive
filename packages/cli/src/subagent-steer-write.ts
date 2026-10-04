@@ -15,7 +15,7 @@ import {
   type SteerWriterKind,
   writeSteer,
 } from "@deftai/directive-core/orchestration";
-import { readChildOccupancyLease, readOccupancy } from "@deftai/directive-core/session";
+import { liveOccupant, readChildOccupancyLease } from "@deftai/directive-core/session";
 
 export const EXIT_STEER_WRITE_OK = 0;
 export const EXIT_STEER_WRITE_CONFIG = 2;
@@ -77,7 +77,7 @@ export function resolveIndependentSteerAuthority(input: {
 }): { parentId?: string; occupancyOwnerId?: string; error?: string } {
   const writerId = input.writerId.trim();
   const lease = readChildOccupancyLease(input.root, input.agentId);
-  const occupancy = readOccupancy(input.root);
+  const occupancy = liveOccupant(input.root);
 
   if (input.writerKind === "dispatching-parent") {
     const expected = (lease?.parentId ?? "").trim();
@@ -101,11 +101,11 @@ export function resolveIndependentSteerAuthority(input: {
     return { parentId: expected };
   }
 
-  // occupancy-owner: live occupancy is SoT; stale child-lease owner alone is refuse-closed.
+  // occupancy-owner: liveOccupant (TTL/age-cap) is SoT; expired/stale leases refuse.
   const liveOwner = (occupancy?.sessionId ?? "").trim();
   if (liveOwner.length === 0) {
     return {
-      error: "occupancy-owner requires a live occupancy session under --target-id",
+      error: "occupancy-owner requires a live (non-expired) occupancy session under --target-id",
     };
   }
   const leaseOwner = (lease?.occupancyOwner ?? "").trim();
