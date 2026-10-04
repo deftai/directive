@@ -101,6 +101,7 @@ import { uninspectableLifecycleDenyMessage } from "./classify/host-session-ident
 import {
   applyPatchHarvestedInputUnclassified,
   fieldString,
+  firstString,
   type HookPayloadContext,
   hintUninspectableLifecycleCommand,
   hookApplyPatchBodyPaths,
@@ -160,9 +161,16 @@ import {
 } from "./scope.js";
 import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 import {
+  defaultKillAttestationDir,
+  evaluateKillAttestation,
+  classifyKillHostStatus,
+  type KillHostStatus,
+} from "../orchestration/subagent-kill-attestation.js";
+import {
   effectiveHookToolName,
   isApplyPatchTool,
   isDirectWriteTool,
+  isKillTool,
   isMcpTool,
   isMcpWriteShaped,
   isShellTool,
@@ -195,11 +203,14 @@ export {
   type HostToolSurfaceAudit,
   isApplyPatchTool,
   isDirectWriteTool,
+  isKillTool,
   isMcpProxyWrapper,
   isMcpTool,
   isMcpWriteShaped,
   isShellTool,
   isSpawnTool,
+  KILL_HOOK_MATCHER,
+  KILL_TOOL_NAMES,
   MCP_HOOK_MATCHER,
   MCP_PUSH_MERGE_BARE_NAMES,
   matcherHasLiteralToken,
@@ -313,7 +324,15 @@ export type HookDecisionCode =
   | "plan-choice-ack-observed"
   | "plan-choice-ack-ignored"
   | "plan-choice-opt-out"
-  | "plan-choice-store-deny";
+  | "plan-choice-store-deny"
+  /** Still-running / status-unknown host kill without green attestation (#5281). */
+  | "kill-attestation-deny"
+  /** Green pre-cancel or equivalent kill attestation allowed host kill (#5281). */
+  | "kill-attestation-ready"
+  /** Explicit force + non-empty printed reason allowed host kill (#5281). */
+  | "kill-force-ready"
+  /** Host task status terminal — kill allowed without attestation (#5281). */
+  | "kill-terminal-ready";
 
 export interface HookDecision {
   readonly verdict: HookVerdict;
@@ -505,6 +524,29 @@ export interface HookPolicySeams {
   readonly prepareArcDest?: typeof prepareGithubOnlyDest;
   /** Test seam for Cursor planning-choice store/clock (#4973). */
   readonly cursorPlanChoice?: CursorPlanChoiceDeps;
+  /**
+   * Tip seam for #5278 `evaluatePreCancel` green (#5281 Prefer-A).
+   * When absent, equivalent `.deft-scratch/subagent-kill-attestation/` is required.
+   */
+  readonly evaluatePreCancelGreen?: (input: {
+    projectRoot: string;
+    agentId: string;
+    writerId: string;
+  }) => boolean;
+  /** Test / host seam for kill still-running oracle (not heartbeat STALE). */
+  readonly resolveKillHostStatus?: (input: {
+    projectRoot: string;
+    agentId: string;
+    payload: unknown;
+  }) => KillHostStatus;
+  /** Test seam for kill attestation directory. */
+  readonly killAttestationDir?: (projectRoot: string) => string;
+  /** Test seam for killer writer_id (defaults to DEFT_SESSION_ID / occupancy-unknown). */
+  readonly resolveKillWriterId?: (input: {
+    projectRoot: string;
+    payload: unknown;
+    environ: NodeJS.ProcessEnv;
+  }) => string;
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -2436,6 +2478,172 @@ function decideShellWriteReissue(
   return null;
 }
 
+function killToolInput(payload: unknown): Record<string, unknown> | null {
+  const top = record(payload);
+  if (top === null) return null;
+  return toolInputRecord(top) ?? top;
+}
+
+function extractKillTargetId(payload: unknown): string | null {
+  const toolInput = killToolInput(payload);
+  if (toolInput === null) return null;
+  return firstString([
+    toolInput.task_id,
+    toolInput.taskId,
+    toolInput.agent_id,
+    toolInput.agentId,
+    toolInput.id,
+  ]);
+}
+
+function extractKillForce(payload: unknown): { force: boolean; reason: string | null } {
+  const toolInput = killToolInput(payload);
+  if (toolInput === null) return { force: false, reason: null };
+  const forceFlag =
+    toolInput.force === true ||
+    toolInput.force === "true" ||
+    toolInput.force === 1 ||
+    String(toolInput.force ?? "")
+      .trim()
+      .toLowerCase() === "true";
+  const reason = firstString([toolInput.reason, toolInput.force_reason, toolInput.forceReason]);
+  return { force: forceFlag, reason };
+}
+
+function extractKillHostStatusFromPayload(payload: unknown): KillHostStatus | null {
+  const toolInput = killToolInput(payload);
+  if (toolInput === null) return null;
+  const raw = firstString([
+    toolInput.host_status,
+    toolInput.hostStatus,
+    toolInput.task_status,
+    toolInput.taskStatus,
+    toolInput.status,
+    toolInput.state,
+  ]);
+  if (raw === null) return null;
+  return classifyKillHostStatus(raw);
+}
+
+function defaultKillWriterId(
+  payload: unknown,
+  environ: NodeJS.ProcessEnv,
+): string {
+  const toolInput = killToolInput(payload);
+  const fromPayload =
+    toolInput === null
+      ? null
+      : firstString([
+          toolInput.writer_id,
+          toolInput.writerId,
+          toolInput.canceller_id,
+          toolInput.cancellerId,
+          toolInput.parent_id,
+          toolInput.parentId,
+        ]);
+  if (fromPayload !== null) return fromPayload;
+  const fromEnv = firstString([
+    environ.DEFT_SESSION_ID,
+    environ.DEFT_OCCUPANCY_OWNER,
+    environ.DEFT_AGENT_ID,
+  ]);
+  return fromEnv ?? "unknown-killer";
+}
+
+/**
+ * Dedicated deny-class path for host kill (#5281).
+ * Does not route through product-write inspectMutationGates.
+ */
+function decideKillAttestationGate(
+  input: HookDispatchInput,
+  toolName: string,
+  seams: HookPolicySeams,
+  environ: NodeJS.ProcessEnv,
+): HookDecision {
+  const projectRoot = resolve(input.projectRoot);
+  const agentId = extractKillTargetId(input.payload) ?? "";
+  const writerId =
+    seams.resolveKillWriterId?.({
+      projectRoot,
+      payload: input.payload,
+      environ,
+    }) ?? defaultKillWriterId(input.payload, environ);
+  const { force, reason: forceReason } = extractKillForce(input.payload);
+  const payloadStatus = extractKillHostStatusFromPayload(input.payload);
+  const hostStatus: KillHostStatus =
+    seams.resolveKillHostStatus?.({
+      projectRoot,
+      agentId,
+      payload: input.payload,
+    }) ??
+    payloadStatus ??
+    "unknown";
+  const attestationDir =
+    seams.killAttestationDir?.(projectRoot) ?? defaultKillAttestationDir(projectRoot);
+  const verdict = evaluateKillAttestation({
+    agentId,
+    writerId,
+    attestationDir,
+    force,
+    forceReason,
+    hostStatus,
+    evaluatePreCancelGreen:
+      seams.evaluatePreCancelGreen === undefined
+        ? undefined
+        : () =>
+            seams.evaluatePreCancelGreen!({
+              projectRoot,
+              agentId,
+              writerId,
+            }),
+  });
+
+  if (!verdict.ok) {
+    return deny(input, "kill-attestation-deny", toolName, verdict.message);
+  }
+
+  if (verdict.clear_reason === "host-terminal") {
+    return {
+      verdict: "allow",
+      code: "kill-terminal-ready",
+      event: input.event,
+      host: input.host,
+      toolName,
+      projectRoot,
+      message: verdict.message,
+      scopePath: null,
+    };
+  }
+
+  if (verdict.clear_reason === "force") {
+    const printed = verdict.printed_force_reason ?? forceReason ?? "";
+    return {
+      verdict: "allow",
+      code: "kill-force-ready",
+      event: input.event,
+      host: input.host,
+      toolName,
+      projectRoot,
+      message:
+        printed.length > 0
+          ? `Directive allowed ${toolName} via force: ${printed}`
+          : verdict.message,
+      scopePath: null,
+    };
+  }
+
+  return {
+    verdict: "allow",
+    code: "kill-attestation-ready",
+    event: input.event,
+    host: input.host,
+    toolName,
+    projectRoot,
+    message: verdict.message,
+    scopePath: null,
+  };
+}
+
 /**
  * Route recognized Shell dest-forms through inspectMutationGates, then push/merge.
  * Dest-form allow is kept when runtime authority has nothing classifiable.
@@ -3307,6 +3515,12 @@ function routeHookDecision(
     }
     const decision = decideShellDestFormsThenRuntimeAuthority(input, toolName, seams, observation);
     return attachLifecycleIdentityRewrite(input, toolName, decision, seams);
+  }
+
+  // Host kill deny-class / attestation gate (#5281 Prefer-A Bound).
+  // Not product-write inspectMutationGates; matcher deposit selects this tool.
+  if (isKillTool(toolName)) {
+    return decideKillAttestationGate(input, toolName, seams, environ);
   }
 
   // #3593: dest-bearing write-shaped MCP / proxy wrappers share inspectMutationGates

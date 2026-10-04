@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gate Grok `kill_command_or_subagent` behind pre-cancel / equivalent attestation (#5281).** Matcher deposit + dedicated deny-class PreToolUse path (not `inspectMutationGates`); equivalent `.deft-scratch/subagent-kill-attestation/` until #5278 tip verb is present; force requires printed reason; fail-closed DCR. Tracking #5281. Refs #5278, #3987, #4286.
+
 ### Changed
 
 - **docs(scope): Prefer-A Bound records merge-base empty-skip as accepted posture (#3715).** Empty/absent merge-base `file_scope` yields no production finding; do not Bound on approved-scope ratios, soft-warn cites, or briefs-decline claims. Authoring clauses: decompose/swarm-ready hard; setup via #4988; no-swarm-block ungated in code; option (b) priced by that path plus backlog. Correct agents-entry + observable-scope present-tense "#4383 still open" (closed; #4988 supersedes). No gate weakening. Tracking #3715.

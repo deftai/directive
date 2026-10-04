@@ -7,6 +7,7 @@ import { HOOK_HOSTS } from "../hooks/dispatcher.js";
 import {
   HOST_TOOL_SURFACE_AUDIT,
   isDirectWriteTool,
+  isKillTool,
   isShellTool,
   isSpawnTool,
 } from "../hooks/tools.js";
@@ -45,7 +46,8 @@ describe("host tool-surface coverage (#3987)", () => {
       const named =
         audit.mutation.directWrite.length +
         audit.mutation.shell.length +
-        audit.mutation.spawn.length;
+        audit.mutation.spawn.length +
+        audit.mutation.kill.length;
       expect(named > 0 || (audit.unobservedReason ?? "").trim().length > 0).toBe(true);
       for (const reason of Object.values(audit.nonMutation)) {
         expect(reason.trim().length).toBeGreaterThan(0);
@@ -62,6 +64,7 @@ describe("host tool-surface coverage (#3987)", () => {
       ["directWrite", isDirectWriteTool],
       ["shell", isShellTool],
       ["spawn", isSpawnTool],
+      ["kill", isKillTool],
     ] as const) {
       for (const name of audit.mutation[group]) {
         expect(
@@ -74,6 +77,8 @@ describe("host tool-surface coverage (#3987)", () => {
     // The two shell surfaces this host actually exposes.
     expect(audit.mutation.shell).toContain("run_terminal_command");
     expect(audit.mutation.shell).toContain("monitor");
+    expect(audit.mutation.kill).toContain("kill_command_or_subagent");
+    expect(audit.nonMutation.kill_command_or_subagent).toBeUndefined();
   });
 
   it("fails closed when a deposited matcher drops a catalogued tool name", () => {

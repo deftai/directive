@@ -67,6 +67,7 @@ import {
   renderHostDecision,
   SPAWN_TOOL_NAMES,
 } from "./index.js";
+import { writeKillAttestation } from "../orchestration/subagent-kill-attestation.js";
 import { SPAWN_CLASS_RECOVERY } from "./readonly.js";
 
 // Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
@@ -6456,5 +6457,157 @@ describe("requirements posture (#4444)", () => {
       readySeams(),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "write-requirements-out-of-class" });
+  });
+});
+
+describe("kill_command_or_subagent attestation gate (#5281 Prefer-A Bound)", () => {
+  function killPayload(toolInput: Record<string, unknown>) {
+    return {
+      host: "grok" as const,
+      event: "tool.before" as const,
+      projectRoot: "/project",
+      payload: { toolName: "kill_command_or_subagent", tool_input: toolInput },
+      environ: { DEFT_SESSION_ID: "parent-1" },
+    };
+  }
+
+  it("DCR(i): bare kill of still-running child without attestation is refused", () => {
+    const project = mkdtempSync(join(tmpdir(), "kill-bare-"));
+    hookTemps.push(project);
+    const decision = decideHook(
+      {
+        ...killPayload({ task_id: "child-1", status: "running" }),
+        projectRoot: project,
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({
+      verdict: "deny",
+      code: "kill-attestation-deny",
+      toolName: "kill_command_or_subagent",
+    });
+    expect(decision.message).toMatch(/attestation/i);
+  });
+
+  it("DCR(ii): green equivalent attestation allows kill", () => {
+    const project = mkdtempSync(join(tmpdir(), "kill-green-"));
+    hookTemps.push(project);
+    const attestDir = join(project, ".deft-scratch", "subagent-kill-attestation");
+    writeKillAttestation(attestDir, {
+      agentId: "child-1",
+      writerId: "parent-1",
+      kind: "note",
+    });
+    const decision = decideHook(
+      {
+        ...killPayload({ task_id: "child-1", status: "running" }),
+        projectRoot: project,
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({
+      verdict: "allow",
+      code: "kill-attestation-ready",
+    });
+  });
+
+  it("DCR(ii): tip pre-cancel green seam allows kill", () => {
+    const project = mkdtempSync(join(tmpdir(), "kill-precancel-"));
+    hookTemps.push(project);
+    const decision = decideHook(
+      {
+        ...killPayload({ task_id: "child-1", status: "running" }),
+        projectRoot: project,
+      },
+      readySeams({
+        evaluatePreCancelGreen: () => true,
+      }),
+    );
+    expect(decision).toMatchObject({
+      verdict: "allow",
+      code: "kill-attestation-ready",
+    });
+  });
+
+  it("DCR(iii): force requires non-empty reason and prints it", () => {
+    const project = mkdtempSync(join(tmpdir(), "kill-force-"));
+    hookTemps.push(project);
+    const missing = decideHook(
+      {
+        ...killPayload({ task_id: "child-1", status: "running", force: true }),
+        projectRoot: project,
+      },
+      readySeams(),
+    );
+    expect(missing).toMatchObject({ verdict: "deny", code: "kill-attestation-deny" });
+    expect(missing.message).toMatch(/reason/i);
+
+    const ok = decideHook(
+      {
+        ...killPayload({
+          task_id: "child-1",
+          status: "running",
+          force: true,
+          reason: "hung after REDISPATCH_OK",
+        }),
+        projectRoot: project,
+      },
+      readySeams(),
+    );
+    expect(ok).toMatchObject({ verdict: "allow", code: "kill-force-ready" });
+    expect(ok.message).toContain("hung after REDISPATCH_OK");
+  });
+
+  it("DCR(iv): peer kill without attestation refuses the same as parent", () => {
+    const project = mkdtempSync(join(tmpdir(), "kill-peer-"));
+    hookTemps.push(project);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: project,
+        payload: {
+          toolName: "kill_command_or_subagent",
+          tool_input: { task_id: "child-1", status: "running", writer_id: "peer-9" },
+        },
+        environ: { DEFT_SESSION_ID: "peer-9" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({
+      verdict: "deny",
+      code: "kill-attestation-deny",
+    });
+  });
+
+  it("terminal host status allows kill without attestation", () => {
+    const project = mkdtempSync(join(tmpdir(), "kill-term-"));
+    hookTemps.push(project);
+    const decision = decideHook(
+      {
+        ...killPayload({ task_id: "child-1", status: "completed" }),
+        projectRoot: project,
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({
+      verdict: "allow",
+      code: "kill-terminal-ready",
+    });
+  });
+
+  it("heartbeat STALE / REDISPATCH_OK alone does not skip attestation", () => {
+    const project = mkdtempSync(join(tmpdir(), "kill-stale-"));
+    hookTemps.push(project);
+    for (const status of ["STALE", "REDISPATCH_OK"]) {
+      const decision = decideHook(
+        {
+          ...killPayload({ task_id: "child-1", status }),
+          projectRoot: project,
+        },
+        readySeams(),
+      );
+      expect(decision.code).toBe("kill-attestation-deny");
+    }
   });
 });

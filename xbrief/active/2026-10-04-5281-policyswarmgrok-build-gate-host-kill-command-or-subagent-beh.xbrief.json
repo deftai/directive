@@ -1,0 +1,397 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5281",
+    "updated": "2026-10-04T02:36:02Z"
+  },
+  "plan": {
+    "title": "policy(swarm,grok-build): gate host kill_command_or_subagent behind pre-cancel attestation (#5278 leftover)",
+    "status": "running",
+    "narratives": {
+      "Description": "policy(swarm,grok-build): gate host kill_command_or_subagent behind pre-cancel attestation (#5278 leftover)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5281",
+      "Overview": "Prefer-A Bound lean 5975659398. Synthesis 5975677663. Operator cohort-add overrides arc-mode no-ingest.",
+      "Labels": "bug, swarm, agent-experience, harness, urgent, design-critique:ingest-ready, framework-gap, core-capabilities, promise:swarm, promise:continuity"
+    },
+    "items": [
+      {
+        "id": "item.1",
+        "title": "Decision: kill_command_or_subagent on Grok Build becomes deny-class / attestation-gated. Forever out-of-scope is not a co-equal Prefer-A success. #3987/scheduler_create is the policy-decision pattern; rewriting the audit row alone does not relieve P1.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts"
+      },
+      {
+        "id": "item.2",
+        "title": "Enforcement locus (not docs-only): (a) matcher deposit so Grok PreToolUse selects kill_command_or_subagent; (b) dedicated deny-class path (not product-write inspectMutationGates) that reads green attestation before allow, else refuse with printed reason. Docs/host-tool-surface-audit/HOST_TOOL_SURFACE_AUDIT/preamble update with (a)+(b).",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/hooks/tools.ts"
+      },
+      {
+        "id": "item.3",
+        "title": "Attestation before kill (parent and peer): prefer deft subagent:pre-cancel exit 0 for that agent_id/attempt when present on tip; equivalent until #5278 lands = recorded .deft-scratch attestation artifact with agent_id, writer_id(=killer), kind in {note,correction,force}, created_at, optional reason, short TTL. Soft English is not attestation. Peer same gate as parent.",
+        "status": "pending",
+        "x-directive/artifact_path": "content/docs/host-tool-surface-audit.md"
+      },
+      {
+        "id": "item.4",
+        "title": "Still-running oracle: host task/subagent status non-terminal. Heartbeat STALE/missing or REDISPATCH_OK alone does not reclassify as safe-to-kill-without-attestation. Terminal host status may allow kill without attestation.",
+        "status": "pending",
+        "x-directive/artifact_path": "content/templates/agent-prompt-preamble.md"
+      },
+      {
+        "id": "item.5",
+        "title": "Force surface: Directive hook override on kill PreToolUse — allow only with explicit force marker AND non-empty printed reason; if host schema cannot carry force, force lives on attestation (kind:force + reason).",
+        "status": "pending",
+        "x-directive/artifact_path": "CHANGELOG.md"
+      },
+      {
+        "id": "item.6",
+        "title": "Audit row + preamble: move kill_command_or_subagent off silent forever-OOS process-control into explicit deny-class/attestation-gated record; parents/peers MUST NOT treat documented duty as the kill safety case.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts"
+      },
+      {
+        "id": "item.7",
+        "title": "Acceptance/DCR fail-closed: (i) bare kill without attestation refused; (ii) green pre-cancel/equivalent may allow; (iii) force requires non-empty reason and prints it; (iv) peer same as parent; (v) fixture/DCR asserts (i)-(iv) against deny-class path — docs-only checks do not satisfy.",
+        "status": "pending",
+        "x-directive/artifact_path": "packages/core/src/hooks/tools.ts"
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "harness",
+      "urgent",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:swarm",
+      "promise:continuity"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5281",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5281: policy(swarm,grok-build): gate host kill_command_or_subagent behind pre-cancel attestation (#5278 leftover)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "source_rung": "bound",
+      "derived_reason": "Prefer-A Bound remedy stamped for through-merge cohort add",
+      "sentences": [
+        "policy(swarm,grok-build): gate host kill_command_or_subagent behind pre-cancel attestation (#5278 leftover)",
+        "Decision (closes Prefer-A body fork). `kill_command_or_subagent` on Grok Build becomes deny-class / attestation-gated.",
+        "Forever out-of-scope is not a co-equal Prefer-A success on this leftover.",
+        "#3987 / `scheduler_create` is the policy-decision pattern (deliberate deny-class, not a silent coverage edit into `inspectMutationGates`); rewriting the audit row alone does not relieve P1.",
+        "Enforcement locus (not docs-only). Ship both: - (a) Matcher deposit so Grok PreToolUse actually selects `kill_command_or_subagent` (today it is outside mutation catalog and falls through `not-direct-write` allow).",
+        "(b) Dedicated deny-class path (not product-write `inspectMutationGates`) that reads a green attestation before allow; otherwise refuse with a printed reason.",
+        "Docs / `host-tool-surface-audit.md` / `HOST_TOOL_SURFACE_AUDIT` / preamble updates are required with (a)+(b).",
+        "Docs-only wiring reproduces P2.",
+        "Attestation before kill (parent and peer). Before allow of host kill on a still-running Grok child, require green attestation: - Prefer: `deft subagent:pre-cancel` exit 0 for that `agent_id` / attempt (same verb #5278 binds for Directive takeover), when that verb exists on the delivery tip.",
+        "Equivalent until #5278 lands / if verb absent: a recorded attestation artifact under `.deft-scratch/` with closed schema fields at minimum: `agent_id`, `writer_id` (= killer), `kind` in {note,correction} or `force`, `created_at`, optional `reason`, and a short TTL.",
+        "Gate consumer is the deny-class path in (2b).",
+        "Soft English \"I asked first\" is not attestation.",
+        "Peer/sibling kill uses the same attestation gate as parent (Stop 1 P1 width).",
+        "Still-running oracle. \"Still-running\" means the host task/subagent status for that id is non-terminal (host-reported running / in-flight).",
+        "Heartbeat STALE/missing or REDISPATCH_OK alone does not reclassify the child as safe-to-kill-without-attestation; those paths still go through attestation or explicit force.",
+        "Terminal host status may allow kill without attestation (nothing left to protect).",
+        "`--force` surface. Force is a Directive hook override on the kill PreToolUse path (not an assumed host CLI flag the tool may never emit): allow only when the tool input / paired attestation carries an explicit force marker and a non-empty printed reason string; the deny path prints that reason on allow-via-force.",
+        "If the host tool schema cannot carry force, the force marker lives only on the attestation artifact (`kind: force` + reason) consumed by (2b).",
+        "Audit row + preamble. Move `kill_command_or_subagent` off silent forever-OOS \"process control\" into an explicit deny-class / attestation-gated record (mirror `scheduler_create` known-gap honesty until the gate ships, then record the gated disposition).",
+        "Preamble / swarm skill: parents and peers MUST NOT treat documented duty as the kill safety case.",
+        "Acceptance / DCR (fail-closed; no soft residual). - (i) Bare host kill of a still-running Grok child without green attestation is refused (hook/DCR), not residual-with-duty.",
+        "(ii) Green `subagent:pre-cancel` (or equivalent artifact in item 3) → kill may allow.",
+        "(iii) Force path requires non-empty reason and prints it; missing reason stays refuse.",
+        "(iv) Peer kill without attestation refuses the same as parent.",
+        "(v) Fixture or DCR asserts (i)-(iv) against the deny-class path; document-only checks do not satisfy this item.",
+        "Enforcement locus (not docs-only). Ship both:",
+        "(a) Matcher deposit so Grok PreToolUse actually selects `kill_command_or_subagent` (today it is outside mutation catalog and falls through `not-direct-write` allow).",
+        "Attestation before kill (parent and peer). Before allow of host kill on a still-running Grok child, require green attestation:",
+        "Prefer: `deft subagent:pre-cancel` exit 0 for that `agent_id` / attempt (same verb #5278 binds for Directive takeover), when that verb exists on the delivery tip.",
+        "Acceptance / DCR (fail-closed; no soft residual).",
+        "(i) Bare host kill of a still-running Grok child without green attestation is refused (hook/DCR), not residual-with-duty."
+      ],
+      "admitted_source_sentences": [
+        "Decision (closes Prefer-A body fork). `kill_command_or_subagent` on Grok Build becomes deny-class / attestation-gated.",
+        "Forever out-of-scope is not a co-equal Prefer-A success on this leftover.",
+        "#3987 / `scheduler_create` is the policy-decision pattern (deliberate deny-class, not a silent coverage edit into `inspectMutationGates`); rewriting the audit row alone does not relieve P1.",
+        "Enforcement locus (not docs-only). Ship both: - (a) Matcher deposit so Grok PreToolUse actually selects `kill_command_or_subagent` (today it is outside mutation catalog and falls through `not-direct-write` allow).",
+        "(b) Dedicated deny-class path (not product-write `inspectMutationGates`) that reads a green attestation before allow; otherwise refuse with a printed reason.",
+        "Docs / `host-tool-surface-audit.md` / `HOST_TOOL_SURFACE_AUDIT` / preamble updates are required with (a)+(b).",
+        "Docs-only wiring reproduces P2.",
+        "Attestation before kill (parent and peer). Before allow of host kill on a still-running Grok child, require green attestation: - Prefer: `deft subagent:pre-cancel` exit 0 for that `agent_id` / attempt (same verb #5278 binds for Directive takeover), when that verb exists on the delivery tip.",
+        "Equivalent until #5278 lands / if verb absent: a recorded attestation artifact under `.deft-scratch/` with closed schema fields at minimum: `agent_id`, `writer_id` (= killer), `kind` in {note,correction} or `force`, `created_at`, optional `reason`, and a short TTL.",
+        "Gate consumer is the deny-class path in (2b).",
+        "Soft English \"I asked first\" is not attestation.",
+        "Peer/sibling kill uses the same attestation gate as parent (Stop 1 P1 width).",
+        "Still-running oracle. \"Still-running\" means the host task/subagent status for that id is non-terminal (host-reported running / in-flight).",
+        "Heartbeat STALE/missing or REDISPATCH_OK alone does not reclassify the child as safe-to-kill-without-attestation; those paths still go through attestation or explicit force.",
+        "Terminal host status may allow kill without attestation (nothing left to protect).",
+        "`--force` surface. Force is a Directive hook override on the kill PreToolUse path (not an assumed host CLI flag the tool may never emit): allow only when the tool input / paired attestation carries an explicit force marker and a non-empty printed reason string; the deny path prints that reason on allow-via-force.",
+        "If the host tool schema cannot carry force, the force marker lives only on the attestation artifact (`kind: force` + reason) consumed by (2b).",
+        "Audit row + preamble. Move `kill_command_or_subagent` off silent forever-OOS \"process control\" into an explicit deny-class / attestation-gated record (mirror `scheduler_create` known-gap honesty until the gate ships, then record the gated disposition).",
+        "Preamble / swarm skill: parents and peers MUST NOT treat documented duty as the kill safety case.",
+        "Acceptance / DCR (fail-closed; no soft residual). - (i) Bare host kill of a still-running Grok child without green attestation is refused (hook/DCR), not residual-with-duty.",
+        "(ii) Green `subagent:pre-cancel` (or equivalent artifact in item 3) → kill may allow.",
+        "(iii) Force path requires non-empty reason and prints it; missing reason stays refuse.",
+        "(iv) Peer kill without attestation refuses the same as parent.",
+        "(v) Fixture or DCR asserts (i)-(iv) against the deny-class path; document-only checks do not satisfy this item."
+      ],
+      "admitted_source_digest": "c6264709c0ec2226451881e1927f123838d3b2cccbc2b04ba04ccbf5a2e57caa",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Decision: kill_command_or_subagent on Grok Build becomes deny-class / attestation-gated. Forever out-of-scope is not a co-equal Prefer-A success. #3987/scheduler_create is the policy-decision pattern; rewriting the audit row alone does not relieve P1.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "Enforcement locus (not docs-only): (a) matcher deposit so Grok PreToolUse selects kill_command_or_subagent; (b) dedicated deny-class path (not product-write inspectMutationGates) that reads green attestation before allow, else refuse with printed reason. Docs/host-tool-surface-audit/HOST_TOOL_SURFACE_AUDIT/preamble update with (a)+(b).",
+          "artifact_path": "packages/core/src/hooks/tools.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "Attestation before kill (parent and peer): prefer deft subagent:pre-cancel exit 0 for that agent_id/attempt when present on tip; equivalent until #5278 lands = recorded .deft-scratch attestation artifact with agent_id, writer_id(=killer), kind in {note,correction,force}, created_at, optional reason, short TTL. Soft English is not attestation. Peer same gate as parent.",
+          "artifact_path": "content/docs/host-tool-surface-audit.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Still-running oracle: host task/subagent status non-terminal. Heartbeat STALE/missing or REDISPATCH_OK alone does not reclassify as safe-to-kill-without-attestation. Terminal host status may allow kill without attestation.",
+          "artifact_path": "content/templates/agent-prompt-preamble.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 5,
+          "text": "Force surface: Directive hook override on kill PreToolUse — allow only with explicit force marker AND non-empty printed reason; if host schema cannot carry force, force lives on attestation (kind:force + reason).",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 6,
+          "text": "Audit row + preamble: move kill_command_or_subagent off silent forever-OOS process-control into explicit deny-class/attestation-gated record; parents/peers MUST NOT treat documented duty as the kill safety case.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 7,
+          "text": "Acceptance/DCR fail-closed: (i) bare kill without attestation refused; (ii) green pre-cancel/equivalent may allow; (iii) force requires non-empty reason and prints it; (iv) peer same as parent; (v) fixture/DCR asserts (i)-(iv) against deny-class path — docs-only checks do not satisfy.",
+          "artifact_path": "packages/core/src/hooks/tools.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because #5278 leftover owns host-kill refuse: Grok Build kill_command_or_subagent remains host-tool-surface-audit nonMutation (process control), so a still-running Grok child can be killed with no pre-cancel attestation while #5278 Prefer-A deliberately does not claim that refuse.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Repos\\\\deft\\\\directive\\\\.deft-scratch\\\\worktrees\\\\arc-5281\norigin-ref: origin/HEAD\ndispatch-sha: dd601935bb21f37df9bf47a3b30954c18505c14f\ndest-wo: leftover-complete\n\nspend: N=1\nspend-ask: asked\nspend-recommend: N=1\nspend-why: Prefer-A already drafted on leftover body; narrow host-kill policy half after #5278 split; operator use recommended\nDual-stop cap: 6 posts\n\npain: P1, P2\n\n- P1. Host kill without attestation: a parent (or peer) can invoke Grok Build kill_command_or_subagent on a still-running Grok child with no green subagent:pre-cancel attestation (or equivalent), and without a printed --force reason path so query-first safety does not exist on the host kill surface.\n- P2. Out-of-scope document-duty is treated as the safety case: HOST_TOOL_SURFACE_AUDIT / host-tool-surface-audit.md still list kill_command_or_subagent as nonMutation process control, and preamble/docs do not force a deny-class / attestation-gated decision, so parents can treat documented duty as enough while kill remains ungated.\n\nverification-path: pin-read git show dd601935bb21f37df9bf47a3b30954c18505c14f:; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:44df7afd758e106307fc4a678446b6c56e14c0b7cd2390d592d5480ec4dd0e2b\ntarget: #5281\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #5278 (parent leftover split) #4286 #3987 (host-tool deny-class precedent) host-tool-surface-audit kill_command_or_subagent nonMutation row\n\n## Gate stamp\n\nFresh no-ingest yolo Stop 1 on leftover #5281. Operator answered Dual-stop spend with use recommended -> N=1 / spend-ask: asked. Next: one fresh open-critique critic (Grok seat), then Prefer-A Bound lean with honest pain cites, then Dual-stop pain-audit of asserted coverage.\n\n## Plain-language summary\n\n#5281 owns only the host-kill refuse half that #5278 left out. Prefer-A decides whether kill stays forever out of scope or becomes attestation-gated deny-class (#3987-class), with a DCR/fixture so bare kill without attestation fails closed. Spend is N=1 as recommended.\n\n",
+          "id": 5975633882,
+          "html_url": "https://github.com/deftai/directive/issues/5281#issuecomment-5975633882",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:06:09Z",
+          "updated_at": "2026-10-04T02:06:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: 1\ncritic-role: fresh\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\naudit-targets: none\nid-ceiling: 5975633882\ndispatch-sha: dd601935bb21f37df9bf47a3b30954c18505c14f\nStop-1: 5975633882\ntarget: #5281\nverification-path: pin-read git show dd601935bb21f37df9bf47a3b30954c18505c14f:; dest cwd-without-occupy for on-pin file reads\n\n## Open critique of Prefer-A (host-kill refuse leftover)\n\nMethod: pin-read at `dd601935bb21f37df9bf47a3b30954c18505c14f` against Stop 1 P1/P2 (comment 5975633882) and Prefer-A on the issue body. No Bound lean. No synthesis.\n\n### F1 — Prefer-A step 1 keeps a forever-OOS fork that cannot relieve Stop 1\n\nPrefer-A item 1 leaves both outcomes live: `kill_command_or_subagent` stays forever out-of-scope, or it becomes deny-class / attestation-gated.\n\nStop 1 owns:\n- P1 — host kill without attestation on a still-running Grok child\n- P2 — out-of-scope document-duty treated as the safety case\n\nA Bound that picks forever-OOS satisfies Prefer-A text while leaving both pains unrelieved by construction. This leftover exists because #5278 Prefer-A deliberately did not claim the host-kill refuse (issue body Why split / Summary). Prefer-A should close the fork: gated deny-class is the relief path; forever-OOS is an explicit non-relief / named residual, not a co-equal Prefer-A success.\n\n### F2 — Enforcement locus is unnamed; pin shows kill is allow-by-default today\n\nAt the pin:\n\n- `HOST_TOOL_SURFACE_AUDIT.grok.nonMutation` records `kill_command_or_subagent: \"process control\"` (`packages/core/src/hooks/tools.ts` ~239).\n- Docs mirror that as `out of scope — process control` (`content/docs/host-tool-surface-audit.md` ~50).\n- Dispatcher fallthrough for non-direct-write tools returns `verdict: \"allow\"`, `code: \"not-direct-write\"`, message that the tool is outside the P0 direct-write/spawn/shell enforcement slice (`packages/core/src/hooks/dispatcher.ts`, `if (!isDirectWriteTool(toolName))` block).\n\nKill is not in the mutation catalog (`directWrite` / `shell` / `spawn`), so deposited PreToolUse matchers never select it for write/spawn gates. Prefer-A steps 2–3 talk about attestation and docs/audit/preamble, but never name the chokepoint that refuses the host tool.\n\nConcrete gap for a later lean: gating kill is not a coverage edit into `inspectMutationGates` (kill has no product write dest). It needs (a) matcher deposit so PreToolUse fires, plus (b) a dedicated deny path / deny-class that reads attestation, or an explicit host-native refuse. Docs-only wiring (step 3 alone) reproduces P2.\n\n### F3 — `subagent:pre-cancel` is absent at this pin; \"or equivalent\" is under-specified\n\nPin-wide grep for `subagent:pre-cancel` / `pre-cancel` attestation surfaces returns no hits under `packages/core` or `content` at `dd601935`. Takeover cancel at this pin is still `task swarm:pre-dispatch -- --action cancel` after REDISPATCH_OK (`content/commands.md` ~362; `content/docs/subagent-heartbeat.md` Takeover after REDISPATCH_OK).\n\nPrefer-A step 2 requires a green `subagent:pre-cancel` attestation (or equivalent) before host kill. That verb is a #5278 deliverable, not a pin fact. Without naming the attestation artifact (path/schema), writer, consumer, TTL, and what \"equivalent\" means when #5278 has not landed, step 4's DCR/fixture has nothing concrete to assert, and implement can invent a soft check.\n\n### F4 — `--force` reason path is invented relative to the pin\n\nPrefer-A step 2 requires printing a reason on `--force`. Pin tree has no `kill_command_or_subagent` `--force` surface (no schema, hook flag, or CLI flag cite under that name). A lean must say whether force is a host tool argument, a Directive hook override, or deny-message-only — otherwise the acceptance path depends on a flag the host may not emit.\n\n### F5 — `still-running` predicate is unnamed\n\nPrefer-A gates kill of a still-`running` Grok child. Heartbeat docs already distinguish host-reported running from heartbeat liveness / REDISPATCH_OK (`content/docs/subagent-heartbeat.md` Cursor false-alive / OpenClaw sections; commands.md worker liveness). Wrong predicate either blocks kill of host-dark dead children or allows kill while the tool loop is still live. Prefer-A should name the oracle (host task status vs heartbeat `terminal_state` vs delivery-attempt row) before DCR item 4.\n\n### F6 — Step 4 residual escape can re-create the #5278 PA-1 failure\n\nPrefer-A step 4 allows \"refused (or explicitly residual with a named control)\". Soft residual without a fail-closed machine check is the same document-duty safety case Stop 1 P2 records and that blocked #5278 path-1 (issue body Why split citing PA-1). If residual remains, Prefer-A must require the named control to be a deterministic refuse (hook/DCR), not preamble duty.\n\n### F7 — #3987 precedent is the decision class, not a shipped kill refuse\n\n`scheduler_create` is correctly the deny-class precedent shape: audit text says covering it is \"a new deny class that needs a deliberate policy decision rather than a coverage edit (#3987 residual)\" (`tools.ts` ~248–251; `host-tool-surface-audit.md` ~57–62). At this pin `scheduler_create` itself remains nonMutation known-gap — still not gated. Prefer-A should treat #3987 as the policy-decision pattern (do not silently coverage-edit), and still require an actual refuse path for kill. Rewriting the kill audit row from \"process control\" to \"known gap\" without a deny chokepoint does not relieve P1.\n\n### F8 — Stop 1 peer path is wider than Prefer-A parent wiring\n\nStop 1 P1 names parent (or peer) invoking host kill. Prefer-A step 3 wires docs/audit/preamble so parents cannot treat documented duty as the safety case. Sibling/peer kill needs the same attestation gate or an explicit non-goal. Leaving peer unstated lets a Bound claim P1 while only constraining parent prose.\n\n### What Prefer-A already gets right\n\n- Leftover ownership of host-kill refuse vs #5278 takeover pre-cancel is correctly scoped; non-goals avoid re-litigating heartbeat wait_kind / Approach 1 arm-probe.\n- Citing #3987 as deliberate host-tool deny-class policy (not a matcher tweak) matches the audit's own language for `scheduler_create`.\n- Requiring DCR/fixture that bare kill without attestation fails closed is the right acceptance shape if the lean closes the forever-OOS fork and names the chokepoint.\n\n### Steelman\n\nThe strongest defense of Prefer-A as written is that step 1's open decision is intentional charter work for the Bound lean, and \"or equivalent\" / residual are honesty valves so the arc does not over-claim before #5278 lands. That defense holds only if the Bound is forced to pick gated refuse for P1/P2 relief and to name locus + attestation shape; as Prefer-A stands, those valves also admit a non-relieving Bound.\n\nNo Bound lean proposed. No synthesis stamp.",
+          "id": 5975652566,
+          "html_url": "https://github.com/deftai/directive/issues/5281#issuecomment-5975652566",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:09:00Z",
+          "updated_at": "2026-10-04T02:09:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound\n**Spec-path:** Bound remedy below\nTarget-digest: sha256:44df7afd758e106307fc4a678446b6c56e14c0b7cd2390d592d5480ec4dd0e2b\nStop-1: 5975633882\ncritics: grok 5975652566\ndispatch-sha: dd601935bb21f37df9bf47a3b30954c18505c14f\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nDual-stop cap: 6 posts\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5281\n\n## In plain English\n\nClose the forever-out-of-scope fork. Host kill of a still-running Grok child becomes attestation-gated deny-class on Grok Build (#3987-class policy decision), with a real PreToolUse refuse path — not docs-only duty.\n\n## Pain cites (closed form)\n\nrelieves: P1\nrelieves: P2\n\n- P1 covers host kill_command_or_subagent of a still-running Grok child without green pre-cancel attestation (parent or peer)\n- P2 covers HOST_TOOL_SURFACE_AUDIT / docs / preamble treating kill as nonMutation process-control document-duty as the safety case\n\n## Take map\n\nAbsorbs round-1 critic 5975652566 F1-F8: close forever-OOS fork (F1); name matcher+deny chokepoint (F2); name attestation artifact / equivalent (F3); name --force surface (F4); name still-running oracle (F5); no soft residual (F6); #3987 as decision-class pattern only (F7); peer same gate as parent (F8).\n\n## Bound remedy\n\n1. **Decision (closes Prefer-A body fork).** `kill_command_or_subagent` on Grok Build becomes **deny-class / attestation-gated**. Forever out-of-scope is **not** a co-equal Prefer-A success on this leftover. #3987 / `scheduler_create` is the **policy-decision pattern** (deliberate deny-class, not a silent coverage edit into `inspectMutationGates`); rewriting the audit row alone does not relieve P1.\n\n2. **Enforcement locus (not docs-only).** Ship both:\n   - (a) **Matcher deposit** so Grok PreToolUse actually selects `kill_command_or_subagent` (today it is outside mutation catalog and falls through `not-direct-write` allow).\n   - (b) **Dedicated deny-class path** (not product-write `inspectMutationGates`) that reads a green attestation before allow; otherwise refuse with a printed reason.\n   Docs / `host-tool-surface-audit.md` / `HOST_TOOL_SURFACE_AUDIT` / preamble updates are required **with** (a)+(b). Docs-only wiring reproduces P2.\n\n3. **Attestation before kill (parent and peer).** Before allow of host kill on a still-running Grok child, require green attestation:\n   - Prefer: `deft subagent:pre-cancel` exit 0 for that `agent_id` / attempt (same verb #5278 binds for Directive takeover), when that verb exists on the delivery tip.\n   - **Equivalent until #5278 lands / if verb absent:** a recorded attestation artifact under `.deft-scratch/` with closed schema fields at minimum: `agent_id`, `writer_id` (= killer), `kind` in {note,correction} or `force`, `created_at`, optional `reason`, and a short TTL. Gate consumer is the deny-class path in (2b). Soft English \"I asked first\" is not attestation.\n   Peer/sibling kill uses the **same** attestation gate as parent (Stop 1 P1 width).\n\n4. **Still-running oracle.** \"Still-running\" means the host task/subagent status for that id is non-terminal (host-reported running / in-flight). Heartbeat STALE/missing or REDISPATCH_OK alone does **not** reclassify the child as safe-to-kill-without-attestation; those paths still go through attestation or explicit force. Terminal host status may allow kill without attestation (nothing left to protect).\n\n5. **`--force` surface.** Force is a **Directive hook override** on the kill PreToolUse path (not an assumed host CLI flag the tool may never emit): allow only when the tool input / paired attestation carries an explicit force marker **and** a non-empty printed reason string; the deny path prints that reason on allow-via-force. If the host tool schema cannot carry force, the force marker lives only on the attestation artifact (`kind: force` + reason) consumed by (2b).\n\n6. **Audit row + preamble.** Move `kill_command_or_subagent` off silent forever-OOS \"process control\" into an explicit deny-class / attestation-gated record (mirror `scheduler_create` known-gap honesty until the gate ships, then record the gated disposition). Preamble / swarm skill: parents and peers MUST NOT treat documented duty as the kill safety case.\n\n7. **Acceptance / DCR (fail-closed; no soft residual).**\n   - (i) Bare host kill of a still-running Grok child without green attestation is **refused** (hook/DCR), not residual-with-duty.\n   - (ii) Green `subagent:pre-cancel` (or equivalent artifact in item 3) → kill may allow.\n   - (iii) Force path requires non-empty reason and prints it; missing reason stays refuse.\n   - (iv) Peer kill without attestation refuses the same as parent.\n   - (v) Fixture or DCR asserts (i)-(iv) against the deny-class path; document-only checks do not satisfy this item.\n\n## Non-goals (bound)\n\n- Do not re-litigate #5278 takeover pre-cancel / heartbeat wait_kind / Approach 1 arm-probe\n- Do not treat unread steer as REDISPATCH_OK (#4286)\n- Do not claim that rewriting the audit string alone is P1 relief\n- Do not route kill through product-write `inspectMutationGates` as if it had a dest path\n\n## Plain-language summary\n\nKill of a still-running Grok child becomes a real attestation-gated refuse on Grok Build for parents and peers. Docs change with the gate. Forever out-of-scope is off the table for this leftover.\r\n\n",
+          "id": 5975659398,
+          "html_url": "https://github.com/deftai/directive/issues/5281#issuecomment-5975659398",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:10:05Z",
+          "updated_at": "2026-10-04T02:10:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: 4\ncritic-role: fresh\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2\nid-ceiling: 5975659398\ndispatch-sha: dd601935bb21f37df9bf47a3b30954c18505c14f\nStop-1: 5975633882\nlean-audited: 5975659398\ntarget: #5281\nverification-path: pin-read git show dd601935bb21f37df9bf47a3b30954c18505c14f:; dest cwd-without-occupy for on-pin file reads\n\n## Pain-audit of Prefer-A Bound 5975659398 vs Stop 1 P1/P2\n\nMethod: pin-read at `dd601935bb21f37df9bf47a3b30954c18505c14f` against Stop 1 (5975633882) and Prefer-A Bound lean 5975659398. Operative audit-targets: pain-P1, pain-P2. No new Bound lean. No synthesis stamp.\n\n### Pin baseline (Stop 1 still true at dispatch-sha)\n\n- `HOST_TOOL_SURFACE_AUDIT.grok.nonMutation` records `kill_command_or_subagent: \"process control\"` (`packages/core/src/hooks/tools.ts` ~239).\n- Docs mirror: `kill_command_or_subagent` | out of scope — process control (`content/docs/host-tool-surface-audit.md` ~50).\n- Mutation catalog / deposited matchers are only directWrite / shell / spawn (`tools.ts` GROK mutation catalog + `NESTED_PRE_TOOL_MATCHERS` in `packages/core/src/init-deposit/agent-hooks.ts`); kill is absent from all three matchers.\n- Dispatcher fallthrough for tools outside that slice: `verdict: \"allow\"`, `code: \"not-direct-write\"`, message that the tool is outside the P0 direct-write/spawn/shell enforcement slice (`packages/core/src/hooks/dispatcher.ts`, `if (!isDirectWriteTool(toolName))` block).\n- Pin-wide grep: no `subagent:pre-cancel` / pre-cancel attestation verb under `packages/core` or `content`. Takeover cancel at this pin remains `task swarm:pre-dispatch -- --action cancel` after REDISPATCH_OK (`content/commands.md` ~362; `content/docs/subagent-heartbeat.md` Takeover after REDISPATCH_OK).\n- `#3987` / `scheduler_create` remains the deny-class policy-decision pattern text (`tools.ts` ~248–251; `host-tool-surface-audit.md` ~57–62), still itself ungated at this pin.\n\n### pain-P1 — support\n\nStop 1 P1: parent or peer can invoke host `kill_command_or_subagent` on a still-running Grok child with no green pre-cancel attestation (or equivalent) and no printed `--force` reason path.\n\nBound lean 5975659398 relieves P1 by construction:\n\n1. Item 1 closes the forever-OOS fork; gated deny-class is the only Prefer-A success on this leftover (absorbs round-1 F1).\n2. Item 2 names matcher deposit + dedicated deny-class path (not product-write `inspectMutationGates`), so PreToolUse actually selects kill and can refuse (absorbs F2; pin shows today's allow-by-default / no matcher).\n3. Item 3 requires green attestation for parent **and** peer, with prefer-`subagent:pre-cancel` when present and a closed equivalent artifact schema under `.deft-scratch/` until #5278 lands (absorbs F3 / F8). Soft English is excluded.\n4. Item 4 names the still-running oracle as host task/subagent non-terminal status; heartbeat STALE / REDISPATCH_OK alone do not skip attestation (absorbs F5).\n5. Item 5 places `--force` on the Directive hook/attestation path with non-empty printed reason (absorbs F4).\n6. Item 7 DCR (i)–(v) require fail-closed refuse for bare kill / peer kill / missing force reason; no soft residual (absorbs F6).\n\nVerdict: **support** (relieves P1). No blocking does-not-relieve.\n\n### pain-P2 — support\n\nStop 1 P2: HOST_TOOL_SURFACE_AUDIT / docs / preamble treat kill as nonMutation process-control document-duty as the safety case while kill stays ungated.\n\nBound lean 5975659398 relieves P2 by construction:\n\n1. Item 2 requires docs / `host-tool-surface-audit.md` / `HOST_TOOL_SURFACE_AUDIT` / preamble updates **with** matcher+deny path; docs-only wiring is explicitly called out as reproducing P2.\n2. Item 6 moves kill off silent forever-OOS \"process control\" into an explicit deny-class / attestation-gated record, using `#3987` / `scheduler_create` as the **policy-decision pattern only** (absorbs F7); rewriting the audit string alone is a non-goal.\n3. Item 7(v): fixture/DCR against the deny-class path; document-only checks do not satisfy acceptance.\n\nVerdict: **support** (relieves P2). No blocking does-not-relieve.\n\n### Sharpenings (non-harvest; carry into PR acceptance)\n\n- **S1 (P1 attestation TTL).** Item 3 says \"short TTL\" for the equivalent artifact without a concrete bound. Implement should pin a numeric TTL (or reuse an existing steer/heartbeat constant) so DCR (ii) is not fixture-blind on aged equivalents.\n- **S2 (P1 oracle observability).** Item 4's host-status oracle is the right predicate; PreToolUse payload may not carry live host task state. Implement must name the seam that reads host non-terminal status (or fail closed when status is unknowable) so DCR (i)/(iv) cannot silently skip the gate.\n- **S3 (P1 decision code).** Item 2b's dedicated deny-class path should mint a stable `HookDecisionCode` (kill/attestation-specific) rather than overloading `not-direct-write` or a generic deny, so fixtures assert the refuse class.\n\nNone of S1–S3 change the bind map or harvest; they are acceptance residue.\n\n### Footnotes\n\n- Round-1 critic 5975652566 F1–F8 are absorbed in the Bound take map; this seat re-derived the pin cites rather than trusting that map alone.\n- Equivalent attestation is required because `subagent:pre-cancel` is absent at this pin; that is expected leftover sequencing vs #5278, not a P1 hole in the Bound text.\n\n### Disposition\n\nBoth operative pains **support**. No blocking does-not-relieve. No new Bound lean. Bindable-as-posted; sharpenings S1–S3 are non-harvest PR-acceptance residue. No synthesis stamp.",
+          "id": 5975674383,
+          "html_url": "https://github.com/deftai/directive/issues/5281#issuecomment-5975674383",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:12:27Z",
+          "updated_at": "2026-10-04T02:12:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nAccepted successor lean: 5975659398\nStop-1 (denominator): 5975633882\nVerified-claims: round-1 critic 5975652566; Prefer-A Bound 5975659398\nPain-audit (bind lean): 5975674383 — support P1, support P2; bindable-as-posted; non-harvest sharpenings S1–S3 (attestation TTL numeric pin; host-status oracle seam; stable HookDecisionCode) carry into PR acceptance\ndispatch-sha: dd601935bb21f37df9bf47a3b30954c18505c14f\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\n\n## In plain English\n\nThe Bound stands. Host kill of a still-running Grok child is attestation-gated deny-class for parents and peers, with matcher + refuse path, not docs-only duty. Forever out-of-scope is closed. Ingest remains a separate operator verb.\n\n## Recording note (no Lean token)\n\nevaluatePainAuditFollowThrough({findingClasses:[\"sharpening\"], harvestChanged:false}) — residue carries into PR acceptance rather than another Recut.\r\n\n",
+          "id": 5975677663,
+          "html_url": "https://github.com/deftai/directive/issues/5281#issuecomment-5975677663",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:12:58Z",
+          "updated_at": "2026-10-04T02:12:58Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nLeftover split from design-critique #5278 (parent-steer inbox exists; cancel/kill has no query-first preflight).\n\n#5278 Prefer-A binds a fail-closed **Directive takeover** gate (`subagent:pre-cancel` before `swarm:pre-dispatch --action cancel` / replacement unblock). It deliberately does **not** claim Directive refuses host `kill_command_or_subagent` inside the current recorded `nonMutation` / out-of-scope surface.\n\nThis leftover owns the **host-kill refuse** half of Stop 1 P1 on #5278: a deliberate #3987-class policy decision to reclassify or wrap host kill so a still-running Grok child cannot be killed without a pre-cancel attestation (same pattern as merge-path-arm / scheduler_create deny-class precedents).\n\n## Why split\n\nPain-audit on #5278 (comment 5962633632, PA-1) blocked path-1 when the Prefer-A lean left host-kill as \"document parent duty\" while still citing `relieves: P1`. Stop 1 owned both surfaces in one pain id. Operator confirmed leftover split 2026-10-02.\n\n## Prefer-A (this leftover)\n\n1. Decide whether `kill_command_or_subagent` stays out-of-scope forever or becomes a deny-class / attestation-gated host tool on Grok Build.\n2. If gated: require a green `subagent:pre-cancel` attestation (or equivalent) before host kill of a still-`running` Grok child; print reason on `--force`.\n3. Wire docs / host-tool-surface-audit / preamble so parents cannot treat \"documented duty\" as the safety case.\n4. DCR or fixture: bare host kill without attestation is refused (or explicitly residual with a named control).\n\n## Non-goals\n\n- Do not re-litigate #5278 takeover pre-cancel / heartbeat wait_kind / Approach 1 arm-probe (those stay on #5278).\n- Do not treat unread steer as REDISPATCH_OK (#4286).\n\n## Refs\n\n- Parent: #5278\n- Related: #4286 (steer inbox), #3987 (worked precedent for deliberate host-tool policy / deny-class), host-tool-surface-audit `kill_command_or_subagent` nonMutation row\n- Pain-audit: https://github.com/deftai/directive/issues/5278#issuecomment-5962633632\n- Retraction/Handoff: https://github.com/deftai/directive/issues/5278#issuecomment-5962648318",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5684362591,
+        "origin": "deftai/directive#5281",
+        "id": "github.issue.5684362591"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "44df7afd758e106307fc4a678446b6c56e14c0b7cd2390d592d5480ec4dd0e2b"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/tools.ts",
+          "packages/core/src/hooks/tools.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/fixtures/README.md",
+          "packages/core/src/orchestration/subagent-kill-attestation.ts",
+          "packages/core/src/orchestration/subagent-kill-attestation.test.ts",
+          "packages/core/src/orchestration/index.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.test.ts",
+          "content/docs/host-tool-surface-audit.md",
+          "content/templates/agent-prompt-preamble.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "Tracking PR opened"
+        ],
+        "depends_on": [],
+        "conflict_group": "host-kill-attestation-gate",
+        "size": "L",
+        "model_tier": "default"
+      }
+    },
+    "id": "github.issue.5684362591",
+    "updated": "2026-10-04T02:36:02Z"
+  }
+}
