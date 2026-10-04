@@ -218,10 +218,7 @@ export const OCCUPANCY_MUTATION_SURFACE_MATRIX: readonly OccupancyMutationSurfac
     surface: "spawn-tools",
     consult: "dest-consult-or-hard-coded-allow",
     tipRelpath: "packages/core/src/hooks/dispatcher.ts",
-    tipMarkers: [
-      "consultImplementSpawnOccupancy(",
-      "const occupancyGate = isSpawnTool(toolName)",
-    ],
+    tipMarkers: ["consultImplementSpawnOccupancy(", "const occupancyGate = isSpawnTool(toolName)"],
     note:
       "SPAWN_TOOL_NAMES hard-code allow on the parent-tree write gate inside inspectMutationGates; " +
       "implement-class spawn consults destination occupancy via consultImplementSpawnOccupancy. " +
@@ -231,10 +228,7 @@ export const OCCUPANCY_MUTATION_SURFACE_MATRIX: readonly OccupancyMutationSurfac
     surface: "shell-dest-forms",
     consult: "opt-in-shellDestForms-enforce",
     tipRelpath: "packages/core/src/hooks/dispatcher.ts",
-    tipMarkers: [
-      "decideShellDestFormsThenRuntimeAuthority",
-      'shellDestForms === "enforce"',
-    ],
+    tipMarkers: ["decideShellDestFormsThenRuntimeAuthority", 'shellDestForms === "enforce"'],
     note:
       "Recognized Shell dest-forms reach inspectMutationGates only when " +
       "plan.policy.runtimeAuthority.shellDestForms is enforce (default off).",
