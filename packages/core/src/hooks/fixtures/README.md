@@ -112,6 +112,10 @@ Agents, host adapters, and tests **must** key permission outcomes off `HookDecis
 | `intent-ceiling-deny` | deny | Slash-command intent ceiling (#1193) |
 | `git-destructive-deny` | deny | Tree-wide destructive git aimed at this checkout (`reset --hard`, `clean -f`, `checkout -f` / `switch -f`, `stash drop`/`clear`) (#3917) |
 | `git-destructive-fixture` | allow | Same forms aimed at an absolute out-of-root fixture; still recorded in the durable JSONL log (#3917) |
+| `kill-attestation-deny` | deny | Host kill of still-running / status-unknown child without green attestation (#5281) |
+| `kill-attestation-ready` | allow | Green pre-cancel or equivalent kill attestation allowed host kill (#5281) |
+| `kill-force-ready` | allow | Force + non-empty printed reason allowed host kill (#5281) |
+| `kill-terminal-ready` | allow | Host task status terminal — kill without attestation (#5281) |
 
 **Stability rule:** new host edge bugs that change allow/deny class should introduce or assert a code above (or extend the typed union intentionally). Do not teach agents to parse free-form English denial prose.
 

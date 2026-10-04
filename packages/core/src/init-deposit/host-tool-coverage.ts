@@ -28,6 +28,7 @@ import {
   HOST_TOOL_SURFACE_AUDIT,
   type HostToolSurfaceAudit,
   isDirectWriteTool,
+  isKillTool,
   isShellTool,
   isSpawnTool,
   matcherHasLiteralToken,
@@ -57,15 +58,16 @@ export interface HostToolCoverageFinding {
   readonly detail: string;
 }
 
-type MutationGroup = "directWrite" | "shell" | "spawn";
+type MutationGroup = "directWrite" | "shell" | "spawn" | "kill";
 
 const CLASSIFIERS: Readonly<Record<MutationGroup, (toolName: string) => boolean>> = {
   directWrite: isDirectWriteTool,
   shell: isShellTool,
   spawn: isSpawnTool,
+  kill: isKillTool,
 };
 
-const MUTATION_GROUPS: readonly MutationGroup[] = ["directWrite", "shell", "spawn"];
+const MUTATION_GROUPS: readonly MutationGroup[] = ["directWrite", "shell", "spawn", "kill"];
 
 function auditFor(host: HookHost): HostToolSurfaceAudit | undefined {
   return (HOST_TOOL_SURFACE_AUDIT as Partial<Record<string, HostToolSurfaceAudit>>)[host];

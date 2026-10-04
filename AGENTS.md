@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=dd601935bb21 refreshed=2026-10-04T01:50:44Z session=54324f957f5e -->
+<!-- deft:managed-section v3 sha=466301b63dd1 refreshed=2026-10-04T03:44:21Z session=f8a4ae5feb67 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -286,6 +286,10 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Parent-steer inbox (#4286)
 
 ! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json`. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: content/docs/subagent-heartbeat.md (.deft/core/docs). ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
+
+## Host kill attestation (#5281)
+
+! On Grok Build, `kill_command_or_subagent` is deny-class / attestation-gated for parents **and** peers. Bare kill of a still-running (or status-unknown) child is refused by PreToolUse (`kill-attestation-deny`). Green path: tip `deft subagent:pre-cancel` when present (#5278), else equivalent `.deft-scratch/subagent-kill-attestation/<agent-id>.json` (`kind` note|correction|force, `writer_id` = killer, short TTL). Force requires a non-empty printed reason. Heartbeat STALE / REDISPATCH_OK / documented duty alone is **not** the kill safety case. ⊗ Treat HOST_TOOL_SURFACE_AUDIT process-control prose as license to kill. Depth: `docs/host-tool-surface-audit.md`.
 
 ## Review-surface precedence (#2308)
 
