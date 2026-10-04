@@ -1,10 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5318,
+  "issue": 1589,
   "surfaces": [
     "tasks/verify.yml",
+    "vitest.config.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5318: tasks/verify.yml registers verify:cohort-review-monitors. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #1589 / PR #5315: tasks/verify.yml registers verify:spec-drift; vitest.config.ts adds @deftai/directive-core/spec-reconstruct alias. Disclosure only; not #3164 authorization. Floor-exception merge cites C3 enforce leftover #5350."
 }
