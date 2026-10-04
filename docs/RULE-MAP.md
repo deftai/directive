@@ -9,7 +9,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 ## Overview
 
 - **Rules:** 24 groupings, 282 documents
-- **Tasks:** 63 namespaces, 270 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Tasks:** 64 namespaces, 272 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (704 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -433,6 +433,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | setup | Wired into the parent Taskfile.yml `includes:` block under namespace key | 1 |
 | slice-record | Retrofit a slices.jsonl entry for a hand-filed cohort (#1147 / N7). Windows note (#1231): CLI_ARGS is forwarded bare to argparse so… | 2 |
 | spec | Specification render/validate tasks (vBRIEF -> SPECIFICATION). | 3 |
+| subagent | Fail-closed query-before-cancel gate (#5278). Exit 0 only via status steer ack/observed window, heartbeat STALE/missing under grace, or… | 2 |
 | swarm | Report whether story vBRIEFs are ready for concurrent swarm allocation | 7 |
 | toolchain | Verify required maintainer toolchain is installed (go, uv, git, gh, node, pnpm) | 2 |
 | triage-actions | Accept an issue for triage. Records an audit entry. (#845 Story 3) | 8 |
