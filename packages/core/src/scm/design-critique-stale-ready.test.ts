@@ -355,6 +355,12 @@ describe("emitted recovery command from a different-origin checkout", () => {
       resolveDefaultRepo: () => {
         throw new Error("default origin must not be consulted");
       },
+      // Stub ensure so unit tests do not hit live REST (#5326).
+      ensureCatalogChip: () => ({
+        ok: true,
+        created: false,
+        skippedExisting: true,
+      }),
     });
     expect(result.exitCode).toBe(0);
     expect(client.fetchLabels(SCANNED_B, 4290)).toEqual([
