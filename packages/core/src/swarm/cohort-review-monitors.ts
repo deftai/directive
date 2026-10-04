@@ -6,18 +6,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
-import {
-  bindLivePhaseCorrectWait,
-  evaluateMergePathArm,
-} from "../pr-watch/main.js";
-import {
-  evaluateReviewMonitorGate,
-  isTier1,
-} from "../review-monitor/index.js";
+import { bindLivePhaseCorrectWait, evaluateMergePathArm } from "../pr-watch/main.js";
+import { evaluateReviewMonitorGate, isTier1 } from "../review-monitor/index.js";
+import { approach1BabysitterCommands } from "./approach1-babysitter.js";
+import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
 import { swarmLaunchManifestPath } from "./launch.js";
 import { resolveCohortFromVbriefs } from "./verify-review-clean.js";
-import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
-import { approach1BabysitterCommands } from "./approach1-babysitter.js";
 
 export type CohortArmClass = "armed-live" | "halted-explicit" | "unarmed";
 
@@ -100,10 +94,7 @@ export function writeMergePathExplicitFinishAttestation(
 }
 
 /** True when durable --explicit-finish / option-C attestation exists for this PR. */
-export function hasMergePathExplicitFinishAttestation(
-  projectRoot: string,
-  pr: number,
-): boolean {
+export function hasMergePathExplicitFinishAttestation(projectRoot: string, pr: number): boolean {
   if (!Number.isInteger(pr) || pr <= 0) return false;
   const path = join(resolve(projectRoot), mergePathExplicitFinishRelPath(pr));
   try {
@@ -122,13 +113,15 @@ export function hasMergePathExplicitFinishAttestation(
 /**
  * Parse `--prs` CSV. Empty / malformed → fail closed (exit 2 caller).
  */
-export function parsePrsCsv(raw: string | null | undefined): {
-  readonly ok: true;
-  readonly prs: number[];
-} | {
-  readonly ok: false;
-  readonly reason: string;
-} {
+export function parsePrsCsv(raw: string | null | undefined):
+  | {
+      readonly ok: true;
+      readonly prs: number[];
+    }
+  | {
+      readonly ok: false;
+      readonly reason: string;
+    } {
   if (raw === null || raw === undefined) {
     return { ok: false, reason: "missing --prs value" };
   }
@@ -375,9 +368,7 @@ function renderText(result: {
   if (result.unarmed.length === 0) {
     lines.push("Result: COHORT ARMED — all listed PRs armed-live or halted-explicit");
   } else {
-    lines.push(
-      `Result: COHORT UNARMED — ${result.unarmed.join(",")} lack live Approach 1 babysit`,
-    );
+    lines.push(`Result: COHORT UNARMED — ${result.unarmed.join(",")} lack live Approach 1 babysit`);
     lines.push("Remediation: spawn Approach 1 per unarmed (parallel OK):");
     for (const cmd of remediationCommandsForUnarmed(result.unarmed)) {
       lines.push(`  ${cmd}`);
@@ -405,7 +396,10 @@ export function verifyCohortReviewMonitors(
         prs: [],
         classifications: [],
         unarmed: [],
-        stdout: args.emitJson === true ? `${JSON.stringify({ error: parsed.reason, prs: [] }, null, 2)}\n` : "",
+        stdout:
+          args.emitJson === true
+            ? `${JSON.stringify({ error: parsed.reason, prs: [] }, null, 2)}\n`
+            : "",
         stderr: args.emitJson === true ? "" : `${msg}\n`,
         expandedFromResolver: false,
         omittedFromOperator: [],
@@ -415,8 +409,7 @@ export function verifyCohortReviewMonitors(
   }
 
   const launchManifestPrs =
-    args.launchManifestPrs ??
-    prsFromLaunchManifest(projectRoot, args.launchManifestPath ?? null);
+    args.launchManifestPrs ?? prsFromLaunchManifest(projectRoot, args.launchManifestPath ?? null);
   const openTrackingPrs = args.openTrackingPrs ?? [];
   const resolved = resolveCohortPrSet({
     operatorPrs,
@@ -445,13 +438,11 @@ export function verifyCohortReviewMonitors(
   const classifications: CohortPrClassification[] = [];
   for (const pr of resolved.prs) {
     const liveOverride =
-      args.liveArmByPr !== undefined &&
-      Object.prototype.hasOwnProperty.call(args.liveArmByPr, pr)
+      args.liveArmByPr !== undefined && Object.hasOwn(args.liveArmByPr, pr)
         ? args.liveArmByPr[pr]
         : null;
     const explicitOverride =
-      args.explicitFinishByPr !== undefined &&
-      Object.prototype.hasOwnProperty.call(args.explicitFinishByPr, pr)
+      args.explicitFinishByPr !== undefined && Object.hasOwn(args.explicitFinishByPr, pr)
         ? args.explicitFinishByPr[pr]
         : undefined;
     classifications.push(
@@ -463,9 +454,7 @@ export function verifyCohortReviewMonitors(
     );
   }
 
-  const unarmed = classifications
-    .filter((c) => c.classification === "unarmed")
-    .map((c) => c.pr);
+  const unarmed = classifications.filter((c) => c.classification === "unarmed").map((c) => c.pr);
   const exitCode = unarmed.length === 0 ? EXIT_OK : EXIT_GATE_FAILED;
   const body = {
     schema: "deft.verify.cohort-review-monitors.v1",

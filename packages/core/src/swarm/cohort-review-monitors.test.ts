@@ -1,7 +1,8 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { approach1RemediationForUnarmedPrs } from "./approach1-babysitter.js";
 import {
   cohortInventorySatisfiedByReviewClean,
   hasMergePathExplicitFinishAttestation,
@@ -10,8 +11,10 @@ import {
   verifyCohortReviewMonitors,
   writeMergePathExplicitFinishAttestation,
 } from "./cohort-review-monitors.js";
-import { parseCohortReviewMonitorsArgv, verifyCohortReviewMonitorsMain } from "./cohort-review-monitors-cli.js";
-import { approach1RemediationForUnarmedPrs } from "./approach1-babysitter.js";
+import {
+  parseCohortReviewMonitorsArgv,
+  verifyCohortReviewMonitorsMain,
+} from "./cohort-review-monitors-cli.js";
 
 function tempRoot(): string {
   return mkdtempSync(join(tmpdir(), "cohort-rm-"));
@@ -142,7 +145,9 @@ describe("verifyCohortReviewMonitors (#5318)", () => {
       briefPath,
       JSON.stringify({
         plan: {
-          references: [{ uri: "https://github.com/deftai/directive/pull/4242", type: "x-xbrief/github-pr" }],
+          references: [
+            { uri: "https://github.com/deftai/directive/pull/4242", type: "x-xbrief/github-pr" },
+          ],
         },
       }),
       "utf8",
