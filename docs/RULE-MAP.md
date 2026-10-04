@@ -10,7 +10,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 - **Rules:** 24 groupings, 282 documents
 - **Tasks:** 64 namespaces, 272 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
-- **Packs:** 6 source-of-truth packs (704 entries from rules|lessons|patterns|skills|strategies|entries)
+- **Packs:** 6 source-of-truth packs (716 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
 
@@ -19,7 +19,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | Grouping | Purpose | Docs | MUST | SHOULD | MUST NOT | SHOULD NOT | MAY |
 |---|--:|--:|--:|--:|--:|--:|--:|
 | ci-cd | CI runner and pipeline guidance, loaded when migrating or configuring CI. | 6 | 5 | 4 | 6 | 0 | 0 |
-| coding | Core software-development rules for agents: hygiene, testing, debugging, security, build output. | 10 | 198 | 57 | 141 | 2 | 5 |
+| coding | Core software-development rules for agents: hygiene, testing, debugging, security, build output. | 10 | 201 | 59 | 147 | 2 | 5 |
 | context | How to feed agents context well: examples, deterministic splits, spec deltas. | 8 | 42 | 67 | 30 | 16 | 13 |
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 199 | 16 | 140 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
@@ -471,9 +471,9 @@ Directive turns a coding agent into an auditable process: load only the guidance
 
 | Pack | Version | Rules | MUST | SHOULD | MUST_NOT |
 |---|--:|--:|--:|--:|--:|
-| `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | 49 | 0 | 0 | 0 |
+| `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | 50 | 0 | 0 | 0 |
 | `content/packs/patterns/patterns-pack-0.1.json` | 0.1 | 12 | 0 | 0 | 0 |
-| `content/packs/rules/rules-pack-0.1.json` | 0.1 | 601 | 300 | 103 | 181 |
+| `content/packs/rules/rules-pack-0.1.json` | 0.1 | 612 | 303 | 105 | 187 |
 | `content/packs/skills/skills-pack-0.1.json` | 0.1 | 25 | 0 | 0 | 0 |
 | `content/packs/strategies/strategies-pack-0.1.json` | 0.1 | 16 | 0 | 0 | 0 |
 | `content/packs/swarm-spec/swarm-spec-pack-0.1.json` | 0.1 | 1 | 0 | 0 | 0 |
