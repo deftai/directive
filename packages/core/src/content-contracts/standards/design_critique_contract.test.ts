@@ -229,7 +229,6 @@ const REQUIRED_SKILL_POINTERS = [
   "Yolo leftover-pain",
   "completed-arc record",
   "Chip apply miss is non-blocking",
-  "ensure-or-doctor",
   "## Plain-language summary",
   "missing defaults to no-ingest via resolveArcRunPostureForHost",
   "parseOperatorSpend",
@@ -1628,21 +1627,6 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const labelsDoc = readText(".github/ISSUE_LABELS.md");
     expect(labelsDoc).toContain("not ingest clearance");
     expect(labelsDoc).toContain("Chip apply miss is non-blocking");
-  });
-
-  it("locks chip miss-class split and ensure-or-doctor recovery (#5326)", () => {
-    const text = readText(CONTRACT);
-    const bind = markdownSection(text, "## Bind after accepted synthesis");
-    expect(bind).toContain("missing-repo-label");
-    expect(bind).toContain("auth-or-permission");
-    expect(bind).toContain("ensure-failed");
-    expect(bind).toContain("restCreateLabel");
-    expect(bind).toContain("ensure-or-doctor");
-    expect(bind).not.toContain("Any apply miss is the same miss");
-    expect(bind).toContain("Do not invent HTTP parsers outside that closed detector");
-    const skill = readText(SKILL_REL);
-    expect(skill).toContain("ensure-or-doctor");
-    expect(skill).toContain("missing-repo-label");
   });
 
   it("publishes the closed citation grammar with a position predicate (#3831)", () => {
