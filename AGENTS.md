@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=357ee0a4cb60 refreshed=2026-10-03T00:09:39Z session=1d2957605208 -->
+<!-- deft:managed-section v3 sha=dd601935bb21 refreshed=2026-10-04T01:50:44Z session=54324f957f5e -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -307,7 +307,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md`. One origin/PR else one-PR-unit grant (not #1378/`--allow-close`).
 ! Scope gates (#3145 / #4956 / #5192) — `deft verify:test-boundary` (warn-only), `deft verify:scope-provenance` (merge-base `file_scope` production fence; production allowance 2–5; test roots free on that fence only; membership uses continuity-resolved mint or concrete merge-base precommitment — tests/fixtures not free in membership), `deft verify:consumer-check-contract`, `deft verify:evaluator-surface`, `deft verify:class-checks`, `deft verify:observable-scope`, `deft verify:intent-constraint`, `deft verify:presentation-ceiling`, `deft verify:presentation-coverage`, `deft verify:durable-effect-acquisition`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`).
-! After proceed: no scope ceremony (#4956). No approved-scope digest on proceed; head brief does not widen the production fence; over-budget splits (no remint). Missing-mint Path B membership remediates via split or land a widened concrete brief. Class checks #4980. #4383 still open. Depth: `docs/scope-provenance.md`.
+! After proceed: no scope ceremony (#4956). No approved-scope digest on proceed; head brief does not widen the production fence; over-budget splits (no remint). Missing-mint Path B membership remediates via split or land a widened concrete brief. Class checks #4980. #4383 closed. Depth: `docs/scope-provenance.md`.
 
 ## Branch Policy Disclosure (#746)
 

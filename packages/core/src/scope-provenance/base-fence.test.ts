@@ -25,6 +25,20 @@ describe("production allowance (#4956)", () => {
 });
 
 describe("evaluateProductionScopeFence (#4956)", () => {
+  it("accepts empty merge-base file_scope with no production finding (#3715)", () => {
+    const hit = evaluateProductionScopeFence({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      baseFileScope: [],
+      changedFiles: [
+        "packages/core/src/a.ts",
+        "packages/core/src/b.ts",
+        "packages/core/src/c.ts",
+      ],
+    });
+    expect(hit).toBeNull();
+  });
+
   it("lets test-root paths pass without spending allowance", () => {
     expect(isTestOrFixturePath("packages/core/src/foo.test.ts")).toBe(true);
     const hit = evaluateProductionScopeFence({

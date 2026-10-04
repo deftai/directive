@@ -1,6 +1,6 @@
 # Scope provenance (`verify:scope-provenance`)
 
-Refs: #3145 · #3205 · #4956 · #4774 · #5192 · Related: #1310, #2944 human-origin grants, #516 file scope · class checks: #4980 · generalizes under [gate-integrity.md](./gate-integrity.md) (#3156) · UI structure: [observable-scope.md](./observable-scope.md) (#4495)
+Refs: #3145 · #3205 · #4956 · #4774 · #5192 · #3715 · Related: #1310, #2944 human-origin grants, #516 file scope · class checks: #4980 · generalizes under [gate-integrity.md](./gate-integrity.md) (#3156) · UI structure: [observable-scope.md](./observable-scope.md) (#4495)
 
 ## Problem
 
@@ -20,6 +20,12 @@ Two builds carry it:
 2. **Write fence** reads that same base brief (when present). An unreadable brief fails closed.
 
 When the brief is not on the merge base yet (first PR / undeclared scope), there is **no production fence** from this gate — class checks remain #4980. Membership still fail-closes first-PR product paths that ride with the active brief and have no continuity-resolved base brief (#5192).
+
+### Merge-base empty-skip posture (#3715)
+
+Empty or absent merge-base `file_scope` yields **no production-fence finding**. That empty-skip is **accepted posture**, not a tolerated gap to close by counting `.deft/approved-scope` engagement. Do not Bound this fence on historical approved-scope ratios, soft-warn cites, or a causal "briefs decline to declare" sentence. Membership and class checks (#4980) stay separate and are not weakened (#3156).
+
+Authoring coverage (do not overstate): nonempty `file_scope` is hard-refused on `scope:decompose` story validation and required for swarm-allocation readiness. Setup instructs nonempty declaration (#4988, supersedes closed #4383). Briefs authored without a swarm block reach neither gate; that path is ungated in code. Extending nonempty `file_scope` where absent (option b) prices as covering that no-swarm-block authoring route plus backlog — not as residual-path coverage. Raise-declaration options stay sequenced after #3714 notice (recut before ship-as-filed).
 
 ### Production fence: test roots are free
 

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "prefer-a-bound-for-3715-merge-base-empty-skip-is-accepted-postur",
+  "decision": "Prefer-A Bound for #3715: merge-base empty-skip is accepted posture",
+  "governingRule": {
+    "description": "Do not Bound production fence on approved-scope engagement counts; empty/absent merge-base file_scope yields no production finding",
+    "path": null,
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Require nonempty file_scope on every authoring path including no-swarm-block (option b)"
+    },
+    {
+      "option": "Narrow fence via class checks only (#4980 already shipped)"
+    }
+  ],
+  "whyWinner": "Honesty bind: mechanism already skips empty merge-base scope; authoring hard only on decompose/swarm-ready; setup via #4988; no-swarm-block ungated in code; raise-declaration waits on #3714 recut; no gate weakening",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "content/docs/scope-provenance.md"
+  ],
+  "timestamp": "2026-10-04T01:58:54Z",
+  "revisitTrigger": "If #3714 notice lands and declaration rates rise without empty-skip remaining accurate",
+  "tags": [
+    "scope-provenance",
+    "prefer-a"
+  ],
+  "relatedIssues": [
+    3715
+  ]
+}

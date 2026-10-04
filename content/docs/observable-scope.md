@@ -16,7 +16,7 @@ Demand predicate the evaluator already implements:
 
 The when a durable grant can satisfy: after `plan["x-directive/observableChange"]` is authored on the xBRIEF, before the UI-change PR, and only if that predicate is true. That is a later operator-present moment than parking.
 
-Sequence independently of parking: whenever a matched UI PR is about to exist under an adopted surfaces policy, collect human approval while the operator is present and after the contract is on the brief. Parking is not this when. Record #4383 as an open predecessor.
+Sequence independently of parking: whenever a matched UI PR is about to exist under an adopted surfaces policy, collect human approval while the operator is present and after the contract is on the brief. Parking is not this when. Predecessor #4383 is closed (superseded by #4988).
 
 Do not "fix when" by tightening working-tree `existsSync` at preflight. Do not invent a shared digest with approved-scope, or an oracle change. Durable store stays merge-base JSON under `.deft/observable-scope/` with `humanApproval`; chat text is never the evaluate input (#5010).
 
