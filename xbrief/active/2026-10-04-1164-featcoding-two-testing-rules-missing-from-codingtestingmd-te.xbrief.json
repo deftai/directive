@@ -124,7 +124,7 @@
       "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374."
     },
     "metadata": {
-      "productPullRequest": 5324,
+      "productPullRequest": 5323,
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
@@ -488,8 +488,7 @@
         "conflict_group": "coding-testing-integrity-mock-boundary",
         "size": "S",
         "model_tier": "default"
-      },
-      "productPullRequest": 5316
+      }
     },
     "id": "github.issue.4457067486",
     "updated": "2026-10-04T12:00:49Z"
