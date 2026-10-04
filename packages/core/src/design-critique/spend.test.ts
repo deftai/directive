@@ -390,12 +390,13 @@ describe("spend-recommend closed source (#5111)", () => {
 });
 
 describe("host-memory external-context authority (#5321)", () => {
-  it("gives unsigned and agent-inferred notes zero Personal authority", () => {
+  it("gives every host-memory provenance zero Personal authority", () => {
     expect(hostMemoryHasPersonalAuthority("unsigned")).toBe(false);
     expect(hostMemoryHasPersonalAuthority("agent-inferred")).toBe(false);
     expect(hostMemoryHasPersonalAuthority(null)).toBe(false);
     expect(hostMemoryHasPersonalAuthority(undefined)).toBe(false);
-    expect(hostMemoryHasPersonalAuthority("operator-asked")).toBe(true);
+    // operator-asked is write-consent audit, not USER.md Personal (#5321 F5)
+    expect(hostMemoryHasPersonalAuthority("operator-asked")).toBe(false);
   });
 
   it("lets spend-recommend resolve beat host-memory always-ask with disclosure", () => {
@@ -415,6 +416,33 @@ describe("host-memory external-context authority (#5321)", () => {
     );
     expect(HOST_MEMORY_EXTERNAL_CONTEXT_FAMILY).toContain("host agent memory");
     expect(HOST_MEMORY_EXTERNAL_CONTEXT_FAMILY).toContain("Warp Drive");
+  });
+
+  it("discloses when an explicit utterance token beats host-memory always-ask", () => {
+    const verdict = evaluateHostMemorySpendConflict({
+      hostMemoryAlwaysAsk: true,
+      hostMemoryProvenance: "unsigned",
+      utterance: "arc 5318 n=1",
+      spendRecommend: null,
+    });
+    expect(verdict.spendParse).toEqual({ kind: "resolved", spend: N1_SPEND });
+    expect(verdict.disclosure).toBe(
+      `${HOST_MEMORY_CONFLICT_DISCLOSURE_PREFIX} spend (utterance token → spend-ask: resolved)`,
+    );
+  });
+
+  it("credits the utterance token when both token and spend-recommend resolve", () => {
+    const verdict = evaluateHostMemorySpendConflict({
+      hostMemoryAlwaysAsk: true,
+      hostMemoryProvenance: "operator-asked",
+      utterance: "arc 5318 n=1",
+      spendRecommend: N3_SPEND,
+    });
+    expect(verdict.hostMemoryPersonalAuthority).toBe(false);
+    expect(verdict.spendParse).toEqual({ kind: "resolved", spend: N1_SPEND });
+    expect(verdict.disclosure).toBe(
+      `${HOST_MEMORY_CONFLICT_DISCLOSURE_PREFIX} spend (utterance token → spend-ask: resolved)`,
+    );
   });
 
   it("does not invent disclosure when host memory is silent", () => {

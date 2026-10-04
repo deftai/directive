@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Host-memory Personal authority residual (#5321).** `hostMemoryHasPersonalAuthority` always returns false (USER.md remains sole Personal SoT; `operator-asked` is write-consent audit only). `evaluateHostMemorySpendConflict` discloses whenever non-Personal host-memory always-ask loses to a closed spend resolve, and credits utterance token over spend-recommend when both apply. Tracking #5321.
+
 - chore(xbrief): widen #1164 file_scope to include docs/RULE-MAP.md (Path B precommitment for product land).
 
 ### Added
