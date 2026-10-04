@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   approach1BabysitterCommands,
+  approach1RemediationForUnarmedPrs,
   formatApproach1BabysitterCard,
   formatApproach1BabysitterOneLiner,
 } from "./approach1-babysitter.js";
@@ -27,5 +28,12 @@ describe("approach1 babysitter one-liner (#5219)", () => {
     expect(card).toContain("writeHostCapabilityStamp");
     expect(card).toContain("%TEMP%");
     expect(card).toContain("Bounded deny");
+  });
+
+  it("cohort remediation emits Approach 1 commands per unarmed PR (#5318)", () => {
+    const cmds = approach1RemediationForUnarmedPrs([7, 8]);
+    expect(cmds).toHaveLength(6);
+    expect(cmds[0]).toContain("--pr 7");
+    expect(cmds[3]).toContain("--pr 8");
   });
 });

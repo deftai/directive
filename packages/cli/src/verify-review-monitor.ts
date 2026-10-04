@@ -18,6 +18,7 @@ import {
   spawnRedirect,
   verifyResultToJson,
 } from "@deftai/directive-core/review-monitor";
+import { writeMergePathExplicitFinishAttestation } from "@deftai/directive-core/swarm";
 
 interface ParsedArgs {
   pr: number | null;
@@ -213,6 +214,12 @@ export function run(argv: readonly string[]): number {
 
   let arm: MergePathArmResult | null = null;
   if (args.mergePathArm) {
+    // Durable option-C attestation for cohort inventory halted-explicit (#5318).
+    if (args.explicitFinish) {
+      writeMergePathExplicitFinishAttestation(resolve(args.projectRoot), args.pr, {
+        source: "verify:review-monitor --explicit-finish",
+      });
+    }
     // Bind --live-wait to lease (#5018) + process-liveness heartbeat (#5020) on Tier 1.
     // spawn_subagent identity join is already applied in evaluateReviewMonitorGate (#5219).
     const leaseEvidence = result.monitorRecord !== null;

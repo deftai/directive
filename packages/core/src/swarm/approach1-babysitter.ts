@@ -69,6 +69,22 @@ export function formatApproach1BabysitterCard(
 }
 
 /**
+ * Cohort inventory remediation (#5318): one Approach 1 babysitter per unarmed PR.
+ * Occupancy serializes product writes only — parallel babysitters are OK.
+ */
+export function approach1RemediationForUnarmedPrs(
+  unarmedPrs: readonly number[],
+  monitorAgentIdFor: (pr: number) => string = (pr) => `approach1-${pr}`,
+  platformPrimitive: PlatformPrimitive = "spawn_subagent",
+): readonly string[] {
+  const out: string[] = [];
+  for (const pr of unarmedPrs) {
+    out.push(...approach1BabysitterCommands(pr, monitorAgentIdFor(pr), platformPrimitive));
+  }
+  return out;
+}
+
+/**
  * Production write path for the durable host→CLI stamp before CLI verify/watch (#5229).
  * Prefer calling this (or `review-monitor:register`, which also stamps) before spawning
  * a bare CLI subprocess that lacks GROK_BUILD / DEFT_HAS_SPAWN_SUBAGENT.
