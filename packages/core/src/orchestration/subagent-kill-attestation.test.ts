@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -6,6 +6,7 @@ import {
   DEFAULT_KILL_ATTESTATION_TTL_SECONDS,
   classifyKillHostStatus,
   evaluateKillAttestation,
+  parseKillAttestationFile,
   writeKillAttestation,
 } from "./subagent-kill-attestation.js";
 
@@ -115,7 +116,7 @@ describe("subagent kill attestation (#5281)", () => {
     });
   });
 
-  it("force attestation kind requires reason and prints it", () => {
+  it("force attestation kind requires reason, writer match, and prints it", () => {
     const dir = join(tempDir(), "attest");
     expect(() =>
       writeKillAttestation(dir, {
@@ -126,13 +127,21 @@ describe("subagent kill attestation (#5281)", () => {
     ).toThrow(/reason/);
     writeKillAttestation(dir, {
       agentId: "child-1",
-      writerId: "anyone",
+      writerId: "parent-1",
       kind: "force",
       reason: "operator force after hung child",
     });
+    expect(
+      evaluateKillAttestation({
+        agentId: "child-1",
+        writerId: "different-killer",
+        attestationDir: dir,
+        hostStatus: "running",
+      }).refuse_reason,
+    ).toBe("writer-mismatch");
     const verdict = evaluateKillAttestation({
       agentId: "child-1",
-      writerId: "different-killer",
+      writerId: "parent-1",
       attestationDir: dir,
       hostStatus: "running",
     });
@@ -141,6 +150,30 @@ describe("subagent kill attestation (#5281)", () => {
       clear_reason: "force",
       printed_force_reason: "operator force after hung child",
     });
+  });
+
+  it("rejects hand-authored attestation with unbounded lifetime", () => {
+    const dir = join(tempDir(), "attest-ttl");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "child-1.json"),
+      `${JSON.stringify(
+        {
+          schema: "deft.subagent.kill-attestation.v1",
+          agent_id: "child-1",
+          writer_id: "parent-1",
+          kind: "note",
+          created_at: "2026-01-01T00:00:00Z",
+          expires_at: "2027-01-01T00:00:00Z",
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    const parsed = parseKillAttestationFile(join(dir, "child-1.json"));
+    expect(parsed.record).toBeNull();
+    expect(parsed.failures.join(" ")).toMatch(/lifetime/i);
   });
 
   it("terminal host status allows without attestation", () => {

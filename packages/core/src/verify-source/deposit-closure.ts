@@ -156,7 +156,7 @@ export function evaluateDepositClosureFromRepo(repoRoot: string): StagedDepositC
     const reason = err instanceof Error ? err.message : String(err);
     return {
       code: EXIT_CONFIG,
-      message: "verify_deposit_closure: " + reason + "\n  " + REMEDIATION,
+      message: `verify_deposit_closure: ${reason}\n  ${REMEDIATION}`,
       stream: "stderr",
       missing: [],
       checked: 0,
@@ -189,7 +189,7 @@ export function evaluateDepositClosureAtRoot(
       const reason = err instanceof Error ? err.message : String(err);
       return {
         code: EXIT_CONFIG,
-        message: "verify_deposit_closure: " + reason + "\n  " + REMEDIATION,
+        message: `verify_deposit_closure: ${reason}\n  ${REMEDIATION}`,
         stream: "stderr",
         missing: [],
         checked: 0,

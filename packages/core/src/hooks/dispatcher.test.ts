@@ -6580,8 +6580,26 @@ describe("kill_command_or_subagent attestation gate (#5281 Prefer-A Bound)", () 
     });
   });
 
-  it("terminal host status allows kill without attestation", () => {
+  it("terminal host status allows kill without attestation via host oracle seam", () => {
     const project = mkdtempSync(join(tmpdir(), "kill-term-"));
+    hookTemps.push(project);
+    const decision = decideHook(
+      {
+        ...killPayload({ task_id: "child-1", status: "running" }),
+        projectRoot: project,
+      },
+      readySeams({
+        resolveKillHostStatus: () => "terminal",
+      }),
+    );
+    expect(decision).toMatchObject({
+      verdict: "allow",
+      code: "kill-terminal-ready",
+    });
+  });
+
+  it("caller-claimed tool_input status does not clear attestation without host oracle", () => {
+    const project = mkdtempSync(join(tmpdir(), "kill-spoof-status-"));
     hookTemps.push(project);
     const decision = decideHook(
       {
@@ -6591,9 +6609,42 @@ describe("kill_command_or_subagent attestation gate (#5281 Prefer-A Bound)", () 
       readySeams(),
     );
     expect(decision).toMatchObject({
-      verdict: "allow",
-      code: "kill-terminal-ready",
+      verdict: "deny",
+      code: "kill-attestation-deny",
     });
+  });
+
+  it("tool_input writer_id cannot spoof killer identity over DEFT_SESSION_ID", () => {
+    const project = mkdtempSync(join(tmpdir(), "kill-spoof-writer-"));
+    hookTemps.push(project);
+    const attestDir = join(project, ".deft-scratch", "subagent-kill-attestation");
+    writeKillAttestation(attestDir, {
+      agentId: "child-1",
+      writerId: "peer-9",
+      kind: "note",
+    });
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: project,
+        payload: {
+          toolName: "kill_command_or_subagent",
+          tool_input: {
+            task_id: "child-1",
+            status: "running",
+            writer_id: "peer-9",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({
+      verdict: "deny",
+      code: "kill-attestation-deny",
+    });
+    expect(decision.message).toMatch(/writer_id|attestation/i);
   });
 
   it("heartbeat STALE / REDISPATCH_OK alone does not skip attestation", () => {
@@ -6609,5 +6660,29 @@ describe("kill_command_or_subagent attestation gate (#5281 Prefer-A Bound)", () 
       );
       expect(decision.code).toBe("kill-attestation-deny");
     }
+  });
+
+  it("renders Grok force-allow with printed reason on tool.before", () => {
+    const project = mkdtempSync(join(tmpdir(), "kill-force-render-"));
+    hookTemps.push(project);
+    const decision = decideHook(
+      {
+        ...killPayload({
+          task_id: "child-1",
+          status: "running",
+          force: true,
+          reason: "hung after REDISPATCH_OK",
+        }),
+        projectRoot: project,
+      },
+      readySeams(),
+    );
+    expect(decision.code).toBe("kill-force-ready");
+    const wire = JSON.parse(renderHostDecision("grok", decision)) as {
+      decision: string;
+      reason: string;
+    };
+    expect(wire.decision).toBe("allow");
+    expect(wire.reason).toContain("hung after REDISPATCH_OK");
   });
 });

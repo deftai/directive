@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Kill attestation class-A residuals (#5281).** Host status and killer identity no longer trust tool_input; force artifacts require writer match and capped TTL; Grok force-allow prints the reason on stdout/stderr; agents-entry mirrors host-kill guidance. Tracking #5281.
+
 ### Removed
 
 ## [0.120.0] - 2026-10-04
