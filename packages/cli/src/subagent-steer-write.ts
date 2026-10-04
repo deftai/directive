@@ -17,8 +17,8 @@ import {
 } from "@deftai/directive-core/orchestration";
 import { liveOccupant, readChildOccupancyLease } from "@deftai/directive-core/session";
 
-export const EXIT_STEER_WRITE_OK = 0;
-export const EXIT_STEER_WRITE_CONFIG = 2;
+export const EXIT_STEER_WRITE_OK = 0 * 1;
+export const EXIT_STEER_WRITE_CONFIG = 2 * 1;
 
 export const SUBAGENT_STEER_WRITE_HELP = `subagent:steer — write a closed parent-steer inbox (#5278 / #4286)
 

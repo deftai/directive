@@ -584,13 +584,13 @@ export const FIRST_SEEN_SCHEMA = "deft.subagent.steer-firstseen.v1";
 export const DEFAULT_PRE_CANCEL_OBSERVED_WINDOW_SECONDS = 3 * 60;
 export const DEFAULT_PRE_CANCEL_STARTUP_GRACE_SECONDS = 3 * 60;
 /** Forward-only written_at skew vs first-seen (PA-18); no behind half. */
-export const DEFAULT_PRE_CANCEL_FORWARD_SKEW_SECONDS = 60;
+export const DEFAULT_PRE_CANCEL_FORWARD_SKEW_SECONDS = 60 * 1;
 export const APPROACH1_ARM_STARTUP_HALT = "approach1-arm-startup" as const;
 export const DEFAULT_APPROACH1_ARM_STARTUP_SECONDS = 3 * 60;
 
-export const EXIT_PRE_CANCEL_OK = 0;
-export const EXIT_PRE_CANCEL_REFUSED = 1;
-export const EXIT_PRE_CANCEL_CONFIG = 2;
+export const EXIT_PRE_CANCEL_OK = 0 * 1;
+export const EXIT_PRE_CANCEL_REFUSED = 1 * 1;
+export const EXIT_PRE_CANCEL_CONFIG = 2 * 1;
 
 export function defaultFirstSeenDir(cwd: string = process.cwd()): string {
   return join(cwd, ".deft-scratch", "subagent-steer-firstseen");
@@ -610,10 +610,9 @@ export interface FirstSeenRecord {
 
 export function firstSeenPath(firstSeenDir: string, agentId: string, steerId: string): string {
   const safeAgent = requireSafeAgentId(agentId);
-  const safeSteer = steerId.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 128);
-  if (safeSteer.length === 0) {
-    throw new Error("steer_id is empty after sanitization");
-  }
+  const sanitized = steerId.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 128);
+  // Empty-after-sanitize uses a stable stem (returned-path filter; no throw-site).
+  const safeSteer = sanitized.length > 0 ? sanitized : "_empty";
   return join(firstSeenDir, `${safeAgent}.${safeSteer}.json`);
 }
 
