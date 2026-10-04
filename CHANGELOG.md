@@ -14,8 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- Windows presentation-coverage snapshot fixture uses git mode 120000 plumbing (#5285).
+### Changed
+- Prefer-A Bound brief activated for #5285 (Windows presentation-coverage snapshot fixture; product delivery on Tracking PR).
 
 ### Added
 
