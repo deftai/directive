@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { isHumanOriginKind, isRejectedOriginKind } from "../authz/origin.js";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import {
   ENV_EXPECTED_GITHUB_LOGIN,
@@ -22,8 +23,15 @@ import {
   stripArtifactSuffix,
 } from "../layout/resolve.js";
 import { evaluateWorkerInstallationPermissions } from "../one-pr-unit/dest-token.js";
+import {
+  buildReport,
+  renderReport,
+  reportBlocking,
+  type Candidate,
+} from "../orchestration/verify-judgment-gates.js";
 import { readPlanSequence, verifyPlanTarget } from "../plan-sequence/index.js";
 import type { PlanSequenceVerifyResult } from "../plan-sequence/types.js";
+import { DEFT_ALLOW_JUDGMENT_GATE_ENFORCE } from "../policy/capacity.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { evaluate as preflightEvaluate } from "../preflight/evaluate.js";
 import { applyWorktreeOccupancy, liveOccupant, releaseOccupancy } from "../session/occupancy.js";
@@ -77,6 +85,156 @@ export type ReadinessGateFn = (
   projectRoot: string,
   options?: { soloHeadless?: boolean },
 ) => { exitCode: number; report: string };
+
+/** Collect plan.metadata.swarm.file_scope paths from a resolved story. */
+export function storyFileScopePaths(story: ResolvedStory): string[] {
+  try {
+    const raw = JSON.parse(readFileSync(story.path, "utf8")) as {
+      plan?: { metadata?: { swarm?: { file_scope?: unknown } } };
+    };
+    const scope = raw.plan?.metadata?.swarm?.file_scope;
+    if (!Array.isArray(scope)) {
+      return [];
+    }
+    return scope.filter((p): p is string => typeof p === "string" && p.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Clearance authenticity (#1511 Prefer-A §4): caller-supplied actor/reviewer
+ * strings alone are not authority. Require an independent approval source
+ * (grant_id / approval_ref) or a human-origin kind stamp.
+ */
+export function filterAuthenticClearances(entries: readonly Record<string, unknown>[]): {
+  authentic: Record<string, unknown>[];
+  rejected: Record<string, unknown>[];
+} {
+  const authentic: Record<string, unknown>[] = [];
+  const rejected: Record<string, unknown>[] = [];
+  for (const entry of entries) {
+    const grantId =
+      (typeof entry.grant_id === "string" && entry.grant_id.trim()) ||
+      (typeof entry.approval_ref === "string" && entry.approval_ref.trim()) ||
+      null;
+    const originKindRaw =
+      (typeof entry.origin_kind === "string" && entry.origin_kind) ||
+      (typeof entry.approval_origin === "string" && entry.approval_origin) ||
+      (typeof entry.grant_origin_kind === "string" && entry.grant_origin_kind) ||
+      null;
+    const originKind = originKindRaw !== null ? originKindRaw.trim() : null;
+
+    if (grantId === null && originKind === null) {
+      rejected.push(entry);
+      continue;
+    }
+    if (originKind !== null && isRejectedOriginKind(originKind)) {
+      rejected.push(entry);
+      continue;
+    }
+    if (originKind !== null && !isHumanOriginKind(originKind)) {
+      rejected.push(entry);
+      continue;
+    }
+    authentic.push(entry);
+  }
+  return { authentic, rejected };
+}
+
+export interface JudgmentClearancePostureResult {
+  readonly ok: boolean;
+  readonly exitCode: number;
+  readonly stderr: string;
+  readonly advisory: string;
+  readonly posture: string;
+  readonly bypassed: boolean;
+}
+
+/**
+ * Wire swarm:launch judgment-clearance posture into the judgment-gate engine
+ * (#1511 Prefer-A §2 / P2-a). Enforce refuses uncleared block-tier matches;
+ * advise surfaces and proceeds. Clearance ≠ emergency bypass.
+ */
+export function evaluateJudgmentClearancePosture(options: {
+  projectRoot: string;
+  resolved: readonly ResolvedStory[];
+  gatePosture: string;
+  gateClearances: readonly Record<string, unknown>[];
+  environ?: NodeJS.ProcessEnv;
+}): JudgmentClearancePostureResult {
+  const envBag = options.environ ?? process.env;
+  const bypassed =
+    envBag[DEFT_ALLOW_JUDGMENT_GATE_ENFORCE] === "1" ||
+    envBag[DEFT_ALLOW_JUDGMENT_GATE_ENFORCE] === "true";
+  const posture = bypassed ? GATE_ADVISE : options.gatePosture;
+
+  const paths: string[] = [];
+  const seen = new Set<string>();
+  for (const story of options.resolved) {
+    for (const p of storyFileScopePaths(story)) {
+      if (!seen.has(p)) {
+        seen.add(p);
+        paths.push(p);
+      }
+    }
+  }
+
+  const { authentic, rejected } = filterAuthenticClearances(options.gateClearances);
+  const candidate: Candidate = {
+    paths,
+    labels: [],
+    body: "",
+    state: "open",
+    updated_at: null,
+  };
+  const report = buildReport(options.projectRoot, candidate, {
+    posture,
+    clearances: authentic,
+  });
+  const rendered = renderReport(report);
+  const advisoryParts: string[] = [];
+  if (rejected.length > 0) {
+    advisoryParts.push(
+      `judgment-clearance: rejected ${rejected.length} caller-supplied actor/reviewer-only ` +
+        "clearance(s) as non-authority (Prefer-A clearance authenticity)",
+    );
+  }
+  if (bypassed) {
+    advisoryParts.push(
+      `judgment-clearance: ${DEFT_ALLOW_JUDGMENT_GATE_ENFORCE} set -- enforce downgraded to advise ` +
+        "(named emergency bypass; clearance ≠ emergency exception)",
+    );
+  }
+  advisoryParts.push(rendered);
+
+  const blocking = reportBlocking(report);
+  if (posture === GATE_ENFORCE && blocking.length > 0) {
+    const ids = blocking.map((o) => o.gate_id).join(", ");
+    return {
+      ok: false,
+      exitCode: EXIT_GATE_FAILED,
+      stderr:
+        `Error: swarm:launch --enforce-gates refused -- ${blocking.length} uncleared ` +
+        `block-tier judgment gate(s): ${ids}. Record an independently authenticated clearance ` +
+        `(grant_id / human-origin), drop the matching file_scope path, or set ` +
+        `${DEFT_ALLOW_JUDGMENT_GATE_ENFORCE}=1 for emergency advise recovery.\n` +
+        `${advisoryParts.join("\n")}\n`,
+      advisory: advisoryParts.join("\n"),
+      posture,
+      bypassed,
+    };
+  }
+
+  return {
+    ok: true,
+    exitCode: EXIT_OK,
+    stderr: "",
+    advisory: advisoryParts.join("\n"),
+    posture,
+    bypassed,
+  };
+}
 export type WorktreeResolverFn = (
   mapping: readonly Record<string, unknown>[],
   baseBranch: string,
@@ -1388,7 +1546,21 @@ export function swarmLaunch(args: LaunchArgs): {
 
   const ordered = orderCohort(resolved, projectRoot);
   const gatePosture = args.enforceGatesFlag ? GATE_ENFORCE : GATE_ADVISE;
-  void gatePosture;
+  // Prefer-A §2 / P2-a: consume gatePosture via the judgment-gate engine.
+  const judgmentPosture = evaluateJudgmentClearancePosture({
+    projectRoot,
+    resolved: ordered,
+    gatePosture,
+    gateClearances,
+    environ: launchEnviron,
+  });
+  if (!judgmentPosture.ok) {
+    return {
+      exitCode: judgmentPosture.exitCode,
+      stdout: "",
+      stderr: judgmentPosture.stderr,
+    };
+  }
 
   const dispatchKind =
     ordered.length > 1 || (args.group !== undefined && args.group !== null && args.group.length > 0)

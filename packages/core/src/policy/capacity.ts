@@ -339,3 +339,169 @@ export function classifyBucket(
   }
   return [defaultBucket, SOURCE_DEFAULT];
 }
+
+/** Canonical observation engines for flip artifacts (#1511 Prefer-A / P1-b). */
+export const OBSERVATION_ENGINE_CAPACITY = "policy/capacity.ts";
+export const OBSERVATION_ENGINE_AUTONOMY = "policy/autonomy.ts";
+
+export const PROMOTION_GATE_CAPACITY = "verify:capacity";
+export const PROMOTION_GATE_JUDGMENT = "verify:judgment-gates";
+export const PROMOTION_GATE_AUTONOMY = "earned-autonomy-dial";
+export const PROMOTION_GATE_SWARM_JUDGMENT = "swarm:launch-judgment-clearance";
+
+/** Named emergency bypass for swarm judgment-clearance enforce (#1511). */
+export const DEFT_ALLOW_JUDGMENT_GATE_ENFORCE = "DEFT_ALLOW_JUDGMENT_GATE_ENFORCE";
+
+export const GATE_PROMOTION_SINK_REL = ".deft/gate-promotion";
+export const FLIP_DECISION_SCHEMA = "deft.gate-promotion.flip.v1" as const;
+
+export type PromotionDisposition = "hold" | "observe" | "promote" | "rollback";
+
+/**
+ * Per-gate observation→promotion contract (#1511 Prefer-A).
+ * Opening an observation window is not promotion (P1-a).
+ */
+export interface GatePromotionContract {
+  readonly gate_id: string;
+  readonly denominator_producer: string | null;
+  readonly false_positive_numerator: string | null;
+  readonly observation_engine: string | null;
+  readonly durable_sink: string;
+  readonly disposition: PromotionDisposition;
+  readonly observation_window_open: boolean;
+  readonly hold_reason: string | null;
+  readonly emergency_bypasses: readonly string[];
+}
+
+export interface FlipDecisionArtifact {
+  readonly schema: typeof FLIP_DECISION_SCHEMA;
+  readonly gate_id: string;
+  readonly decision: PromotionDisposition;
+  readonly observation_engine: string | null;
+  readonly denominator_count: number | null;
+  readonly false_positive_count: number | null;
+  readonly min_sample_size: number;
+  readonly recorded_at: string;
+  readonly rationale: string;
+}
+
+/** Disposition map for the four #1419 surfaces under Prefer-A + strike footnotes. */
+export function defaultPromotionContracts(options?: {
+  swarmJudgmentPostureWired?: boolean;
+}): readonly GatePromotionContract[] {
+  const swarmWired = options?.swarmJudgmentPostureWired ?? false;
+  return [
+    {
+      gate_id: PROMOTION_GATE_CAPACITY,
+      denominator_producer: "classified_completions",
+      // P1-a: wrong-capacity-block numerator remains unnamed → hold before enforce.
+      false_positive_numerator: null,
+      observation_engine: OBSERVATION_ENGINE_CAPACITY,
+      durable_sink: GATE_PROMOTION_SINK_REL,
+      disposition: "observe",
+      observation_window_open: true,
+      hold_reason:
+        "capacity observation window may open, but false-positive numerator for a wrong " +
+        "capacity block remains unnamed (P1-a); window is not promotion",
+      emergency_bypasses: [],
+    },
+    {
+      gate_id: PROMOTION_GATE_JUDGMENT,
+      denominator_producer: null,
+      false_positive_numerator: null,
+      observation_engine: null,
+      durable_sink: GATE_PROMOTION_SINK_REL,
+      disposition: "hold",
+      observation_window_open: false,
+      hold_reason:
+        "judgment-gates need an outcome/firing log producer distinct from clearance JSONL " +
+        "before a window opens; clearance silence is not a clean FP record",
+      emergency_bypasses: [DEFT_ALLOW_JUDGMENT_GATE_ENFORCE],
+    },
+    {
+      gate_id: PROMOTION_GATE_AUTONOMY,
+      denominator_producer: null,
+      false_positive_numerator: null,
+      observation_engine: OBSERVATION_ENGINE_AUTONOMY,
+      durable_sink: GATE_PROMOTION_SINK_REL,
+      disposition: "hold",
+      observation_window_open: false,
+      hold_reason:
+        "autonomy dial zeros mean absent decision-event producer, not a clean observation " +
+        "window (P3-a); auto-apply struck — recommend-only",
+      emergency_bypasses: [],
+    },
+    {
+      gate_id: PROMOTION_GATE_SWARM_JUDGMENT,
+      denominator_producer: swarmWired ? "swarm_launch_judgment_evaluations" : null,
+      false_positive_numerator: null,
+      observation_engine: null,
+      durable_sink: GATE_PROMOTION_SINK_REL,
+      disposition: swarmWired ? "observe" : "hold",
+      observation_window_open: swarmWired,
+      hold_reason: swarmWired
+        ? "swarm judgment-clearance posture wired; FP numerator still unnamed — observe only; " +
+          "do not default --enforce-gates"
+        : "swarm:launch gatePosture not yet consumed by the judgment-gate engine (P2-a)",
+      emergency_bypasses: [DEFT_ALLOW_JUDGMENT_GATE_ENFORCE],
+    },
+  ];
+}
+
+/**
+ * Record a flip decision from a promotion contract + evidence.
+ * Insufficient / unnamed FP evidence MUST hold (Prefer-A §1).
+ */
+export function evaluatePromotionDecision(
+  contract: GatePromotionContract,
+  evidence: {
+    denominator_count?: number | null;
+    false_positive_count?: number | null;
+    min_sample_size?: number;
+    now?: Date;
+  } = {},
+): FlipDecisionArtifact {
+  const minSample = evidence.min_sample_size ?? DEFAULT_CAPACITY_MIN_SAMPLE_SIZE;
+  const denom =
+    evidence.denominator_count === undefined ? null : evidence.denominator_count;
+  const fp =
+    evidence.false_positive_count === undefined ? null : evidence.false_positive_count;
+  const recordedAt = (evidence.now ?? new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+
+  let decision: PromotionDisposition = "hold";
+  let rationale =
+    contract.hold_reason ?? `gate ${contract.gate_id} held by promotion contract`;
+
+  if (contract.disposition === "hold" || !contract.observation_window_open) {
+    decision = "hold";
+  } else if (contract.false_positive_numerator === null) {
+    decision = "hold";
+    rationale =
+      `observation window open for ${contract.gate_id}, but false-positive numerator is ` +
+      "unnamed; refusing promote (P1-a)";
+  } else if (denom === null || denom < minSample) {
+    decision = "hold";
+    rationale = `insufficient denominator (${String(denom)} < minSampleSize=${minSample})`;
+  } else if (fp === null) {
+    decision = "hold";
+    rationale = "false-positive count unclassified; insufficient evidence MUST hold promotion";
+  } else {
+    // Contract binds the promote shape; Prefer-A does not auto-land enforce here.
+    decision = "hold";
+    rationale =
+      "evidence present under named producers, but promote requires an explicit recorded " +
+      `human flip citing ${contract.observation_engine ?? "the gate observation engine"}`;
+  }
+
+  return {
+    schema: FLIP_DECISION_SCHEMA,
+    gate_id: contract.gate_id,
+    decision,
+    observation_engine: contract.observation_engine,
+    denominator_count: denom,
+    false_positive_count: fp,
+    min_sample_size: minSample,
+    recorded_at: recordedAt,
+    rationale,
+  };
+}
