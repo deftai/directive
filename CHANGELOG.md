@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(xbrief): widen #1164 file_scope to include docs/RULE-MAP.md (Path B precommitment for product land).
 
 ### Added
+- **Mint approved-scope for #5233 (Path B membership).** Operator TTY stamp of merge-base `.deft/approved-scope/github.issue.5668365121.json` (+ intent preimage) so product PR #5325 can resolve continuity-keyed membership after the activation brief lands. Mint-only — no product code. Tracking #5233.
+
 - **Activate #5321 Prefer-A Bound brief with concrete file_scope.** Lands the active brief on master so the product PR can pass verify:scope-provenance membership (Path B / #5192). Tracking #5321.
 
 - **Host agent memory is external context, not USER.md (#5321).** agents-entry Session routing names host agent memory (Grok memory-v2 / Cursor / Claude / equiv) in the Warp Drive / MCP / prompt-injected family; USER.md Personal remains the sole Personal SoT. Unsigned host-memory preference notes have zero Personal authority; closed skill/contract fields win with a one-line disclosure. Closed conflict lock: `evaluateHostMemorySpendConflict` — host-memory "always ask" loses to design-critique `spend-recommend` → `spend-ask: resolved`. Inter-run-learning §3 excludes host agent-memory products as non-SoT (cites analysis §4.1 / §4.4). Promotion into USER.md Personal only on explicit confirm; no rewrite/delete-all/auto-sync of host memory. agentsMdBudget absoluteMaxBytes 25500→26200 for the Session routing land. Tracking #5321.
