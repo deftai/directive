@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Occupancy stays advisory coordination with pinned lease lifetime (#3729).** Documents lease-versus-ritual timing, which mutation paths consult occupancy, and the free-tree fail-open / unknown-identity fail-closed contract. Tracking #3729.
 
 ### Changed
+- **Leftover-complete #3729 after product #5290.** Retire the active occupancy Prefer-A brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #3729.
 - Remove the stale proposed scope brief for #3729 so activation PR #5287 can add the active brief alone (#5299).
 
 - **Activate #5285 Prefer-A Bound brief with concrete file_scope (#5285).** Lands the continuity-resolved active brief (Path B membership precommitment) so product PR work can pass scope-provenance. Tracking #5285.
