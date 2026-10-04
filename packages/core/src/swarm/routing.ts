@@ -22,6 +22,12 @@ import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 /**
  * The fixed worker-role vocabulary (reused from #1531). No separate tier
  * vocabulary to start; decisions are strictly per-role.
+ *
+ * Critics / process-only seats are intentionally absent (#3703 P2): do not add
+ * critic here; critic auditability stays on the comment `model:` lead.
+ * Pre-dispatch gating uses DEFAULT_GATED_ROLES / ROUTING_GATED_ROLE_DOMAIN, an
+ * explicit subset (default leaf-implementation only) — narrower than AGENTS
+ * "ANY sub-agent" doctrine; docs must record that subset gap.
  */
 export const SWARM_WORKER_ROLES = [
   "leaf-implementation",
@@ -61,7 +67,15 @@ export const HOST_DETECT_PROBE_NAMES = [
   "DEFT_PROBE_SPAWN_SUBAGENT",
 ] as const;
 
-/** Providers whose per-role model must be decided before sub-agent dispatch (#1739 / #1877 / #2875 / #3134). */
+/**
+ * Providers whose per-role model must be decided before sub-agent dispatch
+ * (#1739 / #1877 / #2875 / #3134 / #3703).
+ *
+ * Honesty (#3703): this set is narrower than LAUNCHER_FAMILIES (grok, claude,
+ * codex in hooks/launcher-argv.ts). Codex is argv-classified but not a gated
+ * dispatch provider until deliberately added. HELP_TEXT for verify:story-ready
+ * / verify:routing must list this set, not a stale "cursor or grok" subset.
+ */
 export const ROUTING_GATED_DISPATCH_PROVIDERS = new Set<string>([
   "cursor",
   "grok",

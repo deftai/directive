@@ -108,8 +108,11 @@ const HELP_TEXT = `usage: verify-story-ready [--vbrief-path PATH] [--project-roo
                           [--skip-routing] [--roles ROLE[,ROLE...]]
 
 Deterministic story-start Gate 0 (#1378). When the active dispatch provider is
-cursor or grok, chains verify:routing (#1877 single-dispatch enforcement).
-Three-state exit: 0 ready / 1 not ready / 2 config error.
+one of ROUTING_GATED_DISPATCH_PROVIDERS (claude, cursor, grok, grok-bot,
+openclaw), chains verify:routing (#1877 / #3703). --skip-routing records a
+silent opt-out. Session-start --advise remains additive disclosure only and
+does not relieve honor-at-dispatch. Three-state exit: 0 ready / 1 not ready /
+2 config error.
 `;
 
 function emitJson(
