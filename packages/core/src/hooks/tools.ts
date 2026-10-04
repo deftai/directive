@@ -48,6 +48,12 @@ export const SHELL_TOOL_NAMES = [
   "monitor",
 ] as const;
 
+/**
+ * Grok Build host kill surface (#5281 Prefer-A Bound).
+ * Deny-class / attestation-gated — not product-write inspectMutationGates.
+ */
+export const KILL_TOOL_NAMES = ["kill_command_or_subagent"] as const;
+
 /** Env override forcing hook-level read-only write denial (#1185). */
 export const READ_ONLY_HOOK_ENV = "DEFT_HOOK_READ_ONLY";
 
@@ -58,6 +64,7 @@ function normalizedToolName(toolName: string): string {
 const DIRECT_WRITE_TOOLS = new Set(DIRECT_WRITE_TOOL_NAMES.map(normalizedToolName));
 const SPAWN_TOOLS = new Set(SPAWN_TOOL_NAMES.map(normalizedToolName));
 const SHELL_TOOLS = new Set(SHELL_TOOL_NAMES.map(normalizedToolName));
+const KILL_TOOLS = new Set(KILL_TOOL_NAMES.map(normalizedToolName));
 
 export function isDirectWriteTool(toolName: string): boolean {
   return DIRECT_WRITE_TOOLS.has(normalizedToolName(toolName));
@@ -75,6 +82,11 @@ export function isSpawnTool(toolName: string): boolean {
 /** True for host Shell/Bash-class tools that carry a command string (#2711). */
 export function isShellTool(toolName: string): boolean {
   return SHELL_TOOLS.has(normalizedToolName(toolName));
+}
+
+/** True for host kill / cancel-task tools gated by kill attestation (#5281). */
+export function isKillTool(toolName: string): boolean {
+  return KILL_TOOLS.has(normalizedToolName(toolName));
 }
 
 /**
@@ -183,12 +195,15 @@ export const MCP_PUSH_MERGE_BARE_NAMES = [
 export const DIRECT_WRITE_HOOK_MATCHER = DIRECT_WRITE_TOOL_NAMES.join("|");
 export const SPAWN_HOOK_MATCHER = SPAWN_TOOL_NAMES.join("|");
 export const SHELL_HOOK_MATCHER = SHELL_TOOL_NAMES.join("|");
+export const KILL_HOOK_MATCHER = KILL_TOOL_NAMES.join("|");
 
 /** Mutation tool names a host emits, grouped by the matcher that must carry them. */
 export interface HostMutationToolCatalog {
   readonly directWrite: readonly string[];
   readonly shell: readonly string[];
   readonly spawn: readonly string[];
+  /** Deny-class / attestation-gated kill tools (#5281). */
+  readonly kill: readonly string[];
 }
 
 /**
@@ -225,6 +240,7 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
       directWrite: ["write", "search_replace"],
       shell: ["run_terminal_command", "monitor"],
       spawn: ["spawn_subagent"],
+      kill: ["kill_command_or_subagent"],
     },
     nonMutation: {
       read_file: "read",
@@ -236,7 +252,6 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
       todo_write: "session-local non-product scratch",
       get_command_or_subagent_output: "poll, not a mutation; elapsed bound is evaluateInFlight",
       wait_commands_or_subagents: "poll over already-dispatched work",
-      kill_command_or_subagent: "process control",
       scheduler_delete: "removes a scheduled task; mutates no product path",
       scheduler_list: "read",
       enter_plan_mode: "session posture",
@@ -257,10 +272,10 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
     unobservedReason: null,
     source:
       "Observed directly on Grok Build: this host's published tool list, plus the 5,354-call " +
-      "session census recorded on issue #3987.",
+      "session census recorded on issue #3987; kill deny-class disposition #5281.",
   },
   claude: {
-    mutation: { directWrite: [], shell: ["Bash"], spawn: [] },
+    mutation: { directWrite: [], shell: ["Bash"], spawn: [], kill: [] },
     nonMutation: {},
     unobservedReason:
       "Only the shell spelling is established (`Bash`, re-derived from the deposits by the " +
@@ -270,7 +285,7 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
     source: "Issue #3987 comment 5471374558 finding F8.",
   },
   codex: {
-    mutation: { directWrite: [], shell: ["shell"], spawn: [] },
+    mutation: { directWrite: [], shell: ["shell"], spawn: [], kill: [] },
     nonMutation: {},
     unobservedReason:
       "Shell (`shell`) is established (F8). The apply_patch write-form record is downgraded " +
@@ -281,7 +296,7 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
       "observation.",
   },
   cursor: {
-    mutation: { directWrite: [], shell: [], spawn: [] },
+    mutation: { directWrite: [], shell: [], spawn: [], kill: [] },
     nonMutation: {},
     unobservedReason:
       "Unverified. Nothing in this tree establishes which tool names Cursor emits on " +

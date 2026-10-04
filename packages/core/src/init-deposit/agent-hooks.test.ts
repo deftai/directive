@@ -430,8 +430,8 @@ describe("writeAgentHookDeposit", () => {
     expect(codex).toContain("./resume-check.sh");
     expect(codex).toContain("./custom-codex-check.sh");
     expect(codex).not.toContain("--old");
-    // direct-write + spawn + shell + MCP (#2711) managed PreToolUse groups
-    expect(codex.match(/--host codex --event tool\.before/g)).toHaveLength(4);
+    // direct-write + spawn + shell + kill (#5281) + MCP managed PreToolUse groups
+    expect(codex.match(/--host codex --event tool\.before/g)).toHaveLength(5);
   });
 
   it("preserves malformed unrelated nested candidates without treating them as managed", () => {

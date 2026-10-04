@@ -47,12 +47,32 @@ recorded on [#3987](https://github.com/deftai/directive/issues/3987).
 | `read_file`, `grep`, `list_dir`, `search_tool`, `web_search`, `web_fetch` | out of scope — read |
 | `todo_write` | out of scope — session-local non-product scratch |
 | `get_command_or_subagent_output`, `wait_commands_or_subagents` | out of scope — poll over already-dispatched work |
-| `kill_command_or_subagent` | out of scope — process control |
+| `kill_command_or_subagent` | covered — deny-class / attestation-gated (#5281); dedicated PreToolUse path, not `inspectMutationGates` |
 | `scheduler_delete`, `scheduler_list` | out of scope — scheduler control and read; mutate no product path |
 | `enter_plan_mode`, `exit_plan_mode` | out of scope — session posture |
 | `image_gen`, `image_edit`, `image_to_video`, `reference_to_video` | out of scope — generated media lands in session scratch, never a tracked product path |
 | `scheduler_create` | **known gap, not covered** — see below |
 | `use_tool` | MCP_HOOK_MATCHER selects the outer name; dest-bearing write-shaped inners unwrap into inspectMutationGates (#3593) |
+
+### `kill_command_or_subagent` — deny-class / attestation-gated (#5281)
+
+Prefer-A Bound on leftover #5281 closed the forever-out-of-scope fork. Grok
+PreToolUse deposits `KILL_HOOK_MATCHER` so the tool is selected, and the
+dispatcher runs a dedicated deny-class path (not product-write
+`inspectMutationGates`):
+
+- Still-running (or status-unknown) host tasks require green attestation:
+  tip `subagent:pre-cancel` when present (#5278), else an equivalent artifact
+  under `.deft-scratch/subagent-kill-attestation/` (`agent_id`, `writer_id`,
+  `kind` in {note,correction,force}, `created_at`, short TTL).
+- Force allows only with an explicit force marker **and** a non-empty printed
+  reason (tool input or attestation `kind:force`).
+- Terminal host task status may allow without attestation.
+- Heartbeat STALE / REDISPATCH_OK alone does **not** skip attestation.
+- Parents and peers share the same gate. Documented duty is not the safety case.
+
+Stable codes: `kill-attestation-deny` / `kill-attestation-ready` /
+`kill-force-ready` / `kill-terminal-ready`.
 
 ### `scheduler_create` — spawn-class, needs a policy decision
 
@@ -61,7 +81,9 @@ same reading that puts `spawn_subagent` in the matcher. Covering it routes a
 scheduling primitive through the full spawn stack (session ritual plus an active
 xBRIEF), which denies a shape that works today — a new deny class, not a
 coverage repair. That is a deliberate policy call and belongs in its own change,
-not in a matcher edit.
+not in a matcher edit. `#3987` / `scheduler_create` remains the **policy-decision
+pattern** that #5281 followed for kill (deliberate deny-class, not a silent
+coverage edit).
 
 ### `use_tool` — mcp-class proxy, classifier unwraps dest-bearing writes (#3593)
 

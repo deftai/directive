@@ -6,6 +6,7 @@ import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
   GROK_MUTATION_TOOL_CATALOG,
+  KILL_HOOK_MATCHER,
   MCP_HOOK_MATCHER,
   matcherHasLiteralToken,
   SHELL_HOOK_MATCHER,
@@ -69,13 +70,15 @@ const NESTED_PRE_TOOL_MATCHERS = [
   DIRECT_WRITE_HOOK_MATCHER,
   SPAWN_HOOK_MATCHER,
   SHELL_HOOK_MATCHER,
+  KILL_HOOK_MATCHER,
   MCP_HOOK_MATCHER,
 ] as const;
 
-/** Spawn/shell/MCP stay on exact-equality for every nested host, including grok. */
+/** Spawn/shell/kill/MCP stay on exact-equality for every nested host, including grok. */
 const NESTED_NON_DIRECT_WRITE_MATCHERS = [
   SPAWN_HOOK_MATCHER,
   SHELL_HOOK_MATCHER,
+  KILL_HOOK_MATCHER,
   MCP_HOOK_MATCHER,
 ] as const;
 

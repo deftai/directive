@@ -1,6 +1,7 @@
 export * from "./judgment-policy.js";
 export * from "./pathspec.js";
 export * from "./probe-session.js";
+export * from "./subagent-kill-attestation.js";
 export * from "./subagent-monitor.js";
 export * from "./subagent-steer.js";
 export * from "./verify-investigation.js";
