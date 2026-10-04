@@ -293,6 +293,51 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
     };
     const excerptTypeErrors = validateVbriefSchema(badExcerptType, "stop-bad-excerpt-type.json");
     expect(excerptTypeErrors.some((e) => e.includes(".excerpt must be a string"))).toBe(true);
+
+    const unknownField = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [
+          {
+            id: "t1",
+            title: "Task",
+            status: "pending",
+            stopConditions: [
+              {
+                id: "a1",
+                kind: "anchor",
+                path: "x.ts",
+                excerpt: "x",
+                observeAtt: "item-start",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const unknownErrors = validateVbriefSchema(unknownField, "stop-unknown-field.json");
+    expect(unknownErrors.some((e) => e.includes("unknown field"))).toBe(true);
+
+    const escapePath = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [
+          {
+            id: "t1",
+            title: "Task",
+            status: "pending",
+            stopConditions: [
+              { id: "a1", kind: "anchor", path: "../secrets/token", excerpt: "x" },
+              { id: "a2", kind: "anchor", path: "/etc/passwd", excerpt: "x" },
+            ],
+          },
+        ],
+      },
+    };
+    const escapeErrors = validateVbriefSchema(escapePath, "stop-escape-path.json");
+    expect(escapeErrors.filter((e) => e.includes("repo-relative")).length).toBeGreaterThanOrEqual(2);
   });
 
   it("rejects non-conformant string PlanItem.id and leaves omitted/integer ids (#4707)", () => {

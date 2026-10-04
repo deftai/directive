@@ -30,17 +30,26 @@ export const PLAN_ITEM_STOP_CONDITION_OBSERVE_AT = ["item-start", "item-resume"]
 export type PlanItemStopConditionKind = (typeof PLAN_ITEM_STOP_CONDITION_KINDS)[number];
 export type PlanItemStopConditionObserveAt = (typeof PLAN_ITEM_STOP_CONDITION_OBSERVE_AT)[number];
 
-/** Checkable mid-execution STOP anchor on a PlanItem (#1613). At least one of excerpt|digest. */
-export interface PlanItemStopConditionAnchor {
+/** Shared fields for PlanItem stopConditions anchors (#1613). */
+interface PlanItemStopConditionAnchorBase {
   readonly id: string;
   readonly kind: PlanItemStopConditionKind;
+  /** Repo-relative path (no absolute / `..` segments). */
   readonly path: string;
-  readonly excerpt?: string;
-  readonly digest?: string;
   readonly resolvedAtSha?: string;
   readonly rationale?: string;
   readonly observeAt?: PlanItemStopConditionObserveAt;
 }
+
+/**
+ * Checkable mid-execution STOP anchor on a PlanItem (#1613).
+ * At least one of excerpt|digest is required at the type level.
+ */
+export type PlanItemStopConditionAnchor = PlanItemStopConditionAnchorBase &
+  (
+    | { readonly excerpt: string; readonly digest?: string }
+    | { readonly digest: string; readonly excerpt?: string }
+  );
 
 /** Nested plan item (`PlanItem` in vbrief-core.schema.json). */
 export interface PlanItem {

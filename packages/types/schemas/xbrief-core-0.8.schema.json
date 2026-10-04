@@ -439,21 +439,21 @@
         "path": {
           "type": "string",
           "minLength": 1,
-          "description": "Repo-relative path the anchor cites."
+          "description": "Repo-relative path the anchor cites (no absolute or '..' segments)."
         },
         "excerpt": {
           "type": "string",
           "minLength": 1,
-          "description": "Literal excerpt that must still match at the cited path."
+          "description": "Literal excerpt that must still match the live file at the cited path."
         },
         "digest": {
           "type": "string",
           "minLength": 1,
-          "description": "Content digest alternative to excerpt for the cited path."
+          "description": "Opaque nonempty digest that must equal the agent-computed digest of the live file bytes (convention: lowercase hex SHA-256, optional sha256: prefix)."
         },
         "resolvedAtSha": {
           "type": "string",
-          "description": "Optional commit SHA at which the anchor was resolved when authored."
+          "description": "Optional commit SHA when the anchor was authored — diagnosis / expected-content pin only; live-file match stays authoritative."
         },
         "rationale": {
           "type": "string",

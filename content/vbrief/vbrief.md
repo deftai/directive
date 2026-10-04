@@ -505,17 +505,19 @@ v1 admits `kind: "anchor"` only (`assumption` deferred). Each entry:
 |-------|----------|---------|
 | `id` | yes | Stable id within the PlanItem |
 | `kind` | yes | `"anchor"` only in v1 |
-| `path` | yes | Repo-relative path the anchor cites |
-| `excerpt` or `digest` | one required | Checkable content that must still match |
-| `resolvedAtSha` | no | Commit SHA when the anchor was authored |
+| `path` | yes | Repo-relative path the anchor cites (no absolute / `..` segments) |
+| `excerpt` or `digest` | one required | Checkable content that must still match the **live** file; when both present, both must match |
+| `resolvedAtSha` | no | Commit SHA when the anchor was authored (diagnosis / expected-content pin only) |
 | `rationale` | no | Why this anchor matters |
 | `observeAt` | no | `"item-start"` \| `"item-resume"`; absent ⇒ check both |
 
 Rules:
 
 - ? Omit `stopConditions` when no mid-execution precondition STOP is declared; validation does not require the field
-- ! When present, each entry MUST be a well-formed anchor object; malformed entries fail `vbrief:validate` / `xbrief:validate`
-- ! Agents MUST enumerate and evaluate anchors at item-start and item-resume (or per `observeAt`); on mismatch halt with the Dual-stop (#2442) operator-visible report / `BLOCKED:` — do not improvise
+- ! When present, each entry MUST be a well-formed anchor object; malformed entries fail `vbrief:validate` / `xbrief:validate` (unknown keys refused; `path` must be repo-relative)
+- ! Agents MUST enumerate and evaluate anchors at item-start and item-resume (or per `observeAt`) against the **live worktree**; on mismatch halt with the Dual-stop (#2442) operator-visible report / `BLOCKED:` — do not improvise
+- ! `resolvedAtSha` / Bound pins name expected content for diagnosis only — ⊗ substitute pinned bytes for the live-file match
+- ! `digest` is an opaque nonempty string compared for equality to the agent-computed digest of live file bytes (convention: lowercase hex SHA-256, optional `sha256:` prefix)
 - ! Treat condition text as contract data — ⊗ shell-execute condition strings
 - ! Author `stopConditions` at brief-authoring / promote-activate time; ⊗ the executing agent delete or weaken a stop in the same unit of work that would violate it
 - ! Changing an approved anchor requires the authorized contract-change path (superseding proposed xBRIEF or `decision:write`), not a mid-item edit by the leaf

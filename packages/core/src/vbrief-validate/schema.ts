@@ -61,6 +61,27 @@ export function resolveInfoBlock(
   return null;
 }
 
+/** Closed keys for StopConditionAnchor — mirrors schema additionalProperties:false (#1613). */
+const STOP_CONDITION_ANCHOR_KEYS = new Set([
+  "id",
+  "kind",
+  "path",
+  "excerpt",
+  "digest",
+  "resolvedAtSha",
+  "rationale",
+  "observeAt",
+]);
+
+/** Repo-relative containment for stopConditions.path (no abs / drive / ..). */
+function isRepoRelativeStopPath(path: string): boolean {
+  if (path.length === 0) return false;
+  if (path.startsWith("/") || path.startsWith("\\")) return false;
+  if (/^[A-Za-z]:[\\/]/.test(path)) return false;
+  const parts = path.replace(/\\/g, "/").split("/");
+  return parts.every((part) => part.length > 0 && part !== "." && part !== "..");
+}
+
 /** Shape refusal for PlanItem.stopConditions (#1613). Key admission lives in ITEM_CORE. */
 function validateStopConditions(value: unknown, itemPath: string, errors: string[]): void {
   if (!Array.isArray(value)) {
@@ -75,6 +96,11 @@ function validateStopConditions(value: unknown, itemPath: string, errors: string
       continue;
     }
     const cond = entry as JsonObject;
+    for (const key of Object.keys(cond)) {
+      if (!STOP_CONDITION_ANCHOR_KEYS.has(key)) {
+        errors.push(`${entryPath} unknown field: ${pyStrRepr(key)}`);
+      }
+    }
     if (typeof cond.id !== "string" || cond.id.length === 0) {
       errors.push(`${entryPath} missing non-empty string 'id'`);
     }
@@ -85,6 +111,8 @@ function validateStopConditions(value: unknown, itemPath: string, errors: string
     }
     if (typeof cond.path !== "string" || cond.path.length === 0) {
       errors.push(`${entryPath} missing non-empty string 'path'`);
+    } else if (!isRepoRelativeStopPath(cond.path)) {
+      errors.push(`${entryPath}.path must be repo-relative (no absolute or '..' segments)`);
     }
     const hasExcerpt = typeof cond.excerpt === "string" && cond.excerpt.length > 0;
     const hasDigest = typeof cond.digest === "string" && cond.digest.length > 0;

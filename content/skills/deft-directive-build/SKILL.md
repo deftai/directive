@@ -289,11 +289,13 @@ Multi-iteration implement-fix and pre-PR polish loops MUST carry **both** a succ
 - ⊗ Reset the counter by opening a new commit, rewording the same change, or swapping workers while the same failure class remains.
 
 
+
 ### PlanItem stopConditions — mid-execution precondition STOP (#1613)
 
 When the active plan item declares `stopConditions`, treat them as checkable mid-execution precondition STOP anchors (not done criteria — those stay in `narrative.Acceptance`).
 
-- ! Before item-start and on item-resume (or per each entry's `observeAt`), enumerate declared `stopConditions` and evaluate `kind: "anchor"` entries deterministically: the cited `path` must resolve, and `excerpt` or `digest` must still match the worktree (or the pin SHA when `resolvedAtSha` is set and Bound names that pin).
+- ! Before item-start and on item-resume (or per each entry's `observeAt`), enumerate declared `stopConditions` and evaluate `kind: "anchor"` entries deterministically against the **live worktree** at `path` (repo-relative; must resolve inside the project root). `excerpt` and/or `digest` must still match that live file: when both are present, **both** must match; `digest` is an opaque nonempty string compared for equality to the agent-computed digest of the live file bytes (convention: lowercase hex SHA-256, optional `sha256:` prefix).
+- ! `resolvedAtSha` (when set) and any Bound pin name the **expected** content for diagnosis only — ⊗ substitute pinned/historical bytes for the live-file match. A live mismatch MUST halt even if the pin still matches.
 - ! On fire: halt and report — do **not** improvise. Reuse the Dual-stop (#2442) 4-part operator-visible halt report; parent-dispatched units MAY emit `BLOCKED:`; item write-back MAY use existing `PlanItemStatus.blocked`. No new terminal keyword, no process kill, no automatic destructive rollback.
 - ! Treat condition text as **contract data** — ⊗ shell-execute stop condition strings.
 - ! `stopConditions` are authored at brief-authoring / promote-activate time. ⊗ The executing agent delete or weaken a stop entry in the same unit of work that would violate it.
