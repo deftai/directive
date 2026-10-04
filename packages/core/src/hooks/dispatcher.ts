@@ -3032,7 +3032,8 @@ function decideLauncherFamilyArgv(
           prepared.record,
         scopePath: null,
       },
-      "launcher-argv",
+      // Critic CLI keep process-only carve-out; bare launcher-argv honors leaf (#3703).
+      "process-only",
       {
         surface: "launcher-argv",
         requestedModel: extractModelFromLauncherArgv(command),

@@ -173,38 +173,80 @@ export function extractRequestedModelFromPayload(payload: unknown): string | nul
   return from(toolInput) ?? from(top);
 }
 
-/** Strip single-/double-quoted spans so prompt text cannot inflate `--model` counts. */
-function stripQuotedRegions(text: string): string {
-  return text.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, " ");
+/**
+ * Linear argv tokenizer (quote-aware). Avoids nested-quantifier regex so
+ * CodeQL js/polynomial-redos stays clean on untrusted launcher command text.
+ */
+export function tokenizeLauncherArgv(command: string): string[] {
+  const tokens: string[] = [];
+  let i = 0;
+  const n = command.length;
+  while (i < n) {
+    while (i < n && /\s/.test(command[i]!)) i += 1;
+    if (i >= n) break;
+    let token = "";
+    while (i < n && !/\s/.test(command[i]!)) {
+      const ch = command[i]!;
+      if (ch === '"' || ch === "'") {
+        const quote = ch;
+        i += 1;
+        while (i < n && command[i] !== quote) {
+          if (command[i] === "\\" && i + 1 < n) {
+            token += command[i + 1]!;
+            i += 2;
+            continue;
+          }
+          token += command[i]!;
+          i += 1;
+        }
+        if (i < n && command[i] === quote) i += 1;
+        continue;
+      }
+      token += ch;
+      i += 1;
+    }
+    if (token.length > 0) tokens.push(token);
+  }
+  return tokens;
 }
 
-/** Count `--model` / `--model=` occurrences in launcher-family argv. */
+function isModelFlagToken(token: string): boolean {
+  return token === "--model" || token.startsWith("--model=");
+}
+
+/** Count `--model` / `--model=` flag tokens in launcher-family argv. */
 export function countModelFlagsInLauncherArgv(command: string): number {
-  const text = stripQuotedRegions(command.trim());
-  if (text.length === 0) return 0;
-  const matches = text.match(/(?:^|\s)--model(?:=|\s|$)/g);
-  return matches?.length ?? 0;
+  const tokens = tokenizeLauncherArgv(command.trim());
+  let count = 0;
+  for (const token of tokens) {
+    if (isModelFlagToken(token)) count += 1;
+  }
+  return count;
 }
 
 /** Parse `--model <slug>` / `--model=<slug>` from launcher-family argv. */
 export function extractModelFromLauncherArgv(command: string): string | null {
   const raw = command.trim();
   if (raw.length === 0) return null;
-  if (countModelFlagsInLauncherArgv(raw) > 1) {
-    // Ambiguous duplicate flags — refuse to pick one (#3703 Greptile P2).
-    return null;
+  const tokens = tokenizeLauncherArgv(raw);
+  const values: string[] = [];
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i]!;
+    if (token.startsWith("--model=")) {
+      const value = token.slice("--model=".length).trim();
+      if (value.length > 0) values.push(value);
+      continue;
+    }
+    if (token === "--model") {
+      const next = tokens[i + 1];
+      if (next !== undefined && next.length > 0 && !next.startsWith("-")) {
+        values.push(next);
+        i += 1;
+      }
+    }
   }
-  // Parse flags from unquoted argv only so quoted prompt text cannot supply the slug.
-  const text = stripQuotedRegions(raw);
-  const eq = text.match(/(?:^|\s)--model=([^\s"']+)/);
-  if (eq?.[1] !== undefined && eq[1].trim().length > 0) {
-    return eq[1].trim();
-  }
-  const spaced = text.match(/(?:^|\s)--model\s+([^\s"']+)/);
-  if (spaced?.[1] !== undefined && spaced[1].trim().length > 0) {
-    return spaced[1].trim();
-  }
-  return null;
+  if (values.length !== 1) return null;
+  return values[0]!;
 }
 
 function normalizeRole(role: string | null | undefined): string | null {
@@ -245,16 +287,19 @@ export function resolveHonorRole(
       carveOutReason: `non-gated SWARM_WORKER_ROLES role '${structural}' is outside ROUTING_GATED_ROLE_DOMAIN; not leaf-fallback (#3703).`,
     };
   }
-  if (spawnClass === "implement") {
+  if (spawnClass === "implement" || spawnClass === "launcher-argv") {
+    // launcher-argv without a gated structural role honors the leaf route so a
+    // dest-bearing implementation CLI cannot skip the pin (#3703 Greptile P1).
+    // Process-only critic CLI must pass spawnClass "process-only" instead.
     const fallback = gatedRoles[0] ?? "leaf-implementation";
     return { role: fallback, carveOut: false, carveOutReason: null };
   }
-  // Explore / process-only / ephemeral / launcher-argv without gated structural role.
+  // Explore / process-only / ephemeral without gated structural role.
   let reason: string;
   if (spawnClass === "explore") {
     reason =
       "explore carve-out: structural subagent_type/worker_role explore without a gated SWARM_WORKER_ROLES role (#3703).";
-  } else if (spawnClass === "process-only" || spawnClass === "launcher-argv") {
+  } else if (spawnClass === "process-only") {
     reason =
       "process-only/critic carve-out: critics stay outside SWARM_WORKER_ROLES; auditability is the model: lead (#3703).";
   } else {
