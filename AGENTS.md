@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=dd601935bb21 refreshed=2026-10-04T03:27:05Z session=04ecbb05a3fe -->
+<!-- deft:managed-section v3 sha=466301b63dd1 refreshed=2026-10-04T03:44:21Z session=f8a4ae5feb67 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -287,6 +287,10 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json`. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: content/docs/subagent-heartbeat.md (.deft/core/docs). ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
 
+## Host kill attestation (#5281)
+
+! On Grok Build, `kill_command_or_subagent` is deny-class / attestation-gated for parents **and** peers. Bare kill of a still-running (or status-unknown) child is refused by PreToolUse (`kill-attestation-deny`). Green path: tip `deft subagent:pre-cancel` when present (#5278), else equivalent `.deft-scratch/subagent-kill-attestation/<agent-id>.json` (`kind` note|correction|force, `writer_id` = killer, short TTL). Force requires a non-empty printed reason. Heartbeat STALE / REDISPATCH_OK / documented duty alone is **not** the kill safety case. ⊗ Treat HOST_TOOL_SURFACE_AUDIT process-control prose as license to kill. Depth: `docs/host-tool-surface-audit.md`.
+
 ## Review-surface precedence (#2308)
 
 ! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261). Zero-reviewer (#3630): `NO_REVIEWER_INSTALLED` → pre-pr (`skipped:no-reviewer-installed`); empty never CLEAN. Depth: review-cycle SKILL.
@@ -307,7 +311,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md`. One origin/PR else one-PR-unit grant (not #1378/`--allow-close`).
 ! Scope gates (#3145 / #4956 / #5192) — `deft verify:test-boundary` (warn-only), `deft verify:scope-provenance` (merge-base `file_scope` production fence; production allowance 2–5; test roots free on that fence only; membership uses continuity-resolved mint or concrete merge-base precommitment — tests/fixtures not free in membership), `deft verify:consumer-check-contract`, `deft verify:evaluator-surface`, `deft verify:class-checks`, `deft verify:observable-scope`, `deft verify:intent-constraint`, `deft verify:presentation-ceiling`, `deft verify:presentation-coverage`, `deft verify:durable-effect-acquisition`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`).
-! After proceed: no scope ceremony (#4956). No approved-scope digest on proceed; head brief does not widen the production fence; over-budget splits (no remint). Missing-mint Path B membership remediates via split or land a widened concrete brief. Class checks #4980. #4383 still open. Depth: `docs/scope-provenance.md`.
+! After proceed: no scope ceremony (#4956). No approved-scope digest on proceed; head brief does not widen the production fence; over-budget splits (no remint). Missing-mint Path B membership remediates via split or land a widened concrete brief. Class checks #4980. #4383 closed. Depth: `docs/scope-provenance.md`.
 
 ## Branch Policy Disclosure (#746)
 
