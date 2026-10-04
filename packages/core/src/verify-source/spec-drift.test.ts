@@ -122,6 +122,25 @@ describe("verify:spec-drift (#1589 C2)", () => {
     expect(second).toBe(first);
   });
 
+  it("includes plan.requirements in baseline fingerprint", () => {
+    setup({ withSpec: true });
+    const first = evaluateSpecDrift(root).baselineRevision;
+    writeFileSync(
+      join(root, "xbrief", "specification.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", updated: "2026-10-01T00:00:00Z" },
+        plan: {
+          title: "spec",
+          status: "proposed",
+          items: [],
+          requirements: [{ id: "r1", title: "must auth" }],
+        },
+      }),
+    );
+    const second = evaluateSpecDrift(root).baselineRevision;
+    expect(second).not.toBe(first);
+  });
+
   it("treats non-object specification JSON as unassessable baseline", () => {
     setup({ withSpec: false });
     writeFileSync(join(root, "xbrief", "specification.xbrief.json"), "[]");

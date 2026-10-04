@@ -93,11 +93,19 @@ function contentFingerprint(text: string): string {
 function requirementsFingerprint(data: Record<string, unknown>): string | null {
   if (!isRecord(data.plan)) return null;
   const plan = data.plan;
+  const metadata = isRecord(plan.metadata) ? plan.metadata : null;
   const slice = {
     id: typeof plan.id === "string" ? plan.id : null,
     title: typeof plan.title === "string" ? plan.title : null,
     narratives: isRecord(plan.narratives) ? plan.narratives : null,
     items: Array.isArray(plan.items) ? plan.items : null,
+    requirements: Array.isArray(plan.requirements)
+      ? plan.requirements
+      : (plan.requirements ?? null),
+    requirementIds:
+      metadata !== null && Array.isArray(metadata.requirement_ids)
+        ? metadata.requirement_ids
+        : null,
   };
   return contentFingerprint(JSON.stringify(slice));
 }

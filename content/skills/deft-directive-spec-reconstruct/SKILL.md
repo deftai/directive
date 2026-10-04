@@ -83,7 +83,7 @@ task spec:reconstruct -- --project-root .
 
 ## Anti-Patterns
 
-- ⊗ Python `scripts/policy.py` / `scripts/spec_render.py` as implementation targets
+- ⊗ Retired Python policy/spec-render script paths as implementation targets (Prefer-A Bound re-author onto TypeScript surfaces)
 - ⊗ Bare `plan.policy.specGuard` / bare `specImpact` under #1650
 - ⊗ Parallel code-oracle beside #1595
 - ⊗ Second greenfield predicate that can disagree with `resolveSpecAuthority`
