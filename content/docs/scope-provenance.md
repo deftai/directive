@@ -25,7 +25,7 @@ When the brief is not on the merge base yet (first PR / undeclared scope), there
 
 Empty or absent merge-base `file_scope` yields **no production-fence finding**. That empty-skip is **accepted posture**, not a tolerated gap to close by counting `.deft/approved-scope` engagement. Do not Bound this fence on historical approved-scope ratios, soft-warn cites, or a causal "briefs decline to declare" sentence. Membership and class checks (#4980) stay separate and are not weakened (#3156).
 
-Authoring coverage (do not overstate): nonempty `file_scope` is hard-refused on `scope:decompose` story validation and required for swarm-allocation readiness. Setup instructs nonempty declaration (#4988, supersedes closed #4383). Briefs authored without a swarm block reach neither gate; that path is ungated in code. Extending nonempty `file_scope` where absent (option b) prices as covering that no-swarm-block authoring route plus backlog — not as residual-path coverage. Raise-declaration options stay sequenced after #3714 notice (recut before ship-as-filed).
+Authoring coverage (do not overstate): empty or missing `file_scope` is hard-refused on `scope:decompose` story validation, and nonempty `file_scope` is required for swarm-allocation readiness. Setup instructs nonempty declaration (#4988, supersedes closed #4383). Briefs authored without a swarm block reach neither gate; that path is ungated in code. Extending nonempty `file_scope` where absent (option b) prices as covering that no-swarm-block authoring route plus backlog — not as residual-path coverage. Raise-declaration options stay sequenced after #3714 notice (recut before ship-as-filed).
 
 ### Production fence: test roots are free
 

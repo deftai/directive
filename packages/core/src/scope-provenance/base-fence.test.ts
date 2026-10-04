@@ -30,11 +30,7 @@ describe("evaluateProductionScopeFence (#4956)", () => {
       xbriefRelPath: "xbrief/active/story.xbrief.json",
       planId: "story-1",
       baseFileScope: [],
-      changedFiles: [
-        "packages/core/src/a.ts",
-        "packages/core/src/b.ts",
-        "packages/core/src/c.ts",
-      ],
+      changedFiles: ["packages/core/src/a.ts", "packages/core/src/b.ts", "packages/core/src/c.ts"],
     });
     expect(hit).toBeNull();
   });

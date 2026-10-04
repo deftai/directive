@@ -17,9 +17,7 @@
   ],
   "whyWinner": "Honesty bind: mechanism already skips empty merge-base scope; authoring hard only on decompose/swarm-ready; setup via #4988; no-swarm-block ungated in code; raise-declaration waits on #3714 recut; no gate weakening",
   "confidence": "high",
-  "activeScopeRefs": [
-    "content/docs/scope-provenance.md"
-  ],
+  "activeScopeRefs": [],
   "timestamp": "2026-10-04T01:58:54Z",
   "revisitTrigger": "If #3714 notice lands and declaration rates rise without empty-skip remaining accurate",
   "tags": [
