@@ -174,4 +174,81 @@ describe("swarmLaunch route-file integration (#1739)", () => {
     expect(result.stderr).toContain("routing gate misconfigured");
     expect(result.stdout).toBe("");
   });
+
+  it("fails closed (exit 1) when the route file is absent for a gated provider (#3703)", () => {
+    const project = mkdtempSync(join(tmpdir(), "launch-route-"));
+    cleanups.push(project);
+    gitInitIfNeeded(project);
+    writeReadyStory(project, "story-a", 8801);
+    const routePath = join(project, "routing.local.json");
+    process.env.DEFT_ROUTING_PATH = routePath;
+
+    const result = swarmLaunch({
+      ...TEST_WORKER_AUTH,
+      stories: ["8801"],
+      projectRoot: project,
+      autonomous: true,
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["cursor-cloud", "gh-cli"],
+      environ: { CURSOR_AGENT: "1" },
+      sessionId: "test-session",
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("undecided");
+    expect(result.stdout).toBe("");
+  });
+
+  it("fails closed (exit 1) when the leaf role is undecided (#3703)", () => {
+    const project = mkdtempSync(join(tmpdir(), "launch-route-"));
+    cleanups.push(project);
+    gitInitIfNeeded(project);
+    writeReadyStory(project, "story-a", 8801);
+    const routePath = join(project, "routing.local.json");
+    writeFileSync(routePath, JSON.stringify({ cursor: { orchestrator: { model: null } } }));
+    process.env.DEFT_ROUTING_PATH = routePath;
+
+    const result = swarmLaunch({
+      ...TEST_WORKER_AUTH,
+      stories: ["8801"],
+      projectRoot: project,
+      autonomous: true,
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["cursor-cloud", "gh-cli"],
+      environ: { CURSOR_AGENT: "1" },
+      sessionId: "test-session",
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("undecided");
+  });
+
+  it("records --skip-routing and continues when the leaf is undecided (#3703)", () => {
+    const project = mkdtempSync(join(tmpdir(), "launch-route-"));
+    cleanups.push(project);
+    gitInitIfNeeded(project);
+    writeReadyStory(project, "story-a", 8801);
+    const routePath = join(project, "routing.local.json");
+    // Present file so legacy backend is bypassed; leaf still undecided.
+    writeFileSync(routePath, JSON.stringify({ cursor: {} }));
+    process.env.DEFT_ROUTING_PATH = routePath;
+
+    const result = swarmLaunch({
+      ...TEST_WORKER_AUTH,
+      stories: ["8801"],
+      projectRoot: project,
+      autonomous: true,
+      skipRouting: true,
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["cursor-cloud", "gh-cli"],
+      environ: { CURSOR_AGENT: "1" },
+      sessionId: "test-session",
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toContain("--skip-routing");
+  });
 });

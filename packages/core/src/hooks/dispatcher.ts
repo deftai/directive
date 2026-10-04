@@ -97,6 +97,14 @@ import {
   WRITE_GATED_REQUIRED_STEPS,
   writeGateRitualOptions,
 } from "../session/verify-session-ritual.js";
+import {
+  evaluateSpawnRoutingHonor,
+  extractModelFromLauncherArgv,
+  extractRequestedModelFromPayload,
+  extractStructuralWorkerRole,
+  type RoutingHonorSurface,
+  type RoutingSpawnClass,
+} from "../swarm/routing-honor.js";
 import { uninspectableLifecycleDenyMessage } from "./classify/host-session-identity.js";
 import {
   applyPatchHarvestedInputUnclassified,
@@ -2205,17 +2213,22 @@ function inspectMutationGates(
         );
       }
     }
-    return {
-      verdict: "allow",
-      code: allowCode,
-      event: input.event,
-      host: input.host,
+    return applyRoutingConjunct(
+      input,
       toolName,
-      projectRoot,
-      message: `${allowMessage} ${spawnReservation.message}`,
-      scopePath: scope.path,
-      ...(updatedInput !== undefined ? { updatedInput } : {}),
-    };
+      {
+        verdict: "allow",
+        code: allowCode,
+        event: input.event,
+        host: input.host,
+        toolName,
+        projectRoot,
+        message: `${allowMessage} ${spawnReservation.message}`,
+        scopePath: scope.path,
+        ...(updatedInput !== undefined ? { updatedInput } : {}),
+      },
+      "implement",
+    );
   }
   return {
     verdict: "allow",
@@ -2889,6 +2902,68 @@ function prepareProcessOnlyCriticDest(
   return prepareProcessOnlyDestPath(cwd, projectRoot, seams, payload);
 }
 
+/**
+ * #3703 Prefer-A: routing conjunct ahead of every spawn-class allow.
+ * Runs honor-at-dispatch against the trusted route snapshot; denied when a
+ * gated pinned role would inherit or diverge. Carve-outs (explore /
+ * process-only / ephemeral without gated structural role) still pass through
+ * this helper so the allow path is never an unchecked early return.
+ */
+function applyRoutingConjunct(
+  input: HookDispatchInput,
+  toolName: string,
+  allow: HookDecision,
+  spawnClass: RoutingSpawnClass,
+  options: {
+    readonly requestedModel?: string | null;
+    readonly surface?: RoutingHonorSurface;
+  } = {},
+): HookDecision {
+  if (allow.verdict !== "allow") return allow;
+  const environ = input.environ ?? process.env;
+  const surface: RoutingHonorSurface =
+    options.surface ?? (hostAcceptsUpdatedInput(input.host) ? "payload-model" : "non-intercept");
+  const requestedModel =
+    options.requestedModel !== undefined
+      ? options.requestedModel
+      : extractRequestedModelFromPayload(input.payload);
+  const honor = evaluateSpawnRoutingHonor({
+    projectRoot: resolve(input.projectRoot),
+    environ,
+    spawnClass,
+    surface,
+    structuralWorkerRole: extractStructuralWorkerRole(input.payload),
+    requestedModel,
+    canRewriteRequest: surface === "payload-model" && hostAcceptsUpdatedInput(input.host),
+  });
+  if (!honor.ok) {
+    return deny(input, "spawn-not-ready", toolName, honor.message);
+  }
+  let next: HookDecision = {
+    ...allow,
+    message: `${allow.message} ${honor.message}`,
+  };
+  if (honor.rewriteRequest && honor.honoredModel !== null && hostAcceptsUpdatedInput(input.host)) {
+    const base =
+      next.updatedInput !== undefined
+        ? { ...next.updatedInput }
+        : { ...(record(input.payload) ?? {}) };
+    const toolInput = toolInputRecord(base) ?? {};
+    next = {
+      ...next,
+      updatedInput: {
+        ...base,
+        tool_input: {
+          ...toolInput,
+          model: honor.honoredModel,
+        },
+        model: honor.honoredModel,
+      },
+    };
+  }
+  return next;
+}
+
 function decideLauncherFamilyArgv(
   input: HookDispatchInput,
   toolName: string,
@@ -2917,19 +2992,29 @@ function decideLauncherFamilyArgv(
       ? prepareProcessOnlyDestPath(classified.dest, projectRoot, seams, input.payload)
       : null;
   if (prepared !== null && prepared.ok === true) {
-    return {
-      verdict: "allow",
-      code: "spawn-process-only-ready",
-      event: input.event,
-      host: input.host,
+    const command = hookShellCommand(input.payload) ?? "";
+    return applyRoutingConjunct(
+      input,
       toolName,
-      projectRoot,
-      message:
-        `Directive allowed process-only critic ${toolName} launcher argv (${classified.family}) ` +
-        "without dest occupancy or implementation gates (argv-reachable process-only skip). " +
-        prepared.record,
-      scopePath: null,
-    };
+      {
+        verdict: "allow",
+        code: "spawn-process-only-ready",
+        event: input.event,
+        host: input.host,
+        toolName,
+        projectRoot,
+        message:
+          `Directive allowed process-only critic ${toolName} launcher argv (${classified.family}) ` +
+          "without dest occupancy or implementation gates (argv-reachable process-only skip). " +
+          prepared.record,
+        scopePath: null,
+      },
+      "launcher-argv",
+      {
+        surface: "launcher-argv",
+        requestedModel: extractModelFromLauncherArgv(command),
+      },
+    );
   }
   if (prepared !== null && prepared.ok === false) {
     return overlayGrokCriticSpawnNotReadyRecovery(
@@ -3189,16 +3274,21 @@ function routeHookDecision(
       );
     }
     if (isExploreSpawn(input.payload)) {
-      return {
-        verdict: "allow",
-        code: "spawn-explore-ready",
-        event: input.event,
-        host: input.host,
+      return applyRoutingConjunct(
+        input,
         toolName,
-        projectRoot,
-        message: `Directive allowed explore ${toolName} spawn without implementation gates.`,
-        scopePath: null,
-      };
+        {
+          verdict: "allow",
+          code: "spawn-explore-ready",
+          event: input.event,
+          host: input.host,
+          toolName,
+          projectRoot,
+          message: `Directive allowed explore ${toolName} spawn without implementation gates.`,
+          scopePath: null,
+        },
+        "explore",
+      );
     }
     // Process-only skip class (#4296): host-visible `plan` or `process_only` stdin marker.
     // Not dest-path. Not prompt. Not an implement-class gate bypass: implement-class
@@ -3240,34 +3330,44 @@ function routeHookDecision(
         );
       }
       const pin = destNote?.ok ? ` ${destNote.record}` : "";
-      return {
-        verdict: "allow",
-        code: "spawn-process-only-ready",
-        event: input.event,
-        host: input.host,
+      return applyRoutingConjunct(
+        input,
         toolName,
-        projectRoot,
-        message:
-          `Directive allowed process-only critic ${toolName} spawn without dest occupancy ` +
-          `or implementation gates (subagent_type plan or process_only).${pin}`,
-        scopePath: null,
-      };
+        {
+          verdict: "allow",
+          code: "spawn-process-only-ready",
+          event: input.event,
+          host: input.host,
+          toolName,
+          projectRoot,
+          message:
+            `Directive allowed process-only critic ${toolName} spawn without dest occupancy ` +
+            `or implementation gates (subagent_type plan or process_only).${pin}`,
+          scopePath: null,
+        },
+        "process-only",
+      );
     }
     // Ephemeral/docs/assist (+ session assist env #3259): non-lifecycle spawn;
     // no active xBRIEF. Does not authorize push/merge/deploy — shell/MCP matchers.
     if (isEphemeralSpawn(input.payload, environ)) {
-      return {
-        verdict: "allow",
-        code: "spawn-ephemeral-ready",
-        event: input.event,
-        host: input.host,
+      return applyRoutingConjunct(
+        input,
         toolName,
-        projectRoot,
-        message:
-          `Directive allowed ephemeral ${toolName} spawn without active-xBRIEF ` +
-          "implementation gates (non-lifecycle assist/docs posture).",
-        scopePath: null,
-      };
+        {
+          verdict: "allow",
+          code: "spawn-ephemeral-ready",
+          event: input.event,
+          host: input.host,
+          toolName,
+          projectRoot,
+          message:
+            `Directive allowed ephemeral ${toolName} spawn without active-xBRIEF ` +
+            "implementation gates (non-lifecycle assist/docs posture).",
+          scopePath: null,
+        },
+        "ephemeral",
+      );
     }
     return overlayGrokCriticSpawnNotReadyRecovery(
       input,

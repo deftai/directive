@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Occupancy stays advisory coordination with pinned lease lifetime (#3729).** Documents lease-versus-ritual timing, which mutation paths consult occupancy, and the free-tree fail-open / unknown-identity fail-closed contract. Tracking #3729.
+- **Honor-at-dispatch for operator routing (#3703).** PreToolUse runs a routing conjunct ahead of every spawn-class allow path (explore, process-only, ephemeral, spawn-ready, launcher-argv). `swarm:launch` fails closed on absent route file or undecided leaf for gated providers. Request-side join validates or fills the spawn model from the trusted route snapshot; pinned + omitted/different model cannot reach submit on covered paths. Critics stay outside `SWARM_WORKER_ROLES`; explore without a gated structural role is a decided carve-out after the conjunct. Docs/`HELP_TEXT` match `ROUTING_GATED_DISPATCH_PROVIDERS` (narrower than `LAUNCHER_FAMILIES` — codex argv-only). `--skip-routing` is a recorded opt-out; session-start `--advise` stays additive only. Tracking #3703.
+
 
 ### Changed
 - **Leftover-complete #3729 after product #5290.** Retire the active occupancy Prefer-A brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #3729.

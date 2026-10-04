@@ -26,7 +26,16 @@ import {
 export const ROUTING_SET_CMD =
   "deft swarm:routing-set --role <role> --model <slug>   (or --harness-default)";
 
-/** Roles the pre-dispatch gate checks by default: the actual model lever. */
+/**
+ * Roles the pre-dispatch gate checks by default: the actual model lever.
+ *
+ * #3703 P2: deliberate explicit subset of SWARM_WORKER_ROLES (not the full
+ * enum). Orchestrator / review-monitor / merge-release are recordable via
+ * --roles / swarm:routing-set but are not default-gated. Critics stay outside
+ * SWARM_WORKER_ROLES entirely. AGENTS "ANY sub-agent" doctrine is broader than
+ * this subset — docs honesty must name the gap (story-ready chaining vs
+ * interactive solo PreToolUse honor, and this role-domain carve-out).
+ */
 export const DEFAULT_GATED_ROLES = ["leaf-implementation"] as const;
 
 export interface VerifyRoutingOptions {
