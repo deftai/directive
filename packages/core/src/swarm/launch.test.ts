@@ -1065,6 +1065,7 @@ function writeJcpStory(
     description?: string;
     judgmentLabels?: string[];
     judgmentBody?: string;
+    updated?: string;
   },
 ): ResolvedStory {
   const rel = `xbrief/active/${storyId}.xbrief.json`;
@@ -1090,6 +1091,9 @@ function writeJcpStory(
     plan.narratives = {
       ...(options?.description !== undefined ? { Description: options.description } : {}),
     };
+  }
+  if (options?.updated !== undefined) {
+    plan.updated = options.updated;
   }
   writeFileSync(full, JSON.stringify({ plan }), "utf8");
   return { token: storyId, story_id: storyId, path: full, relpath: rel };
@@ -1428,6 +1432,37 @@ describe("evaluateJudgmentClearancePosture (#1511 P2-a)", () => {
     const candidate = storyJudgmentCandidate(story);
     expect(candidate.updated_at).not.toBeNull();
     expect(Date.parse(candidate.updated_at ?? "")).toBeLessThan(Date.now() - 24 * 60 * 60 * 1000);
+    const enforced = evaluateJudgmentClearancePosture({
+      projectRoot: project,
+      resolved: [story],
+      gatePosture: GATE_ENFORCE,
+      gateClearances: [],
+    });
+    expect(enforced.ok).toBe(false);
+    expect(enforced.stderr).toMatch(/stale-story-gate/);
+  });
+
+  it("prefers plan.updated over checkout-fresh mtime for age-days", () => {
+    const project = jcpTempRoot();
+    writeJcpProjectDef(project, {
+      judgmentGates: [
+        {
+          id: "stale-story-gate",
+          class: "mechanical",
+          tier: "block",
+          reason: "story older than 1 day",
+          match: { "age-days": { gt: 1 } },
+        },
+      ],
+    });
+    const story = writeJcpStory(project, "persisted-age", ["src/x.ts"], {
+      updated: "2020-01-01T00:00:00Z",
+    });
+    // Simulate fresh checkout: mtime is now, but persisted plan.updated is old.
+    const now = new Date();
+    utimesSync(story.path, now, now);
+    const candidate = storyJudgmentCandidate(story);
+    expect(candidate.updated_at).toBe("2020-01-01T00:00:00Z");
     const enforced = evaluateJudgmentClearancePosture({
       projectRoot: project,
       resolved: [story],

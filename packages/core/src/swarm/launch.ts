@@ -108,25 +108,30 @@ export function storyFileScopePaths(story: ResolvedStory): string[] {
  * Paths come from swarm.file_scope; labels/body always include plan tags +
  * narratives so label/body-text gates cannot be hidden. Optional
  * swarm.judgment_labels / judgment_body are additive supplements only
- * (empty judgment_labels must not wipe tags). updated_at is the brief
- * mtime so age-days gates can match. Cohort launch evaluates each story
- * separately so per-story cleared_scope fingerprints stay valid.
+ * (empty judgment_labels must not wipe tags). updated_at prefers persisted
+ * plan.updated / xBRIEFInfo.updated (survives checkout) then brief mtime
+ * so age-days gates cannot be reset by a fresh worktree checkout. Cohort
+ * launch evaluates each story separately so per-story cleared_scope
+ * fingerprints stay valid.
  */
 export function storyJudgmentCandidate(story: ResolvedStory): Candidate {
   const paths = storyFileScopePaths(story);
-  let updatedAt: string | null = null;
+  let mtimeAt: string | null = null;
   try {
-    updatedAt = statSync(story.path).mtime.toISOString();
+    mtimeAt = statSync(story.path).mtime.toISOString();
   } catch {
-    updatedAt = null;
+    mtimeAt = null;
   }
   let labels: string[] = [];
   const bodyParts: string[] = [];
+  let persistedUpdated: string | null = null;
   try {
     const raw = JSON.parse(readFileSync(story.path, "utf8")) as {
+      xBRIEFInfo?: { updated?: unknown };
       plan?: {
         title?: unknown;
         tags?: unknown;
+        updated?: unknown;
         narratives?: Record<string, unknown>;
         metadata?: {
           swarm?: {
@@ -136,9 +141,21 @@ export function storyJudgmentCandidate(story: ResolvedStory): Candidate {
         };
       };
     };
+    if (typeof raw.xBRIEFInfo?.updated === "string" && raw.xBRIEFInfo.updated.length > 0) {
+      persistedUpdated = raw.xBRIEFInfo.updated;
+    }
     const plan = raw.plan;
+    if (plan !== undefined && typeof plan.updated === "string" && plan.updated.length > 0) {
+      persistedUpdated = plan.updated;
+    }
     if (plan === undefined) {
-      return { paths, labels, body: "", state: "open", updated_at: updatedAt };
+      return {
+        paths,
+        labels,
+        body: "",
+        state: "open",
+        updated_at: persistedUpdated ?? mtimeAt,
+      };
     }
     const swarm = plan.metadata?.swarm;
     // Natural labels first — empty judgment_labels must not wipe them.
@@ -183,7 +200,7 @@ export function storyJudgmentCandidate(story: ResolvedStory): Candidate {
     labels,
     body: bodyParts.join("\n\n"),
     state: "open",
-    updated_at: updatedAt,
+    updated_at: persistedUpdated ?? mtimeAt,
   };
 }
 
