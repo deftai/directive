@@ -440,6 +440,9 @@ function runComplete(
     });
   }
 
+  // Pin the attempt that cleared pre-cancel so cancel cannot retarget a successor
+  // that starts between the gate and completeAttemptOnDisk (#5288 Greptile P1).
+  let cancelPinnedAttemptId: string | undefined = input.attemptId;
   if (action === "cancel" && actives.length > 0) {
     const active =
       (input.attemptId !== undefined
@@ -460,6 +463,9 @@ function runComplete(
         activeAttemptIds: actives.map((a) => a.attemptId),
       });
     }
+    if (active !== null) {
+      cancelPinnedAttemptId = active.attemptId;
+    }
   }
 
   try {
@@ -467,13 +473,15 @@ function runComplete(
       scopeId,
       targetId,
       workflowId,
-      attemptId: input.attemptId,
+      attemptId: action === "cancel" ? cancelPinnedAttemptId : input.attemptId,
       externalRunId: input.externalRunId ?? null,
       status,
       now: input.now,
     });
     const closed =
-      next.attempts.find((a) => a.attemptId === input.attemptId) ??
+      next.attempts.find(
+        (a) => a.attemptId === (action === "cancel" ? cancelPinnedAttemptId : input.attemptId),
+      ) ??
       next.attempts.filter((a) => a.endedAt !== null).at(-1) ??
       null;
     return baseResult(input, action, {

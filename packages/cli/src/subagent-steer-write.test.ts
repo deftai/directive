@@ -1,7 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseSteerFile, steerInboxPath } from "@deftai/directive-core/orchestration";
+import { recordChildOccupancyLease } from "@deftai/directive-core/session";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseSubagentSteerWriteArgs, run } from "./subagent-steer-write.js";
 
@@ -19,21 +20,16 @@ function tempRoot(): string {
   return root;
 }
 
-function writeParentHeartbeat(root: string, agentId: string, parentId: string): void {
-  const scratch = join(root, ".deft-scratch", "subagent-status");
-  mkdirSync(scratch, { recursive: true });
-  const nowIso = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-  writeFileSync(
-    join(scratch, `${agentId}.json`),
-    JSON.stringify({
-      agent_id: agentId,
-      parent_id: parentId,
-      last_heartbeat_at: nowIso,
-      last_message: "ok",
-      phase: "polling",
-    }),
-    "utf8",
-  );
+function recordParentLease(root: string, agentId: string, parentId: string): void {
+  recordChildOccupancyLease(root, {
+    agentId,
+    parentId,
+    occupancyOwner: parentId,
+    worktreePath: root,
+    identitySourceKind: "host-env",
+    incarnation: "inc-1",
+    provenance: "dispatch",
+  });
 }
 
 describe("subagent:steer CLI (#5278)", () => {
@@ -55,9 +51,9 @@ describe("subagent:steer CLI (#5278)", () => {
     expect(parsed.targetId).toBe("wt");
   });
 
-  it("writes a closed-schema inbox under --target-id when heartbeat parent matches", () => {
+  it("writes a closed-schema inbox under --target-id when child occupancy parent matches", () => {
     const root = tempRoot();
-    writeParentHeartbeat(root, "leaf-a", "parent-1");
+    recordParentLease(root, "leaf-a", "parent-1");
     const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     expect(
       run(
@@ -86,7 +82,7 @@ describe("subagent:steer CLI (#5278)", () => {
     expect(parsed.record?.kind).toBe("correction");
   });
 
-  it("refuses self-attested writer without independent parent identity", () => {
+  it("refuses self-attested writer without child occupancy lease", () => {
     const root = tempRoot();
     const err = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     expect(
@@ -106,7 +102,35 @@ describe("subagent:steer CLI (#5278)", () => {
         root,
       ),
     ).toBe(2);
-    expect(err.mock.calls.join("")).toMatch(/independent parent/i);
+    expect(err.mock.calls.join("")).toMatch(/child occupancy lease/i);
+  });
+
+  it("refuses caller-controlled heartbeat as parent authority", () => {
+    const root = tempRoot();
+    const err = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    // No child occupancy lease — attacker-shaped heartbeat must not authorize.
+    expect(
+      run(
+        [
+          "--agent",
+          "leaf-a",
+          "--writer-id",
+          "attacker",
+          "--kind",
+          "halt",
+          "--text",
+          "stop",
+          "--target-id",
+          root,
+          "--scratch-dir",
+          join(root, "attacker-scratch"),
+        ],
+        root,
+      ),
+    ).toBe(2);
+    expect(err.mock.calls.join("")).toMatch(
+      /heartbeat alone is not authority|child occupancy lease/i,
+    );
   });
 
   it("refuses empty text and unknown kind", () => {
