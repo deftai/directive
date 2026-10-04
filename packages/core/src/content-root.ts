@@ -21,10 +21,12 @@
  * without a branch. Mirrors scripts/_content_root.py::content_root.
  *
  * #11 / C4 adds a third source: when `@deftai/directive-content` is installed
- * in `node_modules`, the resolver prefers that package root (already flattened)
- * and falls back to the vendored `.deft/core/` deposit / in-repo `content/`
- * layout across in-repo-vendored, hybrid npm-engine, and external-workspace
- * operating modes.
+ * in `node_modules` **and has staged shippable content** (templates/ or skills/),
+ * the resolver prefers that package root (already flattened) and falls back to
+ * the vendored `.deft/core/` deposit / in-repo `content/` layout across
+ * in-repo-vendored, hybrid npm-engine, and external-workspace operating modes.
+ * A bare workspace `packages/content` package (package.json + stage-pack only)
+ * must not shadow in-repo `content/` (#1589 agents-md-freshness on CI).
  *
  * Refs #1875 (content/ move), #1669 (Wave-1 LockedDecisions C1 flatten), #11.
  */
@@ -73,10 +75,32 @@ export function resolveContentPackageRoot(searchFrom: string): string | null {
   return null;
 }
 
+/**
+ * True when an installed `@deftai/directive-content` root has staged shippable
+ * content (prepack / consumer deposit). The workspace `packages/content`
+ * package ships only `package.json` + `stage-pack.mjs` in git; preferring that
+ * empty root shadows in-repo `content/templates` and fails
+ * `agents-md-freshness` on rule-relocation PRs (#1589 CI).
+ */
+function contentPackageHasStagedContent(packageRoot: string): boolean {
+  for (const name of ["templates", "skills"] as const) {
+    try {
+      if (statSync(join(packageRoot, name)).isDirectory()) {
+        return true;
+      }
+    } catch {
+      // Probe next marker.
+    }
+  }
+  return false;
+}
+
 /** Return the directory that holds flattened shippable content. */
 export function contentRoot(frameworkRoot: string): string {
   const packageRoot = resolveContentPackageRoot(frameworkRoot);
-  if (packageRoot) return packageRoot;
+  if (packageRoot !== null && contentPackageHasStagedContent(packageRoot)) {
+    return packageRoot;
+  }
 
   const candidate = join(frameworkRoot, CONTENT_DIRNAME);
   try {
