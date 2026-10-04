@@ -14,6 +14,12 @@ import {
   threadCommentsFromIssueComments,
 } from "../design-critique/completed-arc-record.js";
 import {
+  ensureCatalogChipLabel,
+  formatDesignCritiqueJudgmentGatesRemediation,
+  hasDesignCritiqueJudgmentGate,
+  isDesignCritiqueDeposited,
+} from "../design-critique/catalog-chip-ensure.js";
+import {
   applyDesignCritiqueCatalogChip,
   type DesignCritiqueCatalogChip,
 } from "../design-critique/exclusive-chip.js";
@@ -27,12 +33,13 @@ import { parseGithubOwnerRepo } from "../policy/sync-default.js";
 import { ScmLabelClient } from "../vbrief-reconcile/labels.js";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
 import { extractFlag, extractRepoFlag, extractValueFlag } from "./argv.js";
-import { InvalidRepoError, splitRepo } from "./gh-rest.js";
+import { type GhRestSeams, InvalidRepoError, splitRepo } from "./gh-rest.js";
 import { pyRepr } from "./py-format.js";
 
 export const DESIGN_CRITIQUE_CHIP_VERB = "design-critique-chip" as const;
 
 export const CHIP_APPLY_MISS_TOKEN = "chip apply missed (non-blocking convenience)";
+export const CHIP_ENSURE_FAILED_TOKEN = "ensure-failed";
 
 export const DESIGN_CRITIQUE_CHIP_USAGE =
   "usage: scm issue design-critique-chip --issue N --chip mechanism-shaped|in-progress|ingest-ready [--repo OWNER/NAME] [--json]\n" +
@@ -66,6 +73,12 @@ export interface DesignCritiqueChipSeams {
   readonly fetchComments?: (repo: string, issueNumber: number) => readonly ThreadComment[];
   /** Live REST issue body for Target-digest admission (#4995). Default: fetchIssueBody. */
   readonly fetchIssueBody?: (repo: string, issueNumber: number) => string;
+  /** REST seams for catalog label probe/create (#5326). */
+  readonly ghRest?: GhRestSeams;
+  /** Project root for deposit / judgmentGates first-arc advisory (#5326). */
+  readonly projectRoot?: string;
+  /** Override ensure attach (tests). Default: ensureCatalogChipLabel. */
+  readonly ensureCatalogChip?: typeof ensureCatalogChipLabel;
 }
 
 export interface DesignCritiqueChipResult {
@@ -239,6 +252,7 @@ export function runDesignCritiqueChip(
   const client = seams.client ?? new ScmLabelClient();
   const fetchComments = seams.fetchComments ?? defaultFetchComments;
   const fetchBody = seams.fetchIssueBody ?? defaultFetchIssueBody;
+  const ensureChip = seams.ensureCatalogChip ?? ensureCatalogChipLabel;
   // Chip path proves once above the write. ScmLabelClient.apply would re-fetch
   // and re-admit; route the post-proof write through applyWithoutCatalogGate.
   const writeClient: LabelClient =
@@ -249,6 +263,34 @@ export function runDesignCritiqueChip(
         }
       : client;
   try {
+    // Ensure-on-write for the catalog chip in the add set (#5326). Attach is
+    // catalog-aware only — not every ScmLabelClient.apply.
+    const ensured = ensureChip(repo, args.chip, seams.ghRest);
+    if (!ensured.ok) {
+      const missClass = ensured.missClass;
+      const message = `${CHIP_ENSURE_FAILED_TOKEN} (${missClass}): ${ensured.error}`;
+      const payload = {
+        repo,
+        issue: args.issue,
+        chip: args.chip,
+        applied: false,
+        miss: true,
+        missClass,
+        blocking: false,
+        error: message,
+      };
+      if (args.json) {
+        return { exitCode: 0, stdout: `${JSON.stringify(payload)}\n`, stderr: "" };
+      }
+      return {
+        exitCode: 0,
+        stdout: "",
+        stderr:
+          `${CHIP_APPLY_MISS_TOKEN}: ${message}\n` +
+          "ingest is not blocked; remaining-set hygiene is optional for a write-capable identity\n",
+      };
+    }
+
     let applied: { remaining: string[]; add: readonly string[]; remove: readonly string[] };
     if (args.chip === "design-critique:ingest-ready") {
       const comments = fetchComments(repo, args.issue);
@@ -290,6 +332,15 @@ export function runDesignCritiqueChip(
     } else {
       applied = applyDesignCritiqueCatalogChip(writeClient, repo, args.issue, args.chip);
     }
+
+    // First-arc judgmentGates advisory: no pin-present durable policy writer for
+    // judgmentGates (S1); loud advisory when deposited and gate dark (#5326).
+    let gateAdvisory = "";
+    const projectRoot = seams.projectRoot ?? process.cwd();
+    if (isDesignCritiqueDeposited(projectRoot) && !hasDesignCritiqueJudgmentGate(projectRoot)) {
+      gateAdvisory = formatDesignCritiqueJudgmentGatesRemediation();
+    }
+
     const payload = {
       repo,
       issue: args.issue,
@@ -297,9 +348,14 @@ export function runDesignCritiqueChip(
       add: [...applied.add],
       remove: [...applied.remove],
       remaining: [...applied.remaining],
+      ...(gateAdvisory.length > 0 ? { judgmentGatesAdvisory: gateAdvisory } : {}),
     };
     if (args.json) {
-      return { exitCode: 0, stdout: `${JSON.stringify(payload)}\n`, stderr: "" };
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(payload)}\n`,
+        stderr: gateAdvisory.length > 0 ? `${gateAdvisory}\n` : "",
+      };
     }
     const wrote = applied.add.length > 0 || applied.remove.length > 0;
     const detail =
@@ -311,7 +367,7 @@ export function runDesignCritiqueChip(
     return {
       exitCode: 0,
       stdout: `${wrote ? "applied" : "unchanged"} ${args.chip} on ${repo}#${args.issue} (${detail})\n`,
-      stderr: "",
+      stderr: gateAdvisory.length > 0 ? `${gateAdvisory}\n` : "",
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
