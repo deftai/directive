@@ -1,0 +1,440 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5284",
+    "updated": "2026-10-04T02:36:04Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): SUPERSEDES_RE misses bold Recut-supersedes; bindLeanPredecessorValid blocks legitimate harvest Recuts (#5278 leftover)",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(design-critique): SUPERSEDES_RE misses bold Recut-supersedes; bindLeanPredecessorValid blocks legitimate harvest Recuts (#5278 leftover)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5284",
+      "Overview": "SUPERSEDES_RE admits bold-optional colon-adjacent asterisks like OPEN_QUESTION_RE and LEAN_HEADING_RE. Failing shapes Recut-supersedes: id and Supersedes: id must match when operative; unbolded forms keep matching. Do not choose document-unbold as the Bound path. bindLeanPredecessorValid allows same-P star overlap only when harvestChanged is true and the bind map operatively Recut-supersedes a prior successor lean. Without both conjuncts, keep today refuse. hasHarvestRelievesOverlap and evaluateHandoffPrint carve the same harvestChanged plus operative Recut gate so newBindLeanAndAudit does not print Handoff solely for that harvest overlap. Without the gate, keep the 4554 print. Contract records the harvest-changed plus operative Recut escape for Bind lean names a predecessor that does not already carry relieves of those ids and for the 4554 harvest-overlap print condition. Do not leave contract text requiring Handoff on the prescribed evaluatePainAuditFollowThrough harvest walk.",
+      "Labels": "bug, design, process, source-of-truth, urgent, critic, design-critique:ingest-ready, framework-gap, core-capabilities, promise:swarm, promise:continuity"
+    },
+    "items": [
+      {
+        "title": "**SUPERSEDES_RE bold-optional (P1 / F2).** In `packages/core/src/design-critique/handoff.ts`, update `SUPERSEDES_RE` so optional markdown asterisks wrap the token the same way `OPEN_QUESTION_RE` / `LEAN_HEADING_RE` already do (`\\*{0,2}` on both sides of the token name). The failing shapes `**Recut-supersedes:** <id>` and `**Supersedes:** <id>` (and single-asterisk `:*` variants) MUST match when operative; unbolded forms keep matching. Do **not** choose document-unbold / fail-fixtures-on-bold as the Bound path. Fixtures: extend `handoff.test.ts` with the failing `:**` / `:*` samples from critic 5975656785 plus the already-matching leading-bold-with-space shape (F4 census).",
+        "status": "pending",
+        "id": "clause.1",
+        "x-directive/description": "**SUPERSEDES_RE bold-optional (P1 / F2).** In `packages/core/src/design-critique/handoff.ts`, update `SUPERSEDES_RE` so optional markdown asterisks wrap the token the same way `OPEN_QUESTION_RE` / `LEAN_HEADING_RE` already do (`\\*{0,2}` on both sides of the token name). The failing shapes `**Recut-supersedes:** <id>` and `**Supersedes:** <id>` (and single-asterisk `:*` variants) MUST match when operative; unbolded forms keep matching. Do **not** choose document-unbold / fail-fixtures-on-bold as the Bound path. Fixtures: extend `handoff.test.ts` with the failing `:**` / `:*` samples from critic 5975656785 plus the already-matching leading-bold-with-space shape (F4 census).",
+        "x-directive/artifact_path": "packages/core/src/design-critique/handoff.ts"
+      },
+      {
+        "title": "**`bindLeanPredecessorValid` harvest escape (P2 / F3).** Extend `bindLeanPredecessorValid` in `leftover-pain.ts` with an evidence-gated escape. Overlap of relieves ids is allowed **only when** both hold: (a) `harvestChanged: true` (or the same boolean already threaded by `evaluatePainAuditFollowThrough`), and (b) the bind map operatively Recut-supersedes a prior successor lean (reuse `collectSupersededSuccessorLeans` / operative supersedes cite). Without both, keep today's refuse. Fixtures: overlap without harvest → false; overlap with harvestChanged + operative Recut → true; overlap with harvestChanged but no Recut cite → false.",
+        "status": "pending",
+        "id": "clause.2",
+        "x-directive/description": "**`bindLeanPredecessorValid` harvest escape (P2 / F3).** Extend `bindLeanPredecessorValid` in `leftover-pain.ts` with an evidence-gated escape. Overlap of relieves ids is allowed **only when** both hold: (a) `harvestChanged: true` (or the same boolean already threaded by `evaluatePainAuditFollowThrough`), and (b) the bind map operatively Recut-supersedes a prior successor lean (reuse `collectSupersededSuccessorLeans` / operative supersedes cite). Without both, keep today's refuse. Fixtures: overlap without harvest → false; overlap with harvestChanged + operative Recut → true; overlap with harvestChanged but no Recut cite → false.",
+        "x-directive/artifact_path": "packages/core/src/design-critique/handoff.test.ts"
+      },
+      {
+        "title": "**#4554 Handoff co-amend (P2 / F1).** Under the **same** gate as item 2, carve harvest follow-through out of `hasHarvestRelievesOverlap` / `evaluateHandoffPrint` so a legitimate harvest Recut (`newBindLeanAndAudit` path) does not print Handoff on same-P* relieves Recut-supersedes. Without the gate, keep #4554 print. Fixtures: same-P* Recut without harvestChanged still prints; with harvestChanged + operative Recut of a prior successor lean does not print solely for that harvest overlap (unrelieved / does-not-relieve print paths stay).",
+        "status": "pending",
+        "id": "clause.3",
+        "x-directive/description": "**#4554 Handoff co-amend (P2 / F1).** Under the **same** gate as item 2, carve harvest follow-through out of `hasHarvestRelievesOverlap` / `evaluateHandoffPrint` so a legitimate harvest Recut (`newBindLeanAndAudit` path) does not print Handoff on same-P* relieves Recut-supersedes. Without the gate, keep #4554 print. Fixtures: same-P* Recut without harvestChanged still prints; with harvestChanged + operative Recut of a prior successor lean does not print solely for that harvest overlap (unrelieved / does-not-relieve print paths stay).",
+        "x-directive/artifact_path": "packages/core/src/design-critique/leftover-pain.ts"
+      },
+      {
+        "title": "**Contract / docs alignment (P2 / F1).** Update the Pain coverage / Handoff predecessor sentences in `content/contracts/design-critique.md` (and any mirrored test pins) so the harvest-changed + operative Recut escape is the recorded exception to \"bind lean names a predecessor that does not already carry relieves of those ids\" and to the #4554 harvest-overlap print condition. Do not leave contract text requiring Handoff on the prescribed `evaluatePainAuditFollowThrough` harvest walk.",
+        "status": "pending",
+        "id": "clause.4",
+        "x-directive/description": "**Contract / docs alignment (P2 / F1).** Update the Pain coverage / Handoff predecessor sentences in `content/contracts/design-critique.md` (and any mirrored test pins) so the harvest-changed + operative Recut escape is the recorded exception to \"bind lean names a predecessor that does not already carry relieves of those ids\" and to the #4554 harvest-overlap print condition. Do not leave contract text requiring Handoff on the prescribed `evaluatePainAuditFollowThrough` harvest walk.",
+        "x-directive/artifact_path": "content/contracts/design-critique.md"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "critic",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:swarm",
+      "promise:continuity"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5284",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5284: bug(design-critique): SUPERSEDES_RE misses bold Recut-supersedes; bindLeanPredecessorValid blocks legitimate harvest Recuts (#5278 leftover)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived independently testable clauses from Prefer-A Bound lean 5975663955 before product edit (#3323)",
+      "sentences": [
+        "SUPERSEDES_RE admits bold-optional colon-adjacent asterisks like OPEN_QUESTION_RE and LEAN_HEADING_RE.",
+        "Failing shapes Recut-supersedes: id and Supersedes: id must match when operative; unbolded forms keep matching.",
+        "Do not choose document-unbold as the Bound path.",
+        "bindLeanPredecessorValid allows same-P star overlap only when harvestChanged is true and the bind map operatively Recut-supersedes a prior successor lean.",
+        "Without both conjuncts, keep today refuse.",
+        "hasHarvestRelievesOverlap and evaluateHandoffPrint carve the same harvestChanged plus operative Recut gate so newBindLeanAndAudit does not print Handoff solely for that harvest overlap.",
+        "Without the gate, keep the 4554 print.",
+        "Contract records the harvest-changed plus operative Recut escape for Bind lean names a predecessor that does not already carry relieves of those ids and for the 4554 harvest-overlap print condition.",
+        "Do not leave contract text requiring Handoff on the prescribed evaluatePainAuditFollowThrough harvest walk."
+      ],
+      "admitted_source_sentences": [
+        "SUPERSEDES_RE admits bold-optional colon-adjacent asterisks like OPEN_QUESTION_RE and LEAN_HEADING_RE.",
+        "Failing shapes Recut-supersedes: id and Supersedes: id must match when operative; unbolded forms keep matching.",
+        "Do not choose document-unbold as the Bound path.",
+        "bindLeanPredecessorValid allows same-P star overlap only when harvestChanged is true and the bind map operatively Recut-supersedes a prior successor lean.",
+        "Without both conjuncts, keep today refuse.",
+        "hasHarvestRelievesOverlap and evaluateHandoffPrint carve the same harvestChanged plus operative Recut gate so newBindLeanAndAudit does not print Handoff solely for that harvest overlap.",
+        "Without the gate, keep the 4554 print.",
+        "Contract records the harvest-changed plus operative Recut escape for Bind lean names a predecessor that does not already carry relieves of those ids and for the 4554 harvest-overlap print condition.",
+        "Do not leave contract text requiring Handoff on the prescribed evaluatePainAuditFollowThrough harvest walk."
+      ],
+      "admitted_source_digest": "51cb47a1a25252736860306850f090006d5d82b9ddf83a0f0649b686cf716685",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "SUPERSEDES_RE admits bold-optional colon-adjacent asterisks like OPEN_QUESTION_RE and LEAN_HEADING_RE.",
+          "artifact_path": "packages/core/src/design-critique/handoff.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Failing shapes Recut-supersedes: id and Supersedes: id must match when operative; unbolded forms keep matching.",
+          "artifact_path": "packages/core/src/design-critique/handoff.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not choose document-unbold as the Bound path.",
+          "artifact_path": "packages/core/src/design-critique/handoff.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "bindLeanPredecessorValid allows same-P star overlap only when harvestChanged is true and the bind map operatively Recut-supersedes a prior successor lean.",
+          "artifact_path": "packages/core/src/design-critique/leftover-pain.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Without both conjuncts, keep today refuse.",
+          "artifact_path": "packages/core/src/design-critique/leftover-pain.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "hasHarvestRelievesOverlap and evaluateHandoffPrint carve the same harvestChanged plus operative Recut gate so newBindLeanAndAudit does not print Handoff solely for that harvest overlap.",
+          "artifact_path": "packages/core/src/design-critique/handoff.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Without the gate, keep the 4554 print.",
+          "artifact_path": "packages/core/src/design-critique/handoff.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Contract records the harvest-changed plus operative Recut escape for Bind lean names a predecessor that does not already carry relieves of those ids and for the 4554 harvest-overlap print condition.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Do not leave contract text requiring Handoff on the prescribed evaluatePainAuditFollowThrough harvest walk.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Prefer-A drafts two concrete Recut-bookkeeping fixes (bold-optional SUPERSEDES_RE; harvest-changed / Recut-supersedes escape on bindLeanPredecessorValid) that are process-critical for completed-arc harvest follow-through and must bind before implement, not land as ad-hoc regex tweaks.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-5284-dc\norigin-ref: origin/HEAD\ndispatch-sha: dd601935bb21f37df9bf47a3b30954c18505c14f\ndest-wo: leftover-complete\n\nspend: N=1\nspend-ask: asked\nspend-recommend: N=1\nspend-why: operator \"use recommended\" on arc 5284; Prefer-A is drafted with two closed remedies (SUPERSEDES_RE bold-optional vs document-unbold; harvest escape on bindLeanPredecessorValid); solution space is not open multi-remedy; blast is Recut bookkeeping not whole-motion cancel/kill.\nDual-stop cap: 6 posts\n\npain: P1, P2\n\n- P1. SUPERSEDES_RE asterisk gap: bold markdown `**Recut-supersedes:** <id>` (or `**Supersedes:** <id>`) does not match SUPERSEDES_RE in packages/core/src/design-critique/handoff.ts, so collectSupersededSuccessorLeans misses the cite; unbolded line matches. Accidental bold switches the check off.\n- P2. bindLeanPredecessorValid has no harvest-changed escape: after a harvest-changing sharpening, Yolo leftover-pain requires a new bind lean that legitimately supersedes a prior relieves-carrying lean with the same pain ids; bindLeanPredecessorValid in leftover-pain.ts refuses any relieves-id overlap with no harvest-changed / Recut-supersedes escape, so the prescribed follow-through path cannot be walked.\n\nverification-path: pin-read git show dd601935bb21f37df9bf47a3b30954c18505c14f:; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:bb9f1c316f4e95ecc8df2977f29f01b9fb40386aea378f466926be2ffe7e3862\ntarget: #5284\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #5278 (parent arc; PA-16 / PA-19) #4554 (Recut-supersedes / harvest overlap) #4531 (Handoff after unrelieved)\n\n## Gate stamp\n\nRound-1 ceiling is this write-back (spend N=1). Single critic family: grok.\n\n## Plain-language summary\n\nTwo small bookkeeping bugs break legitimate Recut follow-through after a harvest-changing pain-audit: bold Recut-supersedes headers are invisible to the supersedes regex, and the predecessor-lean check blocks any same-pain-id Recut even when harvest changed. Prefer-A is bold-optional matching plus a harvest/Recut escape on that check.\n\n",
+          "id": 5975631488,
+          "html_url": "https://github.com/deftai/directive/issues/5284#issuecomment-5975631488",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:05:47Z",
+          "updated_at": "2026-10-04T02:05:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nid-ceiling: 5975631488\ndispatch-sha: dd601935bb21f37df9bf47a3b30954c18505c14f\ncharter: open critique\nround: 1 critic\ncritic-role: fresh\nspend: N=1\narc-mode: no-ingest\nseat: grok\nlauncher: spawn_subagent\nverification-path: pin-read git show dd601935bb21f37df9bf47a3b30954c18505c14f:; dest cwd-without-occupy for on-pin file reads\ntarget: #5284 Prefer-A (bold-optional SUPERSEDES_RE; harvest-changed / Recut-supersedes escape on bindLeanPredecessorValid)\nStop-1: 5975631488\n\nRound-1 open critique of Prefer-A against Stop 1 pains P1 and P2. Anchors re-verified at dispatch-sha by pin-read; no thread comments after the id ceiling were read.\n\n## Anchor re-verification (pin-read)\n\n`git show dd601935bb21f37df9bf47a3b30954c18505c14f:packages/core/src/design-critique/handoff.ts`\n\n- `SUPERSEDES_RE = /\\bSupersedes(?:\\s+comment|\\s+successor lean)?[:\\s]+(\\d{8,})\\b/gi`\n- `collectSupersededSuccessorLeans` clones that source with `\"gi\"` and resolves cited ids only when `isSuccessorLeanBody` holds and `classifyPosition` is operative.\n- Sibling bold-optional patterns already on the same file: `OPEN_QUESTION_RE` / `OPEN_QUESTION_VALUE_RE` use `\\*{0,2}` on both sides of `open-question:`; `LEAN_HEADING_RE` uses `\\*{0,2}` on both sides of `Lean:`. `SUPERSEDES_RE` does not.\n\nProbed against the pin regex:\n\n| Sample | Match |\n|---|---|\n| `Recut-supersedes: 5975631488` | yes |\n| `**Recut-supersedes: 5975631488**` | yes |\n| `**Recut-supersedes:** 5975631488` | no |\n| `**Supersedes:** 5975631488` | no |\n| `*Recut-supersedes:* 5975631488` | no |\n\nFailure mode for P1 is colon-adjacent closing asterisks (`:**` / `:*`) between the token colon and the id, not leading bold alone.\n\n`git show dd601935bb21f37df9bf47a3b30954c18505c14f:packages/core/src/design-critique/leftover-pain.ts`\n\n- `bindLeanPredecessorValid({ predecessorRelievesIds, bindRelievesIds })` returns `!bindRelievesIds.some(id => predecessorRelievesIds.includes(id))`. No `harvestChanged`, no Recut-supersedes, no third argument.\n- `evaluatePainAuditFollowThrough({ findingClasses, harvestChanged })` with sharpening + `harvestChanged: true` returns `newBindLeanAndAudit: true` (prescribed new bind lean + another pain-audit).\n\nSame pin, `handoff.ts` `hasHarvestRelievesOverlap` / `evaluateHandoffPrint`: print is true when a successor map operatively `relieves` the same Stop-1 P* as a prior successor map it Recut-supersedes (#4554). Fixture `handoff.test.ts` locks that print on `Supersedes <prior-relieves-id>` with matching `relieves: P1`.\n\n## Mechanism inventory (before new machinery)\n\nAlready present; Prefer-A must compose with these rather than invent parallel controls:\n\n1. `SUPERSEDES_RE` + `collectSupersededSuccessorLeans` + `hasOperativeSupersedesPriorLean` (handoff.ts) — supersedes cite detection.\n2. Bold-optional `\\*{0,2}` wrapping on `OPEN_QUESTION_RE` / `LEAN_HEADING_RE` (handoff.ts) — the existing family pattern for markdown asterisk tolerance.\n3. `bindLeanPredecessorValid` (leftover-pain.ts) — pure relieves-id overlap refuse.\n4. `evaluatePainAuditFollowThrough` `harvestChanged` (leftover-pain.ts) — harvest-changing sharpening → new bind lean + audit.\n5. `hasHarvestRelievesOverlap` / `evaluateHandoffPrint` (#4554) — same-P* relieves Recut-supersedes → Handoff print.\n6. Contract Pain coverage: \"Bind lean names a predecessor that does not already carry `relieves` of those ids\"; Handoff print condition 2 mirrors #4554.\n\n## Findings\n\n### F1 — Prefer-A's P2 escape names only `bindLeanPredecessorValid`; the prescribed Recut walk still hits #4554 Handoff — `blocks-the-design`\n\n**Evidence.** Prefer-A's second bullet: \"Add a harvest-changed / Recut-supersedes escape (or equivalent) so a legitimate Recut after a sharpening-only pain-audit is not treated as silent re-submit of a prior relieves lean.\" Stop 1 P2 states the prescribed follow-through needs a new bind lean that supersedes a prior relieves-carrying lean with the same pain ids. At the pin, three interlocking controls all refuse that walk today:\n\n1. `bindLeanPredecessorValid` — Prefer-A names this escape.\n2. `evaluateHandoffPrint` → `hasHarvestRelievesOverlap` — print true on same-P* relieves Recut-supersedes; Prefer-A does not name it.\n3. Contract sentences that lock (2) and the predecessor rule — Prefer-A does not name them.\n\n`evaluatePainAuditFollowThrough` already routes harvest-changing sharpening to `newBindLeanAndAudit: true` (not retraction/Handoff). Escaping only (1) leaves (2) printing Handoff on the Recut Prefer-A that yolo leftover-pain prescribe. The path still cannot be walked.\n\n**Failure mode.** A parent that implements Prefer-A as written patches `bindLeanPredecessorValid`, posts `Recut-supersedes: <prior-relieves-lean>` with updated Bound-remedy and `relieves: P*`, and immediately gets Handoff print from #4554. P2 remains unrelieved; the arc is steered to Handoff instead of the new pain-audit Dual-stop spend that follow-through already encodes.\n\n**Disposition consequence.** Prefer-A cannot bind as written for P2. Successor lean must either (a) widen the remedy to co-amend `hasHarvestRelievesOverlap` / `evaluateHandoffPrint` and the matching contract print-condition / predecessor sentences under an explicit harvest-changed gate, or (b) restate P2's \"legitimately supersedes\" claim so the prescribed walk does not use Recut-supersedes against a prior relieves map. Leaving #4554 untouched while claiming P2 relieved is a false relieve.\n\n### F2 — P1 remedy is an OR; inventory already picks bold-optional `\\*{0,2}` — `sharpens-framing`\n\n**Evidence.** Prefer-A: \"Accept bold-optional on `Recut-supersedes:` / `SUPERSEDES_RE` (or document that the token must be unbolded and fail fixtures on bold).\" Pin-read shows `OPEN_QUESTION_RE` and `LEAN_HEADING_RE` already implement bold-optional with `\\*{0,2}` on both sides of the token on the same file. The failing shape is specifically asterisks between colon and id (`**Recut-supersedes:** <id>`), which that wrapping pattern covers.\n\n**Failure mode.** Leaving the OR open lets implement pick document-unbold, which fights the Lean-family bold habit already admitted by `LEAN_HEADING_RE` and recreates the accidental-bold off-switch P1 names. Or implement a one-off asterisk strip that drifts from the `\\*{0,2}` family.\n\n**Disposition consequence.** Prefer-A can bind on P1 once the successor lean pins one remedy: bold-optional wrapping on `SUPERSEDES_RE` matching the existing `\\*{0,2}` family (covering colon-adjacent asterisks), with fixtures on the failing `:**` samples above. Drop the document-unbold alternate from the Bound remedy.\n\n### F3 — Escape predicate must stay evidence-gated (harvestChanged / operative Recut of a prior successor lean) — `sharpens-framing`\n\n**Evidence.** Prefer-A says \"harvest-changed / Recut-supersedes escape (or equivalent)\" without naming the evidence channel. `evaluatePainAuditFollowThrough` already threads `harvestChanged: boolean`. `collectSupersededSuccessorLeans` already resolves operative Recut-supersedes cites. A bare widening of `bindLeanPredecessorValid` to always allow overlap would also admit silent same-harvest re-submit — the refuse #4554 exists to catch.\n\n**Failure mode.** An ungated escape collapses the silent-resubmit refuse into \"any same-P* Recut is fine,\" which is the authority hole #4554 closed.\n\n**Disposition consequence.** Bound remedy must state the gate: escape only when follow-through harvest-changed is true (or an equivalent recorded harvest-changed signal) and the map operatively Recut-supersedes a prior successor lean. Same gate must apply to any #4554 carve-out under F1(a). Injection / shared-state lens: this target changes lean-supersession authority over asserted pain coverage; ungated escape is the concrete hazard.\n\n### F4 — Leading-bold with space after colon already matches — `footnote`\n\n`**Recut-supersedes: 5975631488**` matches at the pin. Census only; no disposition weight. P1's real gap is the `:**` / `:*` closing-asterisk shapes.\n\n## Pain coverage (round-1 critique of Prefer-A, not a path-1 pain-audit)\n\n| Pain | Prefer-A claim | This round |\n|---|---|---|\n| P1 | bold-optional or document-unbold | Anchors hold; F2 sharpens the remedy to bold-optional `\\*{0,2}` only |\n| P2 | harvest / Recut escape on `bindLeanPredecessorValid` | Anchors hold that the predicate refuses overlap; F1 blocks Prefer-A as written because #4554 + contract still refuse the prescribed Recut walk |\n\n## Road-not-taken\n\n**P1.** Document-unbold + fail fixtures was considered. Steelman: keeps `SUPERSEDES_RE` minimal and fails closed on markdown drift. Flip condition: if Lean-family headers were required unbolded everywhere. They are not — `LEAN_HEADING_RE` already admits `\\*{0,2}` — so bold-optional is the inventory-aligned choice.\n\n**P2.** Escape-only-`bindLeanPredecessorValid` (Prefer-A as drafted) was considered. Steelman: smallest diff; Handoff print could stay as a separate human gate. Flip condition: if the prescribed harvest follow-through were Handoff rather than `newBindLeanAndAudit`. At the pin it is the latter, so F1 stands.\n\n**P2 alternate.** Drop Recut-supersedes from the harvest new-bind lean and name a non-relieves predecessor (e.g. Stop 1). Steelman: walks today without code change. Flip condition: if supersedes bookkeeping were optional for Recuts. Collect/harvest-overlap machinery and Recut self-containment practice treat the cite as load-bearing, so Prefer-A's supersedes-preserving path is the one that must be made coherent across all three controls.\n\n## Verdict\n\nPrefer-A is **not bindable as written**. F1 is blocking on P2 scope. F2 and F3 are sharpenings the successor lean can fold. F4 is footnote-only.\r\n\n",
+          "id": 5975656785,
+          "html_url": "https://github.com/deftai/directive/issues/5284#issuecomment-5975656785",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:09:40Z",
+          "updated_at": "2026-10-04T02:09:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound\n**Spec-path:** Bound remedy below\nTarget-digest: sha256:bb9f1c316f4e95ecc8df2977f29f01b9fb40386aea378f466926be2ffe7e3862\nStop-1: 5975631488\ncritic: grok 5975656785\ndispatch-sha: dd601935bb21f37df9bf47a3b30954c18505c14f\narc-mode: no-ingest\nspend: N=1\nspend-ask: asked\nDual-stop cap: 6 posts\nyolo-standing: yes\n\n## In plain English\n\nFix two Recut bookkeeping bugs so a harvest-changing pain-audit can actually walk the prescribed new bind lean. Make SUPERSEDES_RE tolerate bold markdown the same way Lean: already does, and add one evidence-gated harvest escape that covers both bindLeanPredecessorValid and the #4554 Handoff print — not only the predecessor predicate.\n\n## Take map (critic 5975656785)\n\n- F1 blocks-the-design → accept-into-contract (widen Prefer-A): Bound remedy co-amends hasHarvestRelievesOverlap / evaluateHandoffPrint and matching contract sentences under the same harvest-changed + operative Recut gate as the bindLeanPredecessorValid escape. Escaping only the predecessor predicate leaves P2 unrelieved.\n- F2 sharpens-framing → accept-into-contract: pin SUPERSEDES_RE to the existing `\\*{0,2}` family (OPEN_QUESTION_RE / LEAN_HEADING_RE); drop the document-unbold OR from Prefer-A.\n- F3 sharpens-framing → accept-into-contract: escape gated on harvestChanged (or equivalent recorded harvest-changed signal) AND operative Recut-supersedes of a prior successor lean. Ungated overlap allow is refused.\n- F4 footnote → footnote (no disposition weight): leading-bold with space after colon already matches.\n\n## Pain cites (closed form)\n\nrelieves: P1\nrelieves: P2\n\n- P1. SUPERSEDES_RE asterisk gap (colon-adjacent `:**` / `:*`) relieved by Bound item 1.\n- P2. harvest Recut walk blocked by interlocking predecessor + #4554 Handoff + contract sentences relieved by Bound items 2–4 under the F3 gate.\n\n## Bound remedy\n\n1. **SUPERSEDES_RE bold-optional (P1 / F2).** In `packages/core/src/design-critique/handoff.ts`, update `SUPERSEDES_RE` so optional markdown asterisks wrap the token the same way `OPEN_QUESTION_RE` / `LEAN_HEADING_RE` already do (`\\*{0,2}` on both sides of the token name). The failing shapes `**Recut-supersedes:** <id>` and `**Supersedes:** <id>` (and single-asterisk `:*` variants) MUST match when operative; unbolded forms keep matching. Do **not** choose document-unbold / fail-fixtures-on-bold as the Bound path. Fixtures: extend `handoff.test.ts` with the failing `:**` / `:*` samples from critic 5975656785 plus the already-matching leading-bold-with-space shape (F4 census).\n\n2. **`bindLeanPredecessorValid` harvest escape (P2 / F3).** Extend `bindLeanPredecessorValid` in `leftover-pain.ts` with an evidence-gated escape. Overlap of relieves ids is allowed **only when** both hold: (a) `harvestChanged: true` (or the same boolean already threaded by `evaluatePainAuditFollowThrough`), and (b) the bind map operatively Recut-supersedes a prior successor lean (reuse `collectSupersededSuccessorLeans` / operative supersedes cite). Without both, keep today's refuse. Fixtures: overlap without harvest → false; overlap with harvestChanged + operative Recut → true; overlap with harvestChanged but no Recut cite → false.\n\n3. **#4554 Handoff co-amend (P2 / F1).** Under the **same** gate as item 2, carve harvest follow-through out of `hasHarvestRelievesOverlap` / `evaluateHandoffPrint` so a legitimate harvest Recut (`newBindLeanAndAudit` path) does not print Handoff on same-P* relieves Recut-supersedes. Without the gate, keep #4554 print. Fixtures: same-P* Recut without harvestChanged still prints; with harvestChanged + operative Recut of a prior successor lean does not print solely for that harvest overlap (unrelieved / does-not-relieve print paths stay).\n\n4. **Contract / docs alignment (P2 / F1).** Update the Pain coverage / Handoff predecessor sentences in `content/contracts/design-critique.md` (and any mirrored test pins) so the harvest-changed + operative Recut escape is the recorded exception to \"bind lean names a predecessor that does not already carry relieves of those ids\" and to the #4554 harvest-overlap print condition. Do not leave contract text requiring Handoff on the prescribed `evaluatePainAuditFollowThrough` harvest walk.\n\n## Non-goals (bound)\n\n- Do not ungated-allow same-P* relieves Recut (silent re-submit hole #4554 closed).\n- Do not document-unbold as the P1 Bound path.\n- Do not invent a second supersedes parser parallel to SUPERSEDES_RE.\n- Do not change Dual-stop seat math or pain-audit follow-through routing beyond making the already-prescribed `newBindLeanAndAudit` walk coherent.\n\n## Acceptance / DCR\n\n- (i) `**Recut-supersedes:** <id>` and `**Supersedes:** <id>` resolve via collectSupersededSuccessorLeans at operative position\n- (ii) unbolded Recut-supersedes / Supersedes forms still resolve\n- (iii) bindLeanPredecessorValid refuses same-P* overlap when harvestChanged is false or Recut cite is missing\n- (iv) bindLeanPredecessorValid allows same-P* overlap when harvestChanged is true AND operative Recut of a prior successor lean\n- (v) evaluateHandoffPrint does not print harvestRelievesOverlap-only Handoff under the same (iv) gate; still prints without the gate\n- (vi) evaluatePainAuditFollowThrough harvest-changing sharpening → newBindLeanAndAudit remains the follow-through; that Recut can be posted and audited without false Handoff / predecessor refuse\n\r\n\n",
+          "id": 5975663955,
+          "html_url": "https://github.com/deftai/directive/issues/5284#issuecomment-5975663955",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:10:47Z",
+          "updated_at": "2026-10-04T02:10:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2\nid-ceiling: 5975663955\ndispatch-sha: dd601935bb21f37df9bf47a3b30954c18505c14f\ncharter: open critique\nround: pain-audit of asserted coverage (post-lean)\ncritic-role: fresh\nspend: N=1\narc-mode: no-ingest\nseat: grok\nlauncher: grok --cwd --prompt-file\nverification-path: pin-read git show dd601935bb21f37df9bf47a3b30954c18505c14f:; dest cwd-without-occupy\ntarget: Prefer-A Bound lean 5975663955\nStop-1: 5975631488\nround-1-critic: 5975656785\n\nPain-audit of Prefer-A Bound lean 5975663955 asserted coverage for Stop 1 pains P1 and P2. Inputs read only through id ceiling 5975663955. Anchors re-verified at dispatch-sha by pin-read.\n\n## Anchor re-verification (pin-read)\n\n`git show dd601935bb21f37df9bf47a3b30954c18505c14f:packages/core/src/design-critique/handoff.ts`\n\n- `SUPERSEDES_RE = /\\bSupersedes(?:\\s+comment|\\s+successor lean)?[:\\s]+(\\d{8,})\\b/gi` — no `\\*{0,2}`.\n- Family on the same file: `OPEN_QUESTION_RE` / `OPEN_QUESTION_VALUE_RE` / `LEAN_HEADING_RE` use `token:\\*{0,2}` (colon before closing optional asterisks), not merely stars around the bare token name before `[:\\s]+`.\n- `collectSupersededSuccessorLeans` clones `SUPERSEDES_RE` with `\"gi\"` and admits only operative cites whose id resolves to `isSuccessorLeanBody`.\n- `hasHarvestRelievesOverlap` returns true on same Stop-1 P* operative `relieves` between current map and a prior successor lean collected via that supersedes path.\n- `evaluateHandoffPrint` ORs unrelieved+recut with `harvestRelievesOverlap`; `HandoffPrintInput` has no `harvestChanged` field at the pin.\n\nProbed shapes against pin regex vs two implement readings of Bound item 1:\n\n| Sample | pin SUPERSEDES_RE | family `Supersedes...:\\*{0,2}` (OPEN_QUESTION/LEAN-shaped) | literal both-sides-of-name then `[:\\s]+` |\n|---|---|---|---|\n| `Recut-supersedes: 5975631488` | yes | yes | yes |\n| `**Recut-supersedes: 5975631488**` | yes | yes | yes |\n| `**Recut-supersedes:** 5975631488` | no | yes | **no** |\n| `**Supersedes:** 5975631488` | no | yes | **no** |\n| `*Recut-supersedes:* 5975631488` | no | yes | **no** |\n\n`git show dd601935bb21f37df9bf47a3b30954c18505c14f:packages/core/src/design-critique/leftover-pain.ts`\n\n- `bindLeanPredecessorValid({ predecessorRelievesIds, bindRelievesIds })` returns `!bindRelievesIds.some(id => predecessorRelievesIds.includes(id))`. No `harvestChanged`, no Recut cite, no third argument.\n- `evaluatePainAuditFollowThrough({ findingClasses, harvestChanged })` with sharpening + `harvestChanged: true` returns `newBindLeanAndAudit: true`; sharpening + `harvestChanged: false` returns `bindableWithoutExtraLean: true` + `recordingOnlyParentComment: true`.\n\nContract at pin (`content/contracts/design-critique.md`): flat predecessor sentence (\"Bind lean names a predecessor that does not already carry `relieves` of those ids\") and Handoff print condition 2 (same-P* relieves Recut-supersedes) with no harvest-changed exception.\n\n## Mechanism inventory\n\n1. `SUPERSEDES_RE` + `collectSupersededSuccessorLeans` + `hasOperativeSupersedesPriorLean`\n2. Bold-optional `token:\\*{0,2}` family (`OPEN_QUESTION_*`, `LEAN_HEADING_RE`)\n3. `bindLeanPredecessorValid` pure overlap refuse\n4. `evaluatePainAuditFollowThrough` `harvestChanged` → `newBindLeanAndAudit`\n5. `hasHarvestRelievesOverlap` / `evaluateHandoffPrint` (#4554)\n6. Contract Pain coverage predecessor sentence + Handoff print condition 2\n\nPrefer-A Bound 5975663955 Bound items 1–4 compose across (1)–(6) and fold round-1 F1–F3.\n\n## Pain-audit decisions (asserted coverage)\n\n| Pain | Lean cite | Audit |\n|---|---|---|\n| P1 | relieves: P1 (Bound item 1; bold-optional SUPERSEDES_RE; drop document-unbold) | **relieves** — family cite + acceptance (i) cover the colon-adjacent `:**` / `:*` gap; F1 below sharpens item-1 prose only (non-harvest) |\n| P2 | relieves: P2 (Bound items 2–4; predecessor escape + #4554 co-amend + contract under F3 gate) | **relieves** — all three interlocking refuses named; gate keeps #4554 silent-resubmit refuse |\n\nClosed cites:\n\nrelieves: P1\nrelieves: P2\n\n## Findings\n\n### F1 — Bound item 1 parenthetical misstates the cited family shape — `sharpens-framing`\n\n**Evidence.** Prefer-A Bound item 1 says update `SUPERSEDES_RE` \"the same way `OPEN_QUESTION_RE` / `LEAN_HEADING_RE` already do (`\\*{0,2}` on both sides of the token name)\". At the pin those family regexes place optional asterisks **after the colon** (`open-question:\\*{0,2}`, `Lean:\\*{0,2}`). Pin-read probe: a literal both-sides-of-name-then-`[:\\s]+` reading still fails `**Recut-supersedes:** <id>`, `**Supersedes:** <id>`, and `*Recut-supersedes:* <id>` — the exact P1 failing shapes. The OPEN_QUESTION/LEAN-shaped `Supersedes...:\\*{0,2}` reading matches them. Acceptance (i) already requires those shapes to resolve via `collectSupersededSuccessorLeans`.\n\n**Failure mode.** Implement follows the parenthetical shorthand, ships a regex that leaves P1's accidental-bold off-switch in place, and fights acceptance (i) / fixtures late.\n\n**Disposition consequence.** Lean remains bindable: controlling family cite + acceptance (i) already pick the relieving shape. Pin Bound item 1 prose to colon-before-closing-stars (`Supersedes(?:…)?:\\*{0,2}` / same as `LEAN_HEADING_RE`), and treat \"both sides of the token name\" as non-operative shorthand. Non-harvest; does not change Bound remedy harvest. `evaluatePainAuditFollowThrough({ findingClasses: [\"sharpening\"], harvestChanged: false })` → bindable without extra lean; recording-only parent comment for F1.\n\n### F2 — `HandoffPrintInput` still lacks `harvestChanged` at the pin — `footnote`\n\nCensus only. Bound items 2–3 already require the same harvestChanged + operative Recut gate on `hasHarvestRelievesOverlap` / `evaluateHandoffPrint`; acceptance (v)–(vi) lock behavior. Threading the boolean (or a recorded harvest-changed signal) onto the print input is implement under that Bound text, not a coverage miss.\n\n### F3 — bold Recut headers are load-bearing for the P2 Recut half-gate — `footnote`\n\n`collectSupersededSuccessorLeans` is the operative Recut detector for both the predecessor escape and the #4554 carve. P1's bold-optional fix is prerequisite when parents emit `**Recut-supersedes:** <id>`. Bound item 1 already lands that; census only.\n\n## Injection / shared-state lens\n\nTarget changes lean-supersession authority over asserted pain coverage. Prefer-A Bound keeps the dual evidence gate (harvestChanged + operative Recut) on both the predecessor escape and the Handoff carve, so the #4554 silent same-P* resubmit refuse stays when the gate is false. No ungated overlap allow.\n\n## Road-not-taken\n\n**P1 as does-not-relieve** because the parenthetical alone fails the probe. Steelman: English inside Bound item 1 is operative and the bad reading is licensed. Flip: Prefer-A also cites OPEN_QUESTION/LEAN as the pattern to copy and locks acceptance (i) on the failing samples — those control over the shorthand, so audit stays relieves + F1 sharpen.\n\n**P2 still blocked** unless Prefer-A names `HandoffPrintInput.harvestChanged` as a field. Steelman: without an input field the carve cannot see harvestChanged. Flip: Bound item 2 already admits \"equivalent recorded harvest-changed signal\" and items 3–4 + acceptance (v) require the gate; field shape is implement.\n\n## Verdict\n\nAsserted coverage **holds**. `relieves: P1` and `relieves: P2`. One non-harvest `sharpens-framing` (F1) for Bound item 1 regex-prose precision. F2–F3 footnote-only. No `blocks-the-design`. No harvest-changing sharpening. Follow-through: bindable-as-posted; recording-only parent comment for F1; no new bind lean / no further Dual-stop pain-audit required for harvest change.\r\n\n",
+          "id": 5975687836,
+          "html_url": "https://github.com/deftai/directive/issues/5284#issuecomment-5975687836",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:14:30Z",
+          "updated_at": "2026-10-04T02:14:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nrecording-only (non-harvest sharpening from pain-audit 5975687836)\n\nF1: Bound item 1 parenthetical \"both sides of the token name\" is non-operative shorthand. Implement copies the OPEN_QUESTION / LEAN family shape with colon-before-closing-stars (`Supersedes(?:…)?:\\*{0,2}`), which is what acceptance (i) already locks. Does not change Bound remedy harvest. evaluatePainAuditFollowThrough sharpening + harvestChanged:false → bindableWithoutExtraLean; no new lean / no further Dual-stop PA.\n\r\n\n",
+          "id": 5975691739,
+          "html_url": "https://github.com/deftai/directive/issues/5284#issuecomment-5975691739",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:15:03Z",
+          "updated_at": "2026-10-04T02:15:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Method | Result |\n|---|---|---|\n| Stop 1 pains P1,P2 are the arc denominator | REST comment 5975631488 operative `pain: P1, P2` | hold |\n| Prefer-A Bound lean 5975663955 asserts relieves P1 and P2 | lean closed cites `relieves: P1` / `relieves: P2` + Bound items 1–4 | hold |\n| Pain-audit 5975687836 supports both asserts | critic `audit-targets: pain-P1, pain-P2`; closed `relieves: P1` / `relieves: P2`; no blocks; non-harvest F1 only | hold |\n| SUPERSEDES_RE at pin misses `:**` / `:*` shapes | pin-read `handoff.ts` + critic/PA probe tables | hold (P1 gap) |\n| bindLeanPredecessorValid at pin has no harvest escape | pin-read `leftover-pain.ts` | hold (P2 gap) |\n| #4554 harvestRelievesOverlap still prints without gate | pin-read `evaluateHandoffPrint` / `hasHarvestRelievesOverlap` | hold (P2 interlocking) |\n| Bound remedy co-amends all three under harvestChanged + operative Recut | lean Bound items 2–4; PA F1–F3 verdict | hold |\n| Round-1 F1–F3 folded; F4 footnote | lean Take map vs critic 5975656785 | hold |\n| Non-harvest PA F1 recording-only; bindable-as-posted | PA verdict + evaluatePainAuditFollowThrough({sharpening, harvestChanged:false}) | hold |\n| Target body digest unchanged | lean Target-digest sha256:bb9f1c316f4e95ecc8df2977f29f01b9fb40386aea378f466926be2ffe7e3862 vs REST issue body | hold |\n\nCited lean: Prefer-A Bound 5975663955\nStop-1: 5975631488\nPain-audit: 5975687836\nRound-1 critic: 5975656785\n\r\n\n",
+          "id": 5975691873,
+          "html_url": "https://github.com/deftai/directive/issues/5284#issuecomment-5975691873",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:15:05Z",
+          "updated_at": "2026-10-04T02:15:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nBold Recut-supersedes headers and a harvest Recut after a sharpening pain-audit both break today: the supersedes regex misses colon-adjacent asterisks, and three interlocking refuses block the prescribed new bind lean. Prefer-A Bound 5975663955 fixes the regex to match the existing Lean/open-question bold family, and adds one evidence-gated harvest escape that covers the predecessor check, the #4554 Handoff print, and the matching contract sentences together.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set). Accepted successor lean Prefer-A Bound 5975663955. Verified-claims table 5975691873. Pain-audit 5975687836 supports relieves: P1 and relieves: P2 with bindable-as-posted (non-harvest sharpening F1 recorded at 5975691739). Round-1 critic 5975656785 F1–F3 folded into the lean; F4 footnote. Stop-1 5975631488. yolo-standing confirm of posted all-accept map.\n\r\n\n",
+          "id": 5975692603,
+          "html_url": "https://github.com/deftai/directive/issues/5284#issuecomment-5975692603",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:15:11Z",
+          "updated_at": "2026-10-04T02:15:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nBold Recut-supersedes headers and a harvest Recut after a sharpening pain-audit both break today: the supersedes regex misses colon-adjacent asterisks, and three interlocking refuses block the prescribed new bind lean. Prefer-A Bound fixes the regex to match the existing Lean/open-question bold family, and adds one evidence-gated harvest escape that covers the predecessor check, the #4554 Handoff print, and the matching contract sentences together.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5975663955\nverified-claims table 5975691873\n\nPain-audit 5975687836 supports relieves: P1 and relieves: P2 with bindable-as-posted (non-harvest sharpening F1 recorded at 5975691739). Round-1 critic 5975656785 F1–F3 folded into the lean; F4 footnote. Stop-1 5975631488. yolo-standing confirm of posted all-accept map. Prior synthesis 5975692603 lacked typed successor-lean cite; this comment is the completed-arc record.\n\r\n\n",
+          "id": 5975696017,
+          "html_url": "https://github.com/deftai/directive/issues/5284#issuecomment-5975696017",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T02:15:41Z",
+          "updated_at": "2026-10-04T02:15:41Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nPrevention leftover from design-critique #5278 pain-audits (PA-16 / PA-19).\n\nTwo related gaps in completed-arc / Recut bookkeeping:\n\n1. **`SUPERSEDES_RE` asterisk gap.** A `**Recut-supersedes:** <id>` header (bold markdown) does not match `SUPERSEDES_RE` in `packages/core/src/design-critique/handoff.ts`, so `collectSupersededSuccessorLeans` misses the cite. Unbolded line matches. Accidental bold switches the check off.\n\n2. **`bindLeanPredecessorValid` has no harvest-changed escape.** After a harvest-changing sharpening, Yolo leftover-pain requires a new bind lean that legitimately supersedes a prior relieves-carrying lean with the same pain ids. `bindLeanPredecessorValid` (`leftover-pain.ts`) refuses any relieves-id overlap and has no harvest-changed / Recut-supersedes escape, so the prescribed follow-through path cannot be walked without tripping the predicate.\n\n## Prefer-A\n\n- Accept bold-optional on `Recut-supersedes:` / `SUPERSEDES_RE` (or document that the token must be unbolded and fail fixtures on bold).\n- Add a harvest-changed / Recut-supersedes escape (or equivalent) so a legitimate Recut after a sharpening-only pain-audit is not treated as silent re-submit of a prior relieves lean.\n\n## Refs\n\n- Parent arc: #5278\n- Pain-audits: https://github.com/deftai/directive/issues/5278#issuecomment-5962901887 (PA-19), https://github.com/deftai/directive/issues/5278#issuecomment-5974584834",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5694557784,
+        "origin": "deftai/directive#5284",
+        "id": "github.issue.5694557784"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "bb9f1c316f4e95ecc8df2977f29f01b9fb40386aea378f466926be2ffe7e3862"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/design-critique/handoff.ts",
+          "packages/core/src/design-critique/handoff.test.ts",
+          "packages/core/src/design-critique/leftover-pain.ts",
+          "packages/core/src/design-critique/leftover-pain.test.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/contracts/design-critique.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/design-critique/handoff.test.ts packages/core/src/design-critique/leftover-pain.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "Tracking PR opened"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-supersedes-harvest",
+        "size": "M",
+        "model_tier": "default"
+      }
+    },
+    "id": "github.issue.5694557784",
+    "updated": "2026-10-04T02:36:04Z"
+  }
+}

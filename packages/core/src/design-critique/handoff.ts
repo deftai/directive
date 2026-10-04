@@ -14,7 +14,9 @@ import { isSuccessorLeanBody, type ThreadComment } from "./completed-arc-record.
 const OPEN_QUESTION_RE = /(?:^|\n)\s*\*{0,2}open-question:\*{0,2}/g;
 const OPEN_QUESTION_VALUE_RE =
   /(?:^|\n)\s*\*{0,2}open-question:\*{0,2}[ \t]*([^\r\n]*?)[ \t]*(?=\r?(?:\n|$))/g;
-const SUPERSEDES_RE = /\bSupersedes(?:\s+comment|\s+successor lean)?[:\s]+(\d{8,})\b/gi;
+/** Bold-optional like OPEN_QUESTION_RE / LEAN_HEADING_RE (`token:\*{0,2}`). */
+const SUPERSEDES_RE =
+  /\b\*{0,2}Supersedes(?:\s+comment|\s+successor lean)?(?::\*{0,2}\s*|\s+)(\d{8,})\b/gi;
 const PARENT_ROLE_RE = /(?:^|\n)\s*role:\s*parent\b/i;
 const LEAN_HEADING_RE = /(?:^|\n)\s*\*{0,2}Lean:\*{0,2}/;
 
@@ -68,7 +70,8 @@ function operativeRelievesIds(cites: readonly PainCite[]): Set<string> {
   );
 }
 
-function collectSupersededSuccessorLeans(
+/** Operative Supersedes / Recut-supersedes cites that resolve to successor leans. */
+export function collectSupersededSuccessorLeans(
   body: string,
   comments: readonly ThreadComment[] | undefined,
 ): ThreadComment[] {
@@ -97,6 +100,7 @@ function hasHarvestRelievesOverlap(
   mapBody: string,
   comments: readonly ThreadComment[] | undefined,
   stop1PainIds: readonly string[],
+  harvestChanged: boolean | undefined,
 ): boolean {
   if (!isSuccessorLeanBody(mapBody)) return false;
   const admitted = new Set(stop1PainIds);
@@ -104,6 +108,8 @@ function hasHarvestRelievesOverlap(
   const current = operativeRelievesIds(scanPainCites(mapBody).cites);
   if (current.size === 0) return false;
   for (const prior of collectSupersededSuccessorLeans(mapBody, comments)) {
+    // Harvest follow-through Recut (#5284): same gate as bindLeanPredecessorValid.
+    if (harvestChanged === true) return false;
     const priorRelieves = operativeRelievesIds(scanPainCites(prior.body).cites);
     for (const painId of current) {
       if (admitted.has(painId) && priorRelieves.has(painId)) return true;
@@ -119,6 +125,12 @@ export type HandoffPrintInput = {
   readonly dualStopCapSpent?: boolean;
   /** Thread comments: prior successor leans for Recut-supersedes and harvest overlap. */
   readonly comments?: readonly ThreadComment[];
+  /**
+   * When true with an operative Recut of a prior successor lean, carve the
+   * #4554 same-P* harvest-overlap print (newBindLeanAndAudit walk). Absent/false
+   * keeps #4554.
+   */
+  readonly harvestChanged?: boolean;
 };
 
 export type HandoffPrintVerdict = {
@@ -146,6 +158,7 @@ export function evaluateHandoffPrint(input: HandoffPrintInput): HandoffPrintVerd
     input.mapBody,
     input.comments,
     input.stop1PainIds,
+    input.harvestChanged,
   );
   return {
     print: (unrelievedPain && recutConjunct) || harvestRelievesOverlap,

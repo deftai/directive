@@ -266,11 +266,31 @@ export function evaluateYoloStandingLeftoverScope(input: {
   };
 }
 
+/**
+ * Bind lean must name a predecessor that does not already carry relieves of
+ * those ids. Escape (#5284): overlap allowed only when harvestChanged and the
+ * bind map operatively Recut-supersedes a prior successor lean
+ * (`collectSupersededSuccessorLeans` / operative supersedes cite).
+ */
 export function bindLeanPredecessorValid(input: {
   readonly predecessorRelievesIds: readonly string[];
   readonly bindRelievesIds: readonly string[];
+  /** Same boolean threaded by evaluatePainAuditFollowThrough. */
+  readonly harvestChanged?: boolean;
+  /** True when collectSupersededSuccessorLeans finds an operative prior successor lean. */
+  readonly operativelyRecutSupersedesPriorSuccessorLean?: boolean;
 }): boolean {
-  return !input.bindRelievesIds.some((id) => input.predecessorRelievesIds.includes(id));
+  const overlap = input.bindRelievesIds.some((id) =>
+    input.predecessorRelievesIds.includes(id),
+  );
+  if (!overlap) return true;
+  if (
+    input.harvestChanged === true &&
+    input.operativelyRecutSupersedesPriorSuccessorLean === true
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /**

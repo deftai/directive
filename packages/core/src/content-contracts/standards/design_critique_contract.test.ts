@@ -1454,6 +1454,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(leftover).toContain("evaluatePainAuditFollowThrough");
     expect(leftover).toContain("evaluateYoloStandingLeftoverScope");
     expect(leftover).toContain("bindLeanPredecessorValid");
+    expect(leftover).toContain("newBindLeanAndAudit");
+    expect(leftover).toContain("collectSupersededSuccessorLeans");
     expect(leftover).toContain("evaluateDualStopPostBudget");
     expect(leftover).toContain("evaluateDualStopParentPath");
     expect(leftover).toContain("mapCarriesAssertedPainCoverage");
@@ -1918,6 +1920,10 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(handoff).toContain("write-back");
     expect(handoff).toContain("class tokens");
     expect(handoff).toContain("harvest overlap");
+    expect(handoff).toContain("harvest-changed");
+    expect(handoff).toContain("newBindLeanAndAudit");
+    expect(handoff).toContain("bindLeanPredecessorValid");
+    expect(handoff).toContain("evaluatePainAuditFollowThrough");
     expect(handoff).toContain("residualHeadingCount");
     expect(handoff).toContain("open-question:");
     expect(handoff).toContain("classifyPosition");
