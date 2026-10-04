@@ -235,6 +235,64 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
     };
     const bareErrors = validateVbriefSchema(bareString, "stop-bare-string.json");
     expect(bareErrors.some((e) => e.includes("must be an object"))).toBe(true);
+
+    const notArray = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [
+          {
+            id: "t1",
+            title: "Task",
+            status: "pending",
+            stopConditions: { id: "a1", kind: "anchor", path: "x.ts", excerpt: "x" },
+          },
+        ],
+      },
+    };
+    const notArrayErrors = validateVbriefSchema(notArray, "stop-not-array.json");
+    expect(notArrayErrors.some((e) => e.includes("must be an array"))).toBe(true);
+
+    const missingCore = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [
+          {
+            id: "t1",
+            title: "Task",
+            status: "pending",
+            stopConditions: [{ excerpt: "x", digest: 12, resolvedAtSha: 1, rationale: false }],
+          },
+        ],
+      },
+    };
+    const missingCoreErrors = validateVbriefSchema(missingCore, "stop-missing-core.json");
+    expect(missingCoreErrors.some((e) => e.includes("missing non-empty string 'id'"))).toBe(true);
+    expect(missingCoreErrors.some((e) => e.includes("missing 'kind'"))).toBe(true);
+    expect(missingCoreErrors.some((e) => e.includes("missing non-empty string 'path'"))).toBe(true);
+    expect(missingCoreErrors.some((e) => e.includes(".digest must be a string"))).toBe(true);
+    expect(missingCoreErrors.some((e) => e.includes(".resolvedAtSha must be a string"))).toBe(true);
+    expect(missingCoreErrors.some((e) => e.includes(".rationale must be a string"))).toBe(true);
+
+    const badExcerptType = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [
+          {
+            id: "t1",
+            title: "Task",
+            status: "pending",
+            stopConditions: [
+              { id: "a1", kind: "anchor", path: "x.ts", excerpt: 99, digest: "sha256:x" },
+            ],
+          },
+        ],
+      },
+    };
+    const excerptTypeErrors = validateVbriefSchema(badExcerptType, "stop-bad-excerpt-type.json");
+    expect(excerptTypeErrors.some((e) => e.includes(".excerpt must be a string"))).toBe(true);
   });
 
   it("rejects non-conformant string PlanItem.id and leaves omitted/integer ids (#4707)", () => {
