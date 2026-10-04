@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=9c5d52644824 refreshed=2026-10-04T03:13:43Z session=8b676357f82b -->
+<!-- deft:managed-section v3 sha=0.120.0 refreshed=2026-10-04T09:37:43Z session=6e6228d8de8f -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -261,7 +261,6 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032). ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner (#4529).
 ! After leaf announce: tool-first / yield / one short non-repeated answer; ⊗ N>2 near-identical zero-tool (FC14 / #3131). Machine: `evaluateParentTurnShape` (`parent-turn-shape`). Depth: preamble §11 + `docs/openclaw-agent-host.md`.
 ! **Dest Prefer-A (#5145):** linked dest worktrees inherit primary finalize-owed (deferred/ok); prefer `session:start --rearm` when dest ritual exists. ⊗ Stampede N dest cold tip inventories before primary records finalize-owed. Depth: swarm SKILL Dest leaf ceremony.
-! **Deliberate model routing (#1877 / #3703):** Before ANY sub-agent dispatch (cohort OR single), make a deliberate per-`worker_role` routing decision via `deft verify:routing` / `deft swarm:routing-set` — never silently inherit the parent model. `verify:story-ready` chains the gate for story-ready single dispatch; interactive/solo PreToolUse honor-at-dispatch is the mid-session conjunct (#3703). Default gated role domain is an explicit subset of `SWARM_WORKER_ROLES` (leaf-implementation); critics/process-only stay outside that enum (model: lead). Explore with structural `subagent_type` explore and no gated role is a decided carve-out after the conjunct runs. `ROUTING_GATED_DISPATCH_PROVIDERS` is narrower than `LAUNCHER_FAMILIES` (codex argv-only). Session-start `--advise` is additive disclosure only.
 
 ## Envelope selection SLA (#3153)
 
@@ -308,7 +307,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md`. One origin/PR else one-PR-unit grant (not #1378/`--allow-close`).
 ! Scope gates (#3145 / #4956 / #5192) — `deft verify:test-boundary` (warn-only), `deft verify:scope-provenance` (merge-base `file_scope` production fence; production allowance 2–5; test roots free on that fence only; membership uses continuity-resolved mint or concrete merge-base precommitment — tests/fixtures not free in membership), `deft verify:consumer-check-contract`, `deft verify:evaluator-surface`, `deft verify:class-checks`, `deft verify:observable-scope`, `deft verify:intent-constraint`, `deft verify:presentation-ceiling`, `deft verify:presentation-coverage`, `deft verify:durable-effect-acquisition`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`).
-! After proceed: no scope ceremony (#4956). No approved-scope digest on proceed; head brief does not widen the production fence; over-budget splits (no remint). Missing-mint Path B membership remediates via split or land a widened concrete brief. Class checks #4980. #4383 closed. Depth: `docs/scope-provenance.md`.
+! After proceed: no scope ceremony (#4956). No approved-scope digest on proceed; head brief does not widen the production fence; over-budget splits (no remint). Missing-mint Path B membership remediates via split or land a widened concrete brief. Class checks #4980. #4383 still open. Depth: `docs/scope-provenance.md`.
 
 ## Branch Policy Disclosure (#746)
 
