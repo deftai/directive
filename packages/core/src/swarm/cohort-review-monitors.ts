@@ -3,7 +3,7 @@
  * Classifies each open merge-path PR as armed-live | halted-explicit | unarmed.
  * Anti-substitute: swarm:verify-review-clean CLEAN does not satisfy this gate.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { bindLivePhaseCorrectWait, evaluateMergePathArm } from "../pr-watch/main.js";
@@ -13,7 +13,7 @@ import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
 import { swarmLaunchManifestPath } from "./launch.js";
 import { resolveCohortFromVbriefs } from "./verify-review-clean.js";
 
-export type CohortArmClass = "armed-live" | "halted-explicit" | "unarmed";
+export type CohortArmClass = "armed-live" | "halted-explicit" | "unarmed" | "config-error";
 
 export interface CohortPrClassification {
   readonly pr: number;
@@ -151,25 +151,31 @@ export function parsePrsCsv(raw: string | null | undefined):
   return { ok: true, prs };
 }
 
+export type LaunchManifestPrsResult =
+  | { readonly ok: true; readonly prs: number[] }
+  | { readonly ok: false; readonly reason: string };
+
 /**
  * PR numbers referenced by launch-manifest xBRIEF paths (Tracking / product links).
+ * Unreadable briefs or briefs without PR refs fail closed (do not silently drop siblings).
  */
 export function prsFromLaunchManifest(
   projectRoot: string,
   manifestPath: string | null = null,
-): number[] {
+): LaunchManifestPrsResult {
   const path = manifestPath ?? swarmLaunchManifestPath(projectRoot);
   if (!existsSync(path)) {
-    return [];
+    return { ok: true, prs: [] };
   }
   let payload: unknown;
   try {
     payload = JSON.parse(readFileSync(path, "utf8")) as unknown;
-  } catch {
-    return [];
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, reason: `launch-manifest unreadable: ${detail}` };
   }
   if (!Array.isArray(payload)) {
-    return [];
+    return { ok: false, reason: "launch-manifest payload is not an array" };
   }
   const globs: string[] = [];
   for (const entry of payload) {
@@ -186,9 +192,38 @@ export function prsFromLaunchManifest(
     }
   }
   if (globs.length === 0) {
-    return [];
+    return { ok: true, prs: [] };
   }
-  return resolveCohortFromVbriefs(globs).prNumbers;
+  const resolved = resolveCohortFromVbriefs(globs);
+  if (resolved.failures.length > 0) {
+    const detail = resolved.failures.map((f) => `${f.vbrief_path}: ${f.reason}`).join("; ");
+    return { ok: false, reason: `launch-manifest brief resolution failed: ${detail}` };
+  }
+  return { ok: true, prs: resolved.prNumbers };
+}
+
+/**
+ * Soft-discover Tracking/product PR refs from xbrief/active (and legacy vbrief/active).
+ * Used when --open-tracking-prs is omitted so open siblings are not silently dropped.
+ * Briefs without PR refs are skipped (not fail-closed) — those are not Tracking PRs.
+ */
+export function prsFromActiveBriefsSoft(projectRoot: string): number[] {
+  const root = resolve(projectRoot);
+  const files: string[] = [];
+  for (const rel of ["xbrief/active", "vbrief/active"]) {
+    const dir = join(root, rel);
+    if (!existsSync(dir)) continue;
+    try {
+      for (const name of readdirSync(dir)) {
+        if (!/\.(x|v)brief\.json$/i.test(name)) continue;
+        files.push(join(dir, name));
+      }
+    } catch {
+      // unreadable active dir contributes nothing
+    }
+  }
+  if (files.length === 0) return [];
+  return resolveCohortFromVbriefs(files).prNumbers;
 }
 
 /**
@@ -279,9 +314,9 @@ export function classifyCohortPrArm(
   if (gate.exitCode === 2) {
     return {
       pr,
-      classification: "unarmed",
-      message: `PR #${pr}: unarmed (review-monitor config: ${gate.message})`,
-      arm_reason: "unarmed_stand_down",
+      classification: "config-error",
+      message: `PR #${pr}: config-error (review-monitor config: ${gate.message})`,
+      arm_reason: "config_error",
     };
   }
   const liveBind = bindLivePhaseCorrectWait({
@@ -365,7 +400,17 @@ function renderText(result: {
   for (const c of result.classifications) {
     lines.push(`  PR #${c.pr}: ${c.classification}`);
   }
-  if (result.unarmed.length === 0) {
+  const configErrors = result.classifications
+    .filter((c) => c.classification === "config-error")
+    .map((c) => c.pr);
+  if (configErrors.length > 0) {
+    lines.push(
+      `Result: COHORT CONFIG ERROR — PR(s) ${configErrors.join(",")} failed review-monitor config (exit 2)`,
+    );
+    for (const c of result.classifications.filter((x) => x.classification === "config-error")) {
+      lines.push(`  ${c.message}`);
+    }
+  } else if (result.unarmed.length === 0) {
     lines.push("Result: COHORT ARMED — all listed PRs armed-live or halted-explicit");
   } else {
     lines.push(`Result: COHORT UNARMED — ${result.unarmed.join(",")} lack live Approach 1 babysit`);
@@ -387,6 +432,9 @@ export function verifyCohortReviewMonitors(
   let operatorPrs: number[];
   if (args.operatorPrs !== undefined) {
     operatorPrs = [...args.operatorPrs];
+  } else if (args.prsCsv === null || args.prsCsv === undefined) {
+    // Omitted --prs: resolver (launch-manifest ∪ open Tracking) may still yield a set.
+    operatorPrs = [];
   } else {
     const parsed = parsePrsCsv(args.prsCsv);
     if (!parsed.ok) {
@@ -398,9 +446,14 @@ export function verifyCohortReviewMonitors(
         unarmed: [],
         stdout:
           args.emitJson === true
-            ? `${JSON.stringify({ error: parsed.reason, prs: [] }, null, 2)}\n`
+            ? `${JSON.stringify({ error: parsed.reason, prs: [] }, null, 2)}
+`
             : "",
-        stderr: args.emitJson === true ? "" : `${msg}\n`,
+        stderr:
+          args.emitJson === true
+            ? ""
+            : `${msg}
+`,
         expandedFromResolver: false,
         omittedFromOperator: [],
       };
@@ -408,9 +461,39 @@ export function verifyCohortReviewMonitors(
     operatorPrs = parsed.prs;
   }
 
-  const launchManifestPrs =
-    args.launchManifestPrs ?? prsFromLaunchManifest(projectRoot, args.launchManifestPath ?? null);
-  const openTrackingPrs = args.openTrackingPrs ?? [];
+  let launchManifestPrs: number[];
+  if (args.launchManifestPrs !== undefined) {
+    launchManifestPrs = [...args.launchManifestPrs];
+  } else {
+    const fromManifest = prsFromLaunchManifest(projectRoot, args.launchManifestPath ?? null);
+    if (!fromManifest.ok) {
+      const msg = `Error: ${fromManifest.reason}`;
+      return {
+        exitCode: EXIT_CONFIG_ERROR,
+        prs: [],
+        classifications: [],
+        unarmed: [],
+        stdout:
+          args.emitJson === true
+            ? `${JSON.stringify({ error: fromManifest.reason, prs: [] }, null, 2)}
+`
+            : "",
+        stderr:
+          args.emitJson === true
+            ? ""
+            : `${msg}
+`,
+        expandedFromResolver: false,
+        omittedFromOperator: [],
+      };
+    }
+    launchManifestPrs = fromManifest.prs;
+  }
+  // Injected openTrackingPrs (including []) wins; omitted → soft-discover from active briefs.
+  const openTrackingPrs =
+    args.openTrackingPrs !== undefined
+      ? [...args.openTrackingPrs]
+      : prsFromActiveBriefsSoft(projectRoot);
   const resolved = resolveCohortPrSet({
     operatorPrs,
     launchManifestPrs,
@@ -454,14 +537,19 @@ export function verifyCohortReviewMonitors(
     );
   }
 
+  const configErrors = classifications
+    .filter((c) => c.classification === "config-error")
+    .map((c) => c.pr);
   const unarmed = classifications.filter((c) => c.classification === "unarmed").map((c) => c.pr);
-  const exitCode = unarmed.length === 0 ? EXIT_OK : EXIT_GATE_FAILED;
+  const exitCode =
+    configErrors.length > 0 ? EXIT_CONFIG_ERROR : unarmed.length === 0 ? EXIT_OK : EXIT_GATE_FAILED;
   const body = {
     schema: "deft.verify.cohort-review-monitors.v1",
     exit_code: exitCode,
     prs: resolved.prs,
     classifications,
     unarmed,
+    config_errors: configErrors,
     expanded_from_resolver: resolved.expandedFromResolver,
     omitted_from_operator: resolved.omittedFromOperator,
     anti_substitute: {

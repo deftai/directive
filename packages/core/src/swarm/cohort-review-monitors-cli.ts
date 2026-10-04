@@ -121,9 +121,9 @@ export function parseCohortReviewMonitorsArgv(argv: readonly string[]): {
 const HELP =
   "deft verify:cohort-review-monitors — cohort babysit inventory (#5318)\n" +
   "\n" +
-  "  --prs <csv>                 PR numbers (required unless resolver yields a set)\n" +
+  "  --prs <csv>                 PR numbers (optional when launch-manifest / open Tracking is non-empty)\n" +
   "  --manifest <path>           Launch-manifest JSON (default .deft/swarm-launch-manifest.json)\n" +
-  "  --open-tracking-prs <csv>   Currently open linked Tracking PRs (unioned; never silently shrunk)\n" +
+  "  --open-tracking-prs <csv>   Open linked Tracking PRs (unioned; omit to soft-discover from active briefs)\n" +
   "  --project-root <path>       Project root\n" +
   "  --json                      Structured JSON on stdout\n" +
   "\n" +

@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Activate #3729 Prefer-A Bound brief with concrete file_scope (#3729).** Lands the continuity-resolved active brief (Path B membership precommitment) so product PR work can pass scope-provenance. Tracking #3729.
 
 ### Fixed
+- **Cohort inventory Greptile residuals (#5318).** Omitted --prs defers to resolver; launch-manifest brief failures fail closed; omitted --open-tracking-prs soft-discovers active brief PR refs; review-monitor config errors stay exit 2 (not unarmed); --explicit-finish persists only after a successful durable write and never on gate config error. Tracking #5318.
 
 - **chore(xbrief): leftover-complete #3739 after #5331.** Lands Prefer-A completed brief with productPullRequest 5331. Tracking #3739.
 - **design-critique chip ensure Greptile P1s (#5326).** Classify real `gh api` missing-label as exit 1 + HTTP 404 stderr (not exit 404); prove ingest-ready completed-arc + Target-digest before ensure; match judgmentGates on labels.any-of/all-of only (not body-text); resolve deposit/gate advisory via git toplevel when CLI omits projectRoot. Tracking #5326.

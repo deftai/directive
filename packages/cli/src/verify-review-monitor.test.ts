@@ -173,6 +173,16 @@ describe("verify-review-monitor CLI", () => {
     expect(err.mock.calls.join("")).toMatch(/not a directory/);
   });
 
+  it("explicit-finish does not persist attestation on config-error project root", () => {
+    const root = join(tmpdir(), "rm-cli-missing-root-explicit-finish-does-not-exist");
+    vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(
+      run(["--pr", "88", "--merge-path-arm", "--explicit-finish", "--project-root", root]),
+    ).toBe(2);
+    expect(err.mock.calls.join("")).toMatch(/not a directory|config/i);
+  });
+
   it("merge-path-arm unarmed JSON aligns ready/exit_code with process exit", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-cli-arm-json-"));
     vi.stubEnv("DEFT_MONITOR_TIER", "3");

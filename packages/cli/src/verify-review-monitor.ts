@@ -215,10 +215,27 @@ export function run(argv: readonly string[]): number {
   let arm: MergePathArmResult | null = null;
   if (args.mergePathArm) {
     // Durable option-C attestation for cohort inventory halted-explicit (#5318).
+    // Do not write (or arm from) --explicit-finish when the monitor gate is a config error,
+    // and fail closed if the durable write itself fails.
+    let explicitFinishDurable = false;
     if (args.explicitFinish) {
-      writeMergePathExplicitFinishAttestation(resolve(args.projectRoot), args.pr, {
-        source: "verify:review-monitor --explicit-finish",
-      });
+      if (result.exitCode === EXIT_CONFIG_ERROR) {
+        explicitFinishDurable = false;
+      } else {
+        const written = writeMergePathExplicitFinishAttestation(
+          resolve(args.projectRoot),
+          args.pr,
+          {
+            source: "verify:review-monitor --explicit-finish",
+          },
+        );
+        if (!written.ok) {
+          process.stderr.write(`verify_review_monitor: ${written.reason}
+`);
+          return EXIT_CONFIG_ERROR;
+        }
+        explicitFinishDurable = true;
+      }
     }
     // Bind --live-wait to lease (#5018) + process-liveness heartbeat (#5020) on Tier 1.
     // spawn_subagent identity join is already applied in evaluateReviewMonitorGate (#5219).
@@ -232,7 +249,7 @@ export function run(argv: readonly string[]): number {
     });
     arm = evaluateMergePathArm({
       livePhaseCorrectWait: liveBind.livePhaseCorrectWait,
-      explicitFinish: args.explicitFinish,
+      explicitFinish: explicitFinishDurable,
       stickyLeaseActive: args.stickyLease || leaseEvidence,
     });
     if (args.liveWait && !liveBind.livePhaseCorrectWait && !args.explicitFinish && !arm.armed) {
