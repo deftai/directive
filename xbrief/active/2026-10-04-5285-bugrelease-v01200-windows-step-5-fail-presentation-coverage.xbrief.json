@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5285",
-    "updated": "2026-10-04T04:48:15Z"
+    "updated": "2026-10-04T05:02:21Z"
   },
   "plan": {
     "title": "bug(release): v0.120.0 Windows Step 5 fail — presentation-coverage snapshot symlink EPERM",
@@ -70,9 +70,9 @@
     ],
     "acceptance": {
       "commands": [],
-      "none_stated": false,
-      "source_rung": "bound",
-      "derived_reason": "Prefer-A Bound lean 5975803565 stamped for cohort add; review residual reconciled acceptance + admitted-source to Bound clauses (no privilege-gate OR-limb)",
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound lean 5975803565 stamped for cohort add; review residual reconciled acceptance + admitted-source to Bound clauses (no privilege-gate OR-limb); source_rung=derived + none_stated for empty commands (#5287 activation parity)",
       "sentences": [
         "In packages/core/src/presentation-coverage/snapshot.test.ts, replace OS symlinkSync(../README.md, …/presentation-ceiling.json) with git plumbing that stages mode 120000 via update-index --index-info (stdin lines 120000 <blob>\\t.deft/presentation-ceiling.json), matching the unmerged-entry idiom already in this file. Prefer --index-info over --cacheinfo.",
         "Ordering MUST adjacent to item 1: stage that index entry AFTER any git add ., or drop the now-dead mkdirSync(.deft) + git add . for this path. In-place replace of :64 while leaving :63/:65 is the broken ordering (trailing git add . deletes the plumbing entry).",
@@ -640,6 +640,6 @@
       "productPullRequest": 5294
     },
     "id": "github.issue.5695169258",
-    "updated": "2026-10-04T04:48:15Z"
+    "updated": "2026-10-04T05:02:21Z"
   }
 }
