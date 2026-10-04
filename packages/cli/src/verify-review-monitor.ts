@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { evaluateApproach1ArmStartup } from "@deftai/directive-core/orchestration";
 import {
   bindLivePhaseCorrectWait,
   evaluateMergePathArm,
   type MergePathArmResult,
 } from "@deftai/directive-core/dist/pr-watch/main.js";
+import { evaluateApproach1ArmStartup } from "@deftai/directive-core/orchestration";
 import {
   EXIT_CONFIG_ERROR,
   EXIT_NOT_READY,
