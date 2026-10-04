@@ -105,15 +105,15 @@
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "reason": "Prefer-A leftover after product #5297: Bound limbs 1-5 shipped (git update-index --index-info mode 120000 plumbing). Clause 6 release-cut / privilege-less Windows residual tracked as leftover #5292 (directory-at-authority F4); not reopened here.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
-            "eventRef": "leftover-complete-after-5297",
-            "mintedAt": "2026-10-04T06:14:00Z",
+            "eventRef": "leftover-complete-after-5297-clause6-residual-5292",
+            "mintedAt": "2026-10-04T07:15:27Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-04T06:14:00Z"
+          "recorded_at": "2026-10-04T07:15:27Z"
         }
       }
     ],
@@ -266,15 +266,15 @@
           "provenance": "bound-prefer-a",
           "x-directive/disposition": {
             "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "reason": "Prefer-A leftover after product #5297: Bound limbs 1-5 shipped (git update-index --index-info mode 120000 plumbing). Clause 6 release-cut / privilege-less Windows residual tracked as leftover #5292 (directory-at-authority F4); not reopened here.",
             "provenance": {
               "kind": "operator-session",
               "actor": "Scott",
-              "eventRef": "leftover-complete-after-5297",
-              "mintedAt": "2026-10-04T06:14:00Z",
+              "eventRef": "leftover-complete-after-5297-clause6-residual-5292",
+              "mintedAt": "2026-10-04T07:15:27Z",
               "mintedVia": "parent-retained-closer"
             },
-            "recorded_at": "2026-10-04T06:14:00Z"
+            "recorded_at": "2026-10-04T07:15:27Z"
           }
         }
       ],
