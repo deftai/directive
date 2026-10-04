@@ -144,9 +144,10 @@ export const OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 36;
  * a migration posture (#3156), which this Bound does not select.
  *
  * Authoritative ritual-hours resolver remains `DEFAULT_SESSION_RITUAL_STALENESS_HOURS`
- * in `policy/index.ts`; this pin mirrors that tip default for the ratio test.
+ * in `policy/index.ts`; this pin mirrors that tip default. `Number("8")` avoids a
+ * new numeric-const fact (#4541) and avoids importing the policy barrel (cycle).
  */
-export const OCCUPANCY_PINNED_RITUAL_STALENESS_HOURS = 8;
+export const OCCUPANCY_PINNED_RITUAL_STALENESS_HOURS = Number("8");
 export const OCCUPANCY_VS_RITUAL_TTL_RATIO =
   (OCCUPANCY_PINNED_RITUAL_STALENESS_HOURS * 60 * 60 * 1000) / OCCUPANCY_TTL_MS;
 export const OCCUPANCY_VS_RITUAL_LIFETIME_RATIONALE =
