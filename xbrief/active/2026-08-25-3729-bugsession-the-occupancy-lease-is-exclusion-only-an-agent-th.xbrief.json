@@ -1,0 +1,132 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3729",
+    "updated": "2026-10-04T02:27:41Z"
+  },
+  "plan": {
+    "title": "bug(session): the occupancy lease is exclusion-only -- an agent that never claims is never gated",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(session): the occupancy lease is exclusion-only -- an agent that never claims is never gated",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3729",
+      "Overview": "Prefer-A Bound lean 5933402828. Synthesis 5933499785. Residual Bound under standing advisory coordination model.",
+      "Labels": "bug, agent-experience, process"
+    },
+    "items": [
+      {
+        "id": "item.1",
+        "title": "Lifetime pin (AC1): remasure OCCUPANCY_TTL_MS 20m vs DEFAULT_SESSION_RITUAL_STALENESS_HOURS 8 (24:1); module states lease-versus-ritual relationship; test pins derivation or recorded rationale for residual gap. Do not restate body 4h/12:1.",
+        "status": "pending"
+      },
+      {
+        "id": "item.2",
+        "title": "Mutation-surface matrix (AC2): write matrix for hook-gated tool writes, spawn tools (dest-consult/hard-coded allow), shell forms under shellDestForms (default off), and push/merge via runtime authority; test asserts matrix matches tip call sites. evaluateOccupancyWriteGate-only change does not discharge.",
+        "status": "pending"
+      },
+      {
+        "id": "item.3",
+        "title": "Two-axis policy + selection (AC3): module states unknown-lease fails open and unknown-identity fails closed with coordination rationale; either (a) select auto-claim with test or (b) explicitly leave fail-open documented; retire tip CHANGELOG #4625 leftover language only when this limb ships.",
+        "status": "pending"
+      },
+      {
+        "id": "item.4",
+        "title": "Advisory language (AC4): docs and remediation messages describe advisory coordination consistent with the decision record; finish docs/messages consistency checkbox.",
+        "status": "pending"
+      },
+      {
+        "id": "item.5",
+        "title": "Non-goals: do not convert occupancy into same-user authorization; do not fail-close every product write without migration posture (#3156); do not claim #4625/#4624/#4667/#4993 as AC discharge.",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3729",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3729: bug(session): the occupancy lease is exclusion-only -- an agent that never claims is never gated"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3433",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3433"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound clauses at activation; productPullRequest binds this activation PR for #4919 admission (finalize overwrite vs product #5290 is recorded residual)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Lifetime pin (AC1): remasure OCCUPANCY_TTL_MS 20m vs DEFAULT_SESSION_RITUAL_STALENESS_HOURS 8 (24:1); module states lease-versus-ritual relationship; test pins derivation or recorded rationale for residual gap. Do not restate body 4h/12:1.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "Mutation-surface matrix (AC2): write matrix for hook-gated tool writes, spawn tools (dest-consult/hard-coded allow), shell forms under shellDestForms (default off), and push/merge via runtime authority; test asserts matrix matches tip call sites. evaluateOccupancyWriteGate-only change does not discharge.",
+          "artifact_path": "content/docs/subagent-heartbeat.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "Two-axis policy + selection (AC3): module states unknown-lease fails open and unknown-identity fails closed with coordination rationale; either (a) select auto-claim with test or (b) explicitly leave fail-open documented; retire tip CHANGELOG #4625 leftover language only when this limb ships.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Advisory language (AC4): docs and remediation messages describe advisory coordination consistent with the decision record; finish docs/messages consistency checkbox.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 5,
+          "text": "Non-goals: do not convert occupancy into same-user authorization; do not fail-close every product write without migration posture (#3156); do not claim #4625/#4624/#4667/#4993 as AC discharge.",
+          "artifact_path": "content/docs/subagent-heartbeat.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "productPullRequest": 5287,
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy-prefer-a-3729.test.ts",
+          "content/docs/subagent-heartbeat.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [],
+        "expected_outputs": [
+          "Prefer-A Bound brief activated on delivery tip with concrete file_scope"
+        ],
+        "depends_on": [],
+        "conflict_group": "occupancy-lease-claim-required",
+        "size": "M",
+        "model_tier": "default"
+      }
+    },
+    "id": "github.issue.5247648424",
+    "updated": "2026-10-04T02:27:41Z"
+  }
+}
