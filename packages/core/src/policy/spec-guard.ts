@@ -122,7 +122,8 @@ export function validateSpecGuard(value: unknown): string[] {
       const dg = value.driftGuard;
       if (
         "enforcement" in dg &&
-        (typeof dg.enforcement !== "string" || !SPEC_GUARD_ENFORCEMENTS.has(dg.enforcement as SpecGuardEnforcement))
+        (typeof dg.enforcement !== "string" ||
+          !SPEC_GUARD_ENFORCEMENTS.has(dg.enforcement as SpecGuardEnforcement))
       ) {
         errors.push(
           `${FIELD_SPEC_GUARD}.driftGuard.enforcement must be one of advise|enforce; got ${String(dg.enforcement)}`,
@@ -178,7 +179,8 @@ function parseDriftGuard(raw: unknown): SpecGuardDriftGuard {
     return { enforcement: DEFAULT_DRIFT_ENFORCEMENT, trigger: DEFAULT_DRIFT_TRIGGER };
   }
   const enforcement =
-    typeof raw.enforcement === "string" && SPEC_GUARD_ENFORCEMENTS.has(raw.enforcement as SpecGuardEnforcement)
+    typeof raw.enforcement === "string" &&
+    SPEC_GUARD_ENFORCEMENTS.has(raw.enforcement as SpecGuardEnforcement)
       ? (raw.enforcement as SpecGuardEnforcement)
       : DEFAULT_DRIFT_ENFORCEMENT;
   const trigger =
@@ -197,7 +199,8 @@ function parseSqaPass(raw: unknown): SpecGuardSqaPass {
     };
   }
   const enforcement =
-    typeof raw.enforcement === "string" && SPEC_GUARD_ENFORCEMENTS.has(raw.enforcement as SpecGuardEnforcement)
+    typeof raw.enforcement === "string" &&
+    SPEC_GUARD_ENFORCEMENTS.has(raw.enforcement as SpecGuardEnforcement)
       ? (raw.enforcement as SpecGuardEnforcement)
       : DEFAULT_SQA_ENFORCEMENT;
   const sampling =
@@ -218,7 +221,11 @@ export function resolveSpecGuardFromTypedBlock(
 ): SpecGuardResolved {
   const errors = validateSpecGuard(raw);
   if (errors.length > 0) {
-    return defaultResolved("default-on-error", errors[0] ?? "invalid specGuard block", baselineStatus);
+    return defaultResolved(
+      "default-on-error",
+      errors[0] ?? "invalid specGuard block",
+      baselineStatus,
+    );
   }
   if (!isRecord(raw)) {
     return defaultResolved("default", null, baselineStatus);

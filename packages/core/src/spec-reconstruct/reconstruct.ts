@@ -104,7 +104,10 @@ function listCompletedBriefs(projectRoot: string): CompletedBrief[] {
       const data = JSON.parse(readFileSync(abs, "utf8")) as unknown;
       if (!isRecord(data) || !isRecord(data.plan)) continue;
       const plan = data.plan;
-      const id = typeof plan.id === "string" && plan.id.length > 0 ? plan.id : name.replace(/\.(x|v)brief\.json$/u, "");
+      const id =
+        typeof plan.id === "string" && plan.id.length > 0
+          ? plan.id
+          : name.replace(/\.(x|v)brief\.json$/u, "");
       const title = typeof plan.title === "string" ? plan.title : id;
       const narratives = isRecord(plan.narratives) ? plan.narratives : {};
       const overview =
@@ -186,8 +189,11 @@ function readCodeOracle(projectRoot: string): SpecReconstructDraft["codeOracle"]
   if (mapPresent) {
     try {
       const text = readFileSync(mapAbs, "utf8");
-      const modules = text.match(/^- \*\*/gm);
-      moduleCount = modules?.length ?? 0;
+      // #1595 MAP renders modules as markdown table rows under "## Modules", not `- **` bullets.
+      const modulesSection = text.split(/^## Modules\s*$/m)[1] ?? "";
+      const untilNext = modulesSection.split(/^## /m)[0] ?? modulesSection;
+      const rows = untilNext.match(/^\| `[^`]+` \|/gm);
+      moduleCount = rows?.length ?? 0;
     } catch {
       moduleCount = 0;
     }
@@ -296,8 +302,9 @@ export function reconstructSpecDraft(
 
   appendPendingDecisions(root, pending);
 
-  const adviseGreenfieldInterview =
-    briefs.length < threshold && (authority === null || authority.kind === "greenfield");
+  // Sufficiency is a discovery heuristic on the draft; do not let a stale full-spec
+  // artifact suppress interview advice when the completed corpus is below threshold.
+  const adviseGreenfieldInterview = briefs.length < threshold;
 
   return {
     kind: "deft.spec-reconstruct.draft.v1",
@@ -356,7 +363,11 @@ export function runSpecReconstructCli(argv: string[]): SpecReconstructCliResult 
     if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
-        return { exitCode: 2, stdout: "", stderr: "argument --project-root: expected one argument\n" };
+        return {
+          exitCode: 2,
+          stdout: "",
+          stderr: "argument --project-root: expected one argument\n",
+        };
       }
       projectRoot = value;
       i += 1;

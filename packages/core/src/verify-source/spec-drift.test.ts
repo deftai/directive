@@ -52,10 +52,20 @@ describe("verify:spec-drift (#1589 C2)", () => {
     expect(result.state).toBe("unassessable");
   });
 
+  it("reports unassessable when ledger is missing under a present baseline", () => {
+    setup({ withSpec: true });
+    const result = evaluateSpecDrift(root);
+    expect(result.code).toBe(2);
+    expect(result.state).toBe("unassessable");
+    expect(result.message).toMatch(/ledger missing/i);
+  });
+
   it("reports drift for unresolved ledger rows against baseline", () => {
     setup({ withSpec: true });
+    const live = evaluateSpecDrift(root).baselineRevision;
+    expect(live).not.toBeNull();
     writeSpecDriftLedger(root, {
-      baselineRevision: "2026-10-01T00:00:00Z",
+      baselineRevision: live,
       unresolved: [
         {
           scopeId: "rfc-1",
@@ -73,13 +83,83 @@ describe("verify:spec-drift (#1589 C2)", () => {
 
   it("is clean when ledger matches baseline with no unresolved rows", () => {
     setup({ withSpec: true });
+    const live = evaluateSpecDrift(root).baselineRevision;
+    expect(live).not.toBeNull();
     writeSpecDriftLedger(root, {
-      baselineRevision: "2026-10-01T00:00:00Z",
+      baselineRevision: live,
       unresolved: [],
     });
     const result = evaluateSpecDrift(root);
     expect(result.code).toBe(0);
     expect(result.state).toBe("clean");
+  });
+
+  it("changes baseline revision when specification bytes change", () => {
+    setup({ withSpec: true });
+    const first = evaluateSpecDrift(root).baselineRevision;
+    writeFileSync(
+      join(root, "xbrief", "specification.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", updated: "2026-10-01T00:00:00Z" },
+        plan: { title: "spec", status: "proposed", items: [{ id: "n", title: "new" }] },
+      }),
+    );
+    const second = evaluateSpecDrift(root).baselineRevision;
+    expect(first).not.toBe(second);
+  });
+
+  it("walks nested items/subItems for namespaced impact", () => {
+    const finding = findingFromScopeCompletion(
+      {
+        plan: {
+          title: "RFC: nested",
+          tags: ["rfc"],
+          items: [
+            {
+              id: "outer",
+              title: "outer",
+              subItems: [{ id: "inner", title: "inner", [SPEC_IMPACT_KEY]: "delta" }],
+            },
+          ],
+        },
+      },
+      "xbrief/completed/nested.xbrief.json",
+    );
+    expect(finding).toBeNull();
+  });
+
+  it("clears prior unresolved row when later completion declares delta", () => {
+    setup({ withSpec: true });
+    recordScopeCompleteDriftAdvise(
+      root,
+      {
+        plan: {
+          id: "story-clear",
+          title: "RFC: uncovered",
+          tags: ["rfc"],
+          items: [{ id: "i1", title: "t", status: "completed" }],
+        },
+      },
+      "xbrief/completed/story-clear.xbrief.json",
+    );
+    expect(evaluateSpecDrift(root).code).toBe(1);
+    const cleared = recordScopeCompleteDriftAdvise(
+      root,
+      {
+        plan: {
+          id: "story-clear",
+          title: "RFC: covered",
+          tags: ["rfc"],
+          [SPEC_IMPACT_KEY]: "delta",
+          items: [],
+        },
+      },
+      "xbrief/completed/story-clear.xbrief.json",
+    );
+    expect(cleared).toBeNull();
+    const live = evaluateSpecDrift(root);
+    expect(live.code).toBe(0);
+    expect(live.findings).toHaveLength(0);
   });
 
   it("does not treat bare specImpact as discharge signal", () => {

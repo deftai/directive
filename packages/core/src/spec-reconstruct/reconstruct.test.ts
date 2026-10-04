@@ -2,7 +2,11 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { reconstructSpecDraft, runSpecReconstructCli, writeSpecReconstructDraft } from "./reconstruct.js";
+import {
+  reconstructSpecDraft,
+  runSpecReconstructCli,
+  writeSpecReconstructDraft,
+} from "./reconstruct.js";
 
 describe("spec-reconstruct (#1589 C1)", () => {
   let root = "";
@@ -13,7 +17,9 @@ describe("spec-reconstruct (#1589 C1)", () => {
     }
   });
 
-  function setup(completed: Array<{ name: string; title: string; overview?: string; supersedes?: string }>) {
+  function setup(
+    completed: Array<{ name: string; title: string; overview?: string; supersedes?: string }>,
+  ) {
     root = mkdtempSync(join(tmpdir(), "spec-recon-"));
     mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
     writeFileSync(
@@ -56,9 +62,9 @@ describe("spec-reconstruct (#1589 C1)", () => {
     expect(draft.kind).toBe("deft.spec-reconstruct.draft.v1");
     expect(draft.requirements.length).toBe(2);
     expect(draft.requirements.some((r) => r.provenance.kind.length > 0)).toBe(true);
-    expect(draft.requirements.every((r) => "intendedRequirement" in r && "observedBehavior" in r)).toBe(
-      true,
-    );
+    expect(
+      draft.requirements.every((r) => "intendedRequirement" in r && "observedBehavior" in r),
+    ).toBe(true);
     const out = writeSpecReconstructDraft(root, draft);
     expect(out.replace(/\\/g, "/")).toContain("xbrief/.audit/spec-reconstruct-draft.json");
     const written = JSON.parse(readFileSync(out, "utf8"));
@@ -70,6 +76,46 @@ describe("spec-reconstruct (#1589 C1)", () => {
     const draft = reconstructSpecDraft(root, { sufficiencyThreshold: 20 });
     expect(draft.sufficiency.adviseGreenfieldInterview).toBe(true);
     expect(draft.sufficiency.authorityKind).toBe("greenfield");
+  });
+
+  it("still advises interview for a thin corpus even when a full-spec file exists", () => {
+    setup([{ name: "one.xbrief.json", title: "Tiny corpus item" }]);
+    writeFileSync(
+      join(root, "xbrief", "specification.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", updated: "2026-10-01T00:00:00Z" },
+        plan: { title: "stale-spec", status: "proposed", items: [] },
+      }),
+    );
+    const draft = reconstructSpecDraft(root, { sufficiencyThreshold: 20 });
+    expect(draft.sufficiency.adviseGreenfieldInterview).toBe(true);
+    expect(draft.sufficiency.completedCount).toBe(1);
+  });
+
+  it("counts #1595 MAP module table rows, not bullet markers", () => {
+    setup([{ name: "map.xbrief.json", title: "Feature modules reconciliation path" }]);
+    mkdirSync(join(root, ".planning", "codebase"), { recursive: true });
+    writeFileSync(
+      join(root, ".planning", "codebase", "MAP.md"),
+      [
+        "# Codebase MAP",
+        "",
+        "## Modules",
+        "",
+        "| Module | Name | Purpose | Paths | Files |",
+        "| --- | --- | --- | --- | ---: |",
+        "| `core` | Core | Core package | `packages/core/**` | 3 |",
+        "| `cli` | CLI | CLI package | `packages/cli/**` | 2 |",
+        "",
+        "## Other",
+        "",
+        "- **ignored bullet**",
+        "",
+      ].join("\n"),
+    );
+    const draft = reconstructSpecDraft(root);
+    expect(draft.codeOracle.mapPresent).toBe(true);
+    expect(draft.codeOracle.moduleCount).toBe(2);
   });
 
   it("defers conflicts past adjudication budget to pending-human-decisions", () => {

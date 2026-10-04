@@ -6,18 +6,31 @@
  * Discharge only against baseline revision + per-completion requirements/delta coverage.
  */
 
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
-import { resolveAuditPath, resolveLifecycleRoot, resolveSpecArtifactPath } from "../layout/resolve.js";
 import {
-  type SpecGuardResolved,
+  resolveAuditPath,
+  resolveLifecycleRoot,
+  resolveSpecArtifactPath,
+} from "../layout/resolve.js";
+import {
+  readSpecImpact,
   resolveSpecGuard,
   SPEC_IMPACT_KEY,
-  readSpecImpact,
+  type SpecGuardResolved,
 } from "../policy/spec-guard.js";
 
 export const SPEC_DRIFT_LEDGER_NAME = "spec-drift-ledger.json";
+
+function ledgerAbsPath(projectRoot: string): string {
+  return resolveAuditPath(projectRoot, SPEC_DRIFT_LEDGER_NAME);
+}
+
+function hasLedgerFile(projectRoot: string): boolean {
+  return existsSync(ledgerAbsPath(projectRoot));
+}
 
 export interface SpecDriftFinding {
   readonly scopeId: string;
@@ -52,8 +65,7 @@ function readLedger(projectRoot: string): SpecDriftLedger {
   try {
     const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
     if (!isRecord(raw)) return { baselineRevision: null, unresolved: [] };
-    const baselineRevision =
-      typeof raw.baselineRevision === "string" ? raw.baselineRevision : null;
+    const baselineRevision = typeof raw.baselineRevision === "string" ? raw.baselineRevision : null;
     const unresolved: SpecDriftFinding[] = [];
     if (Array.isArray(raw.unresolved)) {
       for (const item of raw.unresolved) {
@@ -73,24 +85,55 @@ function readLedger(projectRoot: string): SpecDriftLedger {
   }
 }
 
+function contentFingerprint(text: string): string {
+  return createHash("sha256").update(text).digest("hex").slice(0, 16);
+}
+
+/** Stable baseline revision: metadata when present, always content-bound. */
 function resolveBaselineRevision(projectRoot: string): string | null {
   try {
     const specPath = resolveSpecArtifactPath(projectRoot);
     if (!existsSync(specPath)) return null;
     const text = readFileSync(specPath, "utf8");
+    const fingerprint = contentFingerprint(text);
     const data = JSON.parse(text) as unknown;
-    if (!isRecord(data)) return null;
+    if (!isRecord(data)) return `sha256:${fingerprint}`;
     const info = isRecord(data.xBRIEFInfo)
       ? data.xBRIEFInfo
       : isRecord(data.vBRIEFInfo)
         ? data.vBRIEFInfo
         : null;
-    if (info !== null && typeof info.updated === "string") return info.updated;
-    if (isRecord(data.plan) && typeof data.plan.id === "string") return data.plan.id;
-    return `bytes:${text.length}`;
+    if (info !== null && typeof info.updated === "string") {
+      return `${info.updated}#${fingerprint}`;
+    }
+    if (isRecord(data.plan) && typeof data.plan.id === "string") {
+      return `${data.plan.id}#${fingerprint}`;
+    }
+    return `sha256:${fingerprint}`;
   } catch {
     return null;
   }
+}
+
+function collectSpecImpacts(node: unknown, into: SpecImpactCollector): void {
+  if (!isRecord(node)) return;
+  const impact = readSpecImpact(node);
+  if (impact === "delta" || impact === "new") {
+    into.deltaOrNew = impact;
+  } else if (impact === "none" && into.seenNone === false && into.deltaOrNew === null) {
+    into.seenNone = true;
+  }
+  if (Array.isArray(node.items)) {
+    for (const child of node.items) collectSpecImpacts(child, into);
+  }
+  if (Array.isArray(node.subItems)) {
+    for (const child of node.subItems) collectSpecImpacts(child, into);
+  }
+}
+
+interface SpecImpactCollector {
+  deltaOrNew: "delta" | "new" | null;
+  seenNone: boolean;
 }
 
 /** Evaluate semantic drift for audit / advise surfaces. */
@@ -109,6 +152,17 @@ export function evaluateSpecDrift(projectRoot: string): SpecDriftResult {
       code: 0,
       state: "clean",
       message: "verify:spec-drift: specGuard disabled — no semantic drift audit",
+      findings: [],
+      baselineRevision: null,
+      guard,
+    };
+  }
+
+  if (guard.source === "default-on-error" && guard.error !== null) {
+    return {
+      code: 2,
+      state: "unassessable",
+      message: `verify:spec-drift: invalid specGuard configuration (${guard.error}); refusing silent default`,
       findings: [],
       baselineRevision: null,
       guard,
@@ -137,6 +191,18 @@ export function evaluateSpecDrift(projectRoot: string): SpecDriftResult {
         "verify:spec-drift: baseline revision unknown/unhardened — reconstruct a trustworthy specification first (spec:reconstruct)",
       findings: [],
       baselineRevision: null,
+      guard,
+    };
+  }
+
+  if (!hasLedgerFile(root)) {
+    return {
+      code: 2,
+      state: "unassessable",
+      message:
+        "verify:spec-drift: drift ledger missing — coverage unknown until scope-complete records or an operator seeds the ledger",
+      findings: [],
+      baselineRevision,
       guard,
     };
   }
@@ -183,10 +249,22 @@ export function evaluateSpecDrift(projectRoot: string): SpecDriftResult {
     };
   }
 
+  if (ledger.baselineRevision === null) {
+    return {
+      code: 2,
+      state: "unassessable",
+      message:
+        "verify:spec-drift: ledger present but baselineRevision unset — seed baseline before claiming clean",
+      findings: [],
+      baselineRevision,
+      guard,
+    };
+  }
+
   return {
-    code: 0,
-    state: "clean",
-    message: `verify:spec-drift: clean (no unresolved ledger rows) baseline=${baselineRevision}`,
+    code: 1,
+    state: "drift",
+    message: `verify:spec-drift: ledger baseline ${ledger.baselineRevision} does not match live ${baselineRevision}`,
     findings: [],
     baselineRevision,
     guard,
@@ -207,7 +285,11 @@ export function runSpecDriftCli(argv: string[]): SpecDriftCliResult {
     if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
-        return { exitCode: 2, stdout: "", stderr: "argument --project-root: expected one argument\n" };
+        return {
+          exitCode: 2,
+          stdout: "",
+          stderr: "argument --project-root: expected one argument\n",
+        };
       }
       projectRoot = value;
       i += 1;
@@ -258,6 +340,11 @@ export function writeSpecDriftLedger(projectRoot: string, ledger: SpecDriftLedge
   return abs;
 }
 
+function scopeIdFrom(scopeData: Record<string, unknown>, scopeRelPath: string): string {
+  const plan = isRecord(scopeData.plan) ? scopeData.plan : null;
+  return plan !== null && typeof plan.id === "string" ? plan.id : scopeRelPath;
+}
+
 /** Record advise-mode drift for a completing scope (extends #2566 sync hook). */
 export function recordScopeCompleteDriftAdvise(
   projectRoot: string,
@@ -276,17 +363,32 @@ export function recordScopeCompleteDriftAdvise(
   const trigger = guard.driftGuard.trigger;
   if (trigger !== "scope-complete" && trigger !== "both") return null;
 
+  const scopeId = scopeIdFrom(scopeData, scopeRelPath);
   const finding = findingFromScopeCompletion(scopeData, scopeRelPath);
-  if (finding === null) return null;
-
   const baselineRevision = resolveBaselineRevision(root);
   const ledger = readLedger(root);
+
+  // Covered delta/new (or non-shape none) clears any prior unresolved row for this scope.
+  if (finding === null) {
+    if (!hasLedgerFile(root) && ledger.unresolved.length === 0) {
+      writeSpecDriftLedger(root, {
+        baselineRevision: baselineRevision,
+        unresolved: [],
+      });
+      return null;
+    }
+    if (ledger.unresolved.some((f) => f.scopeId === scopeId)) {
+      writeSpecDriftLedger(root, {
+        baselineRevision: ledger.baselineRevision ?? baselineRevision,
+        unresolved: ledger.unresolved.filter((f) => f.scopeId !== scopeId),
+      });
+    }
+    return null;
+  }
+
   const next: SpecDriftLedger = {
     baselineRevision: ledger.baselineRevision ?? baselineRevision,
-    unresolved: [
-      ...ledger.unresolved.filter((f) => f.scopeId !== finding.scopeId),
-      finding,
-    ],
+    unresolved: [...ledger.unresolved.filter((f) => f.scopeId !== finding.scopeId), finding],
   };
   writeSpecDriftLedger(root, next);
   return finding;
@@ -299,17 +401,10 @@ export function findingFromScopeCompletion(
 ): SpecDriftFinding | null {
   const plan = isRecord(scopeData.plan) ? scopeData.plan : null;
   if (plan === null) return null;
-  const items = Array.isArray(plan.items) ? plan.items : [];
-  let impact = readSpecImpact(plan);
-  for (const item of items) {
-    if (!isRecord(item)) continue;
-    const itemImpact = readSpecImpact(item);
-    if (itemImpact === "delta" || itemImpact === "new") {
-      impact = itemImpact;
-      break;
-    }
-    if (impact === null && itemImpact === "none") impact = "none";
-  }
+  const collector: SpecImpactCollector = { deltaOrNew: null, seenNone: false };
+  collectSpecImpacts(plan, collector);
+  const impact: "none" | "delta" | "new" | null =
+    collector.deltaOrNew !== null ? collector.deltaOrNew : collector.seenNone ? "none" : null;
   // Bare plan.policy / bare specImpact keys do not count (#1650).
   if (typeof plan.specImpact === "string" && impact === null) {
     // ignore bare key
@@ -319,6 +414,7 @@ export function findingFromScopeCompletion(
   }
   const title = typeof plan.title === "string" ? plan.title : scopeRelPath;
   const tags = Array.isArray(plan.tags) ? plan.tags.map(String) : [];
+  const items = Array.isArray(plan.items) ? plan.items : [];
   const shapeChanging =
     tags.some((t) => /rfc|adr|epic|requirement/i.test(t)) ||
     /rfc|adr|epic/i.test(title) ||
