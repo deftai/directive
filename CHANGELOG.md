@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- chore(xbrief): widen #1164 file_scope to include docs/RULE-MAP.md (Path B precommitment for product land).
+
 ### Added
 
 - **PlanItem `stopConditions` anchors (kind:anchor) on xBRIEF 0.8 (#1613).** Optional mid-execution precondition STOP surface: schema `$defs.StopConditionAnchor` + pair sync; `ITEM_CORE` admission; shape refusal in `validatePlanItem` (effort pattern; unknown keys / repo-relative `path`); build-skill halt+report via Dual-stop / `BLOCKED:` with **live-file** match authority (pin/SHA diagnosis-only); writer/no-shell/contract-change rules; Dual Stop doctrine retarget. Omitted field stays valid; malformed refuses at `vbrief:validate`. Peer lock vs #1201/#1579/#852/#2442/#3143. Tracking #1613.
