@@ -1,6 +1,7 @@
 export * from "./agents-md.js";
 export * from "./checks.js";
 export * from "./constants.js";
+export * from "./design-critique-deposit.js";
 export * from "./doctor-state.js";
 export * from "./flags.js";
 export * from "./help.js";

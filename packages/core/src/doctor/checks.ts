@@ -93,6 +93,8 @@ export const DOCTOR_ADVISORY_FAIL_CHECKS: ReadonlySet<string> = new Set([
   // #1617: soft on doctor so ownership:doctor/fix stay reachable under mismatch;
   // protected mutations fail closed separately via assertProtectedMutationOwnership.
   "wsl-ownership-guard",
+  // #5326: deposited design-critique without judgmentGates — advisory only.
+  "design-critique-deposit",
 ]);
 
 /** True when a check fail must stay a warning (not lastErrorCount / exit 1). */

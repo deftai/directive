@@ -73,6 +73,10 @@ import {
   XBRIEF_ENVELOPE_MAJOR_CHECK,
   XBRIEF_ENVELOPE_MIGRATE_COMMAND,
 } from "./checks.js";
+import {
+  checkDesignCritiqueDeposit,
+  DESIGN_CRITIQUE_DEPOSIT_CHECK,
+} from "./design-critique-deposit.js";
 
 /** #1617: re-export so doctor consumers can invoke the ownership check directly. */
 export { checkWslOwnershipGuard };
@@ -678,6 +682,12 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   }
   sink.info("Checking AGENTS.md legibility (advisory)...");
   runAgentsMdAdvisoryCheck(projectRoot, sink, addFinding, seams);
+
+  if (!jsonMode) {
+    sink.blank();
+  }
+  sink.info("Checking design-critique deposit / judgmentGates (advisory)...");
+  runDesignCritiqueDepositCheck(projectRoot, sink, addFinding);
 
   if (!jsonMode) {
     sink.blank();
@@ -1392,6 +1402,44 @@ function runAgentsMdFreshnessCheck(
  * `deft doctor` (and the `check:consumer` aggregate that depends on it) can
  * never fail-close on a judgment call about the consumer's own file.
  */
+function runDesignCritiqueDepositCheck(
+  projectRoot: string,
+  sink: ReturnType<typeof createPlainSink>,
+  addFinding: (f: Finding) => void,
+): void {
+  const result = checkDesignCritiqueDeposit(projectRoot);
+  if (result.status === "skip") {
+    sink.info(`${DESIGN_CRITIQUE_DEPOSIT_CHECK}: skip -- ${result.detail}`);
+    addFinding({
+      severity: "skip",
+      message: result.detail,
+      check: DESIGN_CRITIQUE_DEPOSIT_CHECK,
+      status: "skip",
+      data: result.data,
+    });
+    return;
+  }
+  if (result.status === "pass") {
+    sink.info(`${DESIGN_CRITIQUE_DEPOSIT_CHECK}: ${result.detail}`);
+    addFinding({
+      severity: "skip",
+      message: result.detail,
+      check: DESIGN_CRITIQUE_DEPOSIT_CHECK,
+      status: "pass",
+      data: result.data,
+    });
+    return;
+  }
+  sink.warn(result.detail);
+  addFinding({
+    severity: "warning",
+    message: result.detail,
+    check: DESIGN_CRITIQUE_DEPOSIT_CHECK,
+    status: "fail",
+    data: result.data,
+  });
+}
+
 function runAgentsMdAdvisoryCheck(
   projectRoot: string,
   sink: ReturnType<typeof createPlainSink>,
