@@ -736,7 +736,9 @@
         "size": "L",
         "model_tier": "default"
       },
-      "productPullRequest": 5305
+      "productPullRequest": 5305,
+      "activationPullRequest": 5305,
+      "activationNote": "Prefer-A Bound activation (#5294 pattern): productPullRequest binds to this activation PR for closing-keywords Path B; product delivery is PR #5286 (brief not re-touched there)."
     },
     "id": "github.issue.5240474407",
     "updated": "2026-10-04T02:27:51Z"
