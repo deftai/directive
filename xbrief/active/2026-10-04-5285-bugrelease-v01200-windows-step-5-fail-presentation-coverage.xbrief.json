@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5285",
-    "updated": "2026-10-04T02:56:11Z"
+    "updated": "2026-10-04T04:48:15Z"
   },
   "plan": {
     "title": "bug(release): v0.120.0 Windows Step 5 fail — presentation-coverage snapshot symlink EPERM",
@@ -72,33 +72,24 @@
       "commands": [],
       "none_stated": false,
       "source_rung": "bound",
-      "derived_reason": "Prefer-A Bound lean 5975803565 stamped for cohort add",
+      "derived_reason": "Prefer-A Bound lean 5975803565 stamped for cohort add; review residual reconciled acceptance + admitted-source to Bound clauses (no privilege-gate OR-limb)",
       "sentences": [
-        "bug(release): v0.120.0 Windows Step 5 fail — presentation-coverage snapshot symlink EPERM",
-        "Summary v0.120.0 production release Step 5 (`ts:check-lane`) failed with 1 of 20887 tests failing on Windows.",
-        "Failure `packages/core/src/presentation-coverage/snapshot.test.ts` > `records unreadable and non-file authority instead of interpreting it as absent` Reproduced under `task ts:check-lane` (~21m).",
-        "Fast gates including `vbrief:validate` were green after leftover #4912 ref-type hotfix `0422fce50`.",
-        "Classification Windows host symlink privilege / EPERM during temp-repo fixture setup.",
-        "Not a product assertion failure on the release tip.",
-        "Prior related family: #5239 / #5140 / #2652 (Windows Step 5 incident path).",
-        "Acceptance - [ ] Test creates the non-file authority fixture without requiring Developer Mode / elevated symlink privilege on Windows, OR documents and gates the privilege requirement.",
-        "[ ] Next production cut after the fix runs Step 5 without `--skip-ci`.",
-        "Incident use Operator-approved `--skip-ci --allow-skip-ci=<this>` for the v0.120.0 cut only.",
-        "Test creates the non-file authority fixture without requiring Developer Mode / elevated symlink privilege on Windows, OR documents and gates the privilege requirement.",
-        "Next production cut after the fix runs Step 5 without `--skip-ci`."
+        "In packages/core/src/presentation-coverage/snapshot.test.ts, replace OS symlinkSync(../README.md, …/presentation-ceiling.json) with git plumbing that stages mode 120000 via update-index --index-info (stdin lines 120000 <blob>\\t.deft/presentation-ceiling.json), matching the unmerged-entry idiom already in this file. Prefer --index-info over --cacheinfo.",
+        "Ordering MUST adjacent to item 1: stage that index entry AFTER any git add ., or drop the now-dead mkdirSync(.deft) + git add . for this path. In-place replace of :64 while leaving :63/:65 is the broken ordering (trailing git add . deletes the plumbing entry).",
+        "Keep the unreadable-blob half and the nonexistent-originRef assertion in the same it body; do not wrap the whole it in a Windows skip.",
+        "Unified skip rule: a Windows skip/catch-return is justified only where the OS symlink is the subject under test (realpath/containment, as in authz/*.test.ts). In snapshot.test.ts the symlink is only a carrier for a git tree mode; snapshot.ts tree() reads ls-tree/cat-file and never the worktree, so plumbing reproduces the subject. Therefore forbid here: try { symlinkSync } catch { return }, inline if (win32) return, and whole-test it.skipIf(win32)/itSymlink. Reject junction borrow: cite packages/cli/src/windows-bin-ps1.test.ts junction fixture (not gates.test.ts); a junction stages as directory tree (no 120000).",
+        "Scope control 6a: Narrow the :61 it title to the modes this PR ships (symlink/git mode 120000 + unreadable blob). Do not leave a title that attests non-file authority instead of interpreting it as absent while directory-at-authority stays uncovered. Bound 6b leftover already filed as #5292 — out of this PR denominator.",
+        "Acceptance: privilege-less Windows host runs the shipped fixtures green; next production cut runs Step 5 without --skip-ci for this incident class. No fail-closed-until-fixed hedge. No privilege-gate OR-limb as a close path."
       ],
       "admitted_source_sentences": [
-        "Summary v0.120.0 production release Step 5 (`ts:check-lane`) failed with 1 of 20887 tests failing on Windows.",
-        "Failure `packages/core/src/presentation-coverage/snapshot.test.ts` > `records unreadable and non-file authority instead of interpreting it as absent` Reproduced under `task ts:check-lane` (~21m).",
-        "Fast gates including `vbrief:validate` were green after leftover #4912 ref-type hotfix `0422fce50`.",
-        "Classification Windows host symlink privilege / EPERM during temp-repo fixture setup.",
-        "Not a product assertion failure on the release tip.",
-        "Prior related family: #5239 / #5140 / #2652 (Windows Step 5 incident path).",
-        "Acceptance - [ ] Test creates the non-file authority fixture without requiring Developer Mode / elevated symlink privilege on Windows, OR documents and gates the privilege requirement.",
-        "[ ] Next production cut after the fix runs Step 5 without `--skip-ci`.",
-        "Incident use Operator-approved `--skip-ci --allow-skip-ci=<this>` for the v0.120.0 cut only."
+        "In packages/core/src/presentation-coverage/snapshot.test.ts, replace OS symlinkSync(../README.md, …/presentation-ceiling.json) with git plumbing that stages mode 120000 via update-index --index-info (stdin lines 120000 <blob>\\t.deft/presentation-ceiling.json), matching the unmerged-entry idiom already in this file. Prefer --index-info over --cacheinfo.",
+        "Ordering MUST adjacent to item 1: stage that index entry AFTER any git add ., or drop the now-dead mkdirSync(.deft) + git add . for this path. In-place replace of :64 while leaving :63/:65 is the broken ordering (trailing git add . deletes the plumbing entry).",
+        "Keep the unreadable-blob half and the nonexistent-originRef assertion in the same it body; do not wrap the whole it in a Windows skip.",
+        "Unified skip rule: a Windows skip/catch-return is justified only where the OS symlink is the subject under test (realpath/containment, as in authz/*.test.ts). In snapshot.test.ts the symlink is only a carrier for a git tree mode; snapshot.ts tree() reads ls-tree/cat-file and never the worktree, so plumbing reproduces the subject. Therefore forbid here: try { symlinkSync } catch { return }, inline if (win32) return, and whole-test it.skipIf(win32)/itSymlink. Reject junction borrow: cite packages/cli/src/windows-bin-ps1.test.ts junction fixture (not gates.test.ts); a junction stages as directory tree (no 120000).",
+        "Scope control 6a: Narrow the :61 it title to the modes this PR ships (symlink/git mode 120000 + unreadable blob). Do not leave a title that attests non-file authority instead of interpreting it as absent while directory-at-authority stays uncovered. Bound 6b leftover already filed as #5292 — out of this PR denominator.",
+        "Acceptance: privilege-less Windows host runs the shipped fixtures green; next production cut runs Step 5 without --skip-ci for this incident class. No fail-closed-until-fixed hedge. No privilege-gate OR-limb as a close path."
       ],
-      "admitted_source_digest": "5cd8f2b77fecc12a9d321e817aa2e1ffaaf5bfb6e50e912c2c6a201060e9dbf1",
+      "admitted_source_digest": "44e5ccb994070aee95a1697172a069acb8c88528924b2bdb47a046c82b254dbc",
       "clauses": [
         {
           "id": 1,
@@ -110,14 +101,14 @@
         {
           "id": 2,
           "text": "Ordering MUST adjacent to item 1: stage that index entry AFTER any git add ., or drop the now-dead mkdirSync(.deft) + git add . for this path. In-place replace of :64 while leaving :63/:65 is the broken ordering (trailing git add . deletes the plumbing entry).",
-          "artifact_path": "packages/core/src/presentation-coverage/snapshot.ts",
+          "artifact_path": "packages/core/src/presentation-coverage/snapshot.test.ts",
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         },
         {
           "id": 3,
           "text": "Keep the unreadable-blob half and the nonexistent-originRef assertion in the same it body; do not wrap the whole it in a Windows skip.",
-          "artifact_path": "packages/cli/src/windows-bin-ps1.test.ts",
+          "artifact_path": "packages/core/src/presentation-coverage/snapshot.test.ts",
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         },
@@ -138,7 +129,7 @@
         {
           "id": 6,
           "text": "Acceptance: privilege-less Windows host runs the shipped fixtures green; next production cut runs Step 5 without --skip-ci for this incident class. No fail-closed-until-fixed hedge. No privilege-gate OR-limb as a close path.",
-          "artifact_path": "packages/core/src/presentation-coverage/snapshot.ts",
+          "artifact_path": "packages/core/src/presentation-coverage/snapshot.test.ts",
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         }
@@ -632,8 +623,6 @@
       "swarm": {
         "file_scope": [
           "packages/core/src/presentation-coverage/snapshot.test.ts",
-          "packages/core/src/presentation-coverage/snapshot.ts",
-          "packages/cli/src/windows-bin-ps1.test.ts",
           "CHANGELOG.md"
         ],
         "file_scope_confidence": "high",
@@ -647,9 +636,10 @@
         "conflict_group": "presentation-coverage-windows-symlink",
         "size": "M",
         "model_tier": "default"
-      }
+      },
+      "productPullRequest": 5294
     },
     "id": "github.issue.5695169258",
-    "updated": "2026-10-04T02:56:11Z"
+    "updated": "2026-10-04T04:48:15Z"
   }
 }

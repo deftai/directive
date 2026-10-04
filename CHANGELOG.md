@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Windows presentation-coverage snapshot fixture uses git mode 120000 plumbing (#5285).
+
 ### Added
 
 - **Occupancy stays advisory coordination with pinned lease lifetime (#3729).** Documents lease-versus-ritual timing, which mutation paths consult occupancy, and the free-tree fail-open / unknown-identity fail-closed contract. Tracking #3729.
