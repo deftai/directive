@@ -68,6 +68,13 @@
       "properties": {
         "codeStructure": {
           "$ref": "#/$defs/CodeStructure"
+        },
+        "systemOfRecord": {
+          "$ref": "#/$defs/SystemOfRecord"
+        },
+        "stateful": {
+          "type": "boolean",
+          "description": "Author-asserted statefulness opt-in for story-mode SOR applicability (#1492)."
         }
       },
       "additionalProperties": true
@@ -511,7 +518,12 @@
         },
         "effort": {
           "type": "string",
-          "enum": ["S", "M", "L", "XL"],
+          "enum": [
+            "S",
+            "M",
+            "L",
+            "XL"
+          ],
           "description": "Optional effort estimate with time anchors: S <2h, M half-day (2-4h), L 1-2 days, XL needs breakdown into S/M/L before activation. Omitted items still validate."
         },
         "dueDate": {
@@ -619,7 +631,10 @@
           "description": "Maximum age, in hours, for .deft/ritual-state.json before the fail-closed session ritual verifier requires task session:start to run again. Default: 8."
         },
         "forgeOutageRetryMinutes": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 5,
           "description": "Minutes to wait between GitHub I/O re-probes after a forge outage drop-back (#3422). Default: 30. USER.md Personal wins over this project field. null is unset (same as omit)."
         },
@@ -650,7 +665,10 @@
     "ProjectInvariant": {
       "type": "object",
       "description": "One authored project invariant (#3425). Contract surface is paths and/or module ids that must not be broken.",
-      "required": ["id", "statement"],
+      "required": [
+        "id",
+        "statement"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -665,21 +683,34 @@
         },
         "contract_surface": {
           "oneOf": [
-            { "$ref": "#/$defs/ProjectInvariantContractSurface" },
-            { "type": "array", "items": { "type": "string" } }
+            {
+              "$ref": "#/$defs/ProjectInvariantContractSurface"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           ]
         },
         "paths": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "moduleIds": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "module_ids": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": true
@@ -690,19 +721,27 @@
       "properties": {
         "paths": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "pathGlobs": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "moduleIds": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "module_ids": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": true
@@ -723,7 +762,9 @@
         },
         "forbiddenPathGlobs": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Path globs that never qualify as hotfix (deploy/CI/migrations/auth defaults apply when omitted)."
         }
       },
@@ -1131,6 +1172,92 @@
       "type": "string",
       "format": "date-time",
       "pattern": "(Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "SystemOfRecord": {
+      "type": "object",
+      "description": "System-of-record design record. Canonical home: plan.architecture.systemOfRecord (#1492).",
+      "properties": {
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "covered",
+            "deferred",
+            "behavioral_delta",
+            "not_applicable"
+          ],
+          "description": "Applicability disposition reused from project-invariant coverage (#3425 / #1492). snake_case."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Required nonblank rationale when disposition is not_applicable."
+        },
+        "dispositionReason": {
+          "type": "string",
+          "description": "Alias for reason (not_applicable rationale)."
+        },
+        "stateSurfaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StateSurface"
+          }
+        },
+        "referenceApplications": {
+          "type": "array"
+        },
+        "referenceApplicationComparisons": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "StateSurface": {
+      "type": "object",
+      "required": [
+        "name",
+        "classification"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "durable_product_state",
+            "auth_session_state",
+            "authorization_state",
+            "audit_event_state",
+            "external_integration_state",
+            "canonical_artifact",
+            "cache",
+            "projection",
+            "import_export_artifact",
+            "dev_only_fixture",
+            "ephemeral_ui_state"
+          ]
+        },
+        "owner": {},
+        "approvedStorage": {},
+        "forbiddenStorage": {},
+        "migrationRequired": {},
+        "auditRequired": {},
+        "concurrencyRequired": {},
+        "permissionBoundary": {},
+        "concurrencySemantics": {},
+        "transactionBoundary": {},
+        "recoverySemantics": {},
+        "conflictDetection": {},
+        "deleteSemantics": {},
+        "migrationPath": {},
+        "invalidationRules": {},
+        "sourceOfTruth": {},
+        "liveState": {},
+        "authoritative": {},
+        "mutable": {},
+        "productionGuard": {}
+      },
+      "additionalProperties": true
     }
   }
 }

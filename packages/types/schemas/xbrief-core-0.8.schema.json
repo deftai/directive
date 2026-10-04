@@ -159,7 +159,11 @@
             },
             "Confidence": {
               "type": "string",
-              "enum": ["high", "medium", "low"],
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ],
               "description": "Agent certainty (#479). Does not substitute for Evidence on a verified claim."
             },
             "Evidence": {
@@ -242,6 +246,9 @@
         },
         "fork": {
           "$ref": "#/$defs/Fork"
+        },
+        "architecture": {
+          "$ref": "#/$defs/Architecture"
         }
       },
       "additionalProperties": true,
@@ -265,7 +272,12 @@
         },
         "type": {
           "type": "string",
-          "enum": ["task", "group", "milestone", "epic"],
+          "enum": [
+            "task",
+            "group",
+            "milestone",
+            "epic"
+          ],
           "default": "task",
           "description": "Item type. Containers (group, milestone, epic) support status rollup."
         },
@@ -333,7 +345,12 @@
         },
         "effort": {
           "type": "string",
-          "enum": ["S", "M", "L", "XL"],
+          "enum": [
+            "S",
+            "M",
+            "L",
+            "XL"
+          ],
           "description": "Optional effort estimate with time anchors: S <2h, M half-day (2-4h), L 1-2 days, XL needs breakdown into S/M/L before activation. Omitted items still validate."
         },
         "stopConditions": {
@@ -604,7 +621,11 @@
             },
             "TrustLevel": {
               "type": "string",
-              "enum": ["verified", "internal", "external"],
+              "enum": [
+                "verified",
+                "internal",
+                "external"
+              ],
               "description": "Trust classification (#480 / #479). verified = confirmed against the working tree; internal = originated inside the trust boundary; external = originated outside. Missing field reads as external, never verified. Promotion from external to verified requires explicit revalidation."
             }
           }
@@ -861,6 +882,110 @@
       "type": "string",
       "format": "date-time",
       "pattern": "(Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "Architecture": {
+      "type": "object",
+      "description": "Directive-local architecture metadata (#1595 codeStructure; #1492 systemOfRecord).",
+      "properties": {
+        "codeStructure": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "systemOfRecord": {
+          "$ref": "#/$defs/SystemOfRecord"
+        },
+        "stateful": {
+          "type": "boolean",
+          "description": "Author-asserted statefulness opt-in for story-mode SOR applicability (#1492)."
+        }
+      },
+      "additionalProperties": true
+    },
+    "SystemOfRecord": {
+      "type": "object",
+      "description": "System-of-record design record. Canonical home: plan.architecture.systemOfRecord (#1492).",
+      "properties": {
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "covered",
+            "deferred",
+            "behavioral_delta",
+            "not_applicable"
+          ],
+          "description": "Applicability disposition reused from project-invariant coverage (#3425 / #1492). snake_case."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Required nonblank rationale when disposition is not_applicable."
+        },
+        "dispositionReason": {
+          "type": "string",
+          "description": "Alias for reason (not_applicable rationale)."
+        },
+        "stateSurfaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StateSurface"
+          }
+        },
+        "referenceApplications": {
+          "type": "array"
+        },
+        "referenceApplicationComparisons": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "StateSurface": {
+      "type": "object",
+      "required": [
+        "name",
+        "classification"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "durable_product_state",
+            "auth_session_state",
+            "authorization_state",
+            "audit_event_state",
+            "external_integration_state",
+            "canonical_artifact",
+            "cache",
+            "projection",
+            "import_export_artifact",
+            "dev_only_fixture",
+            "ephemeral_ui_state"
+          ]
+        },
+        "owner": {},
+        "approvedStorage": {},
+        "forbiddenStorage": {},
+        "migrationRequired": {},
+        "auditRequired": {},
+        "concurrencyRequired": {},
+        "permissionBoundary": {},
+        "concurrencySemantics": {},
+        "transactionBoundary": {},
+        "recoverySemantics": {},
+        "conflictDetection": {},
+        "deleteSemantics": {},
+        "migrationPath": {},
+        "invalidationRules": {},
+        "sourceOfTruth": {},
+        "liveState": {},
+        "authoritative": {},
+        "mutable": {},
+        "productionGuard": {}
+      },
+      "additionalProperties": true
     }
   }
 }

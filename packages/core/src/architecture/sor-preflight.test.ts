@@ -10,10 +10,13 @@ import { describe, expect, it } from "vitest";
 import {
   architecturePreflightSorMain,
   type DetectedSignal,
+  evaluateDeclaredRecord,
   evaluateDiff,
   evaluateDiffText,
   evaluateStory,
   scanDiff,
+  selectSystemOfRecord,
+  SOR_EXIT,
   storageMatches,
   systemOfRecord,
   validateRecord,
@@ -60,7 +63,8 @@ describe("evaluateStory", () => {
     const raw = JSON.parse(
       readFileSync(fixture("cache_file_passes.vbrief.json"), "utf8"),
     ) as Record<string, unknown>;
-    const arch = raw.architecture as Record<string, unknown>;
+    const plan = raw.plan as Record<string, unknown>;
+    const arch = plan.architecture as Record<string, unknown>;
     const sor = arch.systemOfRecord as Record<string, unknown>;
     const surfaces = sor.stateSurfaces as Record<string, unknown>[];
     const firstSurface = surfaces[0];
@@ -75,8 +79,177 @@ describe("evaluateStory", () => {
     const badPath = join(tmpDir, "story.xbrief.json");
     writeFileSync(badPath, JSON.stringify(raw, null, 2), "utf8");
     const bad = evaluateStory(badPath);
-    expect(bad.code).toBe(1);
+    expect(bad.code).toBe(SOR_EXIT.violation);
     expect(bad.message).toContain("invalidation");
+  });
+
+  it("undeclared statefulness passes without a design record", () => {
+    const tmpDir = join(tmpdir(), `sor-undeclared-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    const path = join(tmpDir, "story.xbrief.json");
+    writeFileSync(path, JSON.stringify({ plan: { title: "t", status: "running", items: [] } }), "utf8");
+    const result = evaluateStory(path);
+    expect(result.code).toBe(SOR_EXIT.pass);
+    expect(result.message).toContain("undeclared");
+  });
+
+  it("stateful opt-in without record fails", () => {
+    const tmpDir = join(tmpdir(), `sor-optin-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    const path = join(tmpDir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: { title: "t", status: "running", items: [], architecture: { stateful: true } },
+      }),
+      "utf8",
+    );
+    const result = evaluateStory(path);
+    expect(result.code).toBe(SOR_EXIT.violation);
+  });
+
+  it("legacy top-level-only record is selection error", () => {
+    const tmpDir = join(tmpdir(), `sor-legacy-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    const path = join(tmpDir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: { title: "t", status: "running", items: [] },
+        architecture: {
+          systemOfRecord: {
+            stateSurfaces: [
+              {
+                name: "Workspace",
+                classification: "durable_product_state",
+                owner: "db",
+                approvedStorage: "postgres",
+                forbiddenStorage: ["json_file"],
+                migrationRequired: true,
+                auditRequired: true,
+                concurrencyRequired: true,
+                permissionBoundary: "membership",
+                concurrencySemantics: "optimistic",
+                transactionBoundary: "txn",
+                recoverySemantics: "backup",
+                conflictDetection: "version",
+                deleteSemantics: "soft",
+                migrationPath: "add table",
+              },
+            ],
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateStory(path);
+    expect(result.code).toBe(SOR_EXIT.misconfigured);
+    expect(result.message).toContain("deprecated");
+  });
+
+  it("both-present homes conflict with code 2", () => {
+    const tmpDir = join(tmpdir(), `sor-conflict-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    const path = join(tmpDir, "story.xbrief.json");
+    const nested = {
+      stateSurfaces: [
+        {
+          name: "Workspace",
+          classification: "ephemeral_ui_state",
+          approvedStorage: "in_memory",
+        },
+      ],
+    };
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: { title: "t", status: "running", items: [], architecture: { systemOfRecord: nested } },
+        architecture: { systemOfRecord: nested },
+      }),
+      "utf8",
+    );
+    const result = evaluateStory(path);
+    expect(result.code).toBe(SOR_EXIT.misconfigured);
+    expect(result.message).toContain("both");
+  });
+
+  it("not_applicable with reason and no surfaces passes", () => {
+    const tmpDir = join(tmpdir(), `sor-na-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    const path = join(tmpDir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          title: "t",
+          status: "running",
+          items: [],
+          architecture: {
+            systemOfRecord: {
+              disposition: "not_applicable",
+              reason: "docs-only story; no durable product state",
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateStory(path);
+    expect(result.code).toBe(SOR_EXIT.pass);
+    expect(result.message).toContain("not_applicable");
+  });
+
+  it("not_applicable cannot carry stateSurfaces", () => {
+    const tmpDir = join(tmpdir(), `sor-na-surfaces-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    const path = join(tmpDir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          title: "t",
+          status: "running",
+          items: [],
+          architecture: {
+            systemOfRecord: {
+              disposition: "not_applicable",
+              reason: "docs-only",
+              stateSurfaces: [{ name: "X", classification: "cache" }],
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateStory(path);
+    expect(result.code).toBe(SOR_EXIT.violation);
+    expect(result.message).toContain("cannot carry");
+  });
+
+  it("deferred disposition returns draft exit 3", () => {
+    const tmpDir = join(tmpdir(), `sor-draft-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    const path = join(tmpDir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          title: "t",
+          status: "running",
+          items: [],
+          architecture: {
+            systemOfRecord: {
+              disposition: "deferred",
+              stateSurfaces: [],
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateStory(path);
+    expect(result.code).toBe(SOR_EXIT.draft);
+    expect(result.message).toContain("DRAFT");
   });
 
   it("reference-app parity fails without persistence/auth comparison", () => {
@@ -236,13 +409,13 @@ describe("storageMatches", () => {
 describe("validateRecord", () => {
   it("null record returns code 1", () => {
     const result = validateRecord(null);
-    expect(result.code).toBe(1);
-    expect(result.message).toContain("no architecture.systemOfRecord");
+    expect(result.code).toBe(SOR_EXIT.violation);
+    expect(result.message).toContain("plan.architecture.systemOfRecord");
   });
 
   it("empty stateSurfaces returns code 1", () => {
     const result = validateRecord({ stateSurfaces: [] });
-    expect(result.code).toBe(1);
+    expect(result.code).toBe(SOR_EXIT.violation);
   });
 
   it("valid cache surface passes", () => {
@@ -257,27 +430,46 @@ describe("validateRecord", () => {
       ],
     };
     const result = validateRecord(record);
-    expect(result.code).toBe(0);
+    expect(result.code).toBe(SOR_EXIT.pass);
   });
 });
 
-describe("systemOfRecord", () => {
-  it("extracts from top-level architecture", () => {
-    const payload = {
-      architecture: { systemOfRecord: { stateSurfaces: [] } },
-    };
-    expect(systemOfRecord(payload)).not.toBeNull();
-  });
-
-  it("extracts from plan.architecture", () => {
+describe("systemOfRecord / selectSystemOfRecord", () => {
+  it("selects nested plan.architecture", () => {
     const payload = {
       plan: { architecture: { systemOfRecord: { stateSurfaces: [] } } },
     };
+    expect(selectSystemOfRecord(payload).status).toBe("nested");
     expect(systemOfRecord(payload)).not.toBeNull();
+  });
+
+  it("marks top-level-only as legacy", () => {
+    const payload = {
+      architecture: { systemOfRecord: { stateSurfaces: [] } },
+    };
+    expect(selectSystemOfRecord(payload).status).toBe("legacy-top-level");
+    expect(systemOfRecord(payload)).not.toBeNull();
+  });
+
+  it("conflicts when both homes present", () => {
+    const payload = {
+      architecture: { systemOfRecord: { stateSurfaces: [] } },
+      plan: { architecture: { systemOfRecord: { stateSurfaces: [] } } },
+    };
+    expect(selectSystemOfRecord(payload).status).toBe("conflict");
+    expect(systemOfRecord(payload)).toBeNull();
   });
 
   it("returns null when absent", () => {
     expect(systemOfRecord({ plan: {} })).toBeNull();
+    expect(selectSystemOfRecord({ plan: {} }).status).toBe("absent");
+  });
+});
+
+describe("evaluateDeclaredRecord", () => {
+  it("deferred yields draft exit", () => {
+    const result = evaluateDeclaredRecord({ disposition: "deferred", stateSurfaces: [] });
+    expect(result.code).toBe(SOR_EXIT.draft);
   });
 });
 
@@ -298,9 +490,36 @@ describe("architecturePreflightSorMain", () => {
     expect(code).toBe(1);
   });
 
-  it("no args exits 2", () => {
-    const code = architecturePreflightSorMain([]);
-    expect(code).toBe(2);
+  it("no args with empty project-root exits 2", () => {
+    const empty = join(tmpdir(), `sor-empty-root-${Date.now()}`);
+    mkdirSync(empty, { recursive: true });
+    const code = architecturePreflightSorMain(["--project-root", empty]);
+    expect(code).toBe(SOR_EXIT.misconfigured);
+  });
+
+  it("defaults --story-path from a single active artifact", () => {
+    const proj = join(tmpdir(), `sor-default-active-${Date.now()}`);
+    mkdirSync(join(proj, "xbrief", "active"), { recursive: true });
+    const story = join(proj, "xbrief", "active", "story.xbrief.json");
+    writeFileSync(
+      story,
+      JSON.stringify({
+        plan: {
+          title: "t",
+          status: "running",
+          items: [],
+          architecture: {
+            systemOfRecord: {
+              disposition: "not_applicable",
+              reason: "docs-only",
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const code = architecturePreflightSorMain(["--project-root", proj]);
+    expect(code).toBe(SOR_EXIT.pass);
   });
 
   it("unrecognized arg exits 2", () => {
@@ -617,7 +836,9 @@ describe("scanDiff signal kinds", () => {
 
 describe("evaluateDiffText record resolution", () => {
   function sorVbrief(): unknown {
-    return { architecture: { systemOfRecord: { stateSurfaces: [durableSurface()] } } };
+    return {
+      plan: { architecture: { systemOfRecord: { stateSurfaces: [durableSurface()] } } },
+    };
   }
 
   it("returns code 2 when multiple changed vBRIEFs carry SoR records", () => {
@@ -663,8 +884,8 @@ describe("evaluateDiffText record resolution", () => {
       "",
     ].join("\n");
     const result = evaluateDiffText(diff, { projectRoot: proj });
-    expect(result.code).toBe(1);
-    expect(result.message).toContain("no matching architecture.systemOfRecord");
+    expect(result.code).toBe(SOR_EXIT.violation);
+    expect(result.message).toContain("no matching plan.architecture.systemOfRecord");
   });
 
   it("resolves a single changed vBRIEF record automatically", () => {
@@ -764,7 +985,9 @@ describe("validateRecord additional surface edge cases", () => {
 
 describe("evaluateDiffText changed-folder filters", () => {
   function sorVbrief(): unknown {
-    return { architecture: { systemOfRecord: { stateSurfaces: [durableSurface()] } } };
+    return {
+      plan: { architecture: { systemOfRecord: { stateSurfaces: [durableSurface()] } } },
+    };
   }
 
   it("reads SoR records from a changed vbrief/pending path and skips other folders", () => {

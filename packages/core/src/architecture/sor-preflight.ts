@@ -6,18 +6,35 @@
  *   "Is this the correct system of record for this kind of state?"
  *
  * Two modes:
- * - Story/spec mode: validates the story's architecture.systemOfRecord design record.
+ * - Story/spec mode: validates plan.architecture.systemOfRecord (#1492 nested home).
  * - Diff mode: scans changed runtime code for risky persistence signals and requires
- *   a matching design record.
+ *   a matching design record (advisory; changedStoryRecords carve-out remains for 1.0).
  *
- * Exit codes: 0 pass / 1 architecture violation / 2 gate misconfigured
+ * Exit codes (#1492): 0 pass / 1 architecture violation / 2 gate misconfigured
+ * or selection error / 3 draft-incomplete (disposition deferred).
+ *
+ * Pre-1.0: advisory/opt-in only — not fail-closed in build/swarm, not consumer MUST.
  */
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, extname, join, resolve } from "node:path";
+import { resolveSoftMissingAcTargets } from "../hooks/scope.js";
 import { hasArtifactSuffix, LIFECYCLE_DIR_NAMES } from "../layout/resolve.js";
+import { PROJECT_INVARIANT_DISPOSITIONS } from "../scope/project-invariant-coverage.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
+
+/** Exit taxonomy (#1492 P3). */
+export const SOR_EXIT = {
+  pass: 0,
+  violation: 1,
+  misconfigured: 2,
+  draft: 3,
+} as const;
+
+/** Disposition vocabulary reused from project-invariant coverage (#3425 / #1492 P2). */
+export const SOR_DISPOSITIONS = PROJECT_INVARIANT_DISPOSITIONS;
+export type SorDisposition = (typeof SOR_DISPOSITIONS)[number];
 
 // ---------------------------------------------------------------------------
 // Classification constants
@@ -316,24 +333,89 @@ function loadJsonFile(path: string): [JsonObj | null, GateResult | null] {
 }
 
 // ---------------------------------------------------------------------------
-// Record extraction
+// Record extraction (#1492 nested home)
 // ---------------------------------------------------------------------------
 
-export function systemOfRecord(payload: JsonObj): JsonObj | null {
-  const architecture = payload.architecture;
-  if (typeof architecture === "object" && architecture !== null && !Array.isArray(architecture)) {
-    const sor = (architecture as JsonObj).systemOfRecord;
-    if (typeof sor === "object" && sor !== null && !Array.isArray(sor)) return sor as JsonObj;
-  }
-  const plan = payload.plan;
-  if (typeof plan === "object" && plan !== null && !Array.isArray(plan)) {
-    const planArch = (plan as JsonObj).architecture;
-    if (typeof planArch === "object" && planArch !== null && !Array.isArray(planArch)) {
-      const sor = (planArch as JsonObj).systemOfRecord;
-      if (typeof sor === "object" && sor !== null && !Array.isArray(sor)) return sor as JsonObj;
-    }
+export type SystemOfRecordSelection =
+  | { status: "nested"; record: JsonObj }
+  | { status: "legacy-top-level"; record: JsonObj }
+  | { status: "conflict"; message: string }
+  | { status: "absent" };
+
+function asObject(value: unknown): JsonObj | null {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return value as JsonObj;
   }
   return null;
+}
+
+function readSorBlock(container: JsonObj | null): JsonObj | null {
+  if (container === null) return null;
+  const sor = asObject(container.systemOfRecord);
+  return sor;
+}
+
+/**
+ * Select the canonical systemOfRecord home.
+ * Nested `plan.architecture.systemOfRecord` wins. Both-present is conflict (code 2).
+ * Top-level-only is legacy — never authoritative success after the warn window (#1492).
+ */
+export function selectSystemOfRecord(payload: JsonObj): SystemOfRecordSelection {
+  const top = readSorBlock(asObject(payload.architecture));
+  const plan = asObject(payload.plan);
+  const nested = readSorBlock(asObject(plan?.architecture ?? null));
+
+  if (top !== null && nested !== null) {
+    return {
+      status: "conflict",
+      message:
+        "system-of-record gate misconfigured: both top-level architecture.systemOfRecord and " +
+        "plan.architecture.systemOfRecord are present; keep only the nested home (#1492).",
+    };
+  }
+  if (nested !== null) return { status: "nested", record: nested };
+  if (top !== null) return { status: "legacy-top-level", record: top };
+  return { status: "absent" };
+}
+
+/**
+ * Extract a systemOfRecord object when selection is unambiguous.
+ * Returns null for absent or conflict. Legacy top-level still extracts for migration
+ * callers; evaluateStory refuses it as authoritative success.
+ */
+export function systemOfRecord(payload: JsonObj): JsonObj | null {
+  const selected = selectSystemOfRecord(payload);
+  if (selected.status === "nested" || selected.status === "legacy-top-level") {
+    return selected.record;
+  }
+  return null;
+}
+
+/** Author-asserted statefulness flag on plan.architecture (#1492 P2 strike). */
+export function statefulnessAsserted(payload: JsonObj): boolean {
+  const plan = asObject(payload.plan);
+  const arch = asObject(plan?.architecture ?? null);
+  if (arch === null) return false;
+  if (arch.stateful === true) return true;
+  if (typeof arch.stateful === "string") {
+    return ["1", "true", "yes", "on", "required"].includes(arch.stateful.trim().toLowerCase());
+  }
+  return false;
+}
+
+export function readSorDisposition(record: JsonObj): SorDisposition | null {
+  const raw = record.disposition;
+  if (typeof raw !== "string") return null;
+  const token = raw.trim().toLowerCase();
+  return (SOR_DISPOSITIONS as readonly string[]).includes(token)
+    ? (token as SorDisposition)
+    : null;
+}
+
+function dispositionReason(record: JsonObj): string | null {
+  const nested = asObject(record.provenance);
+  const reason = nested?.reason ?? record.reason ?? record.dispositionReason;
+  return typeof reason === "string" && reason.trim().length > 0 ? reason.trim() : null;
 }
 
 function storyMentionsReferenceApp(payload: JsonObj): boolean {
@@ -584,17 +666,75 @@ function validateSignals(record: JsonObj, signals: DetectedSignal[]): GateFindin
 // validate_record
 // ---------------------------------------------------------------------------
 
+/**
+ * Evaluate a declared SoR record under disposition applicability (#1492 P2/P3).
+ * Callers must already have resolved nested vs legacy selection.
+ */
+export function evaluateDeclaredRecord(
+  record: JsonObj,
+  opts: { storyPayload?: JsonObj | null; signals?: DetectedSignal[] } = {},
+): GateResult {
+  const disposition = readSorDisposition(record);
+  const surfaces = recordSurfaces(record);
+
+  if (disposition === "not_applicable") {
+    const reason = dispositionReason(record);
+    const findings: GateFinding[] = [];
+    if (reason === null) {
+      findings.push({
+        reason: "disposition not_applicable requires a nonblank reason.",
+        requiredFix:
+          "Add reason (or dispositionReason / provenance.reason) explaining why SOR does not apply.",
+      });
+    }
+    if (Array.isArray(record.stateSurfaces) && surfaces.length > 0) {
+      findings.push({
+        reason: "disposition not_applicable cannot carry declared stateSurfaces.",
+        requiredFix:
+          "Remove stateSurfaces, or use covered/deferred instead of not_applicable (#1492).",
+      });
+    }
+    if (findings.length > 0) {
+      return { code: SOR_EXIT.violation, message: formatFailure(findings), findings };
+    }
+    return {
+      code: SOR_EXIT.pass,
+      message: "OK system-of-record gate: disposition not_applicable.",
+      findings: [],
+    };
+  }
+
+  if (disposition === "deferred") {
+    const finding: GateFinding = {
+      reason:
+        "systemOfRecord disposition is deferred (draft/incomplete); stateSurfaces may be empty or partial.",
+      requiredFix:
+        "Complete stateSurfaces and set disposition to covered before treating the design as finished. " +
+        "Do not use not_applicable as a draft stand-in (#1492).",
+    };
+    return {
+      code: SOR_EXIT.draft,
+      message:
+        "DRAFT system-of-record gate: disposition deferred (incomplete design record).",
+      findings: [finding],
+    };
+  }
+
+  // covered | behavioral_delta | undeclared-disposition-with-surfaces → surface checks
+  return validateRecord(record, opts);
+}
+
 export function validateRecord(
   record: JsonObj | null,
   opts: { storyPayload?: JsonObj | null; signals?: DetectedSignal[] } = {},
 ): GateResult {
   if (record === null) {
     const finding: GateFinding = {
-      reason: "Triggered story has no architecture.systemOfRecord design record.",
+      reason: "Triggered story has no plan.architecture.systemOfRecord design record.",
       requiredFix:
-        "Add a system-of-record block classifying each state surface before implementation.",
+        "Add plan.architecture.systemOfRecord classifying each state surface before implementation.",
     };
-    return { code: 1, message: formatFailure([finding]), findings: [finding] };
+    return { code: SOR_EXIT.violation, message: formatFailure([finding]), findings: [finding] };
   }
 
   const findings: GateFinding[] = [];
@@ -602,7 +742,9 @@ export function validateRecord(
   if (!Array.isArray(record.stateSurfaces) || surfaces.length === 0) {
     findings.push({
       reason: "systemOfRecord.stateSurfaces is missing or empty.",
-      requiredFix: "Declare at least one state surface with classification and approvedStorage.",
+      requiredFix:
+        "Declare at least one state surface with classification and approvedStorage, " +
+        "or set disposition deferred for an explicit draft (#1492).",
     });
   }
   for (const surface of surfaces) {
@@ -616,9 +758,9 @@ export function validateRecord(
   }
 
   if (findings.length > 0) {
-    return { code: 1, message: formatFailure(findings), findings };
+    return { code: SOR_EXIT.violation, message: formatFailure(findings), findings };
   }
-  return { code: 0, message: "OK system-of-record gate passed.", findings: [] };
+  return { code: SOR_EXIT.pass, message: "OK system-of-record gate passed.", findings: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -835,8 +977,28 @@ function changedStoryRecords(
     const [payload, error] = loadJsonFile(path);
     if (error !== null) return [[], error];
     if (payload !== null) {
-      const record = systemOfRecord(payload);
-      if (record !== null) records.push([path, payload, record]);
+      const selection = selectSystemOfRecord(payload);
+      if (selection.status === "conflict") {
+        return [
+          [],
+          { code: SOR_EXIT.misconfigured, message: selection.message, findings: [] },
+        ];
+      }
+      if (selection.status === "legacy-top-level") {
+        return [
+          [],
+          {
+            code: SOR_EXIT.misconfigured,
+            message:
+              "system-of-record gate misconfigured: top-level architecture.systemOfRecord is deprecated; " +
+              "move the design record to plan.architecture.systemOfRecord (#1492).",
+            findings: [],
+          },
+        ];
+      }
+      if (selection.status === "nested") {
+        records.push([path, payload, selection.record]);
+      }
     }
   }
   return [records, null];
@@ -849,7 +1011,7 @@ export function evaluateDiffText(
   const [signals, changedPaths] = scanDiff(diffText);
   if (signals.length === 0) {
     return {
-      code: 0,
+      code: SOR_EXIT.pass,
       message: "OK system-of-record gate passed: no stateful diff signals detected.",
       findings: [],
     };
@@ -862,7 +1024,24 @@ export function evaluateDiffText(
     const [p, error] = loadJsonFile(opts.storyPath);
     if (error !== null) return error;
     payload = p;
-    if (payload) record = systemOfRecord(payload);
+    if (payload) {
+      const selection = selectSystemOfRecord(payload);
+      if (selection.status === "conflict") {
+        return { code: SOR_EXIT.misconfigured, message: selection.message, findings: [] };
+      }
+      if (selection.status === "legacy-top-level") {
+        return {
+          code: SOR_EXIT.misconfigured,
+          message:
+            "system-of-record gate misconfigured: top-level architecture.systemOfRecord is deprecated; " +
+            "move the design record to plan.architecture.systemOfRecord (#1492).",
+          findings: [],
+        };
+      }
+      if (selection.status === "nested") {
+        record = selection.record;
+      }
+    }
   } else {
     const [records, error] = changedStoryRecords(opts.projectRoot, changedPaths);
     if (error !== null) return error;
@@ -873,7 +1052,7 @@ export function evaluateDiffText(
       }
     } else if (records.length > 1) {
       return {
-        code: 2,
+        code: SOR_EXIT.misconfigured,
         message:
           "system-of-record gate misconfigured: multiple changed vBRIEFs contain system-of-record records; pass --story-path.",
         findings: [],
@@ -884,18 +1063,18 @@ export function evaluateDiffText(
   if (record === null) {
     const finding: GateFinding = {
       reason:
-        "Diff contains stateful persistence signals, but no matching architecture.systemOfRecord design record was supplied or changed.",
+        "Diff contains stateful persistence signals, but no matching plan.architecture.systemOfRecord design record was supplied or changed.",
       requiredFix:
         "Run `task architecture:sor-preflight -- --story-path <path>` after adding the design record, or pass --story-path to this diff gate.",
       detectedStorage: signals[0]?.storage,
     };
-    return { code: 1, message: formatFailure([finding]), findings: [finding] };
+    return { code: SOR_EXIT.violation, message: formatFailure([finding]), findings: [finding] };
   }
 
-  const result = validateRecord(record, { storyPayload: payload, signals });
-  if (result.code === 0) {
+  const result = evaluateDeclaredRecord(record, { storyPayload: payload, signals });
+  if (result.code === SOR_EXIT.pass) {
     return {
-      code: 0,
+      code: SOR_EXIT.pass,
       message: `OK system-of-record gate passed: ${signals.length} stateful diff signal(s) matched.`,
       findings: [],
     };
@@ -952,12 +1131,39 @@ export function evaluateStory(storyPath: string): GateResult {
   if (error !== null) return error;
   if (!payload) {
     return {
-      code: 2,
+      code: SOR_EXIT.misconfigured,
       message: "system-of-record gate misconfigured: story payload missing.",
       findings: [],
     };
   }
-  return validateRecord(systemOfRecord(payload), { storyPayload: payload });
+
+  const selection = selectSystemOfRecord(payload);
+  if (selection.status === "conflict") {
+    return { code: SOR_EXIT.misconfigured, message: selection.message, findings: [] };
+  }
+  if (selection.status === "legacy-top-level") {
+    return {
+      code: SOR_EXIT.misconfigured,
+      message:
+        "system-of-record gate misconfigured: top-level architecture.systemOfRecord is deprecated; " +
+        "move the design record to plan.architecture.systemOfRecord (#1492).",
+      findings: [],
+    };
+  }
+  if (selection.status === "absent") {
+    if (statefulnessAsserted(payload)) {
+      return validateRecord(null, { storyPayload: payload });
+    }
+    // Undeclared stays undeclared — not implicit not_applicable (#1492 P2).
+    return {
+      code: SOR_EXIT.pass,
+      message:
+        "OK system-of-record gate: statefulness undeclared (no plan.architecture.systemOfRecord assertion).",
+      findings: [],
+    };
+  }
+
+  return evaluateDeclaredRecord(selection.record, { storyPayload: payload });
 }
 
 // ---------------------------------------------------------------------------
@@ -1018,32 +1224,74 @@ function parseSorArgs(argv: string[]): {
   return { storyPath, baseRef, projectRoot, emitJson: doEmitJson };
 }
 
+/**
+ * Default story-mode path via scanned actives + pin (#1492 P4 strike).
+ * Reuses resolveSoftMissingAcTargets deny kinds (multiple-eligible / pin-miss)
+ * without preflight-eligibility coupling — not a parallel SOR-local selector.
+ */
+export function resolveDefaultStoryPath(projectRoot: string): {
+  path?: string;
+  error?: GateResult;
+} {
+  const resolved = resolveSoftMissingAcTargets(projectRoot);
+  if (resolved.kind === "one") {
+    return { path: resolved.path };
+  }
+  if (resolved.kind === "need-pin") {
+    return {
+      error: {
+        code: SOR_EXIT.misconfigured,
+        message: `system-of-record gate misconfigured: ${resolved.message}`,
+        findings: [],
+      },
+    };
+  }
+  return {
+    error: {
+      code: SOR_EXIT.misconfigured,
+      message:
+        "system-of-record gate misconfigured: no active story under xbrief/active/ " +
+        "(or legacy vbrief/active/); pass --story-path or --base-ref.",
+      findings: [],
+    },
+  };
+}
+
 /** CLI entry for architecture-preflight-sor (mirrors preflight_architecture_sor.py main()). */
 export function architecturePreflightSorMain(argv: string[]): number {
   const parsed = parseSorArgs(argv);
   if (parsed.error !== undefined) {
     process.stderr.write(`Error: ${parsed.error}\n`);
-    return 2;
+    return SOR_EXIT.misconfigured;
   }
 
-  const { storyPath, baseRef, projectRoot, emitJson: doEmitJson } = parsed;
+  let { storyPath, baseRef, projectRoot, emitJson: doEmitJson } = parsed;
   let result: GateResult;
 
   if (baseRef !== undefined) {
+    // Diff-mode changedStoryRecords selection stays advisory for 1.0 (#1492 strike carve-out).
     result = evaluateDiff(projectRoot, baseRef, { storyPath });
   } else if (storyPath !== undefined) {
     result = evaluateStory(storyPath);
   } else {
-    result = {
-      code: 2,
-      message: "system-of-record gate misconfigured: pass --story-path, --base-ref, or both.",
-      findings: [],
-    };
+    const defaults = resolveDefaultStoryPath(projectRoot);
+    if (defaults.error !== undefined) {
+      result = defaults.error;
+    } else if (defaults.path !== undefined) {
+      storyPath = defaults.path;
+      result = evaluateStory(storyPath);
+    } else {
+      result = {
+        code: SOR_EXIT.misconfigured,
+        message: "system-of-record gate misconfigured: pass --story-path, --base-ref, or both.",
+        findings: [],
+      };
+    }
   }
 
   if (doEmitJson) {
     process.stdout.write(`${emitJson(result)}\n`);
-  } else if (result.code === 0) {
+  } else if (result.code === SOR_EXIT.pass) {
     process.stdout.write(`${result.message}\n`);
   } else {
     process.stderr.write(`${result.message}\n`);

@@ -4,20 +4,23 @@
   },
   "plan": {
     "title": "Canonical artifact read should pass",
-    "status": "running"
-  },
-  "architecture": {
-    "systemOfRecord": {
-      "stateSurfaces": [
-        {
-          "name": "Seed Catalog",
-          "classification": "canonical_artifact",
-          "owner": "source control",
-          "approvedStorage": "json_file",
-          "forbiddenStorage": ["browser_storage", "in_memory"],
-          "mutable": false
-        }
-      ]
+    "status": "running",
+    "architecture": {
+      "systemOfRecord": {
+        "stateSurfaces": [
+          {
+            "name": "Seed Catalog",
+            "classification": "canonical_artifact",
+            "owner": "source control",
+            "approvedStorage": "json_file",
+            "forbiddenStorage": [
+              "browser_storage",
+              "in_memory"
+            ],
+            "mutable": false
+          }
+        ]
+      }
     }
   }
 }
