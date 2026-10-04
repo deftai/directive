@@ -14,7 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- **Activate #5233 Prefer-A Bound brief with concrete file_scope (#5233).** Lands the continuity-resolved active brief (Path B membership precommitment) so product PR work can pass scope-provenance. Tracking #5233.
 ### Fixed
 - **Host-memory Personal authority residual (#5321).** `hostMemoryHasPersonalAuthority` always returns false (USER.md remains sole Personal SoT; `operator-asked` is write-consent audit only). `evaluateHostMemorySpendConflict` discloses whenever non-Personal host-memory always-ask loses to a closed spend resolve, and credits utterance token over spend-recommend when both apply. Tracking #5321.
 
@@ -40,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Gate Grok `kill_command_or_subagent` behind pre-cancel / equivalent attestation (#5281).** Matcher deposit + dedicated deny-class PreToolUse path (not `inspectMutationGates`); equivalent `.deft-scratch/subagent-kill-attestation/` until #5278 tip verb is present; force requires printed reason; fail-closed DCR. Tracking #5281. Refs #5278, #3987, #4286.
 
 ### Changed
+- **Activate #5233 Prefer-A Bound brief with concrete file_scope (#5233).** Lands the continuity-resolved active brief (Path B membership precommitment) so product PR work can pass scope-provenance. Tracking #5233.
 - **Leftover-complete #5321 after product #5330.** Retire the active Prefer-A Bound brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #5321.
 - **Leftover-complete #1164 after product #5323.** Retire the active Prefer-A Bound brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #1164.
 - **Leftover-complete #5278 after product #5288.** Retire the active query-before-cancel Prefer-A brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #5278.
