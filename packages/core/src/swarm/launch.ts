@@ -112,11 +112,21 @@ function clearanceFingerprint(entry: Record<string, unknown>): string | null {
   return `${gateId}\0${scope}`;
 }
 
+/** Recorded clearances need a nonempty human reviewer list (not just log presence). */
+export function recordedClearanceHasHumanApproval(entry: Record<string, unknown>): boolean {
+  const reviewers = entry.reviewers;
+  if (!Array.isArray(reviewers)) {
+    return false;
+  }
+  return reviewers.some((r) => typeof r === "string" && r.trim().length > 0);
+}
+
 /**
  * Clearance authenticity (#1511 Prefer-A §4): caller-supplied actor/reviewer
  * strings, invented grant_id, or claimed origin_kind alone are not authority.
  * A caller entry is authentic only when it matches an independent recorded
- * clearance (clearance_id or gate_id+cleared_scope) from the project audit log.
+ * clearance (clearance_id or gate_id+cleared_scope) that itself carries a
+ * nonempty human reviewer list from the project audit log.
  */
 export function filterAuthenticClearances(
   entries: readonly Record<string, unknown>[],
@@ -128,6 +138,9 @@ export function filterAuthenticClearances(
   const recordedIds = new Set<string>();
   const recordedFingerprints = new Set<string>();
   for (const rec of recorded) {
+    if (!recordedClearanceHasHumanApproval(rec)) {
+      continue;
+    }
     if (typeof rec.clearance_id === "string" && rec.clearance_id.trim().length > 0) {
       recordedIds.add(rec.clearance_id.trim());
     }
@@ -210,7 +223,9 @@ export function evaluateJudgmentClearancePosture(options: {
     }
   }
 
-  const recorded = readClearances(options.projectRoot);
+  const recordedRaw = readClearances(options.projectRoot);
+  const recorded = recordedRaw.filter(recordedClearanceHasHumanApproval);
+  const rejectedUnapprovedLog = recordedRaw.length - recorded.length;
   const { authentic: matchedCaller, rejected } = filterAuthenticClearances(
     options.gateClearances,
     recorded,
@@ -242,10 +257,16 @@ export function evaluateJudgmentClearancePosture(options: {
   });
   const rendered = renderReport(report);
   const advisoryParts: string[] = [];
+  if (rejectedUnapprovedLog > 0) {
+    advisoryParts.push(
+      `judgment-clearance: ignored ${rejectedUnapprovedLog} recorded clearance(s) lacking nonempty ` +
+        "human reviewers (Prefer-A clearance authenticity)",
+    );
+  }
   if (rejected.length > 0) {
     advisoryParts.push(
       `judgment-clearance: rejected ${rejected.length} caller-supplied clearance(s) lacking an ` +
-        "independent recorded approval match (Prefer-A clearance authenticity)",
+        "independent recorded human-approved match (Prefer-A clearance authenticity)",
     );
   }
   if (bypassed) {
@@ -1921,6 +1942,7 @@ export function swarmLaunch(args: LaunchArgs): {
   void args.noAudit;
   const advisoryNote =
     judgmentPosture.advisory.trim().length > 0 ? `${judgmentPosture.advisory.trim()}\n` : "";
+  // Prefer-A: surface judgment advisory on stderr (stdout stays JSON manifest).
   return {
     exitCode: EXIT_OK,
     stdout: rendered,
