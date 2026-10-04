@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { writeKillAttestation } from "../orchestration/subagent-kill-attestation.js";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import {
@@ -67,7 +68,6 @@ import {
   renderHostDecision,
   SPAWN_TOOL_NAMES,
 } from "./index.js";
-import { writeKillAttestation } from "../orchestration/subagent-kill-attestation.js";
 import { SPAWN_CLASS_RECOVERY } from "./readonly.js";
 
 // Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
@@ -6645,6 +6645,34 @@ describe("kill_command_or_subagent attestation gate (#5281 Prefer-A Bound)", () 
       code: "kill-attestation-deny",
     });
     expect(decision.message).toMatch(/writer_id|attestation/i);
+  });
+
+  it("falls back to GROK_SESSION_ID when DEFT_* identity env is absent", () => {
+    const project = mkdtempSync(join(tmpdir(), "kill-grok-id-"));
+    hookTemps.push(project);
+    const attestDir = join(project, ".deft-scratch", "subagent-kill-attestation");
+    writeKillAttestation(attestDir, {
+      agentId: "child-1",
+      writerId: "grok-session-9",
+      kind: "note",
+    });
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: project,
+        payload: {
+          toolName: "kill_command_or_subagent",
+          tool_input: { task_id: "child-1", status: "running" },
+        },
+        environ: { GROK_SESSION_ID: "grok-session-9" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({
+      verdict: "allow",
+      code: "kill-attestation-ready",
+    });
   });
 
   it("heartbeat STALE / REDISPATCH_OK alone does not skip attestation", () => {

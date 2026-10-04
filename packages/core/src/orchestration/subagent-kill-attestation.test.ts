@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  DEFAULT_KILL_ATTESTATION_TTL_SECONDS,
   classifyKillHostStatus,
+  DEFAULT_KILL_ATTESTATION_TTL_SECONDS,
   evaluateKillAttestation,
   parseKillAttestationFile,
   writeKillAttestation,

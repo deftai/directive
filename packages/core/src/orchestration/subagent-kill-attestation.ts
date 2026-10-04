@@ -252,7 +252,10 @@ export function parseKillAttestationFile(path: string): {
  */
 export function classifyKillHostStatus(value: unknown): KillHostStatus {
   if (typeof value !== "string") return "unknown";
-  const normalized = value.trim().toLowerCase().replace(/[\s_]+/g, "-");
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-");
   if (
     normalized === "terminal" ||
     normalized === "completed" ||

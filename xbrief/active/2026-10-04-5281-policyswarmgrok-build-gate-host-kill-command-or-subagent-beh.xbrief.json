@@ -389,7 +389,8 @@
         "conflict_group": "host-kill-attestation-gate",
         "size": "L",
         "model_tier": "default"
-      }
+      },
+      "productPullRequest": 5293
     },
     "id": "github.issue.5684362591",
     "updated": "2026-10-04T02:36:02Z"
