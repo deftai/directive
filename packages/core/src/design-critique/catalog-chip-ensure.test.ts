@@ -4,10 +4,10 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { GhRestError, type RunGhApiFn } from "../scm/gh-rest.js";
 import {
-  catalogChipCreateTableNames,
   CHIP_MISS_CLASS_AUTH_OR_PERMISSION,
   CHIP_MISS_CLASS_ENSURE_FAILED,
   CHIP_MISS_CLASS_MISSING_REPO_LABEL,
+  catalogChipCreateTableNames,
   classifyLabelProbeError,
   classifyLabelProbeStatus,
   DESIGN_CRITIQUE_CATALOG_CHIP_CREATE_TABLE,
@@ -22,13 +22,28 @@ describe("classifyLabelProbeStatus (#5326)", () => {
     expect(classifyLabelProbeStatus(404)).toBe(CHIP_MISS_CLASS_MISSING_REPO_LABEL);
   });
 
+  it("maps gh process exit 1 + HTTP 404 stderr to missing-repo-label", () => {
+    const stderr = 'gh: Not Found (HTTP 404)\n{"message":"Not Found","status":"404"}';
+    expect(classifyLabelProbeStatus(1, stderr)).toBe(CHIP_MISS_CLASS_MISSING_REPO_LABEL);
+  });
+
   it("maps 401/403/other to auth-or-permission", () => {
     expect(classifyLabelProbeStatus(401)).toBe(CHIP_MISS_CLASS_AUTH_OR_PERMISSION);
     expect(classifyLabelProbeStatus(403)).toBe(CHIP_MISS_CLASS_AUTH_OR_PERMISSION);
     expect(classifyLabelProbeStatus(500)).toBe(CHIP_MISS_CLASS_AUTH_OR_PERMISSION);
+    expect(classifyLabelProbeStatus(1, "Forbidden (HTTP 403)")).toBe(
+      CHIP_MISS_CLASS_AUTH_OR_PERMISSION,
+    );
   });
 
-  it("classifies GhRestError by exitCode", () => {
+  it("classifies GhRestError by exitCode and stderr", () => {
+    const missingHttp = new GhRestError({
+      stderr: "gh: Not Found (HTTP 404)",
+      exitCode: 1,
+      endpoint: "repos/o/r/labels/x",
+      payload: null,
+    });
+    expect(classifyLabelProbeError(missingHttp)).toBe(CHIP_MISS_CLASS_MISSING_REPO_LABEL);
     const missing = new GhRestError({
       stderr: "Not Found",
       exitCode: 404,
@@ -77,9 +92,39 @@ describe("ensureCatalogChipLabel (#5326)", () => {
       }
       return { returncode: 0, stdout: "{}", stderr: "" };
     };
-    const result = ensureCatalogChipLabel("o/r", "design-critique:in-progress", { runGhApiFn: run });
+    const result = ensureCatalogChipLabel("o/r", "design-critique:in-progress", {
+      runGhApiFn: run,
+    });
     expect(result).toEqual({ ok: true, created: true, skippedExisting: false });
     expect(calls.some((c) => c.includes("GET"))).toBe(true);
+    expect(calls.some((c) => c.includes("POST"))).toBe(true);
+  });
+
+  it("creates when real gh exits 1 with HTTP 404 stderr", () => {
+    const calls: string[] = [];
+    const run: RunGhApiFn = (args) => {
+      const joined = args.join(" ");
+      calls.push(joined);
+      if (joined.includes("--method GET") && joined.includes("/labels/")) {
+        return {
+          returncode: 1,
+          stdout: "",
+          stderr: 'gh: Not Found (HTTP 404)\n{"message":"Not Found","status":"404"}',
+        };
+      }
+      if (joined.includes("--method POST")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ name: "design-critique:mechanism-shaped" }),
+          stderr: "",
+        };
+      }
+      return { returncode: 0, stdout: "{}", stderr: "" };
+    };
+    const result = ensureCatalogChipLabel("o/r", "design-critique:mechanism-shaped", {
+      runGhApiFn: run,
+    });
+    expect(result).toEqual({ ok: true, created: true, skippedExisting: false });
     expect(calls.some((c) => c.includes("POST"))).toBe(true);
   });
 
@@ -97,7 +142,9 @@ describe("ensureCatalogChipLabel (#5326)", () => {
 
   it("maps probe auth failure to auth-or-permission without create", () => {
     const run: RunGhApiFn = () => ({ returncode: 403, stdout: "", stderr: "Forbidden" });
-    const result = ensureCatalogChipLabel("o/r", "design-critique:ingest-ready", { runGhApiFn: run });
+    const result = ensureCatalogChipLabel("o/r", "design-critique:ingest-ready", {
+      runGhApiFn: run,
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.missClass).toBe(CHIP_MISS_CLASS_AUTH_OR_PERMISSION);
@@ -112,7 +159,9 @@ describe("ensureCatalogChipLabel (#5326)", () => {
       }
       return { returncode: 404, stdout: "", stderr: "Not Found" };
     };
-    const result = ensureCatalogChipLabel("o/r", "design-critique:ingest-ready", { runGhApiFn: run });
+    const result = ensureCatalogChipLabel("o/r", "design-critique:ingest-ready", {
+      runGhApiFn: run,
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.missClass).toBe(CHIP_MISS_CLASS_ENSURE_FAILED);
@@ -195,5 +244,34 @@ describe("isDesignCritiqueDeposited / judgmentGates (#5326)", () => {
       "utf8",
     );
     expect(hasDesignCritiqueJudgmentGate(root)).toBe(true);
+  });
+
+  it("does not treat body-text-only mechanism-shaped match as gate present", () => {
+    root = mkdtempSync(join(tmpdir(), "dc-deposit-"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "t",
+          status: "running",
+          policy: {
+            judgmentGates: [
+              {
+                id: "design-critique",
+                class: "declared",
+                tier: "review",
+                reason: "ADR-005",
+                match: {
+                  "body-text": { "any-of": ["design-critique:mechanism-shaped"] },
+                },
+              },
+            ],
+          },
+        },
+      }),
+      "utf8",
+    );
+    expect(hasDesignCritiqueJudgmentGate(root)).toBe(false);
   });
 });

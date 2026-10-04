@@ -1,3 +1,6 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { hashIssueBodyBytes, type ThreadComment } from "../design-critique/completed-arc-record.js";
 import { DESIGN_CRITIQUE_CATALOG_CHIPS } from "../design-critique/exclusive-chip.js";
@@ -308,10 +311,9 @@ describe("runDesignCritiqueChip", () => {
 
   it("recuts to mechanism-shaped and keeps other facets", () => {
     const client = new FakeLabelClient(["enhancement", "design-critique:ingest-ready"]);
-    const result = runChip(
-      ["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r"],
-      { client },
-    );
+    const result = runChip(["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r"], {
+      client,
+    });
     expect(result.exitCode).toBe(0);
     expect(client.applyCalls).toEqual([
       { add: ["design-critique:mechanism-shaped"], remove: ["design-critique:ingest-ready"] },
@@ -356,24 +358,16 @@ describe("runDesignCritiqueChip", () => {
 
   it("adds the chip when no catalog name is present", () => {
     const client = new FakeLabelClient(["enhancement"]);
-    const result = runChip(
-      ["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r"],
-      { client },
-    );
+    const result = runChip(["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r"], {
+      client,
+    });
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("(added)");
     expect(client.applyCalls).toEqual([{ add: ["design-critique:mechanism-shaped"], remove: [] }]);
   });
 
   it("fails closed on invalid repo", () => {
-    const result = runChip([
-      "--issue",
-      "1",
-      "--chip",
-      "ingest-ready",
-      "--repo",
-      "not-a-repo",
-    ]);
+    const result = runChip(["--issue", "1", "--chip", "ingest-ready", "--repo", "not-a-repo"]);
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toMatch(/invalid --repo value/);
   });
@@ -502,16 +496,16 @@ describe("runDesignCritiqueChip", () => {
       fetches += 1;
       return completeComments;
     };
-    const shaped = runChip(
-      ["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r"],
-      { client, fetchComments },
-    );
+    const shaped = runChip(["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r"], {
+      client,
+      fetchComments,
+    });
     expect(shaped.exitCode).toBe(0);
     expect(fetches).toBe(0);
-    const progress = runChip(
-      ["--issue", "1", "--chip", "in-progress", "--repo", "o/r"],
-      { client, fetchComments },
-    );
+    const progress = runChip(["--issue", "1", "--chip", "in-progress", "--repo", "o/r"], {
+      client,
+      fetchComments,
+    });
     expect(progress.exitCode).toBe(0);
     expect(fetches).toBe(0);
   });
@@ -638,17 +632,14 @@ describe("runDesignCritiqueChip", () => {
 
   it("ensure-failed falls through as non-blocking miss (#5326)", () => {
     const client = new FakeLabelClient(["bug"]);
-    const result = runChip(
-      ["--issue", "1", "--chip", "in-progress", "--repo", "o/r", "--json"],
-      {
-        client,
-        ensureCatalogChip: () => ({
-          ok: false,
-          missClass: "ensure-failed",
-          error: "Forbidden create",
-        }),
-      },
-    );
+    const result = runChip(["--issue", "1", "--chip", "in-progress", "--repo", "o/r", "--json"], {
+      client,
+      ensureCatalogChip: () => ({
+        ok: false,
+        missClass: "ensure-failed",
+        error: "Forbidden create",
+      }),
+    });
     expect(result.exitCode).toBe(0);
     expect(client.applyCalls).toHaveLength(0);
     const payload = JSON.parse(result.stdout) as {
@@ -677,5 +668,40 @@ describe("runDesignCritiqueChip", () => {
     expect(result.stderr).toMatch(/chip apply missed/);
     expect(result.stderr).toMatch(/ensure-failed|auth-or-permission/);
     expect(client.applyCalls).toHaveLength(0);
+  });
+
+  it("ingest-ready proof fail does not call ensure (#5326)", () => {
+    const client = new FakeLabelClient(["bug"]);
+    let ensured = false;
+    const result = runChip(["--issue", "1", "--chip", "ingest-ready", "--repo", "o/r", "--json"], {
+      client,
+      fetchComments: () => malformedCanonicalComments,
+      fetchIssueBody: unpinnedBodyFetch,
+      ensureCatalogChip: () => {
+        ensured = true;
+        return { ok: true, created: true, skippedExisting: false };
+      },
+    });
+    expect(ensured).toBe(false);
+    expect(result.exitCode).toBe(1);
+    expect(client.applyCalls).toHaveLength(0);
+    const payload = JSON.parse(result.stdout) as { blocking: boolean; miss: boolean };
+    expect(payload).toMatchObject({ blocking: true, miss: false });
+  });
+
+  it("uses seams.projectRoot for judgmentGates advisory (#5326)", () => {
+    const client = new FakeLabelClient(["bug"]);
+    const result = runChip(
+      ["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r", "--json"],
+      {
+        client,
+        // Empty tree: not deposited → no advisory even if cwd has the deposit.
+        projectRoot: mkdtempSync(join(tmpdir(), "dc-chip-root-")),
+      },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+    const payload = JSON.parse(result.stdout) as { judgmentGatesAdvisory?: string };
+    expect(payload.judgmentGatesAdvisory).toBeUndefined();
   });
 });

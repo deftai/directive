@@ -12,12 +12,7 @@ import {
   DESIGN_CRITIQUE_MARKER_LABEL,
   resolveJudgmentGates,
 } from "../orchestration/judgment-policy.js";
-import {
-  GhRestError,
-  type GhRestSeams,
-  restCreateLabel,
-  restGetLabel,
-} from "../scm/gh-rest.js";
+import { GhRestError, type GhRestSeams, restCreateLabel, restGetLabel } from "../scm/gh-rest.js";
 import {
   DESIGN_CRITIQUE_CATALOG_CHIPS,
   type DesignCritiqueCatalogChip,
@@ -25,10 +20,7 @@ import {
 } from "./exclusive-chip.js";
 
 /** Closed chip-apply miss classes (#5326). */
-export type ChipApplyMissClass =
-  | "missing-repo-label"
-  | "auth-or-permission"
-  | "ensure-failed";
+export type ChipApplyMissClass = "missing-repo-label" | "auth-or-permission" | "ensure-failed";
 
 export const CHIP_MISS_CLASS_MISSING_REPO_LABEL = "missing-repo-label" as const;
 export const CHIP_MISS_CLASS_AUTH_OR_PERMISSION = "auth-or-permission" as const;
@@ -105,14 +97,29 @@ export function isDesignCritiqueDeposited(projectRoot: string): boolean {
   return false;
 }
 
-/** True when typed judgmentGates includes design-critique matching mechanism-shaped. */
+/**
+ * True when typed judgmentGates includes design-critique matching
+ * mechanism-shaped on labels.any-of / labels.all-of — not body-text.
+ */
 export function hasDesignCritiqueJudgmentGate(projectRoot: string): boolean {
   const policy = resolveJudgmentGates(projectRoot);
-  return policy.gates.some(
-    (g) =>
-      g.gate_id === DESIGN_CRITIQUE_GATE_ID &&
-      JSON.stringify(g.match).includes(DESIGN_CRITIQUE_MARKER_LABEL),
-  );
+  return policy.gates.some((g) => {
+    if (g.gate_id !== DESIGN_CRITIQUE_GATE_ID) {
+      return false;
+    }
+    const labelsPred = g.match.labels;
+    if (typeof labelsPred !== "object" || labelsPred === null || Array.isArray(labelsPred)) {
+      return false;
+    }
+    const lp = labelsPred as Record<string, unknown>;
+    const selected = lp["any-of"] ?? lp["all-of"];
+    if (!Array.isArray(selected)) {
+      return false;
+    }
+    return selected.some(
+      (label) => typeof label === "string" && label === DESIGN_CRITIQUE_MARKER_LABEL,
+    );
+  });
 }
 
 export function formatDesignCritiqueJudgmentGatesRemediation(): string {
@@ -126,11 +133,31 @@ export function formatDesignCritiqueJudgmentGatesRemediation(): string {
 }
 
 /**
- * Classify a preflight label GET outcome. HTTP 404 → missing-repo-label;
- * 401/403/other → auth-or-permission. Stderr heuristics are optional corroboration only.
+ * gh api exits process status 1 for HTTP 404 (not exit=404). Detect the HTTP
+ * status from stderr; exitCode 404 remains accepted for seams/tests.
  */
-export function classifyLabelProbeStatus(exitCode: number): ChipApplyMissClass {
+export function isMissingLabelHttp404(exitCode: number, stderr = ""): boolean {
   if (exitCode === 404) {
+    return true;
+  }
+  if (exitCode !== 1) {
+    return false;
+  }
+  const lower = stderr.toLowerCase();
+  return (
+    lower.includes("(http 404)") ||
+    lower.includes("http 404") ||
+    /"status"\s*:\s*"?404"?/.test(stderr)
+  );
+}
+
+/**
+ * Classify a preflight label GET outcome. HTTP 404 → missing-repo-label;
+ * 401/403/other → auth-or-permission. Real `gh api` missing-label path is
+ * exit 1 + HTTP 404 in stderr (#5326 Greptile P1).
+ */
+export function classifyLabelProbeStatus(exitCode: number, stderr = ""): ChipApplyMissClass {
+  if (isMissingLabelHttp404(exitCode, stderr)) {
     return CHIP_MISS_CLASS_MISSING_REPO_LABEL;
   }
   return CHIP_MISS_CLASS_AUTH_OR_PERMISSION;
@@ -138,7 +165,7 @@ export function classifyLabelProbeStatus(exitCode: number): ChipApplyMissClass {
 
 export function classifyLabelProbeError(err: unknown): ChipApplyMissClass {
   if (err instanceof GhRestError) {
-    return classifyLabelProbeStatus(err.exitCode);
+    return classifyLabelProbeStatus(err.exitCode, err.stderr);
   }
   return CHIP_MISS_CLASS_AUTH_OR_PERMISSION;
 }
