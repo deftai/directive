@@ -204,6 +204,13 @@ export function parseKillAttestationFile(path: string): {
   if (obj.reason !== undefined && typeof obj.reason !== "string") {
     failures.push("reason must be a string when present");
   }
+  if (
+    isKillAttestationKind(obj.kind) &&
+    obj.kind === "force" &&
+    (typeof obj.reason !== "string" || obj.reason.trim().length === 0)
+  ) {
+    failures.push("kind:force requires a non-empty reason");
+  }
   if (failures.length > 0) {
     return { record: null, failures };
   }
@@ -211,6 +218,17 @@ export function parseKillAttestationFile(path: string): {
   const expires = parseIso8601Utc(obj.expires_at as string);
   if (created === null) failures.push("created_at must be ISO-8601 UTC");
   if (expires === null) failures.push("expires_at must be ISO-8601 UTC");
+  if (created !== null && expires !== null) {
+    const lifetimeMs = expires.getTime() - created.getTime();
+    const maxMs = DEFAULT_KILL_ATTESTATION_TTL_SECONDS * 1000;
+    if (lifetimeMs <= 0) {
+      failures.push("expires_at must be after created_at");
+    } else if (lifetimeMs > maxMs) {
+      failures.push(
+        `attestation lifetime must be <= ${DEFAULT_KILL_ATTESTATION_TTL_SECONDS}s (#5281)`,
+      );
+    }
+  }
   if (failures.length > 0) {
     return { record: null, failures };
   }
@@ -370,15 +388,37 @@ export function evaluateKillAttestation(
     };
   }
 
+  const created = parseIso8601Utc(record.created_at);
   const expires = parseIso8601Utc(record.expires_at);
-  if (expires === null || expires.getTime() <= now.getTime()) {
+  const maxMs = DEFAULT_KILL_ATTESTATION_TTL_SECONDS * 1000;
+  if (
+    created === null ||
+    expires === null ||
+    expires.getTime() <= now.getTime() ||
+    created.getTime() > now.getTime() + 1000 ||
+    expires.getTime() - created.getTime() > maxMs ||
+    now.getTime() - created.getTime() > maxMs
+  ) {
     return {
       ...base,
       ok: false,
       clear_reason: null,
       refuse_reason: "expired-attestation",
       message:
-        "Directive denied kill_command_or_subagent: kill attestation expired; re-attest before kill (#5281).",
+        "Directive denied kill_command_or_subagent: kill attestation expired or lifetime exceeds " +
+        `${DEFAULT_KILL_ATTESTATION_TTL_SECONDS}s TTL; re-attest before kill (#5281).`,
+    };
+  }
+
+  // writer_id(=killer) required for note/correction/force artifacts (#5281 Prefer-A).
+  if (record.writer_id !== writerId) {
+    return {
+      ...base,
+      ok: false,
+      clear_reason: null,
+      refuse_reason: "writer-mismatch",
+      message:
+        "Directive denied kill_command_or_subagent: attestation writer_id must equal the killer (#5281).",
     };
   }
 
@@ -401,17 +441,6 @@ export function evaluateKillAttestation(
       refuse_reason: null,
       printed_force_reason: reason,
       message: `Directive allowed kill_command_or_subagent via force attestation: ${reason}`,
-    };
-  }
-
-  if (record.writer_id !== writerId) {
-    return {
-      ...base,
-      ok: false,
-      clear_reason: null,
-      refuse_reason: "writer-mismatch",
-      message:
-        "Directive denied kill_command_or_subagent: attestation writer_id must equal the killer (#5281).",
     };
   }
 

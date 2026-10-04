@@ -124,6 +124,10 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json`. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: content/docs/subagent-heartbeat.md (.deft/core/docs). ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
 
+## Host kill attestation (#5281)
+
+! On Grok Build, `kill_command_or_subagent` is deny-class / attestation-gated for parents **and** peers. Bare kill of a still-running (or status-unknown) child is refused by PreToolUse (`kill-attestation-deny`). Green path: tip `deft subagent:pre-cancel` when present (#5278), else equivalent `.deft-scratch/subagent-kill-attestation/<agent-id>.json` (`kind` note|correction|force, `writer_id` = killer, short TTL). Force requires a non-empty printed reason. Heartbeat STALE / REDISPATCH_OK / documented duty alone is **not** the kill safety case. ⊗ Treat HOST_TOOL_SURFACE_AUDIT process-control prose as license to kill. Depth: `docs/host-tool-surface-audit.md`.
+
 ## Review-surface precedence (#2308)
 
 ! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261). Zero-reviewer (#3630): `NO_REVIEWER_INSTALLED` → pre-pr (`skipped:no-reviewer-installed`); empty never CLEAN. Depth: review-cycle SKILL.

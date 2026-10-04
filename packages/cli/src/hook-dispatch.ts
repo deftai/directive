@@ -213,6 +213,10 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   });
   const rendered = renderHostDecision(args.host, decision);
   if (rendered.length > 0) writeOut(`${rendered}\n`);
+  // Force-kill allow must print the non-empty reason even when host allow wire is empty (#5281).
+  if (decision.code === "kill-force-ready" && decision.message.trim().length > 0) {
+    writeErr(`${decision.message}\n`);
+  }
   if (
     (decision.code === "invalid-input" || decision.code === "stdin-empty") &&
     args.host === "cursor"

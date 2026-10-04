@@ -172,7 +172,6 @@ import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write
 import {
   defaultKillAttestationDir,
   evaluateKillAttestation,
-  classifyKillHostStatus,
   type KillHostStatus,
 } from "../orchestration/subagent-kill-attestation.js";
 import {
@@ -2537,38 +2536,14 @@ function extractKillForce(payload: unknown): { force: boolean; reason: string | 
   return { force: forceFlag, reason };
 }
 
-function extractKillHostStatusFromPayload(payload: unknown): KillHostStatus | null {
-  const toolInput = killToolInput(payload);
-  if (toolInput === null) return null;
-  const raw = firstString([
-    toolInput.host_status,
-    toolInput.hostStatus,
-    toolInput.task_status,
-    toolInput.taskStatus,
-    toolInput.status,
-    toolInput.state,
-  ]);
-  if (raw === null) return null;
-  return classifyKillHostStatus(raw);
-}
-
+/**
+ * Killer identity comes from the hook environment only.
+ * Tool-input writer_id / parent_id is attacker-controlled and must not win (#5281).
+ */
 function defaultKillWriterId(
-  payload: unknown,
+  _payload: unknown,
   environ: NodeJS.ProcessEnv,
 ): string {
-  const toolInput = killToolInput(payload);
-  const fromPayload =
-    toolInput === null
-      ? null
-      : firstString([
-          toolInput.writer_id,
-          toolInput.writerId,
-          toolInput.canceller_id,
-          toolInput.cancellerId,
-          toolInput.parent_id,
-          toolInput.parentId,
-        ]);
-  if (fromPayload !== null) return fromPayload;
   const fromEnv = firstString([
     environ.DEFT_SESSION_ID,
     environ.DEFT_OCCUPANCY_OWNER,
@@ -2596,15 +2571,13 @@ function decideKillAttestationGate(
       environ,
     }) ?? defaultKillWriterId(input.payload, environ);
   const { force, reason: forceReason } = extractKillForce(input.payload);
-  const payloadStatus = extractKillHostStatusFromPayload(input.payload);
+  // Host status must come from a host oracle seam — never from caller tool_input (#5281).
   const hostStatus: KillHostStatus =
     seams.resolveKillHostStatus?.({
       projectRoot,
       agentId,
       payload: input.payload,
-    }) ??
-    payloadStatus ??
-    "unknown";
+    }) ?? "unknown";
   const attestationDir =
     seams.killAttestationDir?.(projectRoot) ?? defaultKillAttestationDir(projectRoot);
   const verdict = evaluateKillAttestation({
@@ -3854,6 +3827,18 @@ export function renderHostDecision(host: HookHost, decision: HookDecision): stri
           additional_context: injected,
         });
       }
+    }
+    // Grok force-kill allow must print the reason (#5281 DCR iii) — empty allow hides it.
+    if (
+      host === "grok" &&
+      decision.event === "tool.before" &&
+      decision.code === "kill-force-ready" &&
+      decision.message.trim().length > 0
+    ) {
+      return JSON.stringify({
+        decision: "allow",
+        reason: decision.message,
+      });
     }
     return "";
   }
