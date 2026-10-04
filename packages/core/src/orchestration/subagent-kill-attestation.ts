@@ -87,9 +87,7 @@ export function defaultKillAttestationDir(cwd: string = process.cwd()): string {
   return join(cwd, ".deft-scratch", "subagent-kill-attestation");
 }
 
-export type KillAttestationSlugResult =
-  | { ok: true; slug: string }
-  | { ok: false; error: string };
+export type KillAttestationSlugResult = { ok: true; slug: string } | { ok: false; error: string };
 
 /** Path slug for attestation files; preserves readable ids without path separators. */
 export function killAttestationSlug(agentId: string): KillAttestationSlugResult {
