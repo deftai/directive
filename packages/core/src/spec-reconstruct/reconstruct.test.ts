@@ -116,6 +116,7 @@ describe("spec-reconstruct (#1589 C1)", () => {
     const draft = reconstructSpecDraft(root);
     expect(draft.codeOracle.mapPresent).toBe(true);
     expect(draft.codeOracle.moduleCount).toBe(2);
+    expect(draft.codeOracle.moduleTokens).toEqual(expect.arrayContaining(["core", "cli"]));
   });
 
   it("defers conflicts past adjudication budget to pending-human-decisions", () => {

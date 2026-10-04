@@ -54,6 +54,7 @@ export interface SpecReconstructDraft {
     readonly mapPresent: boolean;
     readonly mapFreshFindings: readonly string[];
     readonly moduleCount: number;
+    readonly moduleTokens: readonly string[];
   };
   readonly requirements: readonly ReconstructedRequirement[];
   readonly pendingHumanDecisions: readonly string[];
@@ -186,16 +187,30 @@ function readCodeOracle(projectRoot: string): SpecReconstructDraft["codeOracle"]
     ? checkCodebaseMapFresh(projectRoot, { outputPath: mapRel })
     : ["codebase MAP absent; reconstruction continues without a local projection (#1595)"];
   let moduleCount = 0;
+  let moduleTokens: string[] = [];
   if (mapPresent) {
     try {
       const text = readFileSync(mapAbs, "utf8");
       // #1595 MAP renders modules as markdown table rows under "## Modules", not `- **` bullets.
       const modulesSection = text.split(/^## Modules\s*$/m)[1] ?? "";
       const untilNext = modulesSection.split(/^## /m)[0] ?? modulesSection;
-      const rows = untilNext.match(/^\| `[^`]+` \|/gm);
-      moduleCount = rows?.length ?? 0;
+      const rows = untilNext.match(/^\| `([^`]+)` \| ([^|]+) \|/gm) ?? [];
+      moduleCount = rows.length;
+      const tokens = new Set<string>();
+      for (const row of rows) {
+        const m = /^\| `([^`]+)` \| ([^|]+) \|/.exec(row);
+        if (m?.[1]) tokens.add(m[1].toLowerCase());
+        const name = m?.[2]?.trim().toLowerCase();
+        if (name !== undefined && name.length > 0) {
+          for (const part of name.split(/\s+/)) {
+            if (part.length > 3) tokens.add(part);
+          }
+        }
+      }
+      moduleTokens = [...tokens];
     } catch {
       moduleCount = 0;
+      moduleTokens = [];
     }
   }
   return {
@@ -203,6 +218,7 @@ function readCodeOracle(projectRoot: string): SpecReconstructDraft["codeOracle"]
     mapPresent,
     mapFreshFindings,
     moduleCount,
+    moduleTokens,
   };
 }
 
@@ -252,17 +268,23 @@ export function reconstructSpecDraft(
 
   for (const brief of briefs) {
     const supersededBy = superseded.get(brief.id) ?? null;
+    const titleTokens = brief.title
+      .toLowerCase()
+      .split(/[^a-z0-9_-]+/)
+      .filter((tok) => tok.length > 3);
+    const mapHit = titleTokens.some((tok) => codeOracle.moduleTokens.includes(tok));
     const mapMentions =
       codeOracle.mapPresent &&
       codeOracle.moduleCount > 0 &&
-      brief.title.split(/\s+/).some((tok) => tok.length > 5);
+      codeOracle.mapFreshFindings.length === 0 &&
+      mapHit;
     let observedBehavior = "not observed in local codebase MAP";
     let unresolvedConflict: string | null = null;
     let confidence: Confidence = supersededBy !== null ? "low" : "medium";
     let provenanceKind: ProvenanceKind = "completed-xbrief";
 
     if (mapMentions) {
-      observedBehavior = `codebase MAP present (${codeOracle.moduleCount} module markers); title tokens may align`;
+      observedBehavior = `codebase MAP module/token overlap (${codeOracle.moduleCount} modules)`;
       confidence = supersededBy === null ? "high" : "medium";
       provenanceKind = "codebase-map";
     }

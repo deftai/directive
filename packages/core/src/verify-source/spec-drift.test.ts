@@ -94,7 +94,7 @@ describe("verify:spec-drift (#1589 C2)", () => {
     expect(result.state).toBe("clean");
   });
 
-  it("changes baseline revision when specification bytes change", () => {
+  it("changes baseline revision when requirements-bearing content changes", () => {
     setup({ withSpec: true });
     const first = evaluateSpecDrift(root).baselineRevision;
     writeFileSync(
@@ -106,6 +106,49 @@ describe("verify:spec-drift (#1589 C2)", () => {
     );
     const second = evaluateSpecDrift(root).baselineRevision;
     expect(first).not.toBe(second);
+  });
+
+  it("ignores status-only metadata churn in baseline revision", () => {
+    setup({ withSpec: true });
+    const first = evaluateSpecDrift(root).baselineRevision;
+    writeFileSync(
+      join(root, "xbrief", "specification.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", updated: "2026-10-01T00:00:00Z" },
+        plan: { title: "spec", status: "completed", items: [] },
+      }),
+    );
+    const second = evaluateSpecDrift(root).baselineRevision;
+    expect(second).toBe(first);
+  });
+
+  it("treats non-object specification JSON as unassessable baseline", () => {
+    setup({ withSpec: false });
+    writeFileSync(join(root, "xbrief", "specification.xbrief.json"), "[]");
+    const result = evaluateSpecDrift(root);
+    expect(result.code).toBe(2);
+    expect(result.baselineRevision).toBeNull();
+  });
+
+  it("does not seed a clean ledger from a covered completion alone", () => {
+    setup({ withSpec: true });
+    const finding = recordScopeCompleteDriftAdvise(
+      root,
+      {
+        plan: {
+          id: "story-seed",
+          title: "RFC: covered",
+          tags: ["rfc"],
+          [SPEC_IMPACT_KEY]: "delta",
+          items: [],
+        },
+      },
+      "xbrief/completed/story-seed.xbrief.json",
+    );
+    expect(finding).toBeNull();
+    const result = evaluateSpecDrift(root);
+    expect(result.code).toBe(2);
+    expect(result.message).toMatch(/ledger missing/i);
   });
 
   it("walks nested items/subItems for namespaced impact", () => {

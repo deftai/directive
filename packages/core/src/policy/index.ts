@@ -91,6 +91,7 @@ import {
   FIELD_RUNTIME_AUTHORITY_CLI_ALIAS,
   inspectRuntimeAuthority,
 } from "./runtime-authority.js";
+import { FIELD_SPEC_GUARD, FIELD_SPEC_GUARD_CLI_ALIAS, inspectSpecGuard } from "./spec-guard.js";
 import {
   FIELD_STALENESS_TICKLER,
   FIELD_STALENESS_TICKLER_CLI_ALIAS,
@@ -101,11 +102,6 @@ import {
   FIELD_SYNC_MAX_FILES_CLI_ALIAS,
   inspectSyncMaxFiles,
 } from "./sync-max-files.js";
-import {
-  FIELD_SPEC_GUARD,
-  FIELD_SPEC_GUARD_CLI_ALIAS,
-  inspectSpecGuard,
-} from "./spec-guard.js";
 import {
   FIELD_VALUE_FEEDBACK,
   FIELD_VALUE_FEEDBACK_CLI_ALIAS,

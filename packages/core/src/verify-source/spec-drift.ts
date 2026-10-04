@@ -89,15 +89,29 @@ function contentFingerprint(text: string): string {
   return createHash("sha256").update(text).digest("hex").slice(0, 16);
 }
 
-/** Stable baseline revision: metadata when present, always content-bound. */
+/** Hash requirements-bearing plan fields only (ignore status/path metadata churn). */
+function requirementsFingerprint(data: Record<string, unknown>): string | null {
+  if (!isRecord(data.plan)) return null;
+  const plan = data.plan;
+  const slice = {
+    id: typeof plan.id === "string" ? plan.id : null,
+    title: typeof plan.title === "string" ? plan.title : null,
+    narratives: isRecord(plan.narratives) ? plan.narratives : null,
+    items: Array.isArray(plan.items) ? plan.items : null,
+  };
+  return contentFingerprint(JSON.stringify(slice));
+}
+
+/** Stable baseline revision: metadata when present, requirements-content-bound. */
 function resolveBaselineRevision(projectRoot: string): string | null {
   try {
     const specPath = resolveSpecArtifactPath(projectRoot);
     if (!existsSync(specPath)) return null;
     const text = readFileSync(specPath, "utf8");
-    const fingerprint = contentFingerprint(text);
     const data = JSON.parse(text) as unknown;
-    if (!isRecord(data)) return `sha256:${fingerprint}`;
+    if (!isRecord(data)) return null;
+    const fingerprint = requirementsFingerprint(data);
+    if (fingerprint === null) return null;
     const info = isRecord(data.xBRIEFInfo)
       ? data.xBRIEFInfo
       : isRecord(data.vBRIEFInfo)
@@ -109,7 +123,7 @@ function resolveBaselineRevision(projectRoot: string): string | null {
     if (isRecord(data.plan) && typeof data.plan.id === "string") {
       return `${data.plan.id}#${fingerprint}`;
     }
-    return `sha256:${fingerprint}`;
+    return `req:${fingerprint}`;
   } catch {
     return null;
   }
@@ -369,12 +383,10 @@ export function recordScopeCompleteDriftAdvise(
   const ledger = readLedger(root);
 
   // Covered delta/new (or non-shape none) clears any prior unresolved row for this scope.
+  // Do not seed a brand-new empty ledger here — that would report clean while earlier
+  // completed scopes remain unaudited (coverage unknown).
   if (finding === null) {
-    if (!hasLedgerFile(root) && ledger.unresolved.length === 0) {
-      writeSpecDriftLedger(root, {
-        baselineRevision: baselineRevision,
-        unresolved: [],
-      });
+    if (!hasLedgerFile(root)) {
       return null;
     }
     if (ledger.unresolved.some((f) => f.scopeId === scopeId)) {
