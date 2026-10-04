@@ -123,6 +123,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Parent-steer inbox (#4286)
 
 ! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json`. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: content/docs/subagent-heartbeat.md (.deft/core/docs). ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
+! Query-before-cancel (#5278): before `swarm:pre-dispatch --action cancel` on a still ledger-active attempt, run `deft subagent:pre-cancel` (dual-invoke `task subagent:pre-cancel`). Exit 0 only when status-steer ack/observed window clears, heartbeat is STALE/missing under #2879 grace, or `--force --reason` is set. ⊗ Bare ledger cancel while pre-cancel is red. ⊗ Treat unread steer as `REDISPATCH_OK`.
 
 ## Review-surface precedence (#2308)
 
