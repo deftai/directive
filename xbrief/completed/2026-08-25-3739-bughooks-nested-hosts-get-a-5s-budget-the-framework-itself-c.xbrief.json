@@ -1,0 +1,108 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-10-04T22:18:13Z"
+  },
+  "plan": {
+    "id": "github.issue.5250736862",
+    "status": "completed",
+    "title": "Raise nested host tool.before timeout to 30s; registration health rejects stale 5s deposits (#3739)",
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Raise nested host tool.before timeout to 30s; registration health rejects stale 5s deposits (#3739)",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5331 squash-merge (Tracking #3739). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5331",
+            "mintedAt": "2026-10-04T22:18:12.574Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T22:18:12.574Z"
+        },
+        "x-directive/notes": "Prefer-A leftover-complete disposition."
+      }
+    ],
+    "metadata": {
+      "productPullRequest": 5331,
+      "conflict_group": "nested-tool-before-timeout",
+      "ambiguity_attestation": "none_found",
+      "admitted_source_digest": "leftover-complete-after-5331",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts"
+        ],
+        "conflict_group": "nested-tool-before-timeout"
+      },
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts",
+          "source": "explicit"
+        }
+      ],
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5331,
+        "prBase": null,
+        "mergeCommit": "4bf32f8cf39bfae308d8cbfe0ffe228b914655dd",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4bf32f8cf39bfae308d8cbfe0ffe228b914655dd",
+        "verifiedAt": "2026-10-04T22:18:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-04T22:18:13Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T22:18:13Z"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Raise nested host tool.before timeout to 30s; registration health rejects stale 5s deposits (#3739)",
+          "status": "pending",
+          "artifact_path": null,
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5331 squash-merge (Tracking #3739). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5331",
+              "mintedAt": "2026-10-04T22:18:12.574Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T22:18:12.574Z"
+          }
+        }
+      ]
+    },
+    "updated": "2026-10-04T22:18:13Z"
+  }
+}
