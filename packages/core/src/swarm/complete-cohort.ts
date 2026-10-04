@@ -18,7 +18,7 @@ import { MAX_FIXPOINT_PASSES, TERMINAL_FOLDERS } from "./constants.js";
 import { resolveLaunchOccupancySessionId } from "./launch.js";
 import { cleanupWorkerAuthAssignmentsForDispatch } from "./worker-auth-assignment.js";
 
-/** Per-story or default delivery evidence for cohort completion (#3041). */
+/** Per-story or default delivery evidence for cohort completion (#3041 / #3675). */
 export interface CohortDeliveryContext {
   /** Evidence keyed by absolute story path (preferred). */
   readonly evidenceByPath?: ReadonlyMap<string, DeliveryEvidenceInput> | null;
@@ -27,6 +27,10 @@ export interface CohortDeliveryContext {
   readonly nonDeliveryDisposition?: NonDeliveryDisposition | null;
   readonly assumeEvidenceValidated?: boolean;
   readonly verifier?: string;
+  /** Forward Prefer-A identity-join seams into runTransition (#3675). */
+  readonly runGh?: TransitionOptions["runGh"];
+  readonly fetchPrPayload?: TransitionOptions["fetchPrPayload"];
+  readonly fetchClosingIssueIds?: TransitionOptions["fetchClosingIssueIds"];
 }
 
 export interface TransitionRecord {
@@ -270,6 +274,9 @@ function transitionOptionsFor(
     nonDeliveryDisposition: delivery.nonDeliveryDisposition,
     assumeEvidenceValidated: delivery.assumeEvidenceValidated,
     verifier: delivery.verifier ?? "swarm:complete-cohort",
+    runGh: delivery.runGh,
+    fetchPrPayload: delivery.fetchPrPayload,
+    fetchClosingIssueIds: delivery.fetchClosingIssueIds,
   };
 }
 

@@ -800,7 +800,9 @@ describe("one-path complete recut (#4060)", () => {
             }
           : null,
       fetchClosingIssueIds: (n: number, repo: string) =>
-        n === 1 && repo === "deftai/directive" ? [4060] : null,
+        n === 1 && repo === "deftai/directive"
+          ? [{ repository: "deftai/directive", issueNumber: 4060 }]
+          : null,
     };
     const result = runTransition("complete", brief, new Date("2026-09-02T12:00:00.000Z"), {
       deliveryEvidence: {
@@ -837,7 +839,9 @@ describe("one-path complete recut (#4060)", () => {
             }
           : null,
       fetchClosingIssueIds: (n: number, repo: string) =>
-        n === 1 && repo === "deftai/directive" ? [4060] : null,
+        n === 1 && repo === "deftai/directive"
+          ? [{ repository: "deftai/directive", issueNumber: 4060 }]
+          : null,
     };
     const result = runTransition("complete", brief, new Date("2026-09-02T12:00:00.000Z"), {
       deliveryEvidence: {

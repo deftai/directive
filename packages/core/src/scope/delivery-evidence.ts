@@ -11,7 +11,7 @@
 
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
-import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
+import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { defaultGitRunner, type GitRunner, gitIsAncestor } from "../session/git.js";
 import { readRitualState } from "../session/ritual-sentinel.js";
@@ -121,11 +121,21 @@ export type FetchPrPayloadFn = (
   repository: string,
 ) => Record<string, unknown> | null;
 
+/** One forge closingIssuesReferences node with preserved repository (#3675). */
+export interface ClosingIssueRef {
+  readonly repository: string;
+  readonly issueNumber: number;
+}
+
 /**
  * Fetch authoritative forge closingIssuesReferences only (#3675).
  * Must not union body/commit intent extractors (fail-open for delivery).
+ * Each entry MUST preserve its own repository (cross-repo closers).
  */
-export type FetchClosingIssueIdsFn = (prNumber: number, repository: string) => number[] | null;
+export type FetchClosingIssueIdsFn = (
+  prNumber: number,
+  repository: string,
+) => ClosingIssueRef[] | null;
 
 export interface DeliveryGateOptions {
   readonly projectRoot: string;
@@ -231,6 +241,47 @@ export function hasGithubIssueRef(plan: Record<string, unknown>): boolean {
  * Expected repository + issue from plan `x-xbrief/github-issue` reference (#3675).
  * Worker `--repo` / `--pr` are checked against this, never the source of it.
  */
+/**
+ * Parse owner/repo#N from a GitHub issue URL. Query/fragment are ignored so
+ * `…/issues/1?view=1` still classifies as code-bearing (#3675 Greptile P1).
+ */
+export function parseGithubIssueUri(uri: string): PlanGithubIssueRef | null {
+  const trimmed = uri.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  const pathOnly = (trimmed.split(/[?#]/, 1)[0] ?? trimmed).replace(/\/$/, "");
+  if (!/github\.com\/[^/]+\/[^/]+\/issues\/\d+/i.test(pathOnly)) {
+    return null;
+  }
+  const parts =
+    pathOnly
+      .split("://")
+      .pop()
+      ?.split("/")
+      .filter((p) => p.length > 0) ?? [];
+  if (
+    parts.length >= 4 &&
+    parts[parts.length - 2] === "issues" &&
+    /^\d+$/.test(parts[parts.length - 1] ?? "")
+  ) {
+    const owner = parts[parts.length - 4];
+    const name = parts[parts.length - 3];
+    const issueNumber = Number(parts[parts.length - 1]);
+    if (
+      typeof owner === "string" &&
+      typeof name === "string" &&
+      owner.length > 0 &&
+      name.length > 0 &&
+      Number.isInteger(issueNumber) &&
+      issueNumber > 0
+    ) {
+      return { repository: `${owner}/${name}`, issueNumber };
+    }
+  }
+  return null;
+}
+
 export function resolvePlanGithubIssueRef(
   plan: Record<string, unknown>,
 ): PlanGithubIssueRef | null {
@@ -242,35 +293,13 @@ export function resolvePlanGithubIssueRef(
     const rec = asRecord(ref);
     if (rec === null) continue;
     const type = typeof rec.type === "string" ? rec.type : "";
-    const uri = typeof rec.uri === "string" ? rec.uri.trim().replace(/\/$/, "") : "";
+    const uri = typeof rec.uri === "string" ? rec.uri.trim() : "";
     if (uri.length === 0) continue;
+    const parsed = parseGithubIssueUri(uri);
     const fromType = type.includes("github-issue");
-    const fromUri = /github\.com\/[^/]+\/[^/]+\/issues\/\d+/i.test(uri);
-    if (!fromType && !fromUri) continue;
-    const parts =
-      uri
-        .split("://")
-        .pop()
-        ?.split("/")
-        .filter((p) => p.length > 0) ?? [];
-    if (
-      parts.length >= 4 &&
-      parts[parts.length - 2] === "issues" &&
-      /^\d+$/.test(parts[parts.length - 1] ?? "")
-    ) {
-      const owner = parts[parts.length - 4];
-      const name = parts[parts.length - 3];
-      const issueNumber = Number(parts[parts.length - 1]);
-      if (
-        typeof owner === "string" &&
-        typeof name === "string" &&
-        owner.length > 0 &&
-        name.length > 0 &&
-        Number.isInteger(issueNumber) &&
-        issueNumber > 0
-      ) {
-        return { repository: `${owner}/${name}`, issueNumber };
-      }
+    if (!fromType && parsed === null) continue;
+    if (parsed !== null) {
+      return parsed;
     }
   }
   return null;
@@ -323,13 +352,85 @@ export function defaultFetchPrPayload(
   }
 }
 
-/** Authoritative closing-issue ids only (no body/commit intent union) (#3675). */
+function parseClosingIssueEntry(
+  entry: unknown,
+  fallbackRepository: string,
+): ClosingIssueRef | null {
+  const rec = asRecord(entry);
+  if (rec === null) {
+    return null;
+  }
+  let issueNumber: number | null = null;
+  if (typeof rec.number === "number" && Number.isInteger(rec.number) && rec.number > 0) {
+    issueNumber = rec.number;
+  } else if (typeof rec.number === "string" && /^[0-9]+$/.test(rec.number)) {
+    issueNumber = Number(rec.number);
+  }
+  if (issueNumber === null) {
+    return null;
+  }
+
+  if (typeof rec.url === "string" && rec.url.trim().length > 0) {
+    const fromUrl = parseGithubIssueUri(rec.url);
+    if (fromUrl !== null) {
+      return { repository: fromUrl.repository, issueNumber: fromUrl.issueNumber };
+    }
+  }
+
+  const repoRec = asRecord(rec.repository);
+  const nameWithOwner =
+    typeof repoRec?.nameWithOwner === "string" ? repoRec.nameWithOwner.trim() : "";
+  if (nameWithOwner.includes("/")) {
+    return { repository: nameWithOwner, issueNumber };
+  }
+
+  // Number-only payloads (legacy fixtures) inherit the PR repository.
+  return { repository: fallbackRepository, issueNumber };
+}
+
+/**
+ * Authoritative closing-issue refs with per-issue repository preserved (#3675).
+ * Does not union body/commit intent extractors.
+ */
 export function defaultFetchClosingIssueIds(
   prNumber: number,
   repository: string,
   runGh: RunGhFn = defaultRunGh,
-): number[] | null {
-  return fetchClosingIssuesReferences(prNumber, repository, runGh);
+): ClosingIssueRef[] | null {
+  const cmd = ["gh", "pr", "view", String(prNumber), "--json", "closingIssuesReferences"];
+  if (repository.trim().length > 0) {
+    cmd.push("--repo", repository);
+  }
+
+  let result;
+  try {
+    result = runGh(cmd);
+  } catch {
+    return null;
+  }
+  if (result.returncode !== 0) {
+    return null;
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(result.stdout) as unknown;
+  } catch {
+    return null;
+  }
+  const refs = asRecord(payload)?.closingIssuesReferences;
+  if (!Array.isArray(refs)) {
+    return null;
+  }
+
+  const out: ClosingIssueRef[] = [];
+  for (const entry of refs) {
+    const parsed = parseClosingIssueEntry(entry, repository);
+    if (parsed !== null) {
+      out.push(parsed);
+    }
+  }
+  return out;
 }
 
 export interface StoryPrMergeIdentityResult {
@@ -346,8 +447,9 @@ export interface StoryPrMergeIdentityResult {
  * Prefer-A story→PR→merge identity join before delivery liveness (#3675).
  *
  * Uses plan-derived expected repo/issue, authoritative closingIssuesReferences
- * via closerSetFromIssueIds only, and merge_commit_sha identity equality.
- * Does not require implementationCommit ancestry (squash-safe).
+ * with per-issue repository preserved (not reassigned to the plan repo), and
+ * merge_commit_sha identity equality. Does not require implementationCommit
+ * ancestry (squash-safe).
  */
 export function verifyStoryPrMergeIdentity(input: {
   readonly plan: Record<string, unknown>;
@@ -430,7 +532,9 @@ export function verifyStoryPrMergeIdentity(input: {
         `PR #${prNumber} in ${expected.repository} (#3675).`,
     };
   }
-  const closerSet = closerSetFromIssueIds(expected.repository, linked);
+  const closerSet = linked.flatMap((ref) =>
+    closerSetFromIssueIds(ref.repository, [ref.issueNumber]),
+  );
   const expectedRepoKey = expected.repository.trim().toLowerCase();
   const closesStory = closerSet.some(
     (origin) => origin.repo === expectedRepoKey && origin.issueId === expected.issueNumber,

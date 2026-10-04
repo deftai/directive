@@ -98,6 +98,8 @@ function identityOk(opts?: {
   headSha?: string;
   prBase?: string;
   closingIssues?: number[] | null;
+  /** When set, overrides closingIssues with full refs (cross-repo tests). */
+  closingIssueRefs?: { repository: string; issueNumber: number }[] | null;
   lookupFail?: boolean;
   closingLookupFail?: boolean;
 }): { fetchPrPayload: FetchPrPayloadFn; fetchClosingIssueIds: FetchClosingIssueIdsFn } {
@@ -123,7 +125,13 @@ function identityOk(opts?: {
   const fetchClosingIssueIds: FetchClosingIssueIdsFn = (n, repo) => {
     if (opts?.closingLookupFail) return null;
     if (n !== prNumber || repo !== repository) return null;
-    return closingIssues;
+    if (opts?.closingIssueRefs !== undefined) {
+      return opts.closingIssueRefs;
+    }
+    if (closingIssues === null) {
+      return null;
+    }
+    return closingIssues.map((issue) => ({ repository, issueNumber: issue }));
   };
   return { fetchPrPayload, fetchClosingIssueIds };
 }
@@ -603,7 +611,46 @@ describe("delivery evidence (#3041)", () => {
         ],
       }),
     ).toEqual({ repository: "deftai/directive", issueNumber: 3675 });
+    expect(
+      resolvePlanGithubIssueRef({
+        references: [
+          {
+            type: "x-xbrief/github-issue",
+            uri: "https://github.com/o/r/issues/1?view=1#section",
+          },
+        ],
+      }),
+    ).toEqual({ repository: "o/r", issueNumber: 1 });
     expect(resolvePlanGithubIssueRef({ references: [] })).toBeNull();
+  });
+
+  it("refuses cross-repository closing issue number collision (#3675)", () => {
+    root = makeRepo();
+    const plan = {
+      references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/1" }],
+    };
+    const gate = evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        prNumber: 9,
+        mergeCommit: "abc",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      ...identityOk({
+        repository: "o/r",
+        issueNumber: 1,
+        prNumber: 9,
+        mergeCommitSha: "abc",
+        closingIssueRefs: [{ repository: "other/repo", issueNumber: 1 }],
+      }),
+      runGit: gitOk(),
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.message).toMatch(/closer set|wrong story|absent association/i);
+    expect(gate.provenance).toBeNull();
   });
 
   it("refuses tip-as-merge under Prefer-A even when same-SHA ancestry would short-circuit (#3675)", () => {
@@ -1005,7 +1052,21 @@ describe("delivery evidence (#3041)", () => {
         stdout: JSON.stringify({ closingIssuesReferences: [{ number: 7 }] }),
         stderr: "",
       })),
-    ).toEqual([7]);
+    ).toEqual([{ repository: "o/r", issueNumber: 7 }]);
+    expect(
+      defaultFetchClosingIssueIds(1, "o/r", () => ({
+        returncode: 0,
+        stdout: JSON.stringify({
+          closingIssuesReferences: [
+            {
+              number: 7,
+              url: "https://github.com/other/repo/issues/7?view=1",
+            },
+          ],
+        }),
+        stderr: "",
+      })),
+    ).toEqual([{ repository: "other/repo", issueNumber: 7 }]);
     expect(
       defaultFetchClosingIssueIds(1, "o/r", () => ({ returncode: 1, stdout: "", stderr: "no" })),
     ).toBeNull();

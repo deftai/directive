@@ -2118,6 +2118,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
               // Ancestry already verified above; avoid double remote fetch on each story.
               assumeEvidenceValidated: true,
               verifier: "swarm:finalize-cohort",
+              // Prefer-A identity join still runs; reuse finalize's gh runner (#3675).
+              runGh,
             }
           : null,
       });

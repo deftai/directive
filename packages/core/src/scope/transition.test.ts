@@ -1691,7 +1691,7 @@ describe("runTransition complete persist-path merge stamp (#5120)", () => {
       },
       fetchClosingIssueIds: (n: number, repo: string) => {
         if (n !== prNumber || repo !== "deftai/directive") return null;
-        return [issueNumber];
+        return [{ repository: "deftai/directive", issueNumber }];
       },
     };
   }
