@@ -337,7 +337,9 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
       },
     };
     const escapeErrors = validateVbriefSchema(escapePath, "stop-escape-path.json");
-    expect(escapeErrors.filter((e) => e.includes("repo-relative")).length).toBeGreaterThanOrEqual(2);
+    expect(escapeErrors.filter((e) => e.includes("repo-relative")).length).toBeGreaterThanOrEqual(
+      2,
+    );
   });
 
   it("rejects non-conformant string PlanItem.id and leaves omitted/integer ids (#4707)", () => {
