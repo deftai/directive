@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5321",
-    "updated": "2026-10-04T14:33:51Z"
+    "updated": "2026-10-04T19:15:36Z"
   },
   "plan": {
     "title": "bug(harness): host agent memory must not override Directive process SoT without USER.md consent",
@@ -943,9 +943,34 @@
         "size": "M",
         "model_tier": "default"
       },
-      "productPullRequest": 5330
+      "productPullRequest": 5330,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5330,
+        "prBase": null,
+        "mergeCommit": "10ce7364f02350698152097d29ca978690e34a34",
+        "deliveryBranch": "master",
+        "deliveryCommit": "550454ccbb5c97a61598d92584baefcfbb383289",
+        "verifiedAt": "2026-10-04T19:15:36Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTA2YzItMGE3Zi03OTgyLWJjMGItMTAzZGMxNzZiMjBj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-04T19:15:36Z",
+      "completedSessionId": "host:grok:v1:MDFhMTA2YzItMGE3Zi03OTgyLWJjMGItMTAzZGMxNzZiMjBj",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T19:15:36Z"
+      }
     },
     "id": "github.issue.5700043888",
-    "updated": "2026-10-04T14:33:51Z"
+    "updated": "2026-10-04T19:15:36Z"
   }
 }
