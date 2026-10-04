@@ -1,0 +1,196 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Leftover-complete Prefer-A for #3715 after #5289"
+  },
+  "plan": {
+    "id": "github.issue.5242035892",
+    "title": "leftover-complete: Prefer-A Bound #3715 after #5289",
+    "status": "completed",
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Record acceptance or tolerated-gap sentence for merge-base empty/absent skip only, with accurate authoring-coverage clauses (decompose/swarm-ready hard; no-swarm-block path ungated and majority).",
+        "status": "done",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5289 squash-merge (Tracking #3715). Bound limbs shipped on product tip; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5289",
+            "mintedAt": "2026-10-04T02:33:23Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T02:33:23Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Withdraw historical claims: approved-scope ratio; soft-warn cite; causal briefs-decline-to-declare sentence.",
+        "status": "done",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5289 squash-merge (Tracking #3715). Bound limbs shipped on product tip; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5289",
+            "mintedAt": "2026-10-04T02:33:23Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T02:33:23Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Price option (b) by path (majority no-swarm-block authoring route). Correct content/templates/agents-entry.md and content/docs/observable-scope.md #4383 present-tense claims; regenerate AGENTS.md via agents:refresh (do not hand-edit managed AGENTS.md as SoT).",
+        "status": "done",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5289 squash-merge (Tracking #3715). Bound limbs shipped on product tip; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5289",
+            "mintedAt": "2026-10-04T02:33:23Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T02:33:23Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "No gate weakening (#3156). Out of Bound: #5057; cohort allowance cap; restore proceed minting; ship #3714 as filed.",
+        "status": "done",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5289 squash-merge (Tracking #3715). Bound limbs shipped on product tip; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5289",
+            "mintedAt": "2026-10-04T02:33:23Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T02:33:23Z"
+        }
+      }
+    ],
+    "acceptance": {
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover pathless derived clauses after product merge #5289",
+      "none_stated": true,
+      "commands": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Record acceptance or tolerated-gap sentence for merge-base empty/absent skip only, with accurate authoring-coverage clauses (decompose/swarm-ready hard; no-swarm-block path ungated and majority).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5289 squash-merge (Tracking #3715). Bound limbs shipped on product tip; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5289",
+              "mintedAt": "2026-10-04T02:33:23Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T02:33:23Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Withdraw historical claims: approved-scope ratio; soft-warn cite; causal briefs-decline-to-declare sentence.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5289 squash-merge (Tracking #3715). Bound limbs shipped on product tip; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5289",
+              "mintedAt": "2026-10-04T02:33:23Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T02:33:23Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Price option (b) by path (majority no-swarm-block authoring route). Correct content/templates/agents-entry.md and content/docs/observable-scope.md #4383 present-tense claims; regenerate AGENTS.md via agents:refresh (do not hand-edit managed AGENTS.md as SoT).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5289 squash-merge (Tracking #3715). Bound limbs shipped on product tip; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5289",
+              "mintedAt": "2026-10-04T02:33:23Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T02:33:23Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "No gate weakening (#3156). Out of Bound: #5057; cohort allowance cap; restore proceed minting; ship #3714 as filed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5289 squash-merge (Tracking #3715). Bound limbs shipped on product tip; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5289",
+              "mintedAt": "2026-10-04T02:33:23Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T02:33:23Z"
+          }
+        }
+      ]
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3715",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3715"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/5289",
+        "type": "x-xbrief/github-pr",
+        "title": "Product PR #5289"
+      }
+    ],
+    "narratives": {
+      "Overview": "Prefer-A leftover-complete for #3715 after Tracking product PR #5289 merged as 1a5f9d31118d56e050d1199760d825383b544548."
+    },
+    "metadata": {
+      "productPullRequest": 5289,
+      "admitted_source_digest": "449cf6b3859df640e746461ddb0ef9dcf6df308f0b401e1a41ef3493e29c3abf",
+      "swarm": {
+        "conflict_group": "scope-write-fence-posture",
+        "size": "S",
+        "file_scope": [],
+        "file_scope_confidence": "high",
+        "verify_commands": [],
+        "expected_outputs": [
+          "completed xBRIEF on tip"
+        ],
+        "depends_on": [],
+        "model_tier": "default"
+      }
+    }
+  }
+}
