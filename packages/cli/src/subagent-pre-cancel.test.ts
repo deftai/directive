@@ -42,6 +42,28 @@ describe("subagent:pre-cancel CLI (#5278)", () => {
     expect(err.mock.calls.join("")).toContain("dest-capable");
   });
 
+  it("refuses partial dest when only --steer-dir is set", () => {
+    const root = tempRoot();
+    const err = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(
+      run(
+        [
+          "--agent",
+          "leaf-a",
+          "--canceller-id",
+          "parent-1",
+          "--steer-dir",
+          join(root, "steer-only"),
+          "--force",
+          "--reason",
+          "x",
+        ],
+        root,
+      ),
+    ).toBe(2);
+    expect(err.mock.calls.join("")).toMatch(/paired|partial dest/i);
+  });
+
   it("force clear exits 0 with --target-id", () => {
     const root = tempRoot();
     const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);

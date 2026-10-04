@@ -196,13 +196,20 @@ export function run(argv: readonly string[], cwd: string = process.cwd()): numbe
   const firstSeenDir = resolve(root, args.firstSeenDir ?? defaultFirstSeenDir(root));
 
   // Linked-worktree children: refuse default-to-parent-cwd alone without dest args (#4066 / #5278).
-  const hasDest =
-    (args.targetId !== null && args.targetId.trim().length > 0) ||
-    args.steerDir !== null ||
-    args.scratchDir !== null;
+  // Partial dest (only --steer-dir or only --scratch-dir) mixes worktrees — require a pair or --target-id.
+  const hasTarget = args.targetId !== null && args.targetId.trim().length > 0;
+  const hasSteer = args.steerDir !== null;
+  const hasScratch = args.scratchDir !== null;
+  if (!hasTarget && hasSteer !== hasScratch) {
+    process.stderr.write(
+      "subagent:pre-cancel: --steer-dir and --scratch-dir must be paired when --target-id is omitted (partial dest mixes worktrees)\n",
+    );
+    return EXIT_PRE_CANCEL_CONFIG;
+  }
+  const hasDest = hasTarget || (hasSteer && hasScratch);
   if (!hasDest) {
     process.stderr.write(
-      "subagent:pre-cancel: dest-capable --target-id and/or --steer-dir/--scratch-dir required (default-to-cwd alone is refuse-closed for linked-worktree children)\n",
+      "subagent:pre-cancel: dest-capable --target-id and/or paired --steer-dir/--scratch-dir required (default-to-cwd alone is refuse-closed for linked-worktree children)\n",
     );
     return EXIT_PRE_CANCEL_CONFIG;
   }

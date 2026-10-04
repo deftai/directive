@@ -676,6 +676,7 @@ export type PreCancelRefuseReason =
   | "observed-window-incomplete"
   | "heartbeat-within-grace"
   | "heartbeat-fresh"
+  | "heartbeat-malformed"
   | "identity-mismatch"
   | "missing-agent"
   | "missing-canceller"
@@ -816,12 +817,20 @@ function evaluateHeartbeatBranch(
     };
   }
 
-  if (rec.is_stale || !recordOk(rec)) {
-    // First-seen-then-STALE / malformed after a record existed (path a).
+  if (rec.is_stale) {
+    // First-seen-then-STALE (path b). Malformed-but-fresh must NOT clear.
     return {
       clear: "heartbeat-stale-or-missing-after-first",
       refuse: null,
-      detail: rec.is_stale ? "heartbeat STALE" : "heartbeat unhealthy after first record",
+      detail: "heartbeat STALE",
+    };
+  }
+  if (!recordOk(rec)) {
+    return {
+      clear: null,
+      refuse: "heartbeat-malformed",
+      detail:
+        "heartbeat fresh but unhealthy/parse-failed (e.g. invalid wait_kind); refuse cancel while child still reporting",
     };
   }
 
@@ -851,7 +860,10 @@ export function evaluatePreCancel(input: EvaluatePreCancelInput): PreCancelVerdi
   });
 
   const finish = (
-    partial: Omit<PreCancelVerdict, "json" | "agent_id" | "canceller_id"> & {
+    partial: Omit<
+      PreCancelVerdict,
+      "json" | "agent_id" | "canceller_id" | "matching_steer_id" | "first_seen_at"
+    > & {
       matching_steer_id?: string | null;
       first_seen_at?: string | null;
     },
@@ -1027,6 +1039,20 @@ export function evaluatePreCancel(input: EvaluatePreCancelInput): PreCancelVerdi
     }
     const elapsed = (now.getTime() - firstSeenAt.getTime()) / 1000;
     if (elapsed + 1e-9 < observedWindow) {
+      // Branch (b) remains OR with (a): STALE/missing heartbeat may clear while
+      // the status-steer observed window is still incomplete (#5278 Greptile P1).
+      const hbEarly = evaluateHeartbeatBranch(input, now);
+      if (hbEarly.clear !== null) {
+        return finish({
+          ok: true,
+          exitCode: EXIT_PRE_CANCEL_OK,
+          clear_reason: hbEarly.clear,
+          refuse_reason: null,
+          matching_steer_id: pendingMatch.steer_id,
+          first_seen_at: firstSeen.first_seen_at,
+          message: `subagent:pre-cancel: cleared via heartbeat path during incomplete observed window — ${hbEarly.detail}`,
+        });
+      }
       return finish({
         ok: false,
         exitCode: EXIT_PRE_CANCEL_REFUSED,
@@ -1049,6 +1075,16 @@ export function evaluatePreCancel(input: EvaluatePreCancelInput): PreCancelVerdi
   }
 
   if (sweep.pending.some((p) => p.agent_id === agentId)) {
+    const hbForeign = evaluateHeartbeatBranch(input, now);
+    if (hbForeign.clear !== null) {
+      return finish({
+        ok: true,
+        exitCode: EXIT_PRE_CANCEL_OK,
+        clear_reason: hbForeign.clear,
+        refuse_reason: null,
+        message: `subagent:pre-cancel: cleared via heartbeat path with non-canceller pending steer — ${hbForeign.detail}`,
+      });
+    }
     return finish({
       ok: false,
       exitCode: EXIT_PRE_CANCEL_REFUSED,

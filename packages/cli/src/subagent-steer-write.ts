@@ -2,18 +2,23 @@
 /**
  * Parent write surface for deft.subagent.steer.v1 (#5278 / #4286).
  * Wraps writeSteer so status steers are reachable before pre-cancel.
+ * Writer authority is checked against child occupancy / heartbeat — not self-attested.
  */
-import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  defaultScratchDir,
   defaultSteerDir,
   isSafeAgentId,
+  parseHeartbeatFile,
   STEER_KINDS,
   STEER_WRITER_KINDS,
   type SteerKind,
   type SteerWriterKind,
   writeSteer,
 } from "@deftai/directive-core/orchestration";
+import { readChildOccupancyLease, readOccupancy } from "@deftai/directive-core/session";
 
 export const EXIT_STEER_WRITE_OK = 0;
 export const EXIT_STEER_WRITE_CONFIG = 2;
@@ -25,7 +30,7 @@ Usage:
 
 Options:
   --agent ID              Child agent_id (inbox file stem)
-  --writer-id ID          Writer identity (must match occupancy owner or parent)
+  --writer-id ID          Writer identity (must match independent parent/owner record)
   --writer-kind KIND      occupancy-owner | dispatching-parent (default: dispatching-parent)
   --kind KIND             constraint | correction | halt | note
   --text TEXT             Steer body (≤2000 chars)
@@ -33,8 +38,9 @@ Options:
   --ttl-seconds N         Expiry TTL (default: 1800)
   --target-id PATH        Worktree root for dest inbox
   --steer-dir PATH        Inbox directory override
-  --parent-id ID          Required when writer-kind=dispatching-parent (defaults to --writer-id)
-  --occupancy-owner-id ID Required when writer-kind=occupancy-owner (defaults to --writer-id)
+  --scratch-dir PATH      Heartbeat dir for independent parent_id check
+  --parent-id ID          Must match child occupancy parentId or heartbeat parent_id
+  --occupancy-owner-id ID Must match child occupancy / live occupancy owner
   --json                  Emit written record
 
 Exit codes:
@@ -52,11 +58,81 @@ export interface SubagentSteerWriteArgs {
   ttlSeconds: number | null;
   targetId: string | null;
   steerDir: string | null;
+  scratchDir: string | null;
   parentId: string | null;
   occupancyOwnerId: string | null;
   emitJson: boolean;
   help: boolean;
   error?: string;
+}
+
+/** Resolve parent/owner from child occupancy lease or heartbeat — never self-default. */
+export function resolveIndependentSteerAuthority(input: {
+  root: string;
+  agentId: string;
+  writerKind: SteerWriterKind;
+  writerId: string;
+  scratchDir: string;
+  claimedParentId?: string | null;
+  claimedOccupancyOwnerId?: string | null;
+  now?: Date;
+}): { parentId?: string; occupancyOwnerId?: string; error?: string } {
+  const writerId = input.writerId.trim();
+  const lease = readChildOccupancyLease(input.root, input.agentId);
+  const occupancy = readOccupancy(input.root);
+  const hbPath = join(input.scratchDir, `${input.agentId}.json`);
+  const hb = existsSync(hbPath)
+    ? parseHeartbeatFile(hbPath, {
+        now: input.now ?? new Date(),
+        thresholdSeconds: 30 * 60,
+      })
+    : null;
+
+  if (input.writerKind === "dispatching-parent") {
+    const expected =
+      (lease?.parentId ?? "").trim() ||
+      (typeof hb?.parent_id === "string" ? hb.parent_id.trim() : "");
+    if (expected.length === 0) {
+      return {
+        error:
+          "dispatching-parent requires independent parent identity from child occupancy lease or heartbeat parent_id",
+      };
+    }
+    if (writerId !== expected) {
+      return {
+        error: `dispatching-parent writer_id ${JSON.stringify(writerId)} does not match independent parent ${JSON.stringify(expected)}`,
+      };
+    }
+    const claimed = input.claimedParentId?.trim() ?? "";
+    if (claimed.length > 0 && claimed !== expected) {
+      return {
+        error: `--parent-id ${JSON.stringify(claimed)} does not match independent parent ${JSON.stringify(expected)}`,
+      };
+    }
+    return { parentId: expected };
+  }
+
+  const expectedOwner =
+    (lease?.occupancyOwner ?? "").trim() ||
+    (occupancy?.sessionId ?? "").trim();
+  if (expectedOwner.length === 0) {
+    return {
+      error:
+        "occupancy-owner requires independent occupancy owner from child occupancy lease or live occupancy",
+    };
+  }
+  if (writerId !== expectedOwner) {
+    return {
+      error: `occupancy-owner writer_id ${JSON.stringify(writerId)} does not match independent owner ${JSON.stringify(expectedOwner)}`,
+    };
+  }
+  const claimedOwner = input.claimedOccupancyOwnerId?.trim() ?? "";
+  if (claimedOwner.length > 0 && claimedOwner !== expectedOwner) {
+    return {
+      error: `--occupancy-owner-id ${JSON.stringify(claimedOwner)} does not match independent owner ${JSON.stringify(expectedOwner)}`,
+    };
+  }
+  return { occupancyOwnerId: expectedOwner };
 }
 
 export function parseSubagentSteerWriteArgs(argv: readonly string[]): SubagentSteerWriteArgs {
@@ -70,6 +146,7 @@ export function parseSubagentSteerWriteArgs(argv: readonly string[]): SubagentSt
     ttlSeconds: null,
     targetId: null,
     steerDir: null,
+    scratchDir: null,
     parentId: null,
     occupancyOwnerId: null,
     emitJson: false,
@@ -165,6 +242,14 @@ export function parseSubagentSteerWriteArgs(argv: readonly string[]): SubagentSt
       i += 1;
     } else if (arg?.startsWith("--steer-dir=")) {
       acc.steerDir = arg.slice("--steer-dir=".length);
+    } else if (arg === "--scratch-dir") {
+      const value = argv[i + 1];
+      if (value === undefined)
+        return { ...acc, error: "argument --scratch-dir: expected one argument" };
+      acc.scratchDir = value;
+      i += 1;
+    } else if (arg?.startsWith("--scratch-dir=")) {
+      acc.scratchDir = arg.slice("--scratch-dir=".length);
     } else if (arg === "--parent-id") {
       const value = argv[i + 1];
       if (value === undefined)
@@ -228,7 +313,22 @@ export function run(argv: readonly string[], cwd: string = process.cwd()): numbe
   const root =
     args.targetId !== null && args.targetId.trim().length > 0 ? resolve(cwd, args.targetId) : cwd;
   const steerDir = resolve(root, args.steerDir ?? defaultSteerDir(root));
+  const scratchDir = resolve(root, args.scratchDir ?? defaultScratchDir(root));
   const writerId = args.writerId.trim();
+
+  const authority = resolveIndependentSteerAuthority({
+    root,
+    agentId: args.agentId,
+    writerKind: args.writerKind,
+    writerId,
+    scratchDir,
+    claimedParentId: args.parentId,
+    claimedOccupancyOwnerId: args.occupancyOwnerId,
+  });
+  if (authority.error !== undefined) {
+    process.stderr.write(`subagent:steer: ${authority.error}\n`);
+    return EXIT_STEER_WRITE_CONFIG;
+  }
 
   try {
     const record = writeSteer(steerDir, {
@@ -239,9 +339,8 @@ export function run(argv: readonly string[], cwd: string = process.cwd()): numbe
       text: args.text,
       steerId: args.steerId ?? undefined,
       ttlSeconds: args.ttlSeconds ?? undefined,
-      parentId: args.parentId ?? (args.writerKind === "dispatching-parent" ? writerId : undefined),
-      occupancyOwnerId:
-        args.occupancyOwnerId ?? (args.writerKind === "occupancy-owner" ? writerId : undefined),
+      parentId: authority.parentId,
+      occupancyOwnerId: authority.occupancyOwnerId,
     });
     if (args.emitJson) {
       process.stdout.write(`${JSON.stringify(record, null, 2)}\n`);

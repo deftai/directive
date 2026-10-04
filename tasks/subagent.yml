@@ -1,0 +1,25 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  pre-cancel:
+    desc: "Fail-closed query-before-cancel gate (#5278). Exit 0 only via status steer ack/observed window, heartbeat STALE/missing under grace, or --force --reason."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'subagent-pre-cancel {{.CLI_ARGS}}'
+
+  steer:
+    desc: "Write deft.subagent.steer.v1 parent-steer inbox (#5278 / #4286). Writer authority checked against child occupancy / heartbeat."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'subagent-steer-write {{.CLI_ARGS}}'
