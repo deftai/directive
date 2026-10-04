@@ -472,7 +472,9 @@
           "packages/core/src/content-contracts/standards/coding_rules.test.ts",
           "meta/lessons.md",
           "CHANGELOG.md",
-          "content/packs/lessons/lessons-pack-0.1.json"
+          "content/packs/lessons/lessons-pack-0.1.json",
+          "docs/RULE-MAP.md",
+          "xbrief/active/2026-10-04-1164-featcoding-two-testing-rules-missing-from-codingtestingmd-te.xbrief.json"
         ],
         "file_scope_confidence": "high",
         "verify_commands": [
