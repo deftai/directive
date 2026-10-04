@@ -25,10 +25,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5290",
-            "mintedAt": "2026-10-04T06:24:16Z",
+            "mintedAt": "2026-10-04T06:25:18Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-04T06:24:16Z"
+          "recorded_at": "2026-10-04T06:25:18Z"
         }
       },
       {
@@ -42,10 +42,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5290",
-            "mintedAt": "2026-10-04T06:24:16Z",
+            "mintedAt": "2026-10-04T06:25:18Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-04T06:24:16Z"
+          "recorded_at": "2026-10-04T06:25:18Z"
         }
       },
       {
@@ -59,10 +59,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5290",
-            "mintedAt": "2026-10-04T06:24:16Z",
+            "mintedAt": "2026-10-04T06:25:18Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-04T06:24:16Z"
+          "recorded_at": "2026-10-04T06:25:18Z"
         }
       },
       {
@@ -76,10 +76,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5290",
-            "mintedAt": "2026-10-04T06:24:16Z",
+            "mintedAt": "2026-10-04T06:25:18Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-04T06:24:16Z"
+          "recorded_at": "2026-10-04T06:25:18Z"
         }
       },
       {
@@ -93,10 +93,10 @@
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5290",
-            "mintedAt": "2026-10-04T06:24:16Z",
+            "mintedAt": "2026-10-04T06:25:18Z",
             "mintedVia": "parent-retained-closer"
           },
-          "recorded_at": "2026-10-04T06:24:16Z"
+          "recorded_at": "2026-10-04T06:25:18Z"
         }
       }
     ],
@@ -136,10 +136,10 @@
               "kind": "operator-session",
               "actor": "Scott",
               "eventRef": "leftover-complete-after-5290",
-              "mintedAt": "2026-10-04T06:24:16Z",
+              "mintedAt": "2026-10-04T06:25:18Z",
               "mintedVia": "parent-retained-closer"
             },
-            "recorded_at": "2026-10-04T06:24:16Z"
+            "recorded_at": "2026-10-04T06:25:18Z"
           }
         },
         {
@@ -155,10 +155,10 @@
               "kind": "operator-session",
               "actor": "Scott",
               "eventRef": "leftover-complete-after-5290",
-              "mintedAt": "2026-10-04T06:24:16Z",
+              "mintedAt": "2026-10-04T06:25:18Z",
               "mintedVia": "parent-retained-closer"
             },
-            "recorded_at": "2026-10-04T06:24:16Z"
+            "recorded_at": "2026-10-04T06:25:18Z"
           }
         },
         {
@@ -174,10 +174,10 @@
               "kind": "operator-session",
               "actor": "Scott",
               "eventRef": "leftover-complete-after-5290",
-              "mintedAt": "2026-10-04T06:24:16Z",
+              "mintedAt": "2026-10-04T06:25:18Z",
               "mintedVia": "parent-retained-closer"
             },
-            "recorded_at": "2026-10-04T06:24:16Z"
+            "recorded_at": "2026-10-04T06:25:18Z"
           }
         },
         {
@@ -193,10 +193,10 @@
               "kind": "operator-session",
               "actor": "Scott",
               "eventRef": "leftover-complete-after-5290",
-              "mintedAt": "2026-10-04T06:24:16Z",
+              "mintedAt": "2026-10-04T06:25:18Z",
               "mintedVia": "parent-retained-closer"
             },
-            "recorded_at": "2026-10-04T06:24:16Z"
+            "recorded_at": "2026-10-04T06:25:18Z"
           }
         },
         {
@@ -212,10 +212,10 @@
               "kind": "operator-session",
               "actor": "Scott",
               "eventRef": "leftover-complete-after-5290",
-              "mintedAt": "2026-10-04T06:24:16Z",
+              "mintedAt": "2026-10-04T06:25:18Z",
               "mintedVia": "parent-retained-closer"
             },
-            "recorded_at": "2026-10-04T06:24:16Z"
+            "recorded_at": "2026-10-04T06:25:18Z"
           }
         }
       ],
@@ -243,9 +243,10 @@
       },
       "admitted_source_digest": "73856ee76c0e0d6a3e7b37455529538a820bcf4994a2c4a41a6309412f227e0a",
       "lifecycleWrite": {
-        "action": "complete"
+        "action": "complete",
+        "writtenAt": "2026-10-04T06:25:18Z"
       },
-      "completedAt": "2026-10-04T06:24:16Z",
+      "completedAt": "2026-10-04T06:25:18Z",
       "completionProvenance": {
         "productMerge": "18fcae674",
         "productPr": 5290
