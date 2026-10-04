@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Activate #5233 Prefer-A Bound brief with concrete file_scope (#5233).** Lands the continuity-resolved active brief (Path B membership precommitment) so product PR work can pass scope-provenance. Tracking #5233.
 ### Fixed
 - **Host-memory Personal authority residual (#5321).** `hostMemoryHasPersonalAuthority` always returns false (USER.md remains sole Personal SoT; `operator-asked` is write-consent audit only). `evaluateHostMemorySpendConflict` discloses whenever non-Personal host-memory always-ask loses to a closed spend resolve, and credits utterance token over spend-recommend when both apply. Tracking #5321.
 
