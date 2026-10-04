@@ -223,7 +223,23 @@ describe("evaluateSpawnRoutingHonor (#3703)", () => {
     expect(r.message).toMatch(/harness-default/i);
   });
 
-  it("launcher-argv critic with --model keeps process-only carve-out", () => {
+  it("process-only critic with --model keeps carve-out", () => {
+    const { root, environ } = tempProject({
+      cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },
+    });
+    const r = evaluateSpawnRoutingHonor({
+      projectRoot: root,
+      environ,
+      spawnClass: "process-only",
+      surface: "launcher-argv",
+      requestedModel: "critic-model",
+    });
+    expect(r.ok).toBe(true);
+    expect(r.code).toBe("routing-honor-carve-out");
+    expect(r.message).toContain("process-only/critic carve-out");
+  });
+
+  it("launcher-argv without structural role honors leaf route", () => {
     const { root, environ } = tempProject({
       cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },
     });
@@ -232,11 +248,11 @@ describe("evaluateSpawnRoutingHonor (#3703)", () => {
       environ,
       spawnClass: "launcher-argv",
       surface: "launcher-argv",
-      requestedModel: "critic-model",
+      requestedModel: "wrong-model",
     });
-    expect(r.ok).toBe(true);
-    expect(r.code).toBe("routing-honor-carve-out");
-    expect(r.message).toContain("process-only/critic carve-out");
+    expect(r.ok).toBe(false);
+    expect(r.code).toBe("routing-honor-deny");
+    expect(r.message).toMatch(/diverges/i);
   });
 
   it("refuses to parse duplicate --model flags", () => {
@@ -254,6 +270,14 @@ describe("evaluateSpawnRoutingHonor (#3703)", () => {
         "claude -p 'do not count --model here' --model=composer-2.5-fast",
       ),
     ).toBe(1);
+  });
+
+  it("preserves quoted --model values", () => {
+    expect(extractModelFromLauncherArgv('claude --model "opus" -p hi')).toBe("opus");
+    expect(extractModelFromLauncherArgv("claude --model 'composer-2.5-fast'")).toBe(
+      "composer-2.5-fast",
+    );
+    expect(countModelFlagsInLauncherArgv('claude --model "opus" -p "--model decoy"')).toBe(1);
   });
 });
 
