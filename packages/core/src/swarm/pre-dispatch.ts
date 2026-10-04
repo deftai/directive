@@ -442,17 +442,34 @@ function runComplete(
 
   // Pin the attempt that cleared pre-cancel so cancel cannot retarget a successor
   // that starts between the gate and completeAttemptOnDisk (#5288 Greptile P1).
+  // Explicit --attempt-id / --external-run-id that matches no active attempt
+  // refuses — never fall back to another worker.
   let cancelPinnedAttemptId: string | undefined = input.attemptId;
   if (action === "cancel" && actives.length > 0) {
-    const active =
-      (input.attemptId !== undefined
-        ? actives.find((a) => a.attemptId === input.attemptId)
-        : undefined) ??
-      (input.externalRunId !== undefined
-        ? actives.find((a) => a.externalRunId === input.externalRunId)
-        : undefined) ??
-      actives[0] ??
-      null;
+    let active: DeliveryAttemptRecord | null = null;
+    if (input.attemptId !== undefined) {
+      active = actives.find((a) => a.attemptId === input.attemptId) ?? null;
+      if (active === null) {
+        return baseResult(input, action, {
+          exitCode: EXIT_GATE_FAILED,
+          decision: null,
+          reason: `no active attempt matching --attempt-id ${JSON.stringify(input.attemptId)}`,
+          activeAttemptIds: actives.map((a) => a.attemptId),
+        });
+      }
+    } else if (input.externalRunId !== undefined) {
+      active = actives.find((a) => a.externalRunId === input.externalRunId) ?? null;
+      if (active === null) {
+        return baseResult(input, action, {
+          exitCode: EXIT_GATE_FAILED,
+          decision: null,
+          reason: `no active attempt matching --external-run-id ${JSON.stringify(input.externalRunId)}`,
+          activeAttemptIds: actives.map((a) => a.attemptId),
+        });
+      }
+    } else {
+      active = actives[0] ?? null;
+    }
     const pre = evaluateCancelPreCancelGate(input, active);
     if (!pre.ok) {
       return baseResult(input, action, {
