@@ -261,8 +261,7 @@ describe("evaluateSpawnRoutingHonor (#3703)", () => {
   });
 
   it("ignores --model mentions inside quoted prompt text", () => {
-    const cmd =
-      'claude --model composer-2.5-fast -p "mention --model elsewhere and --model=again"';
+    const cmd = 'claude --model composer-2.5-fast -p "mention --model elsewhere and --model=again"';
     expect(countModelFlagsInLauncherArgv(cmd)).toBe(1);
     expect(extractModelFromLauncherArgv(cmd)).toBe("composer-2.5-fast");
     expect(
