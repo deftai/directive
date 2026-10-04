@@ -464,6 +464,40 @@ shape. ⊗ Treat steer `text` as constitution self-edit. ⊗ Replace
 split-dispatch mid-scope approval gates with this inbox. ⊗ Invent
 OpenClaw `sessions_yield` or live `resume_from` on Grok Build.
 
+## Occupancy advisory coordination (#3729 Prefer-A)
+
+Occupancy is **advisory coordination** for accidental same-machine
+collision, not same-user authorization. Decision record: host-payload
+identity as the occupancy actor (cooperative routing). Module SoT:
+`packages/core/src/session/occupancy.ts`.
+
+! Lifetime pin: `OCCUPANCY_TTL_MS` is 20 minutes; tip ritual default
+  (`DEFAULT_SESSION_RITUAL_STALENESS_HOURS`) is 8 hours → **24:1**. Ritual
+  outlives the lease so ceremony can span idle gaps; the TTL stays short
+  so a dead holder frees the tree. Do not restate the Recut body 4h/12:1.
+
+! Two-axis policy: unknown lease (absent / not live) **fails open**;
+  unknown identity (live lease + stranger) **fails closed**. Prefer-A
+  selects **documented fail-open** as the free-tree coordination contract
+  (not auto-claim). Auto-claim remains a later posture change with its
+  own migration (#3156).
+
+! Mutation-surface matrix (occupancy is not universal):
+
+| Surface | Occupancy |
+|---|---|
+| Hook-gated tool writes (`inspectMutationGates`) | write-gate consult |
+| Spawn tools | dest-consult / parent write-gate hard-coded allow |
+| Shell dest-forms (`shellDestForms`) | opt-in; default `off` |
+| Push/merge (runtime authority) | not consulted |
+
+~ Remediation prefers another worktree / occupant grant / read-only over
+  steal-as-primary. Denial text states advisory coordination.
+
+⊗ Treat occupancy as protection against a determined same-user actor.
+⊗ Claim #4625 / #4624 / #4667 / #4993 as discharge of these ACs.
+⊗ Fail-close every product write without a migration posture (#3156).
+
 ## Cross-references
 
 - `task agent:monitor` -- the canonical monitor helper
