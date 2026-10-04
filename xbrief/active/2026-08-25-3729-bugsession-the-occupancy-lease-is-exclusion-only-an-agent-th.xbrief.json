@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3729",
-    "updated": "2026-10-04T01:41:59Z"
+    "updated": "2026-10-04T02:17:17Z"
   },
   "plan": {
     "title": "bug(session): the occupancy lease is exclusion-only -- an agent that never claims is never gated",
@@ -59,9 +59,9 @@
     ],
     "acceptance": {
       "commands": [],
-      "none_stated": false,
-      "source_rung": "bound",
-      "derived_reason": "Prefer-A Bound remedy stamped for through-merge",
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound clauses at activation; product verify_commands deferred to product PR #5290",
       "clauses": [
         {
           "id": 1,
@@ -102,6 +102,7 @@
       "ambiguity_attestation": "none_found"
     },
     "metadata": {
+      "productPullRequest": 5287,
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
@@ -115,11 +116,9 @@
           "CHANGELOG.md"
         ],
         "file_scope_confidence": "high",
-        "verify_commands": [
-          "task check"
-        ],
+        "verify_commands": [],
         "expected_outputs": [
-          "Tracking PR opened"
+          "Prefer-A Bound brief activated on delivery tip with concrete file_scope"
         ],
         "depends_on": [],
         "conflict_group": "occupancy-lease-claim-required",
@@ -128,6 +127,6 @@
       }
     },
     "id": "github.issue.5247648424",
-    "updated": "2026-10-04T01:41:59Z"
+    "updated": "2026-10-04T02:17:17Z"
   }
 }
