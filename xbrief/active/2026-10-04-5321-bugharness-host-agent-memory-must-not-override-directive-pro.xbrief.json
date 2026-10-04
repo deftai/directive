@@ -545,7 +545,8 @@
         "conflict_group": "host-memory-external-context-authority",
         "size": "M",
         "model_tier": "default"
-      }
+      },
+      "productPullRequest": 5327
     },
     "id": "github.issue.5700043888",
     "updated": "2026-10-04T14:33:51Z"
