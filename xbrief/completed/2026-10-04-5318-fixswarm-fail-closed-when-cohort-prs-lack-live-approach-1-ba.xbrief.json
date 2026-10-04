@@ -1,12 +1,19 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "updated": "2026-10-04T22:59:46Z"
+    "description": "Prefer-A leftover-complete for GitHub issue #5318 after product PR #5328",
+    "updated": "2026-10-04T23:10:00Z"
   },
   "plan": {
     "id": "github.issue.5699828589",
     "status": "completed",
     "title": "fix(swarm): fail closed when cohort PRs lack live Approach 1 babysitters",
+    "narratives": {
+      "Description": "fix(swarm): fail closed when cohort PRs lack live Approach 1 babysitters",
+      "Origin": "Prefer-A leftover-complete after product PR #5328 squash-merge; Tracking #5318.",
+      "Overview": "Product PR #5328 shipped cohort babysit inventory fail-closed. This leftover lands the completed Prefer-A lifecycle brief so verify:completed-tracked --issue 5318 can bind the tip record.",
+      "Action": "Land completed xBRIEF for #5318 after #5328; Refs-only leftover PR (no Closes)."
+    },
     "items": [
       {
         "id": "clause.1",
@@ -75,6 +82,18 @@
         "writtenAt": "2026-10-04T22:59:46Z"
       }
     },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5318",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5318: fix(swarm): fail closed when cohort PRs lack live Approach 1 babysitters"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/5328",
+        "type": "x-xbrief/github-pr",
+        "title": "PR #5328: fix(swarm): cohort babysit inventory fail-closed (Tracking #5318)"
+      }
+    ],
     "acceptance": {
       "commands": [
         {
@@ -88,7 +107,7 @@
         {
           "id": "clause.1",
           "text": "fix(swarm): fail closed when cohort PRs lack live Approach 1 babysitters",
-          "status": "pending",
+          "status": "completed",
           "artifact_path": null,
           "x-directive/disposition": {
             "disposition": "not_applicable",
@@ -105,6 +124,6 @@
         }
       ]
     },
-    "updated": "2026-10-04T22:59:46Z"
+    "updated": "2026-10-04T23:10:00Z"
   }
 }
