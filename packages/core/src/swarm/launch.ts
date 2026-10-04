@@ -103,6 +103,76 @@ export function storyFileScopePaths(story: ResolvedStory): string[] {
   }
 }
 
+/**
+ * Per-story judgment-gate candidate (#1511 review residual).
+ * Paths come from swarm.file_scope; labels/body from plan tags + narratives
+ * (optional swarm.judgment_labels / judgment_body overrides) so label and
+ * body-text gates can match. Cohort launch evaluates each story separately
+ * so per-story cleared_scope fingerprints stay valid.
+ */
+export function storyJudgmentCandidate(story: ResolvedStory): Candidate {
+  const paths = storyFileScopePaths(story);
+  let labels: string[] = [];
+  const bodyParts: string[] = [];
+  try {
+    const raw = JSON.parse(readFileSync(story.path, "utf8")) as {
+      plan?: {
+        title?: unknown;
+        tags?: unknown;
+        narratives?: Record<string, unknown>;
+        metadata?: {
+          swarm?: {
+            judgment_labels?: unknown;
+            judgment_body?: unknown;
+          };
+        };
+      };
+    };
+    const plan = raw.plan;
+    if (plan === undefined) {
+      return { paths, labels, body: "", state: "open", updated_at: null };
+    }
+    const swarm = plan.metadata?.swarm;
+    const overrideLabels = swarm?.judgment_labels;
+    if (Array.isArray(overrideLabels)) {
+      labels = overrideLabels.filter((t): t is string => typeof t === "string" && t.length > 0);
+    } else if (Array.isArray(plan.tags)) {
+      labels = plan.tags.filter((t): t is string => typeof t === "string" && t.length > 0);
+    } else {
+      const narrLabels = plan.narratives?.Labels;
+      if (typeof narrLabels === "string" && narrLabels.trim().length > 0) {
+        labels = narrLabels
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+      }
+    }
+    const overrideBody = swarm?.judgment_body;
+    if (typeof overrideBody === "string" && overrideBody.length > 0) {
+      bodyParts.push(overrideBody);
+    } else {
+      if (typeof plan.title === "string" && plan.title.length > 0) {
+        bodyParts.push(plan.title);
+      }
+      for (const key of ["Description", "Overview", "Origin"] as const) {
+        const value = plan.narratives?.[key];
+        if (typeof value === "string" && value.length > 0) {
+          bodyParts.push(value);
+        }
+      }
+    }
+  } catch {
+    // unreadable brief → path-only candidate
+  }
+  return {
+    paths,
+    labels,
+    body: bodyParts.join("\n\n"),
+    state: "open",
+    updated_at: null,
+  };
+}
+
 function clearanceFingerprint(entry: Record<string, unknown>): string | null {
   const gateId = typeof entry.gate_id === "string" ? entry.gate_id.trim() : "";
   const scope = typeof entry.cleared_scope === "string" ? entry.cleared_scope.trim() : "";
@@ -212,17 +282,6 @@ export function evaluateJudgmentClearancePosture(options: {
     envBag[DEFT_ALLOW_JUDGMENT_GATE_ENFORCE] === "true";
   const posture = bypassed ? GATE_ADVISE : options.gatePosture;
 
-  const paths: string[] = [];
-  const seen = new Set<string>();
-  for (const story of options.resolved) {
-    for (const p of storyFileScopePaths(story)) {
-      if (!seen.has(p)) {
-        seen.add(p);
-        paths.push(p);
-      }
-    }
-  }
-
   const recordedRaw = readClearances(options.projectRoot);
   const recorded = recordedRaw.filter(recordedClearanceHasHumanApproval);
   const rejectedUnapprovedLog = recordedRaw.length - recorded.length;
@@ -244,18 +303,7 @@ export function evaluateJudgmentClearancePosture(options: {
     seenKeys.add(key);
     authentic.push(entry);
   }
-  const candidate: Candidate = {
-    paths,
-    labels: [],
-    body: "",
-    state: "open",
-    updated_at: null,
-  };
-  const report = buildReport(options.projectRoot, candidate, {
-    posture,
-    clearances: authentic,
-  });
-  const rendered = renderReport(report);
+
   const advisoryParts: string[] = [];
   if (rejectedUnapprovedLog > 0) {
     advisoryParts.push(
@@ -275,9 +323,51 @@ export function evaluateJudgmentClearancePosture(options: {
         "(named emergency bypass; clearance ≠ emergency exception)",
     );
   }
-  advisoryParts.push(rendered);
 
-  const blocking = reportBlocking(report);
+  // Per-story candidates keep cleared_scope aligned with recorded clearances and
+  // carry tags/narratives so label and body-text gates can match (Greptile P1s).
+  type StoryCandidate = { storyId: string; candidate: Candidate };
+  const storyCandidates: StoryCandidate[] =
+    options.resolved.length > 0
+      ? options.resolved.map((story) => ({
+          storyId: story.story_id,
+          candidate: storyJudgmentCandidate(story),
+        }))
+      : [
+          {
+            storyId: "(none)",
+            candidate: {
+              paths: [],
+              labels: [],
+              body: "",
+              state: "open",
+              updated_at: null,
+            },
+          },
+        ];
+
+  const blocking: ReturnType<typeof reportBlocking> = [];
+  const seenBlocking = new Set<string>();
+  for (const { storyId, candidate } of storyCandidates) {
+    const report = buildReport(options.projectRoot, candidate, {
+      posture,
+      clearances: authentic,
+    });
+    if (report.outcomes.length > 0 || report.policy_error !== null) {
+      advisoryParts.push(`judgment-clearance story ${storyId}:\n${renderReport(report)}`);
+    } else if (storyCandidates.length === 1) {
+      advisoryParts.push(renderReport(report));
+    }
+    for (const outcome of reportBlocking(report)) {
+      const key = `${outcome.gate_id}:${outcome.cleared_scope}`;
+      if (seenBlocking.has(key)) {
+        continue;
+      }
+      seenBlocking.add(key);
+      blocking.push(outcome);
+    }
+  }
+
   if (posture === GATE_ENFORCE && blocking.length > 0) {
     const ids = blocking.map((o) => o.gate_id).join(", ");
     return {

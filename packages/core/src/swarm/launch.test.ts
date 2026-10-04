@@ -24,6 +24,7 @@ import {
   prepareWorkerCredentialInjection,
   type ResolvedStory,
   storyFileScopePaths,
+  storyJudgmentCandidate,
   swarmLaunch,
 } from "./launch.js";
 import {
@@ -1046,28 +1047,63 @@ afterEach(() => {
   }
 });
 
-function writeJcpStory(project: string, storyId: string, fileScope: string[]): ResolvedStory {
+function writeJcpStory(
+  project: string,
+  storyId: string,
+  fileScope: string[],
+  options?: {
+    tags?: string[];
+    title?: string;
+    description?: string;
+    judgmentLabels?: string[];
+    judgmentBody?: string;
+  },
+): ResolvedStory {
   const rel = `xbrief/active/${storyId}.xbrief.json`;
   const full = join(project, rel);
   mkdirSync(join(project, "xbrief", "active"), { recursive: true });
-  writeFileSync(
-    full,
-    JSON.stringify({
-      plan: {
-        id: storyId,
-        metadata: { swarm: { file_scope: fileScope } },
+  const plan: Record<string, unknown> = {
+    id: storyId,
+    metadata: {
+      swarm: {
+        file_scope: fileScope,
+        ...(options?.judgmentLabels !== undefined
+          ? { judgment_labels: options.judgmentLabels }
+          : {}),
+        ...(options?.judgmentBody !== undefined ? { judgment_body: options.judgmentBody } : {}),
       },
-    }),
-    "utf8",
-  );
+    },
+  };
+  if (options?.tags !== undefined) {
+    plan.tags = options.tags;
+  }
+  if (options?.title !== undefined || options?.description !== undefined) {
+    plan.title = options.title ?? storyId;
+    plan.narratives = {
+      ...(options?.description !== undefined ? { Description: options.description } : {}),
+    };
+  }
+  writeFileSync(full, JSON.stringify({ plan }), "utf8");
   return { token: storyId, story_id: storyId, path: full, relpath: rel };
 }
 
-function writeJcpProjectDef(project: string): void {
+function writeJcpProjectDef(
+  project: string,
+  options?: { judgmentGates?: Record<string, unknown>[] },
+): void {
   mkdirSync(join(project, "xbrief"), { recursive: true });
   writeFileSync(
     join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
-    JSON.stringify({ plan: { policy: { swarmSubagentBackend: "grok-build" } } }),
+    JSON.stringify({
+      plan: {
+        policy: {
+          swarmSubagentBackend: "grok-build",
+          ...(options?.judgmentGates !== undefined
+            ? { judgmentGates: options.judgmentGates }
+            : {}),
+        },
+      },
+    }),
     "utf8",
   );
 }
@@ -1249,5 +1285,80 @@ describe("evaluateJudgmentClearancePosture (#1511 P2-a)", () => {
     const project = jcpTempRoot();
     const storyLocal = writeJcpStory(project, "scoped", ["AGENTS.md", "src/a.ts"]);
     expect(storyFileScopePaths(storyLocal)).toEqual(["AGENTS.md", "src/a.ts"]);
+  });
+
+  it("honors per-story clearances across a multi-story cohort (not combined scope)", () => {
+    const project = jcpTempRoot();
+    writeJcpProjectDef(project);
+    const pathsA = ["secrets/a.env"];
+    const pathsB = ["secrets/b.env"];
+    const storyA = writeJcpStory(project, "secret-a", pathsA);
+    const storyB = writeJcpStory(project, "secret-b", pathsB);
+    recordClearance(project, {
+      gate_id: "secrets-and-credentials",
+      cleared_scope: fingerprintScope({ paths: pathsA }),
+      reviewers: ["scott"],
+      actor: "operator",
+    });
+    recordClearance(project, {
+      gate_id: "secrets-and-credentials",
+      cleared_scope: fingerprintScope({ paths: pathsB }),
+      reviewers: ["scott"],
+      actor: "operator",
+    });
+    const result = evaluateJudgmentClearancePosture({
+      projectRoot: project,
+      resolved: [storyA, storyB],
+      gatePosture: GATE_ENFORCE,
+      gateClearances: [],
+    });
+    expect(result.ok).toBe(true);
+    expect(result.posture).toBe(GATE_ENFORCE);
+  });
+
+  it("matches label/body-text gates from story tags and narratives", () => {
+    const project = jcpTempRoot();
+    writeJcpProjectDef(project, {
+      judgmentGates: [
+        {
+          id: "breaking-label-gate",
+          class: "mechanical",
+          tier: "block",
+          reason: "breaking-change label",
+          match: { labels: { "any-of": ["breaking-change"] } },
+        },
+        {
+          id: "breaking-body-gate",
+          class: "mechanical",
+          tier: "block",
+          reason: "BREAKING CHANGE body",
+          match: { "body-text": { "any-of": ["BREAKING CHANGE"] } },
+        },
+      ],
+    });
+    const tagged = writeJcpStory(project, "label-body", ["src/x.ts"], {
+      tags: ["breaking-change"],
+      title: "Ship BREAKING CHANGE API",
+      description: "Includes a BREAKING CHANGE for callers.",
+    });
+    const candidate = storyJudgmentCandidate(tagged);
+    expect(candidate.labels).toContain("breaking-change");
+    expect(candidate.body).toMatch(/BREAKING CHANGE/);
+    const advised = evaluateJudgmentClearancePosture({
+      projectRoot: project,
+      resolved: [tagged],
+      gatePosture: GATE_ADVISE,
+      gateClearances: [],
+    });
+    expect(advised.ok).toBe(true);
+    expect(advised.advisory).toMatch(/breaking-label-gate|breaking-body-gate/);
+    const enforced = evaluateJudgmentClearancePosture({
+      projectRoot: project,
+      resolved: [tagged],
+      gatePosture: GATE_ENFORCE,
+      gateClearances: [],
+    });
+    expect(enforced.ok).toBe(false);
+    expect(enforced.stderr).toMatch(/breaking-label-gate|breaking-body-gate/);
   });
 });
