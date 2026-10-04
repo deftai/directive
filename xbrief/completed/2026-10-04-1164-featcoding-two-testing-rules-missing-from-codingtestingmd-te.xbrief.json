@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #1164",
-    "updated": "2026-10-04T12:00:49Z"
+    "updated": "2026-10-04T17:39:44Z"
   },
   "plan": {
     "title": "feat(coding): two testing rules missing from coding/testing.md — test integrity + mock boundary",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(coding): two testing rules missing from coding/testing.md — test integrity + mock boundary",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1164",
@@ -15,24 +15,276 @@
     },
     "items": [
       {
-        "id": "bound-1",
-        "title": "Append ## Test integrity and ## Mock boundary after ## CI/CD Integration (end-placement for stable testing-069+ ids)",
-        "status": "completed"
+        "id": "clause.1",
+        "title": "Summary Two distinct testing rules from practitioner CLAUDE.md files are absent from directive's `coding/testing.md`.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
       },
       {
-        "id": "bound-2",
-        "title": "Pack SoT land: author testing.md then packs:render-rules/render/verify-drift; sync testing-001/030 and append 069+",
-        "status": "completed"
+        "id": "clause.2",
+        "title": "Rule 1: Test integrity — tests verify correctness, not define the solution > When tests fail, investigate root cause and fix the underlying issue.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
       },
       {
-        "id": "bound-3",
-        "title": "Rewrite testing-030 Unit Tests mocks conjunct to external-only / process-boundary form referencing Mock boundary",
-        "status": "completed"
+        "id": "clause.3",
+        "title": "Do not hard-code values, weaken assertions, or game around tests.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
       },
       {
-        "id": "bound-4",
-        "title": "Lock headings+bodies in coding_rules.test.ts; add #1164 to TestLessonsCrossReference; acceptance red-at-pin then green",
-        "status": "completed"
+        "id": "clause.4",
+        "title": "If a test appears incorrect, report it.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Directive's testing standards cover coverage thresholds, test-first discipline, and the 'claim checks passed without running them' anti-pattern (#1006 Fail Loud).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "But the inverse failure mode — an agent that makes tests *pass* by gaming them rather than fixing the underlying code — is unaddressed.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "This is a distinct, named anti-pattern: hard-coding expected values to satisfy a test, removing assertions to clear a failure, or restructuring code purely to satisfy test shapes rather than to be ...",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Rule 2: Mock boundary — mocks are acceptable for external services, not for your own data layer > Prefer integration tests over mocked unit tests for data flow and permissions.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "If a test passes with mocks but would fail against the real system, the test is wrong.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Directive's testing standards do not establish where mocking is appropriate vs where it hides real failure modes.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "The boundary: mock external services (third-party APIs, email providers, payment gateways), but not your own data access layer, internal services, or permission checks — those need integration test...",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "Source alleneubank/claude-code CLAUDE.md (https://github.com/alleneubank/claude-code/blob/main/CLAUDE.md) — 'Test integrity' and 'Test realism' sections.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "`coding/testing.md` — two new named rule sections",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "`tests/content/test_standards.py` or `tests/content/test_coding_rules.py` — content tests",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "#1006 (Fail Loud — claims correctness without verification; this addresses gaming verification itself)",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "#932 (tracer-bullet TDD — orthogonal; that is about vertical slicing, this is about test fidelity)",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5323",
+            "mintedAt": "2026-10-04T17:39:43.491Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T17:39:43.491Z"
+        }
       }
     ],
     "tags": [
@@ -56,12 +308,12 @@
       }
     ],
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/standards/coding_rules.test.ts"
+      ],
       "source_rung": "derived",
-      "derived_reason": "derived 2 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "Prefer-A leftover pathless derived after #5323",
       "sentences": [
-        "feat(coding): two testing rules missing from coding/testing.md — test integrity + mock boundary",
         "Summary Two distinct testing rules from practitioner CLAUDE.md files are absent from directive's `coding/testing.md`.",
         "Rule 1: Test integrity — tests verify correctness, not define the solution > When tests fail, investigate root cause and fix the underlying issue.",
         "Do not hard-code values, weaken assertions, or game around tests.",
@@ -97,27 +349,310 @@
         "#1006 (Fail Loud — claims correctness without verification; this addresses gaming verification itself)",
         "#932 (tracer-bullet TDD — orthogonal; that is about vertical slicing, this is about test fidelity)"
       ],
-      "admitted_source_digest": "40874221e6ac8251af1cfd6320944024eee0fd1a60cce97b10257b135db5ebe2",
       "clauses": [
         {
-          "id": "ac-1",
-          "text": "Append ## Test integrity and ## Mock boundary after ## CI/CD Integration (end-placement for stable testing-069+ ids)",
-          "status": "completed"
+          "id": 1,
+          "text": "Summary Two distinct testing rules from practitioner CLAUDE.md files are absent from directive's `coding/testing.md`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
         },
         {
-          "id": "ac-2",
-          "text": "Pack SoT land: author testing.md then packs:render-rules/render/verify-drift; sync testing-001/030 and append 069+",
-          "status": "completed"
+          "id": 2,
+          "text": "Rule 1: Test integrity — tests verify correctness, not define the solution > When tests fail, investigate root cause and fix the underlying issue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
         },
         {
-          "id": "ac-3",
-          "text": "Rewrite testing-030 Unit Tests mocks conjunct to external-only / process-boundary form referencing Mock boundary",
-          "status": "completed"
+          "id": 3,
+          "text": "Do not hard-code values, weaken assertions, or game around tests.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
         },
         {
-          "id": "ac-4",
-          "text": "Lock headings+bodies in coding_rules.test.ts; add #1164 to TestLessonsCrossReference; acceptance red-at-pin then green",
-          "status": "completed"
+          "id": 4,
+          "text": "If a test appears incorrect, report it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Directive's testing standards cover coverage thresholds, test-first discipline, and the 'claim checks passed without running them' anti-pattern (#1006 Fail Loud).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 6,
+          "text": "But the inverse failure mode — an agent that makes tests *pass* by gaming them rather than fixing the underlying code — is unaddressed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 7,
+          "text": "This is a distinct, named anti-pattern: hard-coding expected values to satisfy a test, removing assertions to clear a failure, or restructuring code purely to satisfy test shapes rather than to be correct.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 8,
+          "text": "Rule 2: Mock boundary — mocks are acceptable for external services, not for your own data layer > Prefer integration tests over mocked unit tests for data flow and permissions.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 9,
+          "text": "If a test passes with mocks but would fail against the real system, the test is wrong.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 10,
+          "text": "Directive's testing standards do not establish where mocking is appropriate vs where it hides real failure modes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 11,
+          "text": "The boundary: mock external services (third-party APIs, email providers, payment gateways), but not your own data access layer, internal services, or permission checks — those need integration tests against a real (test) instance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 12,
+          "text": "Source alleneubank/claude-code CLAUDE.md (https://github.com/alleneubank/claude-code/blob/main/CLAUDE.md) — 'Test integrity' and 'Test realism' sections.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 13,
+          "text": "`coding/testing.md` — two new named rule sections",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 14,
+          "text": "`tests/content/test_standards.py` or `tests/content/test_coding_rules.py` — content tests",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 15,
+          "text": "#1006 (Fail Loud — claims correctness without verification; this addresses gaming verification itself)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
+        },
+        {
+          "id": 16,
+          "text": "#932 (tracer-bullet TDD — orthogonal; that is about vertical slicing, this is about test fidelity)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5323 squash-merge (Tracking #1164). Bound limbs shipped; Greptile 5/5 CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5323",
+              "mintedAt": "2026-10-04T17:39:43.491Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T17:39:43.491Z"
+          }
         }
       ],
       "ambiguity_attestation": "none_found",
@@ -478,8 +1013,7 @@
         ],
         "file_scope_confidence": "high",
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/content-contracts/standards/coding_rules.test.ts",
-          "task packs:verify-drift"
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/coding_rules.test.ts"
         ],
         "expected_outputs": [
           "Tracking PR opened"
@@ -488,9 +1022,32 @@
         "conflict_group": "coding-testing-integrity-mock-boundary",
         "size": "S",
         "model_tier": "default"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5323,
+        "prBase": null,
+        "mergeCommit": "453f862af544ff18e13abeaaa03d8bd7d8e07ab4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "10ce7364f02350698152097d29ca978690e34a34",
+        "verifiedAt": "2026-10-04T17:39:44Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-04T17:39:44Z",
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T17:39:44Z"
       }
     },
     "id": "github.issue.4457067486",
-    "updated": "2026-10-04T12:00:49Z"
+    "updated": "2026-10-04T17:39:44Z"
   }
 }
