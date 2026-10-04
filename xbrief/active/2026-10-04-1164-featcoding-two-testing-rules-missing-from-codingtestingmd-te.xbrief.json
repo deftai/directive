@@ -124,7 +124,7 @@
       "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374."
     },
     "metadata": {
-      "productPullRequest": 5314,
+      "productPullRequest": 5324,
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
