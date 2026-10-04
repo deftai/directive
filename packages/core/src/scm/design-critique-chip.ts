@@ -7,18 +7,20 @@
 
 import { spawnSync } from "node:child_process";
 import {
-  applyIngestReadyRemainingSet,
-  DesignCritiqueIngestBlockedError,
-  IngestReadyCompletedArcProofError,
-  type ThreadComment,
-  threadCommentsFromIssueComments,
-} from "../design-critique/completed-arc-record.js";
-import {
   ensureCatalogChipLabel,
   formatDesignCritiqueJudgmentGatesRemediation,
   hasDesignCritiqueJudgmentGate,
   isDesignCritiqueDeposited,
 } from "../design-critique/catalog-chip-ensure.js";
+import {
+  applyIngestReadyRemainingSet,
+  DesignCritiqueIngestBlockedError,
+  evaluateTargetDigestAdmission,
+  IngestReadyCompletedArcProofError,
+  proveLiveThreadCompletedArcForIngestReady,
+  type ThreadComment,
+  threadCommentsFromIssueComments,
+} from "../design-critique/completed-arc-record.js";
 import {
   applyDesignCritiqueCatalogChip,
   type DesignCritiqueCatalogChip,
@@ -173,6 +175,17 @@ export function resolveRepoFromGitOrigin(): string | null {
   return parseGithubOwnerRepo(stdout);
 }
 
+/** Repo toplevel for deposit/judgmentGates advisory when CLI omits projectRoot. */
+export function resolveProjectRootFromGit(): string | null {
+  const result = spawnSync("git", ["rev-parse", "--show-toplevel"], {
+    encoding: "utf8",
+    env: process.env,
+  });
+  if (result.status !== 0) return null;
+  const stdout = typeof result.stdout === "string" ? result.stdout.trim() : "";
+  return stdout.length > 0 ? stdout : null;
+}
+
 class ChipUsageError extends Error {
   constructor(message: string) {
     super(message);
@@ -262,39 +275,117 @@ export function runDesignCritiqueChip(
           apply: (r, n, a, rem) => client.applyWithoutCatalogGate(r, n, a, rem),
         }
       : client;
-  try {
-    // Ensure-on-write for the catalog chip in the add set (#5326). Attach is
-    // catalog-aware only — not every ScmLabelClient.apply.
+
+  const ensureOrMiss = ():
+    | { readonly ok: true }
+    | { readonly ok: false; readonly result: DesignCritiqueChipResult } => {
     const ensured = ensureChip(repo, args.chip, seams.ghRest);
-    if (!ensured.ok) {
-      const missClass = ensured.missClass;
-      const message = `${CHIP_ENSURE_FAILED_TOKEN} (${missClass}): ${ensured.error}`;
-      const payload = {
-        repo,
-        issue: args.issue,
-        chip: args.chip,
-        applied: false,
-        miss: true,
-        missClass,
-        blocking: false,
-        error: message,
-      };
-      if (args.json) {
-        return { exitCode: 0, stdout: `${JSON.stringify(payload)}\n`, stderr: "" };
-      }
+    if (ensured.ok) {
+      return { ok: true };
+    }
+    const missClass = ensured.missClass;
+    const message = `${CHIP_ENSURE_FAILED_TOKEN} (${missClass}): ${ensured.error}`;
+    const payload = {
+      repo,
+      issue: args.issue,
+      chip: args.chip,
+      applied: false,
+      miss: true,
+      missClass,
+      blocking: false,
+      error: message,
+    };
+    if (args.json) {
       return {
+        ok: false,
+        result: { exitCode: 0, stdout: `${JSON.stringify(payload)}\n`, stderr: "" },
+      };
+    }
+    return {
+      ok: false,
+      result: {
         exitCode: 0,
         stdout: "",
         stderr:
           `${CHIP_APPLY_MISS_TOKEN}: ${message}\n` +
           "ingest is not blocked; remaining-set hygiene is optional for a write-capable identity\n",
-      };
-    }
+      },
+    };
+  };
 
+  try {
     let applied: { remaining: string[]; add: readonly string[]; remove: readonly string[] };
     if (args.chip === "design-critique:ingest-ready") {
+      // Arc + digest proof before ensure so ensure-fail cannot bypass proof
+      // refusal and refused writes do not leave a new repo-wide label (#5326).
       const comments = fetchComments(repo, args.issue);
       const liveIssueBody = fetchBody(repo, args.issue);
+      const verdict = proveLiveThreadCompletedArcForIngestReady({
+        comments,
+        issueNumber: args.issue,
+      });
+      if (verdict.status !== "complete") {
+        const proofErr = new IngestReadyCompletedArcProofError(args.issue, verdict, comments);
+        let standingLabels: string[] = [];
+        try {
+          standingLabels = client.fetchLabels(repo, args.issue);
+        } catch {
+          standingLabels = [];
+        }
+        if (standingLabels.includes(INGEST_READY_CHIP)) {
+          const overlay = formatStaleIngestReadyDiagnostic({
+            repo,
+            issueNumber: args.issue,
+            labels: standingLabels,
+            verdict,
+          }).text;
+          return proofFailResult(args, repo, new Error(`${proofErr.message}\n${overlay}`));
+        }
+        return proofFailResult(args, repo, proofErr);
+      }
+      const cited = comments.find((comment) => comment.id === verdict.citedLeanId);
+      const citedLeanBody = cited?.body ?? "";
+      const digestAdmission = evaluateTargetDigestAdmission({
+        citedLeanBody,
+        liveIssueBody,
+      });
+      if (digestAdmission.status === "blocked") {
+        const blockedVerdict = {
+          status: "blocked" as const,
+          reason: "stale-target" as const,
+          detail: digestAdmission.detail,
+        };
+        const proofErr = new IngestReadyCompletedArcProofError(
+          args.issue,
+          blockedVerdict,
+          comments,
+        );
+        let standingLabels: string[] = [];
+        try {
+          standingLabels = client.fetchLabels(repo, args.issue);
+        } catch {
+          standingLabels = [];
+        }
+        if (standingLabels.includes(INGEST_READY_CHIP)) {
+          const overlay = formatStaleIngestReadyDiagnostic({
+            repo,
+            issueNumber: args.issue,
+            labels: standingLabels,
+            verdict: blockedVerdict,
+            digestAdmission,
+            liveIssueBody,
+            citedLeanBody,
+          }).text;
+          return proofFailResult(args, repo, new Error(`${proofErr.message}\n${overlay}`));
+        }
+        return proofFailResult(args, repo, proofErr);
+      }
+
+      const ensured = ensureOrMiss();
+      if (!ensured.ok) {
+        return ensured.result;
+      }
+
       const outcome = applyIngestReadyRemainingSet(
         writeClient,
         repo,
@@ -330,13 +421,18 @@ export function runDesignCritiqueChip(
       }
       applied = outcome;
     } else {
+      // Ensure-on-write for non-ingest catalog chips (#5326).
+      const ensured = ensureOrMiss();
+      if (!ensured.ok) {
+        return ensured.result;
+      }
       applied = applyDesignCritiqueCatalogChip(writeClient, repo, args.issue, args.chip);
     }
 
     // First-arc judgmentGates advisory: no pin-present durable policy writer for
     // judgmentGates (S1); loud advisory when deposited and gate dark (#5326).
     let gateAdvisory = "";
-    const projectRoot = seams.projectRoot ?? process.cwd();
+    const projectRoot = seams.projectRoot ?? resolveProjectRootFromGit() ?? process.cwd();
     if (isDesignCritiqueDeposited(projectRoot) && !hasDesignCritiqueJudgmentGate(projectRoot)) {
       gateAdvisory = formatDesignCritiqueJudgmentGatesRemediation();
     }
