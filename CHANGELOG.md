@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Presentation-coverage snapshot fixture stages git mode 120000 via plumbing (#5285).** Privilege-less Windows exercises unsupported-mode handling without `symlinkSync` / Developer Mode; skip/catch-return/junction forbidden for this carrier case. Directory-at-authority leftover #5292. Tracking #5285.
+
 ### Removed
 
 ## [0.120.0] - 2026-10-04
