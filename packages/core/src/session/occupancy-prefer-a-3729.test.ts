@@ -42,9 +42,9 @@ describe("occupancy Prefer-A Bound (#3729)", () => {
     expect(OCCUPANCY_PINNED_RITUAL_STALENESS_HOURS).toBe(8);
     expect(DEFAULT_SESSION_RITUAL_STALENESS_HOURS).toBe(OCCUPANCY_PINNED_RITUAL_STALENESS_HOURS);
     expect(OCCUPANCY_VS_RITUAL_TTL_RATIO).toBe(24);
-    expect(
-      (DEFAULT_SESSION_RITUAL_STALENESS_HOURS * 60 * 60 * 1000) / OCCUPANCY_TTL_MS,
-    ).toBe(OCCUPANCY_VS_RITUAL_TTL_RATIO);
+    expect((DEFAULT_SESSION_RITUAL_STALENESS_HOURS * 60 * 60 * 1000) / OCCUPANCY_TTL_MS).toBe(
+      OCCUPANCY_VS_RITUAL_TTL_RATIO,
+    );
     expect(OCCUPANCY_VS_RITUAL_LIFETIME_RATIONALE).toMatch(/24:1/);
     expect(OCCUPANCY_VS_RITUAL_LIFETIME_RATIONALE).toMatch(/advisory coordination/i);
     // Prefer-A: do not restate Recut body 4h / 12:1 as the tip pin.
@@ -70,7 +70,9 @@ describe("occupancy Prefer-A Bound (#3729)", () => {
     const writeGate = OCCUPANCY_MUTATION_SURFACE_MATRIX.find(
       (row) => row.surface === "hook-gated-tool-writes",
     );
-    const spawnTools = OCCUPANCY_MUTATION_SURFACE_MATRIX.find((row) => row.surface === "spawn-tools");
+    const spawnTools = OCCUPANCY_MUTATION_SURFACE_MATRIX.find(
+      (row) => row.surface === "spawn-tools",
+    );
     const shellDest = OCCUPANCY_MUTATION_SURFACE_MATRIX.find(
       (row) => row.surface === "shell-dest-forms",
     );
@@ -140,11 +142,7 @@ describe("occupancy Prefer-A Bound (#3729)", () => {
     });
     const record = readOccupancy(root);
     expect(record).not.toBeNull();
-    const message = formatOccupancyRemediation(
-      record!,
-      new Date("2026-10-04T00:05:00Z"),
-      "other",
-    );
+    const message = formatOccupancyRemediation(record!, new Date("2026-10-04T00:05:00Z"), "other");
     expect(message.startsWith(OCCUPANCY_ADVISORY_COORDINATION_PREFACE)).toBe(true);
     expect(message).toContain("Use another worktree");
     expect(OCCUPANCY_ADVISORY_COORDINATION_PREFACE).toMatch(/advisory coordination/i);
