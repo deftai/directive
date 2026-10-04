@@ -81,9 +81,10 @@ export function resolveContentPackageRoot(searchFrom: string): string | null {
  * package ships only `package.json` + `stage-pack.mjs` in git; preferring that
  * empty root shadows in-repo `content/templates` and fails
  * `agents-md-freshness` on rule-relocation PRs (#1589 CI).
+ * Markers include templates/skills plus flattened vbrief schemas (#4310).
  */
 function contentPackageHasStagedContent(packageRoot: string): boolean {
-  for (const name of ["templates", "skills"] as const) {
+  for (const name of ["templates", "skills", "vbrief"] as const) {
     try {
       if (statSync(join(packageRoot, name)).isDirectory()) {
         return true;
