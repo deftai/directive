@@ -245,7 +245,7 @@ export const OCCUPANCY_MUTATION_SURFACE_MATRIX: readonly OccupancyMutationSurfac
     tipRelpath: "packages/core/src/hooks/dispatcher.ts",
     tipMarkers: [
       "decideShellOrMcpRuntimeAuthority",
-      "Push/merge stay",
+      "return decideShellOrMcpRuntimeAuthority(input, toolName, seams);",
     ],
     note: "Classifiable push/merge route to runtimeAuthority (#2711); occupancy is not consulted.",
   },

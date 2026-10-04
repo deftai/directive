@@ -70,11 +70,27 @@ describe("occupancy Prefer-A Bound (#3729)", () => {
     const writeGate = OCCUPANCY_MUTATION_SURFACE_MATRIX.find(
       (row) => row.surface === "hook-gated-tool-writes",
     );
+    const spawnTools = OCCUPANCY_MUTATION_SURFACE_MATRIX.find((row) => row.surface === "spawn-tools");
+    const shellDest = OCCUPANCY_MUTATION_SURFACE_MATRIX.find(
+      (row) => row.surface === "shell-dest-forms",
+    );
     const pushMerge = OCCUPANCY_MUTATION_SURFACE_MATRIX.find(
       (row) => row.surface === "push-merge-runtime-authority",
     );
     expect(writeGate?.consult).toBe("write-gate");
+    expect(spawnTools?.consult).toBe("dest-consult-or-hard-coded-allow");
+    expect(shellDest?.consult).toBe("opt-in-shellDestForms-enforce");
     expect(pushMerge?.consult).toBe("not-consulted");
+    // Push/merge tipMarkers must resolve to live dispatcher code (not comment-only).
+    const dispatcher = tipSource("packages/core/src/hooks/dispatcher.ts");
+    for (const marker of pushMerge?.tipMarkers ?? []) {
+      const idx = dispatcher.indexOf(marker);
+      expect(idx, `missing live marker ${JSON.stringify(marker)}`).toBeGreaterThanOrEqual(0);
+      const lineStart = dispatcher.lastIndexOf("\n", idx) + 1;
+      const lineEnd = dispatcher.indexOf("\n", idx);
+      const line = dispatcher.slice(lineStart, lineEnd === -1 ? undefined : lineEnd).trimStart();
+      expect(line.startsWith("//") || line.startsWith("*")).toBe(false);
+    }
     // A matrix confined to evaluateOccupancyWriteGate alone does not discharge AC2.
     expect(
       OCCUPANCY_MUTATION_SURFACE_MATRIX.some((row) => row.surface !== "hook-gated-tool-writes"),

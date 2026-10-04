@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Occupancy Prefer-A Bound pins lifetime, mutation-surface matrix, and two-axis policy (#3729).** Module states lease-versus-ritual 20m vs 8h (24:1) with recorded rationale; exports a tip-asserted mutation-surface matrix (hook writes, spawn dest-consult/hard-coded allow, opt-in `shellDestForms`, push/merge via runtime authority); documents unknown-lease fail-open / unknown-identity fail-closed and selects documented fail-open as the free-tree coordination contract (not auto-claim). Advisory remediation preface + docs. Retires the #4625 write-gate fail-open leftover park on this issue. Does not convert occupancy into same-user authorization; does not claim #4625/#4624/#4667/#4993 as AC discharge. Tracking #3729.
+- **Occupancy stays advisory coordination with pinned lease lifetime (#3729).** Documents lease-versus-ritual timing, which mutation paths consult occupancy, and the free-tree fail-open / unknown-identity fail-closed contract. Tracking #3729.
 
 ### Changed
 - Remove the stale proposed scope brief for #3729 so activation PR #5287 can add the active brief alone (#5299).
