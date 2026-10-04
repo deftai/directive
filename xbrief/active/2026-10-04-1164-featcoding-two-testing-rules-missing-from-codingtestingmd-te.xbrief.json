@@ -1,0 +1,493 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1164",
+    "updated": "2026-10-04T12:00:49Z"
+  },
+  "plan": {
+    "title": "feat(coding): two testing rules missing from coding/testing.md — test integrity + mock boundary",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(coding): two testing rules missing from coding/testing.md — test integrity + mock boundary",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1164",
+      "Overview": "## Summary\n\nTwo distinct testing rules from practitioner CLAUDE.md files are absent from directive's `coding/testing.md`.\n\n## Rule 1: Test integrity — tests verify correctness, not define the solution\n\n> When tests fail, investigate root cause and fix the underlying issue. Do not hard-code values, weaken assertions, or game around tests. If a test appears incorrect, report it.\n\nDirective's testing standards cover coverage thresholds, test-first discipline, and the 'claim checks passed without running them' anti-pattern (#1006 Fail Loud). But the inverse failure mode — an agent that makes tests *pass* by gaming them rather than fixing the underlying code — is unaddressed.\n\nThis is a distinct, named anti-pattern: hard-coding expected values to satisfy a test, removing assertions to clear a failure, or restructuring code purely to satisfy test shapes rather than to be correct.\n\n## Rule 2: Mock boundary — mocks are acceptable for external services, not for your own data layer\n\n> Prefer integration tests over mocked unit tests for data flow and permissions. If a test passes with mocks but would fail against the real system, the test is wrong.\n\nDirective's testing standards do not establish where mocking is appropriate vs where it hides real failure modes. The boundary: mock external services (third-party APIs, email providers, payment gateways), but not your own data access layer, internal services, or permission checks — those need integration tests against a real (test) instance.\n\n## Source\n\nalleneubank/claude-code CLAUDE.md (https://github.com/alleneubank/claude-code/blob/main/CLAUDE.md) — 'Test integrity' and 'Test realism' sections.\n\n## Files affected\n\n- `coding/testing.md` — two new named rule sections\n- `tests/content/test_standards.py` or `tests/content/test_coding_rules.py` — content tests\n\n## Related\n\n- #1006 (Fail Loud — claims correctness without verification; this addresses gaming verification itself)\n- #932 (tracer-bullet TDD — orthogonal; that is about vertical slicing, this is about test fidelity)",
+      "Labels": "documentation, design, coding-standards, agent-experience, process, source-of-truth, urgent, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "bound-1",
+        "title": "Append ## Test integrity and ## Mock boundary after ## CI/CD Integration (end-placement for stable testing-069+ ids)",
+        "status": "pending"
+      },
+      {
+        "id": "bound-2",
+        "title": "Pack SoT land: author testing.md then packs:render-rules/render/verify-drift; sync testing-001/030 and append 069+",
+        "status": "pending"
+      },
+      {
+        "id": "bound-3",
+        "title": "Rewrite testing-030 Unit Tests mocks conjunct to external-only / process-boundary form referencing Mock boundary",
+        "status": "pending"
+      },
+      {
+        "id": "bound-4",
+        "title": "Lock headings+bodies in coding_rules.test.ts; add #1164 to TestLessonsCrossReference; acceptance red-at-pin then green",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "documentation",
+      "design",
+      "coding-standards",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1164",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1164: feat(coding): two testing rules missing from coding/testing.md — test integrity + mock boundary"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 2 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "feat(coding): two testing rules missing from coding/testing.md — test integrity + mock boundary",
+        "Summary Two distinct testing rules from practitioner CLAUDE.md files are absent from directive's `coding/testing.md`.",
+        "Rule 1: Test integrity — tests verify correctness, not define the solution > When tests fail, investigate root cause and fix the underlying issue.",
+        "Do not hard-code values, weaken assertions, or game around tests.",
+        "If a test appears incorrect, report it.",
+        "Directive's testing standards cover coverage thresholds, test-first discipline, and the 'claim checks passed without running them' anti-pattern (#1006 Fail Loud).",
+        "But the inverse failure mode — an agent that makes tests *pass* by gaming them rather than fixing the underlying code — is unaddressed.",
+        "This is a distinct, named anti-pattern: hard-coding expected values to satisfy a test, removing assertions to clear a failure, or restructuring code purely to satisfy test shapes rather than to be correct.",
+        "Rule 2: Mock boundary — mocks are acceptable for external services, not for your own data layer > Prefer integration tests over mocked unit tests for data flow and permissions.",
+        "If a test passes with mocks but would fail against the real system, the test is wrong.",
+        "Directive's testing standards do not establish where mocking is appropriate vs where it hides real failure modes.",
+        "The boundary: mock external services (third-party APIs, email providers, payment gateways), but not your own data access layer, internal services, or permission checks — those need integration tests against a real (test) instance.",
+        "Source alleneubank/claude-code CLAUDE.md (https://github.com/alleneubank/claude-code/blob/main/CLAUDE.md) — 'Test integrity' and 'Test realism' sections.",
+        "`coding/testing.md` — two new named rule sections",
+        "`tests/content/test_standards.py` or `tests/content/test_coding_rules.py` — content tests",
+        "#1006 (Fail Loud — claims correctness without verification; this addresses gaming verification itself)",
+        "#932 (tracer-bullet TDD — orthogonal; that is about vertical slicing, this is about test fidelity)"
+      ],
+      "admitted_source_sentences": [
+        "Summary Two distinct testing rules from practitioner CLAUDE.md files are absent from directive's `coding/testing.md`.",
+        "Rule 1: Test integrity — tests verify correctness, not define the solution > When tests fail, investigate root cause and fix the underlying issue.",
+        "Do not hard-code values, weaken assertions, or game around tests.",
+        "If a test appears incorrect, report it.",
+        "Directive's testing standards cover coverage thresholds, test-first discipline, and the 'claim checks passed without running them' anti-pattern (#1006 Fail Loud).",
+        "But the inverse failure mode — an agent that makes tests *pass* by gaming them rather than fixing the underlying code — is unaddressed.",
+        "This is a distinct, named anti-pattern: hard-coding expected values to satisfy a test, removing assertions to clear a failure, or restructuring code purely to satisfy test shapes rather than to be correct.",
+        "Rule 2: Mock boundary — mocks are acceptable for external services, not for your own data layer > Prefer integration tests over mocked unit tests for data flow and permissions.",
+        "If a test passes with mocks but would fail against the real system, the test is wrong.",
+        "Directive's testing standards do not establish where mocking is appropriate vs where it hides real failure modes.",
+        "The boundary: mock external services (third-party APIs, email providers, payment gateways), but not your own data access layer, internal services, or permission checks — those need integration tests against a real (test) instance.",
+        "Source alleneubank/claude-code CLAUDE.md (https://github.com/alleneubank/claude-code/blob/main/CLAUDE.md) — 'Test integrity' and 'Test realism' sections.",
+        "`coding/testing.md` — two new named rule sections",
+        "`tests/content/test_standards.py` or `tests/content/test_coding_rules.py` — content tests",
+        "#1006 (Fail Loud — claims correctness without verification; this addresses gaming verification itself)",
+        "#932 (tracer-bullet TDD — orthogonal; that is about vertical slicing, this is about test fidelity)"
+      ],
+      "admitted_source_digest": "40874221e6ac8251af1cfd6320944024eee0fd1a60cce97b10257b135db5ebe2",
+      "clauses": [
+        {
+          "id": "ac-1",
+          "text": "Append ## Test integrity and ## Mock boundary after ## CI/CD Integration (end-placement for stable testing-069+ ids)",
+          "status": "pending"
+        },
+        {
+          "id": "ac-2",
+          "text": "Pack SoT land: author testing.md then packs:render-rules/render/verify-drift; sync testing-001/030 and append 069+",
+          "status": "pending"
+        },
+        {
+          "id": "ac-3",
+          "text": "Rewrite testing-030 Unit Tests mocks conjunct to external-only / process-boundary form referencing Mock boundary",
+          "status": "pending"
+        },
+        {
+          "id": "ac-4",
+          "text": "Lock headings+bodies in coding_rules.test.ts; add #1164 to TestLessonsCrossReference; acceptance red-at-pin then green",
+          "status": "pending"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "DCR still fails `R.1164` on Directive 0.119.11.\n\nPack: `corecap-reg-2026-09-29`.\nStacks that failed: Scripted (det).\n\nWhat we saw:\n- Scripted (det): `anti_game=True named_sections=False`\n\nFailure mode key: c6b7417e200d\n<!-- dcr-failure-mode: c6b7417e200d -->\n\nRefs deftai/DevHammer#340\n\n",
+          "id": 5900477282,
+          "html_url": "https://github.com/deftai/directive/issues/1164#issuecomment-5900477282",
+          "user": {
+            "login": "Shinran7",
+            "id": 268619852,
+            "node_id": "U_kgDOEALQTA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/268619852?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/Shinran7",
+            "html_url": "https://github.com/Shinran7",
+            "followers_url": "https://api.github.com/users/Shinran7/followers",
+            "following_url": "https://api.github.com/users/Shinran7/following{/other_user}",
+            "gists_url": "https://api.github.com/users/Shinran7/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/Shinran7/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/Shinran7/subscriptions",
+            "organizations_url": "https://api.github.com/users/Shinran7/orgs",
+            "repos_url": "https://api.github.com/users/Shinran7/repos",
+            "events_url": "https://api.github.com/users/Shinran7/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/Shinran7/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-29T22:42:42Z",
+          "updated_at": "2026-09-29T22:42:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## What DCR found (plain English)\n\nDirective Core-Capabilities Regression (DCR) re-checked **feat(coding): two testing rules missing from coding/testing.md — test in...** (`R.1164`) and this check failed.\nThe harness recorded this evidence: `anti_game=True named_sections=False`.\nFailed on: Scripted (det).\n\n## What failed\n\n- **Scripted (det)**: (undecoded) — raw: `anti_game=True named_sections=False`\n\n## What passed / invalid\n\n- No other stack recorded a PASS for this check in this pack.\n- No harness-invalid cells recorded for this check.\n\n## Scope\n\n- Check: `R.1164` — feat(coding): two testing rules missing from coding/testing.md — test in...\n- Predicate: `det.testing_md_anti_game_guidance`\n- This report is the **whole-issue grain** for catalog check `R.1164` (ticket #1164). DCR still scores one harness predicate (`det.testing_md_anti_game_guidance`) / one failure mode — other predicates on the same ticket are not covered.\n\n## Why the ticket stays open / next\n\nKeep this ticket open until a later DCR pack shows a clean product PASS for this check (harness-invalid cells do not count as a fix).\n\n---\n\n- Pack: `corecap-reg-2026-10-01`\n- Directive pin: `0.119.13`\n- Check id: `R.1164`\n\nFailure mode key: c6b7417e200d\n<!-- dcr-failure-mode: c6b7417e200d -->\n\nHarness maintainers: DevHammer DCR epic #340 (internal).\n\n",
+          "id": 5944829279,
+          "html_url": "https://github.com/deftai/directive/issues/1164#issuecomment-5944829279",
+          "user": {
+            "login": "Shinran7",
+            "id": 268619852,
+            "node_id": "U_kgDOEALQTA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/268619852?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/Shinran7",
+            "html_url": "https://github.com/Shinran7",
+            "followers_url": "https://api.github.com/users/Shinran7/followers",
+            "following_url": "https://api.github.com/users/Shinran7/following{/other_user}",
+            "gists_url": "https://api.github.com/users/Shinran7/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/Shinran7/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/Shinran7/subscriptions",
+            "organizations_url": "https://api.github.com/users/Shinran7/orgs",
+            "repos_url": "https://api.github.com/users/Shinran7/repos",
+            "events_url": "https://api.github.com/users/Shinran7/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/Shinran7/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T03:01:48Z",
+          "updated_at": "2026-10-02T03:01:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because coding/testing.md still lacks the two named Test integrity and Mock boundary sections DCR R.1164 scores as named_sections=False, the rendered file is pack-generated so a hand-edit of content/coding/testing.md would drift on packs:render, and the live Unit Tests \"use mocks/stubs\" MUST conflicts with the proposed mock-boundary rule unless Bound rewrites that conjunct.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-1164-dc\norigin-ref: origin/HEAD\ndispatch-sha: 789dc5f36d54e7be705ca5d91fb7c14f264a0a0e\ndest-wo: leftover-complete\n\nspend: N≥3\nspend-ask: asked\nspend-recommend: N≥3\nspend-why: operator \"evaluate and arc using recommended n= 1164\"; open Bound on pack SoT vs hand-edit path, Unit Tests mocks conjunct vs mock-boundary, and DCR named_sections oracle shape; core-capabilities / promise:gates / urgent / DCR still red on 0.119.13.\nDual-stop cap: 3 posts\ndual-stop-reserved: first post-lean pain-audit of asserted coverage is in-cap without raise (evaluateDualStopReservedSlot / evaluateDualStopParentPath / deriveReservedPainAuditPostsUsed)\n\npain: P1, P2, P3, P4\n\n- P1. Named sections missing: at pin 789dc5f36d54, content/coding/testing.md has no operative Test integrity / Mock boundary (or Test realism) named sections; DCR R.1164 records anti_game=True named_sections=False on det.testing_md_anti_game_guidance, so anti-pattern bullets alone do not discharge the named-section predicate.\n- P2. Pack SoT vs hand-edit: testing.md header says AUTO-GENERATED from packs/rules/rules-pack-0.1.json via task packs:render; issue body Files affected names coding/testing.md for direct edit — Bound must name the rules-pack body/section write + packs:render (and refuse hand-edit of the rendered file as the durable land).\n- P3. Mock-boundary vs Unit Tests mocks: Unit Tests currently carries \"! No external dependencies (use mocks/stubs)\" while Rule 2 forbids mocking own data layer / permissions; without a coherent rewrite those two MUSTs collide and agents can pick either.\n- P4. Content-test / oracle bind: issue names tests/content/test_standards.py or test_coding_rules.py; Bound must pin the live content-contract / pack fixture surface that asserts the two named sections (and keeps anti_game guidance) without editing the DCR harness or weakening #3156 gate integrity.\n\nverification-path: pin-read git show 789dc5f36d54e7be705ca5d91fb7c14f264a0a0e: ; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:b532bcbb4f8c0fcd47a9565b4e6f2779773960037363436bfe3afb2e0e1db7b1\ntarget: #1164\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #1006 (Fail Loud — claims without verification; this is gaming verification itself) #932 (tracer-bullet TDD; orthogonal) #3156 (gate integrity) DevHammer DCR #340 / R.1164 packs corecap-reg-2026-09-29 and corecap-reg-2026-10-01\n\n## Gate stamp\n\nRound-1 ceiling is this write-back plus panel-deposit (spend N≥3). Families: grok, claude, codex.\n\n## Plain-language summary\n\nDirective's testing standards still do not name Test integrity (do not game failing tests) or Mock boundary (mock external services, not your own data layer). DCR keeps failing because those named sections are absent even though some anti-pattern bullets look related. The durable fix has to land in the rules pack and reconcile the existing \"use mocks/stubs\" unit-test line, with content tests that lock the named sections — not a one-off edit of the rendered markdown.\n\n",
+          "id": 5956999021,
+          "html_url": "https://github.com/deftai/directive/issues/1164#issuecomment-5956999021",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:46:31Z",
+          "updated_at": "2026-10-02T16:46:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5957018185\nfamilies: grok, claude, codex\nlaunchers: spawn_subagent|grok-cli, claude, codex\ndispatch-sha: 789dc5f36d54e7be705ca5d91fb7c14f264a0a0e\narc-mode: no-ingest\nspend: N≥3\nlaunch-probe: claude=pong rc0; codex=pong rc0; grok=pong rc0\nverification-path: pin-read git show 789dc5f36d54e7be705ca5d91fb7c14f264a0a0e: ; dest cwd-without-occupy\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-1164-dc\norigin-ref: origin/HEAD\npin-kind: origin-default\nStop-1: 5956999021\nTarget-digest cite (Stop 1 only): sha256:b532bcbb4f8c0fcd47a9565b4e6f2779773960037363436bfe3afb2e0e1db7b1\n\n## Seat plan\n\n- grok: fresh critic, id-ceiling = this panel-deposit after self-patch\n- claude: fresh critic, same ceiling\n- codex: fresh critic, same ceiling\n\nCritics read Stop 1 + this deposit only. Post findings; EXIT after post.\n\n",
+          "id": 5957018185,
+          "html_url": "https://github.com/deftai/directive/issues/1164#issuecomment-5957018185",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:47:48Z",
+          "updated_at": "2026-10-02T16:47:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#1164\ncharter: open critique\nspend: N≥3\nround: 1\ncritic-role: fresh\nid-ceiling: 5957018185\ndispatch-sha: 789dc5f36d54e7be705ca5d91fb7c14f264a0a0e\narc-mode: no-ingest\naudit-targets: none\nseat: grok\nlauncher: grok-cli\n\n## Pain dispositions (Stop 1 P1–P4)\n\n### P1 named sections missing — support\nblocks-the-design\n\nAt pin `789dc5f36d54e7be705ca5d91fb7c14f264a0a0e`, `git show …:content/coding/testing.md` headings are only: Universal Requirements, Test-First Development, Coverage, Test Types, Language-Specific Details, Test Organization, Best Practices, Anti-patterns, CI/CD Integration. `git grep` over `content/` + content-contracts for `Test integrity`, `Mock boundary`, and `Test realism` is empty. Anti-pattern bullets (`⊗ assume its ok for a test to fail…`, `⊗ Mock everything…`) sit under `## Anti-patterns` and do not create the DCR-named sections. Stop 1’s `anti_game=True named_sections=False` read holds: bullet presence ≠ named-section discharge.\n\n### P2 pack SoT vs hand-edit — support\nblocks-the-design\n\nRendered file opens `<!-- AUTO-GENERATED by task packs:render -- DO NOT EDIT MANUALLY -->` / `Source of truth: packs/rules/rules-pack-0.1.json`. The full document body lives on pack rule `testing-001` (`path: coding/testing.md`, non-null `body`). A durable land that edits only `content/coding/testing.md` is wiped on the next `task packs:render`. Bound must name pack body/section write + render + drift check, and refuse hand-edit of the rendered file as the durable land.\n\n### P3 Unit Tests mocks conjunct vs mock-boundary — support\nblocks-the-design\n\nPack rule `testing-030` / Unit Tests line is still `! No external dependencies (use mocks/stubs)`. Anti-patterns only bans `⊗ Mock everything (integration tests needed too)`. That MUST licenses broad own-layer mocks. A Mock boundary that forbids mocking own data layer / permissions collides unless Bound rewrites the Unit Tests conjunct to external-only mocks (services/IO) and keeps own data layer / permissions on the real path. Without that rewrite agents can pick either MUST.\n\n### P4 content-test / oracle bind — support, with sharpen\nsharpens-framing\n\nSupport: Bound must pin a live content-contract assertion that the two named headings exist (with operative `!` / `⊗` body) and that anti-game guidance remains, without editing the DCR harness or weakening #3156.\n\nSharpen: at this pin the live surface is `packages/core/src/content-contracts/standards/coding_rules.test.ts` (heading helpers already used for `#1005` / `#1006` on hygiene/coding). `tests/content/test_coding_rules.py` / `test_standards.py` are not the live TS content-contract path Stop 1’s issue-name sketch may imply. Prefer binding new `TestIntegrity` / `MockBoundary` describes next to the existing Fail-Loud / Surface-Conflicts pattern via `readText(\"coding/testing.md\")` after render — not a Python-only path, and not a DCR oracle edit.\n\n## Prefer-A Bound sketch\n\nLand Test integrity + Mock boundary as named `##` sections through the rules pack, reconcile the Unit Tests mocks conjunct, and lock the live content-contract surface.\n\n1. Edit `content/packs/rules/rules-pack-0.1.json` rule `testing-001` `body` (SoT) to insert operative `## Test integrity` and `## Mock boundary` sections with RFC2119 `!` / `⊗` bullets that forbid gaming failing tests / weakening gates to go green, and that restrict mocks to external services while keeping own data layer and permissions real.\n2. Rewrite the Unit Tests conjunct (`testing-030` text + matching body line) from blanket `No external dependencies (use mocks/stubs)` to an external-only mocks form that does not license mocking own data layer / permissions; keep Integration Tests as the real-dependency complement; leave `⊗ Mock everything` as a supporting anti-pattern, not the named section.\n3. Run `task packs:render` so `content/coding/testing.md` regenerates from pack SoT; treat hand-edit of the rendered markdown as non-durable / refuse it as the land path; prove with `task packs:verify-drift` / `task verify:pack-drift` clean.\n4. Extend `packages/core/src/content-contracts/standards/coding_rules.test.ts` (live surface) with heading-present + MUST + MUST_NOT assertions on `## Test integrity` and `## Mock boundary` in `coding/testing.md`, mirroring the `#1005`/`#1006` helpers; keep anti-game guidance covered. Do not edit DCR harness oracles; do not lower #3156 gate integrity to go green.\n\n## Reject / out of contract\n\n- Editing DCR harness oracles / `named_sections` detectors to green without landing the sections.\n- Weakening #3156 gate integrity (clearing red by changing the gate rather than the product/process under test).\n- Claiming `#1006` Fail Loud already covers test gaming: at pin, Fail Loud lives under `content/coding/coding.md` (`## Fail Loud: Completion Claims Require Outcome Verification (#1006)`) and targets outcome-blind completion claims, not named Test integrity / Mock boundary on `testing.md`, and not the Unit Tests mocks conjunct collision.\n\n## Plain-language summary\n\nStop 1’s four pains hold on the pin. Prefer-A is pack-body sections + Unit Tests rewrite + packs:render + coding_rules.test.ts locks — not a hand-edit of rendered testing.md, not a DCR oracle tweak, and not “Fail Loud already did it.”",
+          "id": 5957073256,
+          "html_url": "https://github.com/deftai/directive/issues/1164#issuecomment-5957073256",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:51:03Z",
+          "updated_at": "2026-10-02T16:51:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\nissue: deftai/directive#1164\ncharter: open critique\nspend: N≥3\nround: 1\ncritic-role: fresh\nid-ceiling: 5957018185\ndispatch-sha: 789dc5f36d54e7be705ca5d91fb7c14f264a0a0e\narc-mode: no-ingest\naudit-targets: none\nseat: codex\nlauncher: codex\n\n## Verdict: support, with a tighter Bound\n\nP1 -- Support. At the pin, `content/coding/testing.md` has neither `## Test integrity` nor `## Mock boundary`. Its Anti-patterns prohibit skipping tests for deadlines and mocking everything, but do not explicitly prohibit weakening assertions or replacing an expected result with the buggy implementation's output. Named sections must carry operative rules, not merely satisfy a heading predicate. The DCR result is reported by Stop 1; I did not independently inspect or run the harness.\n\nP2 -- Support and sharpen. The rendered file's first four lines explicitly identify the rules pack and `task packs:render`. In `content/packs/rules/rules-pack-0.1.json`, `rules[id=testing-001].body` holds the entire testing document, while individual entries also expose the guidance: `testing-030` contains the unit-test mocks conjunct; `testing-057` prohibits mocking everything; `testing-058` says to fix or remove flaky tests. Bound must update the body AND corresponding rule records, including new records for new normative rules. A body-only patch risks leaving contradictory sliced guidance even when the rendered document looks correct.\n\nP3 -- Support the ambiguity; sharpen the claimed collision. The pin says \"No external dependencies (use mocks/stubs)\" but does not define external relative to a function, process, or ownership boundary. It does not yet contain the proposed Rule 2, so this is a collision the proposed change must prevent, not two already-present incompatible rules. Define the boundary by behavior under test: third-party service transport can be doubled; owned data access, query construction, permissions, and business decisions must actually execute when their correctness is asserted. An isolated caller test is not evidence that a substituted repository or permission layer works. Tests requiring a real local database belong in integration coverage; do not force every unit test to boot a database or let the unit label waive realism for data/permission claims.\n\nP4 -- Support and narrow the evidence. The live `packages/core/src/content-contracts/standards/coding_rules.test.ts` is a Vitest suite despite its legacy `describe(\"test_coding_rules.py\")` label. It uses `readText` and currently tests #1005, #1006, and lesson references; it has no testing-document constant or #1164 assertions. Extend this live suite instead of creating a retired Python path. The inspected inputs establish this extension point, not the absence of all other pack tests. Content tests can bind publication and wording; they cannot prove all future product tests resist gaming.\n\n## Prefer-A Bound sketch\n\n1. Author both named H2 sections in the testing-domain pack body. Keep rule records synchronized, retain existing anti-pattern protections, then generate `content/coding/testing.md` with `task packs:render`. No manual rendered-file edit as the durable change.\n2. `## Test integrity`: require expected outcomes grounded in the accepted behavior contract; fix the defect exposed by a valid failing test. Prohibit deleting, skipping, xfail-marking, weakening assertions, or changing expected outcomes solely to obtain green. Incorrect tests may be corrected with explicit contract evidence and reviewed rationale, preserving regression coverage. Qualify the existing \"fix or remove\" flaky-test wording so it is not an escape hatch. Reference #3156's deliberate issue/PR + review route for actual gate changes; do not grant the executing agent permission to rewrite a failing gate.\n3. `## Mock boundary`: permit doubles at external service boundaries; require real owned data-layer and permission behavior for claims about those behaviors, with hermetic fixtures/local dependencies where necessary. Rewrite `testing-030` AND its body occurrence along the lines of: \"Keep unit tests independent of live external services; use mocks/stubs only at the boundaries allowed by Mock boundary.\" Explicitly route data/permission workflow verification to realistic integration tests. Reconcile \"external state\" as uncontrolled shared state, not a prohibition on controlled local fixtures.\n4. Add a #1164 group in the existing TypeScript content-contract suite reading `coding/testing.md`. Check exact named headings and section-local normative bodies, including anti-gaming prohibitions, allowed external mocks, and owned data/permission coverage. Assert the old unconditional mocks conjunct is absent and the replacement points to Mock boundary. Bind the pack's testing body and corresponding records to the same requirements; check source/render agreement through the supported render path. Avoid a fixture that merely repeats the proposed text without reading the actual published surface.\n5. Acceptance: demonstrate the new assertions fail on this pin, then pass after source edits and regeneration; rerender to establish stability; run the repository's relevant content/pack checks and normal quality gate during implementation. This critique does not claim those checks ran.\n\nReject out of contract: edits to DCR harness oracles or score predicates; lowering or bypassing #3156 protections; claiming #1006 already closes verification gaming. Counting passed/skipped tests and reporting verified outcomes does not establish that the assertions or doubles still test the promised behavior.\n\nEvidence pin: [testing document](https://github.com/deftai/directive/blob/789dc5f36d54e7be705ca5d91fb7c14f264a0a0e/content/coding/testing.md), [rules pack](https://github.com/deftai/directive/blob/789dc5f36d54e7be705ca5d91fb7c14f264a0a0e/content/packs/rules/rules-pack-0.1.json), [live content-contract suite](https://github.com/deftai/directive/blob/789dc5f36d54e7be705ca5d91fb7c14f264a0a0e/packages/core/src/content-contracts/standards/coding_rules.test.ts). Issue-context reads were limited to Stop 1 and panel-deposit at the supplied ceiling. No product implementation, ingest, or child dispatch.",
+          "id": 5957090896,
+          "html_url": "https://github.com/deftai/directive/issues/1164#issuecomment-5957090896",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:52:02Z",
+          "updated_at": "2026-10-02T16:52:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#1164\ncharter: open critique\nspend: N≥3\nround: 1\ncritic-role: fresh\nid-ceiling: 5957018185\ndispatch-sha: 789dc5f36d54e7be705ca5d91fb7c14f264a0a0e\narc-mode: no-ingest\naudit-targets: none\nseat: claude\nlauncher: claude\n\ninputs-read: 5956999021 (Stop 1), 5957018185 (panel-deposit). Nothing after the ceiling.\npin-read: `content/coding/testing.md`, `content/packs/rules/rules-pack-0.1.json`, `content/vbrief/schemas/rules-pack.schema.json`, `packages/core/src/content-contracts/standards/coding_rules.test.ts`, `packages/core/src/content-contracts/standards/_helpers.ts`, `packages/core/src/content-contracts/standards/standards.test.ts`, `tasks/packs.yml`, `packages/core/src/packs/pack-render.ts`, `packages/cli/src/dispatch.ts` — all at 789dc5f36d54.\n\n## Pin facts the critique rests on\n\n1. `rules-pack-0.1.json` carries **68** `domain: \"testing\"` rules, `testing-001`..`testing-068`. Exactly one (`testing-001`) has a non-null `body`; it is the whole file, 5,149 chars of markdown in a single JSON string. I verified `testing-001.body.trim() === <rendered testing.md minus its four banner comment lines>.trim()` → **true**.\n2. `tasks/packs.yml:8-9, 41, 101` — `packs:render` regenerates \"the proof coding/testing.md for rules\"; `packs:verify-drift` is wired into `task check` and fails when ANY projection diverges. `pack-render.ts:302-310` registers `rules` with `body_field: \"body\"`, `path_pattern: /^(?:coding\\/.+\\.md|AGENTS\\.md|main\\.md)$/`; `pack-render.ts:454` skips null-body entries.\n3. The pack's own `generated_from` reads `\"coding/*.md + AGENTS.md + main.md (… coding bodies rendered …)\"` while the rendered file's banner reads `Source of truth: packs/rules/rules-pack-0.1.json`. Both are true, at different times — `pack-migrate-rules` runs md→pack, `pack-render` runs pack→md.\n4. `rules-pack.schema.json:34` — `id` is `{domain}-{NNN}`, \"in-document order, 1-based, zero-padded\", described as a \"Stable, unique, deterministic slug\".\n5. Grep at pin for `named_sections` / `anti_game` across the whole tree: **zero hits**. The predicate lives only in the private evaluation harness.\n6. `tests/content/test_standards.py` and `test_coding_rules.py` **do not exist** at pin. `tests/content/` holds only `snapshots/baseline.json` and `snapshots/known_failures.json`. The live surface is `packages/core/src/content-contracts/standards/coding_rules.test.ts`, which preserves the dead Python filename as its top `describe` label (line 27).\n7. `standards.test.ts:358, 1583` are the only contract assertions touching `coding/testing.md`, and both are negative hygiene checks (\"no deprecated user path\", \"no warping\"). **No structural contract on testing.md exists today.**\n\n## P1 — named sections missing: SUPPORT, with the oracle caveat sharpened\n\nSupported on pin. The body has no `## Test integrity`, `## Mock boundary`, or `## Test realism`; headings are exactly: Universal Requirements / Test-First Development / Coverage / Test Types (+6 `###`) / Language-Specific Details / Test Organization / Best Practices / Anti-patterns / CI/CD Integration. The anti-game *content* is genuinely present and scattered — `testing-007` ⊗ \"say a (todo-list|plan|phase|project) is done if relevant tests have not been written, run, and PASSED\", `testing-008` ⊗ \"assume its ok for a test to fail in any situation\", `⊗ Commit failing tests`, `⊗ Ignore flaky tests`. That scatter is precisely why a detector can score anti_game=True and named_sections=False at the same time. Stop 1 reads this right.\n\nSharpening Stop 1 does not make: **fact 5 means the Bound cannot pin the matching rule.** Whether the detector wants an exact `## Test integrity`, a case-insensitive substring, a `##`-level heading, or a phrase anywhere in the doc is unknowable from this repo at this SHA. So the Bound must not reverse-engineer a heading string to satisfy an oracle it cannot read. It must (a) fix the exact heading text as an **in-repo contract**, and (b) treat the external detector as a downstream consumer re-run afterwards for confirmation only. Writing content to match a private oracle whose predicate you are guessing is a mild form of the same gaming the rule is meant to forbid.\n\n## P2 — pack SoT vs hand-edit: SUPPORT the drift risk, REJECT the prescription\n\nThe drift risk is real (fact 2): a hand-edit of `content/coding/testing.md` that is not mirrored into the pack makes `task check` red via `packs:verify-drift`. Supported.\n\nBut Stop 1's prescription — \"name the rules-pack body/section write + packs:render, and refuse hand-edit of the rendered file as the durable land\" — pushes the Bound into the worse failure mode. Fact 1: \"the rules-pack body write\" means **hand-authoring a 5.1 KB JSON-escaped markdown string**, by hand, with `\\n` escapes, in a 239 KB JSON file. That is an error-prone, unreviewable diff, and it is not how this pack is maintained.\n\nThe direction-reconciler Stop 1 missed is `pack-migrate-rules` — live at `packages/cli/src/dispatch.ts:269, 2971`, exposed as `task packs:render-rules` (`tasks/packs.yml:60-68`), accepting `--coding-dir`, with a dispatch contract test at `dispatch.test.ts:767`. With it, the correct land is a **round-trip**, not a direct JSON write:\n\n> edit `content/coding/testing.md` (as a *draft*, not as the land) → `task packs:render-rules` (md → pack) → `task packs:render` (pack → md) → `task packs:verify-drift` exits 0 → commit pack **and** projection in one commit.\n\nHand-editing the rendered file is legitimate as a working step; what is forbidden is landing it *alone*. That distinction is the whole correction. Facts 3 and 4 say the apparent circularity in the two banners is not a contradiction — it is a two-verb cycle, and the Bound's job is to run both halves and prove convergence, not to pick a side.\n\n**One open risk the Bound must close, which neither Stop 1 nor I can settle from pin alone:** `packs:render-rules` is described as a \"one-shot migration\" that rebuilds the pack from **all** of `coding/*.md`, not just testing.md. If that round-trip is lossy or reflowing for other domains, the pack diff will show unrelated churn. Falsifiable check: after A3 below, `git diff content/packs/rules/rules-pack-0.1.json` must touch only `testing-001.body`, `testing-030.text`, and appended `testing-069+` entries. If it touches anything else, fall back to a targeted splice of those same three regions. Do not land a pack diff you have not read line by line.\n\n## P3 — mock-boundary vs Unit Tests conjunct: SUPPORT, sharpened to a single rule id\n\nSupported, and narrower than Stop 1 states. The colliding line is exactly one rule: **`testing-030`, tier MUST, text `No external dependencies (use mocks/stubs)`**, rendered at `testing.md:63` under `### Unit Tests`. There is no second collision site.\n\nTwo sharpenings:\n\n- The pack **already carries a weak mock-boundary gesture**: `testing-057`, MUST_NOT, `Mock everything (integration tests needed too)`, under Anti-patterns. That is the near-miss that makes the current state scoreable as \"related guidance present, named section absent\". The Bound should not treat `testing-057` as the mock-boundary rule nor delete it — it is a *quantity* rule (don't over-mock); the new rule is a *boundary* rule (mock at the process edge, not inward). Both survive.\n- The fix to `testing-030` is a **text edit in place, not an insert**, so it costs zero id renumbering. Proposed: `! No real external services — mock at the process boundary (network, clock, third-party APIs), not your own data layer or permission checks (see Mock boundary)`. That turns the collision into a forward reference.\n\n**New constraint neither Stop 1 nor the issue body names — id renumbering (fact 4).** Because `id` is in-document order, inserting the two new `##` sections *mid-document* renumbers every downstream `testing-NNN`. Concretely: putting Mock boundary next to the existing mocks line under `### Unit Tests` renumbers the 38 rules below it; putting both **after `## CI/CD Integration`, at end of document**, appends `testing-069+` and renumbers none. The schema calls these slugs \"stable\" while also defining them positionally; those two promises conflict under any mid-document insert, and end-placement is the only way to honour both without a Bound-level decision about who may cite a `testing-NNN` id. The Bound should state this placement choice explicitly rather than let it fall out of prose ordering.\n\n## P4 — content-test / oracle bind: SUPPORT the need, REJECT the named surface\n\nThe need is real and net-new: fact 7 shows the only existing assertions on testing.md are two negative hygiene checks. Nothing today would notice if both new sections were deleted.\n\nBut the surface Stop 1 forwards from the issue body is dead (fact 6). `tests/content/test_standards.py` and `test_coding_rules.py` do not exist at 789dc5f36d54; `tests/content/` is snapshots-only. Pointing a Bound at them produces either a resurrected Python file outside the live lane or an invented fixture.\n\nThe live surface is `packages/core/src/content-contracts/standards/coding_rules.test.ts`, and it already contains the exact idiom this work needs — `coding_rules.test.ts:8-9` fixes heading strings as consts, `:11-25` slice the section body with a `(?=^---|^## |Z)` lookahead regex, `:29-57` assert heading-present + `- ! ` MUST token + `⊗` anti-pattern token + semantic substrings. Rules #1005 and #1006 are both bound this way. #1164 is the same shape. **No new harness, no new fixture, no new oracle is required.**\n\nOne more thing worth making explicit, because it looks like a gap and is not: these contracts read the **rendered projection** via `readText` (`_helpers.ts:32-36`, resolving content/-first per #1875 C1), not the pack. That is correct, not sloppy — `packs:verify-drift` in `task check` is what binds projection to pack, so \"assert on rendered markdown\" + \"drift gate\" is already a fail-closed chain from pack SoT to test. The Bound inherits that chain and needs to touch neither half of it.\n\n## Prefer-A Bound sketch\n\n**A1 — draft the two sections at end of `content/coding/testing.md`**, after `## CI/CD Integration` (end-placement per P3, so ids append and nothing renumbers):\n\n```\n## Test integrity\n\n- ! A failing test is a finding — fix the code under test or state the defect\n- ! Report a red suite as red, with the failing output, before any completion claim\n- ⊗ Delete, skip, `xfail`, or comment out an assertion to turn a suite green\n- ⊗ Widen a tolerance, re-baseline a snapshot, or loosen a matcher to absorb a regression\n- ⊗ Wrap the code under test in catch-and-pass so the failure stops surfacing\n- ⊗ Assert on the implementation's current output when you have not checked that output is correct\n\n## Mock boundary\n\n- ! Mock at the process boundary: network calls, third-party APIs, clock, randomness, paid services\n- ! Exercise your own data layer, permission checks, and authorization paths against a real test implementation\n- ⊗ Mock your own data layer, repositories, or ORM to make a unit test pass\n- ⊗ Mock permission or authorization checks — a mocked authz check tests nothing\n- ⊗ Mock the unit under test, or any collaborator you own and could run for real\n```\n\nWording is a proposal, not a contract; the Bound owns it. What is *not* negotiable is that the two `##` heading strings are then frozen by A4.\n\n**A2 — rewrite the `testing-030` conjunct in place** (`testing.md:63`), per P3, to the boundary-aware form. Text edit, no insert, no renumber. Leave `testing-057` alone.\n\n**A3 — regenerate, do not hand-write JSON**: `task packs:render-rules` → `task packs:render` → `task packs:verify-drift` (must exit 0). Then read the pack diff and confirm it touches only `testing-001.body`, `testing-030.text`, and appended `testing-069+`. Commit pack + projection together. Fallback on lossy round-trip: targeted splice of those three regions (P2 open risk).\n\n**A4 — bind on the live surface**: extend `packages/core/src/content-contracts/standards/coding_rules.test.ts` with `TestTestIntegrity1164` / `TestMockBoundary1164`, reusing the `_helpers.readText` + heading-slice idiom at `:8-25`:\n\n- `const INTEGRITY_HEADING = \"## Test integrity\"` / `const MOCK_HEADING = \"## Mock boundary\"`, both asserted present in `readText(\"coding/testing.md\")`\n- each section body carries `- ! ` and carries `⊗` (same two assertions as `:32-37` / `:63-68`)\n- integrity body matches `/delet|skip|xfail|comment out/i` **and** `/toleranc|snapshot|matcher/i`\n- mock body contains `data layer` **and** (`permission` or `authorization`)\n- **regression guard on P3**: the `### Unit Tests` section body must NOT still read bare `use mocks/stubs` — this is the assertion that makes the conjunct reconciliation durable rather than incidental\n\n**A5 — cross-ref**: add `\"#1164\"` to the `TestLessonsCrossReference` array at `coding_rules.test.ts:102` and the matching line in `meta/lessons.md`, so the cross-reference is enforced the way #1005/#1006 are rather than decorative.\n\n**A6 — confirm, don't contract**: re-run the private evaluation harness afterwards and record the named_sections flip as *evidence*, not as the acceptance gate. The acceptance gate is A4.\n\n**Falsifiability** (what makes this Bound checkable rather than asserted): (i) `task packs:verify-drift` exits 0; (ii) every new assertion in A4 **fails at 789dc5f36d54 and passes after** — the Bound should paste the red run, per #1006's own standard; (iii) the pack diff touches only the three named regions; (iv) no `testing-NNN` id at or below 068 changes except `testing-030.text`.\n\n## Out-of-contract — rejected\n\n- **Editing the evaluation-harness oracles.** Rejected. It makes the gate score our own answer. It is also unreviewable from this repo: fact 5 shows zero in-repo occurrences of the predicate tokens, so no reviewer on this issue could check such an edit.\n- **Weakening #3156 gate integrity.** Rejected, and concretely: do **not** route the new contract through the `known_failures.json` / `xfailFiles` escape hatch at `_helpers.ts:54-60` to land green. An `xfail` on the test-integrity contract is literally the behaviour the section forbids, in the file that forbids it.\n- **\"#1006 Fail Loud already covers test gaming.\"** Rejected on pin. `coding_rules.test.ts:59-99` shows #1006's bound body is scoped to *completion claims* — its canonical examples are `migration`, `tests pass`, `feature works`, plus `graduationRef` / `#2899` open-graduation disclosure. It governs **lying about whether tests were run**. It says nothing about **mutating a test so it stops failing**, which is a different act with a different remedy (the honest report of a red suite is #1006; not having quietly made it green first is #1164). Stop 1 is right to reject the overlap, and the pin supports that rejection rather than merely asserting it.\n\n## Plain-language summary\n\nDirective's testing standards do name a lot of anti-gaming behaviour, but it is scattered across four sections, so an evaluator correctly reports \"guidance present, named sections absent\". Three corrections to the triage. First, the fix should not be hand-written into the rules-pack JSON — the whole testing doc lives there as one 5 KB escaped string, and there is an existing `packs:render-rules` verb that rebuilds the pack from the markdown, so the real land is edit-then-round-trip-then-prove-no-drift. Second, the two new sections belong at the end of the file, because rule ids are positional: dropping Mock boundary next to the existing mocks line under Unit Tests — the intuitive place — silently renumbers the 38 rules below it, while end-placement renumbers none. Third, the test file the issue names was deleted some time ago; the live contract surface already binds two sibling rules in exactly the shape #1164 needs, so this needs no new harness — just two more `describe` blocks, plus one assertion that the old \"use mocks/stubs\" line really did get reconciled and not merely contradicted.\n\n",
+          "id": 5957160626,
+          "html_url": "https://github.com/deftai/directive/issues/1164#issuecomment-5957160626",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:54:52Z",
+          "updated_at": "2026-10-02T16:54:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound for #1164 — pack-landed Test integrity + Mock boundary, Unit Tests conjunct rewrite, coding_rules.test.ts locks\n\nTarget-digest: sha256:b532bcbb4f8c0fcd47a9565b4e6f2779773960037363436bfe3afb2e0e1db7b1\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nround-1 siblings: grok 5957073256; codex 5957090896; claude 5957160626\ndispatch-sha: 789dc5f36d54e7be705ca5d91fb7c14f264a0a0e\narc-mode: no-ingest\nyolo-standing: yes\ndual-stop-reserved: available for first post-lean pain-audit of asserted coverage\n\n## Bound remedy\n\n### 1. Named sections (P1)\n\nAppend two operative H2 sections to the testing standards document, after `## CI/CD Integration` (end-placement so pack rule ids append as `testing-069+` and no existing `testing-001`..`testing-068` id renumbers — Claude seat):\n\n- `## Test integrity` — failing tests are findings; fix the code under test or report the defect; ⊗ delete/skip/xfail/comment-out assertions, widen tolerances / re-baseline snapshots / loosen matchers, catch-and-pass wrappers, or assert on unchecked current output solely to go green. Incorrect tests may be corrected with explicit contract evidence and reviewed rationale. Reference #3156 for deliberate gate changes via issue/PR + review; do not grant the executing agent a gate-rewrite escape.\n- `## Mock boundary` — mock at the process boundary (network, third-party APIs, clock, randomness, paid services); exercise own data layer, permission checks, and authorization against a real test implementation; ⊗ mock own data layer / repositories / ORM, permission or authorization checks, or the unit under test / owned collaborators you could run for real.\n\nLeave existing `testing-057` `⊗ Mock everything (integration tests needed too)` in place as the quantity anti-pattern; the new section is the boundary rule (Claude / Grok).\n\n### 2. Pack SoT land path (P2)\n\nDurable write is the rules pack + render chain, not a hand-edit of rendered `content/coding/testing.md` alone:\n\n- Author the section text in `content/coding/testing.md` (or equivalent authoring surface), then `task packs:render-rules` → `task packs:render` → `task packs:verify-drift` exit 0 (Claude).\n- Keep pack rule records synchronized with the body: update `testing-001.body`, rewrite `testing-030.text` in place, append new normative records for the new section rules (Codex / Grok).\n- Pack diff must touch only `testing-001.body`, `testing-030.text`, and appended `testing-069+` (and matching body regions). If round-trip churns other domains, fall back to a targeted splice of those regions (Claude). Refuse hand-edit of the rendered file as the durable land.\n\n### 3. Unit Tests mocks conjunct (P3)\n\nRewrite `testing-030` in place (text + matching body line under `### Unit Tests`) from blanket `No external dependencies (use mocks/stubs)` to an external-only / process-boundary form that forward-references Mock boundary — e.g. keep unit tests independent of live external services; use mocks/stubs only at boundaries allowed by Mock boundary; route owned data-layer and permission workflow verification to realistic integration / real-test-implementation coverage (Grok / Codex / Claude). Do not force every unit test to boot a database; do not let the unit label waive realism for data/permission claims (Codex).\n\n### 4. Content-test / oracle bind (P4)\n\nExtend the live surface `packages/core/src/content-contracts/standards/coding_rules.test.ts` (not resurrected `tests/content/test_*.py` — those paths are absent at pin):\n\n- Freeze heading consts `## Test integrity` and `## Mock boundary`; assert present in `readText(\"coding/testing.md\")`.\n- Each section body carries `- ! ` and `⊗` (same idiom as #1005 / #1006 helpers).\n- Integrity body matches anti-gaming tokens (delete/skip/xfail/comment-out and tolerance/snapshot/matcher class).\n- Mock body contains `data layer` and (`permission` or `authorization`).\n- Regression guard: `### Unit Tests` body must NOT still read bare `use mocks/stubs`.\n- Add `#1164` to `TestLessonsCrossReference` and matching `meta/lessons.md` short cross-reference (Claude).\n- Acceptance: new assertions fail at pin `789dc5f36d54` and pass after pack land + render; `packs:verify-drift` clean. DCR named_sections flip is post-land evidence, not the acceptance gate (Claude). Do not route through `known_failures` / xfail to go green (#3156).\n\n## Reject / out of contract\n\n- Editing DCR harness oracles / `named_sections` detectors to green without landing the sections.\n- Weakening #3156 gate integrity (clearing red by changing the gate rather than the product under test).\n- Claiming #1006 Fail Loud already covers test gaming — Fail Loud governs outcome-blind completion claims on `coding.md`, not named Test integrity / Mock boundary on `testing.md` or the Unit Tests mocks conjunct.\n\n## Plain-language summary\n\nPrefer-A lands the two missing named testing rules through the rules pack and render chain, rewrites the unit-test mocks line so it no longer fights Mock boundary, and locks both sections in the existing TypeScript content-contract suite. Sections go at the end of the testing doc so rule ids stay stable. DCR harness edits and Fail Loud overlap claims stay out of contract.\n\n## Pain cite honesty\n\nThis lean asserts coverage of P1–P4. First post-lean pain-audit of those cites uses Dual-stop reserved seat in-cap (no raise).\n\n",
+          "id": 5957182986,
+          "html_url": "https://github.com/deftai/directive/issues/1164#issuecomment-5957182986",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:55:53Z",
+          "updated_at": "2026-10-02T16:55:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#1164\ncharter: open critique\nspend: N≥3\nround: pain-audit\ncritic-role: fresh\nid-ceiling: 5957182986\ndispatch-sha: 789dc5f36d54e7be705ca5d91fb7c14f264a0a0e\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nseat: grok\nlauncher: grok-cli\ndual-stop: reserved-seat (first post-lean pain-audit of asserted coverage; in-cap without raise)\n\nLean under audit: Prefer-A 5957182986\nStop 1: 5956999021\nround-1: grok 5957073256; codex 5957090896; claude 5957160626\n\n## Audit method\n\nREST-only reads at or below id-ceiling 5957182986. Pin-read at `789dc5f36d54e7be705ca5d91fb7c14f264a0a0e`: `content/coding/testing.md`, `content/packs/rules/rules-pack-0.1.json` (`testing-030` / `testing-057` / `testing-058` / last id `testing-068`), `packages/core/src/content-contracts/standards/coding_rules.test.ts`, `tests/content/` (snapshots-only). No product edit. No ingest. No child spawn.\n\n## Verdicts\n\n### pain-P1 ? supported\n\nStop 1 pain: named `## Test integrity` / `## Mock boundary` absent at pin; DCR `named_sections=False` despite related anti-pattern bullets.\n\nPin falsification: headings stop at Universal Requirements … Anti-patterns … CI/CD Integration; no Test integrity / Mock boundary / Test realism strings. Anti-patterns carry `⊗ assume its ok for a test to fail…` and `⊗ Mock everything…` only.\n\nPrefer-A §1 appends both operative H2 sections after `## CI/CD Integration` with `!` / `⊗` bodies that name gaming and process-boundary mocks, and keeps `testing-057` as the quantity anti-pattern. End-placement matches Claude’s id-stability sharpen (`testing-069+`, no renumber of `testing-001`..`testing-068`). Relief is operative, not heading-only.\n\n### pain-P2 ? supported\n\nStop 1 pain: durable land must be rules-pack + render; refuse hand-edit of rendered `testing.md` as the land.\n\nPin falsification: file opens AUTO-GENERATED / Source of truth `packs/rules/rules-pack-0.1.json` / regenerate with `task packs:render`. Pack holds full body on `testing-001` and sliced rules including `testing-030`.\n\nPrefer-A §2 names author → `packs:render-rules` → `packs:render` → `packs:verify-drift` exit 0; sync `testing-001.body`, rewrite `testing-030.text`, append `testing-069+`; pack-diff touch-only those regions with targeted-splice fallback; refuse rendered-file hand-edit as durable land. Matches round-1 pack-SoT consensus (Grok/Codex/Claude).\n\n### pain-P3 ? supported\n\nStop 1 pain: Unit Tests `! No external dependencies (use mocks/stubs)` collides with Mock boundary unless rewritten.\n\nPin falsification: rendered Unit Tests line and pack `testing-030` text are still bare `No external dependencies (use mocks/stubs)`.\n\nPrefer-A §3 rewrites `testing-030` in place (text + matching body line) to an external-only / process-boundary form that forward-references Mock boundary; keeps owned data-layer / permission verification on realistic paths; absorbs Codex’s “do not force every unit test to boot a database” sharpen; leaves `testing-057` alone. Collision is prevented by rewrite, not by hoping agents pick the new section.\n\n### pain-P4 ? supported\n\nStop 1 pain: Bound must pin a live content-contract / pack surface for the named sections without editing DCR harness or weakening #3156.\n\nPin falsification: `tests/content/` is snapshots-only (`baseline.json`, `known_failures.json`); no `test_standards.py` / `test_coding_rules.py`. Live surface is `packages/core/src/content-contracts/standards/coding_rules.test.ts` with `#1005`/`#1006` heading-slice idiom and no testing.md / `#1164` asserts yet.\n\nPrefer-A §4 extends that live suite: freeze both headings; require `- ! ` and `⊗` per section; anti-gaming token classes; mock body `data layer` + (`permission`|`authorization`); regression guard that `### Unit Tests` no longer reads bare `use mocks/stubs`; `#1164` lessons cross-ref; fail-at-pin / pass-after acceptance; `packs:verify-drift` clean; DCR `named_sections` flip as post-land evidence only; no `known_failures` / xfail green path. Reject block correctly bars DCR-oracle edits, #3156 weakening, and Fail Loud overlap claims.\n\n## Blocking / bind map\n\nblocking findings: none.\nBind map stays bindable on Prefer-A lean 5957182986.\nContinue-raise: no (reserved seat spent; no blocking; no same-species harvest repair required).\n\n## Non-blocking footnotes (do not retract)\n\n- Codex round-1 asked to qualify flaky-test `testing-058` “fix or remove” so it is not an integrity escape hatch. Outside Stop 1 P1–P4; Prefer-A already forbids skip/xfail/delete-to-green under Test integrity. Optional implement polish, not a pain overclaim.\n- Content-contract locks publication wording; they do not prove every future product suite resists gaming. Prefer-A correctly scopes acceptance to the named assertions + drift gate.\n\n## Plain-language summary\n\nPrefer-A’s P1–P4 cites hold on the pin. Named sections, pack render path, Unit Tests rewrite, and coding_rules.test.ts locks are all supported. No blocking findings. Keep the bind map; do not raise Dual-stop again for this lean.\n\n",
+          "id": 5957377895,
+          "html_url": "https://github.com/deftai/directive/issues/1164#issuecomment-5957377895",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T17:05:45Z",
+          "updated_at": "2026-10-02T17:05:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| Prefer-A lean 5957182986 asserts relieves P1–P4 with pack-landed Test integrity + Mock boundary, testing-030 rewrite, coding_rules.test.ts locks, end-placement for id stability | verified | lean 5957182986; round-1 grok 5957073256, codex 5957090896, claude 5957160626 |\n| Reserved-seat pain-audit of pain-P1..pain-P4 found supported; blocking 0; bind map kept; no continue-raise | verified | pain-audit 5957377895 |\n| Stop 1 pains P1–P4 remain the denominator; Target-digest unchanged | verified | Stop 1 5956999021; Target-digest sha256:b532bcbb4f8c0fcd47a9565b4e6f2779773960037363436bfe3afb2e0e1db7b1 |\n| Out-of-contract rejects hold: no DCR oracle edit, no #3156 weaken, no #1006 already-covers | verified | lean Reject section; critics + PA agreement |\n| Dual-stop numbered cap 3 spent on round-1; reserved seat spent on PA 5957377895 | verified | panel-deposit 5957018185; PA 5957377895 |\n\nsuccessor lean: 5957182986\npain-audit: 5957377895\ndispatch-sha: 789dc5f36d54e7be705ca5d91fb7c14f264a0a0e\narc-mode: no-ingest\n\n",
+          "id": 5957393506,
+          "html_url": "https://github.com/deftai/directive/issues/1164#issuecomment-5957393506",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T17:06:25Z",
+          "updated_at": "2026-10-02T17:06:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5957182986.\nVerified-claims table: 5957393506.\n\nRound-1 critics (grok 5957073256, codex 5957090896, claude 5957160626) supported Stop 1 P1–P4 with Prefer-A pack-land Bound. Reserved-seat pain-audit 5957377895 found pain-P1..pain-P4 supported; blocking 0; bind map kept; no continue-raise.\n\nPrefer-A Bound (lean 5957182986): append `## Test integrity` and `## Mock boundary` after CI/CD Integration via rules-pack + packs:render-rules/render/verify-drift; rewrite testing-030 Unit Tests mocks conjunct to process-boundary / Mock-boundary forward-ref; lock both sections in packages/core/src/content-contracts/standards/coding_rules.test.ts with fail-at-pin acceptance; leave testing-057; refuse DCR-oracle edits, #3156 weaken, and #1006 already-covers.\n\narc-mode: no-ingest\ndispatch-sha: 789dc5f36d54e7be705ca5d91fb7c14f264a0a0e\nNext operator verb after completed-arc: task issue:ingest -- 1164\n\n",
+          "id": 5957396115,
+          "html_url": "https://github.com/deftai/directive/issues/1164#issuecomment-5957396115",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T17:06:34Z",
+          "updated_at": "2026-10-02T17:06:34Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 4457067486,
+        "origin": "deftai/directive#1164",
+        "id": "github.issue.4457067486"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b532bcbb4f8c0fcd47a9565b4e6f2779773960037363436bfe3afb2e0e1db7b1"
+      },
+      "x-directive/bound-lean": 5957182986,
+      "x-directive/synthesis": 5957396115,
+      "swarm": {
+        "file_scope": [
+          "content/coding/testing.md",
+          "content/packs/rules/rules-pack-0.1.json",
+          "packages/core/src/content-contracts/standards/coding_rules.test.ts",
+          "meta/lessons.md",
+          "CHANGELOG.md",
+          "content/packs/lessons/lessons-pack-0.1.json"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/coding_rules.test.ts",
+          "task packs:verify-drift"
+        ],
+        "expected_outputs": [
+          "Tracking PR opened"
+        ],
+        "depends_on": [],
+        "conflict_group": "coding-testing-integrity-mock-boundary",
+        "size": "S",
+        "model_tier": "default"
+      }
+    },
+    "id": "github.issue.4457067486",
+    "updated": "2026-10-04T12:00:49Z"
+  }
+}
