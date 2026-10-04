@@ -12,7 +12,7 @@
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
-import type { RunGhFn } from "../pr-protected-issues/types.js";
+import type { RunGhFn, RunGhResult } from "../pr-protected-issues/types.js";
 import { defaultGitRunner, type GitRunner, gitIsAncestor } from "../session/git.js";
 import { readRitualState } from "../session/ritual-sentinel.js";
 
@@ -402,7 +402,7 @@ export function defaultFetchClosingIssueIds(
     cmd.push("--repo", repository);
   }
 
-  let result;
+  let result: RunGhResult;
   try {
     result = runGh(cmd);
   } catch {
