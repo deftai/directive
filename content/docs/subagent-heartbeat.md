@@ -437,8 +437,10 @@ not walk:
   ⊗ Share that exit with missing/STALE heartbeat. ⊗ Print
   `REDISPATCH_OK` from this gate.
 
-! Write surface: `task subagent:steer -- --agent <id> --writer-id <id>
-  --kind <kind> --text <text> [--target-id <worktree>]`.
+! Write surface: `deft subagent:steer --agent <id> --writer-id <id>
+  --kind <kind> --text <text> [--target-id <worktree>]` (dual-invoke
+  `task subagent:steer -- …`). Writer authority is checked against the
+  child occupancy lease or heartbeat `parent_id` — not self-attested.
 
 Closed inbox schema (`deft.subagent.steer.v1`):
 
@@ -505,11 +507,12 @@ identity as the occupancy actor (cooperative routing). Module SoT:
 
 #4286 shipped the inbox. #5278 ships the fail-closed cancel gate.
 
-! Before `task swarm:pre-dispatch -- --action cancel` on a still
-  ledger-active attempt, run `task subagent:pre-cancel -- --agent <id>
-  --canceller-id <id> --target-id <worktree>` (or pass the same dest /
-  identity flags through cancel). Exit `0` only when one ordered branch
-  clears:
+! Before `task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree>
+  --action cancel` on a still ledger-active attempt, run
+  `deft subagent:pre-cancel --agent <id> --canceller-id <id> --target-id
+  <worktree>` (dual-invoke: `task subagent:pre-cancel -- …`, or pass the
+  same dest / identity flags through cancel). Exit `0` only when one
+  ordered branch clears:
 
   - **(a)** a parseable `deft.subagent.steer.v1` status-request
     (`kind: note|correction`) with `writer_id` equal to the canceller,

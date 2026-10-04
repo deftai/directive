@@ -468,6 +468,81 @@ describe("subagent pre-cancel Prefer-A (#5278)", () => {
     expect(halted.halt_class).toBe("approach1-arm-startup");
   });
 
+  it("fresh malformed heartbeat refuses cancel (does not clear)", () => {
+    const root = tempRoot("pre-cancel-malformed-hb-");
+    const steerDir = join(root, "inbox");
+    const firstSeenDir = join(root, "firstseen");
+    const scratchDir = join(root, "status");
+    mkdirSync(steerDir, { recursive: true });
+    mkdirSync(scratchDir, { recursive: true });
+    writeFileSync(
+      join(scratchDir, "leaf-a.json"),
+      JSON.stringify({
+        agent_id: "leaf-a",
+        parent_id: "p",
+        last_heartbeat_at: "2026-10-03T12:00:00Z",
+        last_message: "ok",
+        phase: "polling",
+        wait_kind: "not-a-real-kind",
+      }),
+      "utf8",
+    );
+
+    const verdict = evaluatePreCancel({
+      agentId: "leaf-a",
+      cancellerId: "parent-1",
+      steerDir,
+      firstSeenDir,
+      scratchDir,
+      now: new Date("2026-10-03T12:01:00Z"),
+      dispatchStartedAt: "2026-10-03T11:00:00Z",
+    });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.refuse_reason).toBe("heartbeat-malformed");
+  });
+
+  it("STALE heartbeat clears even while status-steer observed window is incomplete", () => {
+    const root = tempRoot("pre-cancel-stale-during-window-");
+    const steerDir = join(root, "inbox");
+    const firstSeenDir = join(root, "firstseen");
+    const scratchDir = join(root, "status");
+    mkdirSync(scratchDir, { recursive: true });
+    writeFileSync(
+      join(scratchDir, "leaf-a.json"),
+      JSON.stringify({
+        agent_id: "leaf-a",
+        parent_id: "p",
+        last_heartbeat_at: "2026-10-03T11:00:00Z",
+        last_message: "gone",
+        phase: "polling",
+      }),
+      "utf8",
+    );
+    writeSteer(steerDir, {
+      agentId: "leaf-a",
+      writerKind: "dispatching-parent",
+      writerId: "parent-1",
+      kind: "note",
+      text: "status?",
+      steerId: "steer-stale-window",
+      writtenAt: new Date("2026-10-03T12:29:00Z"),
+      parentId: "parent-1",
+    });
+
+    const verdict = evaluatePreCancel({
+      agentId: "leaf-a",
+      cancellerId: "parent-1",
+      steerDir,
+      firstSeenDir,
+      scratchDir,
+      now: new Date("2026-10-03T12:30:00Z"),
+      observedWindowSeconds: 180,
+      thresholdMinutes: 30,
+    });
+    expect(verdict.ok).toBe(true);
+    expect(verdict.clear_reason).toBe("heartbeat-stale-or-missing-after-first");
+  });
+
   it("DCR (vi): wait_kind closed validation on heartbeat", () => {
     const root = tempRoot("wait-kind-");
     const path = join(root, "leaf-a.json");
