@@ -149,6 +149,10 @@ describe("swarmPreDispatch (#3228)", () => {
       ...unit,
       action: "cancel",
       attemptId: first.attempt?.attemptId,
+      agentId: "leaf-prior",
+      cancellerId: "parent-test",
+      preCancelForce: true,
+      preCancelReason: "unit-test takeover",
     });
     expect(cancelled.exitCode).toBe(0);
     expect(cancelled.attempt?.status).toBe("cancelled");
@@ -230,6 +234,33 @@ describe("swarmPreDispatch (#3228)", () => {
     expect(report).toContain("DENY_DUPLICATE_ACTIVE");
     expect(report).toContain("do not spawn");
     expect(report).toContain("--action cancel");
+    expect(report).toContain("subagent:pre-cancel");
+  });
+
+  it("bare ledger cancel without green pre-cancel is refused (#5278)", () => {
+    const root = tempRoot();
+    const first = swarmPreDispatch({
+      projectRoot: root,
+      ...unit,
+      action: "begin",
+      sourceRevision: "rev-a",
+      workerId: "leaf-live",
+    });
+    expect(first.exitCode).toBe(0);
+
+    const refused = swarmPreDispatch({
+      projectRoot: root,
+      ...unit,
+      action: "cancel",
+      attemptId: first.attempt?.attemptId,
+      agentId: "leaf-live",
+      cancellerId: "parent-1",
+    });
+    expect(refused.exitCode).toBe(1);
+    expect(refused.reason).toContain("pre-cancel refused");
+    expect(
+      activeAttempts(requireLedger(root, refused.scopeId, refused.targetId, refused.workflowId)),
+    ).toHaveLength(1);
   });
 
   it("begin on an existing worktree path mkdirs subagent-status (#3730)", () => {

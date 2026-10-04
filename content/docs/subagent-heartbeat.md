@@ -437,6 +437,9 @@ not walk:
   ⊗ Share that exit with missing/STALE heartbeat. ⊗ Print
   `REDISPATCH_OK` from this gate.
 
+! Write surface: `task subagent:steer -- --agent <id> --writer-id <id>
+  --kind <kind> --text <text> [--target-id <worktree>]`.
+
 Closed inbox schema (`deft.subagent.steer.v1`):
 
 ```json
@@ -497,6 +500,60 @@ identity as the occupancy actor (cooperative routing). Module SoT:
 ⊗ Treat occupancy as protection against a determined same-user actor.
 ⊗ Claim #4625 / #4624 / #4667 / #4993 as discharge of these ACs.
 ⊗ Fail-close every product write without a migration posture (#3156).
+
+## Query-before-cancel (#5278)
+
+#4286 shipped the inbox. #5278 ships the fail-closed cancel gate.
+
+! Before `task swarm:pre-dispatch -- --action cancel` on a still
+  ledger-active attempt, run `task subagent:pre-cancel -- --agent <id>
+  --canceller-id <id> --target-id <worktree>` (or pass the same dest /
+  identity flags through cancel). Exit `0` only when one ordered branch
+  clears:
+
+  - **(a)** a parseable `deft.subagent.steer.v1` status-request
+    (`kind: note|correction`) with `writer_id` equal to the canceller,
+    and either a matching ack for that `steer_id` **or** an **observed**
+    poll window (default **3 minutes**) measured from a first-seen stamp
+    persisted under `.deft-scratch/subagent-steer-firstseen/` (outside the
+    inbox glob; never rewritten). Forward skew only on `written_at` vs
+    first-seen (PA-18); a TTL-aged pending steer still clears once the
+    observed window elapses. Non-empty `parse_failures` for that agent
+    keep the gate **red**. Do not treat bare exit `1` /
+    `steer_pending: true` as green.
+  - **(b)** heartbeat STALE/missing under the #2879 grace rules: admit
+    first-heartbeat-then-STALE/missing, or grace already expired from
+    `DeliveryAttemptRecord.startedAt` with still no record; refuse only
+    the within-grace window (default 3 minutes).
+  - **(c)** explicit `--force --reason <text>` with printed caller reason.
+
+⊗ Bare ledger cancel while pre-cancel is red. ⊗ Treat unread steer as
+  `REDISPATCH_OK`. ⊗ Claim host `kill_command_or_subagent` refuse on
+  #5278 — that leftover is **#5281**.
+
+### Heartbeat `wait_kind` (#5278 P2)
+
+Optional closed field on the child heartbeat (not a third scratch schema):
+
+`wait_kind`: `pr:watch` | `fix-batch` | `reading` | `idle` | `unknown`
+
+Optional `head_sha` when known. Precedence: `phase` = lifecycle;
+`wait_kind` = what the wait is blocked on. Reuse `pr_number`.
+`task verify:subagent-alive --json` and `task agent:monitor` emit
+per-agent records including `wait_kind`. Child-owned telemetry with
+freshness — not alone cancel or merge-arm proof.
+
+### Approach 1 arm-startup halt (#5278 P3)
+
+After Approach 1 dispatch, parent probes
+`task verify:review-monitor -- --pr <N> --merge-path-arm --live-wait`
+on a bounded cadence during startup. Halt class:
+`approach1-arm-startup`. Startup allowance default: **3 minutes** from
+`DeliveryAttemptRecord.startedAt`. When the probe stays red past that
+allowance, emit halt `approach1-arm-startup` and route into
+`subagent:pre-cancel` (branch 1(b) when applicable). ⊗ Automatic
+re-spawn loops. ⊗ Parent-turn-shape / child tool-count detectors as the
+arm substitute.
 
 ## Cross-references
 
