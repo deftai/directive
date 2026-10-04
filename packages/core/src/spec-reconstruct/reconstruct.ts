@@ -16,8 +16,8 @@ import { resolveAuditPath, resolveLifecycleRoot } from "../layout/resolve.js";
 import { PENDING_DECISIONS_LOG_NAME } from "../policy/decisions.js";
 import { resolveSpecAuthority } from "../spec-authority/resolver.js";
 
-export const DEFAULT_SUFFICIENCY_THRESHOLD = 20;
-export const DEFAULT_ADJUDICATION_BUDGET = 8;
+export const DEFAULT_SUFFICIENCY_THRESHOLD = Number.parseInt("20", 10);
+export const DEFAULT_ADJUDICATION_BUDGET = Number.parseInt("8", 10);
 export const DRAFT_REL_PATH = "spec-reconstruct-draft.json";
 
 export type Confidence = "high" | "medium" | "low";
