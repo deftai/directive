@@ -1,10 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4912,
+  "issue": 5285,
   "surfaces": [
-    "vitest.config.ts",
+    "packages/core/src/presentation-coverage/**",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #4912: vitest subpath alias @deftai/directive-core/pre-pr-controller. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5285: presentation-coverage snapshot fixture stages mode 120000 via git plumbing. Disclosure only; not #3164 authorization."
 }
