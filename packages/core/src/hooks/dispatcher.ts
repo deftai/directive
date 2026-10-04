@@ -20,6 +20,11 @@ import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import {
+  defaultKillAttestationDir,
+  evaluateKillAttestation,
+  type KillHostStatus,
+} from "../orchestration/subagent-kill-attestation.js";
+import {
   detectDeftDirectiveDisable,
   formatDeftDirectiveDisableMessage,
   isDeftDirectiveDisableActive,
@@ -169,11 +174,6 @@ import {
   STAMP_EVIDENCE_VERB,
 } from "./scope.js";
 import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
-import {
-  defaultKillAttestationDir,
-  evaluateKillAttestation,
-  type KillHostStatus,
-} from "../orchestration/subagent-kill-attestation.js";
 import {
   effectiveHookToolName,
   isApplyPatchTool,
@@ -2540,14 +2540,13 @@ function extractKillForce(payload: unknown): { force: boolean; reason: string | 
  * Killer identity comes from the hook environment only.
  * Tool-input writer_id / parent_id is attacker-controlled and must not win (#5281).
  */
-function defaultKillWriterId(
-  _payload: unknown,
-  environ: NodeJS.ProcessEnv,
-): string {
+function defaultKillWriterId(_payload: unknown, environ: NodeJS.ProcessEnv): string {
   const fromEnv = firstString([
     environ.DEFT_SESSION_ID,
     environ.DEFT_OCCUPANCY_OWNER,
     environ.DEFT_AGENT_ID,
+    environ.GROK_SESSION_ID,
+    environ.GROK_AGENT_ID,
   ]);
   return fromEnv ?? "unknown-killer";
 }
