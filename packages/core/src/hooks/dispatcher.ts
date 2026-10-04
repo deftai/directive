@@ -98,6 +98,7 @@ import {
   writeGateRitualOptions,
 } from "../session/verify-session-ritual.js";
 import {
+  countModelFlagsInLauncherArgv,
   evaluateSpawnRoutingHonor,
   extractModelFromLauncherArgv,
   extractRequestedModelFromPayload,
@@ -2213,7 +2214,7 @@ function inspectMutationGates(
         );
       }
     }
-    return applyRoutingConjunct(
+    const routingDecision = applyRoutingConjunct(
       input,
       toolName,
       {
@@ -2229,6 +2230,19 @@ function inspectMutationGates(
       },
       "implement",
     );
+    // Routing deny after persist must release the dest-lock or a corrected
+    // retry is refused as already reserved (#3703 Greptile P1).
+    if (
+      persistThisHandler &&
+      routingDecision.verdict !== "allow" &&
+      reservation.worktreePath.trim().length > 0
+    ) {
+      const incarnation = reservation.incarnation?.trim() ?? "";
+      if (incarnation.length > 0) {
+        releaseLeftoverSpawnReservation(payloadRoot, reservation.worktreePath, incarnation);
+      }
+    }
+    return routingDecision;
   }
   return {
     verdict: "allow",
@@ -2993,6 +3007,15 @@ function decideLauncherFamilyArgv(
       : null;
   if (prepared !== null && prepared.ok === true) {
     const command = hookShellCommand(input.payload) ?? "";
+    if (countModelFlagsInLauncherArgv(command) > 1) {
+      return deny(
+        input,
+        "spawn-not-ready",
+        toolName,
+        `Directive denied ${toolName}: launcher argv has duplicate --model flags; ` +
+          "honor join cannot pick which slug to compare (#3703).",
+      );
+    }
     return applyRoutingConjunct(
       input,
       toolName,

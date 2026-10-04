@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { ROUTING_GATED_DISPATCH_PROVIDERS } from "./routing.js";
 import {
+  countModelFlagsInLauncherArgv,
   evaluateSpawnRoutingHonor,
   extractModelFromLauncherArgv,
   extractRequestedModelFromPayload,
@@ -186,6 +187,61 @@ describe("evaluateSpawnRoutingHonor (#3703)", () => {
     expect(r.ok).toBe(true);
     expect(r.code).toBe("routing-honor-skip");
     expect(r.message).toContain("--skip-routing");
+  });
+
+  it("carves out non-gated SWARM roles instead of leaf-fallback", () => {
+    const { root, environ } = tempProject({
+      cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },
+    });
+    const r = evaluateSpawnRoutingHonor({
+      projectRoot: root,
+      environ,
+      spawnClass: "implement",
+      surface: "payload-model",
+      structuralWorkerRole: "review-monitor",
+      requestedModel: "other-model",
+    });
+    expect(r.ok).toBe(true);
+    expect(r.code).toBe("routing-honor-carve-out");
+    expect(r.message).toContain("review-monitor");
+    expect(r.message).toContain("not leaf-fallback");
+  });
+
+  it("denies harness-default when a model slug is requested", () => {
+    const { root, environ } = tempProject({
+      cursor: { "leaf-implementation": { model: null, mode: "harness-default" } },
+    });
+    const r = evaluateSpawnRoutingHonor({
+      projectRoot: root,
+      environ,
+      spawnClass: "implement",
+      surface: "payload-model",
+      requestedModel: "composer-2.5-fast",
+    });
+    expect(r.ok).toBe(false);
+    expect(r.code).toBe("routing-honor-deny");
+    expect(r.message).toMatch(/harness-default/i);
+  });
+
+  it("launcher-argv with --model honors leaf route instead of carving out", () => {
+    const { root, environ } = tempProject({
+      cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },
+    });
+    const r = evaluateSpawnRoutingHonor({
+      projectRoot: root,
+      environ,
+      spawnClass: "launcher-argv",
+      surface: "launcher-argv",
+      requestedModel: "wrong-model",
+    });
+    expect(r.ok).toBe(false);
+    expect(r.code).toBe("routing-honor-deny");
+    expect(r.message).toMatch(/diverges/i);
+  });
+
+  it("refuses to parse duplicate --model flags", () => {
+    expect(extractModelFromLauncherArgv("claude --model a --model b -p hi")).toBeNull();
+    expect(countModelFlagsInLauncherArgv("claude --model a --model=b")).toBe(2);
   });
 });
 
