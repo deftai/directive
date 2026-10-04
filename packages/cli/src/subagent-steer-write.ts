@@ -112,9 +112,7 @@ export function resolveIndependentSteerAuthority(input: {
     return { parentId: expected };
   }
 
-  const expectedOwner =
-    (lease?.occupancyOwner ?? "").trim() ||
-    (occupancy?.sessionId ?? "").trim();
+  const expectedOwner = (lease?.occupancyOwner ?? "").trim() || (occupancy?.sessionId ?? "").trim();
   if (expectedOwner.length === 0) {
     return {
       error:
