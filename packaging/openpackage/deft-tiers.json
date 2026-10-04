@@ -35,6 +35,7 @@
         "deft-directive-probe",
         "deft-directive-product-signal",
         "deft-directive-refinement",
+        "deft-directive-spec-reconstruct",
         "deft-directive-write-skill",
         "deft-directive-xbrief"
       ]

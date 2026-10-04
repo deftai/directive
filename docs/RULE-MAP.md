@@ -10,7 +10,8 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 - **Rules:** 24 groupings, 282 documents
 - **Tasks:** 64 namespaces, 273 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
-- **Packs:** 6 source-of-truth packs (716 entries from rules|lessons|patterns|skills|strategies|entries)
+- **Packs:** 6 source-of-truth packs (717 entries from rules|lessons|patterns|skills|strategies|entries)
+
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
 
@@ -35,7 +36,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 14 | 1 | 2 |
 | scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 108 | 34 | 34 | 1 | 3 |
-| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 39 | 570 | 119 | 667 | 0 | 18 |
+| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 40 | 583 | 120 | 678 | 0 | 18 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 323 | 90 | 142 | 0 | 11 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 105 | 9 | 50 | 1 | 5 |
@@ -310,6 +311,7 @@ _Packaged multi-step agent workflows (build, release, interview, triage, review�
 - **deft-directive-release/** (1 files)
 - **deft-directive-review-cycle/** (1 files)
 - **deft-directive-setup/** (1 files)
+- **deft-directive-spec-reconstruct/** (1 files)
 - **deft-directive-swarm/** (14 files)
 - **deft-directive-sync/** (1 files)
 - **deft-directive-triage/** (1 files)
@@ -432,7 +434,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | session | Claim occupancy and run the quick-tier ritual for one owner (#1348/#3611). Flags: --session-id <id> / --steal --confirm --occupant… | 3 |
 | setup | Wired into the parent Taskfile.yml `includes:` block under namespace key | 1 |
 | slice-record | Retrofit a slices.jsonl entry for a hand-filed cohort (#1147 / N7). Windows note (#1231): CLI_ARGS is forwarded bare to argparse so… | 2 |
-| spec | Specification render/validate tasks (vBRIEF -> SPECIFICATION). | 3 |
+| spec | Specification render/validate tasks (vBRIEF -> SPECIFICATION). | 4 |
 | subagent | Fail-closed query-before-cancel gate (#5278). Exit 0 only via status steer ack/observed window, heartbeat STALE/missing under grace, or… | 2 |
 | swarm | Report whether story vBRIEFs are ready for concurrent swarm allocation | 7 |
 | toolchain | Verify required maintainer toolchain is installed (go, uv, git, gh, node, pnpm) | 2 |
@@ -474,6 +476,6 @@ Directive turns a coding agent into an auditable process: load only the guidance
 | `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | 50 | 0 | 0 | 0 |
 | `content/packs/patterns/patterns-pack-0.1.json` | 0.1 | 12 | 0 | 0 | 0 |
 | `content/packs/rules/rules-pack-0.1.json` | 0.1 | 612 | 303 | 105 | 187 |
-| `content/packs/skills/skills-pack-0.1.json` | 0.1 | 25 | 0 | 0 | 0 |
+| `content/packs/skills/skills-pack-0.1.json` | 0.1 | 26 | 0 | 0 | 0 |
 | `content/packs/strategies/strategies-pack-0.1.json` | 0.1 | 16 | 0 | 0 | 0 |
 | `content/packs/swarm-spec/swarm-spec-pack-0.1.json` | 0.1 | 1 | 0 | 0 | 0 |

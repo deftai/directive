@@ -144,6 +144,7 @@ content/skills/deft-directive-refinement/
 content/skills/deft-directive-release/
 content/skills/deft-directive-review-cycle/
 content/skills/deft-directive-setup/
+content/skills/deft-directive-spec-reconstruct/
 content/skills/deft-directive-swarm/
 content/skills/deft-directive-sync/
 content/skills/deft-directive-triage/

@@ -568,8 +568,9 @@ describe("inspectAllPolicies", () => {
     // + openClawProductCommands (#3064) + hostSkillDiscovery (#75) + triageLabelMirror (#1423)
     // + coverageDebt + checkResume (#3189) + ceremonyDial (#3214) + acPassBanking (#3285)
     // + baseBranch (#3388) + syncMaxFiles (#3390) + forgeOutageRetryMinutes (#3422)
-    // + projectInvariants (#3425) + allowDestructiveGhVerbs (#4384).
-    expect(inspectAllPolicies(r)).toHaveLength(32);
+    // + projectInvariants (#3425) + allowDestructiveGhVerbs (#4384)
+    // + specGuard (#1589).
+    expect(inspectAllPolicies(r)).toHaveLength(33);
   });
 
   it("surfaces typed allowDirectCommits", () => {
