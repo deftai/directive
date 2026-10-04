@@ -209,10 +209,13 @@ export type ActiveBriefsDiscoverResult =
 /**
  * Extract a PR number only when the URI names the expected owner/repo (when provided).
  * Bare /pull/N without repo context is accepted only when expectedRepo is null.
+ * Enterprise hosts require expectedHost match so a foreign GHE with the same
+ * owner/repo path cannot enter the local cohort inventory (#5318 Greptile P1).
  */
 export function extractRepoScopedPullNumber(
   uri: string,
   expectedRepo: string | null = null,
+  expectedHost: string | null = null,
 ): number | null {
   const pullIdx = uri.indexOf("/pull/");
   const pullsIdx = uri.indexOf("/pulls/");
@@ -222,12 +225,31 @@ export function extractRepoScopedPullNumber(
   if (expectedRepo !== null && expectedRepo.includes("/")) {
     const repoNeedle = expectedRepo.toLowerCase();
     const lower = uri.toLowerCase();
-    // Accept github.com, api.github.com/repos/, and GitHub Enterprise hosts (*/*/<owner>/<repo>/pull[s]/).
-    const githubDotCom =
+    let host: string | null = null;
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(uri)) {
+      try {
+        host = new URL(uri).hostname.toLowerCase();
+      } catch {
+        host = null;
+      }
+    }
+    const normalizedExpectedHost = expectedHost?.trim().toLowerCase() || null;
+    // github.com / api.github.com (scheme URL or path substring).
+    const githubDotComHost = host === "github.com" || host === "api.github.com";
+    const githubDotComPath =
       lower.includes(`github.com/${repoNeedle}/`) || lower.includes(`repos/${repoNeedle}/`);
+    const githubDotCom =
+      (host === null && githubDotComPath) || (githubDotComHost && githubDotComPath);
+    // Scheme-less API path repos/<owner>/<repo>/pulls/<n>.
+    const apiPathOnly = host === null && lower.includes(`repos/${repoNeedle}/`);
+    // Enterprise: host must match configured GH host; path-only owner/repo is not enough.
     const enterprisePath =
-      lower.includes(`/${repoNeedle}/pull/`) || lower.includes(`/${repoNeedle}/pulls/`);
-    if (!(githubDotCom || enterprisePath)) {
+      host !== null &&
+      normalizedExpectedHost !== null &&
+      host === normalizedExpectedHost &&
+      !githubDotComHost &&
+      (lower.includes(`/${repoNeedle}/pull/`) || lower.includes(`/${repoNeedle}/pulls/`));
+    if (!(githubDotCom || apiPathOnly || enterprisePath)) {
       return null;
     }
   }
@@ -252,12 +274,14 @@ export function extractRepoScopedPullNumber(
  * Always consulted and unioned into the cohort denominator (does not replace --open-tracking-prs).
  * Briefs without PR refs are skipped; unreadable dirs/files and unexpected parse failures fail closed.
  * When expectedRepo is set, cross-repo PR URLs are ignored.
+ * When expectedHost is set, foreign-host URLs with the same owner/repo are ignored.
  * When openPrNumbers is set, closed/unknown PRs are dropped from the discovery result.
  */
 export function prsFromActiveBriefsSoft(
   projectRoot: string,
   options: {
     readonly expectedRepo?: string | null;
+    readonly expectedHost?: string | null;
     readonly openPrNumbers?: ReadonlySet<number> | null;
   } = {},
 ): ActiveBriefsDiscoverResult {
@@ -279,6 +303,7 @@ export function prsFromActiveBriefsSoft(
   if (files.length === 0) return { ok: true, prs: [] };
 
   const expectedRepo = options.expectedRepo ?? null;
+  const expectedHost = options.expectedHost ?? null;
   const openPrNumbers = options.openPrNumbers ?? null;
   const seen = new Set<number>();
   const prs: number[] = [];
@@ -304,7 +329,7 @@ export function prsFromActiveBriefsSoft(
       if (typeof ref !== "object" || ref === null || Array.isArray(ref)) continue;
       const uri = (ref as Record<string, unknown>).uri;
       if (typeof uri !== "string" || uri.length === 0) continue;
-      const pr = extractRepoScopedPullNumber(uri, expectedRepo);
+      const pr = extractRepoScopedPullNumber(uri, expectedRepo, expectedHost);
       if (pr === null) continue;
       if (openPrNumbers !== null && !openPrNumbers.has(pr)) continue;
       found += 1;
@@ -475,6 +500,8 @@ export interface VerifyCohortReviewMonitorsArgs {
   readonly openPrNumbers?: ReadonlySet<number> | null;
   /** owner/repo used to ignore cross-repo PR URLs during active-brief discovery. */
   readonly expectedRepo?: string | null;
+  /** Hostname (e.g. github.com / ghe.example.com) for foreign-host rejection. */
+  readonly expectedHost?: string | null;
   readonly emitJson?: boolean;
   readonly environ?: NodeJS.ProcessEnv;
   /** Hermetic per-PR live-arm map; omit to use live gate. */
@@ -590,6 +617,7 @@ export function verifyCohortReviewMonitors(
   // Soft-discover active briefs always (union); --open-tracking-prs never hides siblings.
   const discovered = prsFromActiveBriefsSoft(projectRoot, {
     expectedRepo: args.expectedRepo ?? null,
+    expectedHost: args.expectedHost ?? null,
     openPrNumbers: args.openPrNumbers ?? null,
   });
   if (!discovered.ok) {

@@ -321,7 +321,7 @@ describe("verifyCohortReviewMonitors (#5318)", () => {
 });
 
 describe("extractRepoScopedPullNumber", () => {
-  it("accepts github.com and enterprise host paths for the expected repo", () => {
+  it("accepts github.com and host-matched enterprise paths for the expected repo", () => {
     expect(
       extractRepoScopedPullNumber(
         "https://github.com/deftai/directive/pull/12",
@@ -332,10 +332,26 @@ describe("extractRepoScopedPullNumber", () => {
       extractRepoScopedPullNumber(
         "https://ghe.example.com/deftai/directive/pull/34",
         "deftai/directive",
+        "ghe.example.com",
       ),
     ).toBe(34);
     expect(
       extractRepoScopedPullNumber("https://github.com/other/other/pull/56", "deftai/directive"),
+    ).toBeNull();
+    // Foreign GHE with same owner/repo must not enter local inventory without host match.
+    expect(
+      extractRepoScopedPullNumber(
+        "https://other-ghe.example.com/deftai/directive/pull/78",
+        "deftai/directive",
+        "ghe.example.com",
+      ),
+    ).toBeNull();
+    expect(
+      extractRepoScopedPullNumber(
+        "https://ghe.example.com/deftai/directive/pull/90",
+        "deftai/directive",
+        null,
+      ),
     ).toBeNull();
   });
 });

@@ -121,24 +121,45 @@ export function parseCohortReviewMonitorsArgv(argv: readonly string[]): {
 
 function resolveOpenTrackingContext(projectRoot: string): {
   expectedRepo: string | null;
+  expectedHost: string | null;
   openPrNumbers: Set<number> | null;
 } {
   // Best-effort gh context. Failures leave openPrNumbers null (repo-scope still applied when known)
   // so hermetic unit tests that call verifyCohortReviewMonitorsMain without gh stay usable when
   // no active briefs exist; production parents with active Tracking briefs get open filtering when gh works.
   let expectedRepo: string | null = null;
+  let expectedHost: string | null = null;
   try {
-    const view = execFileSync("gh", ["api", "repos/{owner}/{repo}", "--jq", ".full_name"], {
-      cwd: projectRoot,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    }).trim();
-    if (view.includes("/")) expectedRepo = view;
+    const view = execFileSync(
+      "gh",
+      ["api", "repos/{owner}/{repo}", "--jq", "[.full_name,.html_url]|@tsv"],
+      {
+        cwd: projectRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    ).trim();
+    const tab = view.indexOf("\t");
+    const fullName = (tab >= 0 ? view.slice(0, tab) : view).trim();
+    const htmlUrl = tab >= 0 ? view.slice(tab + 1).trim() : "";
+    if (fullName.includes("/")) expectedRepo = fullName;
+    if (htmlUrl.length > 0) {
+      try {
+        expectedHost = new URL(htmlUrl).hostname.toLowerCase();
+      } catch {
+        expectedHost = null;
+      }
+    }
   } catch {
     expectedRepo = null;
+    expectedHost = null;
+  }
+  if (expectedHost === null) {
+    const fromEnv = process.env.GH_HOST?.trim();
+    if (fromEnv && fromEnv.length > 0) expectedHost = fromEnv.toLowerCase();
   }
   if (expectedRepo === null) {
-    return { expectedRepo: null, openPrNumbers: null };
+    return { expectedRepo: null, expectedHost, openPrNumbers: null };
   }
   try {
     const openPrNumbers = new Set<number>();
@@ -168,9 +189,9 @@ function resolveOpenTrackingContext(projectRoot: string): {
       }
       if (lines.length < 100) break;
     }
-    return { expectedRepo, openPrNumbers };
+    return { expectedRepo, expectedHost, openPrNumbers };
   } catch {
-    return { expectedRepo, openPrNumbers: null };
+    return { expectedRepo, expectedHost, openPrNumbers: null };
   }
 }
 
@@ -213,13 +234,16 @@ export function verifyCohortReviewMonitorsMain(argv: string[] = process.argv.sli
     openTrackingPrs = parsed.prs;
   }
 
-  const { expectedRepo, openPrNumbers } = resolveOpenTrackingContext(args.projectRoot);
+  const { expectedRepo, expectedHost, openPrNumbers } = resolveOpenTrackingContext(
+    args.projectRoot,
+  );
   const result = verifyCohortReviewMonitors({
     projectRoot: args.projectRoot,
     prsCsv: args.prsCsv,
     launchManifestPath: args.manifestPath,
     openTrackingPrs,
     expectedRepo,
+    expectedHost,
     openPrNumbers,
     emitJson: args.emitJson,
   });
