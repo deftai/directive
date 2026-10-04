@@ -1049,7 +1049,15 @@ describe("delivery evidence (#3041)", () => {
     expect(
       defaultFetchClosingIssueIds(1, "o/r", () => ({
         returncode: 0,
-        stdout: JSON.stringify({ closingIssuesReferences: [{ number: 7 }] }),
+        stdout: JSON.stringify({
+          data: {
+            repository: {
+              pullRequest: {
+                closingIssuesReferences: { nodes: [{ number: 7 }] },
+              },
+            },
+          },
+        }),
         stderr: "",
       })),
     ).toEqual([{ repository: "o/r", issueNumber: 7 }]);
@@ -1057,18 +1065,34 @@ describe("delivery evidence (#3041)", () => {
       defaultFetchClosingIssueIds(1, "o/r", () => ({
         returncode: 0,
         stdout: JSON.stringify({
-          closingIssuesReferences: [
-            {
-              number: 7,
-              url: "https://github.com/other/repo/issues/7?view=1",
+          data: {
+            repository: {
+              pullRequest: {
+                closingIssuesReferences: {
+                  nodes: [
+                    {
+                      number: 7,
+                      url: "https://github.com/other/repo/issues/7?view=1",
+                      repository: { nameWithOwner: "other/repo" },
+                    },
+                  ],
+                },
+              },
             },
-          ],
+          },
         }),
         stderr: "",
       })),
     ).toEqual([{ repository: "other/repo", issueNumber: 7 }]);
     expect(
       defaultFetchClosingIssueIds(1, "o/r", () => ({ returncode: 1, stdout: "", stderr: "no" })),
+    ).toBeNull();
+    expect(
+      defaultFetchClosingIssueIds(1, "not-a-repo", () => ({
+        returncode: 0,
+        stdout: "{}",
+        stderr: "",
+      })),
     ).toBeNull();
 
     expect(

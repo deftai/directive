@@ -388,19 +388,44 @@ function parseClosingIssueEntry(
   return { repository: fallbackRepository, issueNumber };
 }
 
+/** GraphQL query for closingIssuesReferences with repository identity (#3675). */
+const CLOSING_ISSUES_GRAPHQL = [
+  "query($owner:String!,$name:String!,$number:Int!){",
+  "repository(owner:$owner,name:$name){",
+  "pullRequest(number:$number){",
+  "closingIssuesReferences(first:100){",
+  "nodes{number url repository{nameWithOwner}}",
+  "}}}}",
+].join("");
+
 /**
  * Authoritative closing-issue refs with per-issue repository preserved (#3675).
- * Does not union body/commit intent extractors.
+ * Uses `gh api graphql` (not forbidden `gh pr view --json`) so cross-repo
+ * closers keep their own repository. Does not union body/commit intent.
  */
 export function defaultFetchClosingIssueIds(
   prNumber: number,
   repository: string,
   runGh: RunGhFn = defaultRunGh,
 ): ClosingIssueRef[] | null {
-  const cmd = ["gh", "pr", "view", String(prNumber), "--json", "closingIssuesReferences"];
-  if (repository.trim().length > 0) {
-    cmd.push("--repo", repository);
+  const parsedRepo = parseOwnerRepo(repository);
+  if (parsedRepo === null) {
+    return null;
   }
+
+  const cmd = [
+    "gh",
+    "api",
+    "graphql",
+    "-f",
+    `query=${CLOSING_ISSUES_GRAPHQL}`,
+    "-F",
+    `owner=${parsedRepo.owner}`,
+    "-F",
+    `name=${parsedRepo.name}`,
+    "-F",
+    `number=${prNumber}`,
+  ];
 
   let result: RunGhResult;
   try {
@@ -418,7 +443,10 @@ export function defaultFetchClosingIssueIds(
   } catch {
     return null;
   }
-  const refs = asRecord(payload)?.closingIssuesReferences;
+  const nodes = asRecord(
+    asRecord(asRecord(asRecord(payload)?.data)?.repository)?.pullRequest,
+  )?.closingIssuesReferences;
+  const refs = asRecord(nodes)?.nodes;
   if (!Array.isArray(refs)) {
     return null;
   }
