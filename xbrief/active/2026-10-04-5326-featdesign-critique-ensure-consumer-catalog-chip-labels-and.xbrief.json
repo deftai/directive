@@ -290,19 +290,27 @@
       },
       "swarm": {
         "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
           "packages/core/src/design-critique/catalog-chip-ensure.ts",
           "packages/core/src/design-critique/catalog-chip-ensure.test.ts",
           "packages/core/src/scm/design-critique-chip.ts",
           "packages/core/src/scm/design-critique-chip.test.ts",
           "packages/core/src/scm/gh-rest.ts",
-          "packages/core/src/scm/main.ts",
+          "packages/core/src/doctor/design-critique-deposit.ts",
+          "packages/core/src/doctor/design-critique-deposit.test.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/index.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md",
           "packages/core/src/scm/main-branches.test.ts",
-          "packages/core/src/scm/design-critique-stale-ready.test.ts",
-          "CHANGELOG.md"
+          "packages/core/src/scm/design-critique-stale-ready.test.ts"
         ],
         "file_scope_confidence": "medium",
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/design-critique/catalog-chip-ensure.test.ts packages/core/src/scm/design-critique-chip.test.ts packages/core/src/scm/main-branches.test.ts packages/core/src/scm/design-critique-stale-ready.test.ts"
+          "pnpm exec vitest run packages/core/src/design-critique/catalog-chip-ensure.test.ts packages/core/src/scm/design-critique-chip.test.ts packages/core/src/doctor/design-critique-deposit.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
         ],
         "expected_outputs": [
           "Tracking PR opened"

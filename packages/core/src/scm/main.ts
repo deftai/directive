@@ -5,8 +5,8 @@ import { buildCommand } from "./build-command.js";
 import { REST_OPT_IN_VERBS } from "./constants.js";
 import {
   DESIGN_CRITIQUE_CHIP_VERB,
-  runDesignCritiqueChip,
   type DesignCritiqueChipSeams,
+  runDesignCritiqueChip,
 } from "./design-critique-chip.js";
 import {
   DESIGN_CRITIQUE_STALE_READY_VERB,
