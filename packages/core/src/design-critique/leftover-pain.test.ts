@@ -1096,8 +1096,20 @@ describe("pain-audit follow-through gate Prefer-A Bound (#5233)", () => {
         isSuccessorLeanBody,
       }),
     ).toMatchObject({ ok: false, recovery: "record-parent-takes" });
-    const recorded: ThreadComment = {
+    const bareCite: ThreadComment = {
       id: LEAN_ID + 2,
+      body: `role: parent\n\nsynthesis mentions ${sharpen.id} only\n`,
+    };
+    expect(
+      evaluateAccumulatedPainAuditFollowThrough({
+        comments: [lean, sharpen, bareCite],
+        citedLeanId: LEAN_ID,
+        assertedPainIds: ["P1"],
+        isSuccessorLeanBody,
+      }),
+    ).toMatchObject({ ok: false, recovery: "record-parent-takes" });
+    const recorded: ThreadComment = {
+      id: LEAN_ID + 3,
       body: `role: parent\n\nrecorded takes for audit ${sharpen.id}\n`,
     };
     expect(

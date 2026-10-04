@@ -50,8 +50,10 @@ describe("pain-audit-follow-through-gate (#5233)", () => {
     const a = "**Lean:** x\n\n## Bound remedy\n\n1. one\n\nrelieves: P1\n";
     const b = "**Lean:** x\n\n## Bound remedy\n\n1. two\n\nrelieves: P1\n";
     const hyphen = "**Lean:** x\n\n## Bound-remedy\n\n1. one\n\nrelieves: P9\n";
+    const checkbox = "**Lean:** x\n\n## Bound remedy\n\n- [ ] one\n\nrelieves: P1\n";
     expect(hashBoundRemedyBytes(a)).not.toBe(hashBoundRemedyBytes(b));
     expect(hashBoundRemedyBytes(a)).toBe(hashBoundRemedyBytes(hyphen));
+    expect(hashBoundRemedyBytes(a)).toBe(hashBoundRemedyBytes(checkbox));
   });
 
   it("refuses missing carrier on a targeting audit for the cited harvest", () => {

@@ -89,6 +89,7 @@ const BOUND_REMEDY_HEADING_RE = /(?:^|\n)##[ \t]+Bound[\s-]+remedy\b[^\n]*(?:\r?
 const NEXT_H2_RE = /\r?\n##[ \t]+/;
 const CLASS_TOKEN_RE = /^(blocking|sharpening|footnote|none)$/i;
 const LIST_ITEM_LINE_RE = /^[ \t]*(?:[-*+]|\d+[.)])[ \t]+(\S.*)$/;
+const CHECKBOX_PREFIX_RE = /^\[[ xX]\][ \t]+/;
 const RECORDING_TAKES_RE = /(?:^|\n)[ \t]*(?:takes?|per-heading takes|recorded takes)\b/i;
 
 export type FindingClassesCarrier =
@@ -223,7 +224,9 @@ export function hashBoundRemedyBytes(body: string): string {
     for (const line of slice.split(/\r?\n/)) {
       const item = LIST_ITEM_LINE_RE.exec(line);
       if (item === null) continue;
-      const title = (item[1] ?? "").trim();
+      // Match intake parseListItems: strip leading checkbox markers from titles.
+      let title = (item[1] ?? "").trim();
+      title = title.replace(CHECKBOX_PREFIX_RE, "").trim();
       if (title.length === 0 || seen.has(title)) continue;
       seen.add(title);
       titles.push(title);
@@ -246,7 +249,8 @@ function hasRecordingParentTakes(
     if (comment.id <= auditId) return false;
     if (!PARENT_ROLE_RE.test(comment.body)) return false;
     if (isSuccessorLeanBody(comment.body)) return false;
-    return RECORDING_TAKES_RE.test(comment.body) || commentCitesId(comment.body, auditId);
+    // Bare numeric cite alone is not disposition; require takes language.
+    return RECORDING_TAKES_RE.test(comment.body) && commentCitesId(comment.body, auditId);
   });
 }
 
