@@ -1,0 +1,280 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Prefer-A Bound Path B activation for #5278 (query-before-cancel)",
+    "updated": "2026-10-04T06:21:55.684Z"
+  },
+  "plan": {
+    "title": "bug(swarm,grok-build): parent-steer inbox exists but cancel/kill has no query-first preflight (#4286 leftover)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(swarm,grok-build): parent-steer inbox exists but cancel/kill has no query-first preflight (#4286 leftover)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5278",
+      "Overview": "Prefer-A Bound lean 5974528182 (synthesis 5974591665). Path B membership precommitment for product PR #5288 scope-provenance.",
+      "Labels": "bug, swarm, agent-experience, process"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Pre-cancel verb (Directive takeover): deft/task subagent:pre-cancel fails closed unless status-steer ack/observed 3-minute first-seen window (PA-18 forward skew only), heartbeat STALE/missing under grace, or --force --reason. Wire before swarm:pre-dispatch --action cancel.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5288 squash-merge (Tracking #5278). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5288",
+            "mintedAt": "2026-10-04T09:59:46Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T09:59:46Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Ship deft/task subagent:steer wrapping writeSteer with independent parent/owner checks; host-kill refuse stays on leftover #5281.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5288 squash-merge (Tracking #5278). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5288",
+            "mintedAt": "2026-10-04T09:59:46Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T09:59:46Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Heartbeat gains validated closed wait_kind (pr:watch|fix-batch|reading|idle|unknown) plus head_sha; verify:subagent-alive --json and agent:monitor emit per-agent records.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5288 squash-merge (Tracking #5278). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5288",
+            "mintedAt": "2026-10-04T09:59:46Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T09:59:46Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Approach 1 arm-probe halt class approach1-arm-startup via verify:review-monitor --merge-path-arm --dispatch-started-at; exhaustion routes into pre-cancel.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5288 squash-merge (Tracking #5278). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5288",
+            "mintedAt": "2026-10-04T09:59:46Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T09:59:46Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Docs/agents-entry/commands pin query-before-cancel; DCR (i)-(vi) covered in unit tests. Tracking #5278.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5288 squash-merge (Tracking #5278). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5288",
+            "mintedAt": "2026-10-04T09:59:46Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T09:59:46Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "promise:swarm",
+      "promise:continuity"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5278",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5278: query-before-cancel pre-cancel gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4286",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4286"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5281",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5281 host-kill leftover"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover pathless derived after #5288",
+      "sentences": [
+        "Pre-cancel verb (Directive takeover): deft/task subagent:pre-cancel fails closed unless status-steer ack/observed 3-minute first-seen window (PA-18 forward skew only), heartbeat STALE/missing under grace, or --force --reason. Wire before swarm:pre-dispatch --action cancel.",
+        "Ship deft/task subagent:steer wrapping writeSteer with independent parent/owner checks; host-kill refuse stays on leftover #5281.",
+        "Heartbeat gains validated closed wait_kind (pr:watch|fix-batch|reading|idle|unknown) plus head_sha; verify:subagent-alive --json and agent:monitor emit per-agent records.",
+        "Approach 1 arm-probe halt class approach1-arm-startup via verify:review-monitor --merge-path-arm --dispatch-started-at; exhaustion routes into pre-cancel.",
+        "Docs/agents-entry/commands pin query-before-cancel; DCR (i)-(vi) covered in unit tests. Tracking #5278."
+      ],
+      "admitted_source_sentences": [
+        "Pre-cancel verb (Directive takeover): deft/task subagent:pre-cancel fails closed unless status-steer ack/observed 3-minute first-seen window (PA-18 forward skew only), heartbeat STALE/missing under grace, or --force --reason. Wire before swarm:pre-dispatch --action cancel.",
+        "Ship deft/task subagent:steer wrapping writeSteer with independent parent/owner checks; host-kill refuse stays on leftover #5281.",
+        "Heartbeat gains validated closed wait_kind (pr:watch|fix-batch|reading|idle|unknown) plus head_sha; verify:subagent-alive --json and agent:monitor emit per-agent records.",
+        "Approach 1 arm-probe halt class approach1-arm-startup via verify:review-monitor --merge-path-arm --dispatch-started-at; exhaustion routes into pre-cancel.",
+        "Docs/agents-entry/commands pin query-before-cancel; DCR (i)-(vi) covered in unit tests. Tracking #5278."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Pre-cancel verb (Directive takeover): deft/task subagent:pre-cancel fails closed unless status-steer ack/observed 3-minute first-seen window (PA-18 forward skew only), heartbeat STALE/missing under grace, or --force --reason. Wire before swarm:pre-dispatch --action cancel.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5288 squash-merge (Tracking #5278). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5288",
+              "mintedAt": "2026-10-04T09:59:46Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T09:59:46Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Ship deft/task subagent:steer wrapping writeSteer with independent parent/owner checks; host-kill refuse stays on leftover #5281.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5288 squash-merge (Tracking #5278). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5288",
+              "mintedAt": "2026-10-04T09:59:46Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T09:59:46Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Heartbeat gains validated closed wait_kind (pr:watch|fix-batch|reading|idle|unknown) plus head_sha; verify:subagent-alive --json and agent:monitor emit per-agent records.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5288 squash-merge (Tracking #5278). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5288",
+              "mintedAt": "2026-10-04T09:59:46Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T09:59:46Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Approach 1 arm-probe halt class approach1-arm-startup via verify:review-monitor --merge-path-arm --dispatch-started-at; exhaustion routes into pre-cancel.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5288 squash-merge (Tracking #5278). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5288",
+              "mintedAt": "2026-10-04T09:59:46Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T09:59:46Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Docs/agents-entry/commands pin query-before-cancel; DCR (i)-(vi) covered in unit tests. Tracking #5278.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5288 squash-merge (Tracking #5278). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5288",
+              "mintedAt": "2026-10-04T09:59:46Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T09:59:46Z"
+          }
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "admitted_source_digest": "c71802d490859cae01f6e654abd0dc3943b2ccb342c7ac7ada9edd8b603a9e07"
+    },
+    "metadata": {
+      "productPullRequest": 5288,
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "swarm": {
+        "file_scope": [],
+        "file_scope_confidence": "high",
+        "verify_commands": [],
+        "expected_outputs": [
+          "completed xBRIEF on tip"
+        ],
+        "depends_on": [],
+        "conflict_group": "query-before-cancel-pre-cancel",
+        "size": "L",
+        "model_tier": "default"
+      },
+      "admitted_source_digest": "c71802d490859cae01f6e654abd0dc3943b2ccb342c7ac7ada9edd8b603a9e07",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T09:59:46Z"
+      },
+      "completedAt": "2026-10-04T09:59:46Z",
+      "completionProvenance": {
+        "productMerge": "46f7bd92f",
+        "productPr": 5288
+      }
+    },
+    "id": "github.issue.5684076688",
+    "updated": "2026-10-04T06:21:55.684Z"
+  }
+}

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Gate Grok `kill_command_or_subagent` behind pre-cancel / equivalent attestation (#5281).** Matcher deposit + dedicated deny-class PreToolUse path (not `inspectMutationGates`); equivalent `.deft-scratch/subagent-kill-attestation/` until #5278 tip verb is present; force requires printed reason; fail-closed DCR. Tracking #5281. Refs #5278, #3987, #4286.
 
 ### Changed
+- **Leftover-complete #5278 after product #5288.** Retire the active query-before-cancel Prefer-A brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #5278.
 - **Leftover-complete #5281 after product #5293.** Retire the active host-kill attestation Prefer-A brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #5281.
 
 - **Activate #5278 Prefer-A Bound brief with concrete file_scope.** Lands the active brief on master so product PR #5288 can pass verify:scope-provenance membership (Path B / #5192). Tracking #5278.
