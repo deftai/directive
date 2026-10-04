@@ -39,15 +39,19 @@ describe("pain-audit-follow-through-gate (#5233)", () => {
       ok: true,
       explicitEmpty: true,
     });
+    expect(extractOperativeFindingClasses("finding-classes: \n")?.ok).toBe(false);
+    expect(
+      extractOperativeFindingClasses("finding-classes: blocking\nfinding-classes: none\n")?.ok,
+    ).toBe(false);
     expect(extractOperativeHarvestChanged("harvest-changed: false\n")).toEqual({
       ok: true,
       harvestChanged: false,
     });
-    const a =
-      "**Lean:** x\n\n## Bound remedy\n\n1. one\n\nrelieves: P1\n";
-    const b =
-      "**Lean:** x\n\n## Bound remedy\n\n1. two\n\nrelieves: P1\n";
+    const a = "**Lean:** x\n\n## Bound remedy\n\n1. one\n\nrelieves: P1\n";
+    const b = "**Lean:** x\n\n## Bound remedy\n\n1. two\n\nrelieves: P1\n";
+    const hyphen = "**Lean:** x\n\n## Bound-remedy\n\n1. one\n\nrelieves: P9\n";
     expect(hashBoundRemedyBytes(a)).not.toBe(hashBoundRemedyBytes(b));
+    expect(hashBoundRemedyBytes(a)).toBe(hashBoundRemedyBytes(hyphen));
   });
 
   it("refuses missing carrier on a targeting audit for the cited harvest", () => {
