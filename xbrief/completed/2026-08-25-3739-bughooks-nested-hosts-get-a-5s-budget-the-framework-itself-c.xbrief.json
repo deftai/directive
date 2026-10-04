@@ -1,37 +1,134 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "updated": "2026-10-04T22:18:13Z"
+    "description": "Prefer-A leftover-complete for GitHub issue #3739 after product PR #5331",
+    "updated": "2026-10-04T22:30:00.000Z"
   },
   "plan": {
     "id": "github.issue.5250736862",
+    "title": "bug(hooks): nested hosts get a 5s budget the framework itself calls too small, and a killed hook renders identically to an allow",
     "status": "completed",
-    "title": "Raise nested host tool.before timeout to 30s; registration health rejects stale 5s deposits (#3739)",
+    "narratives": {
+      "Description": "bug(hooks): nested hosts get a 5s budget the framework itself calls too small, and a killed hook renders identically to an allow",
+      "Origin": "Prefer-A leftover-complete after product PR #5331 squash-merge; Tracking #3739.",
+      "Overview": "Product PR #5331 raised nested Claude/Grok/Codex tool.before deposit timeout from 5s to 30s and registration health rejects stale 5s deposits. SessionStart/PreCompact stay at 5s. Distinguishable timeout-vs-allow outcome for a killed nested hook remains deferred residual (not shipped in #5331).\n\nAdmitted source sentences:\n1. The nested deposit budget is sized against the same measured work the Cursor budget was sized against, or the work is moved off the synchronous path so a small budget is honest.\n2. A nested host that cannot complete in budget produces a distinguishable outcome — not an empty string that is indistinguishable from allow.\n3. Whatever the choice, it is stated per host rather than inherited by default.",
+      "Action": "Land completed xBRIEF for #3739 after #5331; defer distinguishable timeout-outcome residual."
+    },
     "items": [
       {
         "id": "clause.1",
-        "title": "Raise nested host tool.before timeout to 30s; registration health rejects stale 5s deposits (#3739)",
+        "title": "The nested deposit budget is sized against the same measured work the Cursor budget was sized against, or the work is moved off the synchronous path so a small budget is honest.",
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5331 squash-merge (Tracking #3739). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "reason": "Product PR #5331 raised NESTED_HOOK_TIMEOUT_SECONDS tool.before to 30s (aligned with CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS) and registration health rejects stale 5s deposits.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
             "eventRef": "leftover-complete-after-5331",
-            "mintedAt": "2026-10-04T22:18:12.574Z",
-            "mintedVia": "parent-retained-closer"
+            "mintedAt": "2026-10-04T22:30:00.000Z",
+            "mintedVia": "approach1-review-monitor"
           },
-          "recorded_at": "2026-10-04T22:18:12.574Z"
-        },
-        "x-directive/notes": "Prefer-A leftover-complete disposition."
+          "recorded_at": "2026-10-04T22:30:00.000Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "A nested host that cannot complete in budget produces a distinguishable outcome — not an empty string that is indistinguishable from allow.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "PR #5331 raised the nested tool.before budget and registration health only; it did not add a distinguishable timeout/kill outcome vs allow empty-string. Retain as unresolved residual on Tracking #3739 lifecycle record.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5331-deferred-timeout-outcome",
+            "mintedAt": "2026-10-04T22:30:00.000Z",
+            "mintedVia": "approach1-review-monitor"
+          },
+          "recorded_at": "2026-10-04T22:30:00.000Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Whatever the choice, it is stated per host rather than inherited by default.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Nested hosts share explicit NESTED_HOOK_TIMEOUT_SECONDS; Cursor keeps CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS — stated per host family rather than a silent shared default.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5331",
+            "mintedAt": "2026-10-04T22:30:00.000Z",
+            "mintedVia": "approach1-review-monitor"
+          },
+          "recorded_at": "2026-10-04T22:30:00.000Z"
+        }
       }
     ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3739",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3739: bug(hooks): nested hosts get a 5s budget the framework itself calls too small, and a killed hook renders identically to an allow"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/5331",
+        "type": "x-xbrief/github-pr",
+        "title": "PR #5331: fix(hooks): raise nested tool.before deposit timeout to 30s (Tracking #3739)"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover-complete after product PR #5331; pathless derived clauses preserve admitted source sentences from proposed brief",
+      "sentences": [
+        "The nested deposit budget is sized against the same measured work the Cursor budget was sized against, or the work is moved off the synchronous path so a small budget is honest.",
+        "A nested host that cannot complete in budget produces a distinguishable outcome — not an empty string that is indistinguishable from allow.",
+        "Whatever the choice, it is stated per host rather than inherited by default."
+      ],
+      "admitted_source_sentences": [
+        "The nested deposit budget is sized against the same measured work the Cursor budget was sized against, or the work is moved off the synchronous path so a small budget is honest.",
+        "A nested host that cannot complete in budget produces a distinguishable outcome — not an empty string that is indistinguishable from allow.",
+        "Whatever the choice, it is stated per host rather than inherited by default."
+      ],
+      "admitted_source_digest": "029238df559333e900c131ff5e0c5a7f0a429b37791de45e28883697740d93c5",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The nested deposit budget is sized against the same measured work the Cursor budget was sized against, or the work is moved off the synchronous path so a small budget is honest.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A nested host that cannot complete in budget produces a distinguishable outcome — not an empty string that is indistinguishable from allow.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "implementation"
+        },
+        {
+          "id": 3,
+          "text": "Whatever the choice, it is stated per host rather than inherited by default.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
     "metadata": {
       "productPullRequest": 5331,
       "conflict_group": "nested-tool-before-timeout",
       "ambiguity_attestation": "none_found",
-      "admitted_source_digest": "leftover-complete-after-5331",
+      "admitted_source_digest": "029238df559333e900c131ff5e0c5a7f0a429b37791de45e28883697740d93c5",
       "swarm": {
         "file_scope": [
           "packages/core/src/init-deposit/agent-hooks.ts",
@@ -57,7 +154,7 @@
         "mergeCommit": "4bf32f8cf39bfae308d8cbfe0ffe228b914655dd",
         "deliveryBranch": "master",
         "deliveryCommit": "4bf32f8cf39bfae308d8cbfe0ffe228b914655dd",
-        "verifiedAt": "2026-10-04T22:18:13Z",
+        "verifiedAt": "2026-10-04T22:30:00.000Z",
         "verifier": "scope:complete",
         "disposition": "delivered",
         "handoffState": "delivered",
@@ -66,43 +163,13 @@
       },
       "deliveryDisposition": "delivered",
       "handoffState": "delivered",
-      "completedAt": "2026-10-04T22:18:13Z",
+      "completedAt": "2026-10-04T22:30:00.000Z",
       "capacityBucket": "new-capability",
       "lifecycleWrite": {
         "action": "complete",
-        "writtenAt": "2026-10-04T22:18:13Z"
+        "writtenAt": "2026-10-04T22:30:00.000Z"
       }
     },
-    "acceptance": {
-      "commands": [
-        {
-          "command": "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts"
-        }
-      ],
-      "none_stated": false,
-      "source_rung": "derived",
-      "ambiguity_attestation": "none_found",
-      "clauses": [
-        {
-          "id": "clause.1",
-          "text": "Raise nested host tool.before timeout to 30s; registration health rejects stale 5s deposits (#3739)",
-          "status": "pending",
-          "artifact_path": null,
-          "x-directive/disposition": {
-            "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5331 squash-merge (Tracking #3739). Bound limbs shipped; Greptile CLEAN then MERGED.",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "eventRef": "leftover-complete-after-5331",
-              "mintedAt": "2026-10-04T22:18:12.574Z",
-              "mintedVia": "parent-retained-closer"
-            },
-            "recorded_at": "2026-10-04T22:18:12.574Z"
-          }
-        }
-      ]
-    },
-    "updated": "2026-10-04T22:18:13Z"
+    "updated": "2026-10-04T22:30:00.000Z"
   }
 }
