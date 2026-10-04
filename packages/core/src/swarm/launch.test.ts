@@ -1098,9 +1098,7 @@ function writeJcpProjectDef(
       plan: {
         policy: {
           swarmSubagentBackend: "grok-build",
-          ...(options?.judgmentGates !== undefined
-            ? { judgmentGates: options.judgmentGates }
-            : {}),
+          ...(options?.judgmentGates !== undefined ? { judgmentGates: options.judgmentGates } : {}),
         },
       },
     }),
