@@ -1,0 +1,1035 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1613",
+    "updated": "2026-10-04T12:45:56Z"
+  },
+  "plan": {
+    "title": "feat(vbrief,build): STOP conditions on vBRIEF task items — halt and report when preconditions fail",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(vbrief,build): STOP conditions on vBRIEF task items — halt and report when preconditions fail",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1613",
+      "Overview": "feat(vbrief,build): STOP conditions on vBRIEF task items — halt and report when preconditions fail rather than improvising\n\n## Summary\n\nDirective vBRIEF plan.items have acceptance criteria and effort estimates, but no STOP conditions. When the build agent hits unexpected code — the file has moved, the pattern has changed, an assumption in the spec was wrong — it currently improvises. The failure mode is silent: the agent produces output that looks like implementation but diverges from the spec in ways that only surface at review.\n\nSTOP conditions are structurally different from acceptance criteria:\n- Acceptance criteria define when work is done (post-conditions)\n- STOP conditions define when work must pause because a precondition for the plan no longer holds\n\nThe pattern comes from shadcn/improve (2,396 stars), which writes every plan with explicit STOP conditions: \"Stop and report back (do not improvise) if: the code at the locations above does not match the excerpts.\"\n\n## The gap\n\nWithout STOP conditions, an agent executing a vBRIEF task has two choices when reality does not match the plan: stop (losing progress) or improvise (drifting from spec). In practice, agents improvise. The improvisation often produces code that passes task check but does not implement the spec as intended. STOP conditions formalize the third option: halt, report the mismatch, and let the human or orchestrator decide how to proceed.\n\n## Proposed changes\n\nvbrief/schemas/vbrief-core.schema.json -- add an optional stopConditions field to PlanItem as an array of strings. Each entry describes a situation that should cause the agent to halt and report rather than continue.\n\nExample:\n  \"stopConditions\": [\n    \"The code at the locations cited in the spec does not match the current file contents\",\n    \"Removing this block requires touching files outside the in-scope list\",\n    \"Tests fail in a way that suggests the assumption about X was wrong\"\n  ]\n\nvbrief/vbrief.md -- document stopConditions alongside acceptanceCriteria. Note: stopConditions are precondition failures; acceptanceCriteria are done criteria.\n\nskills/deft-directive-build/SKILL.md -- add an explicit check: before beginning implementation on a task, verify that any cited file locations match the plan. If stopConditions are present, enumerate them and instruct the agent to halt and report (not improvise) if any trigger.\n\nmain.md -- add a named principle: when a task has stopConditions and one fires, the agent MUST halt and report the specific mismatch. Improvising past a stop condition is a defect.\n\n## Acceptance criteria\n\n- vbrief-core.schema.json has the stopConditions field on PlanItem (optional array of strings)\n- vbrief/vbrief.md documents stopConditions with examples and the distinction from acceptanceCriteria\n- deft-directive-build checks stopConditions before and during execution and halts on trigger\n- task vbrief:validate passes for existing items that omit the field\n\n## Related\n\n- Related to #1579 (Milestone 0 safety net -- pre-implementation gate; this is mid-execution gate)\n- Related to #1201 (pre/post-condition AC structure -- stopConditions are the complementary precondition-failure signal)\n- Related to swarm/swarm.md (swarm contexts with parallel agents make undeclared improvisation especially dangerous)\n\n## Source\n\nshadcn/improve (https://github.com/shadcn/improve, 2,396 stars, 2026-06-10): \"Hard boundaries. Explicit out-of-scope lists, and STOP conditions -- if X, stop and report -- instead of letting a small model improvise when reality does not match the plan.\" Example plan includes: \"STOP conditions: Stop and report back (do not improvise) if the code at the locations above does not match the excerpts.\"",
+      "Labels": "enhancement, design, determinism, agent-experience, process, source-of-truth, urgent, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities, promise:requirements"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Durable PlanItem stopConditions on xBRIEF 0.8 (kind:anchor only) + schema pair sync + vbrief.md docs",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5310",
+            "mintedAt": "2026-10-04T12:43:43.760Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T12:43:43.760Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Two mechanisms: ITEM_CORE admission in conformance.ts; shape refusal in schema.ts + constants.ts (effort pattern)",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5310",
+            "mintedAt": "2026-10-04T12:43:43.760Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T12:43:43.760Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Skill consumers: packs skills render into deft-directive-build; halt+report via Dual-stop / BLOCKED on fire",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5310",
+            "mintedAt": "2026-10-04T12:43:43.760Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T12:43:43.760Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Writer rule: executing agent must not delete/weaken a stop in the violating unit",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5310",
+            "mintedAt": "2026-10-04T12:43:43.760Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T12:43:43.760Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Doctrine: rewrite false already-has-STOP claim in main.md Dual Stop relation; quoted-text anchor",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5310",
+            "mintedAt": "2026-10-04T12:43:43.760Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T12:43:43.760Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Acceptance: omitted OK; well-formed passes; malformed refuses at vbrief:validate; mismatch halts; peer lock",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5310",
+            "mintedAt": "2026-10-04T12:43:43.760Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T12:43:43.760Z"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "determinism",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:requirements"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1613",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1613: feat(vbrief,build): STOP conditions on vBRIEF task items — halt and report when preconditions fail"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1579",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1579"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1201",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1201"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover pathless derived after #5310",
+      "sentences": [
+        "Durable PlanItem stopConditions on xBRIEF 0.8 (kind:anchor only) + schema pair sync + vbrief.md docs",
+        "Two mechanisms: ITEM_CORE admission in conformance.ts; shape refusal in schema.ts + constants.ts (effort pattern)",
+        "Skill consumers: packs skills render into deft-directive-build; halt+report via Dual-stop / BLOCKED on fire",
+        "Writer rule: executing agent must not delete/weaken a stop in the violating unit",
+        "Doctrine: rewrite false already-has-STOP claim in main.md Dual Stop relation; quoted-text anchor",
+        "Acceptance: omitted OK; well-formed passes; malformed refuses at vbrief:validate; mismatch halts; peer lock"
+      ],
+      "admitted_source_sentences": [
+        "Durable PlanItem stopConditions on xBRIEF 0.8 (kind:anchor only) + schema pair sync + vbrief.md docs",
+        "Two mechanisms: ITEM_CORE admission in conformance.ts; shape refusal in schema.ts + constants.ts (effort pattern)",
+        "Skill consumers: packs skills render into deft-directive-build; halt+report via Dual-stop / BLOCKED on fire",
+        "Writer rule: executing agent must not delete/weaken a stop in the violating unit",
+        "Doctrine: rewrite false already-has-STOP claim in main.md Dual Stop relation; quoted-text anchor",
+        "Acceptance: omitted OK; well-formed passes; malformed refuses at vbrief:validate; mismatch halts; peer lock"
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Durable PlanItem stopConditions on xBRIEF 0.8 (kind:anchor only) + schema pair sync + vbrief.md docs",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5310",
+              "mintedAt": "2026-10-04T12:43:43.760Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T12:43:43.760Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Two mechanisms: ITEM_CORE admission in conformance.ts; shape refusal in schema.ts + constants.ts (effort pattern)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5310",
+              "mintedAt": "2026-10-04T12:43:43.760Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T12:43:43.760Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Skill consumers: packs skills render into deft-directive-build; halt+report via Dual-stop / BLOCKED on fire",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5310",
+              "mintedAt": "2026-10-04T12:43:43.760Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T12:43:43.760Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Writer rule: executing agent must not delete/weaken a stop in the violating unit",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5310",
+              "mintedAt": "2026-10-04T12:43:43.760Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T12:43:43.760Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Doctrine: rewrite false already-has-STOP claim in main.md Dual Stop relation; quoted-text anchor",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5310",
+              "mintedAt": "2026-10-04T12:43:43.760Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T12:43:43.760Z"
+          }
+        },
+        {
+          "id": 6,
+          "text": "Acceptance: omitted OK; well-formed passes; malformed refuses at vbrief:validate; mismatch halts; peer lock",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5310 squash-merge (Tracking #1613). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5310",
+              "mintedAt": "2026-10-04T12:43:43.760Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T12:43:43.760Z"
+          }
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because plan.items still have no durable mid-execution STOP surface: when cited locations or plan assumptions no longer hold, build agents improvise past the mismatch, and main.md already cites #1613 as the precondition-STOP peer of Dual-stop (#2442) without a shipped schema/skill enforcement.\n\ncharter: open critique\narc-mode: no-ingest\nyolo-standing: yes\nspend: N≥3\nspend-ask: asked\nspend-recommend: N≥3\nspend-why: operator utterance \"evaluate and arc with recommended n 1613\" closed spend to the recorded recommend; open solution space (schema vs narrative vs skill-only; boundaries vs #1201/#1579/#852/#2442; vBRIEF→xBRIEF path refresh) plus whole-motion build/swarm improvisation blast permits N≥3.\ndual-stop-reserved: first post-lean pain-audit of asserted coverage is in-cap without a raise; numbered Dual-stop posts are three round-1 critic seats with no default retry; raise only after the reserved seat is spent.\npain: P1, P2, P3, P4\n\nP1. PlanItem has effort and narrative.Acceptance, but no durable stopConditions (or equivalent) field that build/swarm agents must check mid-execution; when reality diverges from the plan, agents improvise instead of halt-and-report.\nP2. OP Proposed changes still name legacy vbrief/schemas/vbrief-core.schema.json and skills/deft-directive-build paths that must be rebound onto current xBRIEF 0.8 / content/ surfaces before a Bound remedy can ship.\nP3. main.md Dual Stop Rule (#2442) already cites #1613 as covering \"STOP when plan preconditions fail\" while Stage A found no origin/master lifecycle coverage for the schema/skill work — doctrine forward-ref without a completed arc.\nP4. Scope boundaries vs open siblings #1201 (pre/post-condition AC structure), #1579 (Milestone 0 pre-implementation safety net), and shipped #852 (goal-gate-determinism prose stop conditions) are undecided; Bound must keep #1613 as mid-execution precondition-STOP and not absorb those peers.\n\nOperator: evaluate + arc with recommended n; Stage A still-open on af82911053eb (no WIP/PRs/duplicates); empty thread; no-ingest yolo. Non-goals: absorbing #1201/#1579/#852/#2442; inventing a hard abort where a returned failure suffices; prose-only skill note without a durable PlanItem surface; closing as already-shipped because Dual-stop cites the issue number.\n\nverification-path: pin-read origin/HEAD af82911053eb0bbb57b523823715e99633e16772\nTarget-digest: sha256:98cdf1b09751141354447a412dcaa16a0b0d1caf965e364f8c06af543bc05cff\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-1613-dc\npin-kind: origin-default",
+          "id": 5955811933,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5955811933",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:36:36Z",
+          "updated_at": "2026-10-02T15:36:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5955833187\nfamilies: grok, claude, codex\nlaunchers: spawn_subagent|grok-cli, claude, codex\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\nspend: N≥3\nlaunch-probe: claude=pong rc0; codex=pong rc0; grok=pong rc0\nverification-path: pin-read git show af82911053eb0bbb57b523823715e99633e16772: ; dest cwd-without-occupy\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-1613-dc",
+          "id": 5955833187,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5955833187",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:37:59Z",
+          "updated_at": "2026-10-02T15:38:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nissue: deftai/directive#1613\ncharter: open critique\nspend: N≥3\nround: 1\ncritic-role: fresh open-critique critic\nseat: codex\nlauncher: codex\nid-ceiling: 5955833187\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\n\n## In plain English\n\nThe gap is real, but adding a string array does not establish when work must pause or how it can resume. Bound should own a durable, item-scoped precondition-STOP contract consumed during build and swarm execution. It should not turn every changed line or failing test into an approval request.\n\nVerification: on-pin file reads after `git rev-parse HEAD` returned the dispatch SHA; parsed `$defs.PlanItem`; searched the schema, core source, build and swarm surfaces for `stopConditions`/`StopConditions`; read #1613 body and only comments through the ceiling. Read REST bodies and ceiling-filtered comments for #852, #1201 and #1579. No behavioral tests were run; findings below distinguish storage and prose from runtime enforcement.\n\n### F1 — blocks-the-design: bind execution semantics before binding the array\n\nEvidence: [PlanItem at the pin](https://github.com/deftai/directive/blob/af82911053eb0bbb57b523823715e99633e16772/content/vbrief/schemas/xbrief-core-0.8.schema.json#L240) defines effort and a string-valued narrative map, but no named STOP field. It also permits additional properties and namespaced extensions. [Item acceptance](https://github.com/deftai/directive/blob/af82911053eb0bbb57b523823715e99633e16772/content/vbrief/vbrief.md#L221) lives at `plan.items[].narrative.Acceptance`; it is not a typed `acceptanceCriteria` field. Existing storage can already retain STOP prose; missing standardized consumption is the consequential gap.\n\nFailure mode: a schema-valid list is copied into a brief, checked once at intake, then never consulted after assumptions change. Conversely, a blanket exact-excerpt comparison fires on the worker's own intended edit. The OP's examples mix meaningful assumption failure with ordinary implementation and test feedback.\n\nDisposition: Bound must define applicability and observation points: check the relevant assumption before the action that relies on it, and recheck when evidence calls it into question. Distinguish expected edits/test-red during TDD from a falsified plan assumption; specify treatment of unverifiable conditions rather than silently treating unknown as pass. Include an unchanged-valid case, a mid-execution mismatch, and a planned-edit case in behavioral acceptance. Schema and token-presence tests alone do not demonstrate halt behavior.\n\n### F2 — blocks-the-design: a STOP needs a bounded halt and resume contract\n\nEvidence: [build Error Recovery](https://github.com/deftai/directive/blob/af82911053eb0bbb57b523823715e99633e16772/content/skills/deft-directive-build/SKILL.md#L461) already has active-contract conflict handling, an operator-visible halt report, and an explicit distinction between human authority and parent-agent envelopes. The OP supplies no comparable scope or resume semantics for its new signal.\n\nFailure mode: a swarm worker reports a mismatch but continues dependent mutations, or a parent treats its own redispatch as permission to waive the failed condition. At the other extreme, an item-local mismatch unnecessarily stops unrelated workers.\n\nDisposition: Bound must say which item/dependent actions pause, preserve the partial-work evidence, and report the condition, expected fact, observed mismatch and required decision. Reuse existing authority rules: restoration and re-verification can discharge a factual mismatch; changing the approved assumption requires the authorized contract-change path. A parent envelope cannot manufacture a human override. No automatic destructive rollback, global swarm kill, or new exception/abort mechanism is needed merely to return a blocked result. Treat condition text as contract data, not an arbitrary executable instruction source; do not introduce shell execution from ingested strings.\n\n### F3 — sharpens-framing: the durable surface need not enlarge generic core\n\nEvidence: PlanItem has `additionalProperties: true`, a `^x-[a-z0-9-]+/` extension hook, and an open string-valued narrative map. Thus \"no durable place to store it\" overstates the measured absence of a recognized field and consumer.\n\nRoad not taken: a documented `narrative.StopConditions` string is the cheapest durable representation and matches Acceptance, but is weak for identifying individual fired conditions and checking malformed entries. The strongest argument for the OP's array is simplicity and direct discoverability. My preference is a typed Directive-owned PlanItem extension, with one canonical reader/validator, if this remains a Directive execution policy; promote it to generic core only if that ownership is intentional. A demonstrated upstream core convention would flip that preference. Do not ship both representations as competing authorities or design a general predicate language for v1.\n\nDisposition: decide core-versus-extension ownership explicitly. Preserve omission compatibility; prove malformed present values are rejected by the chosen validator. Old briefs validating without a field is necessary, but does not establish enforcement for new briefs.\n\n### F4 — sharpens-framing: retain peer boundaries and correct the forward claim\n\nEvidence: [main.md Dual Stop Rule](https://github.com/deftai/directive/blob/af82911053eb0bbb57b523823715e99633e16772/main.md#L134) already describes #1613 as precondition STOP; that reference is not evidence of implementation. [#852's shipped doctrine](https://github.com/deftai/directive/blob/af82911053eb0bbb57b523823715e99633e16772/content/patterns/goal-gate-determinism.md) already distinguishes rigid stop/scope contracts from flexible execution. REST reports #1201 and #1579 open: their bodies concern pre/post acceptance authoring and a pre-refactor safety net respectively.\n\nFailure mode: closing #1613 on existing prose leaves the item consumer absent; absorbing neighboring gates makes a narrow mid-execution contract into a redesign of acceptance, activation and retry budgets.\n\nDisposition: accept-into-contract the precondition/postcondition distinction and compatibility requirement. Bound must cover the durable item surface, build/swarm consumption, halt evidence and authorized resume, plus current xBRIEF 0.8/content path references and the misleading forward claim. It must not absorb #1201's AC redesign, #1579's baseline-coverage gate, #852's doctrine ownership, or #2442/#3143's retry/budget machinery. The build skill is generated: its header identifies `packs/skills/skills-pack-0.1.json` as source, so implementation must update the source and regenerate rather than edit only rendered guidance.\n\nThis is a critic recommendation, not a successor lean or accepted Bound. No ingest or product mutation performed.",
+          "id": 5955905311,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5955905311",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:41:45Z",
+          "updated_at": "2026-10-02T15:41:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nissue: https://github.com/deftai/directive/issues/1613\ncharter: open critique\nspend: N≥3\nround: 1 critic (fresh)\ncritic-role: critic\nseat: grok\nlauncher: grok-cli\nid-ceiling: 5955833187\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\n\n## Pin verification (af82911053eb)\n\n- `content/vbrief/schemas/xbrief-core-0.8.schema.json` `$defs.PlanItem` properties include `effort` and freeform `narrative` (`additionalProperties: string`). No `stopConditions` (or stop-like) property. Raw schema has zero `stopConditions` matches. `additionalProperties: true` on PlanItem.\n- Acceptance is convention `plan.items[].narrative.Acceptance` (documented in `content/vbrief/vbrief.md`), not a named schema property. Schema itself does not mention `Acceptance`.\n- Legacy `content/vbrief/schemas/vbrief-core.schema.json` likewise has no `stopConditions`.\n- `content/skills/deft-directive-build/SKILL.md`: zero `stopConditions` matches. Dual-stop (#2442) covers iteration success/failure envelopes. Lazy-load `patterns/goal-gate-determinism.md` (#852) covers skill-authoring stop prose. Neither is a PlanItem mid-execution precondition-STOP field agents must check.\n- Repo-root `main.md` Dual Stop Rule (#2442) cites #1613 twice: as existing \"STOP on plan precondition mismatch\" strength, and as covering \"STOP when plan preconditions fail (reality mismatch)\" complementary to Dual-stop failure/budget.\n- Peers: #852 closed (goal-gate-determinism pattern). #1201 open (pre/post structure inside acceptance criteria). #1579 open (Milestone 0 pre-implementation safety net).\n\nEnvelope inputs honored: Stop 1 `5955811933` + panel-deposit `5955833187` only. No sibling critic reads.\n\n## Findings\n\n### F1 — accept-into-contract\n**Durable mid-execution STOP gap is real (Stop 1 P1).** PlanItem carries `effort` and narrative Acceptance, and build agents still have no PlanItem-level stop surface to enumerate mid-execution when cited locations or plan assumptions fail. Failure mode: silent improvisation that can pass `task check` while drifting from the intended spec. Bound must ship a durable PlanItem stop surface plus a build/swarm check obligation (halt and report; do not improvise).\n\n### F2 — blocks-the-design\n**OP paths are legacy and must be rebound before Bound can ship (Stop 1 P2).** OP Proposed changes name `vbrief/schemas/vbrief-core.schema.json`, `vbrief/vbrief.md`, and `skills/deft-directive-build/SKILL.md`. Live write surface at pin is xBRIEF 0.8 under `content/vbrief/schemas/xbrief-core-0.8.schema.json`, docs under `content/vbrief/vbrief.md`, skill under `content/skills/deft-directive-build/SKILL.md`, and Dual-stop relation text in repo-root `main.md`. A Bound that lands only on the OP path strings misses the 0.8 write path agents actually validate. Disposition: rebind every path and AC onto those content/ surfaces; keep legacy v0.6 schema touch only if dual-write compatibility is an explicit Bound limb.\n\n### F3 — blocks-the-design\n**Doctrine forward-ref without lifecycle coverage (Stop 1 P3).** Dual Stop already speaks as if #1613 covers precondition-STOP. Pin shows no schema field and no build-skill stopConditions check. Failure mode: agents treat the cite as shipped clearance and keep improvising. Bound must deliver the field + skill obligation, and must update Dual Stop relation language to point at the shipped surface. Bound must not close or waive work because `main.md` already mentions `#1613`.\n\n### F4 — accept-into-contract\n**Keep #1613 as mid-execution precondition-STOP; do not absorb peers (Stop 1 P4).** #1201 is AC authoring shape (pre/post pairs inside Acceptance). #1579 is pre-implementation Milestone 0 safety-net before refactor begins. #852 is closed skill-pattern stop prose. #2442 is the failure/budget loop envelope already shipped. Failure mode if absorbed: Bound dilutes into adjacent gates and leaves the improvisation-on-reality-mismatch hole open. Bound keeps #1613 scoped to mid-execution halt-and-report when a declared plan precondition no longer holds.\n\n### F5 — sharpens-framing\n**Challenge the OP first-class `stopConditions: string[]` as the default durable surface.** Acceptance today is `narrative.Acceptance` (string), not a first-class PlanItem array. A new first-class string array is a second shape class for a sibling obligation. Inventory of better-or-equal surfaces:\n\n1. **`narrative.StopConditions` (string)** — least surprise vs Acceptance; document as a canonical narrative key in `content/vbrief/vbrief.md`; skill enumerates lines/bullets.\n2. **First-class `stopConditions: string[]` (OP)** — stronger enumerability for \"list each STOP and check,\" matches shadcn/improve, but asymmetric with Acceptance unless Bound says why.\n3. **Skill-only / #852-style prose** — rejected for this issue: P1 requires a durable PlanItem surface agents must check; Dual Stop already forward-cites that surface; `additionalProperties: true` already lets ad-hoc fields validate without discoverability.\n\n**Critic lean:** prefer OP array **only if** Bound explicitly records the Acceptance asymmetry and pairs schema listing with skill enumeration. Prefer narrative key if Bound wants one prose-obligation shape. Either way, schema listing alone is insufficient: because `additionalProperties: true`, an undeclared field already validates; enforcement is the skill (and swarm-relevant) halt-and-report obligation when the field is present. Omitted field stays valid (optional).\n\nSteelman for OP array: mid-execution checks want enumerable entries; freeform narrative blobs are already how Acceptance gets under-checked. Flip condition: Bound defines parse rules for `narrative.StopConditions` equal in force to how Acceptance is read — then asymmetry dissolves and narrative wins.\n\n### F6 — sharpens-framing\n**OP \"add a named principle\" on main.md risks a duplicate.** Dual Stop already names the #1613 relation. Bound should retarget that relation to the shipped field/skill check, not mint a second parallel principle that re-cites the open issue number.\n\n### F7 — footnote\nInjection/swarm lens (triggered): parallel swarm agents raise blast when improvisation is undeclared. Bound should make halt-and-report obligatory when stop entries are present; empty/omitted remains valid. Deep `swarm.md` rewrite is out of contract unless discoverability requires one pointer.\n\n## What Bound must absorb\n- A durable PlanItem stop surface on xBRIEF 0.8 (chosen shape from F5), documented on content/ vbrief surfaces, with clear STOP-vs-Acceptance distinction.\n- Build skill obligation: before and during execution, enumerate declared stops; on trigger, halt and report the mismatch; do not improvise. Swarm-relevant pointer as needed.\n- Dual Stop relation text updated to the shipped surface (F3/F6).\n- Path refresh off legacy OP roots onto content/ + root `main.md` (F2).\n- Scope lock: mid-execution precondition-STOP only (F4).\n\n## What Bound must not absorb\n- #1201 pre/post AC structure, #1579 Milestone 0, #852 pattern work, #2442 Dual-stop failure/budget envelope.\n- Prose-only skill note with no durable PlanItem surface.\n- Treating Dual Stop's `#1613` cite as already-shipped.\n- Inventing a hard process abort where a returned `BLOCKED` / operator-visible halt report suffices.\n- Successor lean from this critic (parent owns lean).\n\n## Road not taken\nSkill-only guidance without a PlanItem field — rejected under F1/F5 because discoverability and Dual Stop's forward-cite both demand a durable item-level surface.",
+          "id": 5955905715,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5955905715",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:41:46Z",
+          "updated_at": "2026-10-02T15:41:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nissue: https://github.com/deftai/directive/issues/1613\ncharter: open critique\nspend: N>=3\nround: 1\ncritic-role: design-critique critic (open critique)\nseat: claude\nlauncher: claude\nid-ceiling: 5955833187\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\n\nPin-read at af82911 (`git show af82911...:<path>`), no moving tip.\n\n## Verification at pin\n\n- `content/vbrief/schemas/xbrief-core-0.8.schema.json` `$defs.PlanItem` (L239-402): has `effort` (L321, S/M/L/XL), `narrative` (L270, open `additionalProperties: {type: string}`), `uris`, `references`, `items`, `lockedBy`. No `stopConditions` or equivalent. **P1 confirmed.**\n- `\"Acceptance\"` appears **nowhere** in the 0.8 schema. `narrative.Acceptance` is pure convention, enforced only in prose: `content/vbrief/vbrief.md:221` (\"executable acceptance MUST live in `plan.items[].narrative.Acceptance`\"), L180, L400.\n- `grep -rn stopConditions` across the pin: **zero hits**, including `content/`, `packages/`, `tasks/`. **P1/P3 confirmed.**\n- `main.md:115` and `main.md:138` are the only in-repo cites. **P3 confirmed** (detail in S4 below).\n- Build skill (`content/skills/deft-directive-build/SKILL.md`, 559 lines): three halt shapes present -- dual-stop failure halt (L286, #2442), halt-and-ask active-contract (L466, #3383), `BLOCKED:` terminal (L287, #2843). **No step verifies that cited file locations still match the plan.**\n- Peers at pin: #1201 open, #1579 open, #852 closed (`content/patterns/goal-gate-determinism.md`), #2442 closed, #3143 closed.\n- OP paths are all stale. **P2 confirmed** (detail in S3).\n\n---\n\n## blocks-the-design\n\n**B1. The proposed schema edit is a no-op. PlanItem is already open.**\n\n`PlanItem` ends with `additionalProperties: true` (L398) plus `patternProperties: {\"^x-[a-z0-9-]+/\": {}}` (L399-401). Any author can write `stopConditions: [...]` -- or `x-deft/stopConditions` -- onto a PlanItem **today** and `task xbrief:validate` passes. The OP AC#4 (\"`vbrief:validate` passes for existing items that omit the field\") is already true before the change, which is the tell: the acceptance criterion tests nothing the change causes.\n\nDeclaring an optional field grants a permission that already exists. It creates no obligation on any reader. The OP treats the schema line as the remedy and the skill note as the follow-on; the dependency runs the other way. **Challenge to the OP: state what breaks, refuses, or goes red when `stopConditions` is present and violated.** If the answer is \"the agent is supposed to notice\", this is a narrative key with a new name.\n\n**B2. Prose-string arrays are the shape this repo already abandoned on the sibling surface.**\n\n`plan.acceptance` is the closest analog -- a per-item criterion an agent must honor -- and it does not store prose. Per `content/docs/plan-acceptance.md` (#4380) it stores `clauses[]` with `source_rung` (`stated`/`derived`/`project_floor`), `artifact_path` bound to a declared `plan.metadata.swarm.file_scope` member (#4008/#4986), `ambiguity_attestation`, and a fail-closed sentence/clause/confession oracle walk (#3550). It names an **exclusive writer** (#4374 derivation) and explicitly refuses hand-authored clauses, because hand-authored clauses skip derivation and the attestation never fires. `scope:activate`/`scope:promote` refuse a brief with no clauses (#4768).\n\n`stopConditions: string[]`, hand-authored, with no writer, no rung, no path binding, no attestation, is the pre-#4374 acceptance design re-shipped under a new key. Bound should not land a second free-text criterion surface three issues after the first one was hardened out of free text.\n\n**B3. Self-authored stop conditions are self-waivable, and the OP is silent on the writer.**\n\n`content/docs/gate-integrity.md` (#3156): \"the evaluator lives outside the editable surface under test\" (#782/#1499). Its own table already lists active-xBRIEF `file_scope` self-expansion that self-authorizes (#3145/#4589) as a gate-integrity failure. A `stopConditions` array sitting inside the brief, read by the agent executing the brief, which may also edit the brief, is that same shape. The OP example -- \"Removing this block requires touching files outside the in-scope list\" -- is a condition the executing agent can delete in the same commit that violates it.\n\nBound MUST name: who writes `stopConditions`, and whether the executing agent may amend or remove one mid-item. If the answer is \"it may\", the mechanism is advisory and should be described as advisory, not as a STOP.\n\n---\n\n## sharpens-framing\n\n**S1. The gap is a trigger, not stop vocabulary. Directive has three halt shapes already.**\n\nThe build skill already carries: dual-stop failure halt with a 4-part operator-visible report (L286), halt-and-ask on live-turn-vs-story conflict (L466), and the `BLOCKED:` structured terminal (L287). What all three share is that the trigger is an **outcome** -- envelope exhausted, instructions in conflict. None fires on *\"the thing the plan assumed is no longer true.\"*\n\nThat reframes #1613: it is a **precondition detector that feeds existing halt machinery**, not a fourth halt. Bound should reuse the #2442 report shape verbatim and MUST NOT mint a new report format or a new terminal keyword. The novel part is detection; the reporting is solved.\n\n**S2. The shadcn source is a content-anchor mechanism. The OP ported the sentence and dropped the anchor.**\n\n\"Stop and report back if the code at the locations above does not match the excerpts\" is checkable only because the plan **carries the excerpts**. The excerpt is the mechanism; the sentence is the label. The OP port keeps the sentence and leaves the excerpt out, which is why what remains is prose.\n\nDirective already has anchor prior art, on PlanItem and elsewhere: `uris[]` (`URI`, L491, typed + open), `references[]`/`VBriefReference` with the typed `x-xbrief/...` registry (L518, canonical `x-xbrief/commit`, `x-xbrief/plan`), approved-scope digest mint (#3145/#3110/#4383), and the base-mint digest comparison against a merge-base in `content/docs/presentation-coverage.md`. A `(path, excerpt-or-digest, resolved-at-sha)` triple is deterministically checkable at item start by any agent with `git show`. A sentence is not.\n\n**Alternative durable surface, weighed against the OP array:** an anchor list on PlanItem (or a typed `x-xbrief/anchor` reference), with the prose stop-sentence demoted to an optional rationale attached to an anchor. That yields a small fixed trigger class -- \"declared anchor no longer resolves or no longer matches\" -- that a checker can evaluate, instead of an unbounded prose class only an LLM can evaluate. And an LLM evaluating its own prose constraint is B3 again.\n\n**S3. P2 rebind is wider than a path rename, and one rebind is load-bearing.**\n\nMechanical: `vbrief/schemas/vbrief-core.schema.json` -> `content/vbrief/schemas/xbrief-core-0.8.schema.json`; `skills/deft-directive-build/SKILL.md` -> `content/skills/...`; `vbrief/vbrief.md` -> `content/vbrief/vbrief.md`.\n\nNon-mechanical: 0.6 is **legacy read/migration only** (AGENTS \"xBRIEF layout\", #2034/#2110), and `content/vbrief/schemas/vbrief-core.schema.json` still exists at the pin. Writing the field to the name the OP actually cites would land it on the frozen legacy schema. New writes are 0.8 only. Separately, `vbrief:validate` is on `CONSUMER_CHECK_GATES` (`Taskfile.yml:141`) and is now aliased `xbrief:validate` (#3483) -- any *checked* behavior added there has consumer blast radius. That is a reason to prefer a skill-time check over a validator-time one for first ship, and to say so deliberately rather than by default.\n\n**S4. P3 is two defects, not one, and only one survives a deferral.**\n\n- `main.md:138` -- \"#1613 covers STOP when plan **preconditions** fail (reality mismatch)\" -- is a **scope boundary**. True at the pin regardless of ship state. Keep.\n- `main.md:115` -- \"Directive already has strong success-shaped gates (`task check`, acceptance criteria, STOP on plan precondition mismatch -- #1613)\" -- asserts the gate **exists today**. It does not: zero hits for the field, no skill step. That is a false-coverage claim in a constitution-tier file.\n\nSo Bound MUST correct L115 even if the schema work is deferred -- a doctrine line asserting a gate that does not exist is a live defect independent of this issue remedy. And the forbidden reading is live: L138 is the sentence most likely to be misread as \"already shipped\". It is a boundary, not a receipt.\n\n---\n\n## accept-into-contract\n\nBound MUST absorb:\n\n1. **One trigger class**, evaluated mid-execution at item start and on item resume, with a deterministic predicate -- declared anchor missing / moved / content-mismatched. Not an open prose class.\n2. **A named consumer.** Build skill, plus swarm worker entry if swarm is in scope. A field no skill reads is not a gate (B1).\n3. **The existing halt report.** The #2442 4-part operator-visible shape; `BLOCKED:` terminal where the unit is parent-dispatched (#2843). No new report format.\n4. **Writer and amendment rule** (B3): who authors the condition, and whether the executing agent may remove it.\n5. **The P2 rebind as specified in S3**, 0.8 only.\n6. **The `main.md:115` correction** (S4).\n7. **Reuse of `PlanItemStatus.blocked`** (L417-431) for the write-back of a fired stop. The status value already exists; do not add one.\n\nBound MUST NOT absorb:\n\n- **#1201** (pre/post-condition AC structure, open). That defines the *shape* of a condition pair on the done-side contract. #1613 is a detector. If #1201 lands a precondition type, #1613 consumes it; #1613 MUST NOT define a competing one while #1201 is open.\n- **#1579** (Milestone 0 safety net, open). Pre-implementation, fires once, about test coverage before refactor. #1613 fires per item, during work, about plan-vs-reality. Adjacent timing, different subject.\n- **#2442 / #3143** (both closed). Failure envelope and material-progress breaker. Same report, different trigger. Three triggers sharing one halt report is correct; one trigger absorbing three is not.\n- **#852** (closed). `content/patterns/goal-gate-determinism.md:55/65/126` already lists \"stop conditions\" -- as a **SHOULD for skill authors writing skills**, prose-level, about destructive ops and approval boundaries. Do not re-litigate it, and do not let that prose be cited as coverage for a per-plan-item data surface. Different layer, same words.\n- **A hard abort.** The pain is improvisation, not runaway execution. A returned failure plus a status transition satisfies it. Minting a process kill is remedy inflation past the evidence.\n\nLeft open deliberately, not resolved here: when a stop fires, does the verdict belong **in** the brief (`status: blocked` + reason) or in a run-ledger outside it, alongside the `.deft/delivery-attempts/` unit ledger from #3143? Writing a verdict into the editable surface under test re-opens B3. The ledger side looks stronger, but that is a Bound decision with a cost, not a critic call to close.\n\n",
+          "id": 5955953207,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5955953207",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:44:51Z",
+          "updated_at": "2026-10-02T15:44:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Lean: Prefer-A — mid-execution precondition-STOP with checkable anchors + existing halt machinery\n\nTarget-digest: sha256:98cdf1b09751141354447a412dcaa16a0b0d1caf965e364f8c06af543bc05cff\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\nid-ceiling: 5955953207\npanel: 5955905311 (codex), 5955905715 (grok), 5955953207 (claude)\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\n### Agreement map (empty disagreement set on these limbs)\n\nAll three critics accept: the mid-execution improvisation gap is real; a schema-only optional string[] is not a gate; Bound must land on xBRIEF 0.8 / content/ surfaces; Dual Stop's #1613 cite is not ship receipt; peers #1201/#1579/#852/#2442 stay out; returned BLOCKED / operator-visible halt beats a new hard abort.\n\nBlocking limbs absorbed: Codex F1/F2 (execution semantics + halt/resume), Claude B1/B2/B3 (open PlanItem already admits undeclared fields; refuse bare free-text criterion surface; name writer/amendment), Grok F2/F3 (path rebind + doctrine forward-ref repair).\n\n## Bound remedy\n\n1. **Durable PlanItem stop surface on xBRIEF 0.8 only.** Add a first-class optional `stopConditions` array on `$defs.PlanItem` in `content/vbrief/schemas/xbrief-core-0.8.schema.json`. Each entry is an object, not a bare string:\n   - `id` (stable string)\n   - `kind`: `anchor` | `assumption`\n   - for `anchor`: `path` + (`excerpt` or content `digest`) + optional `resolvedAtSha`\n   - for `assumption`: short rationale string plus an explicit `observeAt` token from a closed set (`item-start` | `item-resume` | `before-cited-edit`)\n   - optional `rationale` on either kind\n   Document the shape and STOP-vs-`narrative.Acceptance` distinction in `content/vbrief/vbrief.md`. Omitted field remains valid. Present malformed entries fail the chosen validator. Do not dual-write the field onto frozen v0.6 `vbrief-core.schema.json` unless an explicit compatibility limb is added later.\n\n2. **Named consumers, not schema theater.** Update the **skills pack source** (`packs/skills/skills-pack-0.1.json`) then regenerate `content/skills/deft-directive-build/SKILL.md`. Before item start and on item resume, enumerate declared `stopConditions`; evaluate `anchor` entries deterministically (path resolves; excerpt/digest still matches at pin or current worktree as Bound names); on fire, halt and report — do not improvise. Add a swarm worker pointer so parallel leaves honor the same check when the field is present. Empty/omitted stays valid.\n\n3. **Reuse existing halt machinery.** On fire: operator-visible report using the Dual-stop (#2442) 4-part shape; parent-dispatched units may use `BLOCKED:`; item write-back may use existing `PlanItemStatus.blocked`. No new terminal keyword, no new report format, no process kill, no automatic destructive rollback, no shell execution of condition text. Resume: factual mismatch may clear after restore + re-verify; changing the approved assumption requires the authorized contract-change path; a parent envelope cannot mint a human override. Preserve partial-work evidence in the report.\n\n4. **Writer and amendment rule.** `stopConditions` are authored at brief-authoring / promote-activate time (human or derivation path), not by the executing leaf mid-item. The executing agent MUST NOT delete or weaken a stop entry in the same unit of work that would violate it. Treat condition text as contract data.\n\n5. **Doctrine repair (P3).** In repo-root `main.md` Dual Stop Rule: keep the scope-boundary sentence that #1613 covers precondition STOP vs Dual-stop failure/budget; rewrite the \"already has … STOP on plan precondition mismatch -- #1613\" success-gate list so it does not assert a shipped gate before this Bound lands (or retarget it to the shipped field/skill check in the same PR). Do not mint a second parallel principle that only re-cites the open issue number.\n\n6. **Peer scope lock (P4).** This Bound is mid-execution precondition-STOP only. Do not absorb #1201 (AC pre/post authoring), #1579 (Milestone 0 pre-impl safety net), #852 (skill-authoring goal-gate prose), or #2442/#3143 (failure/budget / material-progress envelopes). If #1201 later lands a precondition type, #1613 consumes it; #1613 does not define a competing AC redesign while #1201 is open.\n\n7. **Behavioral acceptance (not token-presence alone).** Ship cases: omitted field validates; malformed present value refuses; unchanged-valid anchor continues; mid-execution anchor mismatch halts with report; planned in-scope edit does not false-fire as STOP; executing agent cannot self-waive by editing the field away in the violating unit.\n\n### Reject / out of contract\n\n- Bare `string[]` as the sole durable surface with LLM-only evaluation.\n- Schema listing without a named build/swarm consumer.\n- Skill-only prose with no PlanItem surface.\n- Treating `main.md`'s `#1613` cite as already-shipped clearance.\n- Hard abort / new mintable process kill where returned failure + blocked status suffice.\n- Absorbing #1201 / #1579 / #852 / #2442 / #3143 into this issue.\n- Editing only the rendered skill file without the pack source.\n- Landing the field only on legacy v0.6 paths named in the OP.\n\n## Plain-language summary\n\nPlans need a real mid-work stop button when the code no longer matches what the plan assumed. Critics agreed a simple list of sentences is not enough. Prefer-A binds checkable anchors (and tightly scoped assumptions), wires build/swarm to halt with the reports Directive already has, fixes the docs that pretend this already shipped, and keeps neighboring tickets out of scope.",
+          "id": 5955968590,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5955968590",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:45:51Z",
+          "updated_at": "2026-10-02T15:45:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\n\nissue: https://github.com/deftai/directive/issues/1613\ncharter: open critique\nspend: N>=3\nround: pain-audit of Prefer-A lean (5955968590)\ncritic-role: pain-audit\nseat: claude\nlauncher: claude\nid-ceiling: 5955968590\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\ndual-stop-raise: reserved-seat (first post-lean pain-audit in-cap without operator raise)\n\n## Verification\n\nPin-read only at `af82911` (`git cat-file -e` / `git show af82911:<path>`), no moving tip, no product mutation. Read Stop 1 `5955811933`, the Prefer-A lean `5955968590`, and round-1 critics `5955905311` / `5955905715` / `5955953207` as in-ceiling context. Nothing read above the ceiling.\n\n| target | verdict |\n| --- | --- |\n| pain-P1 | **overclaimed** (anchor limb supported; `assumption` limb unbound) |\n| pain-P2 | **overclaimed** (one named write target does not exist at pin; validator unnamed) |\n| pain-P3 | **supported** |\n| pain-P4 | **supported** |\n\n---\n\n## pain-P1 — overclaimed\n\n**What the lean does relieve.** The pain is real at pin and the lean's shape answer is better than the OP's. `grep stopConditions` across `af82911` is zero hits. `$defs.PlanItem` (`content/vbrief/schemas/xbrief-core-0.8.schema.json` L239-401) carries `narrative` (open `additionalProperties: {type: string}`), `effort`, `uris`, `references` — no stop surface — and closes with `additionalProperties: true` (L398) plus `patternProperties: {\"^x-[a-z0-9-]+/\": {}}` (L399-401). Because a declared `properties.stopConditions` subschema *does* apply when the key is present, the lean's object-shaped field creates a refusal that the already-open extension hook cannot: that genuinely answers Claude B1. `PlanItemStatus.blocked` exists (L417-431), so remedy 3's reuse is available rather than aspirational. Remedies 2 and 3 name real consumers — `content/skills/deft-directive-build/SKILL.md` and `content/skills/deft-directive-swarm/SKILL.md` both exist at pin.\n\n**What it does not relieve.** Relief covers `kind: anchor` only. `kind: assumption` is declared and never bound:\n\n1. **No fire predicate.** Remedy 2's obligation is \"evaluate `anchor` entries deterministically\". `assumption` entries are enumerated and then nothing. Remedy 1 gives them only `observeAt` — a *when*, with no *what*.\n2. **The Reject list is carved, not honoured.** It bans a free-text surface with LLM-only evaluation *as the sole surface*. `kind: assumption` is exactly that class, admitted through the word \"sole\".\n3. **Codex F1's blocking limb is unanswered.** F1 required \"specify treatment of unverifiable conditions rather than silently treating unknown as pass.\" `assumption` *is* the unverifiable class. The lean lists F1 as absorbed; this limb is not. Unknown-to-pass is the improvisation the issue exists to stop.\n4. **A dead observation point, remedy-internal.** Remedy 1's closed set is `item-start | item-resume | before-cited-edit`. Remedy 2's consumer obligation fires only \"before item start and on item resume\". A schema-legal `observeAt: before-cited-edit` entry has no reader.\n5. **No ship case.** All of remedy 7's behavioral cases are anchor-shaped (omitted, malformed, unchanged-valid, anchor mismatch, planned-edit, self-waive). A limb with no acceptance case is not bound.\n6. **Remedy 4 guards the wrong channel for this kind.** It forbids deleting or weakening an entry. Against `content/docs/gate-integrity.md` (\"the evaluator lives outside the editable surface under test\"), a prose assumption self-evaluated by the executing leaf can be reasoned past with no edit at all — so remedy 4 never fires. An anchor has no such hole: a digest compare sits outside the agent's judgment.\n7. **Writer rule admits the shape the sibling surface refuses.** Remedy 4 permits \"human or derivation path\". `content/docs/plan-acceptance.md:13` — \"`#4374` derivation is the exclusive writer of `plan.acceptance`\"; L15 — hand-authored clauses skip derivation; L21 — `scope:activate` / `scope:promote` refuse. Hand-authoring an *anchor* is defensible (it self-verifies whoever wrote it). Hand-authoring an *assumption* is Claude B2's objection re-landed one key over.\n\n**Disposition.** Anchor limb: supported, bindable. Assumption limb: overclaimed, design-blocking. `relieves: P1` retracts in part.\n\n## pain-P2 — overclaimed\n\n**Correct at pin.** The three OP rebinds hold: `content/vbrief/schemas/xbrief-core-0.8.schema.json`, `content/vbrief/vbrief.md`, `content/skills/deft-directive-build/SKILL.md` all exist. Legacy `content/vbrief/schemas/vbrief-core.schema.json` also still exists, so remedy 1's no-dual-write fence is load-bearing, not decorative.\n\n**Two defects on the pain's own axis.**\n\n1. **The one path the lean introduces does not resolve.** Remedy 2 names `packs/skills/skills-pack-0.1.json`. `git cat-file -e af82911:packs/skills/skills-pack-0.1.json` misses. The file is `content/packs/skills/skills-pack-0.1.json`. The lean inherited the string from Codex F4, which quoted the rendered SKILL.md header — and that header is stale repo-wide: every rendered skill at pin carries `<!-- Source of truth: packs/skills/skills-pack-0.1.json -->` (`content/skills/deft-directive-build/SKILL.md:12`, and ~24 siblings). P2 is the path-rot pain; the remedy re-commits it on its only new write target. A build agent following remedy 2 literally finds no file and improvises — the issue's own failure mode, inside its remedy.\n2. **\"The chosen validator\" is not a target.** Remedy 1's acceptance says \"Present malformed entries fail **the chosen validator**\" and never chooses. The choice has the blast radius Claude S3 flagged, and the pin confirms it: `Taskfile.yml:141` — \"vbrief:validate is on CONSUMER_CHECK_GATES\" — with the gate listed at L484 and L540, and `xbrief:validate` non-optional per `Taskfile.yml:145-149` (#3483). Schema-validator-time versus skill-time is a deliberate cost decision; the lean deferred it into a word.\n\n**Disposition.** Overclaimed, but repairable in place — two string corrections, no design reopening. `relieves: P2` retracts pending repair.\n\n## pain-P3 — supported\n\nPin confirms Claude S4's split, and the lean handles both halves correctly:\n\n- `main.md:115` — \"Directive already has strong success-shaped gates (`task check`, acceptance criteria, STOP on plan precondition mismatch -- #1613)\" — asserts a gate that does not exist (zero `stopConditions`, no build-skill step). Live false-coverage claim in a constitution-tier file.\n- `main.md:138` — \"#1613 covers STOP when plan **preconditions** fail (reality mismatch)\" — is a scope boundary, true at pin regardless of ship state.\n\nRemedy 5 keeps the boundary, rewrites the success-gate list \"so it does not assert a shipped gate before this Bound lands\", and forbids minting a second parallel principle (absorbs Grok F6). Nothing to retract.\n\n**Footnote, non-blocking.** Remedy 5 should anchor by quoted text rather than line number, and should explicitly fence the adjacent stale cites in the same paragraph — `main.md:139` names `skills/deft-directive-build/SKILL.md` and `skills/deft-directive-swarm/SKILL.md`, both missing the `content/` root. Without a fence, an agent editing that paragraph will opportunistically repair them and widen the PR past the scope lock.\n\n## pain-P4 — supported\n\nRemedy 6 decides every boundary Stop 1 left undecided, and tightens rather than widens: it adds #3143 beside #2442 and adopts Claude's consume-don't-compete rule (\"if #1201 later lands a precondition type, #1613 consumes it\"). All three round-1 seats agree on this limb; the disagreement set is genuinely empty. Nothing to retract.\n\n**Footnote, non-blocking.** Remedy 2's swarm pointer is scope-correct, but Grok F7 capped it at one pointer and no `swarm.md` rewrite. Carry that cap into Bound text so the P4 lock is not breached through the swarm surface during implementation.\n\n---\n\n## Bind-map disposition\n\n- `relieves: P1` — **retract in part.** Rebind anchor-only.\n- `relieves: P2` — **retract pending repair.** Two strings.\n- `relieves: P3` — hold.\n- `relieves: P4` — hold.\n\nPrefer-A is **not bindable as posted**. It is bindable as **Prefer-A-prime** with four repairs, none of which opens a new solution class:\n\n- **R1 (blocking).** Ship `kind: anchor` only in v1. Either drop `assumption` from the closed `kind` set, or give it all four of: a fire predicate, an explicit unknown-to-halt-or-pass rule, an evaluator outside the executing leaf's judgment, and a behavioral case in remedy 7. Deferring is cheaper and makes the Reject list honest.\n- **R2 (blocking, clerical).** `packs/skills/skills-pack-0.1.json` -> `content/packs/skills/skills-pack-0.1.json`. The stale rendered-header text repo-wide is a separate defect; do not absorb it here, but do not copy it either.\n- **R3 (blocking, clerical).** Name the validator in remedy 1 and state the CONSUMER_CHECK_GATES cost of the choice.\n- **R4 (minor).** Drop `before-cited-edit` from `observeAt`, or extend remedy 2's obligation to read it.\n\n## continue-raise: not recommended\n\nThe three round-1 seats converged with an empty disagreement set on every structural limb, and this audit found no new solution class — only one unbound limb of an otherwise-sound remedy plus two string errors. A fourth seat would re-derive the pin reads above. Recommend the parent post Prefer-A-prime carrying R1-R4 and bind on it. Reserve the Dual-stop raise for a genuine disagreement if R1 is contested on the merits.\n\n## Plain-language summary\n\nThe lean's core idea is right and the pin backs it up: plans today have nowhere to record \"stop if reality no longer matches this\", and the lean's checkable anchors would create a real halt where a list of sentences would not. But the lean also kept a second entry type — a free-text \"assumption\" — and never said how anyone decides whether one has fired, who checks it, or what happens when it cannot be checked. That half is the thing the critics all rejected, wearing a new label. Separately, the one new file path the lean tells an implementer to edit does not exist in the repo, and the acceptance test points at \"the chosen validator\" without choosing one. Fix those and bind; no further critic round is needed.\n\nThis is a pain-audit critic report, not a successor lean and not an accepted Bound. No ingest or product mutation performed.\n\n",
+          "id": 5956083798,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956083798",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:52:33Z",
+          "updated_at": "2026-10-02T15:52:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Lean: Prefer-A-prime — Recut-supersedes 5955968590 (pain-audit 5956083798 R1–R4)\n\nTarget-digest: sha256:98cdf1b09751141354447a412dcaa16a0b0d1caf965e364f8c06af543bc05cff\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\nsupersedes: 5955968590\npain-audit: 5956083798\ndual-stop-reserved: spent\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nRecut absorbs pain-audit R1–R4. P3/P4 held; P1 rebind anchor-only; P2 two string repairs. Critic continue-raise: not recommended for a fourth panel seat; this is same-species harvest repair.\n\n## Bound remedy\n\n1. **Durable PlanItem stop surface on xBRIEF 0.8 only (R1).** Add optional `stopConditions` on `$defs.PlanItem` in `content/vbrief/schemas/xbrief-core-0.8.schema.json`. **v1 ships `kind: anchor` only.** Each entry:\n   - `id` (stable string)\n   - `kind`: `anchor` (closed set — do not include `assumption` in v1)\n   - `path` + (`excerpt` or content `digest`) + optional `resolvedAtSha`\n   - optional `rationale`\n   - `observeAt` closed set: `item-start` | `item-resume` only (**R4**: drop `before-cited-edit`)\n   Document STOP-vs-`narrative.Acceptance` in `content/vbrief/vbrief.md`. Omitted field remains valid. Present malformed entries fail **xbrief:validate / vbrief:validate (schema-time on CONSUMER_CHECK_GATES)** — named deliberately (**R3**): malformed shape is a consumer-check cost; runtime halt remains skill-time. Do not dual-write onto frozen v0.6. Defer `kind: assumption` to a later issue/arc unless it gains a fire predicate, unknown-to-halt-or-pass rule, evaluator outside the executing leaf, and a behavioral case.\n\n2. **Named consumers (R2).** Update **`content/packs/skills/skills-pack-0.1.json`** (not the stale `packs/skills/…` header string), then `task packs:render` / regenerate `content/skills/deft-directive-build/SKILL.md`. Before item start and on item resume, enumerate declared `stopConditions`; evaluate `anchor` entries deterministically (path resolves; excerpt/digest still matches as Bound names); on fire, halt and report — do not improvise. Swarm: **one pointer only** in the build skill / worker envelope — no `swarm.md` rewrite (P4/Grok F7 cap). Empty/omitted stays valid.\n\n3. **Reuse existing halt machinery.** On fire: Dual-stop (#2442) 4-part operator-visible report; parent-dispatched units may use `BLOCKED:`; item write-back may use existing `PlanItemStatus.blocked`. No new terminal keyword, no new report format, no process kill, no automatic destructive rollback, no shell execution of condition text. Resume: factual mismatch clears after restore + re-verify; changing the approved anchor/assumption requires the authorized contract-change path; a parent envelope cannot mint a human override. Preserve partial-work evidence.\n\n4. **Writer and amendment rule.** Anchors are authored at brief-authoring / promote-activate time. The executing agent MUST NOT delete or weaken a stop entry in the same unit of work that would violate it. Treat entries as contract data. (Assumption-shaped hand-authoring stays out of v1 per R1.)\n\n5. **Doctrine repair (P3).** In repo-root `main.md` Dual Stop Rule: keep the scope-boundary sentence that #1613 covers precondition STOP vs Dual-stop failure/budget; rewrite the \"already has … STOP on plan precondition mismatch -- #1613\" success-gate list so it does not assert a shipped gate before this Bound lands (or retarget it to the shipped field/skill check in the same PR). Anchor edits by quoted text, not line number. Fence opportunistic repair of adjacent stale `skills/deft-directive-*` paths in that paragraph — do not widen past this Bound unless those path strings are already in-scope for the same PR. Do not mint a second parallel principle that only re-cites the open issue number.\n\n6. **Peer scope lock (P4).** Mid-execution precondition-STOP only. Do not absorb #1201, #1579, #852, or #2442/#3143. If #1201 later lands a precondition type, #1613 consumes it.\n\n7. **Behavioral acceptance.** Omitted field validates; malformed present value refuses at **xbrief:validate**; unchanged-valid anchor continues; mid-execution anchor mismatch halts with report; planned in-scope edit does not false-fire as STOP; executing agent cannot self-waive by editing the field away in the violating unit. No assumption-limb cases in v1.\n\n### Reject / out of contract\n\n- Bare `string[]` / LLM-only prose assumptions as the v1 surface.\n- `kind: assumption` without the four R1 predicates.\n- Schema listing without named build consumer.\n- Skill-only prose with no PlanItem surface.\n- Stale pack path `packs/skills/skills-pack-0.1.json` as the write target.\n- Unnamed \"chosen validator\".\n- Treating `main.md`'s `#1613` cite as already-shipped.\n- Hard abort where returned failure + blocked status suffice.\n- Absorbing #1201 / #1579 / #852 / #2442 / #3143.\n- Editing only the rendered skill without `content/packs/skills/skills-pack-0.1.json`.\n- Landing only on legacy v0.6 OP paths.\n- `swarm.md` rewrite beyond one pointer.\n\n## Plain-language summary\n\nPrefer-A-prime keeps checkable anchors as the only v1 stop entries, points the skill edit at the real pack file under `content/packs/skills/`, names xbrief:validate for malformed shape, and drops the unbound free-text assumption limb and the unread observeAt token. Peer locks and the Dual-stop doctrine repair stay as before.",
+          "id": 5956101691,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956101691",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:53:44Z",
+          "updated_at": "2026-10-02T15:53:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndual-stop-raise: +1\nreason: operator asked why the arc stopped after Prefer-A-prime; treat as Dual-stop raise standing for same-species harvest repair pain-audit of Prefer-A-prime 5956101691 (reserved seat already spent on 5956083798). Prior pain-audit continue-raise: not recommended for a fourth panel seat; this raise funds the required critic-after-lean-id for the Recut only.\nlean: 5956101691\nprior-pain-audit: 5956083798",
+          "id": 5956123885,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956123885",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:55:13Z",
+          "updated_at": "2026-10-02T15:55:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\n\nissue: https://github.com/deftai/directive/issues/1613\ncharter: open critique\nspend: N>=3\nround: pain-audit of Prefer-A-prime (5956101691), recut of 5955968590 absorbing R1-R4\ncritic-role: pain-audit\nseat: claude\nlauncher: claude\nid-ceiling: 5956101691\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\ndual-stop-raise: +1 (operator continue after Prefer-A-prime)\n\n## Verification\n\nPin-read only at `af82911` (`git cat-file -e` / `git show` / `git grep` against the pinned tree). No moving tip, no product mutation, nothing read above the ceiling. Read the recut `5956101691`, the superseded lean `5955968590`, and the prior pain-audit `5956083798`.\n\n### R1-R4 absorption\n\n| repair | absorbed | evidence |\n| --- | --- | --- |\n| **R1** anchor-only | **yes** | Remedy 1 closes `kind` to `anchor`; defers `assumption` naming all four predicates; remedies 4 and 7 both carry the v1 exclusion. |\n| **R2** `content/packs/...` path | **yes, verified at the renderer** | `packages/core/src/packs/pack-render.ts:293` sets the skills source to `join(CONTENT_ROOT, \"packs\", \"skills\", \"skills-pack-0.1.json\")`. The recut's string is the renderer's own constant. |\n| **R3** name the validator | **partial** | Two names, slashed, plus a gate attribution that is right for only one of them. Behaviorally harmless; textually unresolved. |\n| **R4** drop `before-cited-edit` | **yes** | Closed set is `item-start` / `item-resume`; remedy 2's obligation now matches it. |\n\n### Verdicts\n\n| target | verdict |\n| --- | --- |\n| pain-P1 | **overclaimed** (R1 clean; a different limb is unbound at pin) |\n| pain-P2 | **overclaimed** (R2 correct; the write-target list is short by two) |\n| pain-P3 | **supported** |\n| pain-P4 | **supported** |\n\n---\n\n## pain-P1 — overclaimed, on a new limb\n\nR1 landed. The assumption limb is gone, the deferral condition is stated in full, and no v1 acceptance case depends on it. I am not re-litigating R1.\n\nThe problem is one layer down, in the mechanism that remedies 1 and 7 both bind to.\n\n**The named refusal does not exist at pin.** Remedy 1: \"Present malformed entries fail **xbrief:validate / vbrief:validate (schema-time on CONSUMER_CHECK_GATES)**\". Remedy 7: \"malformed present value refuses at **xbrief:validate**\".\n\nNo JSON-Schema engine is wired into the lifecycle validate path. No `ajv` or equivalent dependency appears in any `package.json` at pin, and no file under `packages/core/src/vbrief-validate/` reads any `.schema.json` — a grep for `schemas/` and `.schema.json` across that whole directory returns zero hits. `content/vbrief/schemas/xbrief-core-0.8.schema.json` is a published contract document. It is not executed.\n\nWhat `vbrief:validate` actually runs is a hand-maintained conformance scan. `packages/core/src/vbrief-validate/conformance.ts:50-88` holds a literal `ITEM_CORE` allowlist of PlanItem keys. `isConformant` (L120-131) accepts a key only if it is in that set or carries one of `EXTENSION_PREFIXES` (`x-directive/`, `x-xbrief/`, `x-xbrief/`), and closes with \"No allow-list exceptions: every non-core key MUST be namespaced (#1650)\". `scanItem` (L148) applies it per item; the gate (L552 onward) returns **exitCode 1** with \"detected N bare key(s) ... (#1620)\".\n\nTwo consequences, both inverted from remedy 7:\n\n1. **Malformed entries do not refuse.** Adding `properties.stopConditions` to the schema JSON produces no shape check anywhere in the validate path. Remedy 7's named ship case cannot pass as the Bound is written.\n2. **Well-formed entries refuse.** A bare `stopConditions` key is not in `ITEM_CORE`, so `verify:vbrief-conformance` — on the `check` gate at `Taskfile.yml:467` — fails the brief with a #1620 bare-key error. Remedy 7's \"omitted field validates; unchanged-valid anchor continues\" cases break at `task check` on the first brief that uses the field.\n\nThis also retires the premise my prior audit used to *support* the P1 shape. I wrote that a declared `properties.stopConditions` subschema \"does apply when the key is present\", creating a refusal the already-open extension hook cannot. That is true of the schema document and false of the runtime. The lean, the three panel seats and my own audit shared this blind spot; the recut inherits it and now states it as an acceptance case.\n\nThe repo already shows the correct two-target pattern. `conformance.ts:82-83` reads `// Optional PlanItem.effort enum S/M/L/XL (#1581) — schema-validated, core not extension.` followed by `\"effort\"`. #1581 shipped an optional PlanItem field by editing both the schema **and** `ITEM_CORE`. #1613 needs the same, plus a shape predicate if malformed-refusal is to be real.\n\nThe cheap alternative — `x-directive/stopConditions` — passes conformance today with zero code change, but it lands the field in exactly the open extension space remedy 1 was designed to escape, with no refusal at all. That is the schema theater the Reject list bans. Not a recommendation; noted so the trade is explicit.\n\n**Disposition.** Blocking. `relieves: P1` retracts pending R5.\n\n## pain-P2 — overclaimed, two missing write targets\n\n**R2 is right, and stronger than the audit asked.** `content/packs/skills/skills-pack-0.1.json` exists at pin, `packs/skills/skills-pack-0.1.json` does not, and the recut's string is literally the renderer's source constant (`pack-render.ts:293`). The projection path pattern at L298 resolves against `CONTENT_ROOT`, and the pack carries `skills/deft-directive-build/SKILL.md` and `skills/deft-directive-swarm/SKILL.md`, so `task packs:render` does regenerate `content/skills/deft-directive-build/SKILL.md`. The added command is operative.\n\nThe stale-header fence is also correct and now provably necessary: the header is a renderer constant, `pack-render.ts:43` — `<!-- Source of truth: packs/skills/skills-pack-0.1.json -->`. Re-rendering re-emits it. Separate defect, correctly refused absorption.\n\n**R3 is thin but not harmful.** `packages/cli/src/dispatch.ts:434` maps `\"xbrief:validate\": \"vbrief-validate\"` — the two names dispatch the same implementation, so naming both changes nothing at runtime. The gate attribution is the imprecise part: `vbrief:validate` is on `check` (`Taskfile.yml:484`) and `check:consumer` (L540); `xbrief:validate` is on neither, and `Taskfile.yml:145` makes its include non-optional for a different reason (#3483 swarm-skill naming). An implementer who writes the remedy-7 assertion against `xbrief:validate` and then looks for it in CONSUMER_CHECK_GATES will not find it. One line, no design content. **Footnote-only.**\n\n**What is blocking is the write-target list.** Remedy 2's named edit set is: the schema JSON, `content/vbrief/vbrief.md`, `content/packs/skills/skills-pack-0.1.json`, the rendered build SKILL.md, and one swarm pointer. Two live targets are missing, both on this pain's own axis:\n\n1. `packages/core/src/vbrief-validate/conformance.ts` — `ITEM_CORE`, per P1 above. Without it the field fails `check`.\n2. `packages/types/schemas/xbrief-core-0.8.schema.json` — a second copy of the schema, written by `packages/types/scripts/sync-schema.mjs` and gated byte-for-byte. `packages/core/src/verify-source/contract-drift.ts:25-26` names both paths; `verify:contract-drift` is on `check` at `Taskfile.yml:441`. Editing the canonical schema alone turns `task check` red on drift.\n\nP2 is the pain that a remedy's named targets do not match the repo. The recut fixed the one string the last audit found and did not re-run the sweep.\n\n**Disposition.** Blocking, but clerical in the same sense R2 and R3 were — two named targets, no new solution class. `relieves: P2` retracts pending R6.\n\n## pain-P3 — supported\n\nPin unchanged and remedy 5 unchanged, with both prior footnotes absorbed. `main.md` Dual Stop Rule still carries the false success-gate claim (\"STOP on plan precondition mismatch -- #1613\") against zero `stopConditions` in the tree, and still carries the true scope-boundary sentence (\"#1613 covers STOP when plan **preconditions** fail\"). The recut added \"Anchor edits by quoted text, not line number\" plus the explicit fence on the adjacent stale `skills/deft-directive-*` paths — which do sit in the very next bullet of that paragraph, exactly as flagged. Nothing to retract.\n\n## pain-P4 — supported\n\nRemedy 6 unchanged. The swarm footnote is absorbed twice over: remedy 2 now reads \"one pointer only in the build skill / worker envelope — no `swarm.md` rewrite\", and the Reject list adds \"`swarm.md` rewrite beyond one pointer\". The peer lock and the consume-don't-compete rule for #1201 are intact. Nothing to retract.\n\n---\n\n## Bind-map disposition\n\n- `relieves: P1` — **retract.** Blocking; R5.\n- `relieves: P2` — **retract.** Blocking; R6.\n- `relieves: P3` — hold.\n- `relieves: P4` — hold.\n\nPrefer-A-prime is **not bindable as posted**. The design is not at fault: R1-R4 absorbed cleanly and the shape survives this pass intact. The defect is that the Bound names a refusal mechanism the repo does not have, and omits the two targets that would give it one. Repairs, none opening a new solution class:\n\n- **R5 (blocking).** Name `packages/core/src/vbrief-validate/conformance.ts` as a write target: add `stopConditions` to `ITEM_CORE`, and add the entry-shape predicate that makes remedy 7's \"malformed present value refuses\" true. Follow the #1581 `effort` precedent in that same file. Restate remedies 1 and 7 so the refusal is attributed to the conformance validator, not to schema execution.\n- **R6 (blocking, clerical).** Add `packages/types/schemas/xbrief-core-0.8.schema.json` and `packages/types/scripts/sync-schema.mjs` to remedy 2's targets, and name `verify:contract-drift` as the gate that enforces the pair.\n- **R7 (minor).** In remedy 1, attribute CONSUMER_CHECK_GATES to `vbrief:validate` specifically, and note `xbrief:validate` as its alias (`dispatch.ts:434`) rather than a co-equal gate member.\n- **R8 (minor).** `observeAt` now sits on the anchor entry with no stated optionality, and remedy 2 evaluates all anchors at both points without keying on it. Either make the consumer read it as a selector or drop it from v1. This is R4's defect class relocated, not reintroduced.\n- **R9 (trivial).** Remedy 3 still reads \"changing the approved anchor/assumption\". Inert in a v1 with no assumption kind; strike the word.\n\n## continue-raise: no\n\nNo fourth panel seat. This pass produced no new solution class and no disagreement on the merits — the three round-1 seats remain converged, and every finding above is a pin fact that a fifth opinion would not generate.\n\nNote what two consecutive audits have now shown: each found a blocking defect the prior round missed, and both were found by reading the runtime rather than the contract. The yield is in verification depth, not seat count. Recommend the parent post the recut with R5-R9 and have it re-audited on one question only — do the named targets produce the named behavior at pin — before bind. That is a repair pass, not a raise.\n\n## Plain-language summary\n\nThe recut did what the last audit asked. The free-text \"assumption\" entry type is gone, the file path now points at the real pack file (checked against the renderer's own code, not just a directory listing), the unread timing token is dropped, and the doctrine and scope-lock fixes are clean.\n\nWhat the recut inherits, and now states as a test, is an assumption nobody in this thread had checked: that the repo validates briefs against its schema file. It does not. The validator is a hand-written list of allowed field names in one TypeScript file, and the schema document is never read at validation time. So adding the new field to the schema would not catch a badly formed entry — and worse, a correctly formed entry would be rejected as an unrecognized field and turn `task check` red. There is also a second copy of the schema in the published types package, with its own gate demanding the two stay identical.\n\nThe fix is small, and the repo has already done it once, for a field called `effort`: edit the schema, edit the allowlist, sync the copy. Name those targets and this binds.\n\nThis is a pain-audit critic report, not a successor lean and not an accepted Bound. No ingest or product mutation performed.\n\n",
+          "id": 5956258020,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956258020",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:03:58Z",
+          "updated_at": "2026-10-02T16:03:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndual-stop-raise: +1\nreason: operator continue standing after Prefer-A-prime pain-audit 5956258020 (continue-raise: no for panel; repair pass R5-R9). Funds critic-after-lean-id for Prefer-A-2prime only.\nprior-lean: 5956101691\nprior-pain-audit: 5956258020",
+          "id": 5956280071,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956280071",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:05:11Z",
+          "updated_at": "2026-10-02T16:05:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Lean: Prefer-A-2prime — Recut-supersedes 5956101691 (pain-audit 5956258020 R5–R9)\n\nTarget-digest: sha256:98cdf1b09751141354447a412dcaa16a0b0d1caf965e364f8c06af543bc05cff\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\nsupersedes: 5956101691\npain-audit: 5956258020\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nR1–R4 held from Prefer-A-prime. This Recut adds R5–R9 only: conformance allowlist + shape predicate, types schema sync, validator naming precision, observeAt optionality, strike inert \"assumption\" word.\n\n## Bound remedy\n\n1. **Durable PlanItem stop surface on xBRIEF 0.8 only.** Optional `stopConditions` on `$defs.PlanItem` in **both** `content/vbrief/schemas/xbrief-core-0.8.schema.json` and `packages/types/schemas/xbrief-core-0.8.schema.json` (sync via `packages/types/scripts/sync-schema.mjs`; `verify:contract-drift` enforces the pair — **R6**). **v1 ships `kind: anchor` only.** Each entry: `id`; `kind: anchor`; `path` + (`excerpt` or content `digest`) + optional `resolvedAtSha`; optional `rationale`; optional `observeAt` ∈ {`item-start`,`item-resume`} (**R8**: optional selector — if present, consumer honors it; if absent, check at both item-start and item-resume). Document in `content/vbrief/vbrief.md`. Omitted field remains valid. Do not dual-write v0.6. Defer `kind: assumption` unless it gains fire predicate, unknown rule, external evaluator, and behavioral case.\n\n2. **Runtime refusal is conformance, not schema execution (R5/R7).** Write targets include `packages/core/src/vbrief-validate/conformance.ts`: add `stopConditions` to `ITEM_CORE` (same pattern as `effort` / #1581) and add an entry-shape predicate so malformed present values refuse. Attribute malformed refusal to **`vbrief:validate` / `verify:vbrief-conformance`** (on `check` / CONSUMER_CHECK_GATES). `xbrief:validate` is the dispatch alias only (`packages/cli/src/dispatch.ts` maps it to `vbrief-validate`) — not a separate gate member. Schema JSON remains the published contract document; it does not execute under ajv.\n\n3. **Named skill consumers.** Update `content/packs/skills/skills-pack-0.1.json`, then `task packs:render` for `content/skills/deft-directive-build/SKILL.md`. Before item start and on item resume (or per optional `observeAt`), enumerate declared `stopConditions`; evaluate anchors deterministically; on fire, halt and report — do not improvise. Swarm: one pointer only — no `swarm.md` rewrite. Empty/omitted stays valid.\n\n4. **Reuse existing halt machinery.** Dual-stop (#2442) 4-part operator-visible report; `BLOCKED:` for parent-dispatched units; `PlanItemStatus.blocked` write-back allowed. No new terminal keyword, no process kill, no automatic destructive rollback, no shell execution of condition text. Resume: restore + re-verify for factual mismatch; changing the approved **anchor** requires the authorized contract-change path (**R9**: strike \"assumption\"); parent envelope cannot mint a human override.\n\n5. **Writer rule.** Anchors authored at brief-authoring / promote-activate time. Executing agent MUST NOT delete or weaken a stop entry in the same unit that would violate it.\n\n6. **Doctrine repair (P3).** Keep Dual Stop scope-boundary sentence for #1613; rewrite the \"already has … STOP on plan precondition mismatch -- #1613\" success-gate claim so it does not assert a shipped gate before this Bound lands (or retarget to the shipped field/skill/conformance check in the same PR). Anchor by quoted text. Fence opportunistic repair of adjacent stale `skills/deft-directive-*` paths in that paragraph.\n\n7. **Peer scope lock (P4).** Mid-execution precondition-STOP only. Do not absorb #1201, #1579, #852, or #2442/#3143.\n\n8. **Behavioral acceptance.** Omitted validates; well-formed present `stopConditions` passes `ITEM_CORE` + shape predicate; malformed present refuses at `vbrief:validate` / `verify:vbrief-conformance`; unchanged-valid anchor continues; mid-execution mismatch halts with report; planned in-scope edit does not false-fire; executing agent cannot self-waive by editing the field away; content↔types schema pair stays drift-clean under `verify:contract-drift`.\n\n### Write-target checklist\n\n- `content/vbrief/schemas/xbrief-core-0.8.schema.json`\n- `packages/types/schemas/xbrief-core-0.8.schema.json` (+ `packages/types/scripts/sync-schema.mjs`)\n- `packages/core/src/vbrief-validate/conformance.ts` (`ITEM_CORE` + shape predicate)\n- `content/vbrief/vbrief.md`\n- `content/packs/skills/skills-pack-0.1.json` → regenerate build SKILL\n- repo-root `main.md` Dual Stop relation text (quoted-text edit)\n\n### Reject / out of contract\n\n- Bare `string[]` / v1 `assumption` kind\n- Schema-only edit without `ITEM_CORE` / shape predicate\n- Claiming JSON Schema is executed by `vbrief:validate`\n- Stale `packs/skills/…` write target\n- `x-directive/stopConditions` extension-only escape as the Bound surface\n- Skill-only prose with no PlanItem + conformance surface\n- Hard abort; absorbing peer issues; `swarm.md` rewrite; v0.6-only land\n\n## Plain-language summary\n\nPrefer-A-2prime keeps anchor-only stops, and names the real validators: add the field to the schema **and** to the TypeScript allowlist (like `effort`), sync the types package copy, and have the build skill halt on mismatch using existing reports. Schema files document the contract; conformance.ts is what actually refuses bad or unexpected keys at `task check`.",
+          "id": 5956280337,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956280337",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:05:12Z",
+          "updated_at": "2026-10-02T16:05:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\n\nissue: https://github.com/deftai/directive/issues/1613\ncharter: focused repair pass (single question)\nround: pain-audit of Prefer-A-2prime (5956280337), Recut of 5956101691 absorbing R5-R9\ncritic-role: pain-audit\nseat: claude\nid-ceiling: 5956280337\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\ndual-stop-raise: +1 (repair pass)\nprior pain-audit: 5956258020\n\n## Question\n\nDo the named write targets produce the named behavior at pin?\n\n## Verification\n\nPin-read only at `af82911` (`git cat-file -e` / `git show` / `git grep` against the pinned tree). No moving tip, no product mutation, nothing read above the ceiling. Read the Recut `5956280337` and my prior pain-audit `5956258020`. Every named write target exists at pin (9/9 `git cat-file -e`).\n\n### R5-R9 absorption\n\n| repair | absorbed | evidence |\n| --- | --- | --- |\n| **R5** conformance target + attribution | **half** | `ITEM_CORE` half is right (`conformance.ts:50`, `effort` precedent at `:83-84`). The **shape predicate is in the wrong file**, and the gate attribution is wrong for one of the two names. See P1. |\n| **R6** types pair + contract-drift | **yes, fully verified** | `contract-drift.ts:25-26` names both paths; `sync-schema.mjs` copies content -> types for exactly those two files; `verify:contract-drift` on `Taskfile.yml:441` and `gate-lists.ts:113`. |\n| **R7** validator naming | **partial** | `dispatch.ts:434` maps `xbrief:validate` to `vbrief-validate` -- alias claim correct, non-member claim correct. But the Recut's replacement parenthetical is false for one name. See P2. |\n| **R8** optional `observeAt` | **yes** | Remedy 1 states optionality and the absent-case behavior; remedy 3 \"(or per optional `observeAt`)\" matches it. Closed set unchanged. Nothing left unread. |\n| **R9** strike \"assumption\" | **yes** | Remedy 4 now reads \"changing the approved **anchor**\". The only surviving occurrences are the remedy-1 deferral clause and the Reject-list exclusion, which are the correct uses. |\n\n### Verdicts\n\n| target | verdict |\n| --- | --- |\n| pain-P1 | **overclaimed** (the named refusal still does not land where it is named) |\n| pain-P2 | **overclaimed** (checklist short by two blocking targets; new gate misattribution) |\n| pain-P3 | **supported** |\n| pain-P4 | **supported** |\n\n---\n\n## pain-P1 -- overclaimed: the shape predicate is named in a file that cannot produce it\n\nR5 asked for two things in `conformance.ts`: the `ITEM_CORE` entry, and \"the entry-shape predicate that makes remedy 7's malformed-present-value refuses true\". The Recut took both into remedy 2. **The first belongs there. The second does not, and #1581 -- the precedent the Recut cites -- did not put it there.**\n\n**What `conformance.ts` actually does.** It is a key-name scanner. `scanItem` (`:145`) iterates `Object.keys(item)` and calls `isConformant(key, ITEM_CORE)` (`:120`); it never inspects a value. `ConformanceFinding` (`:92`) is `{path, level, key, location}` -- there is no message field. `renderFinding` (`:113`) emits `bare key '<k>' at <loc>`, and the gate header (`:579-583`) reads `detected N bare key(s) ... (#1620) ... Every vBRIEF key MUST be spec-core, x-directive/-namespaced ... never bare`.\n\nA malformed `stopConditions` entry is not a bare key. Routed through this file it is reported as one, under a #1620 header whose stated remedy is \"namespace it under `x-directive/`\" -- which is the escape the Reject list bans. The one value-shaped predicate in the file (`planPlanRefFinding`, `:133`) shows the cost: it smuggles its message into the `location` slot and still renders as `bare key 'planRef' at plan (issue-style -- migrate to references[])`. That is the available vocabulary.\n\n**Where #1581 actually put the shape check.** My prior audit said no shape check exists anywhere in the validate path. That was too strong, and the correction sharpens rather than softens the finding: there **is** a hand-written structural validator, and it is a separate file the Recut does not name.\n\n`packages/core/src/vbrief-validate/schema.ts:60` `validatePlanItem`, lines 77-78 -- `if (\"effort\" in item && !VALID_PLAN_ITEM_EFFORTS.has(String(item.effort)))` pushes `<itemPath> invalid effort: <repr>` -- with the enum in `constants.ts:33`. `validateVbriefSchema` (`schema.ts:225`) is reached by `validate-all.ts:133`, which is what `vbrief:validate` runs (`tasks/vbrief.yml:20` -> `dispatch.ts` -> `main.ts` `runValidate` -> `validateAll`). `schema-v08.test.ts:81-110` is the #1581 behavioral case: four valid bands pass, omitted passes, `\"XXL\"` produces `invalid effort`.\n\nSo the #1581 pattern is **five** targets, not three:\n\n| #1581 target | #1613 equivalent | in Recut checklist |\n| --- | --- | --- |\n| `content/vbrief/schemas/xbrief-core-0.8.schema.json` (`$defs.PlanItem.properties.effort`, `:321`) | schema entry | yes |\n| `packages/types/schemas/xbrief-core-0.8.schema.json` | synced pair | yes (R6) |\n| `conformance.ts` `ITEM_CORE` (`:84`) | key admission | yes (R5) |\n| **`vbrief-validate/schema.ts` `validatePlanItem`** (`:77`) | **entry-shape refusal** | **no** |\n| **`vbrief-validate/constants.ts`** (`:33`) | **closed `kind` / `observeAt` sets** | **no** |\n\nRemedy 8's acceptance case \"malformed present `stopConditions` refuses\" is not produced by the Recut's named targets. `ITEM_CORE` alone **admits** the key -- it makes every shape, well-formed or malformed, pass silently. That is strictly worse than the pre-R5 state for the malformed case: before, a malformed value at least failed as a bare key; after, it passes.\n\n**Disposition.** Blocking. `relieves: P1` retracts pending R10.\n\n## pain-P2 -- overclaimed: two targets short, plus a new gate misattribution of R7's own class\n\n**R6 is clean and fully verified.** `contract-drift.ts:23-26` names all four paths; the v0.8 pair is `XBRIEF_CANONICAL_SCHEMA_REL` / `XBRIEF_PUBLISHED_SCHEMA_REL`, compared byte-for-byte (file header, ensure #2). `sync-schema.mjs` copies `content/vbrief/schemas/xbrief-core-0.8.schema.json` -> `packages/types/schemas/xbrief-core-0.8.schema.json`. `verify:contract-drift` is on `Taskfile.yml:441` and `gate-lists.ts:113`. Nothing to retract. One footnote: `sync-schema.mjs` is a **run** target, not an **edit** target -- it needs no diff, only invocation. Harmless as listed.\n\n**The checklist is still short by two**, both on P1's axis: `vbrief-validate/schema.ts` and `vbrief-validate/constants.ts`. This is the third consecutive pass in which the named write-target set does not match the repo, and the second in which the miss was found by reading the runtime rather than the contract.\n\n**New: the gate parenthetical is false for one of its two names.** Remedy 2 attributes malformed refusal to \"`vbrief:validate` / `verify:vbrief-conformance` (on `check` / CONSUMER_CHECK_GATES)\". At `gate-lists.ts`:\n\n- `FRAMEWORK_CHECK_GATES` (opens `:102`): `verify:contract-drift` `:113`, `verify:vbrief-conformance` `:144`, `vbrief:validate` `:156`.\n- `CONSUMER_CHECK_GATES` (opens `:169`): `vbrief:validate` `:191` **only**.\n\n`verify:vbrief-conformance` is framework-only. It is on `task check` (`Taskfile.yml:467`) in this repo; it is **not** on CONSUMER_CHECK_GATES, and not on `check:consumer` (`Taskfile.yml:540`, which carries `vbrief:validate` only). R7 asked for precision because slashing two names hid a gate difference. The Recut fixed the `xbrief:` / `vbrief:` pair and introduced the same defect on a new pair -- and here the imprecision is load-bearing, because the correct placement of the shape predicate (`schema.ts`, under `vbrief:validate`) is the one that **is** on CONSUMER_CHECK_GATES. Getting P1 right makes the attribution simpler, not harder: `vbrief:validate` for shape, `verify:vbrief-conformance` for key admission, and they are not the same gate list.\n\n**Footnote, non-blocking.** `packages/types/src/document.ts:18-31` carries `PLAN_ITEM_EFFORTS`, `PlanItemEffort` and `PlanItem.effort?` -- the sixth limb of the #1581 pattern, the published consumer type. `contract-drift` gates only `VALID_STATUSES` and `VBRIEF_VERSION` (file header, ensures 3-4), so no gate forces it and `task check` stays green without it. Consumers typing a PlanItem would not see `stopConditions`. Worth one line in the checklist; not a bind blocker.\n\n**Disposition.** Blocking, clerical in the same sense R2 / R3 / R6 were -- named targets and one parenthetical, no new solution class. `relieves: P2` retracts pending R11 / R12.\n\n## pain-P3 -- supported\n\nPin unchanged, remedy 6 unchanged in substance and now explicitly quoted-text anchored. `main.md:115` still asserts `STOP on plan precondition mismatch -- #1613` as a shipped success-shaped gate; `git grep stopConditions` at `af82911` returns **zero hits** across the tree, so the claim is false at pin exactly as before. The true scope-boundary sentence survives at `:138`. The adjacent stale paths the Recut fences are at `:139` -- `skills/deft-directive-build/SKILL.md` and `skills/deft-directive-swarm/SKILL.md`, the literal next bullet, correctly refused absorption. Nothing to retract.\n\n## pain-P4 -- supported\n\nRemedy 7 unchanged: mid-execution precondition-STOP only; #1201, #1579, #852, #2442 / #3143 all named as out. Remedy 4's reuse of dual-stop (#2442) and `PlanItemStatus.blocked` is consumption, not absorption. The swarm one-pointer rule survives in remedy 3 and the Reject list. Nothing to retract.\n\n---\n\n## Bind-map disposition\n\n- `relieves: P1` -- **retract.** Blocking; R10.\n- `relieves: P2` -- **retract.** Blocking; R11, R12.\n- `relieves: P3` -- hold.\n- `relieves: P4` -- hold.\n\nPrefer-A-2prime is **not bindable as posted**, on a narrower margin than the last pass. R6, R8 and R9 absorbed cleanly and need no further work. R5 and R7 each landed one half. Repairs, none opening a new solution class and none touching the design:\n\n- **R10 (blocking).** Move the entry-shape predicate out of `conformance.ts` and into `packages/core/src/vbrief-validate/schema.ts` `validatePlanItem` (`:60`), following `effort` at `:77-78`; put the closed `kind` / `observeAt` sets in `packages/core/src/vbrief-validate/constants.ts` beside `VALID_PLAN_ITEM_EFFORTS` (`:33`). Keep `stopConditions` in `ITEM_CORE` -- that half of R5 is correct and still required, or the key fails #1620. Restate remedy 2 as two mechanisms, not one: `ITEM_CORE` admits the key, `validatePlanItem` refuses the shape.\n- **R11 (blocking, clerical).** Add `vbrief-validate/schema.ts` and `vbrief-validate/constants.ts` to the write-target checklist.\n- **R12 (minor).** Fix the gate parenthetical: shape refusal is `vbrief:validate` (framework `gate-lists.ts:156` **and** consumer `:191`); key admission is `verify:vbrief-conformance` (framework `:144` / `Taskfile.yml:467`, **not** on CONSUMER_CHECK_GATES). Do not slash them under one gate-list claim.\n- **R13 (footnote).** Consider `packages/types/src/document.ts` for the published `PlanItem` type. Ungated; omit deliberately or list it.\n\nRemedy 8's acceptance list already distinguishes \"omitted validates\", \"well-formed present passes\" and \"malformed present refuses\". With R10 those three map to three distinct mechanisms at three cite-able lines, and the Bound becomes checkable by a reader who has never opened the repo. That is the bar this pass was for.\n\n## continue-raise: no\n\nThe repair pass did what a repair pass is for. One blocking defect remains and it is a file-placement correction inside a mechanism every seat already agreed -- no new solution class, no disagreement on the merits, nothing a further seat would generate. Note the pattern across three passes: each found a defect in the *named mechanism* rather than in the design, and each was found by reading the runtime. The design has now survived three audits unchanged. Recommend the parent post the Recut with R10-R13 and bind on sight; the remaining checks are `git grep`-sized and do not need another panel.\n\n## Plain-language summary\n\nThe Recut fixed the schema-pair problem completely and the three small wording items cleanly. One thing is still wrong, and it is the same thing as last time in a new place.\n\nMy last audit said \"add the field to the hand-written validator\". There are actually two hand-written validators, in two files, doing two different jobs: one checks that a field *name* is allowed, the other checks that a field's *value* is well formed. The Recut put both jobs in the name-checking file. That file has no way to say \"this value is malformed\" -- every message it can emit says \"unrecognized field name\", and the fix it suggests is the namespacing escape this design was built to avoid. So as written, a badly formed stop condition would now sail through silently, which is worse than before the repair.\n\nThe value-checking file is where `effort` -- the field everyone keeps citing as the precedent -- actually does its rejecting, in three lines. Name that file and its constants file, split the one sentence into two, and this binds.\n\nThis is a pain-audit critic report, not a successor lean and not an accepted Bound. No ingest or product mutation performed.\n\n",
+          "id": 5956393273,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956393273",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:11:31Z",
+          "updated_at": "2026-10-02T16:11:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Lean: Prefer-A-3prime — Recut-supersedes 5956280337 (pain-audit 5956393273 R10–R13); bind-on-sight\n\nTarget-digest: sha256:98cdf1b09751141354447a412dcaa16a0b0d1caf965e364f8c06af543bc05cff\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\nsupersedes: 5956280337\npain-audit: 5956393273\nbind: on-sight per critic (continue-raise: no; git-grep-sized R10–R13)\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nParent pin-check at af82911: `validatePlanItem` effort shape at `packages/core/src/vbrief-validate/schema.ts`; `VALID_PLAN_ITEM_EFFORTS` at `constants.ts:33`; both files exist. R6/R8/R9 held from Prefer-A-2prime.\n\n## Bound remedy\n\n1. **Durable PlanItem stop surface on xBRIEF 0.8.** Optional `stopConditions` on `$defs.PlanItem` in `content/vbrief/schemas/xbrief-core-0.8.schema.json` and synced `packages/types/schemas/xbrief-core-0.8.schema.json` (run `packages/types/scripts/sync-schema.mjs`; `verify:contract-drift` enforces pair). **v1 `kind: anchor` only.** Entry: `id`; `kind: anchor`; `path` + (`excerpt`|`digest`) + optional `resolvedAtSha`; optional `rationale`; optional `observeAt` ∈ {`item-start`,`item-resume`} (absent ⇒ check both). Document in `content/vbrief/vbrief.md`. No v0.6 dual-write. Defer `assumption` kind.\n\n2. **Two mechanisms, two files (R10/R12).**\n   - **Key admission:** add `stopConditions` to `ITEM_CORE` in `packages/core/src/vbrief-validate/conformance.ts` (like `effort`). Gate: `verify:vbrief-conformance` (framework `check` only — **not** on CONSUMER_CHECK_GATES).\n   - **Shape refusal:** in `packages/core/src/vbrief-validate/schema.ts` `validatePlanItem`, refuse malformed `stopConditions` entries (mirror `effort` at ~:77–78). Closed `kind` / `observeAt` sets live in `packages/core/src/vbrief-validate/constants.ts` beside `VALID_PLAN_ITEM_EFFORTS`. Gate: **`vbrief:validate`** (framework **and** CONSUMER_CHECK_GATES). `xbrief:validate` is dispatch alias only.\n   - Do **not** put shape checks in `conformance.ts` (key scanner only; #1620 bare-key vocabulary).\n\n3. **Skill consumers.** Update `content/packs/skills/skills-pack-0.1.json` → `task packs:render` → `content/skills/deft-directive-build/SKILL.md`. Enumerate/evaluate anchors at item-start / item-resume (or per `observeAt`); on fire halt+report via Dual-stop 4-part / `BLOCKED:` / `PlanItemStatus.blocked`. Swarm: one pointer only. No process kill.\n\n4. **Writer rule.** Authoring/promote-activate time. Executing agent MUST NOT delete/weaken a stop in the violating unit.\n\n5. **Doctrine (P3).** Keep Dual Stop scope-boundary for #1613; rewrite false \"already has STOP…#1613\" success-gate claim; quoted-text anchor; fence adjacent stale `skills/deft-directive-*` path repairs.\n\n6. **Peer lock (P4).** Do not absorb #1201/#1579/#852/#2442/#3143.\n\n7. **Acceptance.** Omitted OK; well-formed present passes `ITEM_CORE` + `validatePlanItem`; malformed refuses at `vbrief:validate`; mismatch halts; no self-waive; schema pair drift-clean.\n\n### Write-target checklist\n\n- `content/vbrief/schemas/xbrief-core-0.8.schema.json`\n- `packages/types/schemas/xbrief-core-0.8.schema.json` (via sync-schema.mjs run)\n- `packages/core/src/vbrief-validate/conformance.ts` (`ITEM_CORE` only)\n- `packages/core/src/vbrief-validate/schema.ts` (`validatePlanItem` shape)\n- `packages/core/src/vbrief-validate/constants.ts` (closed sets)\n- `content/vbrief/vbrief.md`\n- `content/packs/skills/skills-pack-0.1.json` → regenerate build SKILL\n- repo-root `main.md` Dual Stop relation (quoted-text)\n- optional/ungated: `packages/types/src/document.ts` PlanItem typing (**R13** — list deliberately; no contract-drift force)\n\n### Reject\n\nBare string[]; v1 assumption kind; shape-in-conformance.ts; schema-execution claim; extension-only escape; skill-only; hard abort; peer absorb; swarm.md rewrite; v0.6-only.\n\n## Plain-language summary\n\nStops are checkable anchors on plan items. Admit the field name in the allowlist file, refuse bad shapes in the value-checker file (same split as `effort`), sync the published schema copy, wire the build skill to halt with existing reports, and fix the docs that pretend this already shipped.",
+          "id": 5956407252,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956407252",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:12:27Z",
+          "updated_at": "2026-10-02T16:12:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nSuccessor lean: 5956407252 (Prefer-A-3prime)\nPain-audits: 5956083798 → 5956258020 → 5956393273 (final: R10–R13 bind-on-sight; continue-raise: no)\nRound-1 critics: 5955905311 (codex), 5955905715 (grok), 5955953207 (claude)\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\n\n| claim | evidence | status |\n| --- | --- | --- |\n| PlanItem has no stopConditions at pin; Acceptance is narrative convention | xbrief-core-0.8.schema.json PlanItem; vbrief.md narrative.Acceptance | verified |\n| main.md Dual Stop cites #1613 as shipped success-gate while field absent | main.md Dual Stop Rule; git grep stopConditions = 0 at pin | verified |\n| Runtime validate is hand-written: ITEM_CORE key scan + schema.ts value checks; JSON Schema not executed | conformance.ts; schema.ts validatePlanItem effort; no ajv on validate path | verified |\n| #1581 effort precedent is schema + types sync + ITEM_CORE + schema.ts shape + constants | pin reads of those five (+ optional document.ts) | verified |\n| Peers #1201/#1579 open; #852/#2442 closed — out of Bound | REST + critic agreement | verified |\n| Prefer-A-3prime relieves P1–P4 with R1–R13 harvest | lean 5956407252; pain-audits above | verified |",
+          "id": 5956407530,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956407530",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:12:28Z",
+          "updated_at": "2026-10-02T16:12:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5956407252.\n\nRound-1 panel converged on durable mid-execution precondition-STOP with named consumers and peer lock. Three pain-audits narrowed mechanism placement to the #1581 effort pattern (schema + types sync + ITEM_CORE + schema.ts shape + constants). Final Prefer-A-3prime absorbs R10–R13 bind-on-sight; critic continue-raise: no. Verified-claims table: 5956407530.\n\n## Plain-language summary\n\nDirective plans will get checkable stop anchors so agents halt when cited code no longer matches, using the same validation split already used for effort estimates, plus the halt reports Directive already has. Neighboring tickets stay separate. Next operator verb after this no-ingest arc: `task issue:ingest`.",
+          "id": 5956407800,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956407800",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:12:29Z",
+          "updated_at": "2026-10-02T16:12:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndual-stop-raise: +1\nreason: ingest-ready refused unresolved-pain-audit — need critic after Prefer-A-3prime 5956407252 targeting P1–P4. Operator continue standing; prior critic said bind-on-sight but chip gate requires critic-after-lean-id.\nlean: 5956407252",
+          "id": 5956416598,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956416598",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:13:06Z",
+          "updated_at": "2026-10-02T16:13:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\n\nissue: https://github.com/deftai/directive/issues/1613\ncharter: focused repair pass (single question)\nround: pain-audit of Prefer-A-3prime (5956407252), Recut of 5956280337 absorbing R10-R13\ncritic-role: pain-audit\nseat: claude\nid-ceiling: 5956407252\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\nprior pain-audit: 5956393273\n\n## Question\n\nDo the named write targets produce the named behavior at pin?\n\n## Verification\n\nPin-read only at `af82911` (`git cat-file -e` / `git show` / `git grep` against the pinned tree). No moving tip, no product mutation, nothing read above the ceiling. Read the Recut `5956407252`, the superseded `5956280337`, and my prior pain-audit `5956393273`. All 9 checklist targets exist at pin (9/9 `git cat-file -e`), including the optional R13 entry.\n\n### R10-R13 absorption\n\n| repair | absorbed | evidence |\n| --- | --- | --- |\n| **R10** shape predicate relocation | **yes, fully verified** | Remedy 2 is now two mechanisms in two named files. Key admission -> `ITEM_CORE` (`conformance.ts:50`, `effort` precedent `:83-84`). Shape refusal -> `schema.ts` `validatePlanItem` (`:60`), explicitly mirroring `effort` at `:77-78`; closed sets -> `constants.ts` beside `VALID_PLAN_ITEM_EFFORTS` (`:33-34`). `ITEM_CORE` retention is stated and checklisted as \"ITEM_CORE only\". `shape-in-conformance.ts` is now an explicit Reject-list entry. |\n| **R11** checklist completeness | **yes** | `packages/core/src/vbrief-validate/schema.ts` and `.../constants.ts` are both on the checklist with their roles annotated. The prior pass's non-blocking footnote also landed: `packages/types/schemas/...` is now marked \"(via sync-schema.mjs run)\" -- run target, not edit target. |\n| **R12** gate split | **yes, and stronger than asked** | Shape refusal attributed to `vbrief:validate` (framework `check/gate-lists.ts:156` **and** consumer `:191`); key admission to `verify:vbrief-conformance` (framework `:144`, \"**not** on CONSUMER_CHECK_GATES\"). Verified: `FRAMEWORK_CHECK_GATES` opens `:102`, `CONSUMER_CHECK_GATES` opens `:169` and carries `vbrief:validate` only. `Taskfile.yml:467` / `:484` on `check`; `:540` on `check:consumer` is `vbrief:validate` alone. `xbrief:validate` alias-only claim holds (`dispatch.ts:434`). |\n| **R13** published type | **yes, as offered** | Listed under \"optional/ungated\" with \"list deliberately; no contract-drift force\". R13 offered omit-deliberately or list-it; the Recut lists it and marks the gate status. `document.ts:18-31` carries the `PLAN_ITEM_EFFORTS` / `PlanItemEffort` / `PlanItem.effort?` triple it parallels. |\n\n**New supporting evidence for R12.** The gate split is not only a membership difference -- the two verbs run different code. `dispatch.ts:404`, `:429` and `:434` all map `verify:vbrief-conformance`, `vbrief:validate` and `xbrief:validate` to canonical `vbrief-validate`, but `:3381-3383` passes subcommand `conformance` for `verify:vbrief-conformance` only. So the conformance gate runs the key scanner alone and never reaches `validatePlanItem`. The Recut's placement is therefore load-bearing in the exact way R12 described: putting shape refusal in `schema.ts` is what puts it on the consumer gate, and nothing else would.\n\n### Verdicts\n\n| target | verdict |\n| --- | --- |\n| pain-P1 | **supported** |\n| pain-P2 | **supported** |\n| pain-P3 | **supported** |\n| pain-P4 | **supported** |\n\n---\n\n## pain-P1 -- supported\n\nThe defect that blocked three passes is closed. `ITEM_CORE` admits the key; `validatePlanItem` refuses the shape; the closed `kind` / `observeAt` sets sit beside the enum they imitate. Remedy 7's three acceptance cases now map to three distinct mechanisms at three cite-able lines: omitted passes (schema optionality), well-formed present passes (`ITEM_CORE` + `validatePlanItem` both clear), malformed present refuses (`validatePlanItem`, `invalid effort` pattern at `schema.ts:77-78`). The silent-pass regression is gone, and the #1620 namespacing escape is no longer reachable by routing a value defect through a key scanner. `relieves: P1` holds.\n\n## pain-P2 -- supported\n\nChecklist matches the repo for the first time in four passes. Both missing files are on it; the gate parenthetical is split rather than slashed, and each half is correct against `gate-lists.ts` and `Taskfile.yml`. The R6 footnote about `sync-schema.mjs` being a run target was absorbed without being asked twice. `relieves: P2` holds.\n\n## pain-P3 -- supported\n\nPin unchanged. `main.md:115` still asserts `STOP on plan precondition mismatch -- #1613` as a shipped success-shaped gate; `git grep stopConditions` at `af82911` returns zero hits tree-wide, so the claim is still false at pin. Remedy 5 keeps the true scope-boundary sentence (`:138`), rewrites the false claim, anchors by quoted text, and fences the adjacent stale `skills/deft-directive-*` paths on the literal next bullet (`:139`). Compressed from 2prime's remedy 6 but unchanged in substance.\n\n## pain-P4 -- supported\n\nRemedy 6 keeps the peer lock: #1201, #1579, #852, #2442 / #3143 all named as out, with `swarm.md rewrite` and `peer absorb` on the Reject list. Remedy 3's reuse of the dual-stop 4-part report, `BLOCKED:` and `PlanItemStatus.blocked` is consumption, not absorption. The swarm one-pointer rule survives.\n\n---\n\n## Footnote-only: the recut compressed away guardrails the last pass certified\n\nNot blocking, not on the P1-P4 axis, and not a reason to withhold the bind. Stated because it is a drop rather than a disagreement, and a drop is easy to lose track of across four recuts.\n\n2prime carried eight remedies; 3prime carries seven. Most of the compression is clean restatement, and 2prime's remedy 4 (\"reuse existing halt machinery\") correctly folded its positive half into remedy 3 -- dual-stop 4-part report, `BLOCKED:`, `PlanItemStatus.blocked`, no process kill all survive. Its negative half mostly did not. Gone from the Bound text:\n\n- **no shell execution of condition text** -- the sharpest loss. Anchor entries carry `path`, `excerpt` and `rationale`, all author-supplied strings that an executing agent reads at item-start. The ban on evaluating that text as a command was the one rail keeping a declarative stop surface from becoming an execution surface. The Reject list's `schema-execution claim` is a different item (it denies ajv runtime execution of the schema), and does not cover this.\n- **no automatic destructive rollback**, **no new terminal keyword** -- Reject keeps `hard abort`, which covers part of the first and none of the second.\n- **resume: restore + re-verify for factual mismatch** -- the `item-resume` half of `observeAt` now has no stated behavior beyond \"evaluate\".\n- **changing the approved anchor requires the authorized contract-change path** -- this is **R9**, which my prior pass certified absorbed in 2prime remedy 4. The clause is now absent. Remedy 4's \"MUST NOT delete/weaken a stop in the violating unit\" and remedy 7's \"no self-waive\" cover the executing agent editing the field away; neither covers changing an anchor through an ordinary authoring edit.\n- **parent envelope cannot mint a human override** -- the authority rail for swarm / dispatch contexts.\n\nNone of these touch the named mechanism, the write targets, or the gate attribution, so none of them unbind the Recut. The implementer can restore them in the PR body or the `vbrief.md` prose without another lean. Flagging so the restoration is deliberate rather than accidental.\n\n**Clerical.** Remedy 2's heading reads \"Two mechanisms, two files\" while the body and checklist correctly name three edited files (`conformance.ts`, `schema.ts`, `constants.ts`). Two mechanisms is right; two files undercounts by one, because the closed sets are a third edit. Heading only -- the body is precise.\n\n## continue-raise: no\n\nR10 through R13 are all absorbed, three of them exactly as specified and R12 with verified supporting detail the repair did not ask for. The design has now survived four audits unchanged; the last three defects were all file-placement or naming errors in the *named mechanism*, and that class is now exhausted -- the Recut's targets have been checked line by line against the pinned tree and they match. The remaining footnote is a text-restoration item for the implementing PR, not a solution-class question, and no further seat would generate anything on it. **Prefer-A-3prime is bindable as posted.**\n\n## Plain-language summary\n\nThis binds.\n\nThe thing that blocked the last three rounds is fixed. There are two hand-written checkers: one decides whether a field *name* is allowed, the other decides whether a field's *value* is well formed. Earlier drafts put both jobs in the name checker, which has no vocabulary for \"bad value\". This draft splits them into the two correct files, names the constants file that holds the allowed values, and gets the gate attribution right -- which matters, because only the value checker runs for downstream consumers. I confirmed that last point by reading how the commands dispatch: the name-checking gate runs a reduced mode that never reaches the value checker at all. So putting the check in the right file is what makes it reach consumers, exactly as the repair claimed.\n\nOne thing to watch, which is not a reason to hold this up. This draft is shorter than the last one, and some safety sentences did not survive the trim -- in particular, the rule that the text inside a stop condition must never be run as a command. That text is author-supplied, so that rule is worth putting back when the change is written, along with the rule that changing an approved anchor goes through the normal contract-change path. Both are a sentence each and neither changes the design.\n\nThis is a pain-audit critic report, not a successor lean and not an accepted Bound. No ingest or product mutation performed.\n\n",
+          "id": 5956493307,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956493307",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:17:53Z",
+          "updated_at": "2026-10-02T16:17:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Lean: Prefer-A-final — same Bound as Prefer-A-3prime 5956407252 (later-arc-in-flight recovery)\n\nTarget-digest: sha256:98cdf1b09751141354447a412dcaa16a0b0d1caf965e364f8c06af543bc05cff\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\nsupersedes: 5956407252\ncleared-by-pain-audit: 5956493307 (P1–P4 supported; continue-raise: no)\nrecovery: comments after synth 5956407800 (raise + critic-after-lean) made earliestMatching later-arc-in-flight; new successor lean + record required.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nBound remedy is Prefer-A-3prime unchanged: v1 anchor-only stopConditions on xBRIEF 0.8; ITEM_CORE admission in conformance.ts; shape refusal in vbrief-validate/schema.ts + constants.ts; types schema sync; skill pack under content/packs/skills; Dual-stop halt reuse; main.md doctrine repair; peer lock. Footnote from 5956493307 for implement PR: restore no-shell-execution of condition text and authorized contract-change path for changing an approved anchor (trim survivors).\n\nWrite-target checklist, Reject list, and Plain-language summary: identical to Prefer-A-3prime 5956407252.",
+          "id": 5956510896,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956510896",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:19:00Z",
+          "updated_at": "2026-10-02T16:19:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndual-stop-raise: +1\nreason: later-arc-in-flight recovery — critic-after-lean-id for Prefer-A-final 5956510896 (identical Bound to 5956407252 already supported by 5956493307).",
+          "id": 5956511391,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956511391",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:19:01Z",
+          "updated_at": "2026-10-02T16:19:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\n\nissue: https://github.com/deftai/directive/issues/1613\ncharter: focused repair pass (single question)\nround: pain-audit of Prefer-A-final (5956510896), later-arc recovery over Prefer-A-3prime 5956407252\ncritic-role: pain-audit\nseat: claude\nid-ceiling: 5956510896\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\nprior pain-audit: 5956493307\n\n## Question\n\nDoes the final lean still carry the 3prime Bound and the R10-R13 absorption, and is its recovery claim true?\n\n## Verification\n\nPin-read only at `af82911` (`git cat-file -e` / `git show` / `git grep` against the pinned tree). No moving tip, no product mutation, nothing read above the ceiling. Read 5956510896, 5956407252, the Stop 1 write-back 5955811933, the record pair 5956407530 / 5956407800, the raise 5956416598, and my prior pain-audit 5956493307.\n\nTwo things I could check on this pass that a prose read cannot. The predicates named below are **read** from the pinned source, not executed -- there is no `packages/core/dist`, and the recorded `verification-path:` is pin-read. Where I report a regex outcome I applied the literal transcribed from the pinned line to the comment body itself, and I say so.\n\n**11/11 write targets exist at pin** (`git cat-file -e`), i.e. 3prime's nine checklist entries plus `packages/types/scripts/sync-schema.mjs` and `content/skills/deft-directive-build/SKILL.md`. `git grep stopConditions` at `af82911` returns zero hits tree-wide, so the P1 defect is still live and the field is genuinely new.\n\n**The pin is live.** `Target-digest` `sha256:98cdf1b0…` on 5956510896 equals SHA-256 of the live issue body bytes (3725 bytes) as I fetched them. `evaluateTargetDigestAdmission` would return `match`, not `stale-target`. The final lean did not inherit a stale digest from the comment it supersedes.\n\n**Mechanism anchors, re-cut line by line at pin.** `ITEM_CORE` opens `conformance.ts:50`; the `effort` precedent is `:83-84`. `validatePlanItem` opens `schema.ts:60`; the `invalid effort` refusal is `:77-78`. `VALID_PLAN_ITEM_EFFORTS` is `constants.ts:34` (`:33` is its JSDoc). Gate split holds: `gate-lists.ts` `FRAMEWORK_CHECK_GATES` opens `:102` and carries `verify:vbrief-conformance` `:144` and `vbrief:validate` `:156`; `CONSUMER_CHECK_GATES` opens `:169` and carries `vbrief:validate` at `:191` alone. `main.md:115` still asserts `STOP on plan precondition mismatch -- #1613` as a shipped success-shaped gate; `:138` is the true scope-boundary sentence; `:139` is the adjacent stale `skills/deft-directive-*` bullet.\n\n### The recovery claim is true, and I can name the line\n\n`completed-arc-record.ts:777-791`: after a complete record, `suffix` is every comment above `earliestMatching.synthesisCommentId`, and `isInFlightCritiqueThread(suffix)` returns `later-arc-in-flight`. The raise 5956416598 and my 5956493307 both sit above synthesis 5956407800, and `isInFlightCritiqueThread` (`:262-270`) fires on `CRITIC_ROLE_RE` alone. The printed detail at `:786-792` names the remedy in the parent's own words -- \"a new successor-lean heading plus a record that cites it\". 5956510896 is that heading. The lean's `recovery:` line is accurate.\n\nOne mechanical detail worth recording, because it is not what the heading text suggests. `LEAN_HEADING_RE` is `/(?:^|\\n)\\s*\\*{0,2}Lean:\\*{0,2}/` (`:90`) and `\\s*` does not consume `#`, so `## Lean: Prefer-A-final …` does **not** match it. Applying that literal to the body confirms it: false. 5956510896 classifies as a successor lean through the other half of `isSuccessorLeanBody` (`:159`) -- the operative `Target-digest` line. Every lean in this arc classifies that way, and so does the Stop 1 write-back 5955811933, which also carries the digest. Stop 1 is the lowest id, so it never wins `latestSuccessorLean` and nothing is harmed here. It does mean the digest line, not the heading, is load-bearing for classification on this thread.\n\n### R10-R13 under the compression\n\nThe final lean does not restate the Bound. It asserts identity (\"Bound remedy is Prefer-A-3prime unchanged\") and then glosses it in eight clauses, with checklist, Reject list and summary incorporated by pointer. So the question is not whether 3prime absorbed R10-R13 -- I certified that at 5956493307 and re-verified the anchors above -- but whether identity-plus-gloss still carries them.\n\n| repair | carried | how |\n| --- | --- | --- |\n| **R10** shape predicate relocation | **yes, in the gloss** | \"ITEM_CORE admission in conformance.ts; shape refusal in vbrief-validate/schema.ts + constants.ts\" names both mechanisms and all three files. This is the repair that blocked three passes and it is the one clause the compression kept in full. |\n| **R11** checklist completeness | **yes, by pointer** | \"Write-target checklist … identical to Prefer-A-3prime 5956407252\" carries all nine entries including `schema.ts`, `constants.ts`, and the `(via sync-schema.mjs run)` annotation. |\n| **R12** gate split | **yes, but only by the word \"unchanged\"** | See the finding below. The gate names appear in neither the gloss nor the checklist. |\n| **R13** published type | **yes, by pointer** | `packages/types/src/document.ts` rides the same checklist sentence, with its \"optional/ungated\" marking. |\n\n### Verdicts\n\n| target | verdict |\n| --- | --- |\n| pain-P1 | **supported** |\n| pain-P2 | **supported** |\n| pain-P3 | **supported** |\n| pain-P4 | **supported** |\n\n---\n\n## pain-P1 -- supported\n\nThe mechanism survives the compression intact. `ITEM_CORE` admits the key, `validatePlanItem` refuses the shape, the closed `kind` / `observeAt` sets sit beside the enum they imitate, and all three files are named on the face of 5956510896 rather than only by pointer. The anchors are the ones I checked line by line above, and `git grep stopConditions` at pin is still zero, so nothing has silently shipped underneath the lean. `relieves: P1` holds.\n\n## pain-P2 -- supported\n\nThe checklist is carried by reference and every target on it exists at pin (11/11). P2 asks that the OP's legacy `vbrief/schemas/vbrief-core.schema.json` and `skills/deft-directive-build` paths be rebound onto current xBRIEF 0.8 / `content/` surfaces before a Bound remedy can ship, and the incorporated checklist does exactly that. `relieves: P2` holds. The sharpening finding below is about what a *downstream* consumer reads, not about whether the rebinding happened.\n\n## pain-P3 -- supported\n\nPin unchanged from my last pass. The false success-gate claim at `main.md:115` is still false at pin, the true scope-boundary sentence at `:138` is the one the remedy preserves, and the stale skill paths are on the literal next bullet at `:139`. \"main.md doctrine repair\" in the gloss is three words where 3prime had a remedy, but the quoted-text anchoring requirement rides the checklist entry \"repo-root `main.md` Dual Stop relation (quoted-text)\", which is incorporated. `relieves: P3` holds.\n\n## pain-P4 -- supported\n\nThe peer lock survives, but entirely by reference: 5956510896 contains no issue number for any peer. #1201, #1579, #852, #2442 and #3143 are named only in 3prime's remedy 6, and `peer absorb` / `swarm.md rewrite` only in the incorporated Reject list. The lock is intact because \"unchanged\" is operative; it is not readable on the bind lean. `relieves: P4` holds. Covered by the first finding below.\n\n---\n\n## sharpens-framing: the gloss re-enumerates what \"unchanged\" already said, and drops the one repair whose content is a gate name\n\n**Evidence.** 5956510896 reads \"Bound remedy is Prefer-A-3prime unchanged:\" and then a colon-introduced eight-clause list. Against 3prime's seven remedies, that list carries remedies 1, 2 (partially), 3, 5 and 6, and omits remedy 4 (the writer rule: an executing agent MUST NOT delete or weaken a stop in the violating unit), remedy 7 (acceptance: omitted passes, well-formed passes, malformed refuses at `vbrief:validate`, no self-waive, schema pair drift-clean), the peer issue numbers, and -- the sharpest omission -- R12's gate attribution. The separate incorporation sentence covers \"Write-target checklist, Reject list, and Plain-language summary\" only, so it does not recover any of these: 3prime's checklist annotates files with roles (`ITEM_CORE` only, `validatePlanItem` shape, closed sets) and names no gate at all. R12's content exists nowhere outside 3prime's `## Bound remedy` body, which is the one section the final lean replaced with the gloss.\n\n**Failure mode.** R12 is not a naming preference. I showed last pass, and the pin still shows, that `packages/cli/src/dispatch.ts:3380-3383` sets the `conformance` subcommand for `verify:vbrief-conformance` alone (`:404`, `:429`, `:434` all map to canonical `vbrief-validate`), so the conformance gate runs the key scanner and never reaches `validatePlanItem` -- and `CONSUMER_CHECK_GATES` carries `vbrief:validate` alone. Putting the shape refusal in `schema.ts` is the entire reason it reaches consumers. An implementer who reads the bind lean's gloss as the Bound -- which is what a list introduced by \"unchanged:\" invites -- gets the two files and the two mechanisms, and gets no statement that the gate attribution was ever load-bearing. The failure is silent: the code lands in the right file for the wrong reason, and the next recut that moves it has no recorded constraint to violate.\n\n**Disposition consequence.** The Bound is unchanged -- I am not disputing the identity claim, and `relieves: P1`-`P4` all hold on it. So this does not need a fifth lean. Either drop the gloss and let \"unchanged\" stand alone, or extend it to carry the gate split, the writer rule, acceptance, and the five peer numbers. Per the leftover-pain rule for sharpening-only findings that do not change the harvested Bound-remedy, a parent comment that does not open with the successor-lean token is the right surface, and bind remains 5956510896.\n\n## sharpens-framing: dropping the Bound-remedy heading forecloses the only path that stops ingest reading the stale OP body\n\n**Evidence.** Harvest needs two things on the cited lean: a Spec-path-class token, and a Lean-family `## Bound remedy` heading whose slice `parseListItems` can read. `findBoundRemedyHeading` (`packages/core/src/intake/markdown-scanners.ts:186-196`) requires exactly a level-2 heading matching `/^bound[\\s-]+remedy\\b/` (`:183`, with the line matcher at `:198-215`). Applying that literal: 5956407252 has such a heading, 5956510896 does not. Neither carries a `Spec-path:` or `Recut:` token, and nor does any earlier lean under the ceiling -- I checked all four. So the arc sits on the #4237 body-is-normative path, where `buildIssueVbrief` assigns Overview from the **issue body** and comment bodies persist only under `plan.metadata.issueCommentThread`. That issue body is the one the digest pins, and at lines 19 and 30 it still reads \"`vbrief/schemas/vbrief-core.schema.json` -- add an optional stopConditions field to PlanItem as an **array of strings**\" and \"`skills/deft-directive-build/SKILL.md`\".\n\n**Failure mode.** Synthesis 5956407800 names `task issue:ingest` as the next operator verb after this no-ingest arc. On that verb the vBRIEF Overview is the OP text above: a bare `string[]` at a legacy path. \"Bare string[]\" and those paths are the first entries on the Reject list this arc spent four recuts building, and P2 is literally the pain that the OP paths must be rebound before a Bound remedy ships. The four recuts rebound them *in the lean*. Nothing rebinds the ingest input. An implementer working from the ingested brief rather than from the thread would build the rejected design, with no in-brief signal that it was rejected.\n\n**Disposition consequence.** This is why the heading matters and not only the token. `Spec-path:` alone on 5956510896 would refuse -- missing heading, nothing written -- because harvest reads the cited lean only, and the cited lean is the final one, not 3prime. So that repair would have to land on the lean: restore a Bound-remedy heading with the remedy list, then add the token. It is the one finding here that could justify a fifth lean, and I am explicitly **not** recommending one -- the harvest set is empty either way today, this arc does not reach `issue:ingest`, and editing the OP body before that verb is the cheaper fix. Recorded so the choice is deliberate rather than inherited.\n\n## sharpens-framing: the recovery sentence omits the post ordering that caused the block\n\n**Evidence.** 5956510896 says \"new successor lean + record required\". The record is the condition; the order is the trap. `isInFlightCritiqueThread` (`completed-arc-record.ts:262-270`) fires on `CRITIC_ROLE_RE`, `/(?:^|\\n)\\s*role:\\s*critic\\b/i`, for any comment in the suffix above the synthesis. Separately `criticEnvelopes` (`:356-368`) reads only comments with `id > citedLean.id`, so the `unresolved-pain-audit` block at `:519-528` requires a critic strictly **after** 5956510896. This comment is that critic.\n\n**Failure mode.** Those two requirements are ordered and the lean does not say so. If the record is posted before this comment, my post lands in the suffix above the new synthesis, `isInFlightCritiqueThread` fires on my own role line, and the arc returns `later-arc-in-flight` again -- the identical block that 5956416598 and 5956493307 produced over 5956407800, for the identical reason. That would be a sixth lean for a sequencing error rather than a design one.\n\n**Disposition consequence.** Post the verified-claims table and the record after this comment, not before. Nothing about the lean's content changes.\n\n## Footnotes\n\n**No plain-language summary on the bind lean.** The contract requires the successor lean to lead with its summary under `## In plain English`, and prohibits a summary that only points at Bound-remedy or comment ids. 5956510896 has no summary section -- it has the sentence \"Plain-language summary: identical to Prefer-A-3prime 5956407252\", which is that prohibition exactly. 3prime does carry a real summary, under `## Plain-language summary` rather than the fixed token, so the token has been wrong on every lean in this arc and the bind lean is the first with no summary at all. Nothing observes this and no gate moves. Noted because the bind lean is the operator consent surface and the one artifact a reader who did not follow five recuts will open.\n\n**The `cleared-by-pain-audit:` line is history, not clearance.** 5956510896 cites 5956493307 as clearing P1-P4. That is true of 3prime, and the parent plainly knows it -- the same lean says a new record is required. Recording the mechanism anyway: 5956493307 has a lower id than the lean, so `criticEnvelopes(comments, 5956510896)` excludes it and it contributes nothing to this audit. The line reads like a clearance and is not one.\n\n**Reserved line-starts are clean on 5956510896.** Applying the pinned literals to the body: no `Lean:`-class line-start, no verified-claims-table heading, no accepted-sentence shape, and exactly one operative digest line whose value matches the live issue body. Nothing on this lean will misclassify as another artifact kind.\n\n**Clerical, inherited.** 3prime's parent pin-check cites `VALID_PLAN_ITEM_EFFORTS` at `constants.ts:33`; the declaration is `:34` and `:33` is its JSDoc. Separately, my own last pass cited the dispatch table as `dispatch.ts` without a package -- the file is `packages/cli/src/dispatch.ts`, not `packages/core/src/`. Line numbers in both cases were right and the symbols are unambiguous.\n\n**Still outstanding from last pass.** The two guardrail clauses I flagged -- no shell execution of condition text, and the authorized contract-change path for changing an approved anchor -- are carried forward on 5956510896 as an explicit implement-PR footnote. The parent absorbed that correctly. The remaining trim survivors I named (no automatic destructive rollback, no new terminal keyword, resume restore-and-re-verify, no parent-envelope human override) are still PR-body items.\n\n## continue-raise: no\n\nR10 through R13 are all carried, and I checked the carriage rather than taking the identity claim at face value: R10 in the gloss, R11 and R13 on the incorporated checklist, R12 on the word \"unchanged\" alone. The mechanism itself has now survived five audits without a change, every anchor has been re-cut against the pinned tree twice, and the defect class that produced R1 through R13 -- file placement and gate attribution inside the named mechanism -- is exhausted. Everything I found on this pass is a recording or compression question about how the bind lean states a Bound that is not in dispute, and no further seat generates anything on that. **Prefer-A-final is bindable as posted.**\n\n## Plain-language summary\n\nThis binds, and nothing about the design itself changed since the last round.\n\nThe parent had to post a new version of the proposal for a bookkeeping reason. Once a critic comments after a round has been declared finished, the machinery treats the thread as having started a new round, and the only way out is a fresh proposal plus a fresh record. I read the code that does that and the parent's description of it is accurate.\n\nThe new proposal does not restate the design. It says \"same as the previous one\" and then summarises it in a sentence. I checked whether that sentence really covers the previous version, and it mostly does. One omission matters more than it looks: the previous round established which of two check commands the new validation has to run under, because only one of the two is used by downstream projects. That fact now survives only in the words \"same as the previous one\", and someone reading the short version would not know it was ever a deliberate choice. Worth a sentence somewhere before anyone writes the code.\n\nThe second thing I found is about what happens later. When this issue is eventually turned into a work brief, the brief copies the original issue description, not the refined proposal in these comments -- and the original description still describes the design that was rejected four rounds ago, in files that no longer exist at those paths. There is a mechanism for making the brief read the refined version instead, but the new proposal dropped the section heading that mechanism needs. The cheapest fix is to update the issue description before that step. I am not asking for another round over it.\n\nThird, a small ordering point: the record for this round has to be posted after this comment rather than before, or the same bookkeeping block recurs.\n\nThis is a pain-audit critic report, not a successor lean and not an accepted Bound. No ingest or product mutation performed.\n\n",
+          "id": 5956729699,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956729699",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:30:11Z",
+          "updated_at": "2026-10-02T16:30:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nSuccessor lean: 5956510896 (Prefer-A-final)\nPain-audit after lean: 5956729699 (P1–P4 supported; continue-raise: no)\nPrior clearing: 5956493307 on Prefer-A-3prime\nRound-1: 5955905311 / 5955905715 / 5955953207\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\n\n| claim | evidence | status |\n| --- | --- | --- |\n| No stopConditions at pin; Acceptance is narrative | schema PlanItem; vbrief.md | verified |\n| main.md asserts shipped STOP for #1613 while field absent | Dual Stop Rule; grep stopConditions=0 | verified |\n| Validate path is ITEM_CORE + schema.ts shape, not JSON Schema execution | conformance.ts; schema.ts effort | verified |\n| #1581 effort pattern is the write-target precedent | schema + types sync + ITEM_CORE + schema.ts + constants | verified |\n| Prefer-A-final Bound relieves P1–P4 | lean 5956510896; pain-audit 5956729699 | verified |",
+          "id": 5956740341,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956740341",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:30:52Z",
+          "updated_at": "2026-10-02T16:30:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5956510896.\n\nPrefer-A-final carries Prefer-A-3prime Bound (R10–R13 #1581 effort pattern). Pain-audit 5956729699 supported P1–P4; continue-raise: no. Verified-claims table: 5956740341.\n\n## Plain-language summary\n\nPlans get checkable stop anchors; validate like effort (allowlist + value checker + schema sync); build skill halts with existing reports; fix the docs that pretended this already shipped. Next: `task issue:ingest`.",
+          "id": 5956740611,
+          "html_url": "https://github.com/deftai/directive/issues/1613#issuecomment-5956740611",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:30:54Z",
+          "updated_at": "2026-10-02T16:30:54Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 4657769639,
+        "origin": "deftai/directive#1613",
+        "id": "github.issue.4657769639"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "98cdf1b09751141354447a412dcaa16a0b0d1caf965e364f8c06af543bc05cff"
+      },
+      "x-directive/bound-lean": 5956510896,
+      "x-directive/synthesis": 5956740611,
+      "swarm": {
+        "file_scope": [
+          "content/vbrief/schemas/xbrief-core-0.8.schema.json",
+          "packages/types/schemas/xbrief-core-0.8.schema.json",
+          "packages/core/src/vbrief-validate/conformance.ts",
+          "packages/core/src/vbrief-validate/schema.ts",
+          "packages/core/src/vbrief-validate/constants.ts",
+          "content/vbrief/vbrief.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-build/SKILL.md",
+          "main.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/vbrief-validate"
+        ],
+        "expected_outputs": [
+          "Tracking PR opened"
+        ],
+        "depends_on": [],
+        "conflict_group": "vbrief-stop-conditions-anchor",
+        "size": "M",
+        "model_tier": "default"
+      },
+      "productPullRequest": 5310,
+      "x-directive/productPullRequest": 5310,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5310,
+        "prBase": null,
+        "mergeCommit": "d7a7d32cfd4cb690739550f3ac36f35caf1b3af6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d7a7d32cfd4cb690739550f3ac36f35caf1b3af6",
+        "verifiedAt": "2026-10-04T12:45:56Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTA2YzItMGE3Zi03OTgyLWJjMGItMTAzZGMxNzZiMjBj"
+      },
+      "completedAt": "2026-10-04T12:45:56Z",
+      "completedSessionId": "host:grok:v1:MDFhMTA2YzItMGE3Zi03OTgyLWJjMGItMTAzZGMxNzZiMjBj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T12:45:56Z"
+      }
+    },
+    "id": "github.issue.4657769639",
+    "updated": "2026-10-04T12:45:56Z"
+  }
+}
