@@ -304,7 +304,9 @@
           "packages/core/src/doctor/checks.ts",
           "packages/core/src/doctor/index.ts",
           "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/scm/main-branches.test.ts",
+          "packages/core/src/scm/design-critique-stale-ready.test.ts"
         ],
         "file_scope_confidence": "medium",
         "verify_commands": [
@@ -322,7 +324,8 @@
         "lean_comment_id": 5981731343,
         "synthesis_comment_id": 5981756026,
         "target_digest": "sha256:055e1bdd6ea6b5b8123b48a3a8cefb7d6f339d31af7f173a278002468efca137"
-      }
+      },
+      "productPullRequest": 5329
     },
     "id": "github.issue.5700722259",
     "updated": "2026-10-04T16:06:41Z"
