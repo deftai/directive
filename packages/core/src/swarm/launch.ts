@@ -25,9 +25,9 @@ import {
 import { evaluateWorkerInstallationPermissions } from "../one-pr-unit/dest-token.js";
 import {
   buildReport,
+  type Candidate,
   renderReport,
   reportBlocking,
-  type Candidate,
 } from "../orchestration/verify-judgment-gates.js";
 import { readPlanSequence, verifyPlanTarget } from "../plan-sequence/index.js";
 import type { PlanSequenceVerifyResult } from "../plan-sequence/types.js";

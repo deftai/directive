@@ -462,15 +462,12 @@ export function evaluatePromotionDecision(
   } = {},
 ): FlipDecisionArtifact {
   const minSample = evidence.min_sample_size ?? DEFAULT_CAPACITY_MIN_SAMPLE_SIZE;
-  const denom =
-    evidence.denominator_count === undefined ? null : evidence.denominator_count;
-  const fp =
-    evidence.false_positive_count === undefined ? null : evidence.false_positive_count;
+  const denom = evidence.denominator_count === undefined ? null : evidence.denominator_count;
+  const fp = evidence.false_positive_count === undefined ? null : evidence.false_positive_count;
   const recordedAt = (evidence.now ?? new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
 
   let decision: PromotionDisposition = "hold";
-  let rationale =
-    contract.hold_reason ?? `gate ${contract.gate_id} held by promotion contract`;
+  let rationale = contract.hold_reason ?? `gate ${contract.gate_id} held by promotion contract`;
 
   if (contract.disposition === "hold" || !contract.observation_window_open) {
     decision = "hold";

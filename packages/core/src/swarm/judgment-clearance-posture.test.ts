@@ -6,13 +6,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { DEFT_ALLOW_JUDGMENT_GATE_ENFORCE } from "../policy/capacity.js";
+import { GATE_ADVISE, GATE_ENFORCE } from "./constants.js";
 import {
   evaluateJudgmentClearancePosture,
   filterAuthenticClearances,
-  storyFileScopePaths,
   type ResolvedStory,
+  storyFileScopePaths,
 } from "./launch.js";
-import { GATE_ADVISE, GATE_ENFORCE } from "./constants.js";
 
 const roots: string[] = [];
 
@@ -29,11 +29,7 @@ afterEach(() => {
   }
 });
 
-function writeStory(
-  project: string,
-  storyId: string,
-  fileScope: string[],
-): ResolvedStory {
+function writeStory(project: string, storyId: string, fileScope: string[]): ResolvedStory {
   const rel = `xbrief/active/${storyId}.xbrief.json`;
   const full = join(project, rel);
   mkdirSync(join(project, "xbrief", "active"), { recursive: true });

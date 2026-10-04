@@ -2,10 +2,7 @@
  * Prefer-A #1511: per-gate observation→promotion contract.
  */
 import { describe, expect, it } from "vitest";
-import {
-  AUTONOMY_ACTION_HOLD,
-  recommendAutonomyLevel,
-} from "./autonomy.js";
+import { AUTONOMY_ACTION_HOLD, recommendAutonomyLevel } from "./autonomy.js";
 import {
   DEFT_ALLOW_JUDGMENT_GATE_ENFORCE,
   defaultPromotionContracts,
@@ -27,9 +24,7 @@ describe("gate promotion contract (#1511 Prefer-A)", () => {
     expect(byId[PROMOTION_GATE_CAPACITY]?.disposition).toBe("observe");
     expect(byId[PROMOTION_GATE_CAPACITY]?.observation_window_open).toBe(true);
     expect(byId[PROMOTION_GATE_CAPACITY]?.false_positive_numerator).toBeNull();
-    expect(byId[PROMOTION_GATE_CAPACITY]?.observation_engine).toBe(
-      OBSERVATION_ENGINE_CAPACITY,
-    );
+    expect(byId[PROMOTION_GATE_CAPACITY]?.observation_engine).toBe(OBSERVATION_ENGINE_CAPACITY);
 
     expect(byId[PROMOTION_GATE_JUDGMENT]?.disposition).toBe("hold");
     expect(byId[PROMOTION_GATE_JUDGMENT]?.observation_window_open).toBe(false);
@@ -38,9 +33,7 @@ describe("gate promotion contract (#1511 Prefer-A)", () => {
     );
 
     expect(byId[PROMOTION_GATE_AUTONOMY]?.disposition).toBe("hold");
-    expect(byId[PROMOTION_GATE_AUTONOMY]?.observation_engine).toBe(
-      OBSERVATION_ENGINE_AUTONOMY,
-    );
+    expect(byId[PROMOTION_GATE_AUTONOMY]?.observation_engine).toBe(OBSERVATION_ENGINE_AUTONOMY);
 
     expect(byId[PROMOTION_GATE_SWARM_JUDGMENT]?.disposition).toBe("hold");
     expect(byId[PROMOTION_GATE_SWARM_JUDGMENT]?.observation_window_open).toBe(false);
