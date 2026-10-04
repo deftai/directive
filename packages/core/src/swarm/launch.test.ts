@@ -1472,4 +1472,35 @@ describe("evaluateJudgmentClearancePosture (#1511 P2-a)", () => {
     expect(enforced.ok).toBe(false);
     expect(enforced.stderr).toMatch(/stale-story-gate/);
   });
+
+  it("falls back to mtime when plan.updated is unparseable", () => {
+    const project = jcpTempRoot();
+    writeJcpProjectDef(project, {
+      judgmentGates: [
+        {
+          id: "stale-story-gate",
+          class: "mechanical",
+          tier: "block",
+          reason: "story older than 1 day",
+          match: { "age-days": { gt: 1 } },
+        },
+      ],
+    });
+    const story = writeJcpStory(project, "bad-updated", ["src/x.ts"], {
+      updated: "not-a-timestamp",
+    });
+    const past = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    utimesSync(story.path, past, past);
+    const candidate = storyJudgmentCandidate(story);
+    expect(candidate.updated_at).not.toBe("not-a-timestamp");
+    expect(Date.parse(candidate.updated_at ?? "")).toBeLessThan(Date.now() - 24 * 60 * 60 * 1000);
+    const enforced = evaluateJudgmentClearancePosture({
+      projectRoot: project,
+      resolved: [story],
+      gatePosture: GATE_ENFORCE,
+      gateClearances: [],
+    });
+    expect(enforced.ok).toBe(false);
+    expect(enforced.stderr).toMatch(/stale-story-gate/);
+  });
 });

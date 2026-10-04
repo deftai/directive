@@ -114,6 +114,19 @@ export function storyFileScopePaths(story: ResolvedStory): string[] {
  * launch evaluates each story separately so per-story cleared_scope
  * fingerprints stay valid.
  */
+/** Prefer parseable ISO timestamps; reject garbage that would miss age-days. */
+function parseableUpdatedAt(value: unknown): string | null {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return null;
+  }
+  const trimmed = value.trim();
+  const parsed = new Date(trimmed.endsWith("Z") ? trimmed : trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return trimmed;
+}
+
 export function storyJudgmentCandidate(story: ResolvedStory): Candidate {
   const paths = storyFileScopePaths(story);
   let mtimeAt: string | null = null;
@@ -141,12 +154,11 @@ export function storyJudgmentCandidate(story: ResolvedStory): Candidate {
         };
       };
     };
-    if (typeof raw.xBRIEFInfo?.updated === "string" && raw.xBRIEFInfo.updated.length > 0) {
-      persistedUpdated = raw.xBRIEFInfo.updated;
-    }
+    persistedUpdated = parseableUpdatedAt(raw.xBRIEFInfo?.updated);
     const plan = raw.plan;
-    if (plan !== undefined && typeof plan.updated === "string" && plan.updated.length > 0) {
-      persistedUpdated = plan.updated;
+    const planUpdated = parseableUpdatedAt(plan?.updated);
+    if (planUpdated !== null) {
+      persistedUpdated = planUpdated;
     }
     if (plan === undefined) {
       return {
