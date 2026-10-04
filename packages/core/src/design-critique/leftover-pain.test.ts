@@ -278,6 +278,33 @@ describe("yolo leftover-pain handling (#4593)", () => {
     ).toBe(true);
   });
 
+  it("allows same-P* overlap only when harvestChanged and operative Recut (#5284)", () => {
+    expect(
+      bindLeanPredecessorValid({
+        predecessorRelievesIds: ["P1"],
+        bindRelievesIds: ["P1"],
+        harvestChanged: false,
+        operativelyRecutSupersedesPriorSuccessorLean: true,
+      }),
+    ).toBe(false);
+    expect(
+      bindLeanPredecessorValid({
+        predecessorRelievesIds: ["P1"],
+        bindRelievesIds: ["P1"],
+        harvestChanged: true,
+        operativelyRecutSupersedesPriorSuccessorLean: false,
+      }),
+    ).toBe(false);
+    expect(
+      bindLeanPredecessorValid({
+        predecessorRelievesIds: ["P1"],
+        bindRelievesIds: ["P1"],
+        harvestChanged: true,
+        operativelyRecutSupersedesPriorSuccessorLean: true,
+      }),
+    ).toBe(true);
+  });
+
   it("defaults Dual-stop to 6 posts for spend N=1 and does not refill at Handoff", () => {
     expect(dualStopCapNotation(6)).toBe("Dual-stop cap: 6 posts");
     expect(dualStopCapNotation(6)).not.toBe("Dual-stop cap: N=6");

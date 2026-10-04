@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Accept valid leftover item status on #3715.** Correct four leftover plan items that still used a retired status word so validation accepts the completed brief. Tracking #3715.
+- **design-critique: bold Recut-supersedes + harvest Recut predecessor escape (#5284).** `SUPERSEDES_RE` admits OPEN_QUESTION/LEAN-family `:\*{0,2}` bold so `**Recut-supersedes:**` / `**Supersedes:**` resolve. `bindLeanPredecessorValid` and `evaluateHandoffPrint` / `hasHarvestRelievesOverlap` share a harvestChanged + operative Recut escape so `newBindLeanAndAudit` can walk without false Handoff / predecessor refuse; ungated same-P* allow stays closed. Tracking #5284.
 
 ### Removed
 
