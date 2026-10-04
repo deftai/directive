@@ -18,50 +18,43 @@
         "id": "bound-1",
         "title": "Authority class: name host agent memory (Grok memory-v2 / Cursor / Claude / equiv) as external context beside Warp Drive/MCP/prompt-injected; USER.md Personal remains sole Personal SoT",
         "status": "pending",
-        "x-directive/notes": "Authority class: name host agent memory (Grok memory-v2 / Cursor / Claude / equiv) as external context beside Warp Drive/MCP/prompt-injected; USER.md Personal remains sole Personal SoT",
-        "x-directive/disposition": "bound"
+        "x-directive/notes": "Authority class: name host agent memory (Grok memory-v2 / Cursor / Claude / equiv) as external context beside Warp Drive/MCP/prompt-injected; USER.md Personal remains sole Personal SoT"
       },
       {
         "id": "bound-2",
         "title": "Mandatory consumer land: host-memory class in content/templates/agents-entry.md Session routing + agents:refresh (#1309); AGENTS.md-only does not relieve P2",
         "status": "pending",
-        "x-directive/notes": "Mandatory consumer land: host-memory class in content/templates/agents-entry.md Session routing + agents:refresh (#1309); AGENTS.md-only does not relieve P2",
-        "x-directive/disposition": "bound"
+        "x-directive/notes": "Mandatory consumer land: host-memory class in content/templates/agents-entry.md Session routing + agents:refresh (#1309); AGENTS.md-only does not relieve P2"
       },
       {
         "id": "bound-3",
         "title": "Conflict rule+lock: when host memory contradicts closed skill/contract field, contract wins + one-line durable conflict disclosure; closed example design-critique Dual-stop spend-recommend\u2192spend-ask:r",
         "status": "pending",
-        "x-directive/notes": "Conflict rule+lock: when host memory contradicts closed skill/contract field, contract wins + one-line durable conflict disclosure; closed example design-critique Dual-stop spend-recommend\u2192spend-ask:resolved beats host-memory always-ask; lock via content-contract and/or evaluateSpendRecord fixture",
-        "x-directive/disposition": "bound"
+        "x-directive/notes": "Conflict rule+lock: when host memory contradicts closed skill/contract field, contract wins + one-line durable conflict disclosure; closed example design-critique Dual-stop spend-recommend\u2192spend-ask:resolved beats host-memory always-ask; lock via content-contract and/or evaluateSpendRecord fixture"
       },
       {
         "id": "bound-4",
         "title": "Read-time unsigned rule: preference/process host-memory notes without operator-asked (or equiv confirm provenance) have zero Personal authority; may inform rediscovery facts only",
         "status": "pending",
-        "x-directive/notes": "Read-time unsigned rule: preference/process host-memory notes without operator-asked (or equiv confirm provenance) have zero Personal authority; may inform rediscovery facts only",
-        "x-directive/disposition": "bound"
+        "x-directive/notes": "Read-time unsigned rule: preference/process host-memory notes without operator-asked (or equiv confirm provenance) have zero Personal authority; may inform rediscovery facts only"
       },
       {
         "id": "bound-5",
         "title": "Inter-run inventory exclusion: host agent-memory as non-SoT/external-context exclusion in inter-run-learning \u00a73; cite analysis \u00a74.1/\u00a74.4 carry-forward",
         "status": "pending",
-        "x-directive/notes": "Inter-run inventory exclusion: host agent-memory as non-SoT/external-context exclusion in inter-run-learning \u00a73; cite analysis \u00a74.1/\u00a74.4 carry-forward",
-        "x-directive/disposition": "bound"
+        "x-directive/notes": "Inter-run inventory exclusion: host agent-memory as non-SoT/external-context exclusion in inter-run-learning \u00a73; cite analysis \u00a74.1/\u00a74.4 carry-forward"
       },
       {
         "id": "bound-6",
         "title": "Promotion path: wanted local process deltas go USER.md Personal (or decision:write+issue); optional promote-memory-to-USER.md only on explicit confirm; framework does not ban consented Personal always",
         "status": "pending",
-        "x-directive/notes": "Promotion path: wanted local process deltas go USER.md Personal (or decision:write+issue); optional promote-memory-to-USER.md only on explicit confirm; framework does not ban consented Personal always-ask",
-        "x-directive/disposition": "bound"
+        "x-directive/notes": "Promotion path: wanted local process deltas go USER.md Personal (or decision:write+issue); optional promote-memory-to-USER.md only on explicit confirm; framework does not ban consented Personal always-ask"
       },
       {
         "id": "bound-7",
         "title": "Acceptance: agents-entry sentence + agents:refresh; inter-run exclusion; conflict fixture/DCR; unsigned\u2192non-Personal lock; no second Personal SoT; non-goals hold (no rewrite/delete-all/auto-sync host ",
         "status": "pending",
-        "x-directive/notes": "Acceptance: agents-entry sentence + agents:refresh; inter-run exclusion; conflict fixture/DCR; unsigned\u2192non-Personal lock; no second Personal SoT; non-goals hold (no rewrite/delete-all/auto-sync host memory products)",
-        "x-directive/disposition": "bound"
+        "x-directive/notes": "Acceptance: agents-entry sentence + agents:refresh; inter-run exclusion; conflict fixture/DCR; unsigned\u2192non-Personal lock; no second Personal SoT; non-goals hold (no rewrite/delete-all/auto-sync host memory products)"
       }
     ],
     "tags": [
@@ -85,7 +78,7 @@
     ],
     "acceptance": {
       "commands": [
-        "pnpm exec vitest run packages/core/src/design-critique"
+        "pnpm exec vitest run packages/core/src/design-critique packages/core/src/content-contracts/skills/agents_md.test.ts packages/core/src/content-contracts/skills/agents_entry_contract.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
       ],
       "none_stated": false,
       "source_rung": "derived",
@@ -543,7 +536,7 @@
         ],
         "file_scope_confidence": "medium",
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/design-critique"
+          "pnpm exec vitest run packages/core/src/design-critique packages/core/src/content-contracts/skills/agents_md.test.ts packages/core/src/content-contracts/skills/agents_entry_contract.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
         ],
         "expected_outputs": [
           "Tracking PR opened"
