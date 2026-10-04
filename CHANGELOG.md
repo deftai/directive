@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **fix(xbrief): normalize leftover #3715 item status `done` → `completed`.** Master tip after #5291 left four `plan.items[].status` values as legacy `done`, which fails `vbrief:validate` on every PR merge-ref. Tracking hygiene for merge-gate pollution (unblocks #5288 scope-provenance C24).
+
 ### Removed
 
 ## [0.120.0] - 2026-10-04
