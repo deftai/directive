@@ -1,0 +1,598 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1511",
+    "updated": "2026-10-04T14:25:52Z"
+  },
+  "plan": {
+    "title": "Flip #1419 agentic-prioritization gates from advisory to enforce mode (advise -> observe -> block)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Flip #1419 agentic-prioritization gates from advisory to enforce mode (advise -> observe -> block)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1511",
+      "Overview": "## Context\r\n\r\nThe Agentic Prioritization & Coordination Model (#1419) shipped across 7 delivery slices. Per the agreed **advise -> observe -> block** rollout discipline, every new gate/dial landed **ADVISORY** on directive itself:\r\n\r\n- `task verify:capacity` (Slice 4, PR #1503) -- three-state but advisory; NOT in the `task check` aggregate; never fails the build closed.\r\n- `task verify:judgment-gates` (Slice 3, PR #1504) -- risk-tiered engine + four default-on universal safety gates (secrets / prod-infra / AGENTS.md+skills / installer); advisory by default; NOT in `task check`; an `--enforce` fail-closed posture is implemented + unit-tested but opt-in only.\r\n- Earned-autonomy dial (Slice 5, PR #1505) -- advisory recommendation only; a human confirms any level flip; never auto-reduces required clearances.\r\n- Gate-0 / `task swarm:launch` gate-clearance integration (Slice 7, PR #1507) -- advisory by default (an uncleared block-tier gate is surfaced but the launch proceeds); `--enforce` / `--enforce-gates` fails closed.\r\n\r\n## Why this was deferred\r\n\r\nFlipping to block-mode on day one risks self-DoS on the framework's own repo: a single false-positive gate would block every commit / PR / dispatch -- including the change needed to fix the gate. The flip is intentionally gated on an **observation window** where real data accrues: `minSampleSize` classified completions for capacity, override-rate / rework-rate history for the autonomy dial, and judgment-gate false-positive rates.\r\n\r\n## Future work (this issue)\r\n\r\nAfter an observation window, decide **per gate** whether to flip directive itself from advisory to enforce/block:\r\n\r\n- [ ] Capacity: decide whether `verify:capacity` enters the `task check` aggregate and/or `capacityAllocation.enforcement: block`.\r\n- [ ] Judgment gates: enable the enforce posture for the default-on universal safety gates and wire `verify:judgment-gates` into `task check` / `.githooks/pre-push`.\r\n- [ ] Autonomy dial: decide whether the recommended level auto-applies once override / false-positive rates stay low over the window (this also resolves the Open Questions v2 autonomy-ratchet-threshold item).\r\n- [ ] Gate-0 / `swarm:launch`: turn on `--enforce-gates` by default for block-tier gates on directive.\r\n- [ ] Preserve emergency escape hatches (env-var / `--allow-*` bypass) and document each flip in AGENTS.md + the relevant skills.\r\n\r\n## Acceptance\r\n\r\n- A per-gate enforce/advisory decision is recorded together with the observation data that justified it.\r\n- Any gate flipped to block carries an env-var / `--allow-*` emergency bypass and is documented.\r\n- The flip lands **incrementally** (one gate at a time), each validated against directive's own tree before merge.\r\n\r\nRefs #1419. Follow-up to delivery-slice PRs #1503, #1504, #1505, #1507.\r\n\n",
+      "Labels": "enhancement, design, swarm, agent-experience, process, source-of-truth, scm, urgent, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Per-gate observation\u2192promotion contract before advisory\u2192enforce (denominator, FP numerator, flip artifact)",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5311 squash-merge (Tracking #1511). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5311",
+            "mintedAt": "2026-10-04T14:24:46.123Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T14:24:46.123Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Incremental one-gate landings; inventory bypasses; repair Gate-0 swarm/launch gatePosture before default --enforce-gates",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5311 squash-merge (Tracking #1511). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5311",
+            "mintedAt": "2026-10-04T14:24:46.123Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T14:24:46.123Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Autonomy dial stays recommend-only on this issue; no auto-apply",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5311 squash-merge (Tracking #1511). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5311",
+            "mintedAt": "2026-10-04T14:24:46.123Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T14:24:46.123Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Clearance authenticity: refuse caller-supplied actor/reviewer strings; independent approval source when judgment-gates enforce",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5311 squash-merge (Tracking #1511). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5311",
+            "mintedAt": "2026-10-04T14:24:46.123Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T14:24:46.123Z"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "swarm",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "scm",
+      "urgent",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1511",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1511: Flip #1419 agentic-prioritization gates from advisory to enforce mode (advise -> observe -> block)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1419",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1419"
+      }
+    ],
+    "metadata": {
+      "productPullRequest": 5311,
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task verify:capacity",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "task check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "task verify:judgment-gates",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "capacityAllocation.enforcement: block",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L20"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/policy/capacity.ts",
+          "packages/core/src/policy/autonomy.ts",
+          "packages/core/src/policy/autonomy-branches.test.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/swarm/launch.test.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/policy/autonomy-branches.test.ts"
+        ],
+        "expected_outputs": [
+          "Tracking PR opened"
+        ],
+        "depends_on": [],
+        "conflict_group": "agentic-prioritization-enforce-flip",
+        "size": "L",
+        "model_tier": "default"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because #1419 advisory gates (`verify:capacity`, `verify:judgment-gates`, earned-autonomy dial, Gate-0 / `swarm:launch --enforce-gates`) still lack a bound observation\u2192flip contract, so a premature or all-at-once enforce flip can self-DoS directive's own commit/PR/dispatch path including the fix for a false-positive gate.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-1511-dc\norigin-ref: origin/HEAD\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\ndest-wo: leftover-complete\n\nspend: N\u22653\nspend-ask: asked\nspend-recommend: N\u22653\nspend-why: high blast (false-positive enforce self-DoS on every commit/PR/dispatch) plus open per-gate decision and measurement space; operator answered use recommended n.\nDual-stop cap: 3 posts\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\n\npain: P1, P2, P3\n\n- P1. Observation contract unbound: the issue asks for per-gate advisory\u2192enforce decisions after an observation window, but does not bind `minSampleSize`, false-positive / override / rework rate thresholds, or durable telemetry sinks that would make a flip decision falsifiable.\n- P2. Aggregate coupling / self-DoS: wiring `verify:capacity` or `verify:judgment-gates` into `task check` / `.githooks/pre-push` (or defaulting Gate-0 `--enforce-gates`) without a first-class emergency bypass inventory and incremental one-gate validation recreates the day-one self-DoS the deferral was designed to avoid.\n- P3. Autonomy dial vs clearance: auto-applying earned-autonomy recommendations without a separate override/false-positive gate would silently reduce required clearances (Open Questions v2 autonomy-ratchet-threshold), conflating advisory level with clearance reduction.\n\nverification-path: pin-read git show af82911053eb0bbb57b523823715e99633e16772: ; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:dfdfd8eb1e9a0be082a9a8959eabca446b24a42448b8c839378cc5c21b81cbad\ntarget: #1511\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #1419 (closed epic) #1503 #1504 #1505 #1507 #1517\n\n## Gate stamp\n\nRound-1 ceiling is this write-back plus panel-deposit (spend N\u22653). Families: grok, claude, codex.\n\n## Plain-language summary\n\nThese gates shipped as advice so a bad tripwire would not lock the repo. Flipping them to block still needs a written measurement bar, one-gate-at-a-time landings with escape hatches, and a hard wall between \"recommended autonomy level\" and \"fewer clearances required.\" Without that contract, the flip itself is the risk the deferral was meant to avoid.",
+          "id": 5956201809,
+          "html_url": "https://github.com/deftai/directive/issues/1511#issuecomment-5956201809",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:00:23Z",
+          "updated_at": "2026-10-02T16:00:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5956221730\nfamilies: grok, claude, codex\nlaunchers: spawn_subagent|grok-cli, claude, codex\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\nspend: N\u22653\nlaunch-probe: claude=pong rc0; codex=pong rc0; grok=pong rc0\nverification-path: pin-read git show af82911053eb0bbb57b523823715e99633e16772: ; dest cwd-without-occupy\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-1511-dc",
+          "id": 5956221730,
+          "html_url": "https://github.com/deftai/directive/issues/1511#issuecomment-5956221730",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:01:44Z",
+          "updated_at": "2026-10-02T16:01:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#1511\ncharter: open critique\nspend: N\u22653\nround: 1\ncritic-role: fresh\nid-ceiling: 5956221730\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\naudit-targets: none\n\n## Inputs honored\n- Stop 1: 5956201809\n- panel-deposit: 5956221730\n- pin-read only at dispatch-sha; no later siblings\n\n## Pain dispositions\n\n### pain: P1 \u2014 Observation contract unbound\ndisposition: supported\nclass: blocks-the-design\n\nEvidence (pin af82911053eb0bbb57b523823715e99633e16772):\n- Issue Acceptance demands a per-gate enforce/advisory decision \"together with the observation data that justified it,\" but names no schema, sink path, sample floor, or FP/override/rework thresholds that would make that decision falsifiable.\n- Capacity `minSampleSize` (default 20 in `packages/core/src/validate-content/capacity-policy.ts`) only keeps `verify:capacity` advisory until enough *classified completions* accrue (`packages/core/src/validate-content/verify-capacity.ts` returns exit 0 while `report.advisoryMode`). That is an accounting cold-start guard, not a flip-to-enforce observation contract. Flip is a bare `capacityAllocation.enforcement: advise|enforce` field with no observation predicate binding the write.\n- Autonomy dial thresholds exist (`DEFAULT_AUTONOMY_MIN_SAMPLE_SIZE`, `advance_override_max`, `retreat_override_rate`, `rework_baseline` in `packages/core/src/policy/autonomy.ts`) and consume `override_rate` from `pending-human-decisions.jsonl` via `packages/core/src/policy/decisions.ts` / `capacity/show.ts`. Those metrics drive `recommendAutonomyLevel` only (`advisory: true` on every return). They are not bound as a gate for flipping `verify:*` or Gate-0 to enforce.\n- Judgment-gate FP / fire / clearance rates have no dedicated telemetry sink under `packages/core/src/orchestration/`; `verify-judgment-gates.ts` evaluates presence/shape/authority of clearances and exits 0 unless `--enforce`. No observation-window ledger for false-positive rate appears at pin.\n- SPECIFICATION Open Questions v2 still lists \"Autonomy ratchet metric: exact signal + thresholds\" as open research \u2014 the flip issue inherits that unbound metric space.\n\nFailure mode: an operator (or agent) can flip enforce citing \"observation window done\" without a checkable bar; the deferral's measurement premise collapses into judgment-call prose.\n\nDisposition consequence: any Bound for #1511 must bind per-gate observation predicates (sample size, FP/override/rework ceilings, durable sinks, recorded flip artifact) before the first enforce land. Unbound observation keeps the issue unsafe to implement as written.\n\n### pain: P2 \u2014 Aggregate coupling / self-DoS\ndisposition: supported\nclass: blocks-the-design\n\nEvidence:\n- `tasks/verify.yml` documents both `verify:capacity` and `verify:judgment-gates` as DELIBERATELY NOT in the `task check` aggregate (\"must never fail-closed on the framework tree\").\n- Root `Taskfile.yml` capacity include comment repeats that deliberate absence.\n- `.githooks/pre-push` runs only `preflight-gh --pre-push-stdin`; it does not invoke judgment-gates or capacity.\n- Issue Future work proposes wiring judgment-gates into `task check` / `.githooks/pre-push` and defaulting Gate-0 `--enforce-gates` after the window \u2014 the exact aggregate coupling the deferral avoided \u2014 while Acceptance only gestures at \"env-var / `--allow-*` emergency bypass\" without an inventory of which bypasses exist for these gates.\n- At pin, `packages/core/src/swarm/launch.ts` parses `--enforce-gates` into `enforceGatesFlag`, computes `gatePosture = enforce|advise`, then `void gatePosture`. The flag is live on the CLI (`launch-cli.ts`) but the judgment-clearance posture is discarded; Gate-0 enforce is not a working fail-closed path for uncleared block-tier gates via that flag.\n- Separate `enforceGates()` in the same file is the preflight/readiness gate stack, not the judgment-gate clearance posture. No `DEFT_ALLOW_*` / `--allow-*` pair specific to capacity or judgment-gate flips appears beside the established bypass patterns for branch / bot-merge / destructive-gh.\n\nFailure mode: landing capacity or judgment-gates into `task check` / pre-push (or defaulting `--enforce-gates`) on a false positive wedges every commit/PR/dispatch, including the fix PR \u2014 the day-one self-DoS the advisory rollout was designed to avoid. The missing bypass inventory and the dead `gatePosture` make an all-at-once or default-on flip especially brittle.\n\nDisposition consequence: Bound must require (1) per-gate emergency bypass inventory before aggregate wiring, (2) incremental one-gate landings validated on directive's own tree, (3) no default `--enforce-gates` until launch actually consumes posture (repair the void), and (4) refuse coupling multiple flips into one check/pre-push change.\n\n### pain: P3 \u2014 Autonomy dial vs clearance\ndisposition: supported\nclass: blocks-the-design\n\nEvidence:\n- Issue checklist item: decide whether the recommended autonomy level \"auto-applies\" once override / false-positive rates stay low \u2014 explicitly the Open Questions v2 autonomy-ratchet-threshold item.\n- Current implementation is advisory-only end-to-end: `recommendAutonomyLevel` hard-codes `advisory: true`; advance rationale states the next level \"would reduce required human clearances\" and \"ADVISORY: a human confirms; no auto-ratchet\" (`packages/core/src/policy/autonomy.ts`). Surface is `task capacity:show` render (`capacity/show.ts` \"Autonomy dial (advisory-only)\").\n- `plan.policy.autonomy.gates` / `gate_levels` can store per-gate levels, but the recommendation path does not write policy or clearances. Auto-apply is absent today and is exactly what #1511 puts on the table.\n- Conflating dial advance with clearance reduction would silently lower `requiredHumanReviewers` / block-tier obligations without a separate clearance event \u2014 the hazard Stop 1 names.\n\nFailure mode: a clean observation window auto-writes a more permissive autonomy level; subsequent launches proceed with fewer human clearances than the prior policy required, with no independent override/false-positive gate on the clearance reduction itself.\n\nDisposition consequence: Bound must keep a hard wall between dial recommendation and clearance authority. Auto-apply of recommended level must not mutate required clearances; any clearance reduction needs a separate human-confirmed clearance/policy write, or the issue must drop auto-apply and keep recommend-only.\n\n## Stress \u2014 Bound-remedy options (open critique; no Prefer-A bind map)\n\n### 1. Observation contract\nBind, per gate, before any enforce land:\n- `minSampleSize` (and what is counted: classified completions vs resolved clearances vs launch advisories).\n- Max false-positive / override / rework rates that authorize a flip.\n- Durable telemetry sinks (extend `xbrief/.audit/` receipts and/or an explicit observation ledger; do not rely on chat or issue prose).\n- A recorded flip-decision artifact citing those numbers (Acceptance's \"decision + observation data\" made checkable).\n\nWithout this, incremental flips still rest on unfalsifiable claims.\n\n### 2. Incremental one-gate landings + emergency bypasses\n- Inventory env-var and `--allow-*` bypasses for each candidate gate *before* wiring into `task check` / pre-push / default launch.\n- Land one gate at a time; validate on directive's tree; document in AGENTS.md + relevant skills as Acceptance already requires.\n- Repair Gate-0 so `--enforce-gates` actually consumes `gatePosture` (today: `void gatePosture` at `swarm/launch.ts`) before any default-on decision.\n- Keep capacity and judgment-gates out of the check aggregate until each has a working bypass and a green observation window under the bound contract.\n\n### 3. Autonomy dial vs clearance wall\n- Prefer keep-recommend-only: dial remains advisory forever for clearance count; human confirms any `plan.policy.autonomy` write.\n- If auto-apply is still desired, split into two motions: (a) dial may auto-update a *recommendation* field; (b) clearance reduction requires a separate typed clearance / policy mutation with its own override/FP gate \u2014 never a silent side effect of (a).\n- Do not resolve OQ autonomy-ratchet by collapsing dial advance into fewer `requiredHumanReviewers`.\n\n## Additional classified findings\n\n### F1. Gate-0 `--enforce-gates` posture is dead at pin\nclass: sharpens-framing\nEvidence: `launch-cli.ts` sets `enforceGatesFlag`; `launch.ts` assigns `gatePosture` then `void gatePosture`.\nFailure mode: issue text and CHANGELOG describe opt-in enforce for uncleared block-tier gates; operators may believe `--enforce-gates` already fail-closes when it does not.\nDisposition consequence: sharpen Future-work Gate-0 item to include \"make enforce posture live\" before \"default on.\" Supports P2; does not replace it.\n\n### F2. Companion #1517 is closed completed (footnote)\nclass: footnote\nREST `issues/1517` is `state: closed` with completed brief `xbrief/completed/2026-09-29-1517-\u2026` at pin. Stop 1 listed it under related. No pain weight; do not treat merge-gate-enforcement (#1517) as an open blocker for this arc.\n\n## Road not taken\n- Claiming P1 overclaimed because capacity/autonomy already have `minSampleSize`: rejected \u2014 those floors activate accounting/recommendations, not the advisory\u2192enforce flip decision #1511 asks for.\n- Treating P2 as footnote because Acceptance already says \"incremental\" + bypasses: rejected \u2014 Acceptance names the goals without binding bypass inventory, one-gate validation order, or the dead Gate-0 posture; the self-DoS path remains open in the Future-work checklist as written.\n\n## Steelman (rejected)\nStrongest reject of P3: \"the issue only asks to *decide* whether auto-apply happens; it does not mandate auto-apply, so the clearance wall is already safe.\" Flip: the checklist puts auto-apply on the solution menu without a hard forbid; without an explicit wall in Bound, implementers can ship auto-apply as the natural reading of \"flip \u2026 to enforce mode\" plus the OQ ratchet item. That is enough for blocks-the-design on the issue as a build contract.\n\n## Summary\nP1, P2, and P3 are all supported with pin-read mechanisms. The safe Bound space is: bind observation predicates + sinks first; land one gate at a time with named emergency bypasses and a live Gate-0 enforce path; keep autonomy dial recommendations behind a clearance wall (no silent clearance reduction).",
+          "id": 5956303025,
+          "html_url": "https://github.com/deftai/directive/issues/1511#issuecomment-5956303025",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:06:31Z",
+          "updated_at": "2026-10-02T16:06:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#1511\ncharter: open critique\nspend: N\u22653\nround: 1\ncritic-role: fresh\nid-ceiling: 5956221730\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\naudit-targets: none\n\nThe flip needs an explicit per-gate admission decision, not a global change of defaults. Existing thresholds and audit records are real, but they do not establish measured readiness to enforce. There is also a missing execution connection and a weak clearance acceptance boundary to resolve before claiming enforcement.\n\nMethod: independently read source using `git show af82911053eb0bbb57b523823715e99633e16772:<path>`. Thread inputs were only Stop 1 (5956201809) and panel-deposit (5956221730). This is static mechanism verification, not executed fixture coverage or measured production false-positive data. All source anchors below refer to that SHA. The deposit matches the envelope ceiling and names three families; panel completeness is not observable within this envelope.\n\n### P1: overclaimed as blanket absence; the promotion-evidence gap is supported\n\n**sharpens-framing** - Thresholds and sinks already exist. `packages/core/src/policy/autonomy.ts` defines sample 20, advance override maximum 0.05, retreat override threshold 0.2, and rework baseline 0.15. The pinned project policy explicitly configures capacity sample 20 and window 30. `validate-content/verify-capacity.ts::evaluate` retains advisory behavior below the sample threshold even under enforce. `orchestration/verify-judgment-gates.ts::recordClearance` appends durable JSONL records; `capacity/show.ts::computeReport` consumes decision-backlog override/P0 signals and completion rework. Rebuilding these as absent would create competing policy and accounting surfaces. Consequence: narrow P1 to the missing per-gate observation-to-promotion contract; do not equate existing dial defaults with approved promotion thresholds.\n\n**blocks-the-design** - Existing samples measure different things. Capacity counts classified completions; the autonomy call uses `backlog.resolved_in_window`, project-wide override rate, and completion rework, without a gate id. Neither call proves how often a particular gate would wrongly block. A high-volume easy gate can mask an unobserved rare gate; repeated evaluations of one change can also inflate a new naive telemetry sample. A binding remedy must name the independent decision unit, per-gate denominator, observation window and policy version, adjudicated false-positive numerator, override reasons distinct from false positives, missing-data behavior, sink, and explicit promote/hold/rollback decision. Insufficient or unclassified evidence must hold promotion. Reuse existing records where adequate; add only the missing outcome/evaluation linkage. Do not invent numeric acceptance thresholds from the defaults.\n\n### P2: supported as a proposed rollout risk, not an existing aggregate outage\n\n**blocks-the-design** - `validate-content/verify-capacity.ts::evaluate` blocks on historical bucket deficit above tolerance 1.0 without receiving a candidate change. Wiring that result into every commit/check can reject the very work intended to repair the deficit: history cannot improve until work completes. `tasks/verify.yml` explicitly excludes judgment gates from `task check`; `.githooks/pre-push` invokes `preflight-gh`, rather than these gates directly. Consequence: do not bind a universal aggregate flip. Prefer capacity enforcement at work admission, or explicitly prove how corrective work remains admissible. Stage one named gate at one named entry point, with an actual blocking case, unaffected case, correction-path case, and recovery case before expanding.\n\n**blocks-the-design** - A flag-default flip is not the promised launch enforcement. `swarm/launch-cli.ts` parses `--enforce-gates`; `swarm/launch.ts:1342-1343` computes `gatePosture` and immediately discards it with `void gatePosture`. The separate `enforceGates` function runs preflight/readiness independently and does not receive this posture. Consequence: require an end-to-end test that an otherwise admissible story with an uncleared targeted gate is refused before launch side effects, while the advisory case proceeds. Preserve the existing readiness checks. Do not count parser coverage as gate enforcement.\n\n**sharpens-framing** - Inventory existing controls before adding escape hatches: capacity `enforcement: advise`, judgment's opt-in `--enforce`, `judgmentGatesDisabled` filtering in `effectiveGates`, and scope-keyed clearance JSONL. These are not interchangeable emergency bypasses. A clearance says the requirement was satisfied; an emergency exception says it was not. The rollout should name a narrow, operator-authorized, auditable recovery path, its scope and expiry, and demonstrate that it works while the new gate is red. Avoid a global skip-all-gates switch or routine rewriting of targets to clear failures.\n\n### P3: overclaimed as current behavior; preserve the existing separation\n\n**sharpens-framing** - `policy/autonomy.ts::recommendAutonomyLevel` returns `advisory: true` on advance, hold, and retreat; advancement explicitly says human confirmation and no auto-ratchet. Its production callers are report builders (`capacity/show.ts` and `validate-content/capacity-show.ts`). This evidence does not establish current silent clearance reduction. Consequence: keep recommendations advisory in this enforcement slice and explicitly preserve required clearances independent of the dial. Auto-application would be a separate authority change needing its own evidence and acceptance contract; better statistics alone do not authorize fewer reviewers.\n\n**blocks-the-design** - The clearance wall itself needs a concrete acceptance rule before being presented as human authorization. In `orchestration/verify-judgment-gates.ts`, `outcomeCleared` checks only non-null clearance; `lookupClearance` accepts a matching gate id and evidence hash. `recordClearance` permits empty reviewers and caller-supplied actor; acceptance does not enforce `required_human_reviewers`. `fingerprintScope` hashes matched evidence, such as path names, not file contents or a candidate revision. Thus the same paths can retain clearance after content changes, and a locally supplied record can satisfy a gate advertised as requiring a human. Consequence: bind clearance validity to the intended candidate/policy scope and an independently established authorized approval source, enforce required reviewer eligibility/count, and refuse stale or untrusted records. The injection/swarm failure is promoting worker-controlled labels, body text, or JSONL actor claims into authority; concurrent worktrees must not inherit approval merely because their path lists match. If human authorization is outside this slice, narrow the enforcement claim explicitly instead of implying this log provides it.\n\nRoad not taken: a single global switch is operationally simple and avoids inconsistent entry points. Its strongest case is that all gates share a trustworthy evaluator, adequate gate-specific observations, and a demonstrated recovery path. The pinned mechanisms do not establish those premises. Evidence of them, including correction-path and stale-clearance tests, could justify broader rollout later. For now, incremental admission enforcement with the autonomy dial left advisory is the smaller defensible option; this critique does not bind a Prefer-A map.",
+          "id": 5956314509,
+          "html_url": "https://github.com/deftai/directive/issues/1511#issuecomment-5956314509",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:07:15Z",
+          "updated_at": "2026-10-02T16:07:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#1511\ncharter: open critique\nspend: N\u22653\nround: 1\ncritic-role: fresh\nid-ceiling: 5956221730\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\naudit-targets: none\n\nverification-path: pin-read `git show af82911053eb0bbb57b523823715e99633e16772:` ; dest cwd-without-occupy. All anchors below are re-derived at that SHA via `git show` / `git grep`, not read from the issue or the triage.\n\n## Inventory before proposing\n\nThree existing mechanisms the Bound remedy should reuse rather than reinvent:\n\n1. **Emergency-bypass family.** `DEFT_ALLOW_*` is already the established form: `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT`, `DEFT_ALLOW_COVERAGE_DEBT`, `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS`, `DEFT_ALLOW_RELEASE_PUBLISH`, `DEFT_ALLOW_BOT_MERGE`, `DEFT_ALLOW_ISSUE_CLOSE`, plus `DEFT_SESSION_RITUAL_SKIP`. Acceptance bullet 2 should name reuse of this family, not a new bypass shape.\n2. **Check-composition contract.** `REQUIRED_CONSUMER_ENFORCEMENT_GATES` (`packages/core/src/consumer-check-contract/evaluate.ts:24`) plus `verify:consumer-check-contract` (`tasks/verify.yml:401`) already enforce which gates a check aggregate must carry. \"Enters the `task check` aggregate\" is one list entry there; no new composition mechanism is needed, and that list is also where an incremental landing order would be legible.\n3. **Three-state posture convention.** 0 clean / 1 violation / 2 config is already the shape of both `verify:capacity` (`tasks/verify.yml:598`) and `verify:judgment-gates` (`tasks/verify.yml:615`).\n\n## Pain disposition\n\n| Pain | Disposition |\n|---|---|\n| P1 observation contract unbound | **supported**, but the premise is wrong in a way that would misdirect the remedy \u2014 see F6 |\n| P2 aggregate coupling / self-DoS | **supported and understated** \u2014 see F4, and F5 inverts the risk statement |\n| P3 autonomy dial vs clearance | **overclaimed** as stated \u2014 see F2; the guarded path does not exist |\n\n---\n\n### F1 \u2014 `blocks-the-design` \u2014 the judgment-gate engine has no firing log, so the false-positive rate AC-1 depends on is uncomputable\n\n**Evidence.** In `packages/core/src/orchestration/verify-judgment-gates.ts` the only durable write in the module is the `appendFileSync` at L277, inside `recordClearance` (L222). `buildReport` (L515) and `evaluate` (L594) compute `outcomes` and hand them to `renderReport` (L561) or JSON stdout; nothing persists a firing. `readClearances` (L199) is the only reader of durable state. The sink itself, `xbrief/.audit/judgment-gate-clearances.jsonl`, holds exactly **one** record at the dispatch SHA, timestamped `2026-06-08T19:44:18Z` \u2014 roughly four months before dispatch, against gates that landed 2026-06-04.\n\n**Failure mode.** A false-positive rate is wrong-firings over firings. The clearance log is a sample of *cleared* firings only, and its records carry no right/wrong label (`clearance_id`, `timestamp`, `gate_id`, `cleared_scope`, `reviewers`, `actor`, `reason`). An observation window of any length produces a partial numerator and no denominator at all. The quantity the issue names cannot be computed from this tree.\n\n**Disposition consequence.** AC-1 \u2014 \"a per-gate enforce/advisory decision is recorded **together with the observation data that justified it**\" \u2014 is not satisfiable for judgment gates as the gate is built. A decision recorded against this sink would be an attestation, not a measurement. The lean must either land an outcome log (fired / cleared / cleared-then-reverted) before the window opens, or drop FP rate as the judgment-gate criterion and state what replaces it.\n\n### F2 \u2014 `blocks-the-design` \u2014 the autonomy dial's only input log has no writer anywhere in the tree\n\n**Evidence.** `recommendAutonomyLevel` (`packages/core/src/policy/autonomy.ts:195`) takes `override_rate`, `rework_rate`, `sample_size` from its caller. Its only non-test caller is `packages/core/src/capacity/show.ts:361`, which sources `override_rate` and `sample_size` from `summarizeDecisionBacklog` (`show.ts:354`) then `readDecisionEvents` then `xbrief/.audit/pending-human-decisions.jsonl` (`packages/core/src/policy/decisions.ts:7`, `:21`, `:42`, `:74`).\n\nAt the dispatch SHA `xbrief/.audit/` contains exactly two files: `authority-events.jsonl` and `judgment-gate-clearances.jsonl`. **`pending-human-decisions.jsonl` does not exist.** A pinned `git grep` for that filename hits only `CHANGELOG.md`, `SPECIFICATION.md` prose, and `decisions.ts` itself \u2014 there is no producer. (`recordDecision` at `packages/core/src/orchestration/probe-session.ts:299` is a different API: it appends to the probe-session file, not this log.) `authority-events.jsonl` is in the same state \u2014 a pinned grep finds no source referencing it either way, and its records are also dated 2026-06-08.\n\nSeparately: `gate_levels` is validated by `validateAutonomyGates`, populated by `resolveAutonomy`, and **read by nothing** \u2014 a pinned grep for `gate_levels` / `gateLevels` outside `autonomy.ts` returns no consumer. There is no persisted current level: `show.ts:361` always passes `autonomyPolicy.default_level` as the current level. And `advisory: true` is a literal on all four return branches.\n\n**Failure mode.** `readDecisionEvents` returns the empty list, so `resolved_in_window = 0` and `override_rate = 0` permanently. The dial returns `hold` forever (sample `0 < 20`) with a rationale that reads like a measurement: `hold at escalate: override 0%, rework 0%, sample 0 -- advance criteria not met`.\n\n**Disposition consequence.** Checkbox 3 is not a flip. \"Decide whether the recommended level auto-applies once override / false-positive rates stay low over the window\" presumes a window that cannot accrue, a level that is not stored, and a consumer that does not exist. Either the lean lands the decision-event producer and the level consumer first \u2014 each its own story \u2014 or it strikes autonomy-dial auto-apply from this issue. This is also why **P3 is overclaimed**: there is no path by which an auto-applied recommendation silently reduces a clearance, because nothing reads the level. The real defect is worse and differently shaped \u2014 a dial wired to nothing, surfaced in `capacity:show` as if it meant something.\n\n### F3 \u2014 `blocks-the-design` \u2014 `swarm:launch --enforce-gates` evaluates no judgment gates; checkbox 4 flips a flag with no consumer\n\n**Evidence.** `packages/core/src/swarm/launch.ts:1342`:\n\n```ts\nconst gatePosture = args.enforceGatesFlag ? GATE_ENFORCE : GATE_ADVISE;\nvoid gatePosture;\n```\n\nA pinned grep for `GATE_ENFORCE` / `GATE_ADVISE` across `packages` returns exactly three sites: the definitions (`packages/core/src/swarm/constants.ts:18-19`), the import (`launch.ts:37-38`), and that line. The computed posture is explicitly discarded. Further, **no module outside `orchestration/verify-judgment-gates.ts` calls `readClearances`, `effectiveGates`, `buildReport`, `reportBlocking`, or `outcomeBlocking`** (same grep, tests excluded) \u2014 the swarm path never touches the engine. `enforceGates` (`launch.ts:681`) is unrelated: it runs the preflight and `swarm:readiness` gates. And Gate-0 is `verify:story-ready` (#1378, `tasks/verify.yml:553`), which inspects worktree cleanliness, vBRIEF lifecycle, and the allocation-context consent token \u2014 not gate clearances.\n\n**Failure mode.** The issue body states Slice 7 shipped as \"advisory by default (an uncleared block-tier gate is surfaced but the launch proceeds)\". At the dispatch SHA nothing is surfaced and nothing is evaluated. Turning `--enforce-gates` on by default changes behaviour by exactly nothing, and an observation window over that surface would record a clean four months that is really an absence of instrumentation.\n\n**Disposition consequence.** Checkbox 4 is not an advisory-to-enforce flip; it is \"wire the engine into `swarm:launch`\", which is construction, not a posture decision. The lean should re-scope or strike it. This is also the asymmetry the issue's framing hides \u2014 see F6.\n\n### F4 \u2014 `blocks-the-design` \u2014 clearances are keyed to a hash of the exact matched-path set, so enforce makes every push a fresh clearance ritual, including the push that lands the flip\n\n**Evidence.** `buildReport` (L515) computes `const scope = fingerprintScope(evidence)`, where `matchEvidence` (L459) sets `evidence.paths = [...matchedPaths].sort()` and `fingerprintScope` (L281) is sha256 over the key-sorted evidence JSON. `lookupClearance` (same module) matches on `entry.cleared_scope === scope` exactly; a record for the same gate at any other scope comes back as `stale`, `renderReport` prints `STALE-CLEARANCE re-triggered`, and `outcomeBlocking` stays true because it is fired-and-mechanical-and-block.\n\nThe four universal gates (`UNIVERSAL_GATES`, L36) are all `class: \"mechanical\"`, `tier: \"block\"`, `requiredHumanReviewers: 1`. `agents-md-and-skills` matches `AGENTS.md`, `**/AGENTS.md`, `skills/**`, `**/skills/**`, `templates/agents-entry.md`. `production-infrastructure` matches `**/.github/workflows/**` among others. `installer-and-bootstrap` matches `install.ps1` / `install.sh` / `installer/**`.\n\n**Failure mode.** Clearing `skills/a.md` does not clear `skills/a.md` plus `skills/b.md` on the next push \u2014 different path set, different sha256, stale, blocked. On a framework repo whose dominant change class is precisely directives, skills, workflows and the installer, enforce at `.githooks/pre-push` means an exact-path-set `clear` invocation before essentially every push. Sharper still: acceptance bullet 5 is \"document each flip in AGENTS.md + the relevant skills\" \u2014 so the landing diff of each flip fires `agents-md-and-skills` by construction. The flip's own remedy path is gated by the gate being flipped.\n\n**Disposition consequence.** The issue's remedy (an env-var / `--allow-*` emergency bypass) addresses the emergency, not the steady state; a bypass exported on every push is the advisory posture with extra typing, and it decays to an always-on export in a shell profile. Before enforce is landable the lean needs a clearance-scope-granularity decision \u2014 per gate, per glob class, or clearance-with-TTL \u2014 and the bypass question is downstream of it, not a substitute for it.\n\n### F5 \u2014 `blocks-the-design` \u2014 injection / swarm lens: the clearance log is an unauthenticated in-repo append file written by the same actor class the gate constrains\n\nLens triggered: the target changes authority, clearance state, and shared in-repo state consumed by dispatch.\n\n**Evidence.** `clearMain` (the `clear` subcommand; `cmdVerifyJudgmentGates` at L706 routes `argv[0] === \"clear\"` to it) builds evidence from `--path` / `--label` / `--body` / `--state`, hashes it, and calls `recordClearance` with `--gate-id`, `--reviewers`, `--actor`, `--reason` taken as **free strings** (`parseClearArgs` defaults: `actor: \"operator\"`, `reviewers: []`, `reason: \"\"`). Nothing verifies either field. Only `DESIGN_CRITIQUE_GATE_ID` gets a shape check (`designCritiqueClearanceShapeOk`); the four universal block-tier gates get none, and even that check is presence-and-shape, never authority. The verb is reachable through the normal dispatcher: `packages/cli/src/dispatch.ts:175` registers `verify-judgment-gates` and `:451` aliases `verify:judgment-gates` onto it.\n\nThe single existing record is itself the measurement \u2014 `actor` is `\"GPT-5.5 Cursor\"`, `gate_id` is `\"installer-and-bootstrap\"`, `reviewers` is `[\"Scott Adams\"]`, and `reason` is a sentence asserting a user approved. An agent wrote a human's name into `reviewers`, and `requiredHumanReviewers: 1` was satisfied by that string. One record, and it already demonstrates the hole.\n\n**Failure mode.** Under enforce, an agent that trips a block-tier gate self-clears with one additional command in the same session, naming any reviewer it likes, and proceeds. The gate then fires only against actors who do not know the verb: CI, humans, and the honest path.\n\n**Disposition consequence.** This inverts the issue's stated risk. \"Why this was deferred\" names false positives blocking the fix; the measured risk is that **true positives block nobody the gate is aimed at**, while false positives land on humans and CI. Enforce for the universal gates should not flip until clearance authority is bound to something the constrained actor cannot write \u2014 a PR review state, a signed record, an out-of-tree sink. I am not closing this on reviewer attention: the reviewer field *is* the asserted control, and the one record on disk shows the actor populating it.\n\n### F6 \u2014 `sharpens-framing` \u2014 P1's premise is wrong: the thresholds are bound; the *producers* are not, and only one of four gates has one\n\n**Evidence.** The thresholds P1 calls unbound exist as validated, overridable defaults. `packages/core/src/policy/capacity.ts`: `DEFAULT_CAPACITY_MIN_SAMPLE_SIZE = 20`, `DEFAULT_CAPACITY_WINDOW_DAYS = 30`, `DEFAULT_CAPACITY_ENFORCEMENT = \"advise\"`, with `validateCapacityBuckets` over `plan.policy.capacityAllocation`. `packages/core/src/policy/autonomy.ts`: `DEFAULT_AUTONOMY_MIN_SAMPLE_SIZE = 20`, `DEFAULT_AUTONOMY_ADVANCE_OVERRIDE_MAX = 0.05`, `DEFAULT_AUTONOMY_RETREAT_OVERRIDE_RATE = 0.2`, `DEFAULT_AUTONOMY_REWORK_BASELINE = 0.15`, with `validateAutonomy` over `plan.policy.autonomy`.\n\nCapacity is the one gate with a live producer: **1215 of 1715** files under `xbrief/completed/` carry `capacityBucket`, stamped at completion by `packages/core/src/scope/capacity-stamp.ts:114`.\n\n**Failure mode of the current framing.** \"Bind `minSampleSize` / thresholds / telemetry sinks\" sends an implementer to add policy fields that already exist and validators that already run, and the window still cannot measure anything.\n\n**Disposition consequence.** The bound form of P1 is per-gate, and the four are not four instances of one decision:\n\n| Gate | Thresholds | Producer | What this issue actually asks |\n|---|---|---|---|\n| `verify:capacity` | bound (`capacity.ts`) | live \u2014 1215 classified completions | a real advisory-to-enforce flip |\n| `verify:judgment-gates` | n/a \u2014 FP rate has no denominator (F1) | 1 clearance record, no firing log | build an outcome log first |\n| earned-autonomy dial | bound (`autonomy.ts`) | none \u2014 sink has no writer (F2) | build the producer and a consumer first |\n| Gate-0 / `swarm:launch` | n/a | engine not wired (F3) | build the integration first |\n\nAC-3's \"one gate at a time\" is right, but the issue's own body treats the four as symmetric. They are not, and the lean should disposition them separately.\n\n### F7 \u2014 `sharpens-framing` \u2014 the dial and the backlog summariser each exist twice, so \"the observation data\" is not single-valued\n\n**Evidence.** `recommendAutonomyLevel` is defined at `packages/core/src/policy/autonomy.ts:195` **and** at `packages/core/src/validate-content/capacity-policy.ts:442`. `summarizeDecisionBacklog` is defined at `packages/core/src/policy/decisions.ts:74` **and** at `capacity-policy.ts:375`. Two renderers consume them respectively: `packages/core/src/capacity/show.ts:361` and `packages/core/src/validate-content/capacity-show.ts:344`.\n\n**Failure mode.** A flip justified by numbers from one path can be enforced by the other. I did not diff the two implementations \u2014 the duplication itself is the finding, and divergence is only the aggravating case.\n\n**Disposition consequence.** AC-1's \"recorded together with the observation data\" needs the lean to name one canonical computation, or the record is ambiguous about which engine produced the number it cites.\n\n---\n\n## Bound-remedy stress (open critique \u2014 options, not a bind map)\n\n**(a) Observation contract.** The sharpest version is not a thresholds document; thresholds exist (F6). It is: *per gate, name the producer that writes the denominator, and refuse to open the window until that producer is landed and emitting.* Judgment gates need an outcome log, not the clearance log (F1). Autonomy needs the decision-event producer (F2). Capacity needs nothing. Cost: two producer stories ahead of the window. Buys: AC-1 becomes satisfiable rather than attestable. The rejected alternative is running the window on clearance records alone and reading \"no complaints\" as clean \u2014 that fails because `verify:judgment-gates` is in no aggregate (`tasks/verify.yml:615` says so in its own description) and has one record in four months, so absence of records is indistinguishable from the gate never having run.\n\n**(b) Incremental one-gate landings with bypasses.** The granularity AC-3 names does not exist in the code. `verify:judgment-gates` evaluates all four universal gates in one invocation; posture is a single `--enforce` over the whole report, and `reportBlocking` filters by `tier`/`class`, not by gate id. There is no per-gate posture field. So \"one gate at a time\" needs a choice the lean should make explicitly: add a per-gate posture map under `plan.policy.judgmentGates`; or sequence by **surface** (pre-push, then `task check` via `REQUIRED_CONSUMER_ENFORCEMENT_GATES`, then PR) rather than by gate; or sequence by narrowing the universal glob sets. On bypasses: reuse `DEFT_ALLOW_*` rather than inventing a form \u2014 but per F4, a bypass needed on every push is not an emergency hatch, so the bypass decision is downstream of the clearance-scope decision and cannot stand in for it.\n\n**(c) Autonomy dial vs clearance wall.** At the pin the wall is absolute and costless: `advisory: true` on every branch, no persisted level, `gate_levels` read by nothing. Framing this as \"dial vs wall\" presumes the wall is load-bearing; it currently guards a door with no room behind it. The two honest options are (i) strike auto-apply from this issue and keep the dial as display-only, documenting that the recommendation has no consumer, or (ii) land level persistence plus a clearance-requirement consumer as a separate issue, and only then ask the auto-apply question \u2014 at which point P3's concern becomes real and worth a gate, which it is not today.\n\n## Road not taken\n\nI considered classifying F3 as `sharpens-framing` on the reading that `void gatePosture` is a deliberate placeholder for an unlanded slice, making checkbox 4 merely premature rather than wrong. I kept `blocks-the-design` because the issue body asserts the advisory behaviour as *shipped* (\"an uncleared block-tier gate is surfaced but the launch proceeds\"), and a lean binding on that sentence would open an observation window over a surface that observes nothing and then read the resulting silence as a clean record.\n\n## Steelman\n\nThe strongest rejected position: *these are four advisory gates that cost nothing today; flip them one at a time, watch, roll back if it hurts \u2014 the critique over-engineers a reversible change.* That holds for `verify:capacity`, which has a bound window, a sample floor, 1215 classified completions, and a documented reason it sits outside `task check`. It fails for the other three not on rigour but on availability: there is nothing to watch, and a rollback signal requires a signal.\n\n**What would flip my verdict:** a producer outside this tree \u2014 a CI artifact, a hosted log, an ops dashboard \u2014 that records judgment-gate firings and human decisions. My recorded verification path is pin-read, so an out-of-tree sink is beyond what I can observe. If one exists, F1 and F2 drop to `sharpens-framing` (the sink is real but undocumented on the issue, and AC-1 should name it), while F3, F4, F5 and F6's per-gate asymmetry are unaffected \u2014 they are read off the code, not off the data.\n\n## In plain English\n\nFour gates shipped as advice. This issue proposes flipping them to blocking after watching them for a while. Reading the code at the pinned commit, only one of the four can actually be watched. The capacity gate has real data \u2014 about 1,200 completed items classified into buckets \u2014 and flipping it is a genuine decision. The judgment gates only write down *clearances*, never the times they fired, so you can count approvals but never work out how often the gate was wrong. The autonomy dial reads a log file that nothing in the codebase writes, so its numbers are permanently zero. The swarm-launch gate computes a setting and then throws it away on the next line; no gate clearance is ever checked there.\n\nTwo further problems make enforcement worse than the issue expects. A clearance is tied to a fingerprint of the exact file list it was granted for, so touching one more file invalidates it \u2014 on a repo whose main output is agent directives and skills, that means asking a human before nearly every push, including the push that documents the flip itself. And a clearance can be recorded by any agent typing a human's name into a free-text field; the one real record on disk is exactly that. So blocking mode would stop humans and CI while the agents it is aimed at can wave themselves through.\n\n",
+          "id": 5956658516,
+          "html_url": "https://github.com/deftai/directive/issues/1511#issuecomment-5956658516",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:25:57Z",
+          "updated_at": "2026-10-02T16:25:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A\n\nround: after-siblings\ncharter: open critique\nspend: N\u22653\narc-mode: no-ingest\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-1511-dc\nid-ceiling-for-lean: after 5956658516\nsibling-critics: grok 5956303025; codex 5956314509; claude 5956658516\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n\n### 1. Observation \u2192 promotion contract (relieves P1)\nReuse existing capacity/autonomy default thresholds already in `packages/core/src/policy/capacity.ts` and `packages/core/src/policy/autonomy.ts` (`minSampleSize`, window, override/rework floors). Do not reinvent those numbers.\n\nBefore any advisory\u2192enforce land for a named gate, bind a **per-gate promotion contract**:\n- Denominator producer that emits evaluations for that gate (capacity already has classified completions; judgment gates need an outcome/firing log distinct from the clearance JSONL; autonomy needs a decision-event producer or stay out of the window).\n- Adjudicated false-positive / override numerator keyed to gate id (project-wide backlog rates alone are insufficient).\n- Durable sink + recorded flip-decision artifact citing those numbers (promote / hold / rollback). Insufficient or unclassified evidence MUST hold promotion.\n\nDisposition the four gates separately (Claude F6): capacity can open a window now; judgment-gates and autonomy cannot until their producers land; Gate-0 cannot open a window until `--enforce-gates` actually consumes posture.\n\n### 2. Incremental one-gate (or one-surface) landings + live Gate-0 (relieves P2)\n- Inventory named emergency bypasses (`DEFT_ALLOW_*` / `--allow-*`) per candidate **before** wiring into `task check`, pre-push, or default launch. Clearance \u2260 emergency exception (Codex).\n- Land one named gate at one named entry point at a time; validate on directive's own tree with blocking / unaffected / correction-path / recovery cases. Do not put `verify:capacity` into a universal commit/check aggregate without proving corrective work remains admissible under a historical bucket deficit.\n- For judgment-gates \"one at a time\": choose explicitly in implementation (a) per-gate posture map under `plan.policy.judgmentGates`, or (b) sequence by surface (pre-push \u2192 check \u2192 PR), or (c) narrow universal globs \u2014 the code today has only whole-report `--enforce` (Claude F4/F7 framing).\n- Repair Gate-0 before any default-on decision: `swarm/launch.ts` must consume `gatePosture` (today `void gatePosture`). End-to-end: otherwise-admissible story with uncleared targeted gate refuses under `--enforce-gates`; advisory proceeds. Parser coverage is not enforcement.\n- Document each flip in AGENTS.md + relevant skills only after the clearance-scope decision (path-set fingerprint makes AGENTS/skills edits invalidate clearances \u2014 Claude F4); do not treat the documentation push as free.\n\n### 3. Autonomy dial stays recommend-only on this issue (relieves P3)\nStrike auto-apply of earned-autonomy level from #1511 Bound. Keep `recommendAutonomyLevel` advisory (`advisory: true` on all branches); human confirms any `plan.policy.autonomy` write. Dial recommendation MUST NOT mutate required clearances.\n\nPark level persistence + clearance-requirement consumer + auto-apply as out-of-scope follow-on (separate issue). Until that lands, P3's silent-clearance-reduction path does not exist in code (Claude/Codex); the Bound still forbids inventing it here.\n\n### 4. Clearance authenticity (absorbs Claude F5 / Codex P3 wall)\nIf/when judgment-gates enter enforce at any surface, Bound also requires: refuse caller-supplied actor/reviewer strings as authority; enforce required reviewer eligibility/count from an independently established approval source; bind clearance validity to intended candidate/policy scope (not path-list fingerprint alone that survives content change or fails on every AGENTS edit). Worker-controlled labels/body/JSONL actor claims are not clearance authority.\n\n## Reject / out of contract\n- Global skip-all-gates switch as the recovery path.\n- Treating existing capacity/autonomy dial defaults as already-approved promotion thresholds for enforce flips.\n- Defaulting `swarm:launch --enforce-gates` while `gatePosture` is voided.\n- Collapsing OQ autonomy-ratchet into fewer `requiredHumanReviewers` via dial advance.\n- Opening an observation window on judgment-gates clearance JSONL alone and reading silence as a clean FP record.\n- Reopening closed #1517 as a blocker (footnote; merge-gate-enforcement already shipped).\n\n## Plain-language summary\nOnly capacity has watchable data today. Bind a real per-gate scoreboard before flipping anything else; fix the dead swarm enforce switch before turning it on by default; keep the autonomy dial as advice on this issue; and if judgment gates ever block, stop letting agents write their own human approvals.\n\nTarget-digest: sha256:dfdfd8eb1e9a0be082a9a8959eabca446b24a42448b8c839378cc5c21b81cbad",
+          "id": 5956711652,
+          "html_url": "https://github.com/deftai/directive/issues/1511#issuecomment-5956711652",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:29:00Z",
+          "updated_at": "2026-10-02T16:29:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#1511\ncharter: open critique\nspend: N>=3\nround: pain-audit\ncritic-role: fresh\nid-ceiling: 5956711652\ndispatch-sha: af82911053eb0bbb57b523823715e99633e16772\narc-mode: no-ingest\ntarget: Prefer-A lean 5956711652\naudit-targets: pain-P1, pain-P2, pain-P3\ndual-stop: dual-stop-reserved spent; raise not asked (see Dual-stop note)\n\nverification-path: pin-read `git show af82911053eb0bbb57b523823715e99633e16772:` plus pinned `git grep` / `git ls-tree` at the same SHA; dest cwd-without-occupy. Inputs honored: Stop 1 (5956201809), Prefer-A lean (5956711652), round-1 critics 5956303025 / 5956314509 / 5956658516 as prior substantiation. No thread reads past the ceiling.\n\nEvery mechanism cited below was re-derived at the pin, not taken from the lean or from a round-1 critic.\n\n## Verdict table\n\n| Audit target | Verdict on asserted relief | Class |\n|---|---|---|\n| pain-P1 observation contract | **supported** | 2 footnotes |\n| pain-P2 aggregate coupling / self-DoS | **supported** | 1 footnote (mislabel) |\n| pain-P3 autonomy dial vs clearance | **footnote-only** | relief is a forbid, not a repair |\n\nNo blocking finding. **The bind map is not retracted; the Prefer-A lean stays bindable.**\n\n---\n\n## pain-P1 -- supported\n\nThe Bound's section 1 earns the relief, because each of its three requirements lands on a producer gap I confirmed at the pin rather than on a threshold gap that was never real:\n\n- **Judgment gates have no denominator.** `packages/core/src/orchestration/verify-judgment-gates.ts` writes durably in exactly one place -- the `appendFileSync` inside `recordClearance`. `buildReport` / `evaluate` persist nothing. `xbrief/.audit/judgment-gate-clearances.jsonl` holds **one** record at the pin, timestamped `2026-06-08T19:44:18Z`. Section 1's \"judgment gates need an outcome/firing log **distinct from the clearance JSONL**\" is the literally correct form.\n- **Autonomy has no producer at all.** `git ls-tree` at the pin shows `xbrief/.audit/` containing only `authority-events.jsonl` and `judgment-gate-clearances.jsonl`; `pending-human-decisions.jsonl` is absent. Every non-test reference is a *reader* -- `policy/decisions.ts`, `validate-content/capacity-policy.ts`, and `triage/welcome/prior-state.ts:122 countPendingDecisions` (whose imports are `existsSync, readdirSync, readFileSync` only). No writer exists. Section 1's \"or stay out of the window\" is correct.\n- **Capacity is the one live producer.** 1215 of 1715 files under `xbrief/completed/` carry `capacityBucket`, stamped by `scope/capacity-stamp.ts:114`.\n\nThe falsifiability clause -- \"Insufficient or unclassified evidence MUST hold promotion\" -- is what converts AC-1 from an attestation into a measurement, and the four-gate separate disposition is the right shape: the gates are not four instances of one decision.\n\n**Footnote P1-a -- \"window\" vs \"promotion\" is the one place section 1 reads against itself.** Section 1 requires an *adjudicated false-positive numerator keyed to gate id* for any promotion, then says \"capacity can open a window now.\" Capacity has the denominator (1215 classified completions) and **no FP numerator** -- nothing in the tree records that a capacity block was wrong. Under section 1's own hold clause, capacity would hold too. The consistent reading is that opening a window to accrue is not promotion, and promotion still needs the numerator -- but \"capacity can open a window now\" is the only green light in the lean, so it is exactly where an implementer will land on the loose reading. Recut should say it in one line: *opening a window is not promotion; capacity's adjudicated-FP numerator (what counts as a wrong capacity block) is still unnamed.*\n\n**Footnote P1-b -- the observation number is still two-valued.** Confirmed at the pin: `recommendAutonomyLevel` is defined at both `policy/autonomy.ts:195` and `validate-content/capacity-policy.ts:442`; `summarizeDecisionBacklog` at both `policy/decisions.ts:74` and `capacity-policy.ts:375`. Section 1 points implementers at `policy/capacity.ts` / `policy/autonomy.ts`, which picks a side implicitly but never says the `validate-content` twin may not justify a flip. AC-1's \"together with the observation data\" stays ambiguous about which engine produced the number. Recut: name one canonical computation in the flip artifact. (Round-1 F7, unabsorbed.)\n\nMinor, same family: section 1 opens \"Do not reinvent those numbers\" and the Reject list says do not treat those defaults as approved promotion thresholds. Both are right and they are compatible -- but section 1 read alone invites `min_sample_size: 20` to become the flip bar. Reuse the *fields and validators*; do not adopt the *values* as the promotion bar.\n\n## pain-P2 -- supported\n\nSection 2 absorbs every round-1 blocking element, and the two I was most likely to find overstated check out at the pin:\n\n- **The granularity section 2 forces a choice about genuinely does not exist.** `verify-judgment-gates.ts:720` computes `const posture = args.enforce ? \"enforce\" : \"advise\"` -- one posture over the whole report, and `reportBlocking` filters by tier/class, never by gate id. There is no per-gate posture field. Section 2's explicit (a) posture map / (b) surface sequence / (c) glob narrowing menu is therefore a real decision, not a restatement.\n- **The capacity-aggregate caveat is live.** `verify-capacity.ts` computes a worst bucket deficit against `DEFICIT_TOLERANCE` under enforce posture, with no candidate change in its input -- so a universal check aggregate can reject the corrective work. Section 2's \"without proving corrective work remains admissible under a historical bucket deficit\" is the right precondition. Both gates' deliberate absence is still stated in-tree (`tasks/verify.yml` capacity and judgment-gates descriptions: \"DELIBERATELY NOT in the `task check` aggregate\").\n\n**Footnote P2-a -- \"Repair Gate-0\" is mislabeled, and \"repair\" understates the work.** Two separate corrections, neither of which retracts the requirement:\n\n1. At the pin, Gate 0 is `verify:story-ready` (#1378 Story C, `tasks/verify.yml:552`) -- worktree cleanliness, vBRIEF lifecycle, allocation-context consent token -- and it is a *different* gate, also deliberately outside `task check` (`verify.yml:561`). The thing holding `void gatePosture` is `swarm/launch.ts:1342-1343`, the judgment-clearance posture. An implementer handed \"repair Gate-0\" can go edit the wrong gate.\n2. \"`swarm/launch.ts` must consume `gatePosture`\" reads as a dropped-variable fix. It is not. A pinned grep for `readClearances` / `effectiveGates` / `buildReport` / `reportBlocking` / `outcomeBlocking` across `packages`, tests excluded, returns **zero** callers outside `verify-judgment-gates.ts`. There is no engine wired into the swarm path to hand the posture to. This is integration, not repair.\n\nWhat saves the relief: section 2's own end-to-end clause -- \"otherwise-admissible story with uncleared targeted gate refuses under `--enforce-gates`; advisory proceeds\" -- cannot be passed by the one-line fix. Routing `gatePosture` into `enforceGates` (`launch.ts`, the preflight/readiness stack) would refuse nothing uncleared and would fail that test. The acceptance clause holds where the label slips. Footnote-only; Recut should rename the bullet to `swarm:launch` judgment-clearance posture and say \"wire the engine,\" not \"repair the void.\"\n\n## pain-P3 -- footnote-only\n\nThe lean's header asserts `relieves: P3`; its section 3 prose concedes the opposite -- \"P3's silent-clearance-reduction path does not exist in code.\" The prose is right, and I verified it independently:\n\n- `advisory: true` is a literal on **all four** return branches of `recommendAutonomyLevel` (`policy/autonomy.ts:231, 243, 266, 279`).\n- The dial's input log has no writer (above).\n- `gate_levels` has no consumer outside `autonomy.ts`.\n\nSo section 3 strikes a mechanism that does not exist. That is not a defect -- the issue checklist puts auto-apply on the solution menu, so a **forbid** is worth binding -- but it is relief of a hazard rather than repair of one, which is what footnote-only means here. The header line is the only overclaim, and it is annotation, not contract. The lean stays bindable on this target.\n\n**Footnote P3-a -- the live defect survives the strike, unabsorbed.** Striking auto-apply leaves `capacity:show` rendering \"Autonomy dial (advisory-only)\" with a rationale shaped like a measurement -- `override 0%, rework 0%, sample 0` -- whose zeros are an **absent writer**, not a clean record. Round-1 option (i) included \"documenting that the recommendation has no consumer\"; section 3 kept the strike and dropped the disclosure. This matters precisely because of P1: a zero that looks like a measurement is the number an operator later cites as a clean window. Recut: either section 3 adds a disclosure requirement, or the parked follow-on issue names the misleading-zeros display as part of its scope.\n\n## Absorption check (Method 3)\n\nDoes Prefer-A Bound *literally* absorb the round-1 blocking findings it claims to relieve?\n\n| Claimed absorption | Literal? | Pin check |\n|---|---|---|\n| Narrowed P1 producers | **yes** | section 1 names the outcome log distinct from clearance JSONL and the decision-event producer; both gaps confirmed |\n| Gate-0 void repair | **yes, in substance** | requirement + end-to-end test + Reject line all present; label and scope understated (P2-a) |\n| Strike auto-apply | **yes** | section 3 first line; `advisory: true` x4 confirms nothing is lost by striking |\n| Clearance authenticity | **yes** | section 4 matches the mechanism exactly -- see below |\n\nSection 4 is the strongest-absorbed of the four, and the pin backs every clause: `acceptClearanceShape` short-circuits (`return clearance`) for every gate except `DESIGN_CRITIQUE_GATE_ID`, so the four universal block-tier gates get **no** shape or authority check; `outcomeCleared` is `o.clearance !== null` and nothing more; `recordClearance` defaults `reviewers: []` and `actor: \"operator\"` from free strings with no verification, while all four universal gates carry `requiredHumanReviewers: 1` that acceptance never reads; and `fingerprintScope` is sha256 over the matched-evidence JSON, so clearance is keyed to a path set, not content or revision. The single on-disk record is the demonstration: `actor: \"GPT-5.5 Cursor\"`, `reviewers: [\"Scott Adams\"]`. Section 4's three requirements -- refuse caller-supplied actor/reviewer strings as authority, enforce reviewer eligibility and count from an independently established source, bind validity to candidate/policy scope -- map one-to-one onto those three mechanisms.\n\nUnabsorbed round-1 material, all non-blocking: F7 duplication (P1-b); `REQUIRED_CONSUMER_ENFORCEMENT_GATES` (`consumer-check-contract/evaluate.ts`, 10 entries at the pin) as the existing, legible place to record landing order under section 2 option (b); the misleading-zeros display (P3-a).\n\n## Dual-stop note\n\nThis seat spends `dual-stop-reserved`. **Raise not asked.** All three residuals are footnote-class and absorbable in Recut by editing the lean's own sections 1, 2, and 3 -- none requires a fresh denominator, a new mechanism read, or a re-audit of the Recut output.\n\n## In plain English\n\nThe lean holds up. Its three remedies land on gaps that are really there: the judgment gates record only approvals and never firings, so a false-positive rate cannot be computed; the autonomy dial reads a log file nothing writes; and the swarm launcher computes a setting and throws it away on the next line -- and in fact never touches the gate engine at all. The clearance-authenticity section is the best part: I checked, and a clearance today is any string an agent types into a reviewer field, which the one real record on disk shows happening.\n\nThree things to tidy in a Recut, none of them a reason to hold the bind. \"Capacity can open a window now\" is true but should not read as \"capacity can be promoted now\" -- nobody has yet said what a *wrong* capacity block looks like, and the lean's own rule says you cannot promote without that. The \"repair Gate-0\" bullet points at the wrong gate by name and makes an integration job sound like a one-line fix. And striking the autonomy auto-apply leaves the dial on screen showing zeros that look like a clean record but are really an empty log -- which is exactly the kind of number someone cites later as evidence the window went fine.\n\n\n\n",
+          "id": 5956823580,
+          "html_url": "https://github.com/deftai/directive/issues/1511#issuecomment-5956823580",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:36:13Z",
+          "updated_at": "2026-10-02T16:37:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Parent strike (footnote-only pain-audit 5956823580)\n\nBind map Prefer-A lean 5956711652 stays bindable. Dual-stop reserved seat spent; raise not asked.\n\nApply these footnote strikes in place on the Prefer-A Bound (no new lean; no re-audit):\n\n1. **P1-a:** Opening a capacity observation window is not promotion. Capacity's adjudicated false-positive numerator (what counts as a wrong capacity block) remains unnamed; section 1's hold clause still applies before any enforce land.\n2. **P1-b:** Flip artifacts MUST cite one canonical observation engine (`policy/capacity.ts` / `policy/autonomy.ts`), not the `validate-content` twin.\n3. **P2-a:** Rename \"Repair Gate-0\" to **wire `swarm:launch` judgment-clearance posture** (`swarm/launch.ts` `gatePosture` into the judgment-gate engine). Gate 0 remains `verify:story-ready` (#1378) \u2014 a different gate. This is engine integration, not a one-line void fix. The end-to-end refuse/advisory clause in Prefer-A section 2 still governs.\n4. **P3-a:** While auto-apply stays struck, disclose in `capacity:show` (or docs) that autonomy dial zeros mean absent decision-event producer, not a clean observation window.\n\nNo continue raise recommended.",
+          "id": 5956845308,
+          "html_url": "https://github.com/deftai/directive/issues/1511#issuecomment-5956845308",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:37:35Z",
+          "updated_at": "2026-10-02T16:37:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| #1511 still open; Stage A still-open on origin/master af82911053eb | verified | triage:evaluate 443a4f4b; REST state open |\n| Spend N\u22653 with spend-ask asked (operator use recommended n); Dual-stop reserved literacy recorded | verified | Stop 1 5956201809 |\n| Round-1 panel grok/claude/codex posted under ceiling 5956221730 | verified | 5956303025, 5956658516, 5956314509 |\n| Prefer-A lean relieves P1, P2, P3 with Bound sections 1\u20134 | verified | lean 5956711652; one pain id per relieves line; Target-digest on lean only |\n| Reserved-seat pain-audit footnote-only / bind map kept | verified | PA 5956823580; parent strike 5956845308; raise not asked |\n| Gate-0 void / producers / clearance authenticity absorbed into Bound | verified | critics + PA pin-read at af82911053eb |\n| Companion #1517 closed (footnote, not blocker) | verified | REST + completed brief at pin |\n\nSuccessor lean: 5956711652\nPain-audit: 5956823580",
+          "id": 5956850223,
+          "html_url": "https://github.com/deftai/directive/issues/1511#issuecomment-5956850223",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:37:53Z",
+          "updated_at": "2026-10-02T16:37:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\n\nOnly the capacity gate has watchable data today. Before flipping anything else to blocking, bind a real per-gate scoreboard, wire the swarm launcher into the judgment-gate engine, keep the autonomy dial as advice on this issue, and stop treating agent-typed reviewer names as human clearance. Footnote strikes on the Prefer-A lean clarify that a window is not a promotion, name the right swarm posture work, and disclose empty dial zeros.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5956711652.\nVerified-claims table: 5956850223.\nPain-audit: 5956823580 (footnote-only; parent strike 5956845308).",
+          "id": 5956850539,
+          "html_url": "https://github.com/deftai/directive/issues/1511#issuecomment-5956850539",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T16:37:54Z",
+          "updated_at": "2026-10-02T16:37:54Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 4593312237,
+        "origin": "deftai/directive#1511",
+        "id": "github.issue.4593312237"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "dfdfd8eb1e9a0be082a9a8959eabca446b24a42448b8c839378cc5c21b81cbad"
+      },
+      "x-directive/bound-lean": 5956711652,
+      "x-directive/synthesis": 5956850539,
+      "x-directive/productPullRequest": 5311,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5311,
+        "prBase": null,
+        "mergeCommit": "8e900b3f3719c323995b4094c18461ea88e04569",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8e900b3f3719c323995b4094c18461ea88e04569",
+        "verifiedAt": "2026-10-04T14:25:52Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTA2YzItMGE3Zi03OTgyLWJjMGItMTAzZGMxNzZiMjBj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-04T14:25:52Z",
+      "completedSessionId": "host:grok:v1:MDFhMTA2YzItMGE3Zi03OTgyLWJjMGItMTAzZGMxNzZiMjBj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T14:25:52Z"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/policy/autonomy-branches.test.ts"
+      ],
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover pathless derived after #5311",
+      "sentences": [
+        "Per-gate observation\u2192promotion contract before advisory\u2192enforce (denominator, FP numerator, flip artifact)",
+        "Incremental one-gate landings; inventory bypasses; repair Gate-0 swarm/launch gatePosture before default --enforce-gates",
+        "Autonomy dial stays recommend-only on this issue; no auto-apply",
+        "Clearance authenticity: refuse caller-supplied actor/reviewer strings; independent approval source when judgment-gates enforce"
+      ],
+      "admitted_source_sentences": [
+        "Per-gate observation\u2192promotion contract before advisory\u2192enforce (denominator, FP numerator, flip artifact)",
+        "Incremental one-gate landings; inventory bypasses; repair Gate-0 swarm/launch gatePosture before default --enforce-gates",
+        "Autonomy dial stays recommend-only on this issue; no auto-apply",
+        "Clearance authenticity: refuse caller-supplied actor/reviewer strings; independent approval source when judgment-gates enforce"
+      ],
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Per-gate observation\u2192promotion contract before advisory\u2192enforce (denominator, FP numerator, flip artifact)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5311 squash-merge (Tracking #1511). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5311",
+              "mintedAt": "2026-10-04T14:24:46.123Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T14:24:46.123Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Incremental one-gate landings; inventory bypasses; repair Gate-0 swarm/launch gatePosture before default --enforce-gates",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5311 squash-merge (Tracking #1511). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5311",
+              "mintedAt": "2026-10-04T14:24:46.123Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T14:24:46.123Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Autonomy dial stays recommend-only on this issue; no auto-apply",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5311 squash-merge (Tracking #1511). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5311",
+              "mintedAt": "2026-10-04T14:24:46.123Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T14:24:46.123Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Clearance authenticity: refuse caller-supplied actor/reviewer strings; independent approval source when judgment-gates enforce",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5311 squash-merge (Tracking #1511). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5311",
+              "mintedAt": "2026-10-04T14:24:46.123Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T14:24:46.123Z"
+          }
+        }
+      ]
+    },
+    "id": "github.issue.4593312237",
+    "updated": "2026-10-04T14:25:52Z"
+  }
+}

@@ -1,0 +1,588 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3675",
+    "updated": "2026-10-04T13:46:43Z"
+  },
+  "plan": {
+    "title": "fix(scope): delivery gate accepts any delivery-branch ancestor as merge evidence",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(scope): delivery gate accepts any delivery-branch ancestor as merge evidence",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3675",
+      "Overview": "\n\nPrefer-A shared evidence-validation boundary before durable `delivered` stamping (land in `evaluateDeliveryGate` or a callee it must invoke; do not leave the hole open by trusting finalize-only callers):\n\n1. **Story→PR join.** Resolve the story-associated PR in the expected repository from authoritative relationship (reuse `closingIssuesReferences` / one-PR-unit closer-set machinery). PR must be merged with authoritative non-null merge state / `merged_at`. Worker-supplied `--pr` alone is not story identity. Fail closed on lookup failure, wrong repo, wrong story, or unmerged PR.\n\n2. **Merge identity equality.** Supplied `--merge-commit` must **equal** that PR's authoritative `merge_commit_sha` (identity, not reachability). This refuses tip-as-merge and foreign delivery-branch ancestors even when they are tip ancestors.\n\n3. **Delivery liveness.** Retain existing merge→ref ancestry against the configured delivery branch (including integration-branch cases) as liveness after (1)(2). PR-base equality must not replace delivery ancestry.\n\n4. **Squash/rebase contract.** Do **not** require `implementationCommit` (PR head) to be a Git ancestor of `merge_commit_sha`. This repo squash-merges; that containment rejects honest deliveries. If a recorded implementation identity is bound, bind it through the trusted merged-PR relationship (e.g. PR head at merge time / payload head), with an explicit unsupported-mode refusal only if a merge mode is deliberately out of contract — never silent undelivered for rewritten history.\n\n5. **`assumeEvidenceValidated` honesty.** Name treatment of the swarm finalize path that sets `assumeEvidenceValidated: true` and currently bypasses ancestry before the new bind. Prefer: same validator on production callers, or an explicit documented exception that still requires the story→PR→merge identity tuple from `evidenceFromPrPayload` rather than opaque strings.\n\n6. **Acceptance evidence.** Real temporary Git histories for: unmerged story + tip supplied as merge → refuse; older unrelated delivery ancestor → refuse; legitimate merge equal to tip → accept; valid story merge later delivered through integration → accept; squash/rebase success under Prefer-A (no head-in-merge containment). REST fixtures: wrong story PR, wrong repository, mismatched merge SHA, unmerged PR, lookup failure, absent story→PR association. Assert refusals leave no new durable delivered stamp; exercise initial completion and restamp paths. One concrete red-on-pin acceptance: `mergeCommit` equal to mock delivery tip with `notAncestor: true` mock must refuse under Prefer-A identity join (today returns delivered via same-SHA short-circuit before git).\n\n\n",
+      "Labels": "bug, design, security, agent-experience, process, source-of-truth, urgent, area:cli, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities, promise:requirements, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Story→PR→merge identity join before delivery-tip ancestry",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5313 squash-merge (Tracking #3675). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5313",
+            "mintedAt": "2026-10-04T13:46:24.089Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T13:46:24.089Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Authoritative closingIssuesReferences + merge_commit_sha equality",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5313 squash-merge (Tracking #3675). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5313",
+            "mintedAt": "2026-10-04T13:46:24.089Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T13:46:24.089Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Refuse tip-as-merge / foreign ancestors; squash-safe",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5313 squash-merge (Tracking #3675). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5313",
+            "mintedAt": "2026-10-04T13:46:24.089Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T13:46:24.089Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "assumeEvidenceValidated only after same identity join",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5313 squash-merge (Tracking #3675). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5313",
+            "mintedAt": "2026-10-04T13:46:24.089Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T13:46:24.089Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Tests + CHANGELOG for Prefer-A delivery gate identity",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5313 squash-merge (Tracking #3675). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5313",
+            "mintedAt": "2026-10-04T13:46:24.089Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T13:46:24.089Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "security",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:requirements",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3675",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3675: fix(scope): delivery gate accepts any delivery-branch ancestor as merge evidence"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "notAncestor: true",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/delivery-evidence.test.ts"
+        ],
+        "expected_outputs": [
+          "Tracking PR opened"
+        ],
+        "depends_on": [],
+        "conflict_group": "delivery-gate-story-pr-merge-identity",
+        "size": "M",
+        "model_tier": "default"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because `scope:complete --merge-commit` accepts any delivery-branch ancestor as merge evidence, so a worker can stamp `disposition: delivered` naming someone else's merge (or tip itself) without that story ever merging; the stamp is durable in completed xbriefs and `verify:completed-tracked` does not revalidate provenance.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-3675-dc\norigin-ref: origin/HEAD\ndispatch-sha: f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb\ndest-wo: leftover-complete\n\nspend: N≥3\nspend-ask: resolved\nspend-recommend: N≥3\nspend-why: operator n=3; security/false durable audit blast; bind-design option space (PR identity join, implementationCommit containment, test history that fails same-SHA / unrelated-ancestor); keep #3674 co-land policy out of scope.\nDual-stop cap: 3 posts\ndual-stop-reserved: first post-lean pain-audit of asserted coverage is in-cap without raise (evaluateDualStopReservedSlot / evaluateDualStopParentPath / deriveReservedPainAuditPostsUsed)\n\npain: P1, P2, P3\n\n- P1. Reachability-only merge evidence: `evaluateDeliveryGate` / `verifyDeliveryAncestry` treat `evidence.mergeCommit` as an opaque string and only require `gitIsAncestor(mergeCommit, remoteTip)`, including the same-SHA short-circuit, so `origin/master` (or any tip ancestor) stamps delivered for an unmerged story.\n- P2. No story-bound identity: the gate does not fetch the head PR, does not compare to GitHub `merge_commit_sha`, and does not require the recorded `implementationCommit` to be contained in that merge; `mergedAt` synthesizes `\"supplied\"` and is not corroboration. Hole is on the direct CLI path; `swarm:finalize-cohort` binds from the merged PR payload in practice.\n- P3. Durable false audit + open test gap: completed xbriefs persist `completionProvenance.mergeCommit` with `disposition: delivered` / `handoffState: delivered`; `verify:completed-tracked` only checks artifact presence on the tip. `delivery-evidence.test.ts` mocks ancestry success and does not exercise same-SHA or unrelated-ancestor refusal.\n\nverification-path: pin-read git show f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb: ; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:de94fa6d510e73d81d0443994d068cd521c686840d4ff186187f61e7ed3b94b3\ntarget: #3675\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #3674 (closed; co-land policy out of scope) #3041 #3380\n\n## Gate stamp\n\nRound-1 ceiling is this write-back plus panel-deposit (spend N≥3). Families: grok, claude, codex.\n\n## Plain-language summary\n\nThe delivery gate currently asks only \"is this commit already on master?\" It should ask \"is this the merge that actually shipped this story?\" Until it does, a worker can mark work delivered without merging it, and that mark sticks in the completed record.\n\n",
+          "id": 5955168299,
+          "html_url": "https://github.com/deftai/directive/issues/3675#issuecomment-5955168299",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:00:06Z",
+          "updated_at": "2026-10-02T15:00:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5955185310\nfamilies: grok, claude, codex\nlaunchers: spawn_subagent|grok-cli, claude, codex\ndispatch-sha: f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb\narc-mode: no-ingest\nspend: N≥3\nlaunch-probe: claude=pong rc0; codex=pong rc0\nverification-path: pin-read git show f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb: ; dest cwd-without-occupy\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-3675-dc\n\n",
+          "id": 5955185310,
+          "html_url": "https://github.com/deftai/directive/issues/3675#issuecomment-5955185310",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:01:01Z",
+          "updated_at": "2026-10-02T15:01:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\nissue: deftai/directive#3675\ncharter: open critique\nspend: N≥3\nround: 1\ncritic-role: fresh\nid-ceiling: 5955185310\ndispatch-sha: f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb\narc-mode: no-ingest\naudit-targets: none\nseat: grok\nlauncher: grok-cli\n\n## Verdict\n\nStop 1 pains P1–P3 hold under pin-read at `f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb`. The Bound sketch is the right chokepoint: identity-join the supplied merge to the head PR's `merge_commit_sha`, and require recorded `implementationCommit` reachable from that merge, before `disposition: delivered`. Keep #3674 co-land policy out of this issue.\n\n## Pin-read anchors (dispatch-sha)\n\nDest HEAD matches dispatch-sha. Re-checked via `git show f2a0930a…:<path>`:\n\n- `packages/core/src/scope/delivery-evidence.ts`\n  - `verifyDeliveryAncestry` (~275–313): sole delivery proof is `gitIsAncestor(projectRoot, mergeCommit, remoteTip)`.\n  - `evaluateDeliveryGate` (~362–529): trims opaque `evidence.mergeCommit`; on success returns `disposition: \"delivered\"` / `handoffState: \"delivered\"` with message that the merge is an ancestor of `origin/<deliveryBranch>`. No PR fetch. No compare to GitHub `merge_commit_sha`. `implementationCommit` is copied into provenance only (`buildProvenance` ~328); never used as a containment predicate.\n  - `evidenceFromPrPayload` (~592–628): *does* read `payload.merge_commit_sha` and head SHA into evidence fields, but that helper is the finalize/parser path (`verifier: \"swarm:finalize-cohort\"`), not a gate-enforced join on the CLI complete path.\n- `packages/core/src/session/git.ts` (~252–270): `gitIsAncestor` documents \"same commit counts\" and short-circuits `ancestor === descendant` → `true` before `merge-base --is-ancestor`.\n- `packages/core/src/scope/main.ts` (~247–262): CLI evidence builder sets `mergedAt: mergedAt ?? (mergeCommit !== undefined ? \"supplied\" : null)`. With `--merge-commit` alone, timestamp is the literal `\"supplied\"`.\n- `packages/core/src/scope/main.ts` (~494–532): when `--pr` is present, complete only runs one-PR-unit closer-set recheck (`fetchClosingIssuesReferences`); it does not load the PR payload or overwrite `mergeCommit` from `merge_commit_sha`.\n- `packages/core/src/scope/delivery-evidence.test.ts` (`gitOk` ~62–81): default mock returns code `0` for any `merge-base --is-ancestor`; `notAncestor` is an opt-in failure flag. No real pre-merge history; same-SHA tip and unrelated-ancestor cases are not exercised as refusals.\n- `packages/core/src/lifecycle/completed-tracked-on-delivery.ts`: land check proves a completed/cancelled artifact referencing the issue exists on the delivery tip. No `completionProvenance.mergeCommit` / ancestry / PR-identity revalidation.\n\nFootnote on OP line cites: body cites `8bb1e528` line numbers; mechanism at this pin is the same shape with modest line drift (`verifyDeliveryAncestry` call site ~294; `evaluateDeliveryGate` ~362; `gitIsAncestor` short-circuit ~259; `\"supplied\"` ~260).\n\n## Pain dispositions\n\n### P1. Reachability-only merge evidence — **supported**\n\nOpaque `mergeCommit` + `gitIsAncestor(merge, tip)` including same-SHA short-circuit is exactly what the gate enforces. `scope:complete -- --merge-commit $(git rev-parse origin/master)` therefore satisfies ancestry when the string equals the tip, and also when it names any other ancestor already on the delivery branch. That is reachability of *some* delivery-branch commit, not proof that *this story's* merge landed.\n\n### P2. No story-bound identity — **supported**\n\nOn the direct CLI path the gate never binds merge identity to a PR:\n\n1. No fetch of pulls/`merge_commit_sha` inside `evaluateDeliveryGate`.\n2. `--pr` on complete does not substitute GitHub's merge SHA for the operator-supplied string.\n3. `implementationCommit` is optional provenance baggage; containment in the merge is not required.\n4. `mergedAt: \"supplied\"` is a placeholder, not corroboration.\n\nContrast: `evidenceFromPrPayload` shows the intended tuple shape (merge SHA + head SHA + real `merged_at`) for finalize. Stop 1 correctly separates \"finalize constructs better evidence\" from \"the gate accepts any ancestor string.\" Bound must close the hole at the gate, or CLI complete remains the unverifiable assertion path.\n\n### P3. Durable false audit + open test gap — **supported**\n\n`stampDeliveryProvenance` persists `completionProvenance` including `mergeCommit`, `disposition: delivered`, and `handoffState: delivered` onto the completed brief. `verify:completed-tracked` then only asks whether a terminal artifact for the issue is present on the tip. A false delivered stamp therefore becomes the durable audit answer. Unit coverage mocks ancestry success and does not build history that would refuse tip-as-merge or unrelated-ancestor inputs.\n\n## Bound remedy stress\n\nIssue Scope / Stop 1 Bound sketch:\n\n1. **Identity join:** accept `delivered` only when the supplied merge equals the head PR's actual `merge_commit_sha` (fetched or otherwise forge-bound for that story's PR).\n2. **Containment:** require recorded `implementationCommit` to be reachable from that merge (`gitIsAncestor(implementationCommit, mergeCommit)` or equivalent).\n\nStress notes for the later lean:\n\n- Put both conjuncts in `evaluateDeliveryGate` (or a callee it must invoke before `ok: true` delivered). Relying only on finalize's `evidenceFromPrPayload` leaves the CLI hole open.\n- `--pr` alone is insufficient unless complete loads and joins `merge_commit_sha`; today `--pr` is closer-set hygiene, not merge identity.\n- Same-SHA short-circuit stays fine for true ancestry helpers; Bound must refuse tip/ancestor strings that fail the PR identity join even when they are ancestors of the tip.\n- Tests need real (or faithful fixture) histories: (a) tip SHA as `--merge-commit` without matching PR merge → refuse; (b) unrelated delivery-branch ancestor → refuse; (c) correct `merge_commit_sha` with implementation commit not contained → refuse; (d) correct merge + contained implementation → accept.\n- `mergedAt: \"supplied\"` should not count as positive evidence under Bound; prefer forge `merged_at` once PR-bound, or treat missing real timestamp as non-corroborating.\n- Out of scope (agree with Stop 1 / OP): whether delivered completions may co-land with product — that remains #3674.\n\n## Charter note\n\nOpen critique: no Prefer-A/B forced here. Any lean that weakens Bound to \"document the CLI risk\" or \"trust finalize callers\" fails to relieve P1–P2. Mechanism fix at the delivery gate is the relief path.\r\n\n",
+          "id": 5955245258,
+          "html_url": "https://github.com/deftai/directive/issues/3675#issuecomment-5955245258",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:04:22Z",
+          "updated_at": "2026-10-02T15:04:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#3675\ncharter: open critique\nspend: N>=3\nround: 1\ncritic-role: fresh\nid-ceiling: 5955185310\ndispatch-sha: f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb\narc-mode: no-ingest\naudit-targets: none\nseat: codex\nlauncher: codex\n\nVerdict: support the defect; revise Bound before implementation. PR identity binding is necessary, but unconditional implementationCommit ancestry rejects legitimate squash/rebase delivery and still needs an independently established story-to-PR association.\n\n### Pain audit at the dispatch pin\n\n- **P1 supported.** `delivery-evidence.ts:275-314,362-529` checks the supplied merge against the refreshed delivery tip without joining it to story identity. `gitIsAncestor` returns true for identical strings. Equality itself is correct Git ancestry semantics: a legitimate story merge may be the delivery tip. Removing that shortcut or rejecting equality would not repair the identity defect; an older unrelated delivery ancestor still passes. The issue's CLI example demonstrates the delivery subgate, conditional on the other lifecycle gates allowing completion; I did not execute a completion mutation.\n- **P2 supported, with two qualifications.** `main.ts:248-260` constructs evidence without implementationCommit and fabricates `mergedAt: \"supplied\"`. The evaluator actually permits missing mergedAt when mergeCommit exists (`delivery-evidence.ts:445-459`), so removing that literal alone changes no material guarantee. Also, the pinned CLI does fetch closing references when both PR and repository are supplied (`main.ts:494-530`); saying the entire CLI never fetches PR-related data would overclaim. That conditional one-PR-unit check does not validate merge_commit_sha or implementation containment, and the merge-only path skips it. `evidenceFromPrPayload:592-629` derives head and merge fields from a payload, which supports the safer finalizer evidence source; a parser alone does not prove every caller selected the correct, actually merged story PR.\n- **P3 supported for the named surfaces; narrow the universal claim.** `stampDeliveryProvenance:533-566` persists the assertion, and `classifyStoredDeliveryDisposition:214-233` trusts its stored disposition. The pinned completed-tracked evaluator checks terminal artifact issue identity plus residual plan identities, not PR merge provenance; it does more than raw path presence, but still cannot detect this false stamp. `delivery-evidence.test.ts` uses `gitOk` to return selected ancestry results and its successful transition test confirms durable delivered metadata. There are refusal tests for non-ancestry/fetch failures, but no real-history identity counterexample. These reads support a durable false-audit risk, not evidence of an actual false completion or proof that every downstream consumer fails to revalidate.\n\n### Bound stress tests\n\n1. **Blocking compatibility counterexample: squash.** Start with base A, branch implementation H, then squash to S with parent A. The PR genuinely delivered H's changes, yet H is not an ancestor of S. Rebase merging can likewise replace H with a new object. At this pin `evidenceFromPrPayload` explicitly records `head.sha` as implementationCommit, so the proposed unconditional ancestry conjunct would reject such genuine payloads. Do not relabel S as implementationCommit merely to make the check pass; that destroys the audit distinction. Choose an explicit contract: either support rewritten delivery through the trusted merged-PR relationship, or deliberately limit supported merge modes and state that compatibility break. Do not silently call rewritten history undelivered.\n2. **Identity laundering remains possible if all tuple members are caller-selected.** An unrelated merged PR Q, its actual merge M, and a valid head H can satisfy both proposed predicates for a merge-preserving history. The missing join is scope -> expected repository/PR/head. Establish that association from the scope's recorded implementation identity and authoritative PR relationship, then compare supplied hints against it. A branch name or arbitrary --pr is not by itself story identity. Define behavior for deleted branches and later leftover completion; current checkout HEAD may be a lifecycle commit rather than the shipped implementation.\n3. **Actual merge state must be checked separately.** Require authoritative merged state/non-null merged_at, not just a returned merge_commit_sha; make absent/malformed PR data or lookup failure fail closed before stamping. Preserve merge-to-ref ancestry against the configured delivery branch, including the existing integration-branch case. PR base equality must not replace delivery ancestry.\n\n### Smallest defensible remedy and acceptance evidence\n\nUse one shared evidence-validation boundary before durable stamping: resolve the story-associated PR in the expected repository; verify it actually merged; bind the supplied merge SHA to the authoritative merge result; bind the recorded implementation to the PR's merged head; then verify that merge result is reachable from the refreshed configured delivery tip. Specify the squash/rebase rule explicitly rather than making raw source-head ancestry universal. Keep non-delivery exits distinct and keep production callers on the same validator.\n\nAdd real temporary Git histories for (a) unmerged story plus delivery tip supplied as merge, (b) older unrelated delivery ancestor, (c) legitimate merge equal to delivery tip, (d) valid story merge subsequently delivered through integration, and (e) squash/rebase success or explicit unsupported-mode refusal according to the chosen contract. Inject REST fixtures independently: wrong story PR, wrong repository, mismatched merge SHA, unmerged PR, changed/missing head, lookup failure, and absent implementation identity. Assert refusals leave no new durable delivered stamp and exercise both initial completion and completed-record restamping (`transition.ts:362,664`). Existing mocked tests remain useful for errors, but cannot substitute for these history cases.\n\nScope boundary: #3674 co-land policy excluded. Historical-record remediation is a separate decision; fixing the writer does not retroactively authenticate old stamps. No implementation, ingestion, sibling critic reads, or completion mutation performed. Verification was REST body plus ceiling-filtered comments and repository reads pinned to the dispatch SHA.",
+          "id": 5955262989,
+          "html_url": "https://github.com/deftai/directive/issues/3675#issuecomment-5955262989",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:05:28Z",
+          "updated_at": "2026-10-02T15:05:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#3675\ncharter: open critique\nround: 1\ncritic-role: fresh\nspend: N>=3\narc-mode: no-ingest\naudit-targets: none\ndispatch-sha: f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb\ninput-ceiling: 5955185310\nseat: claude\nlauncher: claude\n\n## Verdict\n\nP1 support. P2 support, sharpened. P3 support, sharpened. All three anchors re-verified by pin-read at dispatch-sha.\n\n**The Bound sketch does not survive contact with this repo.** Clause 2 (\"the recorded `implementationCommit` is reachable from that merge\") is not merely insufficient -- it is unsatisfiable here, and on the one path that actually has the hole it is also a no-op. Clause 1 is circular as written. C1-C3 below; the pain itself stands.\n\n## C1 (load-bearing) -- containment fails closed on every legitimate delivery, because directive squash-merges\n\nAt pin, 299 of the last 300 commits are single-parent. The lone two-parent commit is a local integration merge (`f862ca5f6`, 2026-09-22, \"merge origin/master for the v0.119.7 cut\"), not a PR merge. The last actual `Merge pull request` is `ff1e3a773`, 2026-08-05 -- roughly two months and ~300 commits before the pin. The dispatch tip itself, `f2a0930a0 ... (#5250)`, has exactly one parent.\n\nFor a squash merge, the forge's `merge_commit_sha` is a **new** commit whose only parent is the base tip. The PR head sha sits on an abandoned branch with no path into the delivery line, so it is **not** an ancestor of the merge. \"implementationCommit reachable from that merge\" is therefore false for every squash-merged PR -- which is every PR in the current regime.\n\nBoth implementations are broken, in opposite directions:\n\n- conditional (\"check containment when `implementationCommit` is present\") -> silent no-op (C2);\n- mandatory -> refuses 100% of legitimate deliveries.\n\nThere is no setting in between. Containment has to be **replaced**, not tuned. This is the part of the Scope I would not carry forward as written.\n\n## C2 -- clause 2 is also vacuous on exactly the path P1/P2 indict\n\n`implementationCommit` occurs in exactly two files repo-wide at pin -- `packages/core/src/scope/delivery-evidence.ts` and its test (`git grep -l implementationCommit <sha> -- packages`). It has one producer: `evidenceFromPrPayload` (`delivery-evidence.ts:620`, `implementationCommit: headSha`), on the swarm path.\n\nThe `scope:complete` parser (`packages/core/src/scope/main.ts:190-232`) accepts `--non-delivery`, `--pr`, `--merge-commit`, `--pr-base`, `--delivery-branch`, `--repo`, `--merged-at`. **There is no `--implementation-commit`.** On the direct CLI path -- the path with the hole -- `implementationCommit` is structurally always `null`.\n\nNor is it recorded at implement time. The only write is `delivery-evidence.ts:545`, into `meta.completionProvenance`, at completion, from the same evidence object the worker just supplied. There is no story-side copy to compare against. So: without a flag the check is vacuous; with a flag it compares a worker-supplied value to a worker-supplied value. Clause 2 becomes load-bearing only given a *trusted story-side* implementation commit written at implement time -- scope the sketch does not name, and which still could not take the form of a containment check under C1.\n\n## C3 -- clause 1 is circular without a story-to-PR join, which the sketch omits\n\n\"Bind merge to head PR `merge_commit_sha`\" fetches PR *n*, where *n* comes from `--pr <n>`: worker-supplied, unvalidated, and optional. Comparing that PR's `merge_commit_sha` to `--merge-commit` proves only *\"the sha you handed me is some merged PR's merge sha.\"* The worker chooses the PR. Naming any recently merged PR passes the bind.\n\nThe missing conjunct is PR -> **this story's** issue, and the repo already has the machinery: `packages/core/src/pr-protected-issues/gh.ts:96` runs `gh pr view <N> --json closingIssuesReferences`, and `packages/core/src/one-pr-unit/merge-group.ts:43` derives a closer set from `closingIssuesReferences` with body and commit-message fallbacks (`:74` treats all three unreadable as *unreadable* rather than as absent -- the right failure posture to inherit). The story's issue is already on the plan as an `x-xbrief/github-issue` reference.\n\nMinimal honest bind is three conjuncts, not two:\n\n1. PR *n* is merged **and** its closer set contains this story's issue;\n2. supplied `--merge-commit` **equals** PR *n*'s `merge_commit_sha` -- identity, not reachability;\n3. that sha is an ancestor of refreshed `origin/<deliveryBranch>` -- the existing check, retained as liveness, no longer decisive.\n\n(2) is what kills the same-SHA and foreign-merge arguments; (1) is what makes (2) non-circular. Together they make containment both redundant and unnecessary -- and unlike containment, they are squash-safe.\n\n## Footnotes\n\n**F1 -- `assumeEvidenceValidated` is a total bypass, strictly weaker than the hole under discussion.** At `delivery-evidence.ts:472` it returns `ok: true` / `disposition: delivered` / `handoffState: delivered` *before* `verifyDeliveryAncestry` is ever reached; at `:450` it also waives the missing-`mergedAt` refusal. It is not reachable from `scope:complete` argv, so it is not a second CLI hole today -- but `swarm/finalize-cohort.ts:2119` sets it `true` and `swarm/complete-cohort.ts:271` forwards it. Any bind that lands must say what happens on this path, or the swarm path silently keeps the old semantics. Worth naming in Scope.\n\n**F2 -- \"swarm:finalize-cohort is not affected in practice\": support, but record the reason precisely.** It is safe by *provenance* (its tuple comes from `evidenceFromPrPayload` over a real merged-PR payload), not by *gate*. Its gate is strictly weaker (F1), and the ancestry it verifies before setting the flag is the same reachability-only check P1 indicts. The safety is a property of that one caller, not of anything enforced. A future caller feeding `defaultEvidence` from a looser source inherits no protection at all.\n\n**F3 -- `mergedAt` is weaker than \"synthesizes `supplied`\" conveys.** `main.ts:260` does synthesize the literal -- confirmed. But `delivery-evidence.ts:446-456` shows `mergedAt` is not required *at all* once `mergeCommit` is present: the missing-`mergedAt` refusal fires only when `mergeCommit === null`. The synthesized literal does not even have to be reached for the gate to pass. So `mergedAt` is not merely non-corroborating -- on the exploit path it is not an input.\n\n**F4 -- P3's test gap is sharper than \"mocks ancestry as success.\"** `gitOk()` (`delivery-evidence.test.ts:62-81`) *does* exercise refusal, via `notAncestor: true` at `:242` and `:287`. The genuinely unreachable case is the same-SHA short-circuit: `gitIsAncestor` (`packages/core/src/session/git.ts:259-261`) returns `true` **before** calling `runGit`, so no mock configuration can reach it. The proof-of-hole test needs no new harness -- `mergeCommit: \"deliverytipsha\"` (the mock's own tip, `:72`) with `runGit: gitOk({ notAncestor: true })` must refuse, and today returns `ok: true` with `disposition: delivered`. One test, red on the pin, green under the C3 bind. I would make it the acceptance criterion.\n\n**F5 -- `verify:completed-tracked` non-revalidation: support.** `packages/cli/src/verify-completed-tracked.ts` contains zero occurrences of `provenance`, `mergeCommit`, or `disposition` at pin. It cannot revalidate what it never reads.\n\n## Plain-language summary\n\nThe hole is real and worth closing. The proposed fix would not close it. Half of it -- \"check the story's own commit is inside the merge\" -- cannot work here, because this repo squashes: the story's commit never ends up inside the merge, so that check would reject real, honest deliveries. The other half -- \"check it is the PR's merge commit\" -- still lets the worker choose which PR to check against, so it can be walked around. What actually closes it is requiring that the PR closes *this story's issue*, and that the supplied sha **is** that PR's merge sha, rather than merely sitting somewhere behind master.\n\n",
+          "id": 5955315365,
+          "html_url": "https://github.com/deftai/directive/issues/3675#issuecomment-5955315365",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:08:34Z",
+          "updated_at": "2026-10-02T15:08:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`scope:complete --merge-commit` still accepts any delivery-branch ancestor as proof of delivery. All three round-1 critics supported Stop 1 pains P1–P3. They also rejected carrying the OP Bound's \"implementationCommit reachable from the merge\" conjunct as written: this repo squash-merges, so that check refuses honest deliveries (or becomes a no-op on the CLI path where implementationCommit is never recorded). Prefer-A binds a three-conjunct story→PR→merge identity join and keeps delivery-tip ancestry as liveness only. Co-land policy stays with closed #3674.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.5 parent authored Stop 1 and this lean. Takes accept critic headings that already have cross-family corroboration (Claude 5955315365, Codex 5955262989, Grok 5955245258).\n\nForward verdict: accept-into-contract. Disposition: classified headings accept-into-contract. Residual: pain-P1, pain-P2, pain-P3 asserted until a pain-audit critic targets the cites.\nSpec-path: next-build contract is not this body.\n\n**Lean:** Round-1 Prefer-A successor after N≥3 panel. Cites critic 5955245258 (grok), 5955262989 (codex), 5955315365 (claude). Empty disagreement set on P1–P3 support; Bound revised per C1–C3 / Bound stress.\n\nTarget-digest: sha256:de94fa6d510e73d81d0443994d068cd521c686840d4ff186187f61e7ed3b94b3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-3675-dc\norigin-ref: origin/HEAD\ndispatch-sha: f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb\nDual-stop cap: 3 posts\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nspend: N≥3\nid-ceiling-round1: 5955185310\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bind map\n\n### Accept-into-contract\n\n1. **Reachability-only gate is the defect (P1).** `evaluateDeliveryGate` / `verifyDeliveryAncestry` treat `mergeCommit` as opaque and only require `gitIsAncestor(mergeCommit, remoteTip)`, including the same-SHA short-circuit. Tip SHA or any delivery-branch ancestor stamps `disposition: delivered`. Same-SHA short-circuit is correct Git ancestry semantics and is not the fix by itself. (All three critics.)\n\n2. **CLI path has no story-bound merge identity (P2).** Direct `scope:complete` does not join supplied merge to an authoritative PR `merge_commit_sha`, does not require story→PR association, and does not use `implementationCommit` as a containment predicate. `--pr` today is closer-set hygiene, not merge identity. `mergedAt: \"supplied\"` is non-corroborating; once `mergeCommit` is present, missing `mergedAt` is also permitted. `evidenceFromPrPayload` shows the safer finalize tuple shape but does not close the CLI gate. (All three; Claude C2/C3; Codex P2 qualifications.)\n\n3. **Durable false audit + test gap (P3).** Completed briefs persist `completionProvenance` with delivered disposition; `verify:completed-tracked` does not revalidate merge provenance. Unit mocks can refuse non-ancestry, but the same-SHA tip-as-merge exploit is unreachable through `runGit` mocks because `gitIsAncestor` returns before calling git. Acceptance needs real-history / tip-as-merge refusal plus identity fixtures. (All three; Claude F4/F5; Codex P3 narrow.)\n\n## Bound remedy\n\nPrefer-A shared evidence-validation boundary before durable `delivered` stamping (land in `evaluateDeliveryGate` or a callee it must invoke; do not leave the hole open by trusting finalize-only callers):\n\n1. **Story→PR join.** Resolve the story-associated PR in the expected repository from authoritative relationship (reuse `closingIssuesReferences` / one-PR-unit closer-set machinery). PR must be merged with authoritative non-null merge state / `merged_at`. Worker-supplied `--pr` alone is not story identity. Fail closed on lookup failure, wrong repo, wrong story, or unmerged PR.\n\n2. **Merge identity equality.** Supplied `--merge-commit` must **equal** that PR's authoritative `merge_commit_sha` (identity, not reachability). This refuses tip-as-merge and foreign delivery-branch ancestors even when they are tip ancestors.\n\n3. **Delivery liveness.** Retain existing merge→ref ancestry against the configured delivery branch (including integration-branch cases) as liveness after (1)(2). PR-base equality must not replace delivery ancestry.\n\n4. **Squash/rebase contract.** Do **not** require `implementationCommit` (PR head) to be a Git ancestor of `merge_commit_sha`. This repo squash-merges; that containment rejects honest deliveries. If a recorded implementation identity is bound, bind it through the trusted merged-PR relationship (e.g. PR head at merge time / payload head), with an explicit unsupported-mode refusal only if a merge mode is deliberately out of contract — never silent undelivered for rewritten history.\n\n5. **`assumeEvidenceValidated` honesty.** Name treatment of the swarm finalize path that sets `assumeEvidenceValidated: true` and currently bypasses ancestry before the new bind. Prefer: same validator on production callers, or an explicit documented exception that still requires the story→PR→merge identity tuple from `evidenceFromPrPayload` rather than opaque strings.\n\n6. **Acceptance evidence.** Real temporary Git histories for: unmerged story + tip supplied as merge → refuse; older unrelated delivery ancestor → refuse; legitimate merge equal to tip → accept; valid story merge later delivered through integration → accept; squash/rebase success under Prefer-A (no head-in-merge containment). REST fixtures: wrong story PR, wrong repository, mismatched merge SHA, unmerged PR, lookup failure, absent story→PR association. Assert refusals leave no new durable delivered stamp; exercise initial completion and restamp paths. One concrete red-on-pin acceptance: `mergeCommit` equal to mock delivery tip with `notAncestor: true` mock must refuse under Prefer-A identity join (today returns delivered via same-SHA short-circuit before git).\n\n## Reject\n\n- OP / Stop 1 Bound conjunct \"recorded `implementationCommit` is reachable from that merge\" as a universal gate predicate — unsatisfiable under squash; vacuous on CLI where `implementationCommit` is never recorded; identity-laundering risk if all tuple members remain caller-selected without story→PR join.\n- Relieving P1–P2 by documentation-only or \"trust finalize callers.\"\n- Folding co-land / delivered-completion co-land policy into this issue (#3674).\n- Historical remediating rewrite of already-stamped completed records as in-scope for this Bound (separate decision).\n- Parent-turn-shape / prose-only remediations; inventing `--implementation-commit` as the sole fix without story→PR join.\n\n## Honesty / footnotes carried\n\n- Finalize is safe by provenance of its payload today, not because the gate is strong (`assumeEvidenceValidated` is weaker than the CLI hole).\n- Codex: identity laundering if all members caller-selected — Prefer-A item 1 closes that.\n- Claude F3: `mergedAt` not required once mergeCommit present.\n- Out of scope: #3674 co-land.\n\npanel-cites: 5955245258, 5955262989, 5955315365\nstop1-cite: 5955168299\n\n",
+          "id": 5955341383,
+          "html_url": "https://github.com/deftai/directive/issues/3675#issuecomment-5955341383",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:09:45Z",
+          "updated_at": "2026-10-02T15:09:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#3675\ncharter: open critique\nround: pain-audit\ncritic-role: fresh\naudit-targets: pain-P1, pain-P2, pain-P3\nid-ceiling: 5955341383\ndispatch-sha: f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb\narc-mode: no-ingest\nseat: claude\nlauncher: claude\ndual-stop-raise: reserved-slot\n\n## Verdict\n\n- **pain-P1 - supported.** Not overclaimed. Confirmed satisfiable against live merge data, below.\n- **pain-P2 - overclaimed, non-blocking.** Two phrases in Bound item 1 (\"authoritative relationship\", \"expected repository\") assert more than the named machinery delivers. The repair is a narrowing of item 1, not a replacement.\n- **pain-P3 - supported, scope understated.** Relief is real and prospective-only, as the lean says. But the durable blast radius is two records, not one, and Bound item 5 is the one item that does not bind.\n\n**Bind map: not retracted.** No blocking finding. Item 1 wording, item 5 disjunction, and item 6 ambiguity are flagged for the next-build contract.\n\n## New pin-reads at dispatch-sha\n\nDest HEAD == dispatch-sha. Anchors not already on the record:\n\n- `evaluateDeliveryGate` takes `plan: Record<string, unknown>` (`delivery-evidence.ts:106`). The gate already holds the story record. The story-side anchor Bound item 1 needs is in scope at the call site, not plumbing that must be invented.\n- `disposition: \"delivered\"` is written at exactly two sites repo-wide, `delivery-evidence.ts:476` and `:518`, **both inside `evaluateDeliveryGate`** (git grep at pin, non-test). \"Land in `evaluateDeliveryGate`\" is not a preference. It is the whole surface. Stronger than the lean asserts.\n- `scope/main.ts:494-526` already runs a forge closer-set fetch on the complete path, and already fails closed on gh auth / rate-limit / network (`linked === null` then exit 1). It uses `closerSetFromIssueIds` over `fetchClosingIssuesReferences`, the **authoritative-only** constructor. But it is gated on worker-supplied `--pr` **and** `--repo` (omit either and the block is skipped), it compares the closer set against one-PR-unit *grants* rather than against this story, and it sits in `main.ts` **above** `runTransition`, so every programmatic `transition.ts` caller bypasses it.\n- `fetchClosingIssuesReferences` (`pr-protected-issues/gh.ts:90`) is **synchronous** and takes an injected `runGh`. Bound item 1 can land inside the gate without making `evaluateDeliveryGate` async or rippling its signature through callers. That de-risks the lean materially and should be said in the contract.\n- `transition.ts:383`: `reuseValidatedDeliveryAncestry = gate.provenance.disposition === \"delivered\"`; `:392` then calls `stampMergeFromCompletionProvenance`, which converts `completionProvenance.mergeCommit` into durable **acceptance-clause merge evidence** and, because the gate said delivered, skips its own ancestry via `passThroughProvenanceAncestry` (`acceptance-evidence.ts:1009-1045`, `:1066`). Second durable record, consumed by `verify:ac`.\n- `assumeEvidenceValidated`: zero occurrences in `scope/main.ts` at pin, so Claude F1's non-reachability from `scope:complete` argv is confirmed. `swarm/finalize-cohort.ts:2119` sets it `true`; the field's own doc at `delivery-evidence.ts:113-116` says \"tests only ... Production callers leave this false.\" **That comment is false at pin.**\n- `verify-completed-tracked.ts`: zero occurrences of `provenance`, `mergeCommit`, `disposition`. F5 re-confirmed.\n- No `--implementation-commit` in the `scope:complete` parser; `main.ts:255-262` never sets `implementationCommit` on the CLI evidence object. C2 re-confirmed.\n\n## pain-P1 - supported\n\nThe lean replaced an unsatisfiable predicate (C1 containment) with an equality predicate. The audit question is whether the replacement is satisfiable in the live regime, or whether Prefer-A repeats C1 in a new place. **It does not.** Checked against the three most recent merged PRs:\n\n| PR | `merge_commit_sha` | on `origin/master`? | head in ancestors(master)? |\n|---|---|---|---|\n| #5250 | `f2a0930a0` (= dispatch tip) | yes | no - head `7a226abfd` is **not even present in this clone** |\n| #5243 | `68b51145a` | yes | no (`97cf6e9d3`) |\n| #5241 | `36b0c9eed` | yes | no (`7e3f3abda`) |\n\n`f2a0930a0` has one parent. Conjuncts (2) identity-equality and (3) delivery-tip ancestry are **jointly satisfied 3/3** on real merges. The rejected containment conjunct would have refused **3/3**, and in the #5250 case could not even have been evaluated: after branch deletion the head object is absent from a routine clone, so containment fails on fetch state rather than on merit. That is the strongest available support for the lean's Reject bullet, and it is empirical rather than inferred.\n\nThe lean is also right to refuse the tempting fix. The `gitIsAncestor` same-SHA short-circuit is correct Git semantics and the legitimate case is live: #5250's merge sha **is** the tip. Removing equality would have refused the honest case while leaving older unrelated ancestors passing. Identity strictly dominates reachability here, and liveness is retained rather than replaced. No overclaim.\n\n## pain-P2 - overclaimed, non-blocking\n\nBound item 1: *\"Resolve the story-associated PR in the expected repository from authoritative relationship (reuse `closingIssuesReferences` / one-PR-unit closer-set machinery).\"* Two defects.\n\n**(a) The parenthetical conflates an authoritative source with a deliberately non-authoritative one.** `closerSetFromReferences` (`one-pr-unit/closer-set.ts:74`) **unions** forge `closingIssuesReferences` with `extractIntentCloserSet` over PR body **and commit messages** (`:30`, keyword grammar close/fix/resolve plus `#N` or `owner/repo#N`, with comma lists). `merge-group.ts:41` feeds it exactly that way. Self-asserted text is not an authoritative relationship. The polarity is what matters: over-inclusion is **fail-safe** in the one-PR-unit census, whose job is catching undeclared closers, and **fail-open** in a delivery gate. Reusing the inclusive constructor inverts its safety direction. The CLI's own precedent, in the same block, already uses the narrow one: `closerSetFromIssueIds(repo, fetchClosingIssuesReferences(...))` at `main.ts:508`. **Name that pair in the contract and exclude `closerSetFromReferences` / `extractIntentCloserSet` explicitly**, or a builder will reuse the inclusive helper in good faith.\n\n**(b) \"expected repository\" has no stated anchor, and the only candidate on the evidence path is worker-supplied.** `evidence.repository` is `--repo` (`main.ts:259`), provenance-only. If *expected* resolves to `--repo`, item 1 is self-referential and P2 is not relieved at all. The non-worker anchor is the plan's `x-xbrief/github-issue` reference, which the gate already has, but at pin only a boolean extractor exists (`hasGithubIssueRef`, `delivery-evidence.ts:192`). The contract must say: expected repo and issue derive from the plan reference; `--repo` / `--pr` are checked **against** it, never the source of it.\n\n**Residual after both repairs.** The lean's *\"Fail closed on lookup failure, wrong repo, wrong story, or unmerged PR\"* reads as closure. It is a large reduction, not a closure: a worker who authors any PR that genuinely merges and whose **forge** closer set includes this story's issue satisfies all three conjuncts without the story's own work landing. Today's bar is a zero-cost `git rev-parse origin/master`; after Prefer-A it is \"land a real PR that forge-links this issue.\" That is the right trade and I would take it, but state it as a residual, because the one-PR-unit grant machinery that would otherwise police such a declaration runs at merge time, and a PR body is editable after merge.\n\nNon-blocking: (a) and (b) are wording narrowings inside item 1. Unlike C1, nothing structural is replaced.\n\n## pain-P3 - supported, scope understated\n\nWriter-side relief is real, and tighter than the lean claims: both `delivered` writes are inside the gate, so the chokepoint is complete. Reader-side is unchanged and the lean does not pretend otherwise: `verify:completed-tracked` still reads none of the provenance fields. Prospective-only relief, honestly disclosed. Three sharpenings.\n\n**F-a - the durable record is two records, not one.** The bind map's P3 heading names completed briefs and `verify:completed-tracked`. It does not name `transition.ts:392`. A `delivered` verdict immediately converts the same unverified `mergeCommit` into **acceptance-clause merge evidence**, and `reuseValidatedAncestry` makes that writer skip its own ancestry check *because the gate already said delivered*. Today's false stamp therefore also satisfies acceptance-clause merge evidence for a story that never merged. Prefer-A closes this too, same source and same chokepoint, so it is **not blocking**. But it widens the Reject bullet the lean defers: *\"Historical remediating rewrite of already-stamped completed records\"* is a larger decision than stated, because existing stamps have already propagated into derived acceptance evidence. Say so in the deferral.\n\n**F-b - item 6's refusal assertion is ambiguous against #5120 and will mislead a test author.** *\"Assert refusals leave no new durable delivered stamp.\"* There are two different refusals. A **delivery-gate** refusal returns early at `transition.ts:372` and writes nothing: correct, and assertable. A later **acceptance** refusal deliberately persists clause and merge stamps anyway (`transition.ts:400-406`, \"#5120: persist ... even when later acceptance refuses\"). A test written to item 6's letter against the second case would assert a contradiction with intentional behaviour and then get \"fixed\" in the wrong direction. Scope the assertion to delivery-gate refusal.\n\n**F-c - item 5 is the one Bound item that does not bind.** *\"Name treatment of the swarm finalize path ... Prefer: same validator ... **or** an explicit documented exception.\"* A disjunction whose second branch preserves the status quo is not a bind. At pin the exception branch is strictly weaker than the hole under discussion: `:472` returns `delivered` before ancestry is reached, and `:450` waives the missing-`mergedAt` refusal. It is not argv-reachable, so this is **footnote-only for P1/P2**, but it is load-bearing for P3, because that branch reaches both durable `delivered` writes and through them `transition.ts:392` as well. The carried footnote *\"finalize is safe by provenance, not by gate\"* is accurate, but it describes one caller's input discipline rather than an enforced property. Drop the disjunction: same validator, with the `evidenceFromPrPayload` tuple as its input.\n\nMinor, no action: `isCodeBearingScope` (`:157`) exits the gate early on `metadata.delivery.required === false`, `docs-only`, or `kind: docs`, but returns `provenance: null`, so `classifyStoredDeliveryDisposition` yields `unverified` / `unknown`. No false *delivered*. Different axis, correctly out of this issue.\n\n## Disposition\n\nBind map intact. Prefer-A's three conjuncts relieve P1 as asserted and verifiably, relieve P2 in direction but at lower strength than item 1's wording claims, and relieve P3 prospectively across a surface one record wider than the heading names. Carry into the contract: narrow item 1 to the authoritative constructor and a plan-derived expected repo and issue; state the P2 residual; name `transition.ts:392` under P3; scope item 6's refusal assertion; remove item 5's disjunction. #3674 co-land stays out.\n\n## Plain-language summary\n\nThe proposed fix holds up. I checked it against the last three real merges: the new \"is this the PR's actual merge commit, and is it on master\" test passes on all three, while the test the panel threw out would have failed all three. On one of them the commit that test needs is not even in a normal clone. So the replacement is sound, not a repeat of the mistake it replaced.\n\nTwo things are stated more strongly than the code supports. The lean says to check the PR against the story using \"authoritative\" linkage, but the helper it points at also counts whatever the PR's own text claims, which is the author talking about themselves. And it never says where \"the expected repository\" comes from; the only one currently available is the one the worker types in. Both are fixable by naming the right helper and the right source, and neither breaks the plan. Even repaired, this raises the bar rather than removing it: you would now have to land a real PR that links this issue, instead of just typing master's current commit.\n\nOne thing is bigger than the writeup says. The moment the gate says \"delivered\", that same unverified commit is also written into the acceptance record as proof, so a false stamp today lands in two places rather than one. The fix closes both, but the separate question of what to do about records already stamped is correspondingly larger than stated.\n\n",
+          "id": 5955490078,
+          "html_url": "https://github.com/deftai/directive/issues/3675#issuecomment-5955490078",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:18:40Z",
+          "updated_at": "2026-10-02T15:18:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5955341383 and pain-audit 5955490078 (PASS, footnote-only / non-blocking). Round-1 critics: 5955245258 (grok), 5955262989 (codex), 5955315365 (claude).\n\n| # | Claim | Status | Evidence |\n|---|---|---|---|\n| 1 | Delivery gate is reachability-only: opaque mergeCommit + gitIsAncestor(tip) including same-SHA short-circuit stamps delivered | verified | All three P1; pin delivery-evidence.ts / git.ts |\n| 2 | Direct CLI complete path has no story→PR→merge identity join; --pr is closer-set hygiene not merge bind | verified | All three P2; main.ts --pr block vs evaluateDeliveryGate |\n| 3 | implementationCommit containment in merge is unsatisfiable under squash and vacuous on CLI (no producer / no flag) | verified | Claude C1/C2; Codex squash counterexample; pain-audit live 3/3 merges |\n| 4 | Prefer-A three conjuncts (story→PR join, merge_commit_sha equality, tip ancestry as liveness) are jointly satisfied on recent real merges; containment would refuse them | verified | Pain-audit empirical 3/3; Claude C3 |\n| 5 | Durable delivered writes are only inside evaluateDeliveryGate; false stamp also feeds acceptance-clause merge evidence via transition | verified | Pain-audit pin-read both write sites; F-a |\n| 6 | verify:completed-tracked does not revalidate merge provenance; same-SHA tip exploit unreachable via runGit mocks | verified | Claude F4/F5; Codex P3; Grok P3 |\n| 7 | Keep #3674 co-land policy out of scope; no historical remediating rewrite of old stamps in this Bound | verified | All critics + lean Reject |\n\nFootnotes from pain-audit 5955490078 carry into Bound (not unresolved pain / not bind retraction):\n\n- Bound item 1: name `closerSetFromIssueIds` + `fetchClosingIssuesReferences` only; exclude inclusive `closerSetFromReferences` / body-commit extractors (fail-open if reused for delivery).\n- Bound item 1: expected repo/issue derive from plan `x-xbrief/github-issue` reference; `--repo`/`--pr` checked against it.\n- P2 residual: Prefer-A raises the bar to \"land a real forge-linked PR\" rather than zero-cost tip SHA; state residual honestly.\n- Bound item 5: drop disjunction — same validator on finalize path with `evidenceFromPrPayload` tuple as input.\n- Bound item 6: scope \"no new durable delivered stamp\" to delivery-gate refusal (not later acceptance refusal under #5120 persist).\n- Name `transition.ts` acceptance-clause merge evidence under P3 blast; historical remediation deferral is wider than completed-brief rewrite alone.\n\n",
+          "id": 5955504975,
+          "html_url": "https://github.com/deftai/directive/issues/3675#issuecomment-5955504975",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:19:37Z",
+          "updated_at": "2026-10-02T15:19:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe delivery gate still accepts any commit already on master as proof that this story shipped. The panel agreed the hole is real, and that the fix is a story→PR→merge identity join with tip ancestry kept only as liveness — not “is the PR head inside the squash merge,” which would reject honest deliveries on this repo. Pain-audit kept Prefer-A bindable with wording footnotes for the next-build contract (authoritative closer-set only, plan-derived expected repo/issue, same validator on finalize, scoped refusal assertions).\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites successor lean 5955341383 and verified-claims table 5955504975.\npain-audit 5955490078 is footnote-only; leftover-pain of relieves P1, P2, P3 is satisfied.\n\nBound contract cites successor lean 5955341383.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-3675-dc\norigin-ref: origin/HEAD\ndispatch-sha: f2a0930a0a5aa81a0b07d90980f921b8c1dea8cb\nDual-stop cap: 3 posts\ndest-wo: leftover-complete\n\n",
+          "id": 5955508205,
+          "html_url": "https://github.com/deftai/directive/issues/3675#issuecomment-5955508205",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-02T15:19:50Z",
+          "updated_at": "2026-10-02T15:19:50Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "`scope:complete` accepts any commit already on the delivery branch as proof that a story shipped. The gate checks reachability, never identity, so a worker can stamp `disposition: delivered` before its own work merges — or without it ever merging.\n\nFound independently by two decorrelated critics during the #3674 panel, from different angles. Neither was willing to use it as a refutation, both classified it as a hole rather than a supported path.\n\n## Mechanism\n\nAt `8bb1e528`:\n\n- `evaluateDeliveryGate` (`packages/core/src/scope/delivery-evidence.ts:336`) takes `evidence.mergeCommit` as an opaque string. It does not fetch the PR, does not compare the string to GitHub's `merge_commit_sha`, and does not check that the recorded `implementationCommit` is contained in the merge.\n- `verifyDeliveryAncestry` (`:249`) resolves the question to a single call at `:268`: `gitIsAncestor(projectRoot, mergeCommit, remoteTip)`.\n- `gitIsAncestor` (`packages/core/src/session/git.ts:73`) short-circuits on `ancestor === descendant` and returns `true`, documented as \"same commit counts.\"\n- `mergedAt` is not corroborating evidence. `packages/core/src/scope/main.ts:224` synthesizes the literal string `\"supplied\"` whenever `--merge-commit` is passed without a timestamp.\n\nSo `scope:complete -- --merge-commit $(git rev-parse origin/master)` returns `ok: true` with `disposition: delivered` and `handoffState: delivered`, on a branch that has never merged, naming a merge that delivered someone else's work.\n\n`swarm:finalize-cohort` is not affected in practice: it derives the tuple from the merged PR payload, so the commit it supplies is genuinely bound to the story. The hole is on the direct CLI path.\n\n## Why it matters\n\nThe stamp is durable, not transient. Completed artifacts persist the whole record — `xbrief/completed/2026-08-23-3651-*.xbrief.json` carries `completionProvenance.mergeCommit`, `disposition: delivered`, and `handoffState: delivered` into the tree. A false stamp becomes the permanent audit answer for whether that story shipped, and nothing downstream re-derives it. `verify:completed-tracked` checks that the artifact is present on the delivery tip; it does not revalidate provenance.\n\nThis is the same interested-party problem ADR-006 addresses elsewhere: the party asserting delivery is the party being audited, and the check accepts an unverifiable assertion.\n\nThere is no evidence any worker has done this. The concern is that the gate reads as authoritative while enforcing a condition much weaker than the one it appears to enforce — and #3674's panel showed the pressure to reach for it is real, since it is the only mechanical way to co-land a delivered completion.\n\n## Scope\n\nBind the supplied merge commit to the story before accepting `delivered`:\n\n- the merge commit is the head PR's actual merge commit, and\n- the recorded `implementationCommit` is reachable from it.\n\nTests do not currently close this. `delivery-evidence.test.ts` mocks `merge-base --is-ancestor` as success rather than building real pre-merge history, so a same-SHA or unrelated-ancestor argument is never exercised.\n\nDeliberately out of scope: whether `delivered` completions should be able to co-land at all. That question belongs to #3674.\n\n## References\n\n- #3674 — panel that surfaced this; do not fold the fix there, the subjects are separable\n- #3041 — introduced the ancestry gate (`4dab160f`, 2026-08-02)\n- #3380 — made ancestry decisive over PR-base equality (`60ba24a3`, 2026-08-16)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5231157106,
+        "origin": "deftai/directive#3675",
+        "id": "github.issue.5231157106"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "de94fa6d510e73d81d0443994d068cd521c686840d4ff186187f61e7ed3b94b3"
+      },
+      "x-directive/bound-lean": 5955341383,
+      "x-directive/synthesis": 5955508205,
+      "productPullRequest": 5313,
+      "x-directive/productPullRequest": 5313,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5313,
+        "prBase": null,
+        "mergeCommit": "0f97a84c8d80a643f34e9bdc2e921c3bfe8a754d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0f97a84c8d80a643f34e9bdc2e921c3bfe8a754d",
+        "verifiedAt": "2026-10-04T13:46:43Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTA2YzItMGE3Zi03OTgyLWJjMGItMTAzZGMxNzZiMjBj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-04T13:46:43Z",
+      "completedSessionId": "host:grok:v1:MDFhMTA2YzItMGE3Zi03OTgyLWJjMGItMTAzZGMxNzZiMjBj",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T13:46:43Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover pathless derived after #5313",
+      "sentences": [
+        "Story→PR→merge identity join before delivery-tip ancestry",
+        "Authoritative closingIssuesReferences + merge_commit_sha equality",
+        "Refuse tip-as-merge / foreign ancestors; squash-safe",
+        "assumeEvidenceValidated only after same identity join",
+        "Tests + CHANGELOG for Prefer-A delivery gate identity"
+      ],
+      "admitted_source_sentences": [
+        "Story→PR→merge identity join before delivery-tip ancestry",
+        "Authoritative closingIssuesReferences + merge_commit_sha equality",
+        "Refuse tip-as-merge / foreign ancestors; squash-safe",
+        "assumeEvidenceValidated only after same identity join",
+        "Tests + CHANGELOG for Prefer-A delivery gate identity"
+      ],
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Story→PR→merge identity join before delivery-tip ancestry",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5313 squash-merge (Tracking #3675). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5313",
+              "mintedAt": "2026-10-04T13:46:24.089Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T13:46:24.089Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Authoritative closingIssuesReferences + merge_commit_sha equality",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5313 squash-merge (Tracking #3675). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5313",
+              "mintedAt": "2026-10-04T13:46:24.089Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T13:46:24.089Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Refuse tip-as-merge / foreign ancestors; squash-safe",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5313 squash-merge (Tracking #3675). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5313",
+              "mintedAt": "2026-10-04T13:46:24.089Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T13:46:24.089Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "assumeEvidenceValidated only after same identity join",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5313 squash-merge (Tracking #3675). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5313",
+              "mintedAt": "2026-10-04T13:46:24.089Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T13:46:24.089Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Tests + CHANGELOG for Prefer-A delivery gate identity",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5313 squash-merge (Tracking #3675). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5313",
+              "mintedAt": "2026-10-04T13:46:24.089Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T13:46:24.089Z"
+          }
+        }
+      ]
+    },
+    "id": "github.issue.5231157106",
+    "updated": "2026-10-04T13:46:43Z"
+  }
+}
