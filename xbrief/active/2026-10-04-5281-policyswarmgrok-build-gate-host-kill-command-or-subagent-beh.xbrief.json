@@ -78,8 +78,7 @@
     ],
     "acceptance": {
       "commands": [],
-      "none_stated": false,
-      "source_rung": "bound",
+      "none_stated": true,
       "derived_reason": "Prefer-A Bound remedy stamped for through-merge cohort add",
       "sentences": [
         "policy(swarm,grok-build): gate host kill_command_or_subagent behind pre-cancel attestation (#5278 leftover)",
@@ -395,6 +394,6 @@
       "productPullRequest": 5293
     },
     "id": "github.issue.5684362591",
-    "updated": "2026-10-04T06:35:44Z"
+    "updated": "2026-10-04T06:41:09Z"
   }
 }
