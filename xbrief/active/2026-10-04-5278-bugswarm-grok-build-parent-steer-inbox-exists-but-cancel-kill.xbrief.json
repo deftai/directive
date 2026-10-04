@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Prefer-A Bound Path B activation for #5278 (query-before-cancel)",
-    "updated": "2026-10-04T06:21:55.684Z"
+    "updated": "2026-10-04T06:52:31.989Z"
   },
   "plan": {
     "title": "bug(swarm,grok-build): parent-steer inbox exists but cancel/kill has no query-first preflight (#4286 leftover)",
@@ -124,7 +124,7 @@
       "ambiguity_attestation": "none_found"
     },
     "metadata": {
-      "productPullRequest": 5288,
+      "productPullRequest": 5304,
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
@@ -166,6 +166,6 @@
       }
     },
     "id": "github.issue.5684076688",
-    "updated": "2026-10-04T06:21:55.684Z"
+    "updated": "2026-10-04T06:52:31.990Z"
   }
 }
