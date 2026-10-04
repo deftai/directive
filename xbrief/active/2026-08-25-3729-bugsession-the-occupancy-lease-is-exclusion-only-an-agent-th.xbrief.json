@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3729",
-    "updated": "2026-10-04T02:17:17Z"
+    "updated": "2026-10-04T02:23:20Z"
   },
   "plan": {
     "title": "bug(session): the occupancy lease is exclusion-only -- an agent that never claims is never gated",
@@ -61,7 +61,7 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "Prefer-A Bound clauses at activation; product verify_commands deferred to product PR #5290",
+      "derived_reason": "Prefer-A Bound clauses at activation; executable verify_commands deferred to product delivery",
       "clauses": [
         {
           "id": 1,
@@ -102,7 +102,7 @@
       "ambiguity_attestation": "none_found"
     },
     "metadata": {
-      "productPullRequest": 5287,
+      "productPullRequest": 5290,
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
@@ -127,6 +127,6 @@
       }
     },
     "id": "github.issue.5247648424",
-    "updated": "2026-10-04T02:17:17Z"
+    "updated": "2026-10-04T02:23:20Z"
   }
 }
