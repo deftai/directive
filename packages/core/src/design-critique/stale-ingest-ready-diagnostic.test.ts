@@ -278,7 +278,9 @@ describe("missing-pain later-arc recovery through to complete", () => {
     };
     const critic: ThreadComment = {
       id: 9000000003,
-      body: "role: critic\n\naudit-targets: pain-P1\n",
+      body:
+        "role: critic\n\naudit-targets: pain-P1\n" +
+        "finding-classes: none\nharvest-changed: false\n",
     };
     const synthesis: ThreadComment = {
       id: 9000000004,

@@ -33,6 +33,7 @@ import {
   DESIGN_CRITIQUE_CATALOG_CHIPS,
   writeDesignCritiqueCatalogRemainingSet,
 } from "./exclusive-chip.js";
+import { evaluateAccumulatedPainAuditFollowThrough } from "./pain-audit-follow-through-gate.js";
 import {
   type AuditEnvelope,
   buildPainCoverageDeposit,
@@ -509,20 +510,39 @@ function applyPainCoverage(
       criticEnvelopes: criticEnvelopes(comments, citedLean.id),
     }),
   );
-  if (audit.ok) return verdict;
-  const codes = [...new Set(audit.failures.map((row) => row.code))].join(", ");
-  return {
-    status: "blocked",
-    reason: "unresolved-pain-audit",
-    detail:
-      "pain id(s) " +
-      asserted.join(", ") +
-      " remain unresolved audit markers (" +
-      codes +
-      ") until a critic after successor lean " +
-      String(citedLean.id) +
-      " targets them",
-  };
+  if (!audit.ok) {
+    const codes = [...new Set(audit.failures.map((row) => row.code))].join(", ");
+    return {
+      status: "blocked",
+      reason: "unresolved-pain-audit",
+      detail:
+        "pain id(s) " +
+        asserted.join(", ") +
+        " remain unresolved audit markers (" +
+        codes +
+        ") until a critic after successor lean " +
+        String(citedLean.id) +
+        " targets them",
+    };
+  }
+  // #5233: after independent targeting clears, compose typed follow-through
+  // for every targeting audit on this harvest. Missing carrier / blocking /
+  // harvest-changing without a changed Bound-remedy digest refuse here so
+  // path-1, chip, and intake share one authority.
+  const followThrough = evaluateAccumulatedPainAuditFollowThrough({
+    comments,
+    citedLeanId: citedLean.id,
+    assertedPainIds: asserted,
+    isSuccessorLeanBody,
+  });
+  if (!followThrough.ok) {
+    return {
+      status: "blocked",
+      reason: "unresolved-pain-audit",
+      detail: followThrough.detail,
+    };
+  }
+  return verdict;
 }
 
 function finalizeComplete(

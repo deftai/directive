@@ -1391,7 +1391,9 @@ describe("pain coverage (#4496)", () => {
     ).toMatchObject({ status: "blocked", reason: "unresolved-pain-audit" });
     const critic: ThreadComment = {
       id: LEAN_ID + 1,
-      body: "role: critic\n\naudit-targets: pain-P1 pain-P2\n",
+      body:
+        "role: critic\n\naudit-targets: pain-P1 pain-P2\n" +
+        "finding-classes: none\nharvest-changed: false\n",
     };
     expect(
       evaluateCompletedArcRecord({
@@ -1463,7 +1465,9 @@ describe("pain coverage (#4496)", () => {
     ).toMatchObject({ status: "blocked", reason: "unresolved-pain-audit" });
     const critic: ThreadComment = {
       id: LEAN_ID + 1,
-      body: "role: critic\n\naudit-targets: pain-P1\n",
+      body:
+        "role: critic\n\naudit-targets: pain-P1\n" +
+        "finding-classes: none\nharvest-changed: false\n",
     };
     expect(
       evaluateCompletedArcRecord({
@@ -1532,7 +1536,9 @@ describe("pain coverage (#4496)", () => {
     };
     const critic: ThreadComment = {
       id: LEAN_ID + 1,
-      body: "role: critic\n\naudit-targets: pain-P2\n",
+      body:
+        "role: critic\n\naudit-targets: pain-P2\n" +
+        "finding-classes: none\nharvest-changed: false\n",
     };
     expect(
       evaluateCompletedArcRecord({
@@ -1568,7 +1574,9 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
   };
   const painAuditCritic: ThreadComment = {
     id: LEAN_ID + 1,
-    body: "model: grok-4.6\nrole: critic\n\naudit-targets: pain-P1\n",
+    body:
+      "model: grok-4.6\nrole: critic\n\naudit-targets: pain-P1\n" +
+      "finding-classes: none\nharvest-changed: false\n",
   };
   const bound = [lean, table, synthesis];
   const boundWithPain = [stop1P1, standingLean, table, painAuditCritic, synthesis];
