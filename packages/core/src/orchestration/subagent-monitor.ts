@@ -30,6 +30,10 @@ export const CANONICAL_PHASES = new Set([
   "terminal",
 ]);
 
+/** Closed wait_kind values (#5278 P2). Optional on heartbeat; validated when present. */
+export const WAIT_KINDS = ["pr:watch", "fix-batch", "reading", "idle", "unknown"] as const;
+export type WaitKind = (typeof WAIT_KINDS)[number];
+
 export const REQUIRED_FIELDS = [
   "agent_id",
   "parent_id",
@@ -49,6 +53,8 @@ export interface HeartbeatRecord {
   phase: string | null;
   terminal_state: string | null;
   pr_number: number | null;
+  wait_kind: WaitKind | null;
+  head_sha: string | null;
   age_seconds: number | null;
   is_terminal: boolean;
   is_stale: boolean;
@@ -70,12 +76,18 @@ export function recordToDict(rec: HeartbeatRecord): Record<string, unknown> {
     phase: rec.phase,
     terminal_state: rec.terminal_state,
     pr_number: rec.pr_number,
+    wait_kind: rec.wait_kind,
+    head_sha: rec.head_sha,
     age_seconds: rec.age_seconds,
     is_terminal: rec.is_terminal,
     is_stale: rec.is_stale,
     failures: [...rec.failures],
     ok: recordOk(rec),
   };
+}
+
+export function isWaitKind(value: unknown): value is WaitKind {
+  return typeof value === "string" && (WAIT_KINDS as readonly string[]).includes(value);
 }
 
 /** Parse ISO-8601 UTC timestamp (Z or +00:00). */
@@ -110,6 +122,8 @@ function emptyRecord(path: string): HeartbeatRecord {
     phase: null,
     terminal_state: null,
     pr_number: null,
+    wait_kind: null,
+    head_sha: null,
     age_seconds: null,
     is_terminal: false,
     is_stale: false,
@@ -167,6 +181,23 @@ export function parseHeartbeatFile(
   if (typeof obj.terminal_state === "string") rec.terminal_state = obj.terminal_state;
   if (typeof obj.pr_number === "number" && Number.isInteger(obj.pr_number)) {
     rec.pr_number = obj.pr_number;
+  }
+
+  if ("wait_kind" in obj) {
+    if (isWaitKind(obj.wait_kind)) {
+      rec.wait_kind = obj.wait_kind;
+    } else {
+      rec.failures.push(
+        `wait_kind must be one of ${WAIT_KINDS.join(", ")}; got ${JSON.stringify(obj.wait_kind)}`,
+      );
+    }
+  }
+  if ("head_sha" in obj) {
+    if (typeof obj.head_sha === "string" && obj.head_sha.trim().length > 0) {
+      rec.head_sha = obj.head_sha.trim();
+    } else if (obj.head_sha !== null) {
+      rec.failures.push("head_sha must be a non-empty string when present");
+    }
   }
 
   const expectedId = basename(filePath, ".json");
@@ -398,6 +429,12 @@ export function renderText(result: SweepResult): string {
       `    Last heartbeat:     ${rec.last_heartbeat_at_iso ?? "<unparsed>"} (age ${formatAge(rec.age_seconds)})`,
     );
     lines.push(`    Phase:              ${rec.phase ?? "<unset>"}`);
+    if (rec.wait_kind !== null) {
+      lines.push(`    Wait kind:          ${rec.wait_kind}`);
+    }
+    if (rec.head_sha !== null) {
+      lines.push(`    Head SHA:           ${rec.head_sha}`);
+    }
     if (rec.pr_number !== null) {
       lines.push(`    PR:                 #${rec.pr_number}`);
     }

@@ -30,6 +30,13 @@ export interface ParsedPreDispatchArgv {
   status: CompleteStatus | null;
   workerId: string | null;
   externalRunId: string | null;
+  agentId: string | null;
+  cancellerId: string | null;
+  steerDir: string | null;
+  scratchDir: string | null;
+  firstSeenDir: string | null;
+  preCancelForce: boolean;
+  preCancelReason: string | null;
   json: boolean;
   help: boolean;
 }
@@ -46,6 +53,13 @@ export function parsePreDispatchArgv(argv: string[]): ParsedPreDispatchArgv {
     status: null,
     workerId: null,
     externalRunId: null,
+    agentId: null,
+    cancellerId: null,
+    steerDir: null,
+    scratchDir: null,
+    firstSeenDir: null,
+    preCancelForce: false,
+    preCancelReason: null,
     json: false,
     help: false,
   };
@@ -55,6 +69,8 @@ export function parsePreDispatchArgv(argv: string[]): ParsedPreDispatchArgv {
       out.help = true;
     } else if (arg === "--json") {
       out.json = true;
+    } else if (arg === "--pre-cancel-force") {
+      out.preCancelForce = true;
     } else if (arg === "--project-root" && argv[i + 1] !== undefined) {
       out.projectRoot = argv[i + 1] ?? ".";
       i += 1;
@@ -85,6 +101,24 @@ export function parsePreDispatchArgv(argv: string[]): ParsedPreDispatchArgv {
     } else if (arg === "--external-run-id" && argv[i + 1] !== undefined) {
       out.externalRunId = argv[i + 1] ?? null;
       i += 1;
+    } else if ((arg === "--agent" || arg === "--agent-id") && argv[i + 1] !== undefined) {
+      out.agentId = argv[i + 1] ?? null;
+      i += 1;
+    } else if ((arg === "--canceller-id" || arg === "--canceller") && argv[i + 1] !== undefined) {
+      out.cancellerId = argv[i + 1] ?? null;
+      i += 1;
+    } else if (arg === "--steer-dir" && argv[i + 1] !== undefined) {
+      out.steerDir = argv[i + 1] ?? null;
+      i += 1;
+    } else if (arg === "--scratch-dir" && argv[i + 1] !== undefined) {
+      out.scratchDir = argv[i + 1] ?? null;
+      i += 1;
+    } else if (arg === "--first-seen-dir" && argv[i + 1] !== undefined) {
+      out.firstSeenDir = argv[i + 1] ?? null;
+      i += 1;
+    } else if ((arg === "--pre-cancel-reason" || arg === "--reason") && argv[i + 1] !== undefined) {
+      out.preCancelReason = argv[i + 1] ?? null;
+      i += 1;
     }
   }
   return out;
@@ -98,8 +132,10 @@ Before spawning a peer implement leaf: run with default --action begin.
   exit 1  active deny / gate block (do not spawn)
   exit 2  config / usage error
 
-Takeover after REDISPATCH_OK: --action cancel, then pre-dispatch begin again
-(not concurrent dual active; a killed worker stays running until cancelled).
+Takeover after REDISPATCH_OK: green subagent:pre-cancel, then --action cancel,
+then pre-dispatch begin again (not concurrent dual active; a killed worker
+stays running until cancelled). Bare ledger cancel while pre-cancel is red
+is refused (#5278). Host-kill refuse is #5281 (out of denominator).
 Terminal: --action complete [--status succeeded|failed|cancelled|blocked]
 
 Options:
@@ -112,6 +148,12 @@ Options:
   --status <status>                For complete: ${COMPLETE_STATUSES.join("|")}
   --worker-id <id>                 Optional worker stamp on begin
   --external-run-id <id>           Optional external run id
+  --agent <id>                     Cancel target agent (defaults to attempt workerId)
+  --canceller-id <id>              Pre-cancel canceller identity (else DEFT_SESSION_ID)
+  --steer-dir / --scratch-dir / --first-seen-dir
+                                   Dest-capable pre-cancel paths
+  --pre-cancel-force               Force clear pre-cancel (requires --pre-cancel-reason)
+  --pre-cancel-reason <text>       Printed force reason
   --project-root <path>            Project root (ledger under .deft/delivery-attempts/)
   --json                           Machine-readable result on stdout
   -h, --help                       Show this help
@@ -147,6 +189,13 @@ export function preDispatchMain(argv: string[] = process.argv.slice(2)): number 
     status: parsed.status ?? undefined,
     workerId: parsed.workerId,
     externalRunId: parsed.externalRunId,
+    agentId: parsed.agentId,
+    cancellerId: parsed.cancellerId,
+    steerDir: parsed.steerDir,
+    scratchDir: parsed.scratchDir,
+    firstSeenDir: parsed.firstSeenDir,
+    preCancelForce: parsed.preCancelForce,
+    preCancelReason: parsed.preCancelReason,
   });
 
   if (parsed.json) {

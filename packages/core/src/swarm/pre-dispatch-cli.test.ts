@@ -57,7 +57,20 @@ describe("parsePreDispatchArgv / preDispatchMain (#3228)", () => {
     ];
     expect(preDispatchMain([...base, "--action", "begin"])).toBe(0);
     expect(preDispatchMain([...base, "--action", "begin"])).toBe(1);
-    expect(preDispatchMain([...base, "--action", "cancel"])).toBe(0);
+    expect(
+      preDispatchMain([
+        ...base,
+        "--action",
+        "cancel",
+        "--agent",
+        "leaf-cli",
+        "--canceller-id",
+        "parent-cli",
+        "--pre-cancel-force",
+        "--pre-cancel-reason",
+        "cli-test takeover",
+      ]),
+    ).toBe(0);
     expect(preDispatchMain([...base, "--action", "begin", "--source-revision", "r2"])).toBe(0);
   });
 

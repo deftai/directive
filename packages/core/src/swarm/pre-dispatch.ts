@@ -27,6 +27,13 @@ import {
   saveUnitLedger,
   withUnitLock,
 } from "../delivery-attempt/index.js";
+import { defaultScratchDir } from "../orchestration/subagent-monitor.js";
+import {
+  defaultFirstSeenDir,
+  defaultSteerDir,
+  evaluatePreCancel,
+  type PreCancelVerdict,
+} from "../orchestration/subagent-steer.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
 import { ensureSubagentStatusDir, looksLikeWorktreeDir } from "./subagent-status-dir.js";
 import { runText } from "./subprocess.js";
@@ -53,6 +60,27 @@ export interface SwarmPreDispatchInput {
   readonly externalRunId?: string | null;
   readonly trigger?: AttemptTrigger;
   readonly now?: string;
+  /** Agent id for #5278 pre-cancel on --action cancel (defaults to attempt.workerId). */
+  readonly agentId?: string | null;
+  /** Canceller identity for pre-cancel writer_id match / --force audit. */
+  readonly cancellerId?: string | null;
+  readonly steerDir?: string | null;
+  readonly scratchDir?: string | null;
+  readonly firstSeenDir?: string | null;
+  readonly preCancelForce?: boolean;
+  readonly preCancelReason?: string | null;
+  /** Test seam / injected attestation; when set, replaces live evaluatePreCancel. */
+  readonly preCancelEvaluate?: (input: {
+    agentId: string;
+    cancellerId: string;
+    steerDir: string;
+    firstSeenDir: string;
+    scratchDir: string;
+    force: boolean;
+    forceReason?: string;
+    dispatchStartedAt: string | null;
+    expectedWorkerId: string | null;
+  }) => PreCancelVerdict;
 }
 
 export interface SwarmPreDispatchResult {
@@ -342,6 +370,49 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
   }
 }
 
+function resolveCancelWorktreeRoot(input: SwarmPreDispatchInput): string {
+  if (looksLikeFilesystemTarget(input.targetId)) {
+    const raw = input.targetId.trim();
+    return isAbsolute(raw) ? normalize(raw) : resolve(input.projectRoot, raw);
+  }
+  return resolve(input.projectRoot);
+}
+
+function evaluateCancelPreCancelGate(
+  input: SwarmPreDispatchInput,
+  active: DeliveryAttemptRecord | null,
+): PreCancelVerdict {
+  const worktreeRoot = resolveCancelWorktreeRoot(input);
+  const agentId = (input.agentId ?? input.workerId ?? active?.workerId ?? "").trim();
+  const cancellerId = (input.cancellerId ?? process.env.DEFT_SESSION_ID ?? "").trim();
+  const steerDir = input.steerDir?.trim()
+    ? resolve(worktreeRoot, input.steerDir)
+    : defaultSteerDir(worktreeRoot);
+  const scratchDir = input.scratchDir?.trim()
+    ? resolve(worktreeRoot, input.scratchDir)
+    : defaultScratchDir(worktreeRoot);
+  const firstSeenDir = input.firstSeenDir?.trim()
+    ? resolve(worktreeRoot, input.firstSeenDir)
+    : defaultFirstSeenDir(worktreeRoot);
+  const force = input.preCancelForce === true;
+  const forceReason = input.preCancelReason ?? undefined;
+  const payload = {
+    agentId,
+    cancellerId,
+    steerDir,
+    firstSeenDir,
+    scratchDir,
+    force,
+    forceReason,
+    dispatchStartedAt: active?.startedAt ?? null,
+    expectedWorkerId: active?.workerId ?? null,
+  };
+  if (input.preCancelEvaluate !== undefined) {
+    return input.preCancelEvaluate(payload);
+  }
+  return evaluatePreCancel(payload);
+}
+
 function runComplete(
   input: SwarmPreDispatchInput,
   action: "complete" | "cancel",
@@ -367,6 +438,28 @@ function runComplete(
       reason: "no active attempt to complete/cancel",
       activeAttemptIds: [],
     });
+  }
+
+  if (action === "cancel" && actives.length > 0) {
+    const active =
+      (input.attemptId !== undefined
+        ? actives.find((a) => a.attemptId === input.attemptId)
+        : undefined) ??
+      (input.externalRunId !== undefined
+        ? actives.find((a) => a.externalRunId === input.externalRunId)
+        : undefined) ??
+      actives[0] ??
+      null;
+    const pre = evaluateCancelPreCancelGate(input, active);
+    if (!pre.ok) {
+      return baseResult(input, action, {
+        exitCode: pre.exitCode === 2 ? EXIT_CONFIG_ERROR : EXIT_GATE_FAILED,
+        decision: null,
+        reason: `pre-cancel refused: ${pre.message}`,
+        attempt: active,
+        activeAttemptIds: actives.map((a) => a.attemptId),
+      });
+    }
   }
 
   try {
@@ -474,8 +567,16 @@ export function formatPreDispatchReport(result: SwarmPreDispatchResult): string 
   if (result.exitCode === EXIT_GATE_FAILED && result.decision === "DENY_DUPLICATE_ACTIVE") {
     lines.push(
       "  hint: do not spawn; a killed worker stays running until cancelled.",
-      "  Takeover: task swarm:pre-dispatch -- --scope-id <id> --target-id <target> --action cancel",
+      "  Takeover: task subagent:pre-cancel -- --agent <id> --canceller-id <id> --target-id <target>",
+      "  then: task swarm:pre-dispatch -- --scope-id <id> --target-id <target> --action cancel --agent <id>",
       "  then the same command without --action (begin). REDISPATCH_OK does not lift DENY_DUPLICATE_ACTIVE.",
+      "  ⊗ bare ledger cancel while pre-cancel is red (#5278).",
+    );
+  }
+  if (result.exitCode === EXIT_GATE_FAILED && result.reason.startsWith("pre-cancel refused:")) {
+    lines.push(
+      "  hint: write status steer (subagent:steer kind=note|correction), wait observed window/ack,",
+      "  clear via heartbeat STALE/missing under grace, or --pre-cancel-force --pre-cancel-reason.",
     );
   }
   return lines.join("\n");
