@@ -31,6 +31,7 @@ import {
   inspectSessionStartNotice,
   MCP_HOOK_MATCHER,
   NESTED_HOOK_TIMEOUT_SECONDS,
+  NESTED_TOOL_BEFORE_TIMEOUT_SECONDS,
   SHELL_HOOK_MATCHER,
   SPAWN_HOOK_MATCHER,
   writeAgentHookDeposit,
@@ -157,24 +158,43 @@ describe("writeAgentHookDeposit", () => {
           e.timeout === CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
       ),
     ).toBe(true);
-    // Nested hosts keep their shorter command timeout.
-    const claude = JSON.parse(readFileSync(join(root, ".claude/settings.json"), "utf8")) as {
-      hooks: { PreToolUse: Array<{ hooks: Array<{ timeout?: number }> }> };
-    };
-    expect(
-      claude.hooks.PreToolUse.some((group) =>
-        group.hooks.some((h) => h.timeout === NESTED_HOOK_TIMEOUT_SECONDS),
-      ),
-    ).toBe(true);
-
-    // #3736: Cursor loads its flat registrations plus nested host registrations.
-    // Its effective tool.before budget is the minimum across every loaded entry,
-    // not the timeout declared by any one deposit schema.
-    const nestedTimeouts = [
+    // #3739: nested tool.before shares Cursor's readiness ceiling; session stays at 5s.
+    expect(NESTED_TOOL_BEFORE_TIMEOUT_SECONDS).toBe(CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS);
+    expect(NESTED_TOOL_BEFORE_TIMEOUT_SECONDS).toBeGreaterThan(NESTED_HOOK_TIMEOUT_SECONDS);
+    const nestedHosts = [
       ".claude/settings.json",
       ".grok/hooks/deft.json",
       ".codex/hooks.json",
-    ].flatMap((relativePath) => {
+    ] as const;
+    for (const relativePath of nestedHosts) {
+      const nested = JSON.parse(readFileSync(join(root, relativePath), "utf8")) as {
+        hooks: {
+          SessionStart?: Array<{ hooks?: Array<{ timeout?: number }> }>;
+          PreToolUse?: Array<{ hooks?: Array<{ timeout?: number }> }>;
+          PreCompact?: Array<{ hooks?: Array<{ timeout?: number }> }>;
+        };
+      };
+      expect(
+        (nested.hooks.PreToolUse ?? []).every((group) =>
+          (group.hooks ?? []).every((h) => h.timeout === NESTED_TOOL_BEFORE_TIMEOUT_SECONDS),
+        ),
+      ).toBe(true);
+      expect(
+        (nested.hooks.SessionStart ?? []).every((group) =>
+          (group.hooks ?? []).every((h) => h.timeout === NESTED_HOOK_TIMEOUT_SECONDS),
+        ),
+      ).toBe(true);
+      if (nested.hooks.PreCompact !== undefined) {
+        expect(
+          nested.hooks.PreCompact.every((group) =>
+            (group.hooks ?? []).every((h) => h.timeout === NESTED_HOOK_TIMEOUT_SECONDS),
+          ),
+        ).toBe(true);
+      }
+    }
+
+    // Cursor + nested PreToolUse budgets align after #3739 (no longer dragged to 5s).
+    const nestedTimeouts = nestedHosts.flatMap((relativePath) => {
       const config = JSON.parse(readFileSync(join(root, relativePath), "utf8")) as {
         hooks: { PreToolUse?: Array<{ hooks?: Array<{ timeout?: number }> }> };
       };
@@ -188,7 +208,7 @@ describe("writeAgentHookDeposit", () => {
       typeof entry.timeout === "number" ? [entry.timeout] : [],
     );
     const effectiveTimeoutSeconds = Math.min(...cursorTimeouts, ...nestedTimeouts);
-    expect(effectiveTimeoutSeconds).toBe(NESTED_HOOK_TIMEOUT_SECONDS);
+    expect(effectiveTimeoutSeconds).toBe(NESTED_TOOL_BEFORE_TIMEOUT_SECONDS);
   });
 
   it("ledgers adapter deletes even when the writer return is discarded (#3392)", () => {

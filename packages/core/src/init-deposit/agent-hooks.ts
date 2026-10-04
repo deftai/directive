@@ -56,7 +56,17 @@ export const CURSOR_SESSION_HOOK_TIMEOUT_SECONDS = 5;
  */
 export const CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS = 30;
 
-/** Nested Claude/Grok/Codex command-hook default timeout (seconds). */
+/**
+ * Nested Claude/Grok/Codex tool.before deposit timeout (seconds).
+ *
+ * Same readiness ceiling as CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS: mutation
+ * tool.before re-runs gated ritual + live agent-hook readiness (~24s fixture
+ * ceiling). Nested hosts were left at 5s after #3246 raised Cursor, so a
+ * post-ritual deny rendered after the host kill (#3739).
+ */
+export const NESTED_TOOL_BEFORE_TIMEOUT_SECONDS = CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS;
+
+/** Nested Claude/Grok/Codex session.start / session.compact timeout (seconds). */
 export const NESTED_HOOK_TIMEOUT_SECONDS = 5;
 
 export type AgentHookPath = (typeof AGENT_HOOK_PATHS)[number];
@@ -208,7 +218,10 @@ function nestedGroup(host: NestedHookHost, event: HookEvent, matcher?: string) {
       {
         type: "command",
         command: command(host, event),
-        timeout: NESTED_HOOK_TIMEOUT_SECONDS,
+        timeout:
+          event === "tool.before"
+            ? NESTED_TOOL_BEFORE_TIMEOUT_SECONDS
+            : NESTED_HOOK_TIMEOUT_SECONDS,
       },
     ],
   };

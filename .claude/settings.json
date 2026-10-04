@@ -18,7 +18,7 @@
           {
             "type": "command",
             "command": "deft-hook --host claude --event tool.before",
-            "timeout": 5
+            "timeout": 30
           }
         ]
       },
@@ -28,7 +28,7 @@
           {
             "type": "command",
             "command": "deft-hook --host claude --event tool.before",
-            "timeout": 5
+            "timeout": 30
           }
         ]
       },
@@ -38,7 +38,7 @@
           {
             "type": "command",
             "command": "deft-hook --host claude --event tool.before",
-            "timeout": 5
+            "timeout": 30
           }
         ]
       },
@@ -48,7 +48,7 @@
           {
             "type": "command",
             "command": "deft-hook --host claude --event tool.before",
-            "timeout": 5
+            "timeout": 30
           }
         ]
       }
