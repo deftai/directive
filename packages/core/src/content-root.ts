@@ -75,41 +75,52 @@ export function resolveContentPackageRoot(searchFrom: string): string | null {
   return null;
 }
 
+function directoryExists(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 /**
  * True when an installed `@deftai/directive-content` root has staged shippable
  * content (prepack / consumer deposit). The workspace `packages/content`
  * package ships only `package.json` + `stage-pack.mjs` in git; preferring that
  * empty root shadows in-repo `content/templates` and fails
  * `agents-md-freshness` on rule-relocation PRs (#1589 CI).
- * Markers include templates/skills plus flattened vbrief schemas (#4310).
+ * Agent markers are templates/skills. Flattened `vbrief/` alone is enough only
+ * when in-repo `content/` is absent (#4310 schemas-only deposits) so a
+ * schemas-only package cannot hide in-repo templates/skills (#1589).
  */
-function contentPackageHasStagedContent(packageRoot: string): boolean {
-  for (const name of ["templates", "skills", "vbrief"] as const) {
-    try {
-      if (statSync(join(packageRoot, name)).isDirectory()) {
-        return true;
-      }
-    } catch {
-      // Probe next marker.
-    }
-  }
-  return false;
+function contentPackageHasAgentContent(packageRoot: string): boolean {
+  return (
+    directoryExists(join(packageRoot, "templates")) || directoryExists(join(packageRoot, "skills"))
+  );
+}
+
+function contentPackageHasVbrief(packageRoot: string): boolean {
+  return directoryExists(join(packageRoot, "vbrief"));
 }
 
 /** Return the directory that holds flattened shippable content. */
 export function contentRoot(frameworkRoot: string): string {
   const packageRoot = resolveContentPackageRoot(frameworkRoot);
-  if (packageRoot !== null && contentPackageHasStagedContent(packageRoot)) {
-    return packageRoot;
+  const candidate = join(frameworkRoot, CONTENT_DIRNAME);
+  const hasInRepoContent = directoryExists(candidate);
+
+  if (packageRoot !== null) {
+    if (contentPackageHasAgentContent(packageRoot)) {
+      return packageRoot;
+    }
+    // Schemas-only npm root: prefer only when there is no competing content/.
+    if (contentPackageHasVbrief(packageRoot) && !hasInRepoContent) {
+      return packageRoot;
+    }
   }
 
-  const candidate = join(frameworkRoot, CONTENT_DIRNAME);
-  try {
-    if (statSync(candidate).isDirectory()) {
-      return candidate;
-    }
-  } catch {
-    // No content/ dir -> consumer (flattened) deposit; fall through.
+  if (hasInRepoContent) {
+    return candidate;
   }
   return frameworkRoot;
 }

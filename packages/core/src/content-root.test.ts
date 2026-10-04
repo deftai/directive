@@ -97,10 +97,25 @@ describe("contentRoot three operating modes (#11 S2 / @deftai/directive-content)
     expect(contentRoot(frameworkRoot)).toBe(join(frameworkRoot, CONTENT_DIRNAME));
   });
 
-  it("in-repo-vendored: prefers content package when only flattened vbrief schemas are staged (#4310)", () => {
+  it("in-repo-vendored: keeps content/ when package has only vbrief schemas (#1589)", () => {
     const project = freshProject();
     const frameworkRoot = join(project, "directive-source");
-    mkdirSync(join(frameworkRoot, CONTENT_DIRNAME), { recursive: true });
+    mkdirSync(join(frameworkRoot, CONTENT_DIRNAME, "templates"), { recursive: true });
+    writeFileSync(
+      join(frameworkRoot, CONTENT_DIRNAME, "templates", "agents-entry.md"),
+      "# keep",
+      "utf-8",
+    );
+    const pkgDir = installContentPackage(project, { stageTemplates: false });
+    mkdirSync(join(pkgDir, "vbrief", "schemas"), { recursive: true });
+
+    expect(contentRoot(frameworkRoot)).toBe(join(frameworkRoot, CONTENT_DIRNAME));
+  });
+
+  it("in-repo-vendored: prefers schemas-only content package when content/ is absent (#4310)", () => {
+    const project = freshProject();
+    const frameworkRoot = join(project, "directive-source");
+    mkdirSync(frameworkRoot, { recursive: true });
     const pkgDir = installContentPackage(project, { stageTemplates: false });
     mkdirSync(join(pkgDir, "vbrief", "schemas"), { recursive: true });
 
