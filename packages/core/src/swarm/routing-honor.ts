@@ -173,10 +173,22 @@ export function extractRequestedModelFromPayload(payload: unknown): string | nul
   return from(toolInput) ?? from(top);
 }
 
+/** Count `--model` / `--model=` occurrences in launcher-family argv. */
+export function countModelFlagsInLauncherArgv(command: string): number {
+  const text = command.trim();
+  if (text.length === 0) return 0;
+  const matches = text.match(/(?:^|\s)--model(?:=|\s|$)/g);
+  return matches?.length ?? 0;
+}
+
 /** Parse `--model <slug>` / `--model=<slug>` from launcher-family argv. */
 export function extractModelFromLauncherArgv(command: string): string | null {
   const text = command.trim();
   if (text.length === 0) return null;
+  if (countModelFlagsInLauncherArgv(text) > 1) {
+    // Ambiguous duplicate flags — refuse to pick one (#3703 Greptile P2).
+    return null;
+  }
   const eq = text.match(/(?:^|\s)--model=([^\s"']+)/);
   if (eq?.[1] !== undefined && eq[1].trim().length > 0) {
     return eq[1].trim();
@@ -220,6 +232,15 @@ export function resolveHonorRole(
   const structural = normalizeRole(structuralWorkerRole);
   if (structural !== null && isSwarmWorkerRole(structural) && isGatedRole(structural, gatedRoles)) {
     return { role: structural, carveOut: false, carveOutReason: null };
+  }
+  // review-monitor / merge-release / orchestrator are SWARM roles outside the
+  // gated subset — carve out; do not leaf-fallback (#3703 Greptile P1).
+  if (structural !== null && isSwarmWorkerRole(structural)) {
+    return {
+      role: structural,
+      carveOut: true,
+      carveOutReason: `non-gated SWARM_WORKER_ROLES role '${structural}' is outside ROUTING_GATED_ROLE_DOMAIN; not leaf-fallback (#3703).`,
+    };
   }
   if (spawnClass === "implement") {
     const fallback = gatedRoles[0] ?? "leaf-implementation";
@@ -302,7 +323,17 @@ export function evaluateSpawnRoutingHonor(
 
   const gatedRoles = ROUTING_GATED_ROLE_DOMAIN;
   const roleInfo = resolveHonorRole(request.spawnClass, request.structuralWorkerRole, gatedRoles);
-  if (roleInfo.carveOut) {
+  const requestedEarly =
+    request.requestedModel !== undefined && request.requestedModel !== null
+      ? request.requestedModel.trim()
+      : "";
+  // Launcher argv with an explicit --model must honor the leaf route; bare
+  // process-only critic launches (no model flag) keep the carve-out (#3703 P1).
+  const launcherNeedsHonor =
+    roleInfo.carveOut &&
+    request.spawnClass === "launcher-argv" &&
+    requestedEarly.length > 0;
+  if (roleInfo.carveOut && !launcherNeedsHonor) {
     return {
       ok: true,
       code: "routing-honor-carve-out",
@@ -317,7 +348,9 @@ export function evaluateSpawnRoutingHonor(
     };
   }
 
-  const role = roleInfo.role ?? gatedRoles[0] ?? "leaf-implementation";
+  const role = launcherNeedsHonor
+    ? (gatedRoles[0] ?? "leaf-implementation")
+    : (roleInfo.role ?? gatedRoles[0] ?? "leaf-implementation");
   const gate = verifyRouting({
     projectRoot: request.projectRoot,
     environ,
@@ -373,8 +406,25 @@ export function evaluateSpawnRoutingHonor(
   const harnessDefault =
     resolution.mode === ROUTING_MODE_HARNESS_DEFAULT || resolution.model === null;
 
-  // Harness-bound / explicit harness-default: omit is the decision; no slug to honor.
+  // Harness-bound / explicit harness-default: omit is the decision; a supplied
+  // slug would override the operator's no-slug choice (#3703 Greptile P1).
   if (harnessBound || harnessDefault) {
+    const requestedHarness =
+      request.requestedModel !== undefined && request.requestedModel !== null
+        ? request.requestedModel.trim()
+        : "";
+    if (requestedHarness.length > 0) {
+      return denyResult({
+        message: `routing honor: provider '${provider}' role '${role}' is harness-default; requested model '${requestedHarness}' is not allowed.`,
+        provider,
+        role,
+        resolvedModel: null,
+        modelSource: resolution.source,
+        resolution,
+        honoredModel: null,
+        rewriteRequest: false,
+      });
+    }
     return {
       ok: true,
       code: "routing-honor-ready",

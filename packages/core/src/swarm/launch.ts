@@ -1328,9 +1328,20 @@ export function swarmLaunch(args: LaunchArgs): {
     };
   }
 
-  // Overlay caller environ on process.env so test seams (CURSOR_AGENT) do not
-  // drop DEFT_ROUTING_PATH set on the process for resolveRoutingPath (#1877).
-  const launchEnviron: NodeJS.ProcessEnv = { ...process.env, ...(args.environ ?? {}) };
+  // Explicit environ is a replacement bag for host/credential markers (#3703):
+  // do not inherit ambient GITHUB_TOKEN / DEFT_PROBE_* / CLAUDE_* from process.env
+  // when the caller supplied a bag (deep-coverage + CI identity-bound). Still
+  // inherit DEFT_ROUTING_PATH from process when absent so #1877 seams keep working.
+  const launchEnviron: NodeJS.ProcessEnv =
+    args.environ !== undefined
+      ? {
+          ...args.environ,
+          ...(args.environ.DEFT_ROUTING_PATH === undefined &&
+          process.env.DEFT_ROUTING_PATH !== undefined
+            ? { DEFT_ROUTING_PATH: process.env.DEFT_ROUTING_PATH }
+            : {}),
+        }
+      : { ...process.env };
   const routingPath = resolveRoutingPath(projectRoot, launchEnviron);
   const { data: routingFile, error: routingError } = loadRoutingFile(routingPath);
   if (routingError !== null) {
