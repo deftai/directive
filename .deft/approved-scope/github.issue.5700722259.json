@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-04-5326-featdesign-critique-ensure-consumer-catalog-chip-labels-and.xbrief.json",
+  "planId": "github.issue.5700722259",
+  "approvedAt": "2026-10-04T18:10:50Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/contracts/design-critique.md",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/skills/deft-directive-design-critique/SKILL.md",
+    "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+    "packages/core/src/design-critique/catalog-chip-ensure.test.ts",
+    "packages/core/src/design-critique/catalog-chip-ensure.ts",
+    "packages/core/src/doctor/checks.ts",
+    "packages/core/src/doctor/design-critique-deposit.test.ts",
+    "packages/core/src/doctor/design-critique-deposit.ts",
+    "packages/core/src/doctor/index.ts",
+    "packages/core/src/doctor/main.ts",
+    "packages/core/src/scm/design-critique-chip.test.ts",
+    "packages/core/src/scm/design-critique-chip.ts",
+    "packages/core/src/scm/design-critique-stale-ready.test.ts",
+    "packages/core/src/scm/gh-rest.ts",
+    "packages/core/src/scm/main-branches.test.ts"
+  ],
+  "fileScopeDigest": "03c2ce420ba2e7e3e1588e115f585d9c67724a0f0ad9e2f5a20a892b3af3d1cd",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-04T18:10:50Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "bd0d7a33febd3c15b67594ef2ae7aafe190afddc446d7d668dc95ae807fe19c2",
+  "digestAlgo": "intent-extract-v1"
+}

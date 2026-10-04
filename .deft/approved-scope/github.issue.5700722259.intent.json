@@ -1,0 +1,314 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "feat(design-critique): ensure consumer catalog chip labels and judgmentGates (skill soft-misses today)",
+    "narratives": {
+      "Description": "feat(design-critique): ensure consumer catalog chip labels and judgmentGates (skill soft-misses today)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5326",
+      "Overview": "\n\n1. **Contract miss-class rewrite (P1 / P3 / F1 / F6).** Amend content/contracts/design-critique.md so chip apply miss is no longer \"any apply miss is the same miss.\" Closed classes:\n   - `missing-repo-label` → recoverable ensure-on-write (item 2–3), then retry apply.\n   - `auth-or-permission` (and other non-missing failures) → keep non-blocking convenience (CHIP_APPLY_MISS_TOKEN, exit 0); ingest unblocked.\n   Retire or narrow the \"Do not invent a 403 HTTP parser\" sentence so it forbids inventing parsers outside the closed detector (item 2), not miss-class itself. Lock the new wording in design_critique_contract.test.ts. Thin skill keeps a one-line pointer to ensure-or-doctor recovery; normative miss rules stay in the contract. ⊗ Stuff ensure/doctor prose into the skill body as a second SoT.\n\n2. **Closed missing-label detector (P1 / F2).** Prefer preflight GET repos/<owner>/<repo>/labels/<name> (or equivalent gh api) for each closed catalog chip targeted by the add set. HTTP 404 → missing-repo-label. Do not rely solely on stderr heuristics from gh issue edit --add-label (those remain optional corroboration only). Auth/403/401/other failures map to auth-or-permission. Fixture-lock the classifier; do not leave Prefer-A as prose-only.\n\n3. **Ensure-on-write attach + create table (P1 / F3).** On `missing-repo-label` for a closed catalog chip, create once via \restCreateLabel (D20 sink-bootstrap precedent: name + color + description; idempotent 422 skip), then retry apply. Attach point: inside \runDesignCritiqueChip / catalog-aware path before or around ScmLabelClient.apply for catalog adds — do not require every non-catalog ScmLabelClient.apply to ensure. Publish a closed create table for the three DESIGN_CRITIQUE_CATALOG_CHIPS (mechanism-shaped / in-progress / ingest-ready) with fixed color+description constants. Ensure creates only the chip(s) in the current add set (singular per write is fine); doctor (item 5) may detect the plural set. ⊗ Paste-ready recovery for missing labels. ⊗ Restore retired chips.\n\n4. **Ensure-refuse posture (P1 / F7).** If ensure create fails for auth/permission (or policy refuses create), fall through to non-blocking miss with stderr/stdout that names `ensure-failed` / miss class. Chip exit stays 0 for that class. Ingest remains unblocked (completed-arc SoT). ⊗ Make chip apply blocking for ingest when ensure is refused. ⊗ Invent a new policy field in v1 unless an existing doctor/setup refuse already exists — default is try-ensure then non-blocking fallthrough.\n\n5. **JudgmentGates land (P2 / F4 / F5).** Two limbs, both required:\n   - **Doctor / setup advisory:** when the deposit predicate (item 6) is true, detect missing catalog labels and missing/empty judgmentGates entry for design-critique; remediation names ensure labels + typed gate id design-critique matching design-critique:mechanism-shaped (maintainer PROJECT-DEFINITION shape).\n   - **First-arc / default path:** on first successful catalog ensure+apply in a deposited consumer (or at deposit/setup when design-critique content is staged), ensure the typed judgmentGates entry exists via the existing project-policy write surface (project:write / narratives / equivalent durable policy write — pick the pin-present path; do not invent a second PROJECT-DEFINITION editor). If durable policy write is unavailable in that session, doctor advisory MUST still fire and name the exact remediation; Prefer-A does not allow silent stay-dark after ensure+apply without at least that advisory.\n\n6. **Deposit predicate (P2 / F5).** Closed presence check: design-critique content is \"deposited\" when any of (a) content/skills/deft-directive-design-critique/SKILL.md (or consumer deposit equivalent under .deft/core/), (b) content/contracts/design-critique.md (or deposit equivalent), or (c) ADR-005 / judgment-gate design-critique pack slice is present on the consumer tree. Doctor/setup and first-arc gate ensure use this predicate. ⊗ Fire advisory on every consumer without that presence check.\n\n7. **Skill pointer (P3 / F6).** deft-directive-design-critique SKILL.md gains one pointer line: on chip miss for missing-repo-label, follow contract ensure-or-doctor recovery. Normative detector/ensure/miss-class text lives only in the contract (+ fixtures). Content-contract thin-skill lock stays.\n\n8. **Non-goals (hold).** Chips remain list hygiene / convenience; completed-arc record remains ingest clearance SoT. No restore of  riage-ready / \recut-needed. No making ingest depend on chips. No paste-ready as the missing-label recovery.\n\n9. **Acceptance.**\n   - Contract + content-contract: miss-class split; detector fixture; ensure create table for three catalog chips\n   - Virgin consumer / fixture: missing catalog label → ensure via restCreateLabel → retry apply succeeds; auth miss still non-blocking exit 0 with miss token\n   - Doctor/setup: deposit predicate true → advisory for missing labels and/or missing judgmentGates design-critique entry\n   - First-arc/default: after ensure+apply (or deposit/setup), typed judgmentGates lights or loud advisory names exact remediation (no silent stay-dark)\n   - Thin skill: one-line pointer only; no second SoT\n   - Ingest still independent of chips\n\n\n",
+      "Labels": "urgent, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "bound-1",
+        "title": "Contract miss-class rewrite: missing-repo-label vs auth-or-permission in content/contracts/design-critique.md + design_critique_contract.test.ts; thin skill one-line pointer only"
+      },
+      {
+        "id": "bound-2",
+        "title": "Closed missing-label detector: preflight GET labels/<name>; HTTP 404→missing-repo-label; 401/403/other→auth-or-permission; fixture-lock classifier"
+      },
+      {
+        "id": "bound-3",
+        "title": "Ensure-on-write: on missing-repo-label for closed catalog chip, restCreateLabel with fixed color+description table for three DESIGN_CRITIQUE_CATALOG_CHIPS, then retry apply; attach in runDesignCritiqueChip/catalog path"
+      },
+      {
+        "id": "bound-4",
+        "title": "Ensure-refuse posture: ensure create fail → non-blocking miss naming ensure-failed/miss class; chip exit 0; ingest unblocked"
+      },
+      {
+        "id": "bound-5",
+        "title": "JudgmentGates land: doctor/setup advisory for missing labels/gates when deposit predicate true; first-arc/default ensure typed judgmentGates design-critique via existing policy write or loud advisory"
+      },
+      {
+        "id": "bound-6",
+        "title": "Deposit predicate: design-critique deposited when SKILL.md or contract or ADR-005/pack slice present (consumer .deft/core equivalents included)"
+      },
+      {
+        "id": "bound-7",
+        "title": "Skill pointer: one line in deft-directive-design-critique SKILL.md to contract ensure-or-doctor recovery; no second SoT"
+      },
+      {
+        "id": "bound-8",
+        "title": "Non-goals hold: chips list hygiene; completed-arc remains ingest SoT; no triage-ready/recut-needed restore; ingest independent of chips"
+      },
+      {
+        "id": "bound-9",
+        "title": "Acceptance: contract+fixtures miss-class/detector/create table; virgin ensure+retry; auth miss non-blocking; doctor advisory; first-arc gate light or loud advisory; thin skill pointer; ingest independent"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5326",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5326: feat(design-critique): ensure consumer catalog chip labels and judgmentGates (skill soft-misses today)"
+      }
+    ],
+    "acceptance": {
+      "clauses": [
+        {
+          "id": "ac-1",
+          "text": "Contract miss-class rewrite: missing-repo-label vs auth-or-permission in content/contracts/design-critique.md + design_critique_contract.test.ts; thin skill one-line pointer only",
+          "status": "pending"
+        },
+        {
+          "id": "ac-2",
+          "text": "Closed missing-label detector: preflight GET labels/<name>; HTTP 404→missing-repo-label; 401/403/other→auth-or-permission; fixture-lock classifier",
+          "status": "pending"
+        },
+        {
+          "id": "ac-3",
+          "text": "Ensure-on-write: on missing-repo-label for closed catalog chip, restCreateLabel with fixed color+description table for three DESIGN_CRITIQUE_CATALOG_CHIPS, then retry apply; attach in runDesignCritiqueChip/catalog path",
+          "status": "pending"
+        },
+        {
+          "id": "ac-4",
+          "text": "Ensure-refuse posture: ensure create fail → non-blocking miss naming ensure-failed/miss class; chip exit 0; ingest unblocked",
+          "status": "pending"
+        },
+        {
+          "id": "ac-5",
+          "text": "JudgmentGates land: doctor/setup advisory for missing labels/gates when deposit predicate true; first-arc/default ensure typed judgmentGates design-critique via existing policy write or loud advisory",
+          "status": "pending"
+        },
+        {
+          "id": "ac-6",
+          "text": "Deposit predicate: design-critique deposited when SKILL.md or contract or ADR-005/pack slice present (consumer .deft/core equivalents included)",
+          "status": "pending"
+        },
+        {
+          "id": "ac-7",
+          "text": "Skill pointer: one line in deft-directive-design-critique SKILL.md to contract ensure-or-doctor recovery; no second SoT",
+          "status": "pending"
+        },
+        {
+          "id": "ac-8",
+          "text": "Non-goals hold: chips list hygiene; completed-arc remains ingest SoT; no triage-ready/recut-needed restore; ingest independent of chips",
+          "status": "pending"
+        },
+        {
+          "id": "ac-9",
+          "text": "Acceptance: contract+fixtures miss-class/detector/create table; virgin ensure+retry; auth miss non-blocking; doctor advisory; first-arc gate light or loud advisory; thin skill pointer; ingest independent",
+          "status": "pending"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because consumer deposits of design-critique soft-miss chip applies when catalog labels are absent and leave judgmentGates dark, so arcs look successful while list-visible chip state and ADR-005 matching never light.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5326\norigin-ref: origin/HEAD\ndispatch-sha: afa97f2800b1992b23526aa257c666fd1f77ec2e\ndest-wo: leftover-complete\n\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\nspend-why: Prefer-A drafted from issue remediations (ensure-on-write for closed catalog chips; doctor/setup advisory for missing labels + judgmentGates; skill pointer for missing-label recovery; keep auth misses non-blocking). Blast is ScmLabelClient/chip + doctor/setup + skill/contract pointer. Bare arc 5326 had no n= token so resolve from recommend per contract #4705.\nDual-stop cap: 6 posts\n\npain: P1, P2, P3\n\n- P1. Silent soft-miss: on a virgin consumer, scm:issue:design-critique-chip against a missing repo label exits 0 with chip apply missed (non-blocking convenience) and never creates the closed catalog label or fails closed loudly for that miss class.\n- P2. Gate dark: deposited design-critique content without a typed judgmentGates entry matching design-critique:mechanism-shaped leaves verify:judgment-gates unmatched (posture advise / empty gates) even after a successful chip write.\n- P3. Skill bootstrap omission: the thin skill / chip path names only the chip verb and non-blocking miss convenience; it does not direct ensure-on-write, doctor/setup advisory, or distinguish missing-repo-label from auth/permission miss.\n\nverification-path: pin-read git show afa97f2800b1992b23526aa257c666fd1f77ec2e:; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:055e1bdd6ea6b5b8123b48a3a8cefb7d6f339d31af7f173a278002468efca137\ntarget: #5326\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: ADR-005 #3434 design-critique-chip ScmLabelClient judgmentGates deftai/statusreport dogfood 2026-10-04\n\n## Prefer-A draft (charter target; not yet Bound)\n\n1. **Ensure-on-write (P1).** When chip add targets a closed catalog chip and the repo label 404s, create that label once then retry apply (ScmLabelClient / design-critique-chip). Do not require paste-ready recovery for missing labels.\n2. **Miss-class split (P1 / P3).** Keep apply-miss non-blocking for true auth/permission misses. Treat label does not exist on repo as a recoverable ensure path (or fail closed / loud doctor warn if ensure is refused by policy).\n3. **Doctor / setup advisory (P2).** On consumers with design-critique content deposited, detect missing catalog labels and missing/empty judgmentGates design-critique entry; advisory remediation names ensure labels + typed gate matching design-critique:mechanism-shaped.\n4. **Skill pointer (P3).** Stop 1 / chip write path names ensure-or-doctor recovery when miss reason is missing repo label.\n5. **Non-goals.** Chips remain convenience for ingest clearance (completed-arc SoT). No restore of retired chips. No making ingest depend on chips.\n\n## Gate stamp\n\nFresh no-ingest yolo Stop 1 on #5326. Bare operator cue arc 5326 carried no n= token; parent recorded spend-recommend: N=1 and resolved spend (spend-ask: resolved) per skill/contract #4705. Prefer-A drafted from issue remediations. Charter is open critique of that Prefer-A. Ingest remains a later separate verb.",
+          "id": 5981699532,
+          "html_url": "https://github.com/deftai/directive/issues/5326#issuecomment-5981699532",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T15:40:25Z",
+          "updated_at": "2026-10-04T15:40:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: 1\ncritic-role: fresh\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\naudit-targets: none\nid-ceiling: 5981699532\ndispatch-sha: afa97f2800b1992b23526aa257c666fd1f77ec2e\nStop-1: 5981699532\ntarget: #5326\nverification-path: pin-read git show afa97f2800b1992b23526aa257c666fd1f77ec2e:; dest cwd-without-occupy for on-pin file reads\n\n## Findings (Prefer-A vs Stop 1 P1–P3)\n\nPin-read at `afa97f2800b1992b23526aa257c666fd1f77ec2e` only. Prefer-A draft is the charter target on Stop 1 (`5981699532`), not Bound.\n\n### F1. Miss-class split collides with live contract SoT (P1 / P3)\n\nPrefer-A item 2 wants label-does-not-exist recoverable ensure while auth/permission stays non-blocking miss. At this pin the contract still says:\n\n- `content/contracts/design-critique.md`: \"Chip apply miss is non-blocking convenience. Do not invent a 403 HTTP parser. Any apply miss is the same miss.\"\n\nThe thin skill mirrors that undifferentiated miss (`content/skills/deft-directive-design-critique/SKILL.md`: chip verb + \"Chip apply miss is non-blocking convenience; do not halt\"). Prefer-A does not name the required contract + content-contract amendment that makes miss-class legal. Until that rewrite lands, a skill pointer teaching ensure-or-doctor for one miss subclass contradicts the SoT agents already follow, so P3 relief is underspecified and P1's \"loud\" path has no normative home.\n\n### F2. \"Label 404\" has no closed detector on the write path (P1)\n\n`ScmLabelClient.applyMut` (`packages/core/src/vbrief-reconcile/labels.ts`) only runs `gh issue edit --add-label` / `--remove-label` and throws `ScmLabelError` with raw stderr. `runDesignCritiqueChip` (`packages/core/src/scm/design-critique-chip.ts`) then maps every non-proof failure to `CHIP_APPLY_MISS_TOKEN` and exit 0. Tests lock that lumping: apply throw `\"HTTP 403 Forbidden\"` and fetch `ScmLabelError` are both non-blocking miss (`design-critique-chip.test.ts`, `#3806`).\n\nPrefer-A says \"when the repo label 404s\" without choosing a classifier: stderr heuristic (nearby `looksLikeMissingLabel` in `packages/core/src/triage/actions/index.ts`, `formatMissingLabelHint` in `packages/core/src/triage/classify/label-mirror.ts`) versus preflight `GET repos/.../labels/<name>` / create via `restCreateLabel` (`packages/core/src/scm/gh-rest.ts`). Without a closed detector, ensure-on-write either never fires on virgin consumers or misfires on auth text that mentions labels.\n\n### F3. Ensure-on-write limb is directionally right but API/metadata underspecified (P1)\n\nNearby ensure precedents at this pin already exist:\n\n- Reject path: `ensureRejectedLabelApplied` → on missing-label stderr, `gh label create` then retry add (`triage/actions/index.ts`).\n- D20 contrast: `bootstrapProductSignalLabels` / `restCreateLabel` with name+color+description and idempotent 422 skip (`packages/core/src/product-signal/sink-bootstrap.ts`).\n\nPrefer-A correctly points at ScmLabelClient / design-critique-chip and refuses paste-ready recovery. It does not pick `gh label create` vs `restCreateLabel`, does not publish color/description for the three `DESIGN_CRITIQUE_CATALOG_CHIPS` (`exclusive-chip.ts`), and does not say whether ensure is only inside `runDesignCritiqueChip` or also on `ScmLabelClient.apply` catalog adds. Item 1 creates \"that label\" (singular); item 3 doctor-detects missing catalog labels (plural). Both can be correct, but Bound needs the closed create table and attach point or implement will invent them.\n\n### F4. P2 judgmentGates path is advisory-only; first-arc stay-dark remains (P2)\n\n`resolveJudgmentGates` (`packages/core/src/orchestration/judgment-policy.ts`) returns `defaultPolicy` with `gates: []` when `judgmentGates` is absent. ADR-005 / contract keep match on `design-critique:mechanism-shaped` only; maintainer PROJECT-DEFINITION already has typed gate id `design-critique`. Prefer-A item 1 ensure-on-write lights repo labels only. Prefer-A item 3 puts judgmentGates solely on doctor/setup advisory.\n\nIssue expected outcome also allowed default / first-arc ensure for the typed gate. Prefer-A drops those limbs. On a virgin deposited consumer, first successful chip ensure+apply can still leave `verify:judgment-gates` unmatched until someone runs doctor/setup. That under-relieves P2 relative to the same-moment discoverability pain Stop 1 records.\n\n### F5. \"Design-critique content deposited\" predicate is unnamed (P2)\n\nPrefer-A doctor/setup advisory fires \"on consumers with design-critique content deposited.\" Pin grep under `packages/core/src/doctor` for `design-critique` / `judgmentGates` / catalog chips is empty today — correct gap. Deposit staging mentions ADR-005 paths in `stage-content-pack` tests, but Prefer-A does not name the presence check (skill path, contract path, ADR under deposit, pack slice, etc.). Without that predicate, advisory either never fires or fires on every consumer.\n\n### F6. Skill pointer fights the thin-router ceiling unless contract owns the norm (P3)\n\nPrefer-A item 4 is the right attack on P3's bootstrap omission. The skill is a thin router; content-contract tests lock no-normative-content / pointer resolution. Prefer-A does not say: amend `contracts/design-critique.md` miss rules + chip ensure/doctor recovery as normative text, then keep a one-line skill pointer. Stuffing ensure-or-doctor into the skill body alone will either breach the thin-skill lock or leave agents reading two conflicting miss stories (F1).\n\n### F7. \"Ensure refused by policy\" is unbound (P1 / non-goals)\n\nPrefer-A item 2 offers \"fail closed / loud doctor warn if ensure is refused by policy\" with no named policy field, no chip exit-code change, and no statement that ingest stays unblocked when ensure is refused. That fork can silently reintroduce blocking chip behavior Prefer-A item 5 and the contract non-goals forbid, or it can stay a doctor-only tip that never changes the virgin soft-miss exit 0. Bound needs one closed refuse posture.\n\n### F8. What Prefer-A does hold (evidence)\n\nDirectionally Prefer-A maps onto the denominator: ensure-on-write attacks P1 silent soft-miss; miss-class keeps true auth misses non-blocking; doctor/setup advisory is the right class for P2 gate dark; skill/contract pointer is the right class for P3; non-goals (chips stay convenience; no retired restore; ingest ≠ chips) match exclusive catalog + completed-arc SoT at this pin. Precedents (`ensureRejectedLabelApplied`, D20 `restCreateLabel`) show the ensure limb is implementable once F1–F7 are closed. Prefer-A does not yet relieve P1–P3 as written because detector, contract rewrite, judgmentGates first-arc path, deposit predicate, thin-skill placement, and ensure-refuse posture remain open.\n\n## Method note\n\nREST-read issue `#5326` body + Stop 1 comment `5981699532`. Pin-read: `design-critique-chip.ts` + tests, `labels.ts` `ScmLabelClient`, `exclusive-chip.ts`, skill + contract chip/judgmentGates text, ADR-005, `judgment-policy.ts` `resolveJudgmentGates`, doctor tree (no design-critique seed), D20 `sink-bootstrap.ts` / `restCreateLabel`, triage `ensureLabelExists` / label-mirror missing-label hint.",
+          "id": 5981723840,
+          "html_url": "https://github.com/deftai/directive/issues/5326#issuecomment-5981723840",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T15:43:27Z",
+          "updated_at": "2026-10-04T15:43:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound\n**Spec-path:** Bound remedy below\nTarget-digest: sha256:055e1bdd6ea6b5b8123b48a3a8cefb7d6f339d31af7f173a278002468efca137\nStop-1: 5981699532\ncritics: grok 5981723840\ndispatch-sha: afa97f2800b1992b23526aa257c666fd1f77ec2e\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nDual-stop cap: 6 posts\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5326\n\n## In plain English\n\nVirgin consumers that deposit design-critique should get the three catalog chip labels ensured on first chip write, and a typed design-critique judgment gate (or a loud doctor/setup path that names how to light it). Missing-label soft-misses stop being silent. True auth failures stay non-blocking convenience. Ingest still clears on completed-arc, not chips.\n\n## Pain cites (closed form)\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n- P1 covers silent soft-miss when catalog labels are absent on virgin consumers\n- P2 covers judgmentGates staying dark after deposit / successful chip write\n- P3 covers skill/chip path omitting ensure-or-doctor recovery and miss-class distinguish\n\n## Take map\n\nAbsorbs round-1 critic 5981723840 F1–F8: contract miss-class rewrite (F1); closed 404/missing-label detector (F2); restCreateLabel + chip color/description table + attach point (F3); judgmentGates first-arc/default limb beside doctor advisory (F4); named deposit predicate (F5); contract owns norm + thin skill pointer (F6); closed ensure-refuse posture that never blocks ingest (F7); keep Prefer-A direction + non-goals (F8).\n\n## Bound remedy\n\n1. **Contract miss-class rewrite (P1 / P3 / F1 / F6).** Amend content/contracts/design-critique.md so chip apply miss is no longer \"any apply miss is the same miss.\" Closed classes:\n   - `missing-repo-label` → recoverable ensure-on-write (item 2–3), then retry apply.\n   - `auth-or-permission` (and other non-missing failures) → keep non-blocking convenience (CHIP_APPLY_MISS_TOKEN, exit 0); ingest unblocked.\n   Retire or narrow the \"Do not invent a 403 HTTP parser\" sentence so it forbids inventing parsers outside the closed detector (item 2), not miss-class itself. Lock the new wording in design_critique_contract.test.ts. Thin skill keeps a one-line pointer to ensure-or-doctor recovery; normative miss rules stay in the contract. ⊗ Stuff ensure/doctor prose into the skill body as a second SoT.\n\n2. **Closed missing-label detector (P1 / F2).** Prefer preflight GET repos/<owner>/<repo>/labels/<name> (or equivalent gh api) for each closed catalog chip targeted by the add set. HTTP 404 → missing-repo-label. Do not rely solely on stderr heuristics from gh issue edit --add-label (those remain optional corroboration only). Auth/403/401/other failures map to auth-or-permission. Fixture-lock the classifier; do not leave Prefer-A as prose-only.\n\n3. **Ensure-on-write attach + create table (P1 / F3).** On `missing-repo-label` for a closed catalog chip, create once via \restCreateLabel (D20 sink-bootstrap precedent: name + color + description; idempotent 422 skip), then retry apply. Attach point: inside \runDesignCritiqueChip / catalog-aware path before or around ScmLabelClient.apply for catalog adds — do not require every non-catalog ScmLabelClient.apply to ensure. Publish a closed create table for the three DESIGN_CRITIQUE_CATALOG_CHIPS (mechanism-shaped / in-progress / ingest-ready) with fixed color+description constants. Ensure creates only the chip(s) in the current add set (singular per write is fine); doctor (item 5) may detect the plural set. ⊗ Paste-ready recovery for missing labels. ⊗ Restore retired chips.\n\n4. **Ensure-refuse posture (P1 / F7).** If ensure create fails for auth/permission (or policy refuses create), fall through to non-blocking miss with stderr/stdout that names `ensure-failed` / miss class. Chip exit stays 0 for that class. Ingest remains unblocked (completed-arc SoT). ⊗ Make chip apply blocking for ingest when ensure is refused. ⊗ Invent a new policy field in v1 unless an existing doctor/setup refuse already exists — default is try-ensure then non-blocking fallthrough.\n\n5. **JudgmentGates land (P2 / F4 / F5).** Two limbs, both required:\n   - **Doctor / setup advisory:** when the deposit predicate (item 6) is true, detect missing catalog labels and missing/empty judgmentGates entry for design-critique; remediation names ensure labels + typed gate id design-critique matching design-critique:mechanism-shaped (maintainer PROJECT-DEFINITION shape).\n   - **First-arc / default path:** on first successful catalog ensure+apply in a deposited consumer (or at deposit/setup when design-critique content is staged), ensure the typed judgmentGates entry exists via the existing project-policy write surface (project:write / narratives / equivalent durable policy write — pick the pin-present path; do not invent a second PROJECT-DEFINITION editor). If durable policy write is unavailable in that session, doctor advisory MUST still fire and name the exact remediation; Prefer-A does not allow silent stay-dark after ensure+apply without at least that advisory.\n\n6. **Deposit predicate (P2 / F5).** Closed presence check: design-critique content is \"deposited\" when any of (a) content/skills/deft-directive-design-critique/SKILL.md (or consumer deposit equivalent under .deft/core/), (b) content/contracts/design-critique.md (or deposit equivalent), or (c) ADR-005 / judgment-gate design-critique pack slice is present on the consumer tree. Doctor/setup and first-arc gate ensure use this predicate. ⊗ Fire advisory on every consumer without that presence check.\n\n7. **Skill pointer (P3 / F6).** deft-directive-design-critique SKILL.md gains one pointer line: on chip miss for missing-repo-label, follow contract ensure-or-doctor recovery. Normative detector/ensure/miss-class text lives only in the contract (+ fixtures). Content-contract thin-skill lock stays.\n\n8. **Non-goals (hold).** Chips remain list hygiene / convenience; completed-arc record remains ingest clearance SoT. No restore of \triage-ready / \recut-needed. No making ingest depend on chips. No paste-ready as the missing-label recovery.\n\n9. **Acceptance.**\n   - Contract + content-contract: miss-class split; detector fixture; ensure create table for three catalog chips\n   - Virgin consumer / fixture: missing catalog label → ensure via restCreateLabel → retry apply succeeds; auth miss still non-blocking exit 0 with miss token\n   - Doctor/setup: deposit predicate true → advisory for missing labels and/or missing judgmentGates design-critique entry\n   - First-arc/default: after ensure+apply (or deposit/setup), typed judgmentGates lights or loud advisory names exact remediation (no silent stay-dark)\n   - Thin skill: one-line pointer only; no second SoT\n   - Ingest still independent of chips\n\n## Reject\n\n- Undifferentiated \"any apply miss is the same miss\" left in place while teaching ensure for one subclass (F1)\n- Stderr-only missing-label classifier with no preflight GET (F2)\n- Ensure without closed color/description table or attach point (F3)\n- Doctor-only judgmentGates with no first-arc/default or loud advisory after ensure+apply (F4)\n- Unnamed \"design-critique content deposited\" predicate (F5)\n- Normative ensure/doctor body stuffed into the thin skill (F6)\n- Ensure-refuse that blocks ingest or silently keeps virgin soft-miss with no named fallthrough (F7)",
+          "id": 5981731343,
+          "html_url": "https://github.com/deftai/directive/issues/5326#issuecomment-5981731343",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T15:44:24Z",
+          "updated_at": "2026-10-04T15:44:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: pain-audit\ncritic-role: fresh\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nid-ceiling: 5981731343\ndispatch-sha: afa97f2800b1992b23526aa257c666fd1f77ec2e\nStop-1: 5981699532\nsuccessor-lean: 5981731343\ntarget: #5326\nverification-path: pin-read git show afa97f2800b1992b23526aa257c666fd1f77ec2e:; dest cwd-without-occupy for on-pin file reads\n\n## Pain-audit of Prefer-A Bound 5981731343 vs Stop 1 P1–P3\n\nPin-read at `afa97f2800b1992b23526aa257c666fd1f77ec2e` only. Asserted coverage is Prefer-A Bound lean `5981731343` (absorbs round-1 critic `5981723840` F1–F8). Verdict per audit-target below.\n\n### pain-P1 — relieves (support)\n\nStop 1 P1: virgin-consumer chip write against a missing repo label exits 0 with undifferentiated soft-miss and never creates the catalog label or fails closed loudly for that miss class.\n\nBound relief:\n- Item 1 splits miss classes (`missing-repo-label` vs `auth-or-permission`) and rewrites the live contract sentence that currently lumps them.\n- Item 2 closes the detector as preflight `GET repos/<owner>/<repo>/labels/<name>` (404 → missing-repo-label); stderr heuristics optional corroboration only.\n- Item 3 ensure-on-write via `restCreateLabel` + closed create table for the three `DESIGN_CRITIQUE_CATALOG_CHIPS`, attached inside `runDesignCritiqueChip` / catalog-aware path (not every `ScmLabelClient.apply`).\n- Item 4 ensure-refuse → named non-blocking `ensure-failed` fallthrough; ingest stays unblocked.\n\nPin evidence that the gap is real and the limbs attach:\n- Contract still: \"Chip apply miss is non-blocking convenience. Do not invent a 403 HTTP parser. Any apply miss is the same miss.\" (`content/contracts/design-critique.md`).\n- `ScmLabelClient.applyMut` only `gh issue edit --add-label` / `--remove-label`; throws `ScmLabelError` on stderr (`packages/core/src/vbrief-reconcile/labels.ts`).\n- `runDesignCritiqueChip` maps every non-proof failure to `CHIP_APPLY_MISS_TOKEN` + exit 0; tests lock `HTTP 403 Forbidden` as non-blocking miss (`packages/core/src/scm/design-critique-chip.ts` / `.test.ts`).\n- `restCreateLabel(repo, name, color, description)` + D20 `PRODUCT_SIGNAL_BOOTSTRAP_LABELS` / idempotent 422 skip exist (`packages/core/src/scm/gh-rest.ts`, `packages/core/src/product-signal/sink-bootstrap.ts`).\n- Catalog set exported: mechanism-shaped / in-progress / ingest-ready (`packages/core/src/design-critique/exclusive-chip.ts`).\n\nClassification: **support**. Bound items 1–4 relieve P1.\n\n### pain-P2 — relieves (support)\n\nStop 1 P2: deposited design-critique without a typed `judgmentGates` entry leaves `verify:judgment-gates` unmatched (advise / empty gates) even after a successful chip write.\n\nBound relief:\n- Item 5 requires both limbs: doctor/setup advisory **and** first-arc/default ensure of typed gate id `design-critique` matching `design-critique:mechanism-shaped`; silent stay-dark after ensure+apply is forbidden (advisory MUST fire if durable policy write is unavailable).\n- Item 6 names the deposit predicate (skill / contract / ADR-005 pack-slice presence under deposit paths).\n\nPin evidence:\n- `resolveJudgmentGates` → `defaultPolicy` with `gates: []` when `judgmentGates` absent (`packages/core/src/orchestration/judgment-policy.ts`).\n- Doctor tree has no design-critique / judgmentGates / catalog-chip seed hits at this pin (`packages/core/src/doctor/**`).\n- ADR-005 / contract keep match on `design-critique:mechanism-shaped` only; ensure-on-write alone would leave the gate dark (round-1 F4), which Bound item 5 closes.\n\nClassification: **support**. Bound items 5–6 relieve P2.\n\n### pain-P3 — relieves (support)\n\nStop 1 P3: thin skill / chip path names only the chip verb and undifferentiated non-blocking miss; no ensure-or-doctor recovery and no miss-class distinguish.\n\nBound relief:\n- Item 1 puts normative miss-class / ensure rules in the contract (+ content-contract lock).\n- Item 7 adds one skill pointer line only; ⊗ second SoT in the skill body (holds thin-router ceiling).\n\nPin evidence:\n- Skill today: \"Chip apply miss is non-blocking convenience; do not halt\" with parent chip write → `scm:issue:design-critique-chip` (`content/skills/deft-directive-design-critique/SKILL.md`).\n- Content-contract locks thin skill no-normative-content / pointer resolution (`design_critique_contract.test.ts`).\n\nClassification: **support**. Bound items 1 + 7 relieve P3.\n\n### Non-harvest sharpenings (PR acceptance residue)\n\n- **S1.** Item 5 lists `project:write / narratives / equivalent` as candidates. At this pin `project:write-narratives` is narratives-without-policy-keys (`content/commands.md`). Implement must pick a pin-present **policy** write surface for the typed gate, or fall through to the required loud doctor advisory. Does not change pain cites.\n- **S2.** Item 3 requires fixed color+description constants for the three catalog chips but does not enumerate hex/text values. Acceptance item 9 already demands the create table; values are implement fill-in under that table. Does not change pain cites.\n- **S3.** Attach order \"before or around\" `ScmLabelClient.apply` for catalog adds is intentionally open; catalog-only attach (not every apply) is closed. Does not change pain cites.\n\nNo **does-not-relieve**. No **harvest-changing** findings. Reject list (undifferentiated miss, stderr-only detector, ensure without create table/attach, doctor-only gate, unnamed deposit predicate, skill-body SoT, ingest-blocking ensure-refuse) stays rejected and is covered by Bound items 1–7.\n\n### Disposition\n\n**bindable-as-posted.** Prefer-A Bound `5981731343` relieves Stop 1 P1, P2, and P3. Support only, with non-harvest S1–S3 as PR acceptance residue. No Recut / Dual-stop raise required from this audit.\n\n## Method note\n\nREST-read issue `#5326` body, Stop 1 `5981699532`, round-1 critic `5981723840`, Prefer-A Bound `5981731343`. Pin-read: `content/contracts/design-critique.md` miss sentence; `content/skills/deft-directive-design-critique/SKILL.md` chip miss line; `packages/core/src/scm/design-critique-chip.ts` (+ test 403 miss); `packages/core/src/vbrief-reconcile/labels.ts` `ScmLabelClient.applyMut`; `packages/core/src/design-critique/exclusive-chip.ts` `DESIGN_CRITIQUE_CATALOG_CHIPS`; `packages/core/src/orchestration/judgment-policy.ts` `resolveJudgmentGates`; doctor tree (no design-critique seed); `packages/core/src/scm/gh-rest.ts` `restCreateLabel`; `packages/core/src/product-signal/sink-bootstrap.ts` D20 create table; `content/commands.md` `project:write-narratives` narratives-without-policy note.",
+          "id": 5981748437,
+          "html_url": "https://github.com/deftai/directive/issues/5326#issuecomment-5981748437",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T15:46:28Z",
+          "updated_at": "2026-10-04T15:46:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5981731343\nStop-1 (denominator): 5981699532\nround-1 critic: 5981723840\nPain-audit (bind lean): 5981748437 — support P1, support P2, support P3; bindable-as-posted; non-harvest sharpenings S1–S3 (policy write surface pick; create-table color constants; attach order before/around apply) carry into PR acceptance\ndispatch-sha: afa97f2800b1992b23526aa257c666fd1f77ec2e\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\n\n## In plain English\n\nThe Bound stands. Virgin design-critique consumers get catalog chip labels ensured on first chip write, a typed judgment gate (or loud doctor/setup remediation), and a contract miss-class split so missing-label soft-misses stop being silent while auth misses stay non-blocking. Ingest remains a separate operator verb.\n\n## Recording note (no Lean token)\n\nevaluatePainAuditFollowThrough({findingClasses:[\"sharpening\"], harvestChanged:false}) — residue carries into PR acceptance rather than another Recut.\n\n## Plain-language summary\n\nEnsure-on-write + miss-class contract rewrite + doctor/first-arc judgmentGates + thin skill pointer — chips stay convenience; completed-arc stays ingest clearance.",
+          "id": 5981756026,
+          "html_url": "https://github.com/deftai/directive/issues/5326#issuecomment-5981756026",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-04T15:47:15Z",
+          "updated_at": "2026-10-04T15:47:15Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nConsumer repos that deposit design-critique do not get the three catalog chip labels (or a typed `judgmentGates` entry) provisioned. The arc skill directs agents to `scm:issue:design-critique-chip`, and that verb treats apply failure as a non-blocking miss. Fresh consumers can run arcs that look successful while never gaining list-visible chip state or a lit judgment gate.\n\nMaintainer dogfood hides this: `deftai/directive` already has the labels and a typed gate in PROJECT-DEFINITION.\n\n## Evidence (consumer dogfood on `deftai/statusreport`, 2026-10-04)\n\nRepo label catalog on statusreport (no design-critique chips):\n\n- bug, documentation, duplicate, enhancement, good first issue, help wanted, invalid, known-issue, question, triage, triage-rejected, Urgent, wontfix\n\nLabel API:\n\n- `GET repos/deftai/statusreport/labels/design-critique:mechanism-shaped` → HTTP 404\n\nMaintainer contrast (`deftai/directive` labels present):\n\n- `design-critique:mechanism-shaped`\n- `design-critique:in-progress`\n- `design-critique:ingest-ready`\n- plus retired leftovers `design-critique:triage-ready`, `design-critique:recut-needed`\n\nWrite path:\n\n- `ScmLabelClient.applyMut` → `gh issue edit --add-label …`\n- requires the label to already exist on the repo\n- does not `gh label create` / ensure repo labels\n\nOn miss (`design-critique-chip.js`):\n\n- proof failures for ingest-ready are blocking\n- other apply failures print `chip apply missed (non-blocking convenience)` and exit 0\n- contract/skill both say chip apply miss does not block ingest\n\nSkill surface (`deft-directive-design-critique`):\n\n- points at `scm:issue:design-critique-chip`\n- says chip apply miss is non-blocking convenience\n- does **not** direct repo label bootstrap / `gh label create` / doctor ensure\n\nSetup / doctor / deposit:\n\n- no seed of the three catalog chips\n- nearby bootstrap exists only for product-signal D20 sink labels (different surface)\n\nJudgment gate on the same consumer:\n\n- statusreport `x-directive/policy` has **no** `judgmentGates`\n- `resolveJudgmentGates` defaults to `gates: []` when absent\n- `deft verify:judgment-gates` → `0 matched; posture=advise`\n- maintainer PROJECT-DEFINITION has typed gate id `design-critique` matching only `design-critique:mechanism-shaped`\n\n## Why this matters\n\nChips are intentionally list hygiene, not ingest clearance. That design is fine for bind/ingest.\n\nThe consumer gap is discoverability and gate lighting:\n\n1. First chip apply on a virgin consumer soft-misses.\n2. `mechanism-shaped` / `in-progress` / `ingest-ready` never become filterable GitHub state.\n3. Without typed `judgmentGates`, ADR-005 matching never fires even after a successful chip write.\n4. Agents following only the skill will not be told to provision either piece.\n5. Maintainer experience stays green, so the gap is easy to miss in dogfood.\n\n## Expected consumer outcome\n\nA deposited consumer that can run arcs should either:\n\n- have the three closed catalog labels ensured in the repo label set before/at first chip write, **and**\n- have a clear path (default, setup, doctor advisory, or first-arc ensure) for the typed `design-critique` judgment gate matching `design-critique:mechanism-shaped`\n\n…or the skill/doctor should fail closed / warn loudly that list/gate surfaces are unavailable, instead of a silent non-blocking miss.\n\n## Non-goals\n\n- Changing completed-arc / ingest clearance to depend on chips (chips remain convenience).\n- Restoring retired chips (`triage-ready`, `recut-needed`).\n- Making paste-ready the recovery for missing labels.\n\n## Suggested remediation directions (propose, not prescribe)\n\n1. **Ensure-on-write** in `design-critique-chip` / `ScmLabelClient`: if add targets a closed catalog chip and the repo label 404s, create the label once then retry apply.\n2. **Doctor / setup advisory**: detect missing catalog labels and missing/empty `judgmentGates` design-critique entry on consumers with design-critique content deposited.\n3. **Skill pointer**: Stop 1 / chip write path names ensure-or-doctor recovery when miss reason is missing repo label (not write-capable identity).\n4. Keep apply-miss non-blocking for true auth/permission misses; distinguish \"label does not exist on repo\" as a recoverable ensure path.\n\n## Repro\n\n1. Use a consumer without the three labels (e.g. current `deftai/statusreport`).\n2. Confirm `gh api repos/<owner>/<repo>/labels/design-critique:mechanism-shaped` → 404.\n3. Confirm PROJECT-DEFINITION policy lacks `judgmentGates`.\n4. Run `deft scm issue design-critique-chip -- --issue <N> --chip mechanism-shaped`.\n5. Observe non-blocking miss; issue gains no chip; `verify:judgment-gates` stays unmatched.\n\n## Seen from\n\nGrok Build session on `deftai/statusreport` while validating arc critic host readiness against `.deft/core/docs/grok-build-subscription-setup.md` and `contracts/design-critique.md`.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5700722259,
+        "origin": "deftai/directive#5326",
+        "id": "github.issue.5700722259"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "055e1bdd6ea6b5b8123b48a3a8cefb7d6f339d31af7f173a278002468efca137"
+      },
+      "swarm": {
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/design-critique/catalog-chip-ensure.ts",
+          "packages/core/src/design-critique/catalog-chip-ensure.test.ts",
+          "packages/core/src/scm/design-critique-chip.ts",
+          "packages/core/src/scm/design-critique-chip.test.ts",
+          "packages/core/src/scm/gh-rest.ts",
+          "packages/core/src/doctor/design-critique-deposit.ts",
+          "packages/core/src/doctor/design-critique-deposit.test.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/index.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md",
+          "packages/core/src/scm/main-branches.test.ts",
+          "packages/core/src/scm/design-critique-stale-ready.test.ts"
+        ]
+      },
+      "bound": {
+        "lean_comment_id": 5981731343,
+        "synthesis_comment_id": 5981756026,
+        "target_digest": "sha256:055e1bdd6ea6b5b8123b48a3a8cefb7d6f339d31af7f173a278002468efca137"
+      },
+      "productPullRequest": 5329
+    },
+    "id": "github.issue.5700722259"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.bound",
+    "metadata.intended_placement",
+    "metadata.issueBody",
+    "metadata.issueCommentThread",
+    "metadata.productPullRequest",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id"
+  ]
+}
