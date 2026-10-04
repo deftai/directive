@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { evaluateAutoStampPath1Write } from "./auto-stamp-path1.js";
 import { scanPainCites } from "./citation-grammar.js";
-import { evaluateCompletedArcRecord, type ThreadComment } from "./completed-arc-record.js";
+import {
+  evaluateCompletedArcRecord,
+  isSuccessorLeanBody,
+  type ThreadComment,
+} from "./completed-arc-record.js";
 import {
   assertedPainIdsFromCites,
   bindLeanPredecessorValid,
@@ -26,6 +30,12 @@ import {
   recordLeftoverIssueNumber,
   verificationPathRecordLine,
 } from "./leftover-pain.js";
+import {
+  evaluateAccumulatedPainAuditFollowThrough,
+  extractOperativeFindingClasses,
+  extractOperativeHarvestChanged,
+  hashBoundRemedyBytes,
+} from "./pain-audit-follow-through-gate.js";
 import { N1_SPEND, N3_SPEND } from "./spend.js";
 
 describe("yolo leftover-pain handling (#4593)", () => {
@@ -784,5 +794,345 @@ describe("reserved-slot literacy + verification-path (#5188)", () => {
         recordedLine: "verification-path: provisioned",
       }),
     ).toEqual({ ok: false, reason: "invalid-verification-path" });
+  });
+});
+
+describe("pain-audit follow-through gate Prefer-A Bound (#5233)", () => {
+  const STOP1_ID = 5900000001;
+  const LEAN_ID = 5900000100;
+  const TABLE_ID = 5900000200;
+  const SYNTHESIS_ID = 5900000300;
+  /** Historical #5192 blocking ceiling id. */
+  const BLOCKING_AUDIT_ID = 5919579871;
+  /** Historical #5192 harvest-changing ceiling id. */
+  const HARVEST_AUDIT_ID = 5938850553;
+
+  const stop1: ThreadComment = {
+    id: STOP1_ID,
+    body:
+      "role: parent\n\ndesign-critique: warranted, because adverse follow-through gap.\n\n" +
+      "pain: P1\n",
+  };
+
+  function leanWithRemedy(id: number, remedy: string): ThreadComment {
+    return {
+      id,
+      body:
+        "**Lean:** Prefer-A Bound.\n\nSpec-path: Bound-remedy\n\n## Bound remedy\n\n" +
+        remedy +
+        "\n\nrelieves: P1\n",
+    };
+  }
+
+  function synthesisFor(leanId: number): ThreadComment {
+    return {
+      id: SYNTHESIS_ID,
+      body:
+        "model: grok-4.6\nrole: parent\n\n" +
+        "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+        `Citing successor lean ${leanId} and verified-claims table ${TABLE_ID}.\n`,
+    };
+  }
+
+  const table: ThreadComment = {
+    id: TABLE_ID,
+    body: "## Verified-claims table\n\n| # | Claim |\n",
+  };
+
+  function critic(id: number, body: string): ThreadComment {
+    return { id, body: `model: grok-4.6\nrole: critic\n\n${body}` };
+  }
+
+  it("parses closed finding-classes and harvest-changed; fences ignore quotes", () => {
+    expect(extractOperativeFindingClasses("finding-classes: none\n")).toEqual({
+      ok: true,
+      classes: [],
+      explicitEmpty: true,
+    });
+    expect(extractOperativeFindingClasses("finding-classes: blocking, footnote\n")).toEqual({
+      ok: true,
+      classes: ["blocking", "footnote"],
+      explicitEmpty: false,
+    });
+    expect(extractOperativeFindingClasses("finding-classes: none, blocking\n")?.ok).toBe(false);
+    expect(extractOperativeFindingClasses("finding-classes: \n")?.ok).toBe(false);
+    expect(
+      extractOperativeFindingClasses("finding-classes: blocking\nfinding-classes: none\n")?.ok,
+    ).toBe(false);
+    expect(extractOperativeHarvestChanged("harvest-changed: true\n")).toEqual({
+      ok: true,
+      harvestChanged: true,
+    });
+    expect(extractOperativeHarvestChanged("harvest-changed: maybe\n")?.ok).toBe(false);
+    expect(extractOperativeFindingClasses("```\nfinding-classes: blocking\n```\n")).toBeNull();
+    expect(extractOperativeHarvestChanged("> harvest-changed: true\n")).toBeNull();
+  });
+
+  it("hashes Bound-remedy list titles; hyphen heading and relieves churn are stable", () => {
+    const a = leanWithRemedy(1, "1. first harvest\n");
+    const b = leanWithRemedy(2, "1. first harvest\n");
+    const c = leanWithRemedy(3, "1. changed harvest\n");
+    expect(hashBoundRemedyBytes(a.body)).toBe(hashBoundRemedyBytes(b.body));
+    expect(hashBoundRemedyBytes(a.body)).not.toBe(hashBoundRemedyBytes(c.body));
+    const hyphen =
+      "**Lean:** Prefer-A Bound.\n\n## Bound-remedy\n\n1. first harvest\n\nrelieves: P9\n";
+    expect(hashBoundRemedyBytes(hyphen)).toBe(hashBoundRemedyBytes(a.body));
+  });
+
+  it("refuses raw #5192 blocking ceiling 5919579871 without follow-through clearance", () => {
+    const lean = leanWithRemedy(LEAN_ID, "1. original harvest\n");
+    const audit = critic(
+      BLOCKING_AUDIT_ID,
+      "audit-targets: pain-P1\nfinding-classes: blocking\nharvest-changed: false\n",
+    );
+    const handoff: ThreadComment = {
+      id: BLOCKING_AUDIT_ID + 1,
+      body: "role: parent\n\nHandoff\n\nretraction map posted.\n",
+    };
+    const comments = [stop1, lean, table, audit, handoff, synthesisFor(LEAN_ID)];
+    const verdict = evaluateCompletedArcRecord({ comments, issueNumber: 5192 });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "unresolved-pain-audit" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain("blocking audit");
+      expect(verdict.detail).toContain(String(BLOCKING_AUDIT_ID));
+      expect(verdict.detail).toContain("Handoff is not clearance");
+    }
+    expect(
+      evaluateAutoStampPath1Write({ comments: [stop1, lean, audit, handoff], issueNumber: 5192 })
+        .writePath1,
+    ).toBe(false);
+  });
+
+  it("refuses raw #5192 harvest-changing ceiling 5938850553 until digest changes + later audit", () => {
+    const lean = leanWithRemedy(LEAN_ID, "1. original harvest\n");
+    const audit = critic(
+      HARVEST_AUDIT_ID,
+      "audit-targets: pain-P1\nfinding-classes: sharpening\nharvest-changed: true\n",
+    );
+    const comments = [stop1, lean, table, audit, synthesisFor(LEAN_ID)];
+    const verdict = evaluateCompletedArcRecord({ comments, issueNumber: 5192 });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "unresolved-pain-audit" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain("harvest-changing");
+      expect(verdict.detail).toContain(String(HARVEST_AUDIT_ID));
+      expect(verdict.detail).toContain("byte-identical lean rotation does not discharge");
+    }
+  });
+
+  it("does not let byte-identical lean rotation discharge harvest-changing", () => {
+    const lean1 = leanWithRemedy(LEAN_ID, "1. same bytes\n");
+    // Chronological id between leans (historical ceiling 5938850553 is shape-only here).
+    const audit = critic(
+      LEAN_ID + 10,
+      "audit-targets: pain-P1\nfinding-classes: sharpening\nharvest-changed: true\n",
+    );
+    const lean2 = leanWithRemedy(LEAN_ID + 50, "1. same bytes\n");
+    const laterAudit = critic(
+      lean2.id + 1,
+      "audit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n",
+    );
+    expect(hashBoundRemedyBytes(lean1.body)).toBe(hashBoundRemedyBytes(lean2.body));
+    const comments = [
+      stop1,
+      lean1,
+      audit,
+      lean2,
+      table,
+      laterAudit,
+      {
+        id: SYNTHESIS_ID + 10,
+        body:
+          "model: grok-4.6\nrole: parent\n\n" +
+          "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+          `Citing successor lean ${lean2.id} and verified-claims table ${TABLE_ID}.\n`,
+      },
+    ];
+    expect(evaluateCompletedArcRecord({ comments, issueNumber: 5233 })).toMatchObject({
+      status: "blocked",
+      reason: "unresolved-pain-audit",
+    });
+  });
+
+  it("does not let a later footnote-only audit launder prior blocking", () => {
+    const lean = leanWithRemedy(LEAN_ID, "1. harvest\n");
+    const blocking = critic(
+      BLOCKING_AUDIT_ID,
+      "audit-targets: pain-P1\nfinding-classes: blocking\nharvest-changed: false\n",
+    );
+    const footnote = critic(
+      BLOCKING_AUDIT_ID + 5,
+      "audit-targets: pain-P1\nfinding-classes: footnote\nharvest-changed: false\n",
+    );
+    const gate = evaluateAccumulatedPainAuditFollowThrough({
+      comments: [lean, blocking, footnote],
+      citedLeanId: LEAN_ID,
+      assertedPainIds: ["P1"],
+      isSuccessorLeanBody,
+    });
+    expect(gate.ok).toBe(false);
+    if (!gate.ok) {
+      expect(gate.recovery).toBe("retraction-handoff");
+      expect(gate.detail).toContain("blocking");
+    }
+  });
+
+  it("refuses missing carrier on a targeting audit", () => {
+    const lean = leanWithRemedy(LEAN_ID, "1. harvest\n");
+    const bare = critic(LEAN_ID + 1, "audit-targets: pain-P1\n");
+    const comments = [stop1, lean, table, bare, synthesisFor(LEAN_ID)];
+    const verdict = evaluateCompletedArcRecord({ comments, issueNumber: 5233 });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "unresolved-pain-audit" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain("missing carrier");
+    }
+  });
+
+  it("ignores parent-understated finding-classes; critic blocking still refuses", () => {
+    const lean = leanWithRemedy(LEAN_ID, "1. harvest\n");
+    const audit = critic(
+      BLOCKING_AUDIT_ID,
+      "audit-targets: pain-P1\nfinding-classes: blocking\nharvest-changed: false\n",
+    );
+    const parentUnderstate: ThreadComment = {
+      id: BLOCKING_AUDIT_ID + 2,
+      body: "role: parent\n\nfinding-classes: none\nharvest-changed: false\n",
+    };
+    const comments = [stop1, lean, table, audit, parentUnderstate, synthesisFor(LEAN_ID)];
+    expect(evaluateCompletedArcRecord({ comments, issueNumber: 5233 })).toMatchObject({
+      status: "blocked",
+      reason: "unresolved-pain-audit",
+    });
+  });
+
+  it("completes after genuine Bound-remedy change plus later clear audit", () => {
+    const lean1 = leanWithRemedy(LEAN_ID, "1. original harvest\n");
+    // Chronological id between leans; ceiling 5938850553 shape covered in refuse fixture.
+    const adverse = critic(
+      LEAN_ID + 10,
+      "audit-targets: pain-P1\nfinding-classes: sharpening\nharvest-changed: true\n",
+    );
+    const lean2 = {
+      id: LEAN_ID + 50,
+      body:
+        leanWithRemedy(LEAN_ID + 50, "1. changed harvest after audit\n").body +
+        `disposes critic ${adverse.id}\n`,
+    };
+    const later = critic(
+      lean2.id + 1,
+      "audit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n",
+    );
+    expect(hashBoundRemedyBytes(lean1.body)).not.toBe(hashBoundRemedyBytes(lean2.body));
+    const comments = [
+      stop1,
+      lean1,
+      adverse,
+      lean2,
+      table,
+      later,
+      {
+        id: SYNTHESIS_ID + 20,
+        body:
+          "model: grok-4.6\nrole: parent\n\n" +
+          "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+          `Citing successor lean ${lean2.id} and verified-claims table ${TABLE_ID}.\n`,
+      },
+    ];
+    expect(evaluateCompletedArcRecord({ comments, issueNumber: 5233 })).toMatchObject({
+      status: "complete",
+      citedLeanId: lean2.id,
+    });
+    expect(
+      evaluateAutoStampPath1Write({
+        comments: [stop1, lean1, adverse, lean2, later],
+        issueNumber: 5233,
+      }).writePath1,
+    ).toBe(true);
+  });
+
+  it("refuses changed digest without citing the prior harvest-changing audit", () => {
+    const lean1 = leanWithRemedy(LEAN_ID, "1. original harvest\n");
+    const adverse = critic(
+      LEAN_ID + 10,
+      "audit-targets: pain-P1\nfinding-classes: sharpening\nharvest-changed: true\n",
+    );
+    const lean2 = leanWithRemedy(LEAN_ID + 50, "1. changed harvest after audit\n");
+    const later = critic(
+      lean2.id + 1,
+      "audit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n",
+    );
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [
+          stop1,
+          lean1,
+          adverse,
+          lean2,
+          table,
+          later,
+          {
+            id: SYNTHESIS_ID + 21,
+            body:
+              "model: grok-4.6\nrole: parent\n\n" +
+              "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+              `Citing successor lean ${lean2.id} and verified-claims table ${TABLE_ID}.\n`,
+          },
+        ],
+        issueNumber: 5233,
+      }),
+    ).toMatchObject({ status: "blocked", reason: "unresolved-pain-audit" });
+  });
+
+  it("refuses non-harvest sharpening without a recording parent takes comment", () => {
+    const lean = leanWithRemedy(LEAN_ID, "1. harvest\n");
+    const sharpen = critic(
+      LEAN_ID + 1,
+      "audit-targets: pain-P1\nfinding-classes: sharpening\nharvest-changed: false\n",
+    );
+    expect(
+      evaluateAccumulatedPainAuditFollowThrough({
+        comments: [lean, sharpen],
+        citedLeanId: LEAN_ID,
+        assertedPainIds: ["P1"],
+        isSuccessorLeanBody,
+      }),
+    ).toMatchObject({ ok: false, recovery: "record-parent-takes" });
+    const bareCite: ThreadComment = {
+      id: LEAN_ID + 2,
+      body: `role: parent\n\nsynthesis mentions ${sharpen.id} only\n`,
+    };
+    expect(
+      evaluateAccumulatedPainAuditFollowThrough({
+        comments: [lean, sharpen, bareCite],
+        citedLeanId: LEAN_ID,
+        assertedPainIds: ["P1"],
+        isSuccessorLeanBody,
+      }),
+    ).toMatchObject({ ok: false, recovery: "record-parent-takes" });
+    const recorded: ThreadComment = {
+      id: LEAN_ID + 3,
+      body: `role: parent\n\nrecorded takes for audit ${sharpen.id}\n`,
+    };
+    expect(
+      evaluateAccumulatedPainAuditFollowThrough({
+        comments: [lean, sharpen, recorded],
+        citedLeanId: LEAN_ID,
+        assertedPainIds: ["P1"],
+        isSuccessorLeanBody,
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("keeps footnote-only / clear carrier bindable on the cited harvest", () => {
+    const lean = leanWithRemedy(LEAN_ID, "1. harvest\n");
+    const clear = critic(
+      LEAN_ID + 1,
+      "audit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n",
+    );
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [stop1, lean, table, clear, synthesisFor(LEAN_ID)],
+        issueNumber: 5233,
+      }),
+    ).toMatchObject({ status: "complete", citedLeanId: LEAN_ID });
   });
 });

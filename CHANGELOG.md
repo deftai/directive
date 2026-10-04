@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(xbrief): widen #1164 file_scope to include docs/RULE-MAP.md (Path B precommitment for product land).
 
 ### Added
+- **design-critique: leftover-pain follow-through wiring (#5233 split).** Wire leftover-pain helpers to the pain-audit follow-through gate Prefer-A Bound landed in #5325; expand coverage for harvest/blocking carriers. Tracking #5233.
 - **Land #5233/#5326 keep active briefs for Path B continuity.** Places the keep active xBRIEFs on origin/master so Path B membership can resolve continuity for already-merged approved-scope mints; product keep PRs can then pass merge-gate. Tracking #5233, #5326.
 - **Mint approved-scope for #5326 (Path B membership).** Lands `.deft/approved-scope/github.issue.5700722259{,.intent}.json` on master so the product PR can pass verify:scope-provenance membership. Tracking #5326.
 - **Mint approved-scope for #5233 (Path B membership).** Operator TTY stamp of merge-base `.deft/approved-scope/github.issue.5668365121.json` (+ intent preimage) so product PR #5325 can resolve continuity-keyed membership after the activation brief lands. Mint-only — no product code. Tracking #5233.

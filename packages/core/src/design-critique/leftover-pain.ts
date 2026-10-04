@@ -3,11 +3,11 @@
  * posts-not-seats, and pain-audit follow-through after a bind lean.
  *
  * Does not NLP-grade Bound-remedy English (ADR-005). Does not waive #4592
- * path-1 refuse. Live parent turns stay unenforced; these are fixtures.
- * Pain-audit dispatch fills operative audit-targets (ids or none). English
- * Pain-audit headings are not targeting. Parent calls
+ * path-1 refuse. Pain-audit dispatch fills operative audit-targets (ids or
+ * none). English Pain-audit headings are not targeting. Parent calls
  * evaluateAutoStampPath1Write before path-1. Footnote-only follow-through
- * is not clearance (#4648).
+ * is not clearance (#4648). #5233 composes evaluatePainAuditFollowThrough
+ * into completed-arc via evaluateAccumulatedPainAuditFollowThrough.
  *
  * #5188 recording helpers: reserved-slot literacy (`dual-stop-reserved:`) and
  * process-only `verification-path:` before panel-deposit. Returned refusals
@@ -22,10 +22,15 @@ import {
   type ThreadComment,
 } from "./completed-arc-record.js";
 import { evaluateDualStopReservedSlot } from "./handoff.js";
+import {
+  evaluatePainAuditFollowThrough,
+  type PainAuditFindingClass,
+} from "./pain-audit-follow-through-gate.js";
 import { extractOperativeAuditTargets, painMarkerId } from "./parent-audit.js";
 import { type ArcSpend, N3_SPEND } from "./spend.js";
 
-export type PainAuditFindingClass = "blocking" | "sharpening" | "footnote";
+export type { PainAuditFindingClass };
+export { evaluatePainAuditFollowThrough };
 
 export type PainCiteLeanKind = "bind" | "retraction" | "intermediate";
 
@@ -189,64 +194,6 @@ export function evaluatePainCitePlacement(input: {
     return { allowed: cites.length === 0, operativeCiteCount: cites.length };
   }
   return { allowed: true, operativeCiteCount: cites.length };
-}
-
-export function evaluatePainAuditFollowThrough(input: {
-  readonly findingClasses: readonly PainAuditFindingClass[];
-  readonly harvestChanged: boolean;
-}): {
-  readonly postRetractionThenHandoff: boolean;
-  readonly bindableWithoutExtraLean: boolean;
-  readonly recordingOnlyParentComment: boolean;
-  readonly newBindLeanAndAudit: boolean;
-  readonly spendsNumberedDualStopPost: boolean;
-  readonly movesCriticEnvelopes: boolean;
-  readonly isRelief: boolean;
-} {
-  const hasBlocking = input.findingClasses.includes("blocking");
-  const hasSharpening = input.findingClasses.includes("sharpening");
-  if (hasBlocking) {
-    return {
-      postRetractionThenHandoff: true,
-      bindableWithoutExtraLean: false,
-      recordingOnlyParentComment: false,
-      newBindLeanAndAudit: false,
-      spendsNumberedDualStopPost: false,
-      movesCriticEnvelopes: false,
-      isRelief: false,
-    };
-  }
-  if (hasSharpening && input.harvestChanged) {
-    return {
-      postRetractionThenHandoff: false,
-      bindableWithoutExtraLean: false,
-      recordingOnlyParentComment: false,
-      newBindLeanAndAudit: true,
-      spendsNumberedDualStopPost: true,
-      movesCriticEnvelopes: true,
-      isRelief: false,
-    };
-  }
-  if (hasSharpening) {
-    return {
-      postRetractionThenHandoff: false,
-      bindableWithoutExtraLean: true,
-      recordingOnlyParentComment: true,
-      newBindLeanAndAudit: false,
-      spendsNumberedDualStopPost: false,
-      movesCriticEnvelopes: false,
-      isRelief: false,
-    };
-  }
-  return {
-    postRetractionThenHandoff: false,
-    bindableWithoutExtraLean: true,
-    recordingOnlyParentComment: false,
-    newBindLeanAndAudit: false,
-    spendsNumberedDualStopPost: false,
-    movesCriticEnvelopes: false,
-    isRelief: false,
-  };
 }
 
 export function evaluateYoloStandingLeftoverScope(input: {
