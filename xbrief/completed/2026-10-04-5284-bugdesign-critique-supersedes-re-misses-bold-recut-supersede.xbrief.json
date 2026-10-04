@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "bug(design-critique): SUPERSEDES_RE misses bold Recut-supersedes; bindLeanPredecessorValid blocks legitimate harvest Recuts (#5278 leftover)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(design-critique): SUPERSEDES_RE misses bold Recut-supersedes; bindLeanPredecessorValid blocks legitimate harvest Recuts (#5278 leftover)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5284",
@@ -15,32 +15,157 @@
     },
     "items": [
       {
-        "title": "**SUPERSEDES_RE bold-optional (P1 / F2).** In `packages/core/src/design-critique/handoff.ts`, update `SUPERSEDES_RE` so optional markdown asterisks wrap the token the same way `OPEN_QUESTION_RE` / `LEAN_HEADING_RE` already do (`\\*{0,2}` before the token name and again after the colon, before `<id>` — not only before the colon). The failing shapes `**Recut-supersedes:** <id>` and `**Supersedes:** <id>` (and single-asterisk `:*` variants) MUST match when operative; unbolded forms keep matching. Do **not** choose document-unbold / fail-fixtures-on-bold as the Bound path. Fixtures: extend `handoff.test.ts` with the failing `:**` / `:*` samples from critic 5975656785 plus the already-matching leading-bold-with-space shape (F4 census).",
-        "status": "pending",
         "id": "clause.1",
-        "x-directive/description": "**SUPERSEDES_RE bold-optional (P1 / F2).** In `packages/core/src/design-critique/handoff.ts`, update `SUPERSEDES_RE` so optional markdown asterisks wrap the token the same way `OPEN_QUESTION_RE` / `LEAN_HEADING_RE` already do (`\\*{0,2}` before the token name and again after the colon, before `<id>` — not only before the colon). The failing shapes `**Recut-supersedes:** <id>` and `**Supersedes:** <id>` (and single-asterisk `:*` variants) MUST match when operative; unbolded forms keep matching. Do **not** choose document-unbold / fail-fixtures-on-bold as the Bound path. Fixtures: extend `handoff.test.ts` with the failing `:**` / `:*` samples from critic 5975656785 plus the already-matching leading-bold-with-space shape (F4 census).",
-        "x-directive/artifact_path": "packages/core/src/design-critique/handoff.ts"
+        "title": "SUPERSEDES_RE admits bold-optional colon-adjacent asterisks like OPEN_QUESTION_RE and LEAN_HEADING_RE.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5296",
+            "mintedAt": "2026-10-04T06:28:38Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:28:38Z"
+        }
       },
       {
-        "title": "**`bindLeanPredecessorValid` harvest escape (P2 / F3).** Extend `bindLeanPredecessorValid` in `leftover-pain.ts` with an evidence-gated escape. Overlap of relieves ids is allowed **only when** both hold: (a) `harvestChanged: true` (or the same boolean already threaded by `evaluatePainAuditFollowThrough`), and (b) the bind map operatively Recut-supersedes a prior successor lean (reuse `collectSupersededSuccessorLeans` / operative supersedes cite). Without both, keep today's refuse. Fixtures: overlap without harvest → false; overlap with harvestChanged + operative Recut → true; overlap with harvestChanged but no Recut cite → false.",
-        "status": "pending",
         "id": "clause.2",
-        "x-directive/description": "**`bindLeanPredecessorValid` harvest escape (P2 / F3).** Extend `bindLeanPredecessorValid` in `leftover-pain.ts` with an evidence-gated escape. Overlap of relieves ids is allowed **only when** both hold: (a) `harvestChanged: true` (or the same boolean already threaded by `evaluatePainAuditFollowThrough`), and (b) the bind map operatively Recut-supersedes a prior successor lean (reuse `collectSupersededSuccessorLeans` / operative supersedes cite). Without both, keep today's refuse. Fixtures: overlap without harvest → false; overlap with harvestChanged + operative Recut → true; overlap with harvestChanged but no Recut cite → false.",
-        "x-directive/artifact_path": "packages/core/src/design-critique/leftover-pain.ts"
+        "title": "Failing shapes Recut-supersedes: id and Supersedes: id must match when operative; unbolded forms keep matching.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5296",
+            "mintedAt": "2026-10-04T06:28:38Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:28:38Z"
+        }
       },
       {
-        "title": "**#4554 Handoff co-amend (P2 / F1).** Under the **same** gate as item 2, carve harvest follow-through out of `hasHarvestRelievesOverlap` / `evaluateHandoffPrint` so a legitimate harvest Recut (`newBindLeanAndAudit` path) does not print Handoff on same-P* relieves Recut-supersedes. Without the gate, keep #4554 print. Fixtures: same-P* Recut without harvestChanged still prints; with harvestChanged + operative Recut of a prior successor lean does not print solely for that harvest overlap (unrelieved / does-not-relieve print paths stay).",
-        "status": "pending",
         "id": "clause.3",
-        "x-directive/description": "**#4554 Handoff co-amend (P2 / F1).** Under the **same** gate as item 2, carve harvest follow-through out of `hasHarvestRelievesOverlap` / `evaluateHandoffPrint` so a legitimate harvest Recut (`newBindLeanAndAudit` path) does not print Handoff on same-P* relieves Recut-supersedes. Without the gate, keep #4554 print. Fixtures: same-P* Recut without harvestChanged still prints; with harvestChanged + operative Recut of a prior successor lean does not print solely for that harvest overlap (unrelieved / does-not-relieve print paths stay).",
-        "x-directive/artifact_path": "packages/core/src/design-critique/handoff.ts"
+        "title": "Do not choose document-unbold as the Bound path.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5296",
+            "mintedAt": "2026-10-04T06:28:38Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:28:38Z"
+        }
       },
       {
-        "title": "**Contract / docs alignment (P2 / F1).** Update the Pain coverage / Handoff predecessor sentences in `content/contracts/design-critique.md` (and any mirrored test pins) so the harvest-changed + operative Recut escape is the recorded exception to \"bind lean names a predecessor that does not already carry relieves of those ids\" and to the #4554 harvest-overlap print condition. Do not leave contract text requiring Handoff on the prescribed `evaluatePainAuditFollowThrough` harvest walk.",
-        "status": "pending",
         "id": "clause.4",
-        "x-directive/description": "**Contract / docs alignment (P2 / F1).** Update the Pain coverage / Handoff predecessor sentences in `content/contracts/design-critique.md` (and any mirrored test pins) so the harvest-changed + operative Recut escape is the recorded exception to \"bind lean names a predecessor that does not already carry relieves of those ids\" and to the #4554 harvest-overlap print condition. Do not leave contract text requiring Handoff on the prescribed `evaluatePainAuditFollowThrough` harvest walk.",
-        "x-directive/artifact_path": "content/contracts/design-critique.md"
+        "title": "bindLeanPredecessorValid allows same-P star overlap only when harvestChanged is true and the bind map operatively Recut-supersedes a prior successor lean.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5296",
+            "mintedAt": "2026-10-04T06:28:38Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:28:38Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Without both conjuncts, keep today refuse.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5296",
+            "mintedAt": "2026-10-04T06:28:38Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:28:38Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "hasHarvestRelievesOverlap and evaluateHandoffPrint carve the same harvestChanged plus operative Recut gate so newBindLeanAndAudit does not print Handoff solely for that harvest overlap.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5296",
+            "mintedAt": "2026-10-04T06:28:38Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:28:38Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Without the gate, keep the 4554 print.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5296",
+            "mintedAt": "2026-10-04T06:28:38Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:28:38Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Contract records the harvest-changed plus operative Recut escape for Bind lean names a predecessor that does not already carry relieves of those ids and for the 4554 harvest-overlap print condition.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5296",
+            "mintedAt": "2026-10-04T06:28:38Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:28:38Z"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Do not leave contract text requiring Handoff on the prescribed evaluatePainAuditFollowThrough harvest walk.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5296",
+            "mintedAt": "2026-10-04T06:28:38Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:28:38Z"
+        }
       }
     ],
     "tags": [
@@ -67,7 +192,7 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "Prefer-A Bound clauses at activation; productPullRequest binds this activation PR for #4919 admission (finalize overwrite vs later product Tracking PR is recorded residual)",
+      "derived_reason": "Prefer-A leftover pathless derived after #5296",
       "sentences": [
         "SUPERSEDES_RE admits bold-optional colon-adjacent asterisks like OPEN_QUESTION_RE and LEAN_HEADING_RE.",
         "Failing shapes Recut-supersedes: id and Supersedes: id must match when operative; unbolded forms keep matching.",
@@ -95,65 +220,173 @@
         {
           "id": 1,
           "text": "SUPERSEDES_RE admits bold-optional colon-adjacent asterisks like OPEN_QUESTION_RE and LEAN_HEADING_RE.",
-          "artifact_path": "packages/core/src/design-critique/handoff.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5296",
+              "mintedAt": "2026-10-04T06:28:38Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:28:38Z"
+          }
         },
         {
           "id": 2,
           "text": "Failing shapes Recut-supersedes: id and Supersedes: id must match when operative; unbolded forms keep matching.",
-          "artifact_path": "packages/core/src/design-critique/handoff.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5296",
+              "mintedAt": "2026-10-04T06:28:38Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:28:38Z"
+          }
         },
         {
           "id": 3,
           "text": "Do not choose document-unbold as the Bound path.",
-          "artifact_path": "packages/core/src/design-critique/handoff.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5296",
+              "mintedAt": "2026-10-04T06:28:38Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:28:38Z"
+          }
         },
         {
           "id": 4,
           "text": "bindLeanPredecessorValid allows same-P star overlap only when harvestChanged is true and the bind map operatively Recut-supersedes a prior successor lean.",
-          "artifact_path": "packages/core/src/design-critique/leftover-pain.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5296",
+              "mintedAt": "2026-10-04T06:28:38Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:28:38Z"
+          }
         },
         {
           "id": 5,
           "text": "Without both conjuncts, keep today refuse.",
-          "artifact_path": "packages/core/src/design-critique/leftover-pain.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5296",
+              "mintedAt": "2026-10-04T06:28:38Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:28:38Z"
+          }
         },
         {
           "id": 6,
           "text": "hasHarvestRelievesOverlap and evaluateHandoffPrint carve the same harvestChanged plus operative Recut gate so newBindLeanAndAudit does not print Handoff solely for that harvest overlap.",
-          "artifact_path": "packages/core/src/design-critique/handoff.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5296",
+              "mintedAt": "2026-10-04T06:28:38Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:28:38Z"
+          }
         },
         {
           "id": 7,
           "text": "Without the gate, keep the 4554 print.",
-          "artifact_path": "packages/core/src/design-critique/handoff.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5296",
+              "mintedAt": "2026-10-04T06:28:38Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:28:38Z"
+          }
         },
         {
           "id": 8,
           "text": "Contract records the harvest-changed plus operative Recut escape for Bind lean names a predecessor that does not already carry relieves of those ids and for the 4554 harvest-overlap print condition.",
-          "artifact_path": "content/contracts/design-critique.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5296",
+              "mintedAt": "2026-10-04T06:28:38Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:28:38Z"
+          }
         },
         {
           "id": 9,
           "text": "Do not leave contract text requiring Handoff on the prescribed evaluatePainAuditFollowThrough harvest walk.",
-          "artifact_path": "content/contracts/design-critique.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5296 squash-merge (Tracking #5284). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5296",
+              "mintedAt": "2026-10-04T06:28:38Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:28:38Z"
+          }
         }
       ],
       "ambiguity_attestation": "none_found"
@@ -413,26 +646,26 @@
         "sha256": "bb9f1c316f4e95ecc8df2977f29f01b9fb40386aea378f466926be2ffe7e3862"
       },
       "swarm": {
-        "file_scope": [
-          "packages/core/src/design-critique/handoff.ts",
-          "packages/core/src/design-critique/handoff.test.ts",
-          "packages/core/src/design-critique/leftover-pain.ts",
-          "packages/core/src/design-critique/leftover-pain.test.ts",
-          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
-          "content/contracts/design-critique.md",
-          "CHANGELOG.md"
-        ],
+        "file_scope": [],
         "file_scope_confidence": "high",
-        "verify_commands": [
-          "pnpm exec vitest run packages/core/src/design-critique/handoff.test.ts packages/core/src/design-critique/leftover-pain.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
-        ],
+        "verify_commands": [],
         "expected_outputs": [
-          "Tracking PR opened"
+          "completed xBRIEF on tip"
         ],
         "depends_on": [],
         "conflict_group": "design-critique-supersedes-harvest",
         "size": "M",
         "model_tier": "default"
+      },
+      "admitted_source_digest": "51cb47a1a25252736860306850f090006d5d82b9ddf83a0f0649b686cf716685",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T06:28:38Z"
+      },
+      "completedAt": "2026-10-04T06:28:38Z",
+      "completionProvenance": {
+        "productMerge": "c7f92ef8e",
+        "productPr": 5296
       }
     },
     "id": "github.issue.5694557784",
