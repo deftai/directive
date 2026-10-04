@@ -33,6 +33,12 @@ export const VALID_PLAN_ITEM_TYPES = new Set(["task", "group", "milestone", "epi
 /** Optional PlanItem.effort enum (#1581). Time anchors: S <2h, M 2-4h, L 1-2d, XL needs breakdown. */
 export const VALID_PLAN_ITEM_EFFORTS = new Set(["S", "M", "L", "XL"]);
 
+/** v1 PlanItem.stopConditions.kind closed set (#1613). Assumption kind deferred. */
+export const VALID_STOP_CONDITION_KINDS = new Set(["anchor"]);
+
+/** Optional stopConditions.observeAt closed set (#1613). Absent ⇒ check item-start and item-resume. */
+export const VALID_STOP_CONDITION_OBSERVE_AT = new Set(["item-start", "item-resume"]);
+
 /** Optional PlanItem.id pattern from 0.6/0.8 schema. String ids when present must match (#4707). */
 export const PLAN_ITEM_ID_PATTERN = /^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*$/;
 

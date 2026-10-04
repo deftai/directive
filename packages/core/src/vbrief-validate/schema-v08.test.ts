@@ -113,6 +113,130 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
     expect(errors.some((e) => e.includes("invalid effort"))).toBe(true);
   });
 
+  it("accepts optional PlanItem.stopConditions anchors and rejects malformed (#1613)", () => {
+    const wellFormed = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [
+          {
+            id: "t1",
+            title: "Task",
+            status: "pending",
+            stopConditions: [
+              {
+                id: "helper-shape",
+                kind: "anchor",
+                path: "packages/core/src/example.ts",
+                excerpt: "export function helper(",
+                observeAt: "item-start",
+              },
+              {
+                id: "digest-only",
+                kind: "anchor",
+                path: "README.md",
+                digest: "sha256:abc",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    expect(validateVbriefSchema(wellFormed, "stop-ok.json")).toEqual([]);
+
+    const omitted = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [{ id: "t1", title: "Task", status: "pending" }],
+      },
+    };
+    expect(validateVbriefSchema(omitted, "stop-omitted.json")).toEqual([]);
+
+    const badKind = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [
+          {
+            id: "t1",
+            title: "Task",
+            status: "pending",
+            stopConditions: [
+              {
+                id: "a1",
+                kind: "assumption",
+                path: "x.ts",
+                excerpt: " cons ",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const kindErrors = validateVbriefSchema(badKind, "stop-bad-kind.json");
+    expect(kindErrors.some((e) => e.includes("invalid kind"))).toBe(true);
+
+    const missingAnchor = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [
+          {
+            id: "t1",
+            title: "Task",
+            status: "pending",
+            stopConditions: [{ id: "a1", kind: "anchor", path: "x.ts" }],
+          },
+        ],
+      },
+    };
+    const missingErrors = validateVbriefSchema(missingAnchor, "stop-missing-content.json");
+    expect(missingErrors.some((e) => e.includes("excerpt") || e.includes("digest"))).toBe(true);
+
+    const badObserve = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [
+          {
+            id: "t1",
+            title: "Task",
+            status: "pending",
+            stopConditions: [
+              {
+                id: "a1",
+                kind: "anchor",
+                path: "x.ts",
+                excerpt: " cons ",
+                observeAt: "before-cited-edit",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const observeErrors = validateVbriefSchema(badObserve, "stop-bad-observe.json");
+    expect(observeErrors.some((e) => e.includes("invalid observeAt"))).toBe(true);
+
+    const bareString = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [
+          {
+            id: "t1",
+            title: "Task",
+            status: "pending",
+            stopConditions: ["stop if files moved"],
+          },
+        ],
+      },
+    };
+    const bareErrors = validateVbriefSchema(bareString, "stop-bare-string.json");
+    expect(bareErrors.some((e) => e.includes("must be an object"))).toBe(true);
+  });
+
   it("rejects non-conformant string PlanItem.id and leaves omitted/integer ids (#4707)", () => {
     const legal = {
       ...MINIMAL_V08,

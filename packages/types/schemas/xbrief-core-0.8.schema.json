@@ -336,6 +336,13 @@
           "enum": ["S", "M", "L", "XL"],
           "description": "Optional effort estimate with time anchors: S <2h, M half-day (2-4h), L 1-2 days, XL needs breakdown into S/M/L before activation. Omitted items still validate."
         },
+        "stopConditions": {
+          "type": "array",
+          "description": "Optional mid-execution precondition STOP anchors (#1613). Omitted field validates. v1 admits kind:anchor only; on fire halt and report — do not improvise. Distinct from narrative.Acceptance (done criteria).",
+          "items": {
+            "$ref": "#/$defs/StopConditionAnchor"
+          }
+        },
         "dueDate": {
           "$ref": "#/$defs/dateTime"
         },
@@ -412,6 +419,56 @@
       "patternProperties": {
         "^x-[a-z0-9-]+/": {}
       }
+    },
+    "StopConditionAnchor": {
+      "type": "object",
+      "required": ["id", "kind", "path"],
+      "additionalProperties": false,
+      "description": "Checkable mid-execution STOP anchor on a PlanItem (#1613). v1 kind is anchor only. At least one of excerpt or digest MUST be present. Absent observeAt means check at item-start and item-resume.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable stop id within the PlanItem."
+        },
+        "kind": {
+          "type": "string",
+          "const": "anchor",
+          "description": "v1 admits anchor only; assumption kind is deferred."
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repo-relative path the anchor cites."
+        },
+        "excerpt": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Literal excerpt that must still match at the cited path."
+        },
+        "digest": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Content digest alternative to excerpt for the cited path."
+        },
+        "resolvedAtSha": {
+          "type": "string",
+          "description": "Optional commit SHA at which the anchor was resolved when authored."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Optional human-readable why this anchor matters."
+        },
+        "observeAt": {
+          "type": "string",
+          "enum": ["item-start", "item-resume"],
+          "description": "When to evaluate. Absent ⇒ check both item-start and item-resume."
+        }
+      },
+      "anyOf": [
+        { "required": ["excerpt"] },
+        { "required": ["digest"] }
+      ]
     },
     "PlanStatus": {
       "enum": [

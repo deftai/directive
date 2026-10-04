@@ -82,6 +82,8 @@ export const ITEM_CORE = new Set([
   "items",
   // Optional PlanItem.effort enum S/M/L/XL (#1581) — schema-validated, core not extension.
   "effort",
+  // Optional PlanItem.stopConditions anchors (#1613) — key admission only; shape in schema.ts.
+  "stopConditions",
   // #3305 Option B: acceptance evidence/disposition are NOT ITEM_CORE.
   // Canonical keys: plan.items[].x-directive/evidence and x-directive/disposition
   // (accepted via EXTENSION_PREFIXES). Bare evidence/disposition fail #1620.

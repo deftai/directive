@@ -112,7 +112,7 @@ See Rule Authority (deterministic > prose). Safety via formal gates: #1200. Gate
 
 ## Dual Stop Rule (#2442)
 
-Loop engineering requires **two** stop conditions on multi-iteration autonomous work: a **success stop** (goal / AC / checker met) and a **failure or budget stop** (retries exhausted, no progress, or time/token budget). Directive already has strong success-shaped gates (`task check`, acceptance criteria, STOP on plan precondition mismatch -- #1613). This section requires the complementary failure envelope so agents escalate instead of thrashing forever.
+Loop engineering requires **two** stop conditions on multi-iteration autonomous work: a **success stop** (goal / AC / checker met) and a **failure or budget stop** (retries exhausted, no progress, or time/token budget). Directive already has strong success-shaped gates (`task check`, acceptance criteria, and PlanItem `stopConditions` anchors evaluated mid-execution — #1613). This section requires the complementary failure envelope so agents escalate instead of thrashing forever.
 
 **Applies to:** multi-iteration autonomous loops -- build quality / implement-fix loops, pre-PR polish cycles, swarm repair and monitor loops, research fan-out, review fix cycles, and similar retrying work.
 
@@ -136,7 +136,7 @@ Loop engineering requires **two** stop conditions on multi-iteration autonomous 
 **Relation to other rules:**
 
 - #1613 covers STOP when plan **preconditions** fail (reality mismatch). Dual stop covers the case where the plan is still "valid" but the agent must quit after N failed attempts, N identical no-progress outcomes, or a budget limit.
-- Skills name concrete defaults: `skills/deft-directive-build/SKILL.md` (implement / pre-PR loops), `skills/deft-directive-swarm/SKILL.md` and its Phase 4 / core-ops references (repair / monitor loops).
+- Skills name concrete defaults: `content/skills/deft-directive-build/SKILL.md` (implement / pre-PR loops), `content/skills/deft-directive-swarm/SKILL.md` and its Phase 4 / core-ops references (repair / monitor loops).
 - **Delivery / acceptance mechanical enforcement** (durable attempt ledger, material-progress circuit breaker, cross-revision budgets) is **#3143** — library: `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`, unit ledger under `.deft/delivery-attempts/`). Docs: `content/docs/delivery-attempt.md`. #2442 is the principle + skill defaults; #3143 is the deterministic pre-dispatch gate. Route delivery/acceptance loops through that surface rather than inventing a parallel ledger.
 - **Budget-aware effort / bank-the-pass (#3266)** is the success-side analog: when a hard turn or cost budget is detectable (`DEFT_MAX_TURNS` / `DEFT_MAX_BUDGET` / session:start `effort_budget`), bank the *stated* acceptance pass before self-imposed deepening; scale verification depth with remaining budget; fail-loud (#1006) when deepening is skipped. Core: `packages/core/src/session/effort-budget.ts`; guidance in build and pre-pr skills.
 

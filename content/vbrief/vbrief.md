@@ -488,6 +488,57 @@ Rules:
 }
 ```
 
+### STOP conditions (anchors) (#1613)
+
+`PlanItem.stopConditions` is an **optional** mid-execution precondition STOP surface. When present, build/swarm agents MUST evaluate declared anchors before continuing the item; on fire they halt and report — they MUST NOT improvise past the mismatch.
+
+STOP vs Acceptance:
+
+| Surface | Role |
+|---------|------|
+| `narrative.Acceptance` | Done criteria (post-conditions) |
+| `stopConditions` | Precondition failure detectors — halt when the plan assumption no longer holds |
+
+v1 admits `kind: "anchor"` only (`assumption` deferred). Each entry:
+
+| Field | Required | Meaning |
+|-------|----------|---------|
+| `id` | yes | Stable id within the PlanItem |
+| `kind` | yes | `"anchor"` only in v1 |
+| `path` | yes | Repo-relative path the anchor cites |
+| `excerpt` or `digest` | one required | Checkable content that must still match |
+| `resolvedAtSha` | no | Commit SHA when the anchor was authored |
+| `rationale` | no | Why this anchor matters |
+| `observeAt` | no | `"item-start"` \| `"item-resume"`; absent ⇒ check both |
+
+Rules:
+
+- ? Omit `stopConditions` when no mid-execution precondition STOP is declared; validation does not require the field
+- ! When present, each entry MUST be a well-formed anchor object; malformed entries fail `vbrief:validate` / `xbrief:validate`
+- ! Agents MUST enumerate and evaluate anchors at item-start and item-resume (or per `observeAt`); on mismatch halt with the Dual-stop (#2442) operator-visible report / `BLOCKED:` — do not improvise
+- ! Treat condition text as contract data — ⊗ shell-execute condition strings
+- ! Author `stopConditions` at brief-authoring / promote-activate time; ⊗ the executing agent delete or weaken a stop in the same unit of work that would violate it
+- ! Changing an approved anchor requires the authorized contract-change path (superseding proposed xBRIEF or `decision:write`), not a mid-item edit by the leaf
+- ⊗ Absorb #1201 / #1579 / #852 / #2442 / #3143 into this field — peer lock: mid-execution precondition-STOP only
+
+```json
+{
+  "id": "rewrite-helper",
+  "title": "Rewrite helper to match pin excerpt",
+  "status": "pending",
+  "stopConditions": [
+    {
+      "id": "helper-shape",
+      "kind": "anchor",
+      "path": "packages/core/src/example.ts",
+      "excerpt": "export function helper(",
+      "observeAt": "item-start",
+      "rationale": "Plan assumes the helper export still exists at this path"
+    }
+  ]
+}
+```
+
 ### Hierarchical Items (v0.6)
 
 Specs with phases, subphases, and tasks express nesting via `PlanItem.items`:

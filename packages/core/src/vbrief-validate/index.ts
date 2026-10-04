@@ -12,7 +12,13 @@ export {
   renderFinding,
   scanVbrief,
 } from "./conformance.js";
-export { LIFECYCLE_FOLDERS, USAGE, VALID_STATUSES } from "./constants.js";
+export {
+  LIFECYCLE_FOLDERS,
+  USAGE,
+  VALID_STATUSES,
+  VALID_STOP_CONDITION_KINDS,
+  VALID_STOP_CONDITION_OBSERVE_AT,
+} from "./constants.js";
 export {
   artifactSuffixOf,
   d7Basename,

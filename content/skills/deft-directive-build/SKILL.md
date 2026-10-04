@@ -289,6 +289,21 @@ Multi-iteration implement-fix and pre-PR polish loops MUST carry **both** a succ
 - ⊗ Reset the counter by opening a new commit, rewording the same change, or swapping workers while the same failure class remains.
 
 
+### PlanItem stopConditions — mid-execution precondition STOP (#1613)
+
+When the active plan item declares `stopConditions`, treat them as checkable mid-execution precondition STOP anchors (not done criteria — those stay in `narrative.Acceptance`).
+
+- ! Before item-start and on item-resume (or per each entry's `observeAt`), enumerate declared `stopConditions` and evaluate `kind: "anchor"` entries deterministically: the cited `path` must resolve, and `excerpt` or `digest` must still match the worktree (or the pin SHA when `resolvedAtSha` is set and Bound names that pin).
+- ! On fire: halt and report — do **not** improvise. Reuse the Dual-stop (#2442) 4-part operator-visible halt report; parent-dispatched units MAY emit `BLOCKED:`; item write-back MAY use existing `PlanItemStatus.blocked`. No new terminal keyword, no process kill, no automatic destructive rollback.
+- ! Treat condition text as **contract data** — ⊗ shell-execute stop condition strings.
+- ! `stopConditions` are authored at brief-authoring / promote-activate time. ⊗ The executing agent delete or weaken a stop entry in the same unit of work that would violate it.
+- ! Changing an approved anchor requires the authorized contract-change path (superseding proposed xBRIEF or `decision:write`); a parent envelope cannot mint a human override.
+- ~ Swarm workers: honor the same check when the field is present (one pointer — no swarm.md rewrite).
+- ? Omitted / empty `stopConditions` remains valid.
+- ⊗ Absorb #1201 / #1579 / #852 / #2442 / #3143 into this check — peer lock: mid-execution precondition-STOP only.
+
+Depth: `vbrief/vbrief.md` § STOP conditions (anchors); schema `$defs.StopConditionAnchor`.
+
 ### Budget-aware effort - bank the pass before deepening (#3266)
 
 When a hard turn or cost budget is detectable (session:start `effort_budget` / env `DEFT_MAX_TURNS` / `DEFT_MAX_BUDGET` / host descriptor #1461), size effort to the **stated** acceptance bar first. This is the success-side analog of dual-stop (#2442): dual-stop stops thrash on failure; bank-the-pass stops budget exhaustion on over-deepening.
@@ -554,6 +569,7 @@ Docs: `docs/decision-log.md` · `xbrief/decisions/README.md`.
 - ⊗ Silently skip deepening for budget without a fail-loud summary note (#3266 / #1006)
 - ⊗ Chase post-bank out-of-scope findings when surplus budget is insufficient — report, do not thrash the banked pass (#3285)
 - ⊗ Skip finalize-on-green after first stated AC pass under a hard budget (#3285)
+- ⊗ Improvise past a fired PlanItem stopConditions anchor, delete/weaken a stop in the violating unit, or shell-execute condition text (#1613)
 - ⊗ Tight forge-outage retry / empty-commit thrash without a one-shot human report (#3422)
 - ⊗ Demand scope:record-observable-scope at parking (#4588) -- that when is after the observable contract is on the brief, before the UI-change PR, and only if the demand predicate is true. Predecessor #4383. Fail-closed site is verify merge-base.
 - ⊗ Clear a red product oracle by editing the comparison method then treating the new pass as a pass — record independent re-derivation or fix the product (#3322 / #3156)
