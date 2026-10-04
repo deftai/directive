@@ -162,11 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<<<<<<< HEAD
-<!-- deft:managed-section v3 sha=dd601935bb21 refreshed=2026-10-04T01:50:44Z session=54324f957f5e -->
-=======
-<!-- deft:managed-section v3 sha=ca729c511cf6 refreshed=2026-10-04T02:17:25Z session=9f24cb1a721d -->
->>>>>>> 0431c52db (fix(swarm): class-A residual for routing honor join (#3703))
+<!-- deft:managed-section v3 sha=dd601935bb21 refreshed=2026-10-04T02:47:20Z session=d7b0a41b6394 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -265,7 +261,6 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032). ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner (#4529).
 ! After leaf announce: tool-first / yield / one short non-repeated answer; ⊗ N>2 near-identical zero-tool (FC14 / #3131). Machine: `evaluateParentTurnShape` (`parent-turn-shape`). Depth: preamble §11 + `docs/openclaw-agent-host.md`.
 ! **Dest Prefer-A (#5145):** linked dest worktrees inherit primary finalize-owed (deferred/ok); prefer `session:start --rearm` when dest ritual exists. ⊗ Stampede N dest cold tip inventories before primary records finalize-owed. Depth: swarm SKILL Dest leaf ceremony.
-! **Deliberate model routing (#1877 / #3703):** Before ANY sub-agent dispatch (cohort OR single), make a deliberate per-`worker_role` routing decision via `deft verify:routing` / `deft swarm:routing-set` — never silently inherit the parent model. `verify:story-ready` chains the gate for story-ready single dispatch; interactive/solo PreToolUse honor-at-dispatch is the mid-session conjunct (#3703). Default gated role domain is an explicit subset of `SWARM_WORKER_ROLES` (leaf-implementation); critics/process-only stay outside that enum (model: lead). Explore with structural `subagent_type` explore and no gated role is a decided carve-out after the conjunct runs. `ROUTING_GATED_DISPATCH_PROVIDERS` is narrower than `LAUNCHER_FAMILIES` (codex argv-only). Session-start `--advise` is additive disclosure only.
 
 ## Envelope selection SLA (#3153)
 
