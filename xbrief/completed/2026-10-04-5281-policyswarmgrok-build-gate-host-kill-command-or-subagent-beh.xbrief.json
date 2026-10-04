@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "policy(swarm,grok-build): gate host kill_command_or_subagent behind pre-cancel attestation (#5278 leftover)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "policy(swarm,grok-build): gate host kill_command_or_subagent behind pre-cancel attestation (#5278 leftover)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5281",
@@ -15,46 +15,123 @@
     },
     "items": [
       {
-        "id": "item.1",
+        "id": "clause.1",
         "title": "Decision: kill_command_or_subagent on Grok Build becomes deny-class / attestation-gated. Forever out-of-scope is not a co-equal Prefer-A success. #3987/scheduler_create is the policy-decision pattern; rewriting the audit row alone does not relieve P1.",
-        "status": "pending",
-        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5293",
+            "mintedAt": "2026-10-04T08:55:17Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:55:17Z"
+        }
       },
       {
-        "id": "item.2",
+        "id": "clause.2",
         "title": "Enforcement locus (not docs-only): (a) matcher deposit so Grok PreToolUse selects kill_command_or_subagent; (b) dedicated deny-class path (not product-write inspectMutationGates) that reads green attestation before allow, else refuse with printed reason. Docs/host-tool-surface-audit/HOST_TOOL_SURFACE_AUDIT/preamble update with (a)+(b).",
-        "status": "pending",
-        "x-directive/artifact_path": "packages/core/src/hooks/tools.ts"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5293",
+            "mintedAt": "2026-10-04T08:55:17Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:55:17Z"
+        }
       },
       {
-        "id": "item.3",
+        "id": "clause.3",
         "title": "Attestation before kill (parent and peer): prefer deft subagent:pre-cancel exit 0 for that agent_id/attempt when present on tip; equivalent until #5278 lands = recorded .deft-scratch attestation artifact with agent_id, writer_id(=killer), kind in {note,correction,force}, created_at, optional reason, short TTL. Soft English is not attestation. Peer same gate as parent.",
-        "status": "pending",
-        "x-directive/artifact_path": "content/docs/host-tool-surface-audit.md"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5293",
+            "mintedAt": "2026-10-04T08:55:17Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:55:17Z"
+        }
       },
       {
-        "id": "item.4",
+        "id": "clause.4",
         "title": "Still-running oracle: host task/subagent status non-terminal. Heartbeat STALE/missing or REDISPATCH_OK alone does not reclassify as safe-to-kill-without-attestation. Terminal host status may allow kill without attestation.",
-        "status": "pending",
-        "x-directive/artifact_path": "content/templates/agent-prompt-preamble.md"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5293",
+            "mintedAt": "2026-10-04T08:55:17Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:55:17Z"
+        }
       },
       {
-        "id": "item.5",
+        "id": "clause.5",
         "title": "Force surface: Directive hook override on kill PreToolUse — allow only with explicit force marker AND non-empty printed reason; if host schema cannot carry force, force lives on attestation (kind:force + reason).",
-        "status": "pending",
-        "x-directive/artifact_path": "CHANGELOG.md"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5293",
+            "mintedAt": "2026-10-04T08:55:17Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:55:17Z"
+        }
       },
       {
-        "id": "item.6",
+        "id": "clause.6",
         "title": "Audit row + preamble: move kill_command_or_subagent off silent forever-OOS process-control into explicit deny-class/attestation-gated record; parents/peers MUST NOT treat documented duty as the kill safety case.",
-        "status": "pending",
-        "x-directive/artifact_path": "packages/core/src/hooks/dispatcher.ts"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5293",
+            "mintedAt": "2026-10-04T08:55:17Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:55:17Z"
+        }
       },
       {
-        "id": "item.7",
+        "id": "clause.7",
         "title": "Acceptance/DCR fail-closed: (i) bare kill without attestation refused; (ii) green pre-cancel/equivalent may allow; (iii) force requires non-empty reason and prints it; (iv) peer same as parent; (v) fixture/DCR asserts (i)-(iv) against deny-class path — docs-only checks do not satisfy.",
-        "status": "pending",
-        "x-directive/artifact_path": "packages/core/src/hooks/tools.ts"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5293",
+            "mintedAt": "2026-10-04T08:55:17Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T08:55:17Z"
+        }
       }
     ],
     "tags": [
@@ -79,7 +156,7 @@
     "acceptance": {
       "commands": [],
       "none_stated": true,
-      "derived_reason": "Prefer-A Bound remedy stamped for through-merge cohort add",
+      "derived_reason": "Prefer-A leftover pathless derived after #5293",
       "sentences": [
         "policy(swarm,grok-build): gate host kill_command_or_subagent behind pre-cancel attestation (#5278 leftover)",
         "Decision (closes Prefer-A body fork). `kill_command_or_subagent` on Grok Build becomes deny-class / attestation-gated.",
@@ -139,59 +216,144 @@
         "(iv) Peer kill without attestation refuses the same as parent.",
         "(v) Fixture or DCR asserts (i)-(iv) against the deny-class path; document-only checks do not satisfy this item."
       ],
-      "admitted_source_digest": "c6264709c0ec2226451881e1927f123838d3b2cccbc2b04ba04ccbf5a2e57caa",
+      "admitted_source_digest": "4497f9ce111147867c0208a321d99e591f80230277f4fde77e4d4722a36f646f",
       "clauses": [
         {
           "id": 1,
           "text": "Decision: kill_command_or_subagent on Grok Build becomes deny-class / attestation-gated. Forever out-of-scope is not a co-equal Prefer-A success. #3987/scheduler_create is the policy-decision pattern; rewriting the audit row alone does not relieve P1.",
-          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5293",
+              "mintedAt": "2026-10-04T08:55:17Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:55:17Z"
+          }
         },
         {
           "id": 2,
           "text": "Enforcement locus (not docs-only): (a) matcher deposit so Grok PreToolUse selects kill_command_or_subagent; (b) dedicated deny-class path (not product-write inspectMutationGates) that reads green attestation before allow, else refuse with printed reason. Docs/host-tool-surface-audit/HOST_TOOL_SURFACE_AUDIT/preamble update with (a)+(b).",
-          "artifact_path": "packages/core/src/hooks/tools.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5293",
+              "mintedAt": "2026-10-04T08:55:17Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:55:17Z"
+          }
         },
         {
           "id": 3,
           "text": "Attestation before kill (parent and peer): prefer deft subagent:pre-cancel exit 0 for that agent_id/attempt when present on tip; equivalent until #5278 lands = recorded .deft-scratch attestation artifact with agent_id, writer_id(=killer), kind in {note,correction,force}, created_at, optional reason, short TTL. Soft English is not attestation. Peer same gate as parent.",
-          "artifact_path": "content/docs/host-tool-surface-audit.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5293",
+              "mintedAt": "2026-10-04T08:55:17Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:55:17Z"
+          }
         },
         {
           "id": 4,
           "text": "Still-running oracle: host task/subagent status non-terminal. Heartbeat STALE/missing or REDISPATCH_OK alone does not reclassify as safe-to-kill-without-attestation. Terminal host status may allow kill without attestation.",
-          "artifact_path": "content/templates/agent-prompt-preamble.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5293",
+              "mintedAt": "2026-10-04T08:55:17Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:55:17Z"
+          }
         },
         {
           "id": 5,
           "text": "Force surface: Directive hook override on kill PreToolUse — allow only with explicit force marker AND non-empty printed reason; if host schema cannot carry force, force lives on attestation (kind:force + reason).",
-          "artifact_path": "CHANGELOG.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5293",
+              "mintedAt": "2026-10-04T08:55:17Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:55:17Z"
+          }
         },
         {
           "id": 6,
           "text": "Audit row + preamble: move kill_command_or_subagent off silent forever-OOS process-control into explicit deny-class/attestation-gated record; parents/peers MUST NOT treat documented duty as the kill safety case.",
-          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5293",
+              "mintedAt": "2026-10-04T08:55:17Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:55:17Z"
+          }
         },
         {
           "id": 7,
           "text": "Acceptance/DCR fail-closed: (i) bare kill without attestation refused; (ii) green pre-cancel/equivalent may allow; (iii) force requires non-empty reason and prints it; (iv) peer same as parent; (v) fixture/DCR asserts (i)-(iv) against deny-class path — docs-only checks do not satisfy.",
-          "artifact_path": "packages/core/src/hooks/tools.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5293 squash-merge (Tracking #5281). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5293",
+              "mintedAt": "2026-10-04T08:55:17Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T08:55:17Z"
+          }
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "source_rung": "derived"
     },
     "metadata": {
       "intended_placement": {
@@ -360,38 +522,28 @@
         "sha256": "44df7afd758e106307fc4a678446b6c56e14c0b7cd2390d592d5480ec4dd0e2b"
       },
       "swarm": {
-        "file_scope": [
-          "packages/core/src/hooks/dispatcher.ts",
-          "packages/core/src/hooks/tools.ts",
-          "packages/core/src/hooks/tools.test.ts",
-          "packages/core/src/hooks/dispatcher.test.ts",
-          "packages/core/src/hooks/fixtures/README.md",
-          "packages/core/src/orchestration/subagent-kill-attestation.ts",
-          "packages/core/src/orchestration/subagent-kill-attestation.test.ts",
-          "packages/core/src/orchestration/index.ts",
-          "packages/core/src/init-deposit/agent-hooks.ts",
-          "packages/core/src/init-deposit/agent-hooks.test.ts",
-          "packages/core/src/init-deposit/host-tool-coverage.ts",
-          "packages/core/src/init-deposit/host-tool-coverage.test.ts",
-          "content/docs/host-tool-surface-audit.md",
-          "content/templates/agent-prompt-preamble.md",
-          "CHANGELOG.md",
-          "packages/cli/src/hook-dispatch.ts",
-          "packages/core/src/verify-source/deposit-closure.ts"
-        ],
+        "file_scope": [],
         "file_scope_confidence": "high",
-        "verify_commands": [
-          "task check"
-        ],
+        "verify_commands": [],
         "expected_outputs": [
-          "Tracking PR opened"
+          "completed xBRIEF on tip"
         ],
         "depends_on": [],
         "conflict_group": "host-kill-attestation-gate",
         "size": "L",
         "model_tier": "default"
       },
-      "productPullRequest": 5303
+      "productPullRequest": 5293,
+      "admitted_source_digest": "4497f9ce111147867c0208a321d99e591f80230277f4fde77e4d4722a36f646f",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T08:55:17Z"
+      },
+      "completedAt": "2026-10-04T08:55:17Z",
+      "completionProvenance": {
+        "productMerge": "d5623ae79",
+        "productPr": 5293
+      }
     },
     "id": "github.issue.5684362591",
     "updated": "2026-10-04T06:41:09Z"
