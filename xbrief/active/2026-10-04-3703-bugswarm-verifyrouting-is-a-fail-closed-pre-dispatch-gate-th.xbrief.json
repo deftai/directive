@@ -18,7 +18,9 @@
         "title": "Restates acceptance toward named path cases: interactive/solo PreToolUse, swarm:launch undecided or absent route file, and honor join at the actual spawn request (including launcher-argv where applicable).",
         "status": "pending",
         "id": "clause.1",
-        "narrative": "Restates acceptance toward named path cases: interactive/solo PreToolUse, swarm:launch undecided or absent route file, and honor join at the actual spawn request (including launcher-argv where applicable).",
+        "narrative": {
+          "Action": "Restates acceptance toward named path cases: interactive/solo PreToolUse, swarm:launch undecided or absent route file, and honor join at the actual spawn request (including launcher-argv where applicable)."
+        },
         "metadata": {
           "artifact_path": "packages/core/src/swarm/routing-verify.ts"
         }
@@ -27,7 +29,9 @@
         "title": "P1 residual: place a routing conjunct ahead of every PreToolUse spawn-class allow return — spawn-explore-ready, spawn-process-only-ready, spawn-ephemeral-ready, spawn-ready, and the launcher-argv / decideLauncherFamilyArgv branch — for gated roles/providers (inherit free-text marker refuse). Make swarm:launch fail-closed when the route file is absent and when leaf is undecided (call verifyRouting or match enforce, including missing-file to undecided to EXIT_GATE_FAILED). Record --skip-routing uses.",
         "status": "pending",
         "id": "clause.2",
-        "narrative": "P1 residual: place a routing conjunct ahead of every PreToolUse spawn-class allow return — spawn-explore-ready, spawn-process-only-ready, spawn-ephemeral-ready, spawn-ready, and the launcher-argv / decideLauncherFamilyArgv branch — for gated roles/providers (inherit free-text marker refuse). Make swarm:launch fail-closed when the route file is absent and when leaf is undecided (call verifyRouting or match enforce, including missing-file to undecided to EXIT_GATE_FAILED). Record --skip-routing uses.",
+        "narrative": {
+          "Action": "P1 residual: place a routing conjunct ahead of every PreToolUse spawn-class allow return — spawn-explore-ready, spawn-process-only-ready, spawn-ephemeral-ready, spawn-ready, and the launcher-argv / decideLauncherFamilyArgv branch — for gated roles/providers (inherit free-text marker refuse). Make swarm:launch fail-closed when the route file is absent and when leaf is undecided (call verifyRouting or match enforce, including missing-file to undecided to EXIT_GATE_FAILED). Record --skip-routing uses."
+        },
         "metadata": {
           "artifact_path": "packages/core/src/swarm/routing-verify.test.ts"
         }
@@ -36,7 +40,9 @@
         "title": "P3: require an adapter/interceptor (or host PreToolUse field check / argv inspection) that validates or constructs the spawn request against the trusted route snapshot before submit; tests must show pinned route + omitted/different model cannot reach the spawn callback on covered paths. Explicitly scope what hosts and spawn classes cannot intercept (payload model vs argv model). Separate requested-model conformance from proof of the host's actual serving model. Reject token-only / advisory-only / self-attested model: as P3 closure for builders.",
         "status": "pending",
         "id": "clause.3",
-        "narrative": "P3: require an adapter/interceptor (or host PreToolUse field check / argv inspection) that validates or constructs the spawn request against the trusted route snapshot before submit; tests must show pinned route + omitted/different model cannot reach the spawn callback on covered paths. Explicitly scope what hosts and spawn classes cannot intercept (payload model vs argv model). Separate requested-model conformance from proof of the host's actual serving model. Reject token-only / advisory-only / self-attested model: as P3 closure for builders.",
+        "narrative": {
+          "Action": "P3: require an adapter/interceptor (or host PreToolUse field check / argv inspection) that validates or constructs the spawn request against the trusted route snapshot before submit; tests must show pinned route + omitted/different model cannot reach the spawn callback on covered paths. Explicitly scope what hosts and spawn classes cannot intercept (payload model vs argv model). Separate requested-model conformance from proof of the host's actual serving model. Reject token-only / advisory-only / self-attested model: as P3 closure for builders."
+        },
         "metadata": {
           "artifact_path": "packages/core/src/swarm/routing.ts"
         }
@@ -45,7 +51,9 @@
         "title": "P2: decide and document the gated-role domain inside SWARM_WORKER_ROLES (or explicit subset); preserve harness-default; do not add critic to that enum; point critic auditability at the model: lead.",
         "status": "pending",
         "id": "clause.4",
-        "narrative": "P2: decide and document the gated-role domain inside SWARM_WORKER_ROLES (or explicit subset); preserve harness-default; do not add critic to that enum; point critic auditability at the model: lead.",
+        "narrative": {
+          "Action": "P2: decide and document the gated-role domain inside SWARM_WORKER_ROLES (or explicit subset); preserve harness-default; do not add critic to that enum; point critic auditability at the model: lead."
+        },
         "metadata": {
           "artifact_path": "packages/core/src/swarm/launch-routing.test.ts"
         }
@@ -54,7 +62,9 @@
         "title": "Docs honesty: AGENTS/#1877 residual names story-ready vs interactive solo and the critic/process-only role-domain carve-out; record explore either as covered by the conjunct or as a decided carve-out with subagent_type self-declaration named; if the gated domain is an explicit subset of SWARM_WORKER_ROLES, record that subset gap vs ANY; HELP_TEXT matches ROUTING_GATED_DISPATCH_PROVIDERS; either add codex to that provider set or record that the gated-provider set is narrower than LAUNCHER_FAMILIES; optional session-start --advise is additive disclosure only.",
         "status": "pending",
         "id": "clause.5",
-        "narrative": "Docs honesty: AGENTS/#1877 residual names story-ready vs interactive solo and the critic/process-only role-domain carve-out; record explore either as covered by the conjunct or as a decided carve-out with subagent_type self-declaration named; if the gated domain is an explicit subset of SWARM_WORKER_ROLES, record that subset gap vs ANY; HELP_TEXT matches ROUTING_GATED_DISPATCH_PROVIDERS; either add codex to that provider set or record that the gated-provider set is narrower than LAUNCHER_FAMILIES; optional session-start --advise is additive disclosure only.",
+        "narrative": {
+          "Action": "Docs honesty: AGENTS/#1877 residual names story-ready vs interactive solo and the critic/process-only role-domain carve-out; record explore either as covered by the conjunct or as a decided carve-out with subagent_type self-declaration named; if the gated domain is an explicit subset of SWARM_WORKER_ROLES, record that subset gap vs ANY; HELP_TEXT matches ROUTING_GATED_DISPATCH_PROVIDERS; either add codex to that provider set or record that the gated-provider set is narrower than LAUNCHER_FAMILIES; optional session-start --advise is additive disclosure only."
+        },
         "metadata": {
           "artifact_path": "CHANGELOG.md"
         }
@@ -63,7 +73,9 @@
         "title": "Alive: acceptance item recorded checked; further liveness work is a separate residual.",
         "status": "pending",
         "id": "clause.6",
-        "narrative": "Alive: acceptance item recorded checked; further liveness work is a separate residual.",
+        "narrative": {
+          "Action": "Alive: acceptance item recorded checked; further liveness work is a separate residual."
+        },
         "metadata": {
           "artifact_path": "packages/core/src/swarm/routing-verify.ts"
         }
@@ -72,7 +84,9 @@
         "title": "Routing authority: keep per-task overrides distinguishable from shared policy mutation; issue/envelope prose is not authority to overwrite the operator routing file; bind receipts to the trusted resolution used to construct that request.",
         "status": "pending",
         "id": "clause.7",
-        "narrative": "Routing authority: keep per-task overrides distinguishable from shared policy mutation; issue/envelope prose is not authority to overwrite the operator routing file; bind receipts to the trusted resolution used to construct that request.",
+        "narrative": {
+          "Action": "Routing authority: keep per-task overrides distinguishable from shared policy mutation; issue/envelope prose is not authority to overwrite the operator routing file; bind receipts to the trusted resolution used to construct that request."
+        },
         "metadata": {
           "artifact_path": "packages/core/src/swarm/routing-verify.test.ts"
         }
