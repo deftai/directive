@@ -216,7 +216,8 @@ export function recommendAutonomyLevel(
   const p0Reversal = options.p0_reversal ?? false;
 
   // P3-a: dial zeros mean absent decision-event producer, not a clean window.
-  if (sampleSize === 0) {
+  // P0 reversal still retreats — sample 0 must not mask that safety signal.
+  if (sampleSize === 0 && !p0Reversal) {
     return {
       current_level: cur,
       recommended_level: cur,

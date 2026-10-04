@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { isHumanOriginKind, isRejectedOriginKind } from "../authz/origin.js";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
@@ -105,13 +105,21 @@ export function storyFileScopePaths(story: ResolvedStory): string[] {
 
 /**
  * Per-story judgment-gate candidate (#1511 review residual).
- * Paths come from swarm.file_scope; labels/body from plan tags + narratives
- * (optional swarm.judgment_labels / judgment_body overrides) so label and
- * body-text gates can match. Cohort launch evaluates each story separately
- * so per-story cleared_scope fingerprints stay valid.
+ * Paths come from swarm.file_scope; labels/body always include plan tags +
+ * narratives so label/body-text gates cannot be hidden. Optional
+ * swarm.judgment_labels / judgment_body are additive supplements only
+ * (empty judgment_labels must not wipe tags). updated_at is the brief
+ * mtime so age-days gates can match. Cohort launch evaluates each story
+ * separately so per-story cleared_scope fingerprints stay valid.
  */
 export function storyJudgmentCandidate(story: ResolvedStory): Candidate {
   const paths = storyFileScopePaths(story);
+  let updatedAt: string | null = null;
+  try {
+    updatedAt = statSync(story.path).mtime.toISOString();
+  } catch {
+    updatedAt = null;
+  }
   let labels: string[] = [];
   const bodyParts: string[] = [];
   try {
@@ -130,13 +138,11 @@ export function storyJudgmentCandidate(story: ResolvedStory): Candidate {
     };
     const plan = raw.plan;
     if (plan === undefined) {
-      return { paths, labels, body: "", state: "open", updated_at: null };
+      return { paths, labels, body: "", state: "open", updated_at: updatedAt };
     }
     const swarm = plan.metadata?.swarm;
-    const overrideLabels = swarm?.judgment_labels;
-    if (Array.isArray(overrideLabels)) {
-      labels = overrideLabels.filter((t): t is string => typeof t === "string" && t.length > 0);
-    } else if (Array.isArray(plan.tags)) {
+    // Natural labels first — empty judgment_labels must not wipe them.
+    if (Array.isArray(plan.tags)) {
       labels = plan.tags.filter((t): t is string => typeof t === "string" && t.length > 0);
     } else {
       const narrLabels = plan.narratives?.Labels;
@@ -147,29 +153,37 @@ export function storyJudgmentCandidate(story: ResolvedStory): Candidate {
           .filter((s) => s.length > 0);
       }
     }
-    const overrideBody = swarm?.judgment_body;
-    if (typeof overrideBody === "string" && overrideBody.length > 0) {
-      bodyParts.push(overrideBody);
-    } else {
-      if (typeof plan.title === "string" && plan.title.length > 0) {
-        bodyParts.push(plan.title);
-      }
-      for (const key of ["Description", "Overview", "Origin"] as const) {
-        const value = plan.narratives?.[key];
-        if (typeof value === "string" && value.length > 0) {
-          bodyParts.push(value);
+    const overrideLabels = swarm?.judgment_labels;
+    if (Array.isArray(overrideLabels)) {
+      for (const t of overrideLabels) {
+        if (typeof t === "string" && t.length > 0 && !labels.includes(t)) {
+          labels.push(t);
         }
       }
     }
+    // Natural title/narratives always included; judgment_body is additive.
+    if (typeof plan.title === "string" && plan.title.length > 0) {
+      bodyParts.push(plan.title);
+    }
+    for (const key of ["Description", "Overview", "Origin"] as const) {
+      const value = plan.narratives?.[key];
+      if (typeof value === "string" && value.length > 0) {
+        bodyParts.push(value);
+      }
+    }
+    const overrideBody = swarm?.judgment_body;
+    if (typeof overrideBody === "string" && overrideBody.length > 0) {
+      bodyParts.push(overrideBody);
+    }
   } catch {
-    // unreadable brief → path-only candidate
+    // unreadable brief → path-only candidate (mtime retained when readable)
   }
   return {
     paths,
     labels,
     body: bodyParts.join("\n\n"),
     state: "open",
-    updated_at: null,
+    updated_at: updatedAt,
   };
 }
 

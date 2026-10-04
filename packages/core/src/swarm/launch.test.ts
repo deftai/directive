@@ -1,5 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -1358,5 +1366,75 @@ describe("evaluateJudgmentClearancePosture (#1511 P2-a)", () => {
     });
     expect(enforced.ok).toBe(false);
     expect(enforced.stderr).toMatch(/breaking-label-gate|breaking-body-gate/);
+  });
+
+  it("empty judgment_labels / custom judgment_body cannot hide natural matches", () => {
+    const project = jcpTempRoot();
+    writeJcpProjectDef(project, {
+      judgmentGates: [
+        {
+          id: "breaking-label-gate",
+          class: "mechanical",
+          tier: "block",
+          reason: "breaking-change label",
+          match: { labels: { "any-of": ["breaking-change"] } },
+        },
+        {
+          id: "breaking-body-gate",
+          class: "mechanical",
+          tier: "block",
+          reason: "BREAKING CHANGE body",
+          match: { "body-text": { "any-of": ["BREAKING CHANGE"] } },
+        },
+      ],
+    });
+    const tagged = writeJcpStory(project, "override-hide", ["src/x.ts"], {
+      tags: ["breaking-change"],
+      title: "Ship BREAKING CHANGE API",
+      description: "Includes a BREAKING CHANGE for callers.",
+      judgmentLabels: [],
+      judgmentBody: "harmless override body",
+    });
+    const candidate = storyJudgmentCandidate(tagged);
+    expect(candidate.labels).toContain("breaking-change");
+    expect(candidate.body).toMatch(/BREAKING CHANGE/);
+    expect(candidate.body).toMatch(/harmless override body/);
+    const enforced = evaluateJudgmentClearancePosture({
+      projectRoot: project,
+      resolved: [tagged],
+      gatePosture: GATE_ENFORCE,
+      gateClearances: [],
+    });
+    expect(enforced.ok).toBe(false);
+    expect(enforced.stderr).toMatch(/breaking-label-gate|breaking-body-gate/);
+  });
+
+  it("sets updated_at from brief mtime so age-days gates can match", () => {
+    const project = jcpTempRoot();
+    writeJcpProjectDef(project, {
+      judgmentGates: [
+        {
+          id: "stale-story-gate",
+          class: "mechanical",
+          tier: "block",
+          reason: "story older than 1 day",
+          match: { "age-days": { gt: 1 } },
+        },
+      ],
+    });
+    const story = writeJcpStory(project, "aged", ["src/x.ts"]);
+    const past = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    utimesSync(story.path, past, past);
+    const candidate = storyJudgmentCandidate(story);
+    expect(candidate.updated_at).not.toBeNull();
+    expect(Date.parse(candidate.updated_at ?? "")).toBeLessThan(Date.now() - 24 * 60 * 60 * 1000);
+    const enforced = evaluateJudgmentClearancePosture({
+      projectRoot: project,
+      resolved: [story],
+      gatePosture: GATE_ENFORCE,
+      gateClearances: [],
+    });
+    expect(enforced.ok).toBe(false);
+    expect(enforced.stderr).toMatch(/stale-story-gate/);
   });
 });

@@ -343,6 +343,19 @@ describe("autonomy dial recommend-only (#1511 Prefer-A / P3-a)", () => {
     expect(rec.rationale).toMatch(/not a clean observation window/i);
   });
 
+  it("sample 0 does not mask P0 reversal retreat", () => {
+    const rec = recommendAutonomyLevel("escalate", {
+      override_rate: 0,
+      rework_rate: 0,
+      sample_size: 0,
+      p0_reversal: true,
+    });
+    expect(rec.advisory).toBe(true);
+    expect(rec.action).toBe(AUTONOMY_ACTION_RETREAT);
+    expect(rec.recommended_level).toBe("observe");
+    expect(rec.rationale).toMatch(/P0 reversal/i);
+  });
+
   it("never drops advisory on advance/retreat/hold branches", () => {
     const samples = [
       recommendAutonomyLevel("escalate", {
