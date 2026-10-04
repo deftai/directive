@@ -190,6 +190,29 @@
         ],
         "depends_on": [],
         "model_tier": "default"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5289,
+        "prBase": null,
+        "mergeCommit": "1a5f9d31118d56e050d1199760d825383b544548",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1a5f9d31118d56e050d1199760d825383b544548",
+        "verifiedAt": "2026-10-04T02:37:30.000Z",
+        "verifier": "leftover-complete-prefer-a",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-04T02:37:30.000Z",
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T02:37:30.000Z"
       }
     }
   }
