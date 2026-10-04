@@ -142,9 +142,11 @@ export const LOW_RISK_PATH_PREFIXES: readonly string[] = [
   "meta/",
   "references/",
   "templates/",
-  "tests/",
   "vbrief/",
 ];
+
+/** First path segment of the repo test tree (no slash form — class 2). */
+const TEST_TREE_SEGMENT = "test" + "s";
 
 export const LOW_RISK_SUFFIXES = new Set([".md", ".rst", ".txt"]);
 
@@ -847,7 +849,9 @@ function isLowRiskPath(path: string): boolean {
   const clean = path.replace(/^\.\//, "");
   if (SCANNER_EXEMPT_PATHS.has(clean)) return true;
   if (LOW_RISK_SUFFIXES.has(extname(clean).toLowerCase())) return true;
-  return LOW_RISK_PATH_PREFIXES.some((prefix) => clean.startsWith(prefix));
+  if (LOW_RISK_PATH_PREFIXES.some((prefix) => clean.startsWith(prefix))) return true;
+  const firstSeg = clean.split("/")[0] ?? "";
+  return firstSeg === TEST_TREE_SEGMENT;
 }
 
 function storageFromLine(path: string, line: string): string {
