@@ -169,93 +169,154 @@ describe("verifyCohortReviewMonitors (#5318)", () => {
     expect(result.prs).toEqual([4242]);
     expect(result.exitCode).toBe(0);
   });
-});
 
-it("omitted --prs uses launch-manifest resolver (not exit 2 when set non-empty)", () => {
-  const root = tempRoot();
-  const briefDir = join(root, "xbrief", "active");
-  mkdirSync(briefDir, { recursive: true });
-  const briefPath = join(briefDir, "story.xbrief.json");
-  writeFileSync(
-    briefPath,
-    JSON.stringify({
-      plan: {
-        references: [
-          { uri: "https://github.com/deftai/directive/pull/4242", type: "x-xbrief/github-pr" },
-        ],
-      },
-    }),
-    "utf8",
-  );
-  const deft = join(root, ".deft");
-  mkdirSync(deft, { recursive: true });
-  writeFileSync(
-    join(deft, "swarm-launch-manifest.json"),
-    JSON.stringify([{ story_id: "s1", vbrief_path: "xbrief/active/story.xbrief.json" }]),
-    "utf8",
-  );
-  const result = verifyCohortReviewMonitors({
-    projectRoot: root,
-    // prsCsv omitted (undefined) — resolver fills
-    liveArmByPr: { 4242: true },
-    explicitFinishByPr: { 4242: false },
-    openTrackingPrs: [],
+  it("omitted --prs uses launch-manifest resolver (not exit 2 when set non-empty)", () => {
+    const root = tempRoot();
+    const briefDir = join(root, "xbrief", "active");
+    mkdirSync(briefDir, { recursive: true });
+    const briefPath = join(briefDir, "story.xbrief.json");
+    writeFileSync(
+      briefPath,
+      JSON.stringify({
+        plan: {
+          references: [
+            { uri: "https://github.com/deftai/directive/pull/4242", type: "x-xbrief/github-pr" },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const deft = join(root, ".deft");
+    mkdirSync(deft, { recursive: true });
+    writeFileSync(
+      join(deft, "swarm-launch-manifest.json"),
+      JSON.stringify([{ story_id: "s1", vbrief_path: "xbrief/active/story.xbrief.json" }]),
+      "utf8",
+    );
+    const result = verifyCohortReviewMonitors({
+      projectRoot: root,
+      liveArmByPr: { 4242: true },
+      explicitFinishByPr: { 4242: false },
+      openTrackingPrs: [],
+      openPrNumbers: new Set([4242]),
+      expectedRepo: "deftai/directive",
+    });
+    expect(result.prs).toEqual([4242]);
+    expect(result.exitCode).toBe(0);
   });
-  expect(result.prs).toEqual([4242]);
-  expect(result.exitCode).toBe(0);
-});
 
-it("partial launch-manifest (brief without PR refs) fails closed", () => {
-  const root = tempRoot();
-  const briefDir = join(root, "xbrief", "active");
-  mkdirSync(briefDir, { recursive: true });
-  writeFileSync(
-    join(briefDir, "no-pr.xbrief.json"),
-    JSON.stringify({ plan: { references: [] } }),
-    "utf8",
-  );
-  const deft = join(root, ".deft");
-  mkdirSync(deft, { recursive: true });
-  writeFileSync(
-    join(deft, "swarm-launch-manifest.json"),
-    JSON.stringify([{ story_id: "s1", vbrief_path: "xbrief/active/no-pr.xbrief.json" }]),
-    "utf8",
-  );
-  const fromManifest = prsFromLaunchManifest(root);
-  expect(fromManifest.ok).toBe(false);
-  const result = verifyCohortReviewMonitors({
-    projectRoot: root,
-    operatorPrs: [],
-    openTrackingPrs: [],
+  it("partial launch-manifest (brief without PR refs) fails closed", () => {
+    const root = tempRoot();
+    const briefDir = join(root, "xbrief", "active");
+    mkdirSync(briefDir, { recursive: true });
+    writeFileSync(
+      join(briefDir, "no-pr.xbrief.json"),
+      JSON.stringify({ plan: { references: [] } }),
+      "utf8",
+    );
+    const deft = join(root, ".deft");
+    mkdirSync(deft, { recursive: true });
+    writeFileSync(
+      join(deft, "swarm-launch-manifest.json"),
+      JSON.stringify([{ story_id: "s1", vbrief_path: "xbrief/active/no-pr.xbrief.json" }]),
+      "utf8",
+    );
+    const fromManifest = prsFromLaunchManifest(root);
+    expect(fromManifest.ok).toBe(false);
+    const result = verifyCohortReviewMonitors({
+      projectRoot: root,
+      operatorPrs: [],
+      openTrackingPrs: [],
+      openPrNumbers: new Set(),
+    });
+    expect(result.exitCode).toBe(2);
   });
-  expect(result.exitCode).toBe(2);
-});
 
-it("omitted openTrackingPrs soft-discovers active brief PR refs", () => {
-  const root = tempRoot();
-  const briefDir = join(root, "xbrief", "active");
-  mkdirSync(briefDir, { recursive: true });
-  writeFileSync(
-    join(briefDir, "sib.xbrief.json"),
-    JSON.stringify({
-      plan: {
-        references: [
-          { uri: "https://github.com/deftai/directive/pull/7777", type: "x-xbrief/github-pr" },
-        ],
-      },
-    }),
-    "utf8",
-  );
-  const result = verifyCohortReviewMonitors({
-    projectRoot: root,
-    operatorPrs: [1],
-    launchManifestPrs: [1],
-    // openTrackingPrs omitted → soft discover 7777
-    liveArmByPr: { 1: true, 7777: true },
-    explicitFinishByPr: { 1: false, 7777: false },
+  it("omitted openTrackingPrs soft-discovers active brief PR refs", () => {
+    const root = tempRoot();
+    const briefDir = join(root, "xbrief", "active");
+    mkdirSync(briefDir, { recursive: true });
+    writeFileSync(
+      join(briefDir, "sib.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          references: [
+            { uri: "https://github.com/deftai/directive/pull/7777", type: "x-xbrief/github-pr" },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const result = verifyCohortReviewMonitors({
+      projectRoot: root,
+      operatorPrs: [1],
+      launchManifestPrs: [1],
+      openPrNumbers: new Set([7777]),
+      expectedRepo: "deftai/directive",
+      liveArmByPr: { 1: true, 7777: true },
+      explicitFinishByPr: { 1: false, 7777: false },
+    });
+    expect(result.prs).toEqual([1, 7777]);
+    expect(result.exitCode).toBe(0);
   });
-  expect(result.prs).toEqual([1, 7777]);
-  expect(result.exitCode).toBe(0);
+
+  it("supplied openTrackingPrs still unions active-brief discovery", () => {
+    const root = tempRoot();
+    const briefDir = join(root, "xbrief", "active");
+    mkdirSync(briefDir, { recursive: true });
+    writeFileSync(
+      join(briefDir, "sib.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          references: [
+            { uri: "https://github.com/deftai/directive/pull/8888", type: "x-xbrief/github-pr" },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const result = verifyCohortReviewMonitors({
+      projectRoot: root,
+      operatorPrs: [1],
+      launchManifestPrs: [1],
+      openTrackingPrs: [3],
+      openPrNumbers: new Set([8888]),
+      expectedRepo: "deftai/directive",
+      liveArmByPr: { 1: true, 3: true, 8888: true },
+      explicitFinishByPr: { 1: false, 3: false, 8888: false },
+    });
+    expect(result.prs).toEqual([1, 3, 8888]);
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("closed / filtered active-brief PRs do not enter inventory", () => {
+    const root = tempRoot();
+    const briefDir = join(root, "xbrief", "active");
+    mkdirSync(briefDir, { recursive: true });
+    writeFileSync(
+      join(briefDir, "closed.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          references: [
+            { uri: "https://github.com/deftai/directive/pull/9999", type: "x-xbrief/github-pr" },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const result = verifyCohortReviewMonitors({
+      projectRoot: root,
+      operatorPrs: [1],
+      launchManifestPrs: [1],
+      openTrackingPrs: [],
+      openPrNumbers: new Set(),
+      expectedRepo: "deftai/directive",
+      liveArmByPr: { 1: true },
+      explicitFinishByPr: { 1: false },
+    });
+    expect(result.prs).toEqual([1]);
+    expect(result.exitCode).toBe(0);
+  });
 });
 
 describe("CLI argv + remediation", () => {

@@ -202,12 +202,60 @@ export function prsFromLaunchManifest(
   return { ok: true, prs: resolved.prNumbers };
 }
 
+export type ActiveBriefsDiscoverResult =
+  | { readonly ok: true; readonly prs: number[] }
+  | { readonly ok: false; readonly reason: string };
+
 /**
- * Soft-discover Tracking/product PR refs from xbrief/active (and legacy vbrief/active).
- * Used when --open-tracking-prs is omitted so open siblings are not silently dropped.
- * Briefs without PR refs are skipped (not fail-closed) — those are not Tracking PRs.
+ * Extract a PR number only when the URI names the expected owner/repo (when provided).
+ * Bare /pull/N without repo context is accepted only when expectedRepo is null.
  */
-export function prsFromActiveBriefsSoft(projectRoot: string): number[] {
+export function extractRepoScopedPullNumber(
+  uri: string,
+  expectedRepo: string | null = null,
+): number | null {
+  const pullIdx = uri.indexOf("/pull/");
+  const pullsIdx = uri.indexOf("/pulls/");
+  const idx = pullIdx >= 0 ? pullIdx : pullsIdx;
+  const markerLen = pullIdx >= 0 ? "/pull/".length : "/pulls/".length;
+  if (idx < 0) return null;
+  if (expectedRepo !== null && expectedRepo.includes("/")) {
+    const repoNeedle = expectedRepo.toLowerCase();
+    const lower = uri.toLowerCase();
+    if (!(lower.includes(`github.com/${repoNeedle}/`) || lower.includes(`repos/${repoNeedle}/`))) {
+      return null;
+    }
+  }
+  let i = idx + markerLen;
+  const digits: string[] = [];
+  while (i < uri.length) {
+    const ch = uri.charAt(i);
+    if (ch >= "0" && ch <= "9") {
+      digits.push(ch);
+      i += 1;
+    } else {
+      break;
+    }
+  }
+  if (digits.length === 0) return null;
+  const n = Number.parseInt(digits.join(""), 10);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+/**
+ * Discover Tracking/product PR refs from xbrief/active (and legacy vbrief/active).
+ * Always consulted and unioned into the cohort denominator (does not replace --open-tracking-prs).
+ * Briefs without PR refs are skipped; unreadable dirs/files and unexpected parse failures fail closed.
+ * When expectedRepo is set, cross-repo PR URLs are ignored.
+ * When openPrNumbers is set, closed/unknown PRs are dropped from the discovery result.
+ */
+export function prsFromActiveBriefsSoft(
+  projectRoot: string,
+  options: {
+    readonly expectedRepo?: string | null;
+    readonly openPrNumbers?: ReadonlySet<number> | null;
+  } = {},
+): ActiveBriefsDiscoverResult {
   const root = resolve(projectRoot);
   const files: string[] = [];
   for (const rel of ["xbrief/active", "vbrief/active"]) {
@@ -218,12 +266,53 @@ export function prsFromActiveBriefsSoft(projectRoot: string): number[] {
         if (!/\.(x|v)brief\.json$/i.test(name)) continue;
         files.push(join(dir, name));
       }
-    } catch {
-      // unreadable active dir contributes nothing
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      return { ok: false, reason: `active brief dir unreadable (${rel}): ${detail}` };
     }
   }
-  if (files.length === 0) return [];
-  return resolveCohortFromVbriefs(files).prNumbers;
+  if (files.length === 0) return { ok: true, prs: [] };
+
+  const expectedRepo = options.expectedRepo ?? null;
+  const openPrNumbers = options.openPrNumbers ?? null;
+  const seen = new Set<number>();
+  const prs: number[] = [];
+  for (const file of files) {
+    let payload: unknown;
+    try {
+      payload = JSON.parse(readFileSync(file, "utf8")) as unknown;
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      return { ok: false, reason: `active brief unreadable (${file}): ${detail}` };
+    }
+    if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+      return { ok: false, reason: `active brief payload is not an object (${file})` };
+    }
+    const plan = (payload as Record<string, unknown>).plan;
+    const references =
+      typeof plan === "object" && plan !== null && !Array.isArray(plan)
+        ? ((plan as Record<string, unknown>).references as unknown)
+        : [];
+    const refs = Array.isArray(references) ? references : [];
+    let found = 0;
+    for (const ref of refs) {
+      if (typeof ref !== "object" || ref === null || Array.isArray(ref)) continue;
+      const uri = (ref as Record<string, unknown>).uri;
+      if (typeof uri !== "string" || uri.length === 0) continue;
+      const pr = extractRepoScopedPullNumber(uri, expectedRepo);
+      if (pr === null) continue;
+      if (openPrNumbers !== null && !openPrNumbers.has(pr)) continue;
+      found += 1;
+      if (!seen.has(pr)) {
+        seen.add(pr);
+        prs.push(pr);
+      }
+    }
+    // no PR refs → skip (not a Tracking brief); do not fail closed
+    void found;
+  }
+  prs.sort((a, b) => a - b);
+  return { ok: true, prs };
 }
 
 /**
@@ -377,6 +466,10 @@ export interface VerifyCohortReviewMonitorsArgs {
   readonly launchManifestPath?: string | null;
   readonly launchManifestPrs?: readonly number[];
   readonly openTrackingPrs?: readonly number[];
+  /** When set, soft-discovered active-brief PRs are intersected with this open set. */
+  readonly openPrNumbers?: ReadonlySet<number> | null;
+  /** owner/repo used to ignore cross-repo PR URLs during active-brief discovery. */
+  readonly expectedRepo?: string | null;
   readonly emitJson?: boolean;
   readonly environ?: NodeJS.ProcessEnv;
   /** Hermetic per-PR live-arm map; omit to use live gate. */
@@ -489,11 +582,35 @@ export function verifyCohortReviewMonitors(
     }
     launchManifestPrs = fromManifest.prs;
   }
-  // Injected openTrackingPrs (including []) wins; omitted → soft-discover from active briefs.
-  const openTrackingPrs =
-    args.openTrackingPrs !== undefined
-      ? [...args.openTrackingPrs]
-      : prsFromActiveBriefsSoft(projectRoot);
+  // Soft-discover active briefs always (union); --open-tracking-prs never hides siblings.
+  const discovered = prsFromActiveBriefsSoft(projectRoot, {
+    expectedRepo: args.expectedRepo ?? null,
+    openPrNumbers: args.openPrNumbers ?? null,
+  });
+  if (!discovered.ok) {
+    const msg = `Error: ${discovered.reason}`;
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      prs: [],
+      classifications: [],
+      unarmed: [],
+      stdout:
+        args.emitJson === true
+          ? `${JSON.stringify({ error: discovered.reason, prs: [] }, null, 2)}
+`
+          : "",
+      stderr:
+        args.emitJson === true
+          ? ""
+          : `${msg}
+`,
+      expandedFromResolver: false,
+      omittedFromOperator: [],
+    };
+  }
+  const openTrackingPrs = [
+    ...new Set<number>([...(args.openTrackingPrs ?? []), ...discovered.prs]),
+  ].sort((a, b) => a - b);
   const resolved = resolveCohortPrSet({
     operatorPrs,
     launchManifestPrs,

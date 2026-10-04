@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parsePrsCsv, verifyCohortReviewMonitors } from "./cohort-review-monitors.js";
 
@@ -118,6 +119,49 @@ export function parseCohortReviewMonitorsArgv(argv: readonly string[]): {
   return { prsCsv, projectRoot, manifestPath, openTrackingCsv, emitJson, help };
 }
 
+function resolveOpenTrackingContext(projectRoot: string): {
+  expectedRepo: string | null;
+  openPrNumbers: Set<number> | null;
+} {
+  // Best-effort gh context. Failures leave openPrNumbers null (repo-scope still applied when known)
+  // so hermetic unit tests that call verifyCohortReviewMonitorsMain without gh stay usable when
+  // no active briefs exist; production parents with active Tracking briefs get open filtering when gh works.
+  let expectedRepo: string | null = null;
+  try {
+    const view = execFileSync("gh", ["api", "repos/{owner}/{repo}", "--jq", ".full_name"], {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    if (view.includes("/")) expectedRepo = view;
+  } catch {
+    expectedRepo = null;
+  }
+  if (expectedRepo === null) {
+    return { expectedRepo: null, openPrNumbers: null };
+  }
+  try {
+    const raw = execFileSync(
+      "gh",
+      ["api", `repos/${expectedRepo}/pulls?state=open&per_page=100`, "--jq", ".[].number"],
+      {
+        cwd: projectRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    const openPrNumbers = new Set<number>();
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!/^\d+$/.test(trimmed)) continue;
+      openPrNumbers.add(Number.parseInt(trimmed, 10));
+    }
+    return { expectedRepo, openPrNumbers };
+  } catch {
+    return { expectedRepo, openPrNumbers: null };
+  }
+}
+
 const HELP =
   "deft verify:cohort-review-monitors — cohort babysit inventory (#5318)\n" +
   "\n" +
@@ -157,11 +201,14 @@ export function verifyCohortReviewMonitorsMain(argv: string[] = process.argv.sli
     openTrackingPrs = parsed.prs;
   }
 
+  const { expectedRepo, openPrNumbers } = resolveOpenTrackingContext(args.projectRoot);
   const result = verifyCohortReviewMonitors({
     projectRoot: args.projectRoot,
     prsCsv: args.prsCsv,
     launchManifestPath: args.manifestPath,
     openTrackingPrs,
+    expectedRepo,
+    openPrNumbers,
     emitJson: args.emitJson,
   });
   if (result.stdout.length > 0) {
