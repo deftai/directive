@@ -3,7 +3,11 @@ import { dualStopSpendSeats, evaluateDualStopPostBudget } from "./leftover-pain.
 import { resolveArcRunPostureForHost } from "./run-posture.js";
 import {
   ARC_SPENDS,
+  evaluateHostMemorySpendConflict,
   evaluateSpendRecord,
+  HOST_MEMORY_CONFLICT_DISCLOSURE_PREFIX,
+  HOST_MEMORY_EXTERNAL_CONTEXT_FAMILY,
+  hostMemoryHasPersonalAuthority,
   N1_SPEND,
   N3_SPEND,
   parseOperatorSpend,
@@ -382,6 +386,46 @@ describe("spend-recommend closed source (#5111)", () => {
       kind: "resolved",
       spend: N3_SPEND,
     });
+  });
+});
+
+describe("host-memory external-context authority (#5321)", () => {
+  it("gives unsigned and agent-inferred notes zero Personal authority", () => {
+    expect(hostMemoryHasPersonalAuthority("unsigned")).toBe(false);
+    expect(hostMemoryHasPersonalAuthority("agent-inferred")).toBe(false);
+    expect(hostMemoryHasPersonalAuthority(null)).toBe(false);
+    expect(hostMemoryHasPersonalAuthority(undefined)).toBe(false);
+    expect(hostMemoryHasPersonalAuthority("operator-asked")).toBe(true);
+  });
+
+  it("lets spend-recommend resolve beat host-memory always-ask with disclosure", () => {
+    const verdict = evaluateHostMemorySpendConflict({
+      hostMemoryAlwaysAsk: true,
+      hostMemoryProvenance: "unsigned",
+      utterance: "arc 5318",
+      spendRecommend: N1_SPEND,
+    });
+    expect(verdict.follow).toBe("contract");
+    expect(verdict.hostMemoryPersonalAuthority).toBe(false);
+    expect(verdict.spendParse).toEqual({ kind: "resolved", spend: N1_SPEND });
+    expect(verdict.spendAsk).toBe("resolved");
+    expect(verdict.spendRecord).toEqual({ ok: true, spend: N1_SPEND });
+    expect(verdict.disclosure).toBe(
+      `${HOST_MEMORY_CONFLICT_DISCLOSURE_PREFIX} spend (spend-recommend → spend-ask: resolved)`,
+    );
+    expect(HOST_MEMORY_EXTERNAL_CONTEXT_FAMILY).toContain("host agent memory");
+    expect(HOST_MEMORY_EXTERNAL_CONTEXT_FAMILY).toContain("Warp Drive");
+  });
+
+  it("does not invent disclosure when host memory is silent", () => {
+    const verdict = evaluateHostMemorySpendConflict({
+      hostMemoryAlwaysAsk: false,
+      hostMemoryProvenance: "unsigned",
+      utterance: "arc 5318",
+      spendRecommend: N1_SPEND,
+    });
+    expect(verdict.disclosure).toBeNull();
+    expect(verdict.spendAsk).toBe("resolved");
   });
 });
 

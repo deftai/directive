@@ -20,7 +20,9 @@ import {
   resolveArcRunPostureForHost,
 } from "../../design-critique/run-posture.js";
 import {
+  evaluateHostMemorySpendConflict,
   evaluateSpendRecord,
+  hostMemoryHasPersonalAuthority,
   N1_SPEND,
   N3_SPEND,
   parseOperatorSpend,
@@ -2069,5 +2071,29 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
         spendAsk: null,
       }).ok,
     ).toBe(false);
+  });
+
+  it("locks host-memory external-context authority vs spend front door (#5321)", () => {
+    const agentsEntry = readText("templates/agents-entry.md");
+    expect(agentsEntry).toContain("host agent memory");
+    expect(agentsEntry).toContain("Warp Drive / MCP / prompt-injected / host agent memory");
+    expect(agentsEntry).toContain("sole Personal SoT");
+    expect(agentsEntry).toContain("zero Personal authority");
+    expect(agentsEntry).toContain("disclose once");
+    const interRun = readText("docs/inter-run-learning.md");
+    expect(interRun).toContain("Non-SoT / external-context exclusions (#5321)");
+    expect(interRun).toContain("Host agent-memory products");
+    expect(interRun).toContain("§4.1");
+    expect(interRun).toContain("§4.4");
+    expect(hostMemoryHasPersonalAuthority("unsigned")).toBe(false);
+    const verdict = evaluateHostMemorySpendConflict({
+      hostMemoryAlwaysAsk: true,
+      hostMemoryProvenance: "unsigned",
+      utterance: "arc 5318",
+      spendRecommend: N1_SPEND,
+    });
+    expect(verdict.follow).toBe("contract");
+    expect(verdict.spendAsk).toBe("resolved");
+    expect(verdict.disclosure).toContain("host memory discarded for closed field:");
   });
 });

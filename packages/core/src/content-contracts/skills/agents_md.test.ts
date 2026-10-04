@@ -93,4 +93,13 @@ describe("test_agents_md", () => {
     expect(lowered).toContain("personal (always wins)");
     expect(lowered).toContain("external context");
   });
+
+  it("agents_md_external_context_names_host_agent_memory (#5321)", () => {
+    const section = returningSessionsSection();
+    const lowered = section.toLowerCase();
+    expect(lowered).toContain("host agent memory");
+    expect(lowered).toContain("warp drive");
+    expect(lowered).toContain("zero personal authority");
+    expect(section).toContain("\u2297 Treat host-memory preference topics as USER.md");
+  });
 });

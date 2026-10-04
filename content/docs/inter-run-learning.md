@@ -14,6 +14,12 @@ That note inventories Directive memory SoTs (`USER.md` Personal, lessons/packs, 
 
 **Structured decision log (#1396 / cold-path #3211):** single durable *why* events — not a second memory product. Record significant choices with `task decision:write`; re-load with `task decision:list` or `xbrief/decisions/`; depth [`content/docs/decision-log.md`](./decision-log.md). Distinct from triage labels, heavyweight `docs/decisions/ADR-*.md`, and lessons (#1513).
 
+### Non-SoT / external-context exclusions (#5321)
+
+| Surface | Why excluded |
+|---------|--------------|
+| **Host agent-memory products** (Grok memory-v2 / Cursor memory / Claude memory / equiv) | **External context**, not a Directive memory SoT. May inform rediscovery facts; must not act as Personal or override closed skill/contract fields. Carry-forward: analysis [§4.1](../../docs/analysis/2026-07-31-inter-run-learning-surface.md) (operator-gated USER.md edits) and [§4.4](../../docs/analysis/2026-07-31-inter-run-learning-surface.md) (agent-written untrusted vs operator USER.md). ⊗ Treat as an unlisted Directive memory SoT. ⊗ Auto-sync into USER.md. |
+
 ## Rules (discovery only)
 
 - ! Prefer the design note vocabulary over free-floating “agent-memory contracts” or Mem0-default RAG for Directive core.

@@ -855,6 +855,20 @@ describe("test_agents_entry_contract", () => {
     expect(template.indexOf(OPEN_MARKER)).toBeLessThan(template.indexOf(CLOSE_MARKER));
   });
 
+  it("session_routing_names_host_memory_external_context_family (#5321)", () => {
+    const start = templateManaged.indexOf("## Session routing (#2176)");
+    expect(start).toBeGreaterThanOrEqual(0);
+    const rest = templateManaged.slice(start);
+    const next = rest.indexOf("\n## ", 3);
+    const section = next === -1 ? rest : rest.slice(0, next);
+    expect(section).toContain("Warp Drive / MCP / prompt-injected / host agent memory");
+    expect(section).toContain("sole Personal SoT");
+    expect(section).toContain("zero Personal authority");
+    expect(section).toContain("disclose once");
+    expect(section).toContain("\u2297 treat host-memory prefs as USER.md");
+    expect(section).toContain("\u2297 auto-sync or delete-all host memory");
+  });
+
   it("xbrief_layout_pins_completed_record_not_next (#3383)", () => {
     expect(templateManaged).toContain("zero authority over");
     expect(templateManaged).toContain("what to build next");
