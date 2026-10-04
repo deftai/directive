@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
-import { parseIso8601Utc } from "./subagent-monitor.js";
+import { parseIso8601Utc, recordOk, sweepScratchDirs } from "./subagent-monitor.js";
 
 export const STEER_SCHEMA = "deft.subagent.steer.v1";
 export const STEER_ACK_SCHEMA = "deft.subagent.steer-ack.v1";
@@ -34,7 +34,7 @@ export function defaultSteerDir(cwd: string = process.cwd()): string {
   return join(cwd, ".deft-scratch", "subagent-steer");
 }
 
-/** Filesystem-safe agent slug: no path separators, no reserved ack/steer suffixes. */
+/** Filesystem-safe agent slug: no path separators, no reserved ack/steer/firstseen suffixes. */
 export function isSafeAgentId(agentId: string): boolean {
   if (typeof agentId !== "string" || agentId.length === 0 || agentId.length > 128) {
     return false;
@@ -45,7 +45,7 @@ export function isSafeAgentId(agentId: string): boolean {
   if (agentId.includes("..")) {
     return false;
   }
-  if (agentId.endsWith(".ack") || agentId.endsWith(".steer")) {
+  if (agentId.endsWith(".ack") || agentId.endsWith(".steer") || agentId.endsWith(".firstseen")) {
     return false;
   }
   return true;
@@ -449,7 +449,10 @@ function formatNowIso(now: Date): string {
 
 function inboxFilenames(steerDir: string): string[] {
   return readdirSync(steerDir)
-    .filter((name) => name.endsWith(".json") && !name.endsWith(".ack.json"))
+    .filter(
+      (name) =>
+        name.endsWith(".json") && !name.endsWith(".ack.json") && !name.endsWith(".firstseen.json"),
+    )
     .sort();
 }
 
@@ -571,4 +574,597 @@ export function renderSteerPendingText(sweep: SteerPendingSweep): string {
     );
   }
   return lines.join("\n");
+}
+
+/** Status-request kinds that can clear pre-cancel branch (a) (#5278). */
+export const STATUS_STEER_KINDS = ["note", "correction"] as const;
+export type StatusSteerKind = (typeof STATUS_STEER_KINDS)[number];
+
+export const FIRST_SEEN_SCHEMA = "deft.subagent.steer-firstseen.v1";
+export const DEFAULT_PRE_CANCEL_OBSERVED_WINDOW_SECONDS = 3 * 60;
+export const DEFAULT_PRE_CANCEL_STARTUP_GRACE_SECONDS = 3 * 60;
+/** Forward-only written_at skew vs first-seen (PA-18); no behind half. */
+export const DEFAULT_PRE_CANCEL_FORWARD_SKEW_SECONDS = 60 * 1;
+export const APPROACH1_ARM_STARTUP_HALT = "approach1-arm-startup" as const;
+export const DEFAULT_APPROACH1_ARM_STARTUP_SECONDS = 3 * 60;
+
+export const EXIT_PRE_CANCEL_OK = 0 * 1;
+export const EXIT_PRE_CANCEL_REFUSED = 1 * 1;
+export const EXIT_PRE_CANCEL_CONFIG = 2 * 1;
+
+export function defaultFirstSeenDir(cwd: string = process.cwd()): string {
+  return join(cwd, ".deft-scratch", "subagent-steer-firstseen");
+}
+
+export function isStatusSteerKind(value: unknown): value is StatusSteerKind {
+  return typeof value === "string" && (STATUS_STEER_KINDS as readonly string[]).includes(value);
+}
+
+export interface FirstSeenRecord {
+  schema: typeof FIRST_SEEN_SCHEMA;
+  agent_id: string;
+  steer_id: string;
+  first_seen_at: string;
+  canceller_id: string;
+}
+
+export function firstSeenPath(firstSeenDir: string, agentId: string, steerId: string): string {
+  const safeAgent = requireSafeAgentId(agentId);
+  const sanitized = steerId.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 128);
+  // Empty-after-sanitize uses a stable stem (returned-path filter; no throw-site).
+  const safeSteer = sanitized.length > 0 ? sanitized : "_empty";
+  return join(firstSeenDir, `${safeAgent}.${safeSteer}.json`);
+}
+
+/** Persist first-seen only when absent; never rewrite an existing stamp. */
+export function readOrCreateFirstSeen(
+  firstSeenDir: string,
+  input: {
+    agentId: string;
+    steerId: string;
+    cancellerId: string;
+    now?: Date;
+  },
+): FirstSeenRecord {
+  const path = firstSeenPath(firstSeenDir, input.agentId, input.steerId);
+  if (existsSync(path)) {
+    const failures: string[] = [];
+    const obj = readJsonObject(path, failures);
+    if (
+      obj !== null &&
+      obj.schema === FIRST_SEEN_SCHEMA &&
+      typeof obj.agent_id === "string" &&
+      typeof obj.steer_id === "string" &&
+      typeof obj.first_seen_at === "string" &&
+      typeof obj.canceller_id === "string" &&
+      parseIso8601Utc(obj.first_seen_at) !== null
+    ) {
+      return {
+        schema: FIRST_SEEN_SCHEMA,
+        agent_id: obj.agent_id,
+        steer_id: obj.steer_id,
+        first_seen_at: obj.first_seen_at,
+        canceller_id: obj.canceller_id,
+      };
+    }
+  }
+  const now = input.now ?? new Date();
+  const record: FirstSeenRecord = {
+    schema: FIRST_SEEN_SCHEMA,
+    agent_id: requireSafeAgentId(input.agentId),
+    steer_id: input.steerId,
+    first_seen_at: formatNowIso(now),
+    canceller_id: input.cancellerId.trim(),
+  };
+  atomicWriteJson(path, record);
+  return record;
+}
+
+export type PreCancelClearReason =
+  | "steer-acked"
+  | "steer-observed-window"
+  | "heartbeat-stale-or-missing-after-first"
+  | "heartbeat-grace-expired-missing"
+  | "force";
+
+export type PreCancelRefuseReason =
+  | "parse_failures"
+  | "no-matching-status-steer"
+  | "writer-mismatch"
+  | "forward-skew"
+  | "observed-window-incomplete"
+  | "heartbeat-within-grace"
+  | "heartbeat-fresh"
+  | "heartbeat-malformed"
+  | "identity-mismatch"
+  | "missing-agent"
+  | "missing-canceller"
+  | "missing-dest"
+  | "config";
+
+export interface EvaluatePreCancelInput {
+  agentId: string;
+  cancellerId: string;
+  steerDir: string;
+  firstSeenDir: string;
+  scratchDir: string;
+  force?: boolean;
+  forceReason?: string;
+  now?: Date;
+  observedWindowSeconds?: number;
+  forwardSkewSeconds?: number;
+  startupGraceSeconds?: number;
+  /** DeliveryAttemptRecord.startedAt for grace path (b). */
+  dispatchStartedAt?: string | null;
+  thresholdMinutes?: number;
+  /** Current attempt worker / incarnation; refuse if mismatched. */
+  expectedWorkerId?: string | null;
+}
+
+export interface PreCancelVerdict {
+  ok: boolean;
+  exitCode:
+    | typeof EXIT_PRE_CANCEL_OK
+    | typeof EXIT_PRE_CANCEL_REFUSED
+    | typeof EXIT_PRE_CANCEL_CONFIG;
+  clear_reason: PreCancelClearReason | null;
+  refuse_reason: PreCancelRefuseReason | null;
+  message: string;
+  agent_id: string;
+  canceller_id: string;
+  first_seen_at: string | null;
+  matching_steer_id: string | null;
+  json: Record<string, unknown>;
+}
+
+function agentParseFailures(sweep: SteerPendingSweep, agentId: string): string[] {
+  const needle = `${agentId}.json`;
+  return sweep.parse_failures.filter((f) => f.includes(needle) || f.includes(`${agentId}:`));
+}
+
+function findAckedStatusSteer(
+  steerDir: string,
+  agentId: string,
+  cancellerId: string,
+  now: Date,
+): SteerRecord | null {
+  const inbox = steerInboxPath(steerDir, agentId);
+  if (!existsSync(inbox)) {
+    return null;
+  }
+  const parsed = parseSteerFile(inbox);
+  if (parsed.record === null) {
+    return null;
+  }
+  const record = parsed.record;
+  if (!isStatusSteerKind(record.kind)) {
+    return null;
+  }
+  if (record.writer_id.trim() !== cancellerId.trim()) {
+    return null;
+  }
+  const expires = parseIso8601Utc(record.expires_at);
+  if (expires !== null && expires.getTime() <= now.getTime()) {
+    return null;
+  }
+  const ack = parseSteerAckFile(steerAckPath(steerDir, agentId));
+  if (ack.record !== null && ack.record.steer_id === record.steer_id) {
+    return record;
+  }
+  return null;
+}
+
+function evaluateHeartbeatBranch(
+  input: EvaluatePreCancelInput,
+  now: Date,
+): { clear: PreCancelClearReason | null; refuse: PreCancelRefuseReason | null; detail: string } {
+  const graceSeconds = input.startupGraceSeconds ?? DEFAULT_PRE_CANCEL_STARTUP_GRACE_SECONDS;
+  const thresholdMinutes = input.thresholdMinutes ?? 30;
+  const scratchDir = input.scratchDir;
+  const agentId = input.agentId;
+
+  if (!existsSync(scratchDir)) {
+    const started = input.dispatchStartedAt ? parseIso8601Utc(input.dispatchStartedAt) : null;
+    if (started === null) {
+      return {
+        clear: null,
+        refuse: "heartbeat-within-grace",
+        detail: "scratch dir missing and no dispatchStartedAt for grace path (b)",
+      };
+    }
+    const elapsed = (now.getTime() - started.getTime()) / 1000;
+    if (elapsed >= graceSeconds) {
+      return {
+        clear: "heartbeat-grace-expired-missing",
+        refuse: null,
+        detail: `no heartbeat after grace ${graceSeconds}s from dispatch`,
+      };
+    }
+    return {
+      clear: null,
+      refuse: "heartbeat-within-grace",
+      detail: `within startup grace (${Math.round(elapsed)}s < ${graceSeconds}s)`,
+    };
+  }
+
+  const sweep = sweepScratchDirs([{ readPath: scratchDir, label: scratchDir }], {
+    thresholdMinutes,
+    now,
+  });
+  const rec = sweep.records.find((r) => r.agent_id === agentId);
+  if (rec === undefined) {
+    const started = input.dispatchStartedAt ? parseIso8601Utc(input.dispatchStartedAt) : null;
+    if (started === null) {
+      return {
+        clear: null,
+        refuse: "heartbeat-within-grace",
+        detail: "required agent heartbeat missing and no dispatchStartedAt",
+      };
+    }
+    const elapsed = (now.getTime() - started.getTime()) / 1000;
+    if (elapsed >= graceSeconds) {
+      return {
+        clear: "heartbeat-grace-expired-missing",
+        refuse: null,
+        detail: `missing required agent after grace ${graceSeconds}s`,
+      };
+    }
+    return {
+      clear: null,
+      refuse: "heartbeat-within-grace",
+      detail: `missing heartbeat within grace (${Math.round(elapsed)}s < ${graceSeconds}s)`,
+    };
+  }
+
+  if (rec.is_stale) {
+    // First-seen-then-STALE (path b). Malformed-but-fresh must NOT clear.
+    return {
+      clear: "heartbeat-stale-or-missing-after-first",
+      refuse: null,
+      detail: "heartbeat STALE",
+    };
+  }
+  if (!recordOk(rec)) {
+    return {
+      clear: null,
+      refuse: "heartbeat-malformed",
+      detail:
+        "heartbeat fresh but unhealthy/parse-failed (e.g. invalid wait_kind); refuse cancel while child still reporting",
+    };
+  }
+
+  return {
+    clear: null,
+    refuse: "heartbeat-fresh",
+    detail: "heartbeat is fresh; status steer or --force required",
+  };
+}
+
+/**
+ * Fail-closed query-before-cancel gate (#5278 Prefer-A).
+ * Exit 0 only via (a) status steer ack/observed window, (b) heartbeat STALE/missing
+ * under documented grace, or (c) explicit --force with reason.
+ */
+export function evaluatePreCancel(input: EvaluatePreCancelInput): PreCancelVerdict {
+  const agentId = input.agentId?.trim() ?? "";
+  const cancellerId = input.cancellerId?.trim() ?? "";
+  const baseJson = (): Record<string, unknown> => ({
+    ok: false,
+    agent_id: agentId,
+    canceller_id: cancellerId,
+    clear_reason: null,
+    refuse_reason: null,
+    first_seen_at: null,
+    matching_steer_id: null,
+  });
+
+  const finish = (
+    partial: Omit<
+      PreCancelVerdict,
+      "json" | "agent_id" | "canceller_id" | "matching_steer_id" | "first_seen_at"
+    > & {
+      matching_steer_id?: string | null;
+      first_seen_at?: string | null;
+    },
+  ): PreCancelVerdict => {
+    const matching = partial.matching_steer_id ?? null;
+    const firstSeen = partial.first_seen_at ?? null;
+    const json = {
+      ...baseJson(),
+      ok: partial.ok,
+      clear_reason: partial.clear_reason,
+      refuse_reason: partial.refuse_reason,
+      first_seen_at: firstSeen,
+      matching_steer_id: matching,
+      message: partial.message,
+      exit_code: partial.exitCode,
+    };
+    return {
+      ok: partial.ok,
+      exitCode: partial.exitCode,
+      clear_reason: partial.clear_reason,
+      refuse_reason: partial.refuse_reason,
+      message: partial.message,
+      agent_id: agentId,
+      canceller_id: cancellerId,
+      first_seen_at: firstSeen,
+      matching_steer_id: matching,
+      json,
+    };
+  };
+
+  if (agentId.length === 0 || !isSafeAgentId(agentId)) {
+    return finish({
+      ok: false,
+      exitCode: EXIT_PRE_CANCEL_CONFIG,
+      clear_reason: null,
+      refuse_reason: "missing-agent",
+      message: "subagent:pre-cancel: --agent is required and must be a filesystem-safe slug",
+    });
+  }
+  if (cancellerId.length === 0) {
+    return finish({
+      ok: false,
+      exitCode: EXIT_PRE_CANCEL_CONFIG,
+      clear_reason: null,
+      refuse_reason: "missing-canceller",
+      message: "subagent:pre-cancel: --canceller-id is required (writer_id / session identity)",
+    });
+  }
+  if (
+    input.steerDir.trim().length === 0 ||
+    input.firstSeenDir.trim().length === 0 ||
+    input.scratchDir.trim().length === 0
+  ) {
+    return finish({
+      ok: false,
+      exitCode: EXIT_PRE_CANCEL_CONFIG,
+      clear_reason: null,
+      refuse_reason: "missing-dest",
+      message:
+        "subagent:pre-cancel: dest-capable --steer-dir / --first-seen-dir / --scratch-dir (or --target-id) required; default-to-cwd alone is refuse-closed for linked-worktree children",
+    });
+  }
+
+  if (
+    input.expectedWorkerId !== undefined &&
+    input.expectedWorkerId !== null &&
+    input.expectedWorkerId.trim().length > 0 &&
+    input.expectedWorkerId.trim() !== agentId
+  ) {
+    return finish({
+      ok: false,
+      exitCode: EXIT_PRE_CANCEL_REFUSED,
+      clear_reason: null,
+      refuse_reason: "identity-mismatch",
+      message: `subagent:pre-cancel: agent ${JSON.stringify(agentId)} does not match current attempt worker ${JSON.stringify(input.expectedWorkerId)}`,
+    });
+  }
+
+  if (input.force === true) {
+    const reason = input.forceReason?.trim() ?? "";
+    if (reason.length === 0) {
+      return finish({
+        ok: false,
+        exitCode: EXIT_PRE_CANCEL_CONFIG,
+        clear_reason: null,
+        refuse_reason: "config",
+        message: "subagent:pre-cancel: --force requires --reason",
+      });
+    }
+    return finish({
+      ok: true,
+      exitCode: EXIT_PRE_CANCEL_OK,
+      clear_reason: "force",
+      refuse_reason: null,
+      message: `subagent:pre-cancel: FORCE clear by ${cancellerId}: ${reason}`,
+    });
+  }
+
+  const now = input.now ?? new Date();
+  const observedWindow = input.observedWindowSeconds ?? DEFAULT_PRE_CANCEL_OBSERVED_WINDOW_SECONDS;
+  const forwardSkew = input.forwardSkewSeconds ?? DEFAULT_PRE_CANCEL_FORWARD_SKEW_SECONDS;
+
+  // Branch (a): status steer + ack OR observed first-seen window (P4 pending[] + ack path).
+  const sweep = sweepSteerPending(input.steerDir, { now, agentIds: [agentId] });
+  if (steerPendingConfigError(sweep)) {
+    return finish({
+      ok: false,
+      exitCode: EXIT_PRE_CANCEL_CONFIG,
+      clear_reason: null,
+      refuse_reason: "config",
+      message: `subagent:pre-cancel: steer sweep config error: ${sweep.sweep_errors.join("; ")}`,
+    });
+  }
+
+  const parseFails = agentParseFailures(sweep, agentId);
+  if (parseFails.length > 0) {
+    return finish({
+      ok: false,
+      exitCode: EXIT_PRE_CANCEL_REFUSED,
+      clear_reason: null,
+      refuse_reason: "parse_failures",
+      message: `subagent:pre-cancel: parse_failures keep gate red:\n  ${parseFails.join("\n  ")}`,
+    });
+  }
+
+  const acked = findAckedStatusSteer(input.steerDir, agentId, cancellerId, now);
+  if (acked !== null) {
+    return finish({
+      ok: true,
+      exitCode: EXIT_PRE_CANCEL_OK,
+      clear_reason: "steer-acked",
+      refuse_reason: null,
+      matching_steer_id: acked.steer_id,
+      message: `subagent:pre-cancel: cleared via matching ack for steer_id=${acked.steer_id}`,
+    });
+  }
+
+  const pendingMatch = sweep.pending.find(
+    (p) =>
+      p.agent_id === agentId && isStatusSteerKind(p.kind) && p.writer_id.trim() === cancellerId,
+  );
+
+  if (pendingMatch !== undefined) {
+    const firstSeen = readOrCreateFirstSeen(input.firstSeenDir, {
+      agentId,
+      steerId: pendingMatch.steer_id,
+      cancellerId,
+      now,
+    });
+    const firstSeenAt = parseIso8601Utc(firstSeen.first_seen_at);
+    const writtenAt = parseIso8601Utc(pendingMatch.written_at);
+    if (firstSeenAt === null) {
+      return finish({
+        ok: false,
+        exitCode: EXIT_PRE_CANCEL_CONFIG,
+        clear_reason: null,
+        refuse_reason: "config",
+        message: "subagent:pre-cancel: first-seen timestamp unparseable",
+        matching_steer_id: pendingMatch.steer_id,
+        first_seen_at: firstSeen.first_seen_at,
+      });
+    }
+    if (writtenAt !== null && writtenAt.getTime() - firstSeenAt.getTime() > forwardSkew * 1000) {
+      return finish({
+        ok: false,
+        exitCode: EXIT_PRE_CANCEL_REFUSED,
+        clear_reason: null,
+        refuse_reason: "forward-skew",
+        message: `subagent:pre-cancel: written_at is more than ${forwardSkew}s ahead of first-seen (forward skew refuse)`,
+        matching_steer_id: pendingMatch.steer_id,
+        first_seen_at: firstSeen.first_seen_at,
+      });
+    }
+    const elapsed = (now.getTime() - firstSeenAt.getTime()) / 1000;
+    if (elapsed + 1e-9 < observedWindow) {
+      // Branch (b) remains OR with (a): STALE/missing heartbeat may clear while
+      // the status-steer observed window is still incomplete (#5278 Greptile P1).
+      const hbEarly = evaluateHeartbeatBranch(input, now);
+      if (hbEarly.clear !== null) {
+        return finish({
+          ok: true,
+          exitCode: EXIT_PRE_CANCEL_OK,
+          clear_reason: hbEarly.clear,
+          refuse_reason: null,
+          matching_steer_id: pendingMatch.steer_id,
+          first_seen_at: firstSeen.first_seen_at,
+          message: `subagent:pre-cancel: cleared via heartbeat path during incomplete observed window — ${hbEarly.detail}`,
+        });
+      }
+      return finish({
+        ok: false,
+        exitCode: EXIT_PRE_CANCEL_REFUSED,
+        clear_reason: null,
+        refuse_reason: "observed-window-incomplete",
+        message: `subagent:pre-cancel: observed window incomplete (${elapsed.toFixed(1)}s < ${observedWindow}s from first-seen); wait or await ack`,
+        matching_steer_id: pendingMatch.steer_id,
+        first_seen_at: firstSeen.first_seen_at,
+      });
+    }
+    return finish({
+      ok: true,
+      exitCode: EXIT_PRE_CANCEL_OK,
+      clear_reason: "steer-observed-window",
+      refuse_reason: null,
+      matching_steer_id: pendingMatch.steer_id,
+      first_seen_at: firstSeen.first_seen_at,
+      message: `subagent:pre-cancel: cleared via observed window (${elapsed.toFixed(1)}s ≥ ${observedWindow}s) for steer_id=${pendingMatch.steer_id}`,
+    });
+  }
+
+  if (sweep.pending.some((p) => p.agent_id === agentId)) {
+    const hbForeign = evaluateHeartbeatBranch(input, now);
+    if (hbForeign.clear !== null) {
+      return finish({
+        ok: true,
+        exitCode: EXIT_PRE_CANCEL_OK,
+        clear_reason: hbForeign.clear,
+        refuse_reason: null,
+        message: `subagent:pre-cancel: cleared via heartbeat path with non-canceller pending steer — ${hbForeign.detail}`,
+      });
+    }
+    return finish({
+      ok: false,
+      exitCode: EXIT_PRE_CANCEL_REFUSED,
+      clear_reason: null,
+      refuse_reason: "writer-mismatch",
+      message:
+        "subagent:pre-cancel: pending steer is not a canceller-authored status-request (kind note|correction + writer_id match)",
+    });
+  }
+
+  // Branch (b): heartbeat STALE/missing under grace rules.
+  const hb = evaluateHeartbeatBranch(input, now);
+  if (hb.clear !== null) {
+    return finish({
+      ok: true,
+      exitCode: EXIT_PRE_CANCEL_OK,
+      clear_reason: hb.clear,
+      refuse_reason: null,
+      message: `subagent:pre-cancel: cleared via heartbeat path — ${hb.detail}`,
+    });
+  }
+
+  return finish({
+    ok: false,
+    exitCode: EXIT_PRE_CANCEL_REFUSED,
+    clear_reason: null,
+    refuse_reason: hb.refuse ?? "no-matching-status-steer",
+    message: `subagent:pre-cancel: refused — ${hb.detail}; write status steer (note|correction) via subagent:steer, wait observed window/ack, or --force --reason`,
+  });
+}
+
+export interface Approach1ArmStartupInput {
+  dispatchStartedAt: string;
+  probeReady: boolean;
+  now?: Date;
+  allowanceSeconds?: number;
+}
+
+export interface Approach1ArmStartupVerdict {
+  halt: boolean;
+  halt_class: typeof APPROACH1_ARM_STARTUP_HALT | null;
+  elapsed_seconds: number | null;
+  message: string;
+}
+
+/** Named Approach 1 arm-probe halt after startup allowance (#5278 P3). */
+export function evaluateApproach1ArmStartup(
+  input: Approach1ArmStartupInput,
+): Approach1ArmStartupVerdict {
+  const started = parseIso8601Utc(input.dispatchStartedAt);
+  if (started === null) {
+    return {
+      halt: false,
+      halt_class: null,
+      elapsed_seconds: null,
+      message: "approach1-arm-startup: dispatchStartedAt unparseable; cannot arm halt clock",
+    };
+  }
+  const now = input.now ?? new Date();
+  const allowance = input.allowanceSeconds ?? DEFAULT_APPROACH1_ARM_STARTUP_SECONDS;
+  const elapsed = (now.getTime() - started.getTime()) / 1000;
+  if (input.probeReady) {
+    return {
+      halt: false,
+      halt_class: null,
+      elapsed_seconds: elapsed,
+      message: "approach1-arm-startup: merge-path arm probe ready",
+    };
+  }
+  if (elapsed < allowance) {
+    return {
+      halt: false,
+      halt_class: null,
+      elapsed_seconds: elapsed,
+      message: `approach1-arm-startup: within startup allowance (${elapsed.toFixed(1)}s < ${allowance}s)`,
+    };
+  }
+  return {
+    halt: true,
+    halt_class: APPROACH1_ARM_STARTUP_HALT,
+    elapsed_seconds: elapsed,
+    message: `approach1-arm-startup: halt — merge-path arm probe still red after ${elapsed.toFixed(1)}s (allowance ${allowance}s from DeliveryAttemptRecord.startedAt); route into subagent:pre-cancel; do not auto re-spawn`,
+  };
 }

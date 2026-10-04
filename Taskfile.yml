@@ -103,6 +103,9 @@ includes:
   agent:
     taskfile: ./tasks/agent.yml
     optional: true
+  subagent:
+    taskfile: ./tasks/subagent.yml
+    optional: true
   architecture:
     taskfile: ./tasks/architecture.yml
     optional: true

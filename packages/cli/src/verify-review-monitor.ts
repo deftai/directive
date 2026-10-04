@@ -6,6 +6,7 @@ import {
   evaluateMergePathArm,
   type MergePathArmResult,
 } from "@deftai/directive-core/dist/pr-watch/main.js";
+import { evaluateApproach1ArmStartup } from "@deftai/directive-core/orchestration";
 import {
   EXIT_CONFIG_ERROR,
   EXIT_NOT_READY,
@@ -32,6 +33,8 @@ interface ParsedArgs {
   liveWait: boolean;
   explicitFinish: boolean;
   stickyLease: boolean;
+  /** DeliveryAttemptRecord.startedAt for Approach 1 arm-startup halt (#5278 P3). */
+  dispatchStartedAt: string | null;
   help: boolean;
   error?: string;
 }
@@ -57,6 +60,7 @@ export function parseVerifyReviewMonitorArgs(argv: readonly string[]): ParsedArg
     liveWait: false,
     explicitFinish: false,
     stickyLease: false,
+    dispatchStartedAt: null,
     help: false,
   };
 
@@ -75,6 +79,15 @@ export function parseVerifyReviewMonitorArgs(argv: readonly string[]): ParsedArg
       acc.explicitFinish = true;
     } else if (arg === "--sticky-lease") {
       acc.stickyLease = true;
+    } else if (arg === "--dispatch-started-at") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...acc, error: "argument --dispatch-started-at: expected one argument" };
+      }
+      acc.dispatchStartedAt = value;
+      i += 1;
+    } else if (arg?.startsWith("--dispatch-started-at=")) {
+      acc.dispatchStartedAt = arg.slice("--dispatch-started-at=".length);
     } else if (arg === "--approach3") {
       acc.approach3 = true;
     } else if (arg === "--approach3-warned") {
@@ -166,6 +179,9 @@ export function run(argv: readonly string[]): number {
         "                         parent-shell pr:watch (parent_id=pr-watch) does not arm.\n" +
         "  --explicit-finish      Attest option-C BLOCKED/FAILED finish for this PR\n" +
         "  --sticky-lease         Attest a fresh sticky lease (not sufficient alone)\n" +
+        "  --dispatch-started-at  DeliveryAttemptRecord.startedAt ISO for Approach 1\n" +
+        "                         arm-startup halt (#5278); when merge-path-arm stays\n" +
+        "                         red past the 3m allowance, emit approach1-arm-startup.\n" +
         "  Prefer Approach 1 / native pr:watch --monitor-agent-id <id> or post-CLEAN\n" +
         "  pr:wait-mergeable-and-merge; homemade line-parsed --json is not an arm.\n",
     );
@@ -248,6 +264,29 @@ export function run(argv: readonly string[]): number {
     }
   }
 
+  // Approach 1 arm-startup halt (#5278 P3): production caller for evaluateApproach1ArmStartup.
+  let armStartupHalt: ReturnType<typeof evaluateApproach1ArmStartup> | null = null;
+  if (
+    args.mergePathArm &&
+    args.dispatchStartedAt !== null &&
+    args.dispatchStartedAt.trim().length > 0 &&
+    arm !== null &&
+    !arm.armed &&
+    !args.explicitFinish
+  ) {
+    armStartupHalt = evaluateApproach1ArmStartup({
+      dispatchStartedAt: args.dispatchStartedAt,
+      probeReady: false,
+    });
+    if (armStartupHalt.halt && armStartupHalt.message.length > 0) {
+      arm = {
+        armed: false,
+        reason: "unarmed_stand_down",
+        message: `${arm.message}\n${armStartupHalt.message}`,
+      };
+    }
+  }
+
   if (args.emitJson) {
     const payload = verifyResultToJson(result) as Record<string, unknown>;
     if (arm !== null) {
@@ -261,6 +300,14 @@ export function run(argv: readonly string[]): number {
         lease_evidence: result.monitorRecord !== null,
         heartbeat_active: result.heartbeatActive,
       };
+      if (armStartupHalt !== null) {
+        payload.approach1_arm_startup = {
+          halt: armStartupHalt.halt,
+          halt_class: armStartupHalt.halt_class,
+          elapsed_seconds: armStartupHalt.elapsed_seconds,
+          message: armStartupHalt.message,
+        };
+      }
       // Combined gate+arm: unarmed fails closed even when the monitor gate is ready.
       if (!arm.armed && result.exitCode !== EXIT_CONFIG_ERROR) {
         payload.ready = false;

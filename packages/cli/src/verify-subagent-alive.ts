@@ -161,6 +161,20 @@ export function evaluateSubagentAliveGate(
         redispatch_ok: unhealthy && !configError,
         required_agents: [...args.requireAgents],
         missing_or_stale_agents: missingAgents,
+        // Flat per-agent records including wait_kind (#5278 P2).
+        records: sweep.records.map((r) => ({
+          agent_id: r.agent_id,
+          phase: r.phase,
+          wait_kind: r.wait_kind,
+          head_sha: r.head_sha,
+          pr_number: r.pr_number,
+          last_heartbeat_at: r.last_heartbeat_at_iso,
+          age_seconds: r.age_seconds,
+          is_stale: r.is_stale,
+          is_terminal: r.is_terminal,
+          failures: [...r.failures],
+          ok: recordOk(r),
+        })),
         sweep: {
           scratch_dirs: sweep.scratch_dirs,
           threshold_minutes: sweep.threshold_minutes,
@@ -203,13 +217,17 @@ export function evaluateSubagentAliveGate(
   lines.push("REDISPATCH_OK: host-reported running + missing/STALE heartbeat authorizes takeover.");
   lines.push("A killed worker's delivery attempt stays running until cancelled.");
   lines.push(
-    "Takeover: task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel",
+    "Takeover: task subagent:pre-cancel -- --agent <id> --canceller-id <id> --target-id <worktree>",
+  );
+  lines.push(
+    "then:     task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel --agent <id>",
   );
   lines.push("then:     task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree>");
   lines.push(
     "If verify:session-ritual --tier=gated fails, run session:start --rearm --session-id=<same> first.",
   );
   lines.push("Do not wait on Cursor false-alive state. Do not spawn while DENY_DUPLICATE_ACTIVE.");
+  lines.push("⊗ bare ledger cancel while pre-cancel is red (#5278).");
 
   return {
     exitCode: EXIT_STALE,

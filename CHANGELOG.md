@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Query-before-cancel for Directive takeover (#5278).** `deft subagent:pre-cancel` / `task subagent:pre-cancel` is the fail-closed gate before `swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel`: canceller-authored status steer (`note|correction`) plus ack or observed 3-minute first-seen window (PA-18 forward skew only; first-seen outside the inbox glob), heartbeat STALE/missing under startup grace, or `--force --reason`. Fresh malformed heartbeats refuse cancel. `deft subagent:steer` / `task subagent:steer` wraps `writeSteer` with independent parent/owner checks. Heartbeat gains optional closed `wait_kind` / `head_sha`; `verify:subagent-alive --json` emits per-agent records. `verify:review-monitor --merge-path-arm --dispatch-started-at` emits Approach 1 arm-probe halt class `approach1-arm-startup`. Host-kill refuse stays on #5281. Tracking #5278.
+
 ### Changed
 
 - **docs(scope): Prefer-A Bound records merge-base empty-skip as accepted posture (#3715).** Empty/absent merge-base `file_scope` yields no production finding; do not Bound on approved-scope ratios, soft-warn cites, or briefs-decline claims. Authoring clauses: decompose/swarm-ready hard; setup via #4988; no-swarm-block ungated in code; option (b) priced by that path plus backlog. Correct agents-entry + observable-scope present-tense "#4383 still open" (closed; #4988 supersedes). No gate weakening. Tracking #3715.
