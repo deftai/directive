@@ -14,9 +14,9 @@ import {
   evaluateDiff,
   evaluateDiffText,
   evaluateStory,
+  SOR_EXIT,
   scanDiff,
   selectSystemOfRecord,
-  SOR_EXIT,
   storageMatches,
   systemOfRecord,
   validateRecord,
@@ -87,7 +87,11 @@ describe("evaluateStory", () => {
     const tmpDir = join(tmpdir(), `sor-undeclared-${Date.now()}`);
     mkdirSync(tmpDir, { recursive: true });
     const path = join(tmpDir, "story.xbrief.json");
-    writeFileSync(path, JSON.stringify({ plan: { title: "t", status: "running", items: [] } }), "utf8");
+    writeFileSync(
+      path,
+      JSON.stringify({ plan: { title: "t", status: "running", items: [] } }),
+      "utf8",
+    );
     const result = evaluateStory(path);
     expect(result.code).toBe(SOR_EXIT.pass);
     expect(result.message).toContain("undeclared");
@@ -163,7 +167,12 @@ describe("evaluateStory", () => {
     writeFileSync(
       path,
       JSON.stringify({
-        plan: { title: "t", status: "running", items: [], architecture: { systemOfRecord: nested } },
+        plan: {
+          title: "t",
+          status: "running",
+          items: [],
+          architecture: { systemOfRecord: nested },
+        },
         architecture: { systemOfRecord: nested },
       }),
       "utf8",
@@ -464,12 +473,89 @@ describe("systemOfRecord / selectSystemOfRecord", () => {
     expect(systemOfRecord({ plan: {} })).toBeNull();
     expect(selectSystemOfRecord({ plan: {} }).status).toBe("absent");
   });
+
+  it("marks null/array systemOfRecord as malformed (not absent)", () => {
+    expect(selectSystemOfRecord({ plan: { architecture: { systemOfRecord: null } } }).status).toBe(
+      "malformed",
+    );
+    expect(selectSystemOfRecord({ plan: { architecture: { systemOfRecord: [] } } }).status).toBe(
+      "malformed",
+    );
+    const tmpDir = join(tmpdir(), `sor-malformed-${Date.now()}`);
+    mkdirSync(tmpDir, { recursive: true });
+    const path = join(tmpDir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          title: "t",
+          status: "running",
+          items: [],
+          architecture: { systemOfRecord: null },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateStory(path);
+    expect(result.code).toBe(SOR_EXIT.misconfigured);
+    expect(result.message).toContain("non-null JSON object");
+  });
 });
 
 describe("evaluateDeclaredRecord", () => {
   it("deferred yields draft exit", () => {
     const result = evaluateDeclaredRecord({ disposition: "deferred", stateSurfaces: [] });
     expect(result.code).toBe(SOR_EXIT.draft);
+  });
+
+  it("rejects unrecognized disposition tokens", () => {
+    const result = evaluateDeclaredRecord({
+      disposition: "notApplicable",
+      stateSurfaces: [{ name: "X", classification: "cache", approvedStorage: ["memory"] }],
+    });
+    expect(result.code).toBe(SOR_EXIT.violation);
+    expect(result.message).toContain("closed set");
+  });
+
+  it("not_applicable fails when diff signals are present", () => {
+    const signals: DetectedSignal[] = [
+      {
+        kind: "persistence",
+        storage: "json_file",
+        path: "src/a.ts",
+        line: 1,
+        detail: "writeFileSync",
+      },
+    ];
+    const result = evaluateDeclaredRecord(
+      { disposition: "not_applicable", reason: "docs-only" },
+      { signals },
+    );
+    expect(result.code).toBe(SOR_EXIT.violation);
+    expect(result.message).toContain("persistence signals");
+  });
+
+  it("not_applicable fails when story asserts stateful", () => {
+    const result = evaluateDeclaredRecord(
+      { disposition: "not_applicable", reason: "docs-only" },
+      {
+        storyPayload: {
+          plan: { architecture: { stateful: true } },
+        },
+      },
+    );
+    expect(result.code).toBe(SOR_EXIT.violation);
+    expect(result.message).toContain("stateful");
+  });
+
+  it("blank provenance.reason falls through to reason", () => {
+    const result = evaluateDeclaredRecord({
+      disposition: "not_applicable",
+      provenance: { reason: "   " },
+      reason: "docs-only story; no durable product state",
+    });
+    expect(result.code).toBe(SOR_EXIT.pass);
+    expect(result.message).toContain("not_applicable");
   });
 });
 

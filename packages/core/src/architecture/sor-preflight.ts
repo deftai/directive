@@ -340,7 +340,13 @@ export type SystemOfRecordSelection =
   | { status: "nested"; record: JsonObj }
   | { status: "legacy-top-level"; record: JsonObj }
   | { status: "conflict"; message: string }
+  | { status: "malformed"; message: string }
   | { status: "absent" };
+
+type SorPresence =
+  | { status: "absent" }
+  | { status: "present"; record: JsonObj }
+  | { status: "malformed"; message: string };
 
 function asObject(value: unknown): JsonObj | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
@@ -349,10 +355,21 @@ function asObject(value: unknown): JsonObj | null {
   return null;
 }
 
-function readSorBlock(container: JsonObj | null): JsonObj | null {
-  if (container === null) return null;
-  const sor = asObject(container.systemOfRecord);
-  return sor;
+/** Present key with null/array/non-object is malformed, not absent (#1492 Greptile). */
+function readSorPresence(container: JsonObj | null): SorPresence {
+  if (container === null) return { status: "absent" };
+  if (!Object.hasOwn(container, "systemOfRecord")) {
+    return { status: "absent" };
+  }
+  const sor = container.systemOfRecord;
+  if (typeof sor === "object" && sor !== null && !Array.isArray(sor)) {
+    return { status: "present", record: sor as JsonObj };
+  }
+  return {
+    status: "malformed",
+    message:
+      "system-of-record gate misconfigured: systemOfRecord must be a non-null JSON object (#1492).",
+  };
 }
 
 /**
@@ -361,11 +378,17 @@ function readSorBlock(container: JsonObj | null): JsonObj | null {
  * Top-level-only is legacy — never authoritative success after the warn window (#1492).
  */
 export function selectSystemOfRecord(payload: JsonObj): SystemOfRecordSelection {
-  const top = readSorBlock(asObject(payload.architecture));
+  const top = readSorPresence(asObject(payload.architecture));
   const plan = asObject(payload.plan);
-  const nested = readSorBlock(asObject(plan?.architecture ?? null));
+  const nested = readSorPresence(asObject(plan?.architecture ?? null));
 
-  if (top !== null && nested !== null) {
+  if (top.status === "malformed") {
+    return { status: "malformed", message: top.message };
+  }
+  if (nested.status === "malformed") {
+    return { status: "malformed", message: nested.message };
+  }
+  if (top.status === "present" && nested.status === "present") {
     return {
       status: "conflict",
       message:
@@ -373,8 +396,8 @@ export function selectSystemOfRecord(payload: JsonObj): SystemOfRecordSelection 
         "plan.architecture.systemOfRecord are present; keep only the nested home (#1492).",
     };
   }
-  if (nested !== null) return { status: "nested", record: nested };
-  if (top !== null) return { status: "legacy-top-level", record: top };
+  if (nested.status === "present") return { status: "nested", record: nested.record };
+  if (top.status === "present") return { status: "legacy-top-level", record: top.record };
   return { status: "absent" };
 }
 
@@ -403,19 +426,47 @@ export function statefulnessAsserted(payload: JsonObj): boolean {
   return false;
 }
 
-export function readSorDisposition(record: JsonObj): SorDisposition | null {
+type DispositionFieldState =
+  | { status: "absent" }
+  | { status: "valid"; value: SorDisposition }
+  | { status: "invalid"; raw: string };
+
+/** Closed-set disposition parse; unrecognized tokens are invalid, not omitted (#1492). */
+function dispositionFieldState(record: JsonObj): DispositionFieldState {
+  if (!Object.hasOwn(record, "disposition")) {
+    return { status: "absent" };
+  }
   const raw = record.disposition;
-  if (typeof raw !== "string") return null;
-  const token = raw.trim().toLowerCase();
-  return (SOR_DISPOSITIONS as readonly string[]).includes(token)
-    ? (token as SorDisposition)
-    : null;
+  if (raw === null || raw === undefined) return { status: "absent" };
+  if (typeof raw !== "string") {
+    return { status: "invalid", raw: String(raw) };
+  }
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return { status: "absent" };
+  const token = trimmed.toLowerCase();
+  if ((SOR_DISPOSITIONS as readonly string[]).includes(token)) {
+    return { status: "valid", value: token as SorDisposition };
+  }
+  return { status: "invalid", raw: trimmed };
+}
+
+export function readSorDisposition(record: JsonObj): SorDisposition | null {
+  const state = dispositionFieldState(record);
+  return state.status === "valid" ? state.value : null;
+}
+
+function nonblankString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
 function dispositionReason(record: JsonObj): string | null {
   const nested = asObject(record.provenance);
-  const reason = nested?.reason ?? record.reason ?? record.dispositionReason;
-  return typeof reason === "string" && reason.trim().length > 0 ? reason.trim() : null;
+  // Skip blank strings so empty provenance.reason does not hide reason/dispositionReason.
+  return (
+    nonblankString(nested?.reason) ??
+    nonblankString(record.reason) ??
+    nonblankString(record.dispositionReason)
+  );
 }
 
 function storyMentionsReferenceApp(payload: JsonObj): boolean {
@@ -674,7 +725,15 @@ export function evaluateDeclaredRecord(
   record: JsonObj,
   opts: { storyPayload?: JsonObj | null; signals?: DetectedSignal[] } = {},
 ): GateResult {
-  const disposition = readSorDisposition(record);
+  const dispositionState = dispositionFieldState(record);
+  if (dispositionState.status === "invalid") {
+    const finding: GateFinding = {
+      reason: `systemOfRecord.disposition '${dispositionState.raw}' is not in the closed set (${SOR_DISPOSITIONS.join("|")}).`,
+      requiredFix: `Use one of: ${SOR_DISPOSITIONS.join(", ")}.`,
+    };
+    return { code: SOR_EXIT.violation, message: formatFailure([finding]), findings: [finding] };
+  }
+  const disposition = dispositionState.status === "valid" ? dispositionState.value : null;
   const surfaces = recordSurfaces(record);
 
   if (disposition === "not_applicable") {
@@ -692,6 +751,24 @@ export function evaluateDeclaredRecord(
         reason: "disposition not_applicable cannot carry declared stateSurfaces.",
         requiredFix:
           "Remove stateSurfaces, or use covered/deferred instead of not_applicable (#1492).",
+      });
+    }
+    const signals = opts.signals ?? [];
+    if (signals.length > 0) {
+      findings.push({
+        reason:
+          "disposition not_applicable cannot pass when stateful persistence signals are detected.",
+        requiredFix:
+          "Use covered/deferred/behavioral_delta with stateSurfaces that approve the detected storage, or remove the persistence change (#1492).",
+        detectedStorage: signals[0]?.storage,
+      });
+    }
+    if (opts.storyPayload && statefulnessAsserted(opts.storyPayload)) {
+      findings.push({
+        reason:
+          "plan.architecture.stateful is asserted but disposition is not_applicable (no stateSurfaces).",
+        requiredFix:
+          "Remove stateful, or use covered/deferred with stateSurfaces instead of not_applicable (#1492).",
       });
     }
     if (findings.length > 0) {
@@ -714,8 +791,7 @@ export function evaluateDeclaredRecord(
     };
     return {
       code: SOR_EXIT.draft,
-      message:
-        "DRAFT system-of-record gate: disposition deferred (incomplete design record).",
+      message: "DRAFT system-of-record gate: disposition deferred (incomplete design record).",
       findings: [finding],
     };
   }
@@ -978,11 +1054,8 @@ function changedStoryRecords(
     if (error !== null) return [[], error];
     if (payload !== null) {
       const selection = selectSystemOfRecord(payload);
-      if (selection.status === "conflict") {
-        return [
-          [],
-          { code: SOR_EXIT.misconfigured, message: selection.message, findings: [] },
-        ];
+      if (selection.status === "conflict" || selection.status === "malformed") {
+        return [[], { code: SOR_EXIT.misconfigured, message: selection.message, findings: [] }];
       }
       if (selection.status === "legacy-top-level") {
         return [
@@ -1026,7 +1099,7 @@ export function evaluateDiffText(
     payload = p;
     if (payload) {
       const selection = selectSystemOfRecord(payload);
-      if (selection.status === "conflict") {
+      if (selection.status === "conflict" || selection.status === "malformed") {
         return { code: SOR_EXIT.misconfigured, message: selection.message, findings: [] };
       }
       if (selection.status === "legacy-top-level") {
@@ -1138,7 +1211,7 @@ export function evaluateStory(storyPath: string): GateResult {
   }
 
   const selection = selectSystemOfRecord(payload);
-  if (selection.status === "conflict") {
+  if (selection.status === "conflict" || selection.status === "malformed") {
     return { code: SOR_EXIT.misconfigured, message: selection.message, findings: [] };
   }
   if (selection.status === "legacy-top-level") {
