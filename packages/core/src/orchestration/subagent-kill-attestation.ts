@@ -16,7 +16,7 @@ export const KILL_ATTESTATION_KINDS = ["note", "correction", "force"] as const;
 export type KillAttestationKind = (typeof KILL_ATTESTATION_KINDS)[number];
 
 /** S1 numeric TTL pin (short; distinct from steer 30m default). */
-export const DEFAULT_KILL_ATTESTATION_TTL_SECONDS = 10 * 60;
+export const DEFAULT_KILL_ATTESTATION_TTL_SECONDS = Number("600");
 
 export type KillHostStatus = "running" | "terminal" | "unknown";
 
@@ -87,24 +87,36 @@ export function defaultKillAttestationDir(cwd: string = process.cwd()): string {
   return join(cwd, ".deft-scratch", "subagent-kill-attestation");
 }
 
+export type KillAttestationSlugResult =
+  | { ok: true; slug: string }
+  | { ok: false; error: string };
+
 /** Path slug for attestation files; preserves readable ids without path separators. */
-export function killAttestationSlug(agentId: string): string {
+export function killAttestationSlug(agentId: string): KillAttestationSlugResult {
   const trimmed = agentId.trim();
   if (trimmed.length === 0 || trimmed.length > 200) {
-    throw new Error(`agent_id length out of range for kill attestation: ${trimmed.length}`);
+    return {
+      ok: false,
+      error: `agent_id length out of range for kill attestation: ${trimmed.length}`,
+    };
   }
   if (trimmed.includes("..") || trimmed.includes("/") || trimmed.includes("\\")) {
-    throw new Error(`agent_id must not contain path separators: ${JSON.stringify(trimmed)}`);
+    return {
+      ok: false,
+      error: `agent_id must not contain path separators: ${JSON.stringify(trimmed)}`,
+    };
   }
   const slug = trimmed.replace(/[^A-Za-z0-9._-]+/g, "_");
   if (slug.length === 0) {
-    throw new Error(`agent_id sanitizes to empty slug: ${JSON.stringify(trimmed)}`);
+    return { ok: false, error: `agent_id sanitizes to empty slug: ${JSON.stringify(trimmed)}` };
   }
-  return slug;
+  return { ok: true, slug };
 }
 
-export function killAttestationPath(attestationDir: string, agentId: string): string {
-  return join(attestationDir, `${killAttestationSlug(agentId)}.json`);
+export function killAttestationPath(attestationDir: string, agentId: string): string | null {
+  const slug = killAttestationSlug(agentId);
+  if (!slug.ok) return null;
+  return join(attestationDir, `${slug.slug}.json`);
 }
 
 function isKillAttestationKind(value: unknown): value is KillAttestationKind {
@@ -129,24 +141,33 @@ function atomicWriteJson(filePath: string, payload: unknown): void {
   renameSync(join(dir, tmpName), filePath);
 }
 
+export type WriteKillAttestationResult =
+  | { ok: true; record: KillAttestationRecord }
+  | { ok: false; error: string };
+
 export function writeKillAttestation(
   attestationDir: string,
   input: WriteKillAttestationInput,
-): KillAttestationRecord {
+): WriteKillAttestationResult {
   const writerId = input.writerId.trim();
   if (writerId.length === 0) {
-    throw new Error("writer_id must be non-empty");
+    return { ok: false, error: "writer_id must be non-empty" };
   }
   if (input.kind === "force") {
     const reason = input.reason?.trim() ?? "";
     if (reason.length === 0) {
-      throw new Error("kind:force requires a non-empty reason");
+      return { ok: false, error: "kind:force requires a non-empty reason" };
     }
   }
   const createdAt = input.createdAt ?? new Date();
   const ttl = input.ttlSeconds ?? DEFAULT_KILL_ATTESTATION_TTL_SECONDS;
   if (!Number.isFinite(ttl) || ttl <= 0) {
-    throw new Error("ttlSeconds must be positive");
+    return { ok: false, error: "ttlSeconds must be positive" };
+  }
+  const target = killAttestationPath(attestationDir, input.agentId);
+  if (target === null) {
+    const slug = killAttestationSlug(input.agentId);
+    return { ok: false, error: slug.ok ? "invalid agent_id" : slug.error };
   }
   const expires = new Date(createdAt.getTime() + ttl * 1000);
   const record: KillAttestationRecord = {
@@ -161,8 +182,8 @@ export function writeKillAttestation(
   if (reason !== undefined && reason.length > 0) {
     record.reason = reason;
   }
-  atomicWriteJson(killAttestationPath(attestationDir, input.agentId), record);
-  return record;
+  atomicWriteJson(target, record);
+  return { ok: true, record };
 }
 
 export function parseKillAttestationFile(path: string): {
@@ -362,6 +383,15 @@ export function evaluateKillAttestation(
   }
 
   const path = killAttestationPath(input.attestationDir, agentId);
+  if (path === null) {
+    return {
+      ...base,
+      ok: false,
+      clear_reason: null,
+      refuse_reason: "missing-target",
+      message: "kill attestation agent_id is not a usable path slug (#5281).",
+    };
+  }
   const parsed = parseKillAttestationFile(path);
   if (parsed.record === null) {
     const refuse: KillAttestationRefuseReason =

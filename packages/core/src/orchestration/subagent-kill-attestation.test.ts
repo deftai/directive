@@ -23,7 +23,7 @@ function tempDir(): string {
 
 describe("subagent kill attestation (#5281)", () => {
   it("pins a numeric short TTL (S1)", () => {
-    expect(DEFAULT_KILL_ATTESTATION_TTL_SECONDS).toBe(10 * 60);
+    expect(DEFAULT_KILL_ATTESTATION_TTL_SECONDS).toBe(Number("600"));
   });
 
   it("classifies host status without treating heartbeat words as terminal", () => {
@@ -118,19 +118,28 @@ describe("subagent kill attestation (#5281)", () => {
 
   it("force attestation kind requires reason, writer match, and prints it", () => {
     const dir = join(tempDir(), "attest");
-    expect(() =>
+    expect(
       writeKillAttestation(dir, {
         agentId: "child-1",
         writerId: "parent-1",
         kind: "force",
-      }),
-    ).toThrow(/reason/);
-    writeKillAttestation(dir, {
-      agentId: "child-1",
-      writerId: "parent-1",
-      kind: "force",
-      reason: "operator force after hung child",
-    });
+      }).ok,
+    ).toBe(false);
+    expect(
+      writeKillAttestation(dir, {
+        agentId: "child-1",
+        writerId: "parent-1",
+        kind: "force",
+      }).error,
+    ).toMatch(/reason/);
+    expect(
+      writeKillAttestation(dir, {
+        agentId: "child-1",
+        writerId: "parent-1",
+        kind: "force",
+        reason: "operator force after hung child",
+      }).ok,
+    ).toBe(true);
     expect(
       evaluateKillAttestation({
         agentId: "child-1",
