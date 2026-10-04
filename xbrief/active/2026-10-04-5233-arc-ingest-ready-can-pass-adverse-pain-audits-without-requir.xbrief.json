@@ -471,7 +471,8 @@
           "leftover-C-label-revocation",
           "leftover-role-auth"
         ]
-      }
+      },
+      "productPullRequest": 5325
     },
     "id": "github.issue.5668365121",
     "updated": "2026-10-04T14:42:51Z"

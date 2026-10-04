@@ -23,8 +23,8 @@ import {
 } from "./completed-arc-record.js";
 import { evaluateDualStopReservedSlot } from "./handoff.js";
 import {
-  type PainAuditFindingClass,
   evaluatePainAuditFollowThrough,
+  type PainAuditFindingClass,
 } from "./pain-audit-follow-through-gate.js";
 import { extractOperativeAuditTargets, painMarkerId } from "./parent-audit.js";
 import { type ArcSpend, N3_SPEND } from "./spend.js";
