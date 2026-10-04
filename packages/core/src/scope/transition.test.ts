@@ -1671,9 +1671,35 @@ describe("runTransition complete persist-path merge stamp (#5120)", () => {
     };
   }
 
+  function deliveryIdentity(opts?: {
+    prNumber?: number;
+    issueNumber?: number;
+    mergeCommitSha?: string;
+  }) {
+    const prNumber = opts?.prNumber ?? 5120;
+    const issueNumber = opts?.issueNumber ?? 5120;
+    const mergeCommitSha = opts?.mergeCommitSha ?? "abcdef1";
+    return {
+      fetchPrPayload: (n: number, repo: string) => {
+        if (n !== prNumber || repo !== "deftai/directive") return null;
+        return {
+          merged_at: "2026-09-30T11:00:00Z",
+          merge_commit_sha: mergeCommitSha,
+          base: { ref: "master" },
+          head: { sha: "head5120" },
+        };
+      },
+      fetchClosingIssueIds: (n: number, repo: string) => {
+        if (n !== prNumber || repo !== "deftai/directive") return null;
+        return [issueNumber];
+      },
+    };
+  }
+
   function deliveryOpts() {
     return {
       runGit: gitOk(),
+      ...deliveryIdentity(),
       deliveryEvidence: {
         repository: "deftai/directive",
         prNumber: 5120,
@@ -1841,6 +1867,7 @@ describe("runTransition complete persist-path merge stamp (#5120)", () => {
     const now = new Date("2026-09-30T12:00:00.000Z");
     const result = runTransition("complete", path, now, {
       runGit,
+      ...deliveryIdentity(),
       deliveryEvidence: {
         repository: "deftai/directive",
         prNumber: 5120,
@@ -1899,6 +1926,7 @@ describe("runTransition complete persist-path merge stamp (#5120)", () => {
     const now = new Date("2026-09-30T12:00:00.000Z");
     const result = runTransition("complete", path, now, {
       runGit,
+      ...deliveryIdentity(),
       assumeEvidenceValidated: true,
       deliveryEvidence: {
         repository: "deftai/directive",

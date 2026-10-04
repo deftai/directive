@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -5,10 +6,16 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { GitRunner } from "../session/git.js";
 import {
   classifyStoredDeliveryDisposition,
+  defaultFetchClosingIssueIds,
+  defaultFetchPrPayload,
   evaluateDeliveryGate,
+  type FetchClosingIssueIdsFn,
+  type FetchPrPayloadFn,
   isCodeBearingScope,
   NON_DELIVERY_DISPOSITIONS,
   resolveCompletionSessionId,
+  resolvePlanGithubIssueRef,
+  verifyStoryPrMergeIdentity,
 } from "./delivery-evidence.js";
 import { runTransition } from "./transition.js";
 
@@ -79,6 +86,56 @@ function gitOk(opts?: { fetchFail?: boolean; notAncestor?: boolean; tip?: string
     }
     return { code: 0, stdout: "ok", stderr: "" };
   };
+}
+
+/** Prefer-A identity fixtures for writeCodeBearing issue #3041 (#3675). */
+function identityOk(opts?: {
+  prNumber?: number;
+  issueNumber?: number;
+  repository?: string;
+  mergeCommitSha?: string;
+  mergedAt?: string | null;
+  headSha?: string;
+  prBase?: string;
+  closingIssues?: number[] | null;
+  lookupFail?: boolean;
+  closingLookupFail?: boolean;
+}): { fetchPrPayload: FetchPrPayloadFn; fetchClosingIssueIds: FetchClosingIssueIdsFn } {
+  const prNumber = opts?.prNumber ?? 42;
+  const issueNumber = opts?.issueNumber ?? 3041;
+  const repository = opts?.repository ?? "deftai/directive";
+  const mergeCommitSha = opts?.mergeCommitSha ?? "mergecommitsha";
+  const headSha = opts?.headSha ?? "implementationhead";
+  const prBase = opts?.prBase ?? "master";
+  const mergedAt = opts?.mergedAt === undefined ? "2026-08-02T11:00:00Z" : opts.mergedAt;
+  const closingIssues = opts?.closingIssues === undefined ? [issueNumber] : opts.closingIssues;
+
+  const fetchPrPayload: FetchPrPayloadFn = (n, repo) => {
+    if (opts?.lookupFail) return null;
+    if (n !== prNumber || repo !== repository) return null;
+    return {
+      merged_at: mergedAt,
+      merge_commit_sha: mergeCommitSha,
+      base: { ref: prBase },
+      head: { sha: headSha },
+    };
+  };
+  const fetchClosingIssueIds: FetchClosingIssueIdsFn = (n, repo) => {
+    if (opts?.closingLookupFail) return null;
+    if (n !== prNumber || repo !== repository) return null;
+    return closingIssues;
+  };
+  return { fetchPrPayload, fetchClosingIssueIds };
+}
+
+function gitInit(cwd: string): void {
+  execFileSync("git", ["init"], { cwd, encoding: "utf8" });
+  execFileSync("git", ["config", "user.email", "test@example.com"], { cwd, encoding: "utf8" });
+  execFileSync("git", ["config", "user.name", "test"], { cwd, encoding: "utf8" });
+}
+
+function git(cwd: string, args: string[]): string {
+  return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 }
 
 describe("delivery evidence (#3041)", () => {
@@ -160,8 +217,10 @@ describe("delivery evidence (#3041)", () => {
   it("accepts direct delivery merge with ancestry", () => {
     root = makeRepo();
     const file = writeCodeBearing(root);
+    const identity = identityOk();
     const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
       runGit: gitOk(),
+      ...identity,
       deliveryEvidence: {
         repository: "deftai/directive",
         prNumber: 42,
@@ -196,8 +255,14 @@ describe("delivery evidence (#3041)", () => {
   it("treats intermediate-branch PR base as delivered when ancestry passes (#3380)", () => {
     root = makeRepo();
     const file = writeCodeBearing(root);
+    const identity = identityOk({
+      prNumber: 7,
+      mergeCommitSha: "abc",
+      prBase: "feature/integration",
+    });
     const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
       runGit: gitOk(),
+      ...identity,
       deliveryEvidence: {
         prNumber: 7,
         prBase: "feature/integration",
@@ -226,6 +291,13 @@ describe("delivery evidence (#3041)", () => {
 
   it("records merged_to_integration when intermediate PR base fails ancestry (#3380)", () => {
     root = makeRepo();
+    const identity = identityOk({
+      repository: "o/r",
+      issueNumber: 1,
+      prNumber: 7,
+      mergeCommitSha: "abc",
+      prBase: "develop",
+    });
     const gate = evaluateDeliveryGate({
       projectRoot: root,
       plan: {
@@ -239,6 +311,7 @@ describe("delivery evidence (#3041)", () => {
         mergedAt: "2026-08-02T11:00:00Z",
         deliveryBranch: "master",
       },
+      ...identity,
       runGit: gitOk({ notAncestor: true }),
     });
     expect(gate.ok).toBe(false);
@@ -252,6 +325,12 @@ describe("delivery evidence (#3041)", () => {
 
   it("rejects when remote refresh fails", () => {
     root = makeRepo();
+    const identity = identityOk({
+      repository: "o/r",
+      issueNumber: 1,
+      prNumber: 9,
+      mergeCommitSha: "abc",
+    });
     const gate = evaluateDeliveryGate({
       projectRoot: root,
       plan: {
@@ -259,11 +338,13 @@ describe("delivery evidence (#3041)", () => {
       },
       nowIso: "2026-08-02T12:00:00Z",
       evidence: {
+        prNumber: 9,
         prBase: "master",
         mergeCommit: "abc",
         mergedAt: "2026-08-02T11:00:00Z",
         deliveryBranch: "master",
       },
+      ...identity,
       runGit: gitOk({ fetchFail: true }),
     });
     expect(gate.ok).toBe(false);
@@ -272,6 +353,12 @@ describe("delivery evidence (#3041)", () => {
 
   it("rejects when merge commit is not an ancestor of delivery ref", () => {
     root = makeRepo();
+    const identity = identityOk({
+      repository: "o/r",
+      issueNumber: 1,
+      prNumber: 9,
+      mergeCommitSha: "stranded",
+    });
     const gate = evaluateDeliveryGate({
       projectRoot: root,
       plan: {
@@ -279,11 +366,13 @@ describe("delivery evidence (#3041)", () => {
       },
       nowIso: "2026-08-02T12:00:00Z",
       evidence: {
+        prNumber: 9,
         prBase: "master",
         mergeCommit: "stranded",
         mergedAt: "2026-08-02T11:00:00Z",
         deliveryBranch: "master",
       },
+      ...identity,
       runGit: gitOk({ notAncestor: true }),
     });
     expect(gate.ok).toBe(false);
@@ -390,8 +479,14 @@ describe("delivery evidence (#3041)", () => {
     expect(missing.message).toMatch(/missing/i);
   });
 
-  it("accepts assumeEvidenceValidated without remote ancestry", () => {
+  it("accepts assumeEvidenceValidated without remote ancestry after Prefer-A identity join", () => {
     root = makeRepo();
+    const identity = identityOk({
+      repository: "o/r",
+      issueNumber: 1,
+      prNumber: 9,
+      mergeCommitSha: "abc",
+    });
     const gate = evaluateDeliveryGate({
       projectRoot: root,
       plan: {
@@ -406,12 +501,45 @@ describe("delivery evidence (#3041)", () => {
         repository: "o/r",
         prNumber: 9,
       },
+      ...identity,
       assumeEvidenceValidated: true,
       runGit: gitOk({ fetchFail: true }),
     });
     expect(gate.ok).toBe(true);
     expect(gate.provenance?.disposition).toBe("delivered");
     expect(gate.provenance?.deployed).toBeNull();
+    expect(gate.message).toMatch(/Prefer-A identity join|pre-validated/i);
+  });
+
+  it("assumeEvidenceValidated still refuses tip-as-merge without Prefer-A identity (#3675)", () => {
+    root = makeRepo();
+    const identity = identityOk({
+      repository: "o/r",
+      issueNumber: 1,
+      prNumber: 9,
+      mergeCommitSha: "realmergesha",
+    });
+    const gate = evaluateDeliveryGate({
+      projectRoot: root,
+      plan: {
+        references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/1" }],
+      },
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        prBase: "master",
+        mergeCommit: "deliverytipsha",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+        repository: "o/r",
+        prNumber: 9,
+      },
+      ...identity,
+      assumeEvidenceValidated: true,
+      runGit: gitOk({ fetchFail: true }),
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.message).toMatch(/does not equal|identity/i);
+    expect(gate.provenance).toBeNull();
   });
 
   it("evidenceFromPrPayload and refresh tip failures", async () => {
@@ -465,5 +593,437 @@ describe("delivery evidence (#3041)", () => {
     const anc = verifyDeliveryAncestry(root, "abc", "master", failAncestorLookup);
     expect(anc.ok).toBe(false);
     expect(anc.error).toBeTruthy();
+  });
+
+  it("resolvePlanGithubIssueRef reads expected repo/issue from plan (#3675)", () => {
+    expect(
+      resolvePlanGithubIssueRef({
+        references: [
+          { type: "x-xbrief/github-issue", uri: "https://github.com/deftai/directive/issues/3675" },
+        ],
+      }),
+    ).toEqual({ repository: "deftai/directive", issueNumber: 3675 });
+    expect(resolvePlanGithubIssueRef({ references: [] })).toBeNull();
+  });
+
+  it("refuses tip-as-merge under Prefer-A even when same-SHA ancestry would short-circuit (#3675)", () => {
+    root = makeRepo();
+    const tip = "deliverytipsha";
+    const identity = identityOk({
+      repository: "o/r",
+      issueNumber: 1,
+      prNumber: 9,
+      mergeCommitSha: "realmergesha",
+    });
+    // notAncestor:true would never be consulted for same-SHA tip; Prefer-A must refuse first.
+    const gate = evaluateDeliveryGate({
+      projectRoot: root,
+      plan: {
+        references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/1" }],
+      },
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        repository: "o/r",
+        prNumber: 9,
+        prBase: "master",
+        mergeCommit: tip,
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      ...identity,
+      runGit: gitOk({ tip, notAncestor: true }),
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.message).toMatch(/does not equal|identity join/i);
+    expect(gate.provenance).toBeNull();
+  });
+
+  it("refuses wrong story PR, wrong repo, mismatched merge SHA, unmerged PR, lookup failure (#3675)", () => {
+    root = makeRepo();
+    const plan = {
+      references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/1" }],
+    };
+
+    const wrongStory = evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        prNumber: 9,
+        mergeCommit: "abc",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      ...identityOk({
+        repository: "o/r",
+        issueNumber: 1,
+        prNumber: 9,
+        mergeCommitSha: "abc",
+        closingIssues: [999],
+      }),
+      runGit: gitOk(),
+    });
+    expect(wrongStory.ok).toBe(false);
+    expect(wrongStory.message).toMatch(/closer set|wrong story|absent association/i);
+
+    const wrongRepo = evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        repository: "other/repo",
+        prNumber: 9,
+        mergeCommit: "abc",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      ...identityOk({ repository: "o/r", issueNumber: 1, prNumber: 9, mergeCommitSha: "abc" }),
+      runGit: gitOk(),
+    });
+    expect(wrongRepo.ok).toBe(false);
+    expect(wrongRepo.message).toMatch(/does not match|expected repository/i);
+
+    const mismatch = evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        prNumber: 9,
+        mergeCommit: "foreignancestor",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      ...identityOk({
+        repository: "o/r",
+        issueNumber: 1,
+        prNumber: 9,
+        mergeCommitSha: "realmergesha",
+      }),
+      runGit: gitOk(),
+    });
+    expect(mismatch.ok).toBe(false);
+    expect(mismatch.message).toMatch(/does not equal|merge_commit_sha/i);
+
+    const unmerged = evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        prNumber: 9,
+        mergeCommit: "abc",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      ...identityOk({
+        repository: "o/r",
+        issueNumber: 1,
+        prNumber: 9,
+        mergeCommitSha: "abc",
+        mergedAt: null,
+      }),
+      runGit: gitOk(),
+    });
+    expect(unmerged.ok).toBe(false);
+    expect(unmerged.message).toMatch(/not merged/i);
+
+    const lookup = evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        prNumber: 9,
+        mergeCommit: "abc",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      ...identityOk({
+        repository: "o/r",
+        issueNumber: 1,
+        prNumber: 9,
+        mergeCommitSha: "abc",
+        lookupFail: true,
+      }),
+      runGit: gitOk(),
+    });
+    expect(lookup.ok).toBe(false);
+    expect(lookup.message).toMatch(/lookup failure|could not fetch PR/i);
+
+    const absentPr = evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        mergeCommit: "abc",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      ...identityOk({ repository: "o/r", issueNumber: 1, mergeCommitSha: "abc" }),
+      runGit: gitOk(),
+    });
+    expect(absentPr.ok).toBe(false);
+    expect(absentPr.message).toMatch(/missing story-associated PR|absent/i);
+  });
+
+  it("accepts squash delivery without requiring head-in-merge containment (#3675)", () => {
+    root = makeRepo();
+    const identity = identityOk({
+      repository: "o/r",
+      issueNumber: 1,
+      prNumber: 11,
+      mergeCommitSha: "squashmerge",
+      headSha: "abandonedhead",
+    });
+    const gate = evaluateDeliveryGate({
+      projectRoot: root,
+      plan: {
+        references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/1" }],
+      },
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        prNumber: 11,
+        mergeCommit: "squashmerge",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+        implementationCommit: "abandonedhead",
+      },
+      ...identity,
+      runGit: gitOk({ tip: "squashmerge" }),
+    });
+    expect(gate.ok).toBe(true);
+    expect(gate.provenance?.disposition).toBe("delivered");
+    expect(gate.provenance?.implementationCommit).toBe("abandonedhead");
+  });
+
+  it("delivery-gate refusal leaves no durable delivered stamp on complete (#3675)", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root);
+    const identity = identityOk({ mergeCommitSha: "realmergesha" });
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      ...identity,
+      deliveryEvidence: {
+        repository: "deftai/directive",
+        prNumber: 42,
+        mergeCommit: "deliverytipsha",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/identity join|does not equal/i);
+    expect(readFileSync(file, "utf8")).toContain("running");
+    expect(readFileSync(file, "utf8")).not.toMatch(/"disposition":\s*"delivered"/);
+  });
+
+  it("real git history: unrelated ancestor refuses; legitimate tip merge accepts (#3675)", () => {
+    root = makeRepo();
+    gitInit(root);
+    writeFileSync(join(root, "a.txt"), "a\n", "utf8");
+    git(root, ["add", "a.txt"]);
+    git(root, ["commit", "-m", "base"]);
+    const base = git(root, ["rev-parse", "HEAD"]);
+
+    writeFileSync(join(root, "unrelated.txt"), "u\n", "utf8");
+    git(root, ["add", "unrelated.txt"]);
+    git(root, ["commit", "-m", "unrelated ancestor"]);
+    const unrelated = git(root, ["rev-parse", "HEAD"]);
+
+    writeFileSync(join(root, "story.txt"), "s\n", "utf8");
+    git(root, ["add", "story.txt"]);
+    git(root, ["commit", "-m", "story merge"]);
+    const storyMerge = git(root, ["rev-parse", "HEAD"]);
+
+    // Fake origin/master tip at storyMerge via local ref for ancestry.
+    git(root, ["update-ref", "refs/remotes/origin/master", storyMerge]);
+
+    const realGit: GitRunner = (cwd, args) => {
+      try {
+        if (args[0] === "fetch" && args[1] === "origin") {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+        const stdout = execFileSync("git", args, { cwd, encoding: "utf8" });
+        return { code: 0, stdout: typeof stdout === "string" ? stdout : "", stderr: "" };
+      } catch (err: unknown) {
+        const e = err as { status?: number; stdout?: string; stderr?: string };
+        return {
+          code: typeof e.status === "number" ? e.status : 1,
+          stdout: typeof e.stdout === "string" ? e.stdout : "",
+          stderr: typeof e.stderr === "string" ? e.stderr : "",
+        };
+      }
+    };
+
+    const plan = {
+      references: [
+        { type: "x-xbrief/github-issue", uri: "https://github.com/deftai/directive/issues/3041" },
+      ],
+    };
+
+    const refuseUnrelated = evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        prNumber: 42,
+        mergeCommit: unrelated,
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      ...identityOk({ mergeCommitSha: storyMerge }),
+      runGit: realGit,
+    });
+    expect(refuseUnrelated.ok).toBe(false);
+    expect(refuseUnrelated.message).toMatch(/does not equal|identity join/i);
+
+    const acceptTip = evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        prNumber: 42,
+        mergeCommit: storyMerge,
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      ...identityOk({ mergeCommitSha: storyMerge }),
+      runGit: realGit,
+    });
+    expect(acceptTip.ok).toBe(true);
+    expect(acceptTip.provenance?.disposition).toBe("delivered");
+    expect(acceptTip.provenance?.mergeCommit).toBe(storyMerge);
+
+    // Integration path: story merge is ancestor of tip but not tip itself.
+    git(root, ["commit", "--allow-empty", "-m", "later integration"]);
+    const tip = git(root, ["rev-parse", "HEAD"]);
+    git(root, ["update-ref", "refs/remotes/origin/master", tip]);
+    const acceptViaIntegration = evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        prNumber: 42,
+        prBase: "feature/integration",
+        mergeCommit: storyMerge,
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      ...identityOk({ mergeCommitSha: storyMerge, prBase: "feature/integration" }),
+      runGit: realGit,
+    });
+    expect(acceptViaIntegration.ok).toBe(true);
+    expect(acceptViaIntegration.provenance?.disposition).toBe("delivered");
+    expect(base.length).toBeGreaterThan(0);
+  });
+
+  it("verifyStoryPrMergeIdentity binds implementationCommit via PR head, not git ancestry (#3675)", () => {
+    const result = verifyStoryPrMergeIdentity({
+      plan: {
+        references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/1" }],
+      },
+      evidence: {
+        prNumber: 3,
+        mergeCommit: "squash",
+        implementationCommit: "head-on-abandoned-branch",
+      },
+      mergeCommit: "squash",
+      ...identityOk({
+        repository: "o/r",
+        issueNumber: 1,
+        prNumber: 3,
+        mergeCommitSha: "squash",
+        headSha: "head-on-abandoned-branch",
+      }),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.headSha).toBe("head-on-abandoned-branch");
+  });
+
+  it("refuses mismatched implementationCommit and closing-ref lookup failure (#3675)", () => {
+    const mismatchImpl = verifyStoryPrMergeIdentity({
+      plan: {
+        references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/1" }],
+      },
+      evidence: {
+        prNumber: 3,
+        mergeCommit: "squash",
+        implementationCommit: "other-head",
+      },
+      mergeCommit: "squash",
+      ...identityOk({
+        repository: "o/r",
+        issueNumber: 1,
+        prNumber: 3,
+        mergeCommitSha: "squash",
+        headSha: "head-on-abandoned-branch",
+      }),
+    });
+    expect(mismatchImpl.ok).toBe(false);
+    expect(mismatchImpl.message).toMatch(/implementationCommit/i);
+
+    const closingFail = verifyStoryPrMergeIdentity({
+      plan: {
+        references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/1" }],
+      },
+      evidence: { prNumber: 3, mergeCommit: "squash" },
+      mergeCommit: "squash",
+      ...identityOk({
+        repository: "o/r",
+        issueNumber: 1,
+        prNumber: 3,
+        mergeCommitSha: "squash",
+        closingLookupFail: true,
+      }),
+    });
+    expect(closingFail.ok).toBe(false);
+    expect(closingFail.message).toMatch(/closingIssuesReferences/i);
+  });
+
+  it("defaultFetchPrPayload / defaultFetchClosingIssueIds fail closed on bad inputs (#3675)", () => {
+    expect(
+      defaultFetchPrPayload(1, "not-a-repo", () => ({ returncode: 0, stdout: "{}", stderr: "" })),
+    ).toBeNull();
+    expect(
+      defaultFetchPrPayload(1, "o/r", () => ({ returncode: 1, stdout: "", stderr: "boom" })),
+    ).toBeNull();
+    expect(
+      defaultFetchPrPayload(1, "o/r", () => ({ returncode: 0, stdout: "not-json", stderr: "" })),
+    ).toBeNull();
+    expect(
+      defaultFetchPrPayload(1, "o/r", () => ({ returncode: 0, stdout: "[]", stderr: "" })),
+    ).toBeNull();
+    expect(
+      defaultFetchPrPayload(1, "o/r", () => ({
+        returncode: 0,
+        stdout: JSON.stringify({ merge_commit_sha: "abc" }),
+        stderr: "",
+      })),
+    ).toEqual({ merge_commit_sha: "abc" });
+
+    expect(
+      defaultFetchClosingIssueIds(1, "o/r", () => ({
+        returncode: 0,
+        stdout: JSON.stringify({ closingIssuesReferences: [{ number: 7 }] }),
+        stderr: "",
+      })),
+    ).toEqual([7]);
+    expect(
+      defaultFetchClosingIssueIds(1, "o/r", () => ({ returncode: 1, stdout: "", stderr: "no" })),
+    ).toBeNull();
+
+    expect(
+      resolvePlanGithubIssueRef({
+        references: [{ type: "other", uri: "https://example.com/x" }],
+      }),
+    ).toBeNull();
+    expect(
+      resolvePlanGithubIssueRef({
+        references: [
+          {
+            type: "x-xbrief/github-issue",
+            uri: "https://github.com/deftai/directive/issues/99/",
+          },
+        ],
+      }),
+    ).toEqual({ repository: "deftai/directive", issueNumber: 99 });
   });
 });

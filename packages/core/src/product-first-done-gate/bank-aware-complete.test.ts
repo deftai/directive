@@ -789,12 +789,26 @@ describe("one-path complete recut (#4060)", () => {
       }).ok,
     ).toBe(true);
     expect(executions).toBe(1);
+    const identity = {
+      fetchPrPayload: (n: number, repo: string) =>
+        n === 1 && repo === "deftai/directive"
+          ? {
+              merged_at: "2026-09-02T11:00:00Z",
+              merge_commit_sha: "abc1234deadbeef",
+              base: { ref: "master" },
+              head: { sha: "head1" },
+            }
+          : null,
+      fetchClosingIssueIds: (n: number, repo: string) =>
+        n === 1 && repo === "deftai/directive" ? [4060] : null,
+    };
     const result = runTransition("complete", brief, new Date("2026-09-02T12:00:00.000Z"), {
       deliveryEvidence: {
         mergeCommit: "abc1234deadbeef",
         mergedAt: "2026-09-02T11:00:00Z",
         prNumber: 1,
       },
+      ...identity,
       assumeEvidenceValidated: true,
       acceptanceRunner: runner,
     });
@@ -812,12 +826,26 @@ describe("one-path complete recut (#4060)", () => {
     const plan = swarmOnlyPlan("4060-rt-miss", ["task check"]);
     const brief = writeBrief(root, plan);
     let executions = 0;
+    const identity = {
+      fetchPrPayload: (n: number, repo: string) =>
+        n === 1 && repo === "deftai/directive"
+          ? {
+              merged_at: "2026-09-02T11:00:00Z",
+              merge_commit_sha: "abc1234deadbeef",
+              base: { ref: "master" },
+              head: { sha: "head1" },
+            }
+          : null,
+      fetchClosingIssueIds: (n: number, repo: string) =>
+        n === 1 && repo === "deftai/directive" ? [4060] : null,
+    };
     const result = runTransition("complete", brief, new Date("2026-09-02T12:00:00.000Z"), {
       deliveryEvidence: {
         mergeCommit: "abc1234deadbeef",
         mergedAt: "2026-09-02T11:00:00Z",
         prNumber: 1,
       },
+      ...identity,
       assumeEvidenceValidated: true,
       acceptanceRunner: () => {
         executions += 1;

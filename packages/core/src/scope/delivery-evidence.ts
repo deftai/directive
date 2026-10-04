@@ -1,14 +1,18 @@
 /**
- * Delivery integrity for scope completion (#3041).
+ * Delivery integrity for scope completion (#3041 / #3675).
  *
  * A code-bearing scope must not acquire a delivered disposition unless the
- * merge/delivered commit is an ancestor of the refreshed remote delivery ref,
- * or an explicit auditable non-delivery disposition is recorded.
+ * merge commit is bound to the story's merged PR (Prefer-A identity join) and
+ * that merge is an ancestor of the refreshed remote delivery ref, or an
+ * explicit auditable non-delivery disposition is recorded.
  *
  * Deploy / UAT are separate axes and MUST NOT be inferred from Git alone.
  */
 
+import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
+import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { defaultGitRunner, type GitRunner, gitIsAncestor } from "../session/git.js";
 import { readRitualState } from "../session/ritual-sentinel.js";
 
@@ -102,6 +106,27 @@ export interface DeliveryEvidenceInput {
   readonly verifier?: string | null;
 }
 
+/** Plan-derived story identity for Prefer-A delivery bind (#3675). */
+export interface PlanGithubIssueRef {
+  readonly repository: string;
+  readonly issueNumber: number;
+}
+
+/**
+ * Fetch a pulls REST payload for Prefer-A story→PR→merge identity (#3675).
+ * Return null on lookup failure (gate fails closed).
+ */
+export type FetchPrPayloadFn = (
+  prNumber: number,
+  repository: string,
+) => Record<string, unknown> | null;
+
+/**
+ * Fetch authoritative forge closingIssuesReferences only (#3675).
+ * Must not union body/commit intent extractors (fail-open for delivery).
+ */
+export type FetchClosingIssueIdsFn = (prNumber: number, repository: string) => number[] | null;
+
 export interface DeliveryGateOptions {
   readonly projectRoot: string;
   readonly plan: Record<string, unknown>;
@@ -111,10 +136,18 @@ export interface DeliveryGateOptions {
   readonly runGit?: GitRunner;
   readonly verifier?: string;
   /**
-   * When true, skip remote refresh + ancestry (tests only that inject pre-validated
-   * evidence). Production callers leave this false.
+   * When true, skip remote refresh + ancestry after Prefer-A identity join
+   * succeeds. Identity join still runs. Production finalize must pass the
+   * evidenceFromPrPayload tuple through the same validator (#3675); do not
+   * treat this flag as an opaque-string bypass.
    */
   readonly assumeEvidenceValidated?: boolean;
+  /** Optional gh runner for default PR / closing-ref fetchers (#3675). */
+  readonly runGh?: RunGhFn;
+  /** Test / inject seam: pulls REST payload fetcher (#3675). */
+  readonly fetchPrPayload?: FetchPrPayloadFn;
+  /** Test / inject seam: authoritative closing issue ids only (#3675). */
+  readonly fetchClosingIssueIds?: FetchClosingIssueIdsFn;
 }
 
 export interface DeliveryGateResult {
@@ -191,20 +224,270 @@ export function isCodeBearingScope(plan: Record<string, unknown>): boolean {
 }
 
 export function hasGithubIssueRef(plan: Record<string, unknown>): boolean {
+  return resolvePlanGithubIssueRef(plan) !== null;
+}
+
+/**
+ * Expected repository + issue from plan `x-xbrief/github-issue` reference (#3675).
+ * Worker `--repo` / `--pr` are checked against this, never the source of it.
+ */
+export function resolvePlanGithubIssueRef(
+  plan: Record<string, unknown>,
+): PlanGithubIssueRef | null {
   const refs = plan.references;
   if (!Array.isArray(refs)) {
-    return false;
+    return null;
   }
   for (const ref of refs) {
     const rec = asRecord(ref);
     if (rec === null) continue;
     const type = typeof rec.type === "string" ? rec.type : "";
-    const uri = typeof rec.uri === "string" ? rec.uri : "";
-    if (type.includes("github-issue") || /github\.com\/[^/]+\/[^/]+\/issues\/\d+/i.test(uri)) {
-      return true;
+    const uri = typeof rec.uri === "string" ? rec.uri.trim().replace(/\/$/, "") : "";
+    if (uri.length === 0) continue;
+    const fromType = type.includes("github-issue");
+    const fromUri = /github\.com\/[^/]+\/[^/]+\/issues\/\d+/i.test(uri);
+    if (!fromType && !fromUri) continue;
+    const parts =
+      uri
+        .split("://")
+        .pop()
+        ?.split("/")
+        .filter((p) => p.length > 0) ?? [];
+    if (
+      parts.length >= 4 &&
+      parts[parts.length - 2] === "issues" &&
+      /^\d+$/.test(parts[parts.length - 1] ?? "")
+    ) {
+      const owner = parts[parts.length - 4];
+      const name = parts[parts.length - 3];
+      const issueNumber = Number(parts[parts.length - 1]);
+      if (
+        typeof owner === "string" &&
+        typeof name === "string" &&
+        owner.length > 0 &&
+        name.length > 0 &&
+        Number.isInteger(issueNumber) &&
+        issueNumber > 0
+      ) {
+        return { repository: `${owner}/${name}`, issueNumber };
+      }
     }
   }
-  return false;
+  return null;
+}
+
+function normalizeSha(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function shasEqual(left: string, right: string): boolean {
+  return normalizeSha(left) === normalizeSha(right);
+}
+
+function parseOwnerRepo(repository: string): { owner: string; name: string } | null {
+  const slash = repository.indexOf("/");
+  if (slash <= 0 || slash >= repository.length - 1) {
+    return null;
+  }
+  const owner = repository.slice(0, slash).trim();
+  const name = repository.slice(slash + 1).trim();
+  if (owner.length === 0 || name.length === 0 || name.includes("/")) {
+    return null;
+  }
+  return { owner, name };
+}
+
+/** Default pulls REST fetcher for Prefer-A identity join (#3675). */
+export function defaultFetchPrPayload(
+  prNumber: number,
+  repository: string,
+  runGh: RunGhFn = defaultRunGh,
+): Record<string, unknown> | null {
+  const parsed = parseOwnerRepo(repository);
+  if (parsed === null) {
+    return null;
+  }
+  const path = `repos/${parsed.owner}/${parsed.name}/pulls/${prNumber}`;
+  const result = runGh(["gh", "api", path]);
+  if (result.returncode !== 0) {
+    return null;
+  }
+  try {
+    const body = JSON.parse(result.stdout) as unknown;
+    if (body === null || typeof body !== "object" || Array.isArray(body)) {
+      return null;
+    }
+    return body as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+/** Authoritative closing-issue ids only (no body/commit intent union) (#3675). */
+export function defaultFetchClosingIssueIds(
+  prNumber: number,
+  repository: string,
+  runGh: RunGhFn = defaultRunGh,
+): number[] | null {
+  return fetchClosingIssuesReferences(prNumber, repository, runGh);
+}
+
+export interface StoryPrMergeIdentityResult {
+  readonly ok: boolean;
+  readonly message: string;
+  /** Authoritative merge_commit_sha when join succeeds. */
+  readonly mergeCommitSha?: string;
+  readonly mergedAt?: string;
+  readonly prBase?: string | null;
+  readonly headSha?: string | null;
+}
+
+/**
+ * Prefer-A story→PR→merge identity join before delivery liveness (#3675).
+ *
+ * Uses plan-derived expected repo/issue, authoritative closingIssuesReferences
+ * via closerSetFromIssueIds only, and merge_commit_sha identity equality.
+ * Does not require implementationCommit ancestry (squash-safe).
+ */
+export function verifyStoryPrMergeIdentity(input: {
+  readonly plan: Record<string, unknown>;
+  readonly evidence: DeliveryEvidenceInput;
+  readonly mergeCommit: string;
+  readonly fetchPrPayload: FetchPrPayloadFn;
+  readonly fetchClosingIssueIds: FetchClosingIssueIdsFn;
+}): StoryPrMergeIdentityResult {
+  const expected = resolvePlanGithubIssueRef(input.plan);
+  if (expected === null) {
+    return {
+      ok: false,
+      message:
+        "Delivery identity join failed: plan has no x-xbrief/github-issue reference " +
+        "to derive expected repository/issue (#3675).",
+    };
+  }
+
+  const evidenceRepo =
+    typeof input.evidence.repository === "string" && input.evidence.repository.trim().length > 0
+      ? input.evidence.repository.trim()
+      : null;
+  if (evidenceRepo !== null && evidenceRepo !== expected.repository) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: evidence repository '${evidenceRepo}' does not match ` +
+        `plan-derived expected repository '${expected.repository}' (#3675).`,
+    };
+  }
+
+  const prNumber =
+    typeof input.evidence.prNumber === "number" &&
+    Number.isInteger(input.evidence.prNumber) &&
+    input.evidence.prNumber > 0
+      ? input.evidence.prNumber
+      : null;
+  if (prNumber === null) {
+    return {
+      ok: false,
+      message:
+        "Delivery identity join failed: missing story-associated PR number. " +
+        "Pass --pr <n> for the PR that forge-closes this story; --pr alone is not identity (#3675).",
+    };
+  }
+
+  const payload = input.fetchPrPayload(prNumber, expected.repository);
+  if (payload === null) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: could not fetch PR #${prNumber} in ` +
+        `${expected.repository} (lookup failure) (#3675).`,
+    };
+  }
+
+  const mergedAt =
+    typeof payload.merged_at === "string" && payload.merged_at.trim().length > 0
+      ? payload.merged_at.trim()
+      : null;
+  const mergeCommitSha =
+    typeof payload.merge_commit_sha === "string" && payload.merge_commit_sha.trim().length > 0
+      ? payload.merge_commit_sha.trim()
+      : null;
+  if (mergedAt === null || mergeCommitSha === null) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: PR #${prNumber} in ${expected.repository} ` +
+        `is not merged (missing merged_at / merge_commit_sha) (#3675).`,
+    };
+  }
+
+  const linked = input.fetchClosingIssueIds(prNumber, expected.repository);
+  if (linked === null) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: could not fetch closingIssuesReferences for ` +
+        `PR #${prNumber} in ${expected.repository} (#3675).`,
+    };
+  }
+  const closerSet = closerSetFromIssueIds(expected.repository, linked);
+  const expectedRepoKey = expected.repository.trim().toLowerCase();
+  const closesStory = closerSet.some(
+    (origin) => origin.repo === expectedRepoKey && origin.issueId === expected.issueNumber,
+  );
+  if (!closesStory) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: PR #${prNumber} forge closer set does not include ` +
+        `${expected.repository}#${expected.issueNumber} (wrong story / absent association) (#3675).`,
+    };
+  }
+
+  if (!shasEqual(input.mergeCommit, mergeCommitSha)) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: supplied merge commit ${input.mergeCommit} does not ` +
+        `equal PR #${prNumber} merge_commit_sha ${mergeCommitSha} (identity, not reachability) (#3675).`,
+    };
+  }
+
+  const base = asRecord(payload.base);
+  const head = asRecord(payload.head);
+  const prBase = typeof base?.ref === "string" ? base.ref : null;
+  const headSha =
+    typeof head?.sha === "string" && head.sha.trim().length > 0
+      ? head.sha.trim()
+      : typeof payload.head_sha === "string" && payload.head_sha.trim().length > 0
+        ? payload.head_sha.trim()
+        : null;
+
+  const recordedImpl =
+    typeof input.evidence.implementationCommit === "string" &&
+    input.evidence.implementationCommit.trim().length > 0
+      ? input.evidence.implementationCommit.trim()
+      : null;
+  if (recordedImpl !== null) {
+    if (headSha === null || !shasEqual(recordedImpl, headSha)) {
+      return {
+        ok: false,
+        message:
+          `Delivery identity join failed: recorded implementationCommit ${recordedImpl} ` +
+          `does not match PR #${prNumber} head at merge time` +
+          `${headSha !== null ? ` (${headSha})` : ""} (#3675).`,
+      };
+    }
+  }
+
+  return {
+    ok: true,
+    message: `story→PR→merge identity joined: ${expected.repository}#${expected.issueNumber} via PR #${prNumber}`,
+    mergeCommitSha,
+    mergedAt,
+    prBase,
+    headSha,
+  };
 }
 
 /**
@@ -351,16 +634,26 @@ function deliveryEvidenceRemediation(deliveryBranch: string): string {
 }
 
 /**
- * Gate delivered completion for a code-bearing scope (#3041 / #3380).
+ * Gate delivered completion for a code-bearing scope (#3041 / #3380 / #3675).
  *
  * Returns ok=true with provenance when:
  * - scope is not code-bearing (provenance may be null or non-code note), OR
  * - explicit non-delivery disposition is provided, OR
- * - merge commit is an ancestor of the refreshed remote delivery ref (prBase is
- *   provenance only; it need not equal deliveryBranch).
+ * - Prefer-A story→PR→merge identity join succeeds AND the merge commit is an
+ *   ancestor of the refreshed remote delivery ref (prBase is provenance only;
+ *   it need not equal deliveryBranch). assumeEvidenceValidated skips only the
+ *   ancestry/liveness step after identity join.
  */
 export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGateResult {
   const runGit = options.runGit ?? defaultGitRunner;
+  const runGh = options.runGh ?? defaultRunGh;
+  const fetchPrPayload =
+    options.fetchPrPayload ??
+    ((prNumber: number, repository: string) => defaultFetchPrPayload(prNumber, repository, runGh));
+  const fetchClosingIssueIds =
+    options.fetchClosingIssueIds ??
+    ((prNumber: number, repository: string) =>
+      defaultFetchClosingIssueIds(prNumber, repository, runGh));
   const verifier = options.verifier ?? "scope:complete";
   const codeBearing = isCodeBearingScope(options.plan);
 
@@ -469,38 +762,73 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     };
   }
 
+  // Prefer-A story→PR→merge identity join (#3675) — before ancestry or assume bypass.
+  const identity = verifyStoryPrMergeIdentity({
+    plan: options.plan,
+    evidence,
+    mergeCommit,
+    fetchPrPayload,
+    fetchClosingIssueIds,
+  });
+  if (!identity.ok) {
+    return {
+      ok: false,
+      message: `${identity.message} ${deliveryEvidenceRemediation(deliveryBranch)}`,
+      provenance: null,
+      codeBearing: true,
+    };
+  }
+
+  const boundEvidence: DeliveryEvidenceInput = {
+    ...evidence,
+    repository: resolvePlanGithubIssueRef(options.plan)?.repository ?? evidence.repository ?? null,
+    prNumber: evidence.prNumber,
+    prBase: identity.prBase ?? prBase,
+    mergeCommit: identity.mergeCommitSha ?? mergeCommit,
+    mergedAt: identity.mergedAt ?? (typeof mergedAt === "string" ? mergedAt : null),
+    implementationCommit: evidence.implementationCommit ?? identity.headSha ?? null,
+  };
+
   if (options.assumeEvidenceValidated) {
     const provenance = buildProvenance({
-      evidence,
+      evidence: boundEvidence,
       deliveryBranch,
       disposition: "delivered",
       handoffState: "delivered",
       nowIso: options.nowIso,
       verifier,
-      deliveryCommit: evidence.deliveryCommit ?? mergeCommit,
+      deliveryCommit: boundEvidence.deliveryCommit ?? boundEvidence.mergeCommit,
     });
     return {
       ok: true,
-      message: `delivery evidence accepted (pre-validated) on '${deliveryBranch}'`,
+      message:
+        `delivery evidence accepted after Prefer-A identity join (ancestry pre-validated) ` +
+        `on '${deliveryBranch}'`,
       provenance,
       codeBearing: true,
     };
   }
 
-  const ancestry = verifyDeliveryAncestry(options.projectRoot, mergeCommit, deliveryBranch, runGit);
+  const ancestry = verifyDeliveryAncestry(
+    options.projectRoot,
+    boundEvidence.mergeCommit ?? mergeCommit,
+    deliveryBranch,
+    runGit,
+  );
   if (!ancestry.ok) {
-    const integrationOnly = prBase !== null && prBase !== deliveryBranch;
+    const effectivePrBase = boundEvidence.prBase ?? prBase;
+    const integrationOnly = effectivePrBase !== null && effectivePrBase !== deliveryBranch;
     const ancestryMsg = ancestry.error ?? "delivery ancestry check failed";
     const rem = deliveryEvidenceRemediation(deliveryBranch);
     const message = integrationOnly
-      ? `${ancestryMsg} PR base '${prBase}' is provenance only; ` +
+      ? `${ancestryMsg} PR base '${effectivePrBase}' is provenance only; ` +
         `the merge is not yet on origin/${deliveryBranch}. ${rem}`
       : `${ancestryMsg} ${rem}`;
     return {
       ok: false,
       message,
       provenance: buildProvenance({
-        evidence,
+        evidence: boundEvidence,
         deliveryBranch,
         disposition: integrationOnly ? "merged_to_integration" : "not_delivered",
         handoffState: integrationOnly ? "merged_to_integration" : "implemented",
@@ -513,7 +841,7 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
   }
 
   const provenance = buildProvenance({
-    evidence,
+    evidence: boundEvidence,
     deliveryBranch,
     disposition: "delivered",
     handoffState: "delivered",
@@ -523,7 +851,9 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
   });
   return {
     ok: true,
-    message: `merge commit ${mergeCommit} is an ancestor of origin/${deliveryBranch}`,
+    message:
+      `Prefer-A identity join ok; merge commit ${boundEvidence.mergeCommit} is an ancestor of ` +
+      `origin/${deliveryBranch}`,
     provenance,
     codeBearing: true,
   };

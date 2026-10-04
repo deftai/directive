@@ -65,6 +65,8 @@ import {
   classifyStoredDeliveryDisposition,
   type DeliveryEvidenceInput,
   evaluateDeliveryGate,
+  type FetchClosingIssueIdsFn,
+  type FetchPrPayloadFn,
   type NonDeliveryDisposition,
   resolveCompletionSessionId,
   stampDeliveryProvenance,
@@ -84,13 +86,16 @@ export interface TransitionResult {
   readonly acceptanceReports?: readonly CriterionAcceptanceReport[];
 }
 
-/** Optional completion evidence / disposition for the delivery gate (#3041). */
+/** Optional completion evidence / disposition for the delivery gate (#3041 / #3675). */
 export interface TransitionOptions {
   readonly deliveryEvidence?: DeliveryEvidenceInput | null;
   readonly nonDeliveryDisposition?: NonDeliveryDisposition | null;
   readonly runGit?: GitRunner;
   readonly verifier?: string;
   readonly assumeEvidenceValidated?: boolean;
+  /** Prefer-A identity-join seams (#3675); forwarded to evaluateDeliveryGate. */
+  readonly fetchPrPayload?: FetchPrPayloadFn;
+  readonly fetchClosingIssueIds?: FetchClosingIssueIdsFn;
   /**
    * Test-only escape hatch: skip the #3240 per-item acceptance evidence gate.
    * Production callers MUST leave this false/undefined.
@@ -371,8 +376,11 @@ export function runTransition(
       evidence: options.deliveryEvidence,
       nonDeliveryDisposition: options.nonDeliveryDisposition,
       runGit: options.runGit,
+      runGh: options.runGh,
       verifier: options.verifier ?? "scope:complete",
       assumeEvidenceValidated: options.assumeEvidenceValidated,
+      fetchPrPayload: options.fetchPrPayload,
+      fetchClosingIssueIds: options.fetchClosingIssueIds,
     });
     if (!gate.ok) {
       return { ok: false, message: gate.message };
@@ -682,8 +690,11 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
     evidence: options.deliveryEvidence,
     nonDeliveryDisposition: options.nonDeliveryDisposition,
     runGit: options.runGit,
+    runGh: options.runGh,
     verifier: options.verifier ?? "scope:complete",
     assumeEvidenceValidated: options.assumeEvidenceValidated,
+    fetchPrPayload: options.fetchPrPayload,
+    fetchClosingIssueIds: options.fetchClosingIssueIds,
   });
   if (!gate.ok) {
     return { ok: false, message: gate.message };
