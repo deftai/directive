@@ -42,10 +42,12 @@ function relievesLean(id: number): ThreadComment {
   };
 }
 
-function criticAfter(id: number, targets: string): ThreadComment {
+function criticAfter(id: number, targets: string, withClearCarrier = true): ThreadComment {
   return {
     id,
-    body: `model: grok-4.6\nrole: critic\n\naudit-targets: ${targets}\n`,
+    body:
+      `model: grok-4.6\nrole: critic\n\naudit-targets: ${targets}\n` +
+      (withClearCarrier ? "finding-classes: none\nharvest-changed: false\n" : ""),
   };
 }
 

@@ -1454,6 +1454,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(leftover).toContain("evaluateBoundRemedyCites");
     expect(leftover).toContain("evaluatePainCitePlacement");
     expect(leftover).toContain("evaluatePainAuditFollowThrough");
+    expect(leftover).toContain("evaluateAccumulatedPainAuditFollowThrough");
+    expect(leftover).toContain("finding-classes:");
+    expect(leftover).toContain("harvest-changed:");
     expect(leftover).toContain("evaluateYoloStandingLeftoverScope");
     expect(leftover).toContain("bindLeanPredecessorValid");
     expect(leftover).toContain("newBindLeanAndAudit");
