@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Leftover-complete #5281 after product #5293.** Retire the active host-kill attestation Prefer-A brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #5281.
+
+- **Activate #5278 Prefer-A Bound brief with concrete file_scope.** Lands the active brief on master so product PR #5288 can pass verify:scope-provenance membership (Path B / #5192). Tracking #5278.
 - **Leftover-complete #3703 after product #5286.** Retire the active verify:routing Prefer-A brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #3703.
 - **Leftover-complete #3729 after product #5290.** Retire the active occupancy Prefer-A brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #3729.
 - **Activate #3703 Prefer-A Bound brief with concrete file_scope (#3703).** Lands the continuity-resolved active brief (Path B membership precommitment) so product PR work can pass scope-provenance. Tracking #3703.
