@@ -2945,7 +2945,7 @@
       "domain": "testing",
       "text": "Achieve ≥85% coverage (overall + per-module/package/file)",
       "path": "coding/testing.md",
-      "body": "# Testing Standards\n\nUniversal testing requirements across all languages and interfaces.\n\nLegend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.\n\n## Universal Requirements\n\n- ! Achieve ≥85% coverage (overall + per-module/package/file)\n- ! Include ≥50 fuzzing tests per input point\n- ~ Have integration tests for critical paths/workflows\n- ! Exclude entry points and main functions from coverage\n- ! Test all code paths: normal, edge cases, error conditions\n- ! Run `task check` (or equivalent) before commit\n- ⊗ say a (todo-list|plan|phase|project) is done if relevant tests have not been written, run, and PASSED.\n- ⊗ assume its ok for a test to fail in any situation\n\n## Test-First Development\n\n- ! Implementation is INCOMPLETE until tests written AND `task test:coverage` passes\n- ! New functions/classes MUST have corresponding tests in same commit\n- ! Modified functions MUST update existing tests to maintain coverage\n- ! Run `task test:coverage` after ANY code change to verify ≥85% maintained\n- ! If coverage drops below threshold, implementation is INCOMPLETE\n- ~ Write tests for edge cases, not just happy paths\n- ⊗ Skip test updates when modifying existing functions\n- ⊗ Implement code without tests\n- ⊗ Claim \"done\" before running test:coverage\n\n## Coverage\n\n**What to count:**\n\n- ! All source code in src/, internal/, pkg/, lib/\n\n**What to exclude:**\n\n- ! Entry points: main(), **main**, index.ts (if trivial)\n- ! Generated code\n- ! Third-party code\n- ! Test files themselves\n\n**Thresholds:**\n\n- ! ≥85% lines\n- ! ≥85% functions/methods\n- ! ≥85% branches\n- ! ≥85% statements\n\n## Test Types\n\n### Unit Tests\n\n- ! Individual functions/methods/components\n- ! Normal cases + edge cases + error conditions\n- ! Fast execution (milliseconds)\n- ! No external dependencies (use mocks/stubs)\n\n### Integration Tests\n\n- ~ Full workflows with real dependencies\n- ~ Realistic scenarios\n- ~ Database, API, file system interactions\n- ~ Slower execution acceptable\n\n### Fuzzing Tests\n\n- ! ≥50 fuzzing tests per input point\n- ! Random/malformed inputs\n- ! Catch unexpected crashes, hangs, exceptions\n\n### Load/Performance Tests\n\n- ~ For performance-critical code\n- ~ Measure response times under load\n- Tools: JMeter, Gatling, k6, Apache Bench\n\n### Security Tests\n\n- ! For code handling untrusted input\n- ! SQL injection, XSS, auth bypass, path traversal\n- Tools: OWASP ZAP, Burp Suite, SQLMap\n\n### Snapshot Tests\n\n- ~ For CLI output, rendered UI, generated files\n- ~ Detect unintended output changes\n\n### Build Output Tests\n\n- ~ Build scripts that produce `dist/` artifacts have a smoke test verifying expected output files exist and contain expected content\n- ! Non-compiled assets (manifests, configs, extension metadata) that bundlers don't track are explicitly verified post-build\n- ~ Verify file presence, non-empty size, and structural validity (e.g. required JSON keys present)\n- ! A build that exits 0 but produces stale or incomplete artifacts is a silent failure — treat it as a build failure (#105)\n\n## Language-Specific Details\n\n**Python**: [../languages/python.md](../languages/python.md#testing) - pytest, pytest-cov, pytest-mock\n**Go**: [../languages/go.md](../languages/go.md#testing) - Testify, table-driven tests\n**C++**: [../languages/cpp.md](../languages/cpp.md#testing) - Catch2/GoogleTest, GoogleMock\n**TypeScript**: [../languages/typescript.md](../languages/typescript.md#testing) - Vitest/Jest, React Testing Library\n**CLI**: [../interfaces/cli.md](../interfaces/cli.md#testing) - CliRunner, format validation\n**REST APIs**: [../interfaces/rest.md](../interfaces/rest.md#testing) - endpoint testing, security testing\n\n## Test Organization\n\n**File naming:**\n\n- Python: `test_*.py` or `*_test.py`\n- Go: `*_test.go`\n- C++: `test_*.cpp` or `*_test.cpp`\n- TypeScript: `*.spec.ts` or `*.test.ts`\n\n**Directory structure:**\n\n```\nproject/\n├── src/           # Source code\n├── tests/         # Test files\n│   ├── unit/      # Unit tests\n│   └── integration/  # Integration tests (optional separation)\n```\n\n## Best Practices\n\n- ! Write tests before or alongside code (TDD encouraged)\n- ! One assertion per test (or logically grouped assertions)\n- ~ Use descriptive test names: `test_user_login_with_invalid_password`\n- ! Arrange-Act-Assert (AAA) pattern\n- ! Test behavior, not implementation\n- ≉ Rely on test execution order\n- ! Clean up resources (files, DB, connections) in teardown\n\n## Anti-patterns\n\n- ⊗ Skip tests to meet deadlines\n- ⊗ Test only happy paths (edge cases critical)\n- ⊗ Mock everything (integration tests needed too)\n- ⊗ Ignore flaky tests (fix or remove them)\n- ⊗ Commit failing tests\n- ⊗ Write tests that depend on external state\n- ⊗ Hard-code dates, times, random values\n- ⊗ Implementing code without tests\n- ⊗ Claiming \"done\" before running test:coverage\n- ⊗ Ignoring coverage drops\n\n## CI/CD Integration\n\n- ! Tests run automatically on every commit/PR\n- ! Block merges if tests fail\n- ! Block merges if coverage drops below threshold\n- ~ Test in multiple environments (OS, versions)\n\n---\n\n**See also**: [main.md](../../main.md) | Language-specific testing in python.md, go.md, cpp.md, typescript.md\n"
+      "body": "<!-- Purpose: rendered coding rules -->\n<!-- Source of truth: packs/rules/rules-pack-0.1.json -->\n<!-- Regenerate with: task packs:render -->\n<!-- Edit the source, not this file. Slice instead of loading every coding doc: task packs:slice rules by-tier --tier <TIER> (or by-domain, list) -->\n\n# Testing Standards\n\nUniversal testing requirements across all languages and interfaces.\n\nLegend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.\n\n## Universal Requirements\n\n- ! Achieve ≥85% coverage (overall + per-module/package/file)\n- ! Include ≥50 fuzzing tests per input point\n- ~ Have integration tests for critical paths/workflows\n- ! Exclude entry points and main functions from coverage\n- ! Test all code paths: normal, edge cases, error conditions\n- ! Run `task check` (or equivalent) before commit\n- ⊗ say a (todo-list|plan|phase|project) is done if relevant tests have not been written, run, and PASSED.\n- ⊗ assume its ok for a test to fail in any situation\n\n## Test-First Development\n\n- ! Implementation is INCOMPLETE until tests written AND `task test:coverage` passes\n- ! New functions/classes MUST have corresponding tests in same commit\n- ! Modified functions MUST update existing tests to maintain coverage\n- ! Run `task test:coverage` after ANY code change to verify ≥85% maintained\n- ! If coverage drops below threshold, implementation is INCOMPLETE\n- ~ Write tests for edge cases, not just happy paths\n- ⊗ Skip test updates when modifying existing functions\n- ⊗ Implement code without tests\n- ⊗ Claim \"done\" before running test:coverage\n\n## Coverage\n\n**What to count:**\n\n- ! All source code in src/, internal/, pkg/, lib/\n\n**What to exclude:**\n\n- ! Entry points: main(), **main**, index.ts (if trivial)\n- ! Generated code\n- ! Third-party code\n- ! Test files themselves\n\n**Thresholds:**\n\n- ! ≥85% lines\n- ! ≥85% functions/methods\n- ! ≥85% branches\n- ! ≥85% statements\n\n## Test Types\n\n### Unit Tests\n\n- ! Individual functions/methods/components\n- ! Normal cases + edge cases + error conditions\n- ! Fast execution (milliseconds)\n- ! Keep unit tests independent of live external services; use mocks/stubs only at boundaries allowed by Mock boundary; route owned data-layer and permission workflow verification to realistic integration / real-test-implementation coverage\n\n### Integration Tests\n\n- ~ Full workflows with real dependencies\n- ~ Realistic scenarios\n- ~ Database, API, file system interactions\n- ~ Slower execution acceptable\n\n### Fuzzing Tests\n\n- ! ≥50 fuzzing tests per input point\n- ! Random/malformed inputs\n- ! Catch unexpected crashes, hangs, exceptions\n\n### Load/Performance Tests\n\n- ~ For performance-critical code\n- ~ Measure response times under load\n- Tools: JMeter, Gatling, k6, Apache Bench\n\n### Security Tests\n\n- ! For code handling untrusted input\n- ! SQL injection, XSS, auth bypass, path traversal\n- Tools: OWASP ZAP, Burp Suite, SQLMap\n\n### Snapshot Tests\n\n- ~ For CLI output, rendered UI, generated files\n- ~ Detect unintended output changes\n\n### Build Output Tests\n\n- ~ Build scripts that produce `dist/` artifacts have a smoke test verifying expected output files exist and contain expected content\n- ! Non-compiled assets (manifests, configs, extension metadata) that bundlers don't track are explicitly verified post-build\n- ~ Verify file presence, non-empty size, and structural validity (e.g. required JSON keys present)\n- ! A build that exits 0 but produces stale or incomplete artifacts is a silent failure — treat it as a build failure (#105)\n\n## Language-Specific Details\n\n**Python**: [../languages/python.md](../languages/python.md#testing) - pytest, pytest-cov, pytest-mock\n**Go**: [../languages/go.md](../languages/go.md#testing) - Testify, table-driven tests\n**C++**: [../languages/cpp.md](../languages/cpp.md#testing) - Catch2/GoogleTest, GoogleMock\n**TypeScript**: [../languages/typescript.md](../languages/typescript.md#testing) - Vitest/Jest, React Testing Library\n**CLI**: [../interfaces/cli.md](../interfaces/cli.md#testing) - CliRunner, format validation\n**REST APIs**: [../interfaces/rest.md](../interfaces/rest.md#testing) - endpoint testing, security testing\n\n## Test Organization\n\n**File naming:**\n\n- Python: `test_*.py` or `*_test.py`\n- Go: `*_test.go`\n- C++: `test_*.cpp` or `*_test.cpp`\n- TypeScript: `*.spec.ts` or `*.test.ts`\n\n**Directory structure:**\n\n```\nproject/\n├── src/           # Source code\n├── tests/         # Test files\n│   ├── unit/      # Unit tests\n│   └── integration/  # Integration tests (optional separation)\n```\n\n## Best Practices\n\n- ! Write tests before or alongside code (TDD encouraged)\n- ! One assertion per test (or logically grouped assertions)\n- ~ Use descriptive test names: `test_user_login_with_invalid_password`\n- ! Arrange-Act-Assert (AAA) pattern\n- ! Test behavior, not implementation\n- ≉ Rely on test execution order\n- ! Clean up resources (files, DB, connections) in teardown\n\n## Anti-patterns\n\n- ⊗ Skip tests to meet deadlines\n- ⊗ Test only happy paths (edge cases critical)\n- ⊗ Mock everything (integration tests needed too)\n- ⊗ Ignore flaky tests (fix or remove them)\n- ⊗ Commit failing tests\n- ⊗ Write tests that depend on external state\n- ⊗ Hard-code dates, times, random values\n- ⊗ Implementing code without tests\n- ⊗ Claiming \"done\" before running test:coverage\n- ⊗ Ignoring coverage drops\n\n## CI/CD Integration\n\n- ! Tests run automatically on every commit/PR\n- ! Block merges if tests fail\n- ! Block merges if coverage drops below threshold\n- ~ Test in multiple environments (OS, versions)\n\n## Test integrity\n\nFailing tests are findings about the code under test or about the test contract — not a license to game the suite green.\n\n- ! When tests fail, investigate root cause and fix the underlying issue, or report an incorrect test with explicit contract evidence and reviewed rationale\n- ⊗ Delete, skip, xfail, or comment-out assertions solely to go green\n- ⊗ Widen tolerances, re-baseline snapshots, or loosen matchers solely to go green\n- ⊗ Catch-and-pass wrappers, or assert on unchecked current output, solely to go green\n- ~ Deliberate gate or oracle changes go through issue/PR + review (#3156); do not grant the executing agent a gate-rewrite escape\n\n## Mock boundary\n\nMocks belong at the process boundary. Owned data flow and authorization need realistic coverage.\n\n- ! Mock at the process boundary (network, third-party APIs, clock, randomness, paid services)\n- ! Exercise own data layer, permission checks, and authorization against a real test implementation\n- ⊗ Mock own data layer, repositories, or ORM\n- ⊗ Mock permission or authorization checks\n- ⊗ Mock the unit under test or owned collaborators you could run for real\n- ~ Prefer integration tests over mocked unit tests for data flow and permissions; if a test passes with mocks but would fail against the real system, the test is wrong\n\n---\n\n**See also**: [main.md](../../main.md) | Language-specific testing in python.md, go.md, cpp.md, typescript.md\n"
     },
     {
       "id": "testing-002",
@@ -3175,7 +3175,7 @@
       "id": "testing-030",
       "tier": "MUST",
       "domain": "testing",
-      "text": "No external dependencies (use mocks/stubs)",
+      "text": "Keep unit tests independent of live external services; use mocks/stubs only at boundaries allowed by Mock boundary; route owned data-layer and permission workflow verification to realistic integration / real-test-implementation coverage",
       "path": "coding/testing.md",
       "body": null
     },
@@ -3480,6 +3480,94 @@
       "tier": "SHOULD",
       "domain": "testing",
       "text": "Test in multiple environments (OS, versions)",
+      "path": "coding/testing.md",
+      "body": null
+    },
+    {
+      "id": "testing-069",
+      "tier": "MUST",
+      "domain": "testing",
+      "text": "When tests fail, investigate root cause and fix the underlying issue, or report an incorrect test with explicit contract evidence and reviewed rationale",
+      "path": "coding/testing.md",
+      "body": null
+    },
+    {
+      "id": "testing-070",
+      "tier": "MUST_NOT",
+      "domain": "testing",
+      "text": "Delete, skip, xfail, or comment-out assertions solely to go green",
+      "path": "coding/testing.md",
+      "body": null
+    },
+    {
+      "id": "testing-071",
+      "tier": "MUST_NOT",
+      "domain": "testing",
+      "text": "Widen tolerances, re-baseline snapshots, or loosen matchers solely to go green",
+      "path": "coding/testing.md",
+      "body": null
+    },
+    {
+      "id": "testing-072",
+      "tier": "MUST_NOT",
+      "domain": "testing",
+      "text": "Catch-and-pass wrappers, or assert on unchecked current output, solely to go green",
+      "path": "coding/testing.md",
+      "body": null
+    },
+    {
+      "id": "testing-073",
+      "tier": "SHOULD",
+      "domain": "testing",
+      "text": "Deliberate gate or oracle changes go through issue/PR + review (#3156); do not grant the executing agent a gate-rewrite escape",
+      "path": "coding/testing.md",
+      "body": null
+    },
+    {
+      "id": "testing-074",
+      "tier": "MUST",
+      "domain": "testing",
+      "text": "Mock at the process boundary (network, third-party APIs, clock, randomness, paid services)",
+      "path": "coding/testing.md",
+      "body": null
+    },
+    {
+      "id": "testing-075",
+      "tier": "MUST",
+      "domain": "testing",
+      "text": "Exercise own data layer, permission checks, and authorization against a real test implementation",
+      "path": "coding/testing.md",
+      "body": null
+    },
+    {
+      "id": "testing-076",
+      "tier": "MUST_NOT",
+      "domain": "testing",
+      "text": "Mock own data layer, repositories, or ORM",
+      "path": "coding/testing.md",
+      "body": null
+    },
+    {
+      "id": "testing-077",
+      "tier": "MUST_NOT",
+      "domain": "testing",
+      "text": "Mock permission or authorization checks",
+      "path": "coding/testing.md",
+      "body": null
+    },
+    {
+      "id": "testing-078",
+      "tier": "MUST_NOT",
+      "domain": "testing",
+      "text": "Mock the unit under test or owned collaborators you could run for real",
+      "path": "coding/testing.md",
+      "body": null
+    },
+    {
+      "id": "testing-079",
+      "tier": "SHOULD",
+      "domain": "testing",
+      "text": "Prefer integration tests over mocked unit tests for data flow and permissions; if a test passes with mocks but would fail against the real system, the test is wrong",
       "path": "coding/testing.md",
       "body": null
     },
