@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { leanCarriesSpecPathToken } from "./auto-stamp-chip.js";
 import { COMPLETED_ARC_BLOCK_REASONS, isSuccessorLeanBody } from "./completed-arc-record.js";
 import {
+  collectSupersededSuccessorLeans,
   evaluateDualStopReservedSlot,
   evaluateHandoffPrint,
   extractOperativeOpenQuestion,
@@ -156,6 +157,31 @@ describe("evaluateHandoffPrint (#4531)", () => {
   });
 });
 
+describe("SUPERSEDES_RE bold-optional (#5284)", () => {
+  const prior = {
+    id: 5975631488,
+    body: "**Lean:** prior successor.\n\nrelieves: P1\n",
+  };
+
+  it("resolves colon-adjacent bold and unbolded Recut-supersedes / Supersedes forms", () => {
+    const samples = [
+      "Recut-supersedes: 5975631488",
+      "**Recut-supersedes: 5975631488**",
+      "**Recut-supersedes:** 5975631488",
+      "**Supersedes:** 5975631488",
+      "*Recut-supersedes:* 5975631488",
+      "Supersedes 5975631488",
+    ] as const;
+    for (const sample of samples) {
+      const found = collectSupersededSuccessorLeans(
+        `**Lean:** recut.\n\n${sample}\n`,
+        [prior],
+      );
+      expect(found.map((c) => c.id), sample).toEqual([5975631488]);
+    }
+  });
+});
+
 describe("evaluateHandoffPrint harvest relieves overlap (#4554)", () => {
   const priorRelieves = {
     id: 5672497879,
@@ -182,6 +208,27 @@ describe("evaluateHandoffPrint harvest relieves overlap (#4554)", () => {
       recutConjunct: true,
       harvestRelievesOverlap: true,
     });
+  });
+
+  it("does not print harvest overlap alone when harvestChanged and operative Recut (#5284)", () => {
+    const carved = evaluateHandoffPrint({
+      mapBody: "**Lean:** harvest recut.\n\nSpec-path:\n\nrelieves: P1\n\n**Recut-supersedes:** 5672497879\n",
+      stop1PainIds: ["P1"],
+      comments: [priorRelieves],
+      harvestChanged: true,
+    });
+    expect(carved.print).toBe(false);
+    expect(carved.harvestRelievesOverlap).toBe(false);
+    expect(carved.recutConjunct).toBe(true);
+
+    const stillPrints = evaluateHandoffPrint({
+      mapBody: "**Lean:** harvest recut.\n\nSpec-path:\n\nrelieves: P1\n\n**Recut-supersedes:** 5672497879\n",
+      stop1PainIds: ["P1"],
+      comments: [priorRelieves],
+      harvestChanged: false,
+    });
+    expect(stillPrints.print).toBe(true);
+    expect(stillPrints.harvestRelievesOverlap).toBe(true);
   });
 
   it("does not print on first relieves that supersedes a write-back", () => {
