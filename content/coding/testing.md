@@ -4,6 +4,11 @@
 <!-- Regenerate with: task packs:render -->
 <!-- Edit the source, not this file. Slice instead of loading every coding doc: task packs:slice rules by-tier --tier <TIER> (or by-domain, list) -->
 
+<!-- Purpose: rendered coding rules -->
+<!-- Source of truth: packs/rules/rules-pack-0.1.json -->
+<!-- Regenerate with: task packs:render -->
+<!-- Edit the source, not this file. Slice instead of loading every coding doc: task packs:slice rules by-tier --tier <TIER> (or by-domain, list) -->
+
 # Testing Standards
 
 Universal testing requirements across all languages and interfaces.
@@ -60,7 +65,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Individual functions/methods/components
 - ! Normal cases + edge cases + error conditions
 - ! Fast execution (milliseconds)
-- ! No external dependencies (use mocks/stubs)
+- ! Keep unit tests independent of live external services; use mocks/stubs only at boundaries allowed by Mock boundary; route owned data-layer and permission workflow verification to realistic integration / real-test-implementation coverage
 
 ### Integration Tests
 
@@ -156,6 +161,27 @@ project/
 - ! Block merges if tests fail
 - ! Block merges if coverage drops below threshold
 - ~ Test in multiple environments (OS, versions)
+
+## Test integrity
+
+Failing tests are findings about the code under test or about the test contract — not a license to game the suite green.
+
+- ! When tests fail, investigate root cause and fix the underlying issue, or report an incorrect test with explicit contract evidence and reviewed rationale
+- ⊗ Delete, skip, xfail, or comment-out assertions solely to go green
+- ⊗ Widen tolerances, re-baseline snapshots, or loosen matchers solely to go green
+- ⊗ Catch-and-pass wrappers, or assert on unchecked current output, solely to go green
+- ~ Deliberate gate or oracle changes go through issue/PR + review (#3156); do not grant the executing agent a gate-rewrite escape
+
+## Mock boundary
+
+Mocks belong at the process boundary. Owned data flow and authorization need realistic coverage.
+
+- ! Mock at the process boundary (network, third-party APIs, clock, randomness, paid services)
+- ! Exercise own data layer, permission checks, and authorization against a real test implementation
+- ⊗ Mock own data layer, repositories, or ORM
+- ⊗ Mock permission or authorization checks
+- ⊗ Mock the unit under test or owned collaborators you could run for real
+- ~ Prefer integration tests over mocked unit tests for data flow and permissions; if a test passes with mocks but would fail against the real system, the test is wrong
 
 ---
 

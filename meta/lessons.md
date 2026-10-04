@@ -567,6 +567,16 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 
 **Cross-references:** `coding/coding.md` `## Fail Loud` (primary encoding); `coding/coding.md` `## Anti-Patterns` (cross-reference); `skills/deft-directive-review-cycle/SKILL.md` Step 3 (skill-side enforcement on fix-batch completion claims); `skills/deft-directive-build/SKILL.md` Step 4 Quality Gates (sibling consumer for task-completion claims); `tests/content/test_coding_rules.py` (deterministic contract); sibling `coding/hygiene.md` `## Error Handling: No Hiding` (the same hiding pattern at the code-write level, not the claim level); related #852 (goal-gate-determinism), #973 (machine-verifiable-spec), #972 (over-editing); external source: @Mnilax, https://x.com/Mnilax/status/2053116311132155938; this lesson (#1006).
 
+## Test integrity + Mock boundary (2026-10)
+
+**Source:** #1164 -- practitioner CLAUDE.md Test integrity / Test realism rules missing from directive coding/testing.md; DCR R.1164 named_sections=False.
+
+**Canonical encoding (strongest-applicable layer):** operative `!` / `⊗` rules live in `coding/testing.md` `## Test integrity` and `## Mock boundary` (appended after `## CI/CD Integration` for stable testing-069+ ids), with Unit Tests `testing-030` rewritten to process-boundary / Mock-boundary form. Tier 1 lock: `packages/core/src/content-contracts/standards/coding_rules.test.ts`. Pack SoT via rules-pack + packs:render; leave testing-057 quantity anti-pattern in place.
+
+**Why this is a short cross-reference, not a full prose rule:** Rule Authority [AXIOM] — strongest layer is the testing.md RFC2119 sections + content-contract tests; this lessons entry is discoverability only.
+
+**Cross-references:** `coding/testing.md` `## Test integrity` / `## Mock boundary` (primary); `testing-030` Unit Tests conjunct; `coding_rules.test.ts` (#1164); related #1006 Fail Loud (outcome-blind claims, not test gaming), #3156 gate integrity, #932 tracer-bullet TDD; this lesson (#1164).
+
 ## Install/Refresh Contract Self-Healing -- Case K Install-Location-Mismatch Classifier (2026-05)
 
 **Source:** #1046 -- 2026-05-11 consumer install of `v0.27.1` at `<project>/.deft/core/` put an agent into an unrecoverable Case G refresh loop: `AGENTS.md` referenced `deft/skills/...` paths that did not resolve, `QUICK-START.md` Step 2b detected the staleness, Case G refreshed the managed section with byte-identical bytes (the template had already been flipped to canonical paths in PR #1043), reported success, and the next session re-detected the same staleness. Issue #1046 documented seven framework gaps surfaced by the single install; PR-A of the 3-PR cohort (Choice C ADR per PR #1051) closes the first two (AC-1 canonical-path enforcement / absorbs #1045; AC-2 Case K classifier).
