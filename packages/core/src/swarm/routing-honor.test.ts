@@ -223,7 +223,7 @@ describe("evaluateSpawnRoutingHonor (#3703)", () => {
     expect(r.message).toMatch(/harness-default/i);
   });
 
-  it("launcher-argv with --model honors leaf route instead of carving out", () => {
+  it("launcher-argv critic with --model keeps process-only carve-out", () => {
     const { root, environ } = tempProject({
       cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },
     });
@@ -232,16 +232,28 @@ describe("evaluateSpawnRoutingHonor (#3703)", () => {
       environ,
       spawnClass: "launcher-argv",
       surface: "launcher-argv",
-      requestedModel: "wrong-model",
+      requestedModel: "critic-model",
     });
-    expect(r.ok).toBe(false);
-    expect(r.code).toBe("routing-honor-deny");
-    expect(r.message).toMatch(/diverges/i);
+    expect(r.ok).toBe(true);
+    expect(r.code).toBe("routing-honor-carve-out");
+    expect(r.message).toContain("process-only/critic carve-out");
   });
 
   it("refuses to parse duplicate --model flags", () => {
     expect(extractModelFromLauncherArgv("claude --model a --model b -p hi")).toBeNull();
     expect(countModelFlagsInLauncherArgv("claude --model a --model=b")).toBe(2);
+  });
+
+  it("ignores --model mentions inside quoted prompt text", () => {
+    const cmd =
+      'claude --model composer-2.5-fast -p "mention --model elsewhere and --model=again"';
+    expect(countModelFlagsInLauncherArgv(cmd)).toBe(1);
+    expect(extractModelFromLauncherArgv(cmd)).toBe("composer-2.5-fast");
+    expect(
+      countModelFlagsInLauncherArgv(
+        "claude -p 'do not count --model here' --model=composer-2.5-fast",
+      ),
+    ).toBe(1);
   });
 });
 

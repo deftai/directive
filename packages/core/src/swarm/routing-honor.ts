@@ -173,9 +173,14 @@ export function extractRequestedModelFromPayload(payload: unknown): string | nul
   return from(toolInput) ?? from(top);
 }
 
+/** Strip single-/double-quoted spans so prompt text cannot inflate `--model` counts. */
+function stripQuotedRegions(text: string): string {
+  return text.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, " ");
+}
+
 /** Count `--model` / `--model=` occurrences in launcher-family argv. */
 export function countModelFlagsInLauncherArgv(command: string): number {
-  const text = command.trim();
+  const text = stripQuotedRegions(command.trim());
   if (text.length === 0) return 0;
   const matches = text.match(/(?:^|\s)--model(?:=|\s|$)/g);
   return matches?.length ?? 0;
@@ -183,19 +188,17 @@ export function countModelFlagsInLauncherArgv(command: string): number {
 
 /** Parse `--model <slug>` / `--model=<slug>` from launcher-family argv. */
 export function extractModelFromLauncherArgv(command: string): string | null {
-  const text = command.trim();
-  if (text.length === 0) return null;
-  if (countModelFlagsInLauncherArgv(text) > 1) {
+  const raw = command.trim();
+  if (raw.length === 0) return null;
+  if (countModelFlagsInLauncherArgv(raw) > 1) {
     // Ambiguous duplicate flags — refuse to pick one (#3703 Greptile P2).
     return null;
   }
+  // Parse flags from unquoted argv only so quoted prompt text cannot supply the slug.
+  const text = stripQuotedRegions(raw);
   const eq = text.match(/(?:^|\s)--model=([^\s"']+)/);
   if (eq?.[1] !== undefined && eq[1].trim().length > 0) {
     return eq[1].trim();
-  }
-  const parts = text.match(/(?:^|\s)--model(?:\s+|=")([^"\s]+)(?:"|(?:\s|$))/);
-  if (parts?.[1] !== undefined && parts[1].trim().length > 0) {
-    return parts[1].trim();
   }
   const spaced = text.match(/(?:^|\s)--model\s+([^\s"']+)/);
   if (spaced?.[1] !== undefined && spaced[1].trim().length > 0) {
@@ -323,17 +326,10 @@ export function evaluateSpawnRoutingHonor(
 
   const gatedRoles = ROUTING_GATED_ROLE_DOMAIN;
   const roleInfo = resolveHonorRole(request.spawnClass, request.structuralWorkerRole, gatedRoles);
-  const requestedEarly =
-    request.requestedModel !== undefined && request.requestedModel !== null
-      ? request.requestedModel.trim()
-      : "";
-  // Launcher argv with an explicit --model must honor the leaf route; bare
-  // process-only critic launches (no model flag) keep the carve-out (#3703 P1).
-  const launcherNeedsHonor =
-    roleInfo.carveOut &&
-    request.spawnClass === "launcher-argv" &&
-    requestedEarly.length > 0;
-  if (roleInfo.carveOut && !launcherNeedsHonor) {
+  // Process-only / critic / explore carve-outs keep carve-out even when a
+  // launcher argv carries --model; critics stay outside the gated leaf route
+  // (model: lead auditability) (#3703 Greptile P1).
+  if (roleInfo.carveOut) {
     return {
       ok: true,
       code: "routing-honor-carve-out",
@@ -348,9 +344,7 @@ export function evaluateSpawnRoutingHonor(
     };
   }
 
-  const role = launcherNeedsHonor
-    ? (gatedRoles[0] ?? "leaf-implementation")
-    : (roleInfo.role ?? gatedRoles[0] ?? "leaf-implementation");
+  const role = roleInfo.role ?? gatedRoles[0] ?? "leaf-implementation";
   const gate = verifyRouting({
     projectRoot: request.projectRoot,
     environ,
