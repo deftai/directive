@@ -16,7 +16,7 @@ const OPEN_QUESTION_VALUE_RE =
   /(?:^|\n)\s*\*{0,2}open-question:\*{0,2}[ \t]*([^\r\n]*?)[ \t]*(?=\r?(?:\n|$))/g;
 /** Bold-optional like OPEN_QUESTION_RE / LEAN_HEADING_RE (`token:\*{0,2}`). */
 const SUPERSEDES_RE =
-  /\b\*{0,2}Supersedes(?:\s+comment|\s+successor lean)?(?::\*{0,2}\s*|\s+)(\d{8,})\b/gi;
+  /\b\*{0,2}Supersedes(?:\s+comment|\s+successor lean)?(?:\s*:\*{0,2}\s*|\s+)(\d{8,})\b/gi;
 const PARENT_ROLE_RE = /(?:^|\n)\s*role:\s*parent\b/i;
 const LEAN_HEADING_RE = /(?:^|\n)\s*\*{0,2}Lean:\*{0,2}/;
 

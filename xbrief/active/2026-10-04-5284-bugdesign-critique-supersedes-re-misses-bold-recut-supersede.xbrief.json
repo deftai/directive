@@ -433,7 +433,8 @@
         "conflict_group": "design-critique-supersedes-harvest",
         "size": "M",
         "model_tier": "default"
-      }
+      },
+      "productPullRequest": 5296
     },
     "id": "github.issue.5694557784",
     "updated": "2026-10-04T02:36:04Z"

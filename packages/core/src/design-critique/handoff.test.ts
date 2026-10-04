@@ -171,13 +171,14 @@ describe("SUPERSEDES_RE bold-optional (#5284)", () => {
       "**Supersedes:** 5975631488",
       "*Recut-supersedes:* 5975631488",
       "Supersedes 5975631488",
+      "Supersedes : 5975631488",
     ] as const;
     for (const sample of samples) {
-      const found = collectSupersededSuccessorLeans(
-        `**Lean:** recut.\n\n${sample}\n`,
-        [prior],
-      );
-      expect(found.map((c) => c.id), sample).toEqual([5975631488]);
+      const found = collectSupersededSuccessorLeans(`**Lean:** recut.\n\n${sample}\n`, [prior]);
+      expect(
+        found.map((c) => c.id),
+        sample,
+      ).toEqual([5975631488]);
     }
   });
 });
@@ -212,7 +213,8 @@ describe("evaluateHandoffPrint harvest relieves overlap (#4554)", () => {
 
   it("does not print harvest overlap alone when harvestChanged and operative Recut (#5284)", () => {
     const carved = evaluateHandoffPrint({
-      mapBody: "**Lean:** harvest recut.\n\nSpec-path:\n\nrelieves: P1\n\n**Recut-supersedes:** 5672497879\n",
+      mapBody:
+        "**Lean:** harvest recut.\n\nSpec-path:\n\nrelieves: P1\n\n**Recut-supersedes:** 5672497879\n",
       stop1PainIds: ["P1"],
       comments: [priorRelieves],
       harvestChanged: true,
@@ -222,7 +224,8 @@ describe("evaluateHandoffPrint harvest relieves overlap (#4554)", () => {
     expect(carved.recutConjunct).toBe(true);
 
     const stillPrints = evaluateHandoffPrint({
-      mapBody: "**Lean:** harvest recut.\n\nSpec-path:\n\nrelieves: P1\n\n**Recut-supersedes:** 5672497879\n",
+      mapBody:
+        "**Lean:** harvest recut.\n\nSpec-path:\n\nrelieves: P1\n\n**Recut-supersedes:** 5672497879\n",
       stop1PainIds: ["P1"],
       comments: [priorRelieves],
       harvestChanged: false,

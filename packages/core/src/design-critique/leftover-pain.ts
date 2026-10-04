@@ -280,9 +280,7 @@ export function bindLeanPredecessorValid(input: {
   /** True when collectSupersededSuccessorLeans finds an operative prior successor lean. */
   readonly operativelyRecutSupersedesPriorSuccessorLean?: boolean;
 }): boolean {
-  const overlap = input.bindRelievesIds.some((id) =>
-    input.predecessorRelievesIds.includes(id),
-  );
+  const overlap = input.bindRelievesIds.some((id) => input.predecessorRelievesIds.includes(id));
   if (!overlap) return true;
   if (
     input.harvestChanged === true &&
