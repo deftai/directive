@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Activate #3729 Prefer-A Bound brief with concrete file_scope (#3729).** Lands the continuity-resolved active brief (Path B membership precommitment) so product PR work can pass scope-provenance. Tracking #3729.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Cohort inventory resolver and attestation hardening (#5318).** Omitted `--prs` uses the default resolver; discovery and attestation failures fail closed instead of hiding siblings or arming on error. Tracking #5318.
 
 - **chore(xbrief): leftover-complete #3739 after #5331.** Lands Prefer-A completed brief with productPullRequest 5331. Tracking #3739.
@@ -98,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Pre-PR HMAC chmod-fail removes an unusable own-create secret; EXISTS race does not delete (#4912).** Exclusive create still loads a 0600 winner on EXISTS/EEXIST. chmod failure after this process created the secret retries, then containedRemove of leftover 0644 so the next start can create. A 0644 EXISTS winner is not loaded and is not deleted. `startControllerRun` and `deft pre-pr:run` report put deny instead of started. Tracking #4912.
 - **Pre-PR HMAC secret create race and unreadable reviewed-file hash (#4912).** Concurrent file-backed stores load the winner secret when exclusive create hits EXISTS; `computeControllerObservedHash` returns null for directories and unreadable paths. Tracking #4912.
@@ -142,6 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Windows Step 5 cold-worktree sequencing + unit git-tail cheapen (#5140).** Refresh committed Vitest file durations from a retained Step 5 tee; keep prior ≥30s timings the incomplete tee omitted; share-plus-reset the durable-effect unit git tail; keep unit/spawn-heavy overlapping (no `groupOrder` serial drain). Host probe and fixture notes: `docs/RELEASING.md`. Keep 60m hang detector and #5026 no-coverage host lane; first ship tracks reliable sub-60m without `--skip-ci`. Refs #5022, #5026, #5027, #5028, #4567. Tracking #5140.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Scope membership Path B no longer hard-requires a human mint when a concrete merge-base brief already matches (#5192).** Continuity-resolved mint still wins (stale `xbriefRelPath` ok; same-path `plan.id` relabel refuses); missing mint uses concrete base `file_scope` precommitment with source-root allowance; tests/fixtures stay refused without allowlist match; missing-mint remediation is split or land a widened concrete brief. Tracking #5192.
 - **Completed moves and plan.id basename deletes stay inside membership/fence (#5192 residual).** Pinned presentation-coverage includes changed lifecycle briefs and a full merge-base lifecycle census; plan.id continuity exempts only the resolved path pair (no basename fan-out). Tracking #5192.
@@ -205,6 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(session): batch finalize-owed tip inventory; reverse Prefer-A defer skip (#5171).** Tip plan reads use chunked `showBlobsBatch` (bisect on truncate/parse miss; whole-N `git show` is not a green inventory path) with one list→Map for twin/completed lookups. `--defer-owed` / dest inherit only clear blocks after a real inventory; mutation `session:start` / `--rearm` keep scanning every time (no first-ship day-cache). Closes #5171. Refs #5145 #4919.
 
 - **process(review-cycle): propagate sticky tip-rot + blank-reviewers doctor (#5162 / #5165).** Mirror GREPTILE_SHA_STALL ask-first recovery into agents-entry (#1309); sync skills pack source; doctor fails closed on blank-only plan.policy.review.reviewers. Raise agentsMdBudget managedMaxLines 186→187 / absoluteMaxBytes 21497→21854.
@@ -225,6 +229,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Presentation ceilings + durable-effect (#5056/#5079/#5080), merge-gate enforcement readiness (#1517), finalize-class bot-merge carve-out (#3791), merge-kind acceptance (#5105), swarm:launch N=1 scaffold (#3718), design-critique bare-arc defaults (#5111), and cancel refuse after Tracking (#5126).
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **docs(agents): mirror #1517 merge-gate enforcement readiness into agents-entry + refresh (#1517).** Consumer AGENTS.md managed section now names the strategy-start detect+record axis distinct from local allowDirectCommitsToMaster / requireHumanMerge.
 - **fix(scm): migrate merge-gate enforcement durable + configure PUT writes to containedWrite (#1517).** Clears verify:contained-writes --enforce on the strategy-start record/configure path. Tracking #1517.
 - **fix(swarm): solo-headless keeps unloadable targets fail-closed; scaffold uses containedWrite (#3718).** Refuse multi-target / missing JSON before N=1 ceremony relax; migrate readiness scaffold off raw writeFileSync; drop VERIFY_EVIDENCE_TERMS slash form that tripped class-checks on the touched story-quality path.
@@ -264,6 +269,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tighten #3032 always-pin solo naming for agents-md-budget (#3669).** Keep Bound meaning (interactive swarm skill = solo path; headless `swarm:launch` concurrent-gated; N=1 sequential declined) in a shorter agents-entry / AGENTS.md form so managed section stays under absoluteMaxBytes. Tracking #3669.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(hooks,verify): readiness recovery no longer concatenates UNUSED_HOST_HOOKS_RECOVERY on matcher drift (Tracking #5110).** Missing/drifted evaluateAgentHooks and non-timeout live readiness no longer teach `disable-host-hooks` as Grok matcher recovery; capability-cost disclosure stays on the unconfirmed disable verb. Leftover of #4574.
 - **fix(design-critique): negated ingest no longer selects checkout (#5111).** `do not ingest` / `don't ingest` / similar resolve to `no-ingest`; bare `ingest` still selects checkout.
 - **fix(hooks,verify): missing-runtime readiness tip when `deft-hook` is off PATH (Tracking #5110).** Unavailable live readiness points at `npm i -g @deftai/directive` + doctor/update; does not restore disable-host-hooks for matcher drift.
@@ -299,6 +305,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SCM readiness trusts provisioned GitHub credentials and enforces explicit worker assignments (#5016).** Unassigned processes use gh's effective source for the target host. Runtime/socket labels no longer select credentials. Assigned host-gh refuses an applicable ambient token; assigned injected-token still requires delivery correlation and the expected user. Installation authentication may be admitted without claiming App identity when no user is required. `runGhMerge` runs a fresh assignment/auth preflight. Refs #3693, #3663.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(hooks): grok direct-write registration health uses catalog token presence, not EditNotebook union equality (Tracking #4574).** `hasNestedRegistration` for `host===grok` requires `matcherHasLiteralToken` over `GROK_MUTATION_TOOL_CATALOG.directWrite` (`write`, `search_replace`); spawn/shell/MCP and claude/cursor/codex stay on exact-equality. `mergeNestedConfig` still writes shared `DIRECT_WRITE_HOOK_MATCHER`. Leftover UNUSED recovery stays on #5110.
 - **test(win32): raise worker-auth-assignment owner-bound-remove suite-load testTimeout (Tracking #5107).**
 - **fix(update): partition dirty-deposit consumer projections; skip PROJECT-DEFINITION org-force-on (Tracking #5096).** Schema sync (#2595) and pin restore (#4533/#4710) stay intentional with mandatory report. Full skip/refuse/rewrite ledger is `consumer_projections`; `skipped_consumer_projections` lists skipped+refused only. Refs #3029, #3395, #4710.
@@ -357,6 +364,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Cursor planning choice (#4973), class-checks (#4980), in-harness intent ask (#5010), setup file_scope (#4988), and merge-path arm (#4882)
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(release,tests): scrub DEFT_ALLOW_* from Step 5 check env; Windows path assertions for ceremony dial and cursor plan store (Tracking #5022).**
 
 
@@ -376,6 +384,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Setup writes non-empty `plan.metadata.swarm.file_scope` at authoring from operator-named paths only (#4988).** Every scope-emitting setup branch — full interview, Add-scope, and Rapid — asks an explicit per-scope path question before the Post-Interview Confirmation Gate; auto-fill/derivation is out of scope. The gate lists each scope's paths as display and keeps the write-files lexicon — no approved-scope mint, digest, or `scope:record-approved-scope` as a setup action (forbid polarity may remain). Setup-created scopes must pass the same `file_scope` presence check decompose already imposes. Supersedes #4383. Refs #4956. Tracking #4988.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Windows Step 5 `ts:check-lane` cheapen for the v0.119.9 hang tip (#5022).** Ranked git-spawn leftovers (`dispatcher-owner-liveness`, `hook-dispatch-worktree`, `vbrief`/`session` extra-coverage, `release-input-pipeline`, `swarm-deep-coverage`, `spawn-occupancy`, `swarm/worktrees`, `observable-scope/evaluate-git`) move into the existing `spawn-heavy` vitest project so they stop starving the unit coverage pool. `occupancy.test.ts`, `dispatcher-owner-liveness`, and `release-input-pipeline` reuse share-plus-reset git fixtures (one init, lease reset between cases). In-process fakes and `install-upgrade` stay in unit. Pairs with the deliberate Step 5 hang-detector 20→30 raise under Changed. Refs #4591, #4744. Tracking #5022.
 - **`verify:review-monitor --merge-path-arm` residual (#4882).** Unarmed early return no longer hides config exit 2 or hand-rolls incomplete JSON; payloads use `verifyResultToJson`, and top-level `ready` / `exit_code` / `message` match the combined gate+arm exit (unarmed is not ready). Tier 1 `--live-wait` binds to gate lease evidence for that PR. Defective `parsePrWatchJsonStdoutLineSplit` is no longer a public barrel export. `github.md` observer line drops stray control characters. Tracking #4882.
@@ -422,6 +431,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **verify:story-ready reads the durable one-PR-unit store (#4950).** The ordinary readiness path uses the same absolute store as human mint. A relative path, the forbidden `.deft/one-pr-unit` path, a failed directory create, and an unreadable or malformed claims file are configuration failures, not a request to mint again. A directory with no claims file, including one this check just created, stays a missing grant. Tracking #4950.
 - **`directive --version` names the installed CLI package and the engine (#4766).** The first version number is still the engine, so identity probes keep seeing core. Tracking #4766.
@@ -453,6 +463,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Records #4707 complete after clause.N PlanItem ids landed.** Completes the tracked brief for merged PR 4836. Refs #4707.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **The release census no longer treats open `adoption-blocker` issues as a tag block (#4917).** `blocks-release-tag` is the only label that stops a cut. The punch list stays open. No ships-past hatch. Closes #4917.
 - **Records #4906 complete after the completed-twin restamp landed.**
@@ -493,6 +504,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Grok Build Gap D is background spawn then end the parent turn (#4796).** Phase 3 names `spawn_subagent` next to Cursor/Claude/OpenClaw. End the turn after the full planned launch set and any review-monitor lease register, not after the first spawn. Completion owner is Approach 1 sticky lease, parent-retained occupancy holder, or two-session occupancy-claim transfer with ack before turn end. Host notify stays Unknown. Steer inbox is child-steer only. Unmeasured matrix cells are Unknown. Do not invent `sessions_yield`. Tracking #4796.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Wait-merge must not swallow the pr:watch babysit wait (#4822).** Review-cycle wait is `pr:watch`. `pr:wait-mergeable-and-merge` squash-merges only after CLEAN. First-probe parse of `clean_gate_holdout`; class A dest residual or BLOCKED; `sha_match` stays wait. Do not harvest cascade.ts. Greptile CLEAN + other gate red stays on #4820. Do not recut #4821 dest-worker ownership. Tracking #4822.
 - **Class B residual reserved-prefix xBRIEF subtypes warn instead of fail-closed (#4765).** `verification`, `evidence`, `runtime-evidence`, `change-proposal`, `delivery-evidence`, `build-run`, `hash-pinned-input`, `upstream-defect`, and `azure-boards-issue` join the existing Class B set under `x-vbrief/` and `x-xbrief/`. Default `xbrief:validate` exits 0 over those 19 residual refs; `--warnings-as-errors` stays 1. Aliases and untabled typos stay errors. `validateVbriefSchema` stays fatal-only. Does not recut #4698, add a fifth type registry, or add these nine to `KNOWN_REFERENCE_TYPES` / `ENGINE_WRITTEN_BARE_TYPES` / `RESERVED_REFERENCE_TYPE_ALIASES`. Class A `pull-request` remainder stays #4749. Tracking #4765.
@@ -530,6 +542,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Completed-write pairing ignores item titles and narratives (#4784).** A stamped complete pairs when pairingKey, plan.title, origin issue refs, and a valid complete stamp match, including persist-on-complete versus recovered HEAD. Copied stamps with a different title or origin still refuse. Tracking #4784.
 
@@ -560,6 +573,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **xbrief:preflight exit 0 is lifecycle-ready, not implementation authorization (#4690).** The OK line and a separate authorization result no longer treat active/ plus running as an authz allow. Ordinary-session first-write remainder is #4709. Refs #4690.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Windows Step 5 leftover records a release-host timeline (#4744).** `ts:check-lane` names unit-project vs spawn-heavy vs coverage-merge from one run-start clock. Tracking #4744.
 
@@ -601,6 +615,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ROADMAP stays off merge-lane freshness and leftover-complete writes (#4316).** Tests lock `roadmap:check` off FRAMEWORK_CHECK_GATES / CONSUMER_CHECK_GATES / Taskfile check aggregates; the TypeScript suite has no live-checkout ROADMAP freshness pin, including aliased `roadmapRenderMain`, stored `repoRoot()`, and `checkDrift` via a checkout path; `scope:complete` and restamp do not write ROADMAP.md; leftover allowlist rejects ROADMAP.md; issue-closing PR template no longer asks for that edit. `task roadmap:check` stays the explicit diagnostic. Closes #4316.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Windows release Step 5 hang detector names timeout, not the D7 fixture (#4744).** Named-cause reports hang/timeout and the last completed test file. Ranked spawn leftovers move to spawn-heavy. Does not close the 20-minute wall. Do not raise RELEASE_CHECK_TIMEOUT_MS. Refs #4591, #4567. Tracking #4744.
 
@@ -635,6 +650,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Design-critique panel ceiling (#4435).** Multi-critic rounds now include the panel deposit in the round-1 input ceiling. Closes #4435.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Pain-audit English headings are not targeting (#4648).** Dispatch fills `audit-targets:` with marker ids or none. Path-1 auto-stamp waits until that field is present. Closes #4648.
 - **docs-impact comparison base is PR base.ref or explicit --base-ref, not origin/master (#4675).** Merge-base, name-status range, and snapshot showBase share one resolved base. --pr reads base.ref from the same REST pull GET. --body-file requires --base-ref, threaded through verifyDocsImpactBodyFile, leftover-complete, and finalize-cohort as the same ref as gh pr create --base. Missing or unresolvable intended base is EXIT_CONFIG. Does not reuse origin-default resolvers or default to HEAD. Does not recut #4356 or #4293. Closes #4675.
@@ -686,6 +702,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Complete tracking for #4508.** After PR 4570. The #4508 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **ts:check-lane strips DEFT_ALLOW_DESTRUCTIVE_GH_VERBS before vitest (#4630).** Release Step 5 injects that bypass via releaseSubprocessEnv; nested close-via-app tests treated it as a measured App-close violation. Same poison list as #4506. Does not weaken assertNoDeftAllowEscape. Refs #4630.
 - **RULE-MAP generated view matches the renderer (#4621).** Regenerated committed docs/RULE-MAP.md so docs:rule-map:check is not STALE (skills MUST 644->645; observable-scope related-link wrap). Refs #4621.
@@ -743,6 +760,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Complete tracking for #4446.** After PR 4532. The #4446 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Intent-constraint mint selection and site identity (#4541).** Multiple merge-base mints without `--plan-id` or dest unique pin fail closed; do not take record `[0]`. An invalid `DEFT_ACTIVE_SCOPE` pin fails closed. Numeric-const harvest is const declarations only, not let/var loop indexes. Duplicate throw/reject/abort text gets unique ids. One mint row cannot cover a numeric-const and a rejection site in different files. Each mint row covers at most one new numeric-const of that value and at most one new rejection site. Throw/reject/abort ids use compact statement text, not source offsets. Closes #4541.
 - **Requirements posture transport, nested instruction deny, and symlink class (#4444).** `session:start --posture=requirements` writes gitignored `.deft/session-posture.json` so PreToolUse sees the trusted producer when hook env cannot inherit DEFT_SESSION_POSTURE. Nested AGENTS.md/main.md/SKILL.md deny. In-tree symlink components on docs/specs paths refuse write-requirements-ready. Persisted posture is bound to the occupancy owner. Read-only start does not delete another occupant file. Mutation start (cold and re-arm) clears that file only after mutation ritual is ready (exit 0). A failed overlay clear refuses ready. Persist-fail on a new requirements claim releases the lease. Occupancy engine stays on #4445. Refs #4444.
@@ -769,6 +787,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Ingest refuses complete while named Stop 1 pains are unrelieved (#4496).** Missing `pain:` fails closed. Chip ingest-ready stays list state. Closes #4496.
 
@@ -826,6 +845,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Land leftover completed-tracked artifact for #4245 (#3264 / #3476).** The #4245 xBRIEF stayed untracked after squash of PR 4438. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **UAT Shell dest-flag dest-not-last empty-ops emit grant-immune `unknown` (#4204 / #4218 / #4161 / #3918 / #3849).** Dest-flag operands (`-oN`, `-w`, `--result-file` / `-r`, `--compile`, `-output` / `--out-file`, `-jobname=` / `--jobname`, `restic restore --target` with cargo `--target` skipped, including `timeout`/`ionice` wrappers) and `of=` / `-out:` / `json:` dests classify `unknown` when the dest is payload-protected and not last-positional. Named bins stay corpus. Last-positional dest-of-write and dest-last `-o` settings stay. `grep -w`, `cargo --target`, `/tmp` dests, and proven reads stay unclassifiable. `--python_out` is not a dest-flag (#3918). Quoted `bash`/`sh`/`zsh -c` dest-of-write is dest-visible. Closes #4204, #4218, #4161, #3918, #3849.
 
@@ -875,6 +895,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Land leftover completed-tracked artifact for #4361 (#3264 / #3476).** The #4361 xBRIEF stayed untracked after squash of PR 4392. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Grok spawn pin is dest unique basename, not payload boundPath keys (#4393).** Occupancy-validated `cwd` with exactly one copied active basename pins `inspectActiveScope` on parent root. Stdin env bag and process-wide `DEFT_ACTIVE_SCOPE` stay. Payload `boundPath` / `active_scope` are not a Grok channel (#4315 closed-schema). Unpinned multi-active still fail-closes. Does not dest-root-swap (#4215). Closes #4393.
 - **Dest-proven Grok implement spawn binds a per-spawn pin (#4393).** `boundPath` / `active_scope` on the spawn payload selects one primary leftover brief (`xbrief/active/<file>` or unique basename). Grok `cwd` dest with exactly one copied active basename is that pin when the payload omits a field. Process-wide `DEFT_ACTIVE_SCOPE` stays the CLI fallback. Unpinned multi-active still fail-closes. Does not dest-root-swap (#4215) or retarget the Grok seat to CLI. Closes #4393.
@@ -909,6 +930,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Land leftover completed-tracked artifact for #4335 (#3264 / #3476).** The #4335 xBRIEF stayed untracked after squash of PR 4357. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Cursor Task dest-missing deny names dest-placing recoveries, not Task dest keys (#4362).** Continue-in-parent first, exclusive of a live nursery grant. Composer already on a reserved linked worktree, or dest-rooted SDK Agent.create after cursor-sdk-auth. Field instance: BestiMax Multitask-from-primary (BestiMax #321). Does not claim a v0.115.0 regression. Closes #4362.
 - **Grok Build design-critique critic spawn is a playbook recipe, not the pong (#4365).** `content/docs/grok-build-subscription-setup.md` Design-critique dispatch names Claude/Codex/Grok argv, child stdio close-stdin, dest per-arc, and ChatGPT omit `-m gpt-5.6`. Probe stays the pong. Thin skill stays a pointer. Closes #4365.
@@ -937,6 +959,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Land leftover completed-tracked artifact for #4291 (#3264 / #3476).** The #4291 xBRIEF stayed untracked after squash of PR 4330. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Doctor escaping-symlink test skips on Windows without symlink privilege (#4344).** `containDepositInstallRoot rejects an escaping symlink` still asserts on platforms that can create the symlink; EPERM/EACCES on win32 skips instead of failing `task check`. Closes #4344.
 - **Doctor layout splits project lifecycle from the deposit schema pack (#4162).** A healthy consumer with project-root `xbrief/` plus deposit `vbrief/` no longer warns missing `xbrief/`. Dual-populated unmarked `vbrief/` plus `xbrief/` warns rather than reporting healthy. Layout rows name project-lifecycle, framework-content, or engine/deposit. `migrate:preflight` schema FAIL uses `vbrief/schemas` via shared `contentRoot()`. Closes #4162.
@@ -967,6 +990,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Design-critique exclusive catalog is mechanism-shaped, in-progress, ingest-ready (#4298).** One bind chip after a complete record: ingest-ready. judgmentGates stays on mechanism-shaped. in-progress flips on first panel-deposit or role: critic, not spawn intent. Recut: is a lean token, not a chip; auto-stamp writes ingest-ready. Old triage-ready / recut-needed fail closed. In-arc membership is thread-only. Halt leaves the standing in-flight chip. Closes #4298. Refs #3642, #4205, #3640, #3806.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Thin HTML Greptile summaries no longer stall on a missing Last reviewed commit (#4289).** Named state fail-closes without a findings channel (REST pulls comments via `gh api --paginate` and/or check-run comments-added), pins HEAD via the already-fetched Greptile Review check-run, and names both SHA gates. GraphQL lifecycle (resolved/outdated) wins over REST matching-HEAD counts. Dirty inlines are NEW_P0_P1 without a body SHA. Swarm poller derives findings_channel_present instead of defaulting true. Not informal-clean. Not #4288. Closes #4289.
 
@@ -983,6 +1007,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Completed xBRIEF plan.items no longer land with status `complete` (#4284).** The #4258 brief now uses schema-legal `completed`. `scope:complete` rewrites `complete` to `completed` so release `vbrief:validate` stays closed. Closes #4284.
 - **Recut ingest harvests Bound-remedy from the successor lean, not GitHub-body checkboxes (#4258).** After Recut plus a completed-arc record, ingest takes the next-build items from that Bound-remedy list and refuses when the list is empty. Closes #4258.
@@ -999,6 +1024,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Grok-applied spawn_subagent keeps the Grok dest contract when vendor-compat handlers run (#4272).** GROK hook-process env or the `spawn_subagent` tool applies cwd-only dest and emits no envelope rewrite even if argv `--host` is cursor or claude. Matcher-split is not the isolation. Vendor-compat handlers do not persist dest-lock; leftover-release stays on retry. Default-on vendor compat must work; `[compat.cursor] hooks = false` is not the product fix. Rewrite-shape (tool-arg `prompt` + dest `cwd`) is a backstop. Closes #4272.
 
@@ -1015,6 +1041,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **One suite at release pipeline Step 5, a 20-minute cached-path hang supervisor, and a full-mode pin (#4230).** Phase 1 no longer runs `task check`. Cached `runReleaseCheck` tees the suite, kills the tree at 20 minutes with exit 124 (`REAL_FAILURE`), and sets `DEFT_CHECK_MODE=full`. Worker load/exit failures notify the waiter instead of waiting out the backstop; in-memory capture is byte-capped. Fork (b): reporter stays text + text-summary. Residual [#4244](https://github.com/deftai/directive/issues/4244). Closes #4230.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Dest-lock leftover-release unblocks a same-parent retry instead of consult-deny (#4254).** A later `tool.before` of the same parent spawn on a dest with no live occupant leftover-releases the ghost dest-lock, then mints a new incarnation. Dest+parent is not a share token: two sequential same-parent workers do not reuse one incarnation. Two parents and two presented incarnations still conflict. Occupied persist still rolls back this incarnation; EXISTS of a different incarnation does not delete the winner. Does not skip dest-lock for implement `general-purpose`. Closes #4254. Refs #4066, #4215.
 - **Bound behavioral clauses no longer block complete without a grep token (#4240).** A declared path with no extractable tokens and no existence claim is not an oracle. Consumer empty-floor no longer prints `#3334` when clauses exist. Empty `clauses[]` still refuses. Absence wording such as `must be absent` still fails when the bound file is present and named as a path token, including short names and `./` prefixes. A short basename is the absence subject, including one intervening word (`the go file must not exist`), not later English prose. Other-subject negation is not an oracle for that path. Does not restore `verified.length > 0`. Does not recut #3497 or #4103. Companion #4239 stays open. Closes #4240.
@@ -1051,6 +1078,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Orientation file map matches the current checkout (#4087).** Labeled-current directory trees no longer teach deleted Python launchers or root guidance paths. Skills and consumer state use `content/skills/` and `xbrief/`. A fail-closed content-contract pin covers those trees. Partial of #4087. Refs #4085.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Dest-proven implement spawn skips parent ritual without dest-root swap (#4215).** Occupancy consult runs first with no mint. Skip parent `verifySessionRitual` only when dest is dest-proven, not when occupancy allows. On Grok, occupancy dest, dest-proven dest, persist dest-lock, and host launch are `tool_input.cwd`; extra dest keys occupancy-deny. Persist/reservation-conflict stays the final launch refusal. Closes #4215. Refs #1185, #4066.
 - **Land leftover completed-tracked artifact for #4137 (#3264 / #1358).** The #4137 xBRIEF stayed in `active/` after squash of PR 4223 (`c991046c`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
@@ -1088,6 +1116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ARCHITECTURE and CONCEPTS describe the TypeScript runtime, not Python/run launchers (#4087).** Wave 1a recut: current-tense `run.py` maps are labeled historical; MAP rendering is shipped; TypeScript packages, Taskfile, `deft`/`directive`, and `deft-hook` are named as separate lanes. Package topology stays on #4093. Partial of #4087.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Land leftover completed-tracked artifact for #4119 (#3264 / #1358).** The #4119 xBRIEF stayed untracked after squash of PR 4143 (538779da). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **issue:ingest mints a stable plan.id and lifecycle admission shares one identity boundary (#4119).** REST numeric `id` when present, otherwise owner/repo/number fallback with injective x78/x2e encoding and lowercase owner/repo matching origin keys. Stored `x-directive/plan-id` origin, source, github_issue_id, and version fail closed when present. Ingest write, promote, and both activators share one lock. Unique-origin missing ids are repaired in place; two same-origin missing-id artifacts in one pass fail closed instead of minting the same id twice; blank, malformed (including non-string), conflicting, or duplicate ids fail closed. Repair covers live nonterminal corpus only. Does not mint one id per GitHub issue or rewrite completed/cancelled history. Closes #4119.
 - **Land leftover completed-tracked artifact for #4066 (#3264 / #1358).** The #4066 xBRIEF stayed untracked after squash of PR 4111 (e52e5acd). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
@@ -1143,6 +1172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Withdraw classify-mirror and strip `triaged` / `triage:*` chips (#4070).** `task triage:classify -- --mirror` (dry-run and `--apply`) fail closed with a pointer at #4070. The discovery tip does not fire. `deft-directive-triage` stays on the same pack triggers as a withdrawn stub; work selection is `plan-sequence:current` then a read-only `triage:queue` listing. Leftover chips are remaining-set stripped (`task triage:strip-withdrawn-chips`, 126 issues on deftai/directive); design-critique catalog chips and ingest / `triage:accept` stay. Pre-strip shadowed-vs-faithful digest: `docs/analysis/2026-09-01-4070-classify-withdraw-digest.json` (41 of 126 shadowed by universal hold-marker). #3579 is transitively withdrawn for the gap; #1423, #3579, #2611, and #3923 stay open. Replacement sieve is #4071. Closes #4070.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Land completed-tracked artifact for #4070 (#3264 / #1358).** The #4070 xBRIEF stayed in active/ after squash of PR 4076 (f81e154d). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **N≥3 design-critique panels now name claimed families at dispatch, and a Grok parent with `claude`/`codex` on PATH CLI-spawns those seats (#4067).** Same-family sibling sets cannot be leaned; recovery is re-seat, not Stop 5. Paste-ready is the fallback when a named family's CLI is absent. `evaluatePanelSeatComposition` refuses same-family panels and paste-ready-first when those CLIs resolve. A composition miss offers or files a prevention issue. Closes #4067. Refs #3962, #4035, #3850.
 - **Canonical `plan.items[].x-directive/evidence` is completion metadata, not intent drift (#4059).** Provenance classifies that exact key as item machine metadata at every identity `walkItems` already walks, including nested `items` and `subItems`, without omitting nested status, completed, or effort. Extra properties on the evidence object fail `parseEvidence`. Disposition stays unknown. Closes #4059. Refs #3305, #3385.
@@ -1179,6 +1209,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Closed 23 of 25 stale-issue audit candidates from #3915.** Evidence comments cite this tree, not pass-1 cites. Full verification for #973, #1283, #1422, and #2518. #513 closed as descoped (stub scanner is not a required master check and does not scan `.ts`). #602 and #630 stay open: no latent-vs-deterministic principle in `content/`, and `migrate:xbrief` still does not auto-render. #630's proposed brief is re-targeted; #760's proposed brief is cancelled as delivered. #2769 pass-4 retracts "product not yet shipped". Refs #3915.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **The payload-root fallback for a write target with no Git toplevel is published as deliberate (#4013).** A write whose target lies outside every working tree — a path under the OS temp directory, a home file — is gated against the hook payload root's occupancy and ritual. That has been intended since #3794, but only the `unproven-identity` half of the split was written down, so the case read as a defect. `content/docs/hook-root-admission.md` now states the five outcomes of root admission, the reason this one is not a lease bug (the effective root also selects ritual, active scope, the write fence and assist-scratch; occupancy and ritual are cross-checked and the allow path re-stamps the lease; and `admitMutationTargetSet` demands one unique root, so a member contributing none has no combining rule), a gate-by-gate disposition for such a target, and the three-surface matrix — a bare direct-write name consults root admission, a generic server-prefixed MCP name never reaches it, and recognized Shell writes to outside destinations are excluded by #3987's classifier. Discoverable from `commands.md` § Session routing, `contracts/path-write-fence.md`, and `docs/host-surface-assumptions.md`. Seven characterization tests lock the behaviour; the `foreign-repository`, `unproven-identity` and `worktree-span` refusals are untouched. This publishes existing behaviour and changes none of it — the two narrowing remedies the issue proposed were refused as filed. Relative-target canonicalization is recorded as a known limitation and split to #4023. Closes #4013. Refs #3794, #3987.
 - **The occupancy lease no longer starves while a session works through the shell, and every supported host's tool surface is audited (#3987).** Matcher coverage (#3990) closed the reissue bypass; the lease still renewed only on a gated write, and almost no real shell traffic is eligible for one — so an owner could commit and push all session while its own lease expired under a peer. A matched hook call now renews the lease of the tree it fires for, bounded to a host-authoritative owner, owner-only, without recording a product write, and without moving the 12-hour absolute lease cap. `deft verify:hooks-installed --scope=agent` and `deft doctor` now fail closed when a supported host's known mutation tool names are missing from the deposited matchers, so a new host or a renamed tool cannot silently drop out of coverage. Grok's `monitor` shell tool is now covered. Per-host coverage, the two Grok tools deliberately left uncovered, and the hosts whose spellings are unverified are recorded in `content/docs/host-tool-surface-audit.md`. Closes #3987. Refs #3990, #3599, #3873.
 - **Mint-path session fixtures isolate from ambient `DEFT_SESSION_ID` (#3877).** The two mint-proof tests pass an empty env bag so a worker-shell export cannot override the minted id. Env-over-mint remains product law. Occupancy identity on a host with no session derivation is the hook process environment or `--session-id`, never a shell export. Closes #3877. Refs #3873.
@@ -1205,6 +1236,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Land completed-tracked artifact for #3983 (#3264 / #1358).** The #3983 xBRIEF stayed in `active/` after squash of PR 3990 (`a34131ce`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **PreToolUse now sees Grok Build shell writes as a cooperative guardrail, and in-flight elapsed is evaluated on the delivery-attempt ledger (#3983 / #3987).** The deposited matcher list was literal tool names and missed run_terminal_command, so a Write denied by occupancy could be reissued through the shell. Recognized in-repo dests (Set-Content, python pathlib, IO.WriteAllText) now go through the same mutation gates as Write (#3614 shape). Named PowerShell parameters are honoured in any order: `-Value` before `-Path` is not taken as the dest. git status, occupancy:release, and OS-temp body-file writes stay allowed. evaluateInFlight blocks a running attempt whose wall-clock meets maxElapsedSeconds. This does not close the shell write bypass; it narrows the cooperative reissue hole. Recogniser recall is about 47% (2,843 of 5,372 file-writing commands invisible; 17 of 29 probed in-repo shapes yielded no target). Destinations that are shell variables are not recovered (1,089 of 1,131 logged shell calls were dynamic, compound, or emitted no target). A directory junction created without elevation still defeats lexical `provablyExternal` -- that is re-entry polarity; `#3186` containment is escape polarity and does not close it. Fail-open at this predicate is the bound posture (#3997). Recall work stays on #3987. Refs #3987, #3997, #3186. Closes #3983. Refs #3614, #3143, #2646.
 - **The consumer hard-stop census no longer clears from a fenced example, and title-only BLOCKER issues no longer block a cut (#3969).** `parseClosesSet` composes the citation-grammar position predicate, so `Closes #N` inside a fence, inline code span, blockquote, strikethrough, or explicit negation does not satisfy the census; a plain control still does. Census blocking classification is privileged labels (`adoption-blocker`, `blocks-release-tag`) only -- the BLOCKER title remains an inbound flare (#3713) and is not a release gate. `task pr:check-closing-keywords` is now invoked by the branch-gate workflow (including PR body edits) and by the framework check graph in FP mode, the detector that flagged PR #3960. No ships-past hatch. Does not close #3463 or #3899 and does not claim to unblock the pending tag. Refs #3713, #3900, #737, #3156.
@@ -1279,6 +1311,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bind record filenames no longer carry a session-id prefix (#3768).** Records under `.deft/session-binds/` are named by their 24-hex SHA-256 slice alone, so a directory listing exposes no fragment of a session id. Lookup stays derivable from the id in O(1) — no index, no directory scan. Records written under the old prefixed name are read-accepted until the next bind supersedes them, so freshness pins are not orphaned. Closes #3768. Refs #3117, #3754.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **A release cut no longer dies on an empty-stderr exit 1 once a repo has more than 1 MB of open issues (#3903).** The SCM `call()` helper ran its subprocess without a stdout ceiling, so it inherited Node's 1 MB default: the paginated open-issue inventory release Step 3 depends on (4.1 MB on this repo) aborted with ENOBUFS, and the truncated capture surfaced as exit 1 with no reason and a misleading gh-auth hint. `call()` now passes the shared 64 MB ceiling and reports `error.message` when a spawn-level failure leaves stderr empty, so an overflow or a timeout kill always names itself. The same ceiling now covers four more capture sites whose payload is unbounded: cached `task` verb output, the system-of-record base-ref diff, projection provider commands, and `git show` of a tracked blob. The empty-reason fallback is one shared helper, so those sites report an overflow instead of an empty failure too. Refs #1867, #3752.
 - **A third-party comment can no longer make `verify:ac` read a file and report what is in it (#3835).** Clause derivation no longer takes an artifact path out of issue or comment prose; the walk reads only paths the brief declares on `plan.metadata.swarm.file_scope`, and an undeclared path is refused before any filesystem access with a refusal that reads the same whichever string the prose asked about. Two gate seams close with it: a clause must verify against its own bound artifact rather than being covered by a sibling, and a walk that verified nothing no longer relabels an empty acceptance run as verified. Refs #3323, #3826, #3840, #3842, #3819.
 - **A session the write gate is about to deny can no longer rewrite the occupant's ritual state (#3769).** The mutation hook ran the gated ritual verifier before the occupancy verdict, and that verifier executes `agent_hooks` and rebinds a forward HEAD — both of which write `.deft/ritual-state.json`. Occupancy now decides first, and a denied session reads the ritual through a no-write inspect, so the owner's record is byte-identical after the refusal and is never retitled. Compact keeps its always-allow path outside the mutation gates, and its stale-mark stays fail-open: it writes even when no acting identity can be bound, on the recorded trade that an unidentified compact re-arms the owner rather than leaving a silently valid bind. A lease that transfers while verification is already running is covered too: the in-flight write is refused instead of landing on the new owner record. Closes #3769. Refs #3613, #3433, #3611, #2113, #3738.
@@ -1378,6 +1411,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Exclusive remaining-set replace for design-critique catalog chips (#3642).** Applying `design-critique:mechanism-shaped` or `design-critique:triage-ready` GET-drops the other catalog name and PUT/PATCHes that remaining set (`LabelClient.apply` / `mergeIssueLabels`). Parent write is `task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped` (not additive `scm:issue:edit --add-label`). No DELETE-then-POST window. Chip is list state, not consent. Closes #3642.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Posted successor lean before operator verbs after critic EXIT (#3741).** After a critic posts, the parent posts a successor lean with proposed per-heading takes before printing accept / retry differences / walk / walk all. That posted lean is the first operator surface. This supersedes #3627 for the first lean only. Operator confirm/amend binds takes. All-accept drafts still go through the offer. Auto-stamp and Bind path 1 require operator confirm and do not bind while same-round panel siblings remain unposted. Thin skill pointer. Content-contract tests lock the MUST, not live parent turns. Closes #3741. Refs #3434, #3627, ADR-005, ADR-006.
 - **File writes no longer wait on triage-cache freshness (#3738).** A write still re-checks hook readiness. Cache drift stays a session and work-selection check, so activating a story no longer spends forge I/O on every Write. Closes #3738.
@@ -1451,6 +1485,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release closed-verb gate fires on tag push / npm publish, not only the GitHub draft flip (#3527).** `task release` refuses Step 10–11 (`git tag` + `git push --atomic` of `v*`) without a human-origin `release-publish` grant or `DEFT_ALLOW_RELEASE_PUBLISH=1`. `--skip-tag` and dry-run stay ungated. `release:publish` draft-flip refusal is unchanged. The v0.105.0 sequence (tag push shipped npm with no authz; gate fired later on draft flip) is now a fail-closed test. Refs #716, #3110, #1095.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Operator mint works in a real Windows console (#3596).** The controlling-terminal probe no longer opens the Windows console input device read-only, which blocked mint after TTY checks passed. Remediation text for `scope:record-approved-scope` includes `--confirm`. The #3110 env-marker, TTY, `--confirm`, and typed-phrase gates are unchanged. Closes #3596. Refs #3110, #3145, #3205.
 - **Prescribed agent commands emit `deft <verb>` (#3439).** Skill MUST fences, routing/bootstrap remediations, commands.md work-selection, and the unknown-verb hint no longer print bare `task <verb>` that a consumer include-only Taskfile cannot run. `deft plan-sequence:current` is documented; `:status` is not a verb. `--` is accepted on triage and plan-sequence. `scope:promote --help` no longer dumps `scope_lifecycle.py` required action. Closes #3439.
@@ -1506,6 +1541,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`deft update` stages only this-run installer-managed ledger paths, including tracked deletions (#3394).** Ledger minus allowlist is printed and left unstaged. Untracked deletes are filtered so they cannot fail the batch. Pre-existing consumer edits to Taskfile, package.json, or .gitignore are not staged. Closes #3394. Refs #3378, #3392, #3393.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **`verify:ac` runs stated `plan.acceptance.commands` and stays in exit 0/1/2 (#3449).** The executor only injected that array for `derived`/`project_floor`, so a `rung=stated` brief with nine commands printed `passed` / `no stated commands` and never ran them. Empty literal ledger now falls through to `plan.acceptance.commands`. Printed pass is exit 0; other codes clamp to 1 or 2. `check` `cause:` skips go-task `engine:_ts-build` script echo and names the verb. Closes #3449. Refs #3284, #3267, #3334, #3497.
 - **Land leftover completed-tracked artifact for #3506 (#3264 / #1358).** The #3506 xBRIEF stayed in `xbrief/active/` after squash of PR 3517. Moved to `xbrief/completed/`. Does not reopen or recut that issue. Refs #2321, #3476.
@@ -1575,6 +1611,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **`verify:ac` no longer fail-closes on historical completed xBRIEFs that lack `plan.metadata` (#3375).** Parseable pre-#3357 completed files are not this-session unreadable targets, so `task check` after `session:start` can soft-skip when nothing completed this session. Broken JSON and a same-session marker at an unreadable path still fail closed. Closes #3375. Refs #3357.
 
@@ -1609,6 +1646,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **verify:ac product-oracle check ids are namespaced per active scope (#3337).** Multi-active sessions no longer share one global `verify:ac` check id, so a fail from story A and a pass from story B cannot false-deny as an unresolved method-change sequence. Same-scope fail then different-method pass still fails closed without independent re-derivation. Residual of #3322 / PR #3333. Closes #3337. Refs #3322, #3333.
 
@@ -1635,6 +1673,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Retire the coverageDebt/checkResume consent ritual; keep two plain settings (#3314).** Session-start no longer quizzes Strict / Hatch-aware / Later. `policy:coverage-check-resume-preset|later|dismiss` and the nudge/preset modules are gone. `coverageDebt.mode` and `checkResume.localStamp` stay as optional fail-closed fields (default off). Interactive mutation ritual prints one disclosure line when either is non-default. Hatch and local stamp are reserved; live hatch is `--allow-coverage-debt=#N` (#2866). Closes #3314. Refs #3189, #3187, #2866.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Blacksmith failover no longer skips while required jobs are unclaimed; merge-gate gets a GH-hosted twin (#3340).** Unclaimed means no `runner_name`. `started_at` or a reusable-workflow caller `in_progress` is not a claim. The capacity arm waits the stall budget, then cancels unclaimed TypeScript, Go, and merge-gate primaries and arms GH-hosted failover. The required merge-gate aggregator can go green on the twin. Same-run rerun re-evaluates the arm. Claimed runners are still never cancelled (#2652). Closes #3340. Refs #2672, #3168, #2652, #3333.
 
@@ -1682,6 +1721,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **scope:complete acceptance evidence is namespaced under x-directive/ (#3305 / #1620 Option B).** Canonical per-item keys are `plan.items[].x-directive/evidence` and `plan.items[].x-directive/disposition` only (same typed shapes as #3240). Bare `evidence` / `disposition` are missing/invalid for the acceptance-evidence gate (no permanent dual-read) and continue to fail `verify:vbrief-conformance`. `ITEM_CORE` is **not** expanded with bare evidence/disposition (reverts the short-lived bare-core allow from the #3124 complete land). Writers/helpers stamp only namespaced keys. Cross-gate regression under vitest/`task check` proves a pending item with valid namespaced evidence passes both complete and `scanVbrief`. Docs/migration in `content/commands.md` § scope:complete. Closes #3305. Refs #3240, #1620, #3256, #3156.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **vBRIEF bare-key conformance allows plan.acceptance and PlanItem.effort (#3124 / #3284 / #1581).** `PLAN_CORE` and `ITEM_CORE` now include the product-first done-gate `acceptance` block and the schema-validated `effort` enum so active stories with stated AC and effort stamps pass `evaluateConformance` without false #1620 bare-key hits.
 - **Vitest branch coverage restored above 85% (#3287).** Focused branch tests for literal-acceptance safety/capture edges, value readback pure helpers, and story-quality residual paths clear the v0.100.0 84.96% hairline so release Step 5 passes without `--allow-coverage-debt`. Measured: statements/lines 88.41%, branches 85.08%, functions 96.00%. Closes #3287.
@@ -1713,6 +1753,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **UAT Shell residual after #3245: crypto/alt-download bins + sibling JSONL symlink append (#3288).** Under active UAT, residual write bins (`gpg`/`age`/`zstd`/`sftp`/`wget2`/`http`/`yt-dlp`/`aria2`/`mbuffer`/`cpio`) that plant into `.deft/authz/**` or kill-switch basenames classify as settings deny (not unclassifiable allow). Dest flags cover `-o`/`--output`/`-D` and bin-specific forms; prior #3206/#3213/#3245 cases stay denied. Triage sibling JSONL writers (`summary-history`, reconcile audit, bootstrap audit) route appends through `containedWrite` so leaf symlink follow cannot divert into tracked files. Closes #3288. Refs #3245, #3213, #3206, #3039, #2980.
 
@@ -1774,6 +1815,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **`pr:merge-ready` fails closed on absent ruleset/branch-protection required check contexts (#3234).** Resolves required status-check context names from REST (`rules/branches/{base}` + classic branch protection), compares them to exact-HEAD check runs, and blocks with `ci_absent_required` + named `absent_required` when a required context has no matching check run (path-filtered workflows never schedule). Preserves existing success / skipped / pending / failed / capacity-stall handling for observed runs. Surfaces `required_contexts` in CI partial_data. Closes #3234.
 
@@ -1793,6 +1835,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **`verify:scope-provenance` base-visible approval false positive on pending→active (#3205).** Authority now comes from the validated human approval record in the merge base (schema, plan id, path, digest; current record unchanged), not from whether the active xBRIEF path existed on the base. Same-PR approval rewrites, missing/malformed/agent/mismatched base approvals, and expansion beyond base-approved scope still fail closed. Real-Git regression matrix. Closes #3205. Refs #3145.
 
@@ -1821,6 +1864,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Shared `task check` runs cheap gates before the vitest+coverage suite (#3188).** Framework and consumer gate lists place branch/cache/orphan/contract-class preflight before `ts:check-lane`; the cached sequential orchestrator aborts on the first fast-gate failure so the suite never starts (logged). Consumer benefit is intentional; SHA suite stamp/resume stays release-scoped (#3187). Closes #3188. Refs #3187, #3189, #1713.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Vitest branch coverage restored above 85% (#3185).** Focused test-boundary policy/evaluate edges, scope-provenance digest IO, consumer-check-contract pure helpers, OpenClaw soft-rebind doctor branches, and platform-status weather URL edges clear the v0.97.0 84.95% hairline so release Step 5 passes without `--allow-coverage-debt`. Measured: statements/lines 88.66%, branches 85.1%, functions 95.98%. Closes #3185.
 - **Security: UAT Shell fail-closed for authz obfuscation, kill-switch/policy, assist-scratch symlink (#3186).** Under active UAT, write-capable programmatic Shell and kill-switch/policy authority mutators classify as settings (no `shell-op-unclassifiable` fail-open); assist-scratch allows only realpath-contained non-symlink scratch roots. Closes #3186.
@@ -1848,6 +1892,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **article-review Step 5 body-level dedupe + citation verify (#3163).** Titles are a shortlist only; related/owning claims require full issue body reads (and recent comments when the body is a stub). Cited issue numbers must exist and match claimed state (anti-hallucination). Prefer amend/comment on owning open issues over new filings; optional `.deft-cache/github-issue/` offline body-read path. Pack source + `task packs:render`. Closes #3163.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Merge-gate red on master tip (#3183).** Biome format-only write for delivery-attempt / consumer-check-contract / scope-provenance; migrate unit-lock exclusive create and approved-scope digest persist onto `containedWrite` so `verify:contained-writes --enforce` passes; complete orphaned active xBRIEFs for closed #3168/#3174/#3180/#1940; stabilize feedback-file JSON CLI test offline (no live gh dedup flake). Closes #3183.
 
@@ -1884,6 +1929,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Label mirror defaults to open-only (#3125).** Wave 1 `--mirror` dry-run planned closed archive stamps via `universal:closed-never-triaged`; Wave 2 skips closed unless `--include-closed`, so brownfield dry-runs match open backlog scale instead of full closed history.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **gitignore: ignore generated triage-cache session state (#3146).** Canonical init/deposit baseline, triage-bootstrap selective lists, and Go `deft-install` `canonicalGitignoreLines` now ignore `staleness-tickler-state.json` and `release-availability-state.json` under both `xbrief/.triage-cache/` and `vbrief/.triage-cache/` (plus legacy `.eval` paths on the Go rail). Hybrid #1144 policy preserved — no blanket `.triage-cache` ignore. Closes #3146. Refs #2348, #1144, #2488, #1692.
 - **Hard-stop parent text-repetition hang (FC14 / soft #2943 insufficient) (#3131).** Soft skill prose after `subagent_announce` did not stop parents from burning the output budget on identical progress sentences with zero tools. Ships machine-checkable `evaluateParentTurnShape` in `@deftai/directive-core/parent-turn-shape` (N>2 near-identical assistant text units with no `tool_use`/`yield` → `failClass: FC14`; post-announce progress-only multi-sentence also illegal). Swarm hard gates, OpenClaw host adapter, openclaw-agent-host operator recovery for current beta pins, and preamble §11 document the legal shapes (tool batch, yield, or one non-repeated short answer). Soft prose is not sole mitigation. Closes #3131. Refs #2943.
@@ -1906,6 +1952,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Triage Phase 3 current-state validity + URL-first operator brief (#3116).** Residual of closed #1418 after #2890: `deft-directive-triage` Phase 3 now `!` requires a **URL-first** lead line and **current-state validity** (`still-open` | `partial` | `likely-shipped` | `needs-re-scope` + one-line evidence) before the decision menu. `task triage:show --format=operator` emits the canonical issue URL first and a validity placeholder agents complete; content-contract pins the MUST bullets. Closes #3116. Refs #1418, #2890.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(security): UAT self-approval via ungated `authz:grant` shell fail-open (#3110).** Under an active UAT lease, `classifyShellAuthzOps` returned empty for `authz:grant` / `authz:uat-start` / `authz:uat-suspend` / `authz:revoke`, so PreToolUse failed open (`shell-op-unclassifiable`) and agents could silent-mint operator-cli grants. Those verbs now classify as **settings** (deny under UAT without a prior human grant). **CLI hard-refuse under active UAT:** while any UAT lease is active, all four mutating verbs refuse unconditionally — no TTY, `--confirm`, or typed-phrase path (self-approval under UAT is impossible by construction; mint fix-cohort grants *before* `uat-start`). Outside UAT, multi-factor human presence still applies: stdin+stdout **TTY**, controlling terminal (`/dev/tty`|`CONIN$`), explicit **`--confirm`**, and typed phrase **`mint`** (agent/CI env markers refuse fail-closed). Shell containment: literal `.deft/authz` write dests, split-path redirects, authz-named expansions, pure-opaque `$STORE` dests, and programmatic authz-store environ writes — without overclassifying pure reads, ordinary `$HOME`/`$TMPDIR` cleanup, or unrelated app `state.json`. Vitest: Bash/Shell `authz:grant` under UAT cannot unlock Write/push/PR/merge; CLI grant/uat-start/suspend/revoke exit non-zero under active UAT even with full multi-factor seams; dispatch-envelope self-mint regression remains. Closes #3110. Refs #2948, #2955, #2944.
 - **/deft:checkpoint host wrappers load continue-here strategy, not save-path output (#3105).** Multi-host slash deposit for `/deft:checkpoint` pointed thin wrappers at `xbrief/continue.xbrief.json` (checkpoint *output*). First invoke failed on clean consumers when that file did not exist yet. Wrappers now load `resilience/continue-here.md` (same instruction doc as `/deft:continue`); description and `commands.md` still document the save path. Strategy doc write target aligned to `./xbrief/continue.xbrief.json` (legacy vbrief path read-accepted). Closes #3105.
 - **Vitest branch coverage restored above 85% (#3103).** Focused L4 owner gate parse/config CLI edges and min-Greptile confidence policy reader branches clear the v0.94.0 84.99% hairline so release Step 5 passes without `--allow-coverage-debt`. Closes #3103.
@@ -1928,6 +1975,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Functional agent-hook mutation readiness (#3100).** `deft verify:hooks-installed --scope=agent --live` now fail-closes enabled hosts on structural drift or installed-shim allow/deny failures across Claude, Grok, Cursor, and Codex. Init/update report the post-deposit result; `session:ready` and a non-deferrable gated ritual step require it without adding the probe to cold `session:start`. Codex trust and real interception remain honest separate states (`manual-review-required`, `not-directly-verified`), and `hostHooks` opt-out remains healthy/disabled. Closes #3100.
 
 - **fix(pr-monitor): pass --project-root from CLI and pr-wait-mergeable cascade into confidence policy resolve (#3102).** Residual from #3095: production remote-monitor path no longer silently uses an unrelated cwd for minGreptileConfidence. Closes residual of #3095.
@@ -1966,6 +2014,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Untangle RWLDL from `deft-directive-pre-pr` naming (#449).** Pre-pr skill prose uses **pre-PR / Read-Write-Lint-Diff** (not “RWLDL loop”); Formerly note points at `tools/RWLDL.md` for the broader micro/macro quality loop; Skills Index drops `rwldl` as a pre-pr trigger (keep `pre-pr`, `quality loop`, `self-review`); REFERENCES tools section loads `tools/RWLDL.md` for deep quality work. Pack source + `packs:render`. Closes #449.
 
 ### Removed
@@ -1985,6 +2034,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Through-merge / drive-to:merge-ready must dispatch a worker; N=1 uses swarm path (#3032).** AGENTS.md and `agents-entry` now carry always-on `!` / `⊗` bullets: parent conversation MUST NOT implement product code or babysit fix/CI loops when background subagent/worktree dispatch is available; parent MUST dispatch a `drive-to: merge-ready` worker (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`) even when cohort size is 1. Swarm Phase 0 + core-ops anti-patterns encode the same rule; skill-pin-policy cross-refs the false-negative class; lessons pack records the #3027 recurrence. Contract markers in `agents_entry_contract`. Refs #1880 Gap C/D, #2508, #954.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Review-cycle empty settle is not done (#3044).** Empty/unknown review-monitor handoffs require same-turn ground truth; one review-owner lease (force takeover when prior owner is dead); required STATUS handback. Closes #3044. Refs #2874, #2876, #2814, #2943.
 - **projectRoot containment for atomicWriteText, ritual-state, probe-session (#3042).** Residual Medium parent-as-root / bare-write sinks after #2951/#2980: `cache/io.ts` `atomicWriteText` accepts `projectRoot` and refuses symlink lifecycle parents; brief stay-path callers thread projectRoot; `writeRitualState` / sentinel atomic JSON use projectRoot (not dirname); `writeSession` drops bare open/write/rename for `assertWriteTargetSafe` + `containedWrite`. Regression tests force-add `xbrief/` and `.deft/` dir symlinks and assert fail-closed. Removes `probe-session.ts` from the contained-writes allowlist. Closes #3042. Refs #2951, #2980.
@@ -2013,6 +2063,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Fail-closed consumer denylist on installerManagedMatchers (#3030).** Added `CONSUMER_GUARD_MUST_FIRE` + `assertInstallerAllowlistHonors1430()` (TS + Go) so re-allowlisting consumer PROJECT-DEFINITION or scope briefs fails unit tests and deposit-time ERE emission. `classifyMixedCoreAndApp` pins core+PD mixed vs core+`xbrief/.deft-version` not mixed (#2277). Builds on #3029 matcher removal. Init seed (#3013) unchanged — create ≠ allowlist. Closes #3030. Refs #1430, #3029, #3013, #2277.
 - **deft-core-guard no longer allowlists PROJECT-DEFINITION (#3029).** Removed `xbrief/PROJECT-DEFINITION.xbrief.json` and `vbrief/PROJECT-DEFINITION.vbrief.json` from `installerManagedMatchers()` so deposited `no-mixed-core-and-app` treats consumer PD as app code again (#1430). Init may still seed PD (#3013); only the guard/staging exemption is gone. Go installer already excluded PD. Tracking: #3029. Refs #1430, #3013, #2277.
@@ -2044,6 +2095,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Slim mutation `session:start` hot path + step timings (#2991).** Optional network (npm release probe, triage cache empty-hydrate / self-heal) no longer blocks ritual-state write by default. Opt in with `--with-network` or `DEFT_SESSION_START_NETWORK=1`. `--json` exposes per-step `duration_ms` (`steps[]` + total) for attribution. Docs: `content/commands.md` § Mutable ritual. Closes #2991. Parent epic #2990.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Vitest branch coverage restored above 85% (#3003).** Focused session-ready, process-cost, OpenClaw pin-assess, and release-e2e failure-formatting edge tests clear the v0.90.0 84.99% hairline so release Step 5 passes without `--allow-coverage-debt`. Closes #3003.
 - **release:e2e push-mirror no longer dies on the generic 30s `runGit` timeout (#3004).** First full heads+tags mirror of a large repo (many tags / ~30MB pack) exceeded `packages/core/src/release/git.ts` default 30s, killing the push with empty stderr (`failed: `). `pushMirror` now uses a 300s timeout (same order as clone) and surfaces a non-blank timeout/exit reason; `spawnText` also fills empty stderr on signal/timeout kills. Closes #3004.
@@ -2082,6 +2134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Routine release cuts skip scratch/worktree noise by default (#2953).** Content/link, codebase-map, stub, and build-dist walks default-exclude `.deft-scratch/` and legacy `swarm-worktrees/` so Step 5 / Step 8 no longer enumerate swarm worktrees. Docs in `docs/RELEASING.md` and the release skill describe routine vs hard cut: both keep full Step 5 coverage unless an explicit hatch (`--allow-coverage-debt=#N` or incident `--skip-ci` + `--allow-skip-ci=#N`) is used — no silent soft-pass. Closes #2953.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Write-path xBRIEF defaults converge on envelope 0.8 (#2971).** Setup skill samples and `project.md.template` stamp `xBRIEFInfo.version: "0.8"` only (legacy 0.6 remains read-accepted). Doctor fails closed on project JSON still at 0.6 under an `xbrief/` layout with next action `deft migrate:xbrief` (distinct from stale deposited schema → `directive update`). Dogfood `xbrief/PROJECT-DEFINITION.xbrief.json` is a single `xBRIEFInfo@0.8` (no dual `vBRIEFInfo` half-state). Init continues to deposit `xbrief-core-0.8.schema.json`. Closes #2971. Coordinates #2970 (hybrid migrate transform).
 - **migrate:xbrief accepts hybrid xBRIEFInfo@0.6 (#2970).** `transformArtifactV06ToV08` previously required classic `vBRIEFInfo@0.6` only, so layout-renamed artifacts that already used the `xBRIEFInfo` key with version `0.6` failed with `missing required legacy info block 'vBRIEFInfo'`. Classic and hybrid inputs both emit `xBRIEFInfo@0.8` idempotently; UPGRADING documents that layout rename is not an envelope bump. Closes #2970.
@@ -2108,6 +2161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Swarm skill host-adapter progressive load + OpenClaw isolation/handoff gates (#2928, #2929, #2934).** `deft-directive-swarm` is split into a thin SKILL (detect + route table + hard gates) and hand-authored `references/core-*.md` + `references/host-*.md` adapters. Default load is core + **one** host adapter after detect; loading all hosts “just in case” is forbidden. OpenClaw adapter hard-requires worktree/worktree-map before parallel `sessions_spawn` and blocks shared-checkout DIY dispatch (#2929). After coding cohort complete, same-turn next-phase tool dispatch or explicit terminal status is required — prose-only “I will spawn…” handoff is forbidden (#2934). Write-skill documents the multi-host convention; `openclaw-agent-host.md` links the adapter without forking SoT. Content contracts read the ordered skill surface. Closes #2928. Closes #2929. Closes #2934.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Shell/MCP PreToolUse matchers for runtimeAuthority scopes.push / scopes.merge (#2711).** When plan.policy.runtimeAuthority.enabled is true, PreToolUse classifies Shell/Bash git push and gh pr merge (pipeline segments included) plus classifiable MCP push/merge tool names and denies when the matching scope is false. Unclassifiable shell/MCP calls fail open; policy-load failures fail open. Contract docs no longer mark push/merge as schema-only. Residual host gaps (obfuscated shell, unknown MCP spellings, non-shell tools) stay documented. Closes #2711. Refs #1394, #2948.
 
@@ -2146,6 +2200,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Babysit/review must not expand active story past xBRIEF AC (#2881).** Out-of-AC Greptile findings default to follow-up issue or consented brief amend; P0 carve-out limited to already-touched surfaces; confidence-only holds (0 P0/P1) do not authorize unbounded redesign; `issue:emit` related-ref footgun documented (github-issue type marks already tracked). Closes #2881.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Gates-surface readiness for consumer deep-think harness (#2893).** Doctor elevates missing Taskfile include to a gates-surface **warning** (not optional-only footnote) with dual remediations: prefer `deft pr:watch` / `deft review-monitor:*`, and add the include for `task deft:<verb>`. Review-cycle and swarm skills probe **`deft`/`directive` → `task deft:` → #2878 gh-only fallback**; bare `task pr:watch` is not the sole consumer form. Closes #2893. Refs #2878, #2267.
 - **Active-scope write gate skips outside-project-root targets (#2885).** `inspectMutationGates` no longer denies Write/Edit with `scope-not-ready` when `toProjectRelativePosix` resolves outside `projectRoot` (agent memory, temp files, user config). Null/unparseable write targets stay fail-closed; spawn tools still require active scope. Closes #2885.
@@ -2173,6 +2228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release Step 5 branch-coverage hairlines use open-issue ledger hatch (#2866).** When `task release` Step 5 fails only on Vitest branch coverage below 85% and no open coverage-debt issue exists, file `#N` and continue with `--allow-coverage-debt=#N` (PowerShell-safe); while a prior hatch debt issue remains open, soft-pass is forbidden until coverage is restored. Non-coverage failures stay under #2859 file-and-merge. Closes #2866.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Vitest branch coverage restored above 85% (#2865).** Focused win32 coverage setup and coverage-debt argv branch tests clear the 84.99% hairline so v0.86.0 Step 5 passes without a consecutive `--allow-coverage-debt` soft-pass. Closes #2865.
 - **`core:validate` honors the dispatcher cwd and skips junk trees (#2858).** Inline `core:validate` now walks the resolved framework root instead of ambient `process.cwd()`, and `collectMarkdownFiles` skips `node_modules` and `.deft-scratch` so `task check` no longer hangs on maintainer clones with swarm worktrees. Closes #2858.
@@ -2205,6 +2261,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Review-cycle ownership is GitHub-anchored (#2814).** Agents must succeed at `task review-monitor:register` on GitHub before claiming an active monitor; `task verify:review-monitor` requires an unexpired GitHub lease on Tier 1 (local heartbeat alone is insufficient).
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Deposit file-set convergence on update (#2804).** `directive update` now prunes `.deft/core/` paths absent from `@deftai/directive-content` (preserving generated deposit metadata such as `VERSION`), and `directive doctor --full` fails when package-absent bridge leftovers remain instead of reporting clean deposit hygiene.
 - **Symlink write containment for four CLI sinks (#2807).** `verify:eval-health-relocation -- --seed-baseline`, `product-signal:submit` last-submit recording, `install:uninstall` AGENTS.md rewrite, and `change:init` history materialization now gate writes with `assertWriteTargetSafe` / `projectionTarget` so repo-controlled symlinks cannot divert operator writes outside the project tree.
@@ -2234,6 +2291,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Swarm/build/pre-pr gate policy (#1704).** Moves swarm-heavy workflows toward `O(merges × full-gate) + O(iterations × cheap-proxy)` from `O(commits × full-gate)`.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Cached `task check` no longer shells internal Taskfile shims (#2791).** The #1713 framework gate list now invokes the public `verify:wip-cap --allow-over-cap` and eval-relocation surfaces (with `--base-ref origin/master`) instead of `internal: true` task names that go-task 3.50 refuses with exit 202. Closes #2791. Parent #1713.
 
@@ -2254,6 +2312,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Synthetic secret-shaped test fixtures no longer trip GitHub secret scanning (#2792).** Product-signal, cache-scanner, and umbrella-current-shape tests now assemble `ghp_`-shaped placeholders at runtime (split-literal #1070 precedent) so no single source line matches secret scanning while validators still reject the concatenated strings. Closes #2792.
 
@@ -2288,6 +2347,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Orphan-active guard for stop-at:pr-open lifecycle leaks (#2321).** Dispatch doctrine now assigns post-merge `scope:complete` / `scope:cancel` ownership to orchestrators for `stop-at: pr-open` workers and requires `drive-to: merge-ready` workers to complete their xBRIEF; `task verify:orphan-active` fails when `xbrief/active/` still holds `plan.status == running` briefs whose referenced issues are all closed or whose linked PR merged. Completes three previously orphaned active briefs surfaced by the new gate (#2313, #2607, #2744). Closes #2321.
 
@@ -2314,6 +2374,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`product-signal:bootstrap-sink` sets visibility to internal** after create (org-visible, not public). Docs match. Refs #2693.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - Cursor `preToolUse` stdin for bare `deft hook:dispatch --host cursor --event tool.before` no longer fail-closes on UTF-8 BOM-prefixed JSON — `parsePayload` strips the BOM before `JSON.parse` while preserving empty-stdin and invalid-JSON distinctions. Refs #2734.
 - Cursor free-form `ApplyPatch` stdin (`*** Begin Patch` with a single `Add File` or `Update File` path) is synthesized into a normalized payload in `parsePayload` instead of failing as invalid JSON; multi-file and other unparseable free-form input still fail closed. Closes #2738.
@@ -2337,6 +2398,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -2353,6 +2415,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release skill Phase 1 / Phase 3 long steps must stay off the operator chat (#2692).** `deft-directive-release` now pins #1880 Gap D: background or subagent-dispatch `reconcile:issues`, ritual-stale cache refresh, `ci:local`/`check`, and `release:e2e` when the host supports it; keep version/`--summary`/dry-run gates interactive; avoid PowerShell `Select-Object -Last` buffering. Closes #2692.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Review-cycle workers must fix CI when Greptile is CLEAN and `clean_gate_holdout=ci_failures` (#2688).** Skill doctrine forbids idle-polling / treating test-plan checkboxes as merge-ready; review-monitor has a CI-holdout carve-out. `pr:watch` emits `ci_failed_checks` and returns `CI_BLOCKED` instead of burning the wait cap. Closes #2688.
 - **`triage:bootstrap` populates the issue cache via TypeScript `cacheFetchAll` (#2684).** Packaged npm consumers no longer defer with a `scripts/cache.py` / rebase recovery message; bootstrap uses the same TS fetch path as empty-cache auto-populate. Closes #2684.
@@ -2381,6 +2444,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release-tag parsing lives in one module (#2525).** `packages/core/src/release/version.ts` now owns parse, publishability, PEP 440 normalization, and prerelease ordering; platform latest-tag selection and doctor release checks consume that contract instead of a duplicate parser in `resolve-version.ts`. Closes #2525.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **`pr:watch` / merge-readiness pick the most recently updated Greptile summary.** When Greptile leaves a later-created duplicate summary SHA-stale while editing the primary rolling summary in place, the detector no longer treats the stale duplicate as authoritative. Unblocks false `sha_match` holdouts after force-push / follow-up commits.
 - **`deft scope:promote` / `scope:activate` / `scope:complete` now resolve on the npm CLI (#2654).** Colon- and dash-style scope lifecycle verbs advertised in `deft help` and `deft commands` route through `scope-lifecycle` the same way as `deft scope promote`; previously only the two-token form worked and colon tokens returned `unknown verb`. Closes #2654.
@@ -2399,6 +2463,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Windows PowerShell agents get one temp-file pattern for multi-line git/gh bodies (#2646).** `content/scm/github.md` forbids bash heredocs, `<<<`, and inline multi-line `--body` flags under Windows PowerShell; documents `git commit -F`, `gh --body-file`, and `gh api --input` with dogfood failure modes and cross-links to #240 and #798. Agent preamble and agents-entry pointers added; absorbs #1417. Closes #2646.
 - **`task change:init` scaffolds history/changes xBRIEFs at v0.6 (#2524).** `proposal.xbrief.json` and `tasks.xbrief.json` now declare `vBRIEFInfo.version` from the canonical `LEGACY_VBRIEF_VERSION` constant (0.6) instead of stale 0.5, matching `content/commands.md` and build/review validation. Closes #2524.
@@ -2429,6 +2494,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PowerShell-safe coverage-debt flag examples (#2621).** Release help and the release skill document `--allow-coverage-debt=N` (no bare `#`) so Windows shells do not strip the issue number.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Write gate allows creating `xbrief/proposed/*.xbrief.json` with no active scope (#2625).** Planning writes to proposed lifecycle artifacts are exempt from the active-scope implementation gate after a fresh session ritual; recovery text no longer loops on `scope:activate` for that case. Closes #2625.
 - **Lifecycle reconcile no longer hard-fails when `completed/` already has the basename (#2622).** `apply-lifecycle-fixes` treats the collision as already-terminal, logs a skip, and continues (source left in place for manual cleanup). Closes #2622.
@@ -2459,6 +2525,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Branch-coverage floor is 85% on every platform.** Removed the Windows-only `84.85` branches carve in `vitest.config.ts`; hairline win32 misses are operator-owned via `--allow-coverage-debt=#N`, not config nibble.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Release Step-5 coverage-debt soft-pass reaches Vitest again (#2618).** `ts-check-lane` forwards `--allow-coverage-debt=N` on the `pnpm run test` argv before `sanitizeTsLaneEnv` strips `DEFT_RELEASE_PREFLIGHT` (which previously made the env-only debt path invisible to `vitest.config.ts`). Also scrub ambient debt env from unpaid `releaseCheckEnv` builds. Refs #2573.
 - **Windows doctor/update no longer false-report engine unreachable (#2606).** `defaultEngineProbe` now prefers in-process core identity when already running inside `@deftai/directive`, and falls back to PATHEXT-aware PATH resolution plus `shell:true` for npm global `.cmd` shims instead of bare `execFileSync`. Closes #2606.
@@ -2494,6 +2561,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Session orientation reports the host OS and source-attributed shell context.** `session:start` now exposes structured environment metadata in text and JSON, distinguishes harness-provided execution shells from user defaults, and pairs detection with portable-shell guidance so agents do not assume Bash under macOS/zsh. Closes #2568.
 - **Windows Cursor Task swarms no longer force a full rebuild (and visible cmd windows) on every `task` verb.** `engine:_ts-build` writes `packages/cli/dist/.deft-ts-build-stamp` and skips rebuild when that stamp is newer than package sources (`tasks/ts-build-fresh.cjs`; override with `DEFT_FORCE_TS_BUILD=1` / `DEFT_SKIP_TS_BUILD=1`), and engine / `spawnCommandText` spawns set `windowsHide: true` (CREATE_NO_WINDOW). Swarm skill + preamble warn Windows operators to keep local Task concurrency at 1 until mitigated. Closes #2563.
@@ -2531,6 +2599,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Combined always-on north-star raised to 9 KB.** After Wave A thinning, further cuts hit diminishing returns vs capability/discoverability; `verify:agents-md-budget` now treats combined (managed + DD-3 + hooks) ≤**9216 B** as the Phase-3 north-star while managed stays ≤8192. Current combined ~8594 is within bar. Closes #2531. Cancels #2537.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Windows release:e2e npm dry-run resolves pnpm.cmd instead of ENOENTing.** The npm publish rehearsal now uses PATHEXT-aware PATH lookup and win32 shell spawn for `.cmd` shims, matching the #2467 toolchain class. Closes #2548.
 - **Windows task check no longer fails on Vitest onTaskUpdate RPC timeouts after a green suite.** Native Windows coverage runs cap fork worker parallelism, widen teardown timeout, and ignore unhandled worker RPC flakes when assertions are otherwise green so `pnpm run test` / `task check` exit zero. Closes #2546.
@@ -2565,6 +2634,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Security docs clarify LLM trust-tier framing for informational AppSec findings.** Guidance in REFERENCES, security taxonomy, context engineering, llm-app patterns, and coding rules now states that provider/SDK mentions are framework guidance for consumer projects, not runtime surfaces in the directive repo. Closes #2414.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - Release Step 5 no longer poisons the TypeScript check lane with branch-bypass and release-preflight environment variables, so production cuts can run a full `task check` on master without false vitest failures or `--skip-ci`. Closes #2434. Closes #2469.
 - **The documented `xbrief:preflight` gate works again.** `task xbrief:preflight` and `deft xbrief:preflight` now resolve to the same #810 implementation-intent check as the legacy `vbrief:preflight` verb, accept `xbrief/active/` paths, and print clearer usage hints on failure. Closes #2449.
@@ -2580,6 +2650,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Wave 2 AGENTS.md slim-down phase 1 — more relocation still ahead — plus OpenPackage skill packaging and fail-closed always-on budget gates.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Windows-native maintainers can run the test suite without WSL.** Path helpers and content-contract readers now honor win32 path and CRLF semantics, with LF checkout hardening and a short CONTRIBUTING setup note. Closes #2467.
 - **`toolchain:check` finds npm-global `pnpm` on Windows.** The probe uses a shell spawn on win32 so `pnpm.cmd` PATHEXT resolution works (same class of fix as Corepack detection). Refs #2467.
@@ -2609,6 +2680,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Agents-entry propagation is pointer-sufficient.** The `agents_entry_contract` gate now validates skill/gate/doc pointer shapes and canonical homes instead of requiring full-text rule mirrors in the always-on AGENTS.md managed section — unblocking epic #2369 Wave 2 relocation. Closes #2371.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **TS-native init now deposits the shared git-hook helper.** npm-installed projects receive `.githooks/_deft-run.sh` alongside `pre-commit` and `pre-push`, `verify:hooks-installed` catches missing helpers, and the Windows update smoke now baseline-commits through the hooks instead of bypassing them. Refs #2067, #2248.
 - **triage:queue no longer surfaces scanner-quarantined issue titles as agent work-selection context.** Hard-failed cache entries are omitted, and injection-shaped titles are redacted before render, so the mandatory queue path cannot bypass the cache quarantine. Refs security-review-2026-07-10.
@@ -2631,6 +2703,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Structured top-level `directive --help` for faster command discovery.** Running `directive` or `directive --help` now shows a curated page with version, usage, common options, and grouped everyday commands instead of dumping every registered verb; run `directive commands` for the full list. Closes #2172.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Doctor and migrate:xbrief no longer dead-end on already-migrated xbrief projects with a stale deposited schema.** When `xbrief/` is canonical but `xbrief/schemas/vbrief-core.schema.json` still carries v0.6 markers, doctor advises `directive update` instead of `migrate:xbrief`, and migrate:xbrief exits cleanly with the same guidance rather than exit 2. Closes #2368.
 
@@ -2658,6 +2731,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Session/runtime tasks on unbuilt source checkouts now fall back to global deft.** When `packages/cli/dist/bin.js` is missing but a working global `deft`/`directive` is on PATH, ritual verbs (`session:start`, `verify:session-ritual`, `verify:tools`, `triage:summary`, `triage:welcome`, `verify:cache-fresh`) invoke the global CLI with a one-line version-skew warning instead of failing closed; build-gated verbs still require `task build`. Optional `DEFT_USE_GLOBAL_CLI=1` forces global for any verb. Closes #2409. Refs #2181.
 - **Framework source builds resolve pnpm via Corepack when bare pnpm is absent.** `engine:_ts-build` and `tasks/ts.yml` now invoke the pinned `packageManager` through Corepack (or honor `DEFT_PACKAGE_MANAGER=npm`) with actionable remediation when neither path works. Closes #2410. Refs #2197.
@@ -2689,6 +2763,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `directive update` now auto-prunes a stray `.deft/core/packages/` tree if it is not shipped by the `@deftai/directive-content` package. Previously the additive file-swap never removed it, causing the deposit-hygiene advisory from `deft doctor` to persist across every upgrade. The `deft doctor` advisory also now names `directive update` as the deterministic fix. Closes #2347.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - `project:render` now correctly refreshes `xbrief/PROJECT-DEFINITION.xbrief.json` on xbrief-layout projects instead of writing an empty legacy `vbrief/PROJECT-DEFINITION.vbrief.json` with 0 scope items. The renderer was already layout-aware via `resolveLifecycleRoot`; the xbrief path is now exercised end-to-end with fixture tests. Closes #2236.
 - `project:render --help` (and any unrecognized `--flag`) now prints usage and exits cleanly instead of consuming the flag as a positional output path and creating a stray `./--help/` directory. Closes #2236.
@@ -2709,6 +2784,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -2725,6 +2801,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Upgrade guide documents triage-cache relocation (#2349).** UPGRADING.md now explains the v0.71.0 move of the triage working-set from `.eval/` to `.triage-cache/`, the lazy automatic migration, and the canonical-wins conflict policy; stale operator-facing docs and task descriptions now cite `.triage-cache/` instead of legacy `.eval/` triage paths. Refs #1703. Closes #2349.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - `deft reconcile:issues --apply-lifecycle-fixes` no longer corrupts canonical v0.8 scope briefs. When moving a brief to `completed/`/`cancelled/`, it now stamps the `updated` timestamp onto the brief's existing info envelope (`xBRIEFInfo` for v0.8) instead of unconditionally appending a stray, version-less `vBRIEFInfo` block that made the file fail `vbrief:validate`. Fixes a v0.71.0 release-cut blocker. (#2346)
 - `deft update` now ignores operator-private triage-cache files on the `xbrief/` layout. The canonical `.gitignore` entries previously covered only `vbrief/.triage-cache/*`, so on migrated `xbrief/` projects those cache files were trackable and could be committed; the symmetric `xbrief/.triage-cache/*` entries are now emitted too. (#2348)
@@ -2745,6 +2822,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Eval framework discoverability (#1703).** Agents now learn the tiered eval surface from AGENTS.md: Tier 0 `task eval:health`, automatic Tier 1 CRUD telemetry, and Tier 2 `eval:run` / `eval:report`. Session start emits a budgeted `[eval]` advisory when health degrades or a contradictory gate fires, and `task triage:help` documents all three eval verbs. Closes #2336.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - Maintainer `task` aliases for value feedback: `task policy:enable-value-feedback`, `task value:show`, and `task triage:metrics` now resolve through the Taskfile instead of failing with "task not found", matching the documented AGENTS.md surface. Refs #2337.
 - Stopped versioning operator-private cache stragglers in the reclaimed `.eval/` namespace: removed accidentally committed scratch dumps and taught `.gitignore` to ignore the loose legacy triage-cache basenames (`candidates.jsonl`, `summary-history.jsonl`, `doctor-state.json`, etc.) and `_tmp_*` files under `xbrief/.eval/` / `vbrief/.eval/`, while keeping the tracked `.eval/results/` ledger. Refs #2344.
@@ -2768,6 +2846,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **chore(triage): move triage working-set cache off `.eval` to `.triage-cache/` (#1703)** — Triage append-only logs and decomposition scratch now resolve under a dedicated `.triage-cache/` namespace with an idempotent migration from legacy `.eval/` paths, reclaiming `.eval/` for the version-eval results store. Refs #1703.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -2786,6 +2865,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The frozen pre-v0.20 migration path is now durable-by-documentation. `deft doctor` / `task migrate:preflight` guidance now anchors recovery on the permanent `v0.59.0` git tag (GitHub serves a source tarball for any tag, so recovery no longer hinges on an uploaded release asset), spells out the two-hop migration chain (pre-v0.20 flat → vBRIEF v0.6 → xBRIEF), and adds a manual `directive init` fresh-start fallback for when the frozen payload is unreachable. Closes #2297.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **A generic "review this" / "use sub-agents for reviews" request now routes to the canonical Deft review cycle instead of the host harness's own review tools (#2308).** Inside harnesses like Cursor that expose their own review-labeled surfaces (the `bugbot` / `security-review` subagent types and `review-bugbot` / `review-security` skills), the orchestrator would reach for those host tools instead of `deft-directive-review-cycle`. A new review-surface precedence rule (in AGENTS.md, the consumer template, and the orchestrator dispatch preamble) makes the Deft review cycle authoritative — host review tools may only be folded in as advisory finding sources — and broadens the Skills Index so generic review requests map by intent, not literal keyword. Refs #2308, #1862, #2261.
 - `deft doctor` now surfaces an actionable advisory when a project's `VERSION` manifest carries no semver tag/ref and only a short commit sha — the unpinned state legacy `deft-install` produces without a release pin. Previously the framework version was silently unreportable; the doctor now names the sha-only manifest and points at `directive update` to obtain a pinned npm-managed manifest, without changing the doctor exit code. Closes #2294.
@@ -2822,6 +2902,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`directive doctor` is now a strictly read-only, decision-oriented diagnostic (#2267).** It reports your operating mode (hybrid / vendored / greenfield / brownfield / pre-cutover) plus an engine/pin/VERSION reconciliation line, surfaces cross-platform `.deft/.cli/<platform>` engine skew, and derives its verdict from the shared `plan()` classifier so there is a single source of truth. When action is required it emits exactly one `Next command:` paired with a root-cause and a remediation "does / why safe" rationale, suppressing secondary migration advice until the primary blocker clears, never printing a bare `task` command in a project without Taskfile wiring, and never mutating project files. Refs #2267, #2203.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **`migrate:xbrief` now converges to a single, unambiguous lifecycle root instead of stranding an empty `vbrief/` next to `xbrief/` (#2270).** A fully-migrated empty `vbrief/` is removed (or, with the new `--keep-legacy` flag, retained for read-compatibility behind an explicit `DEPRECATED.md` marker so it never looks like an active source of truth), and a stray empty `vbrief/` alongside a canonical `xbrief/` is cleaned up rather than dead-ending on a refusal. `doctor` now reports an unambiguous `xbrief active` state (`vbrief removed` or `vbrief legacy marker`), and re-running the migration is idempotent. Closes #2270. Refs #2203.
 
@@ -2836,6 +2917,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Migrated `xbrief/` projects can now run routine framework upgrades without the deft-core-guard falsely blocking the deposit PR (#2277).** The installer-managed allowlist only listed the legacy `vbrief/` paths, so after the `vbrief/`->`xbrief/` migration the framework-managed `xbrief/.deft-version` marker was treated as an app file and every `deft update` deposit PR tripped the `no-mixed-core-and-app` guard. The allowlist (which drives both the deposited guard workflow and the staging classifier) now mirrors the `xbrief/` version marker, `xbrief.md`, `schemas/`, `migration/`, and lifecycle `.gitkeep` paths, while keeping the `vbrief/` entries for not-yet-migrated consumers. Closes #2277. Refs #2034, #2110, #1576.
 
@@ -2857,6 +2939,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **TS-native `directive init` / `directive update` now stage the project-root `Taskfile.yml` deft include as installer-managed (#1576).** When the installer appends or repairs the `includes.deft` block in a consumer root Taskfile, that path is added to scoped staging and reported in `--json` `staged_paths`, and the deposited `deft-core-guard` allowlist exempts it alongside `.deft/core/**` so upgrade PRs do not look like mixed framework+app commits. The frozen Go installer is unchanged (#1912); this fix lands on the TS update path (#1933). Closes #1576. Refs #1453, #1912, #1933.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **`task pr:wait-mergeable-and-merge` now promptly merges a PR that GitHub itself reports as CLEAN + MERGEABLE, instead of polling for many minutes on an absent or stale review verdict (#2260).** The readiness gate keyed only off the optional Greptile/SLizard verdict, so a PR with a missing verdict or one pinned to a pre-rebase head SHA could poll to the 60-minute cap even though a manual admin merge would succeed instantly. It now reconciles a soft (absent/stale) verdict block against GitHub's own mergeability and proceeds when the PR is CLEAN + MERGEABLE; genuine failing required checks and real P0/P1 findings still block. Each poll also prints a heartbeat (elapsed, poll#, merge-state, blocked-on) and Node warning noise no longer leaks onto the result line. Closes #2260. Refs #1369, #1368, #701.
 - **The package-version freshness unit test now runs offline, so a slow GitHub round-trip can no longer time out an otherwise-green PR (#2256).** The test resolved the newest release tag via a live `git ls-remote`, which under CI load intermittently blew past vitest's 5s budget and forced re-runs. It now reads tags from the local git store only, keeping the same best-effort freshness assertion (a tagless shallow clone early-returns cleanly). The production remote lookup used by real release tooling is unchanged. Closes #2256. Refs #2209, #2219, #2249.
@@ -2891,6 +2974,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Leaner, self-guarding AGENTS.md plus an offline-by-default doctor, Cursor as a Tier-1 dispatch provider, and safer lint / ghx-install / review-merge gates.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Lint checks no longer flip a pull request from passing to failing on unrelated code (#2190).** `biome check .` (the `pnpm run lint` step) was observed reporting the same pre-existing warnings as build-breaking errors on one CI run and as harmless warnings on the next, with no code change in between — an unrelated pull request could suddenly fail its required check. The two rules involved (`noUnusedVariables`, `noNonNullAssertion`) now have their severity explicitly pinned to warning-level in `biome.json` instead of inheriting from a preset default, and the Biome tool version itself is pinned exactly, closing the flip-to-error risk regardless of root cause. Closes #2190. Refs #1882, #2186.
 - **`setup:ghx` no longer trips security scanners' "AI malware" heuristic on consumer PRs (#2178).** The ghx installer now downloads the upstream script to a temp file, verifies it against a vendored SHA-256 checksum, and only then executes that local file — replacing the previous `curl | bash` / `irm | iex` live-pipe pattern that Socket Security's AI heuristic flagged as ~65% likely malicious, blocking every consumer PR that bumped `@deftai/directive`. The fetch also pins to the immutable commit the release tag resolved to (not the mutable tag name), and the Windows path drops `-ExecutionPolicy Bypass` now that it only ever runs a verified local file. The existing consent prompt and `DEFT_SETUP_GHX_SKIP` opt-out are unchanged. Closes #2178. Refs #1070, #1328, #884.
@@ -2927,6 +3011,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Leaner, more accurate always-loaded `AGENTS.md`.** The command reference no longer advertises retired commands as current — it now reflects the `/deft:directive:*` namespace and the deprecated `run` CLI, and points to the full alias table. Reserved placeholder sections and a verbatim internal field enumeration were dropped in favour of a one-line rule plus a pointer, and a leaked personal profile identifier was removed. The AGENTS.md size ratchet was tightened to the new, smaller line counts. Refs #2158, #2159, #2160, #2161, #1882, #645.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Security hardening: closed three CodeQL code-scanning alerts.** Git-remote parsing now matches `github.com` only as the actual host component, so spoofed remotes like `github.com.evil.com` or `evil.com/github.com/...` are rejected instead of parsed (was an incomplete URL substring check). Generated codebase-MAP table cells now escape the backslash escape character before the `|` delimiter, so a stray backslash can't break out of a table cell. And routing-file writes reject `__proto__`/`constructor`/`prototype` as provider/role names, so a malicious routing input can't pollute the JavaScript object prototype. All three paths gained regression tests. Refs CodeQL #50, #51, #52.
 
@@ -2945,6 +3030,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **npm consumer upgrade path no longer ships a dangling `.deft/core/main.md` reference, a broken `migrate:preflight` layout probe, or false-positive `verify:xbrief-drift` hits on vendored fixtures (#2146).** The content prepack now deposits repo-root `main.md` and `SKILL.md` into `.deft/core/`; bare `deft migrate:preflight` / `deft migrate:xbrief` resolve the consumer `.deft/core` deposit instead of probing `node_modules/vbrief/schemas`; and the xbrief drift gate excludes `.deft/core/**` from the consumer data-plane scan. Closes #2146.
 
@@ -2961,6 +3047,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **`task deft:*` no longer fails on git-vendored deposits with a stray `packages/` tree (#2142).** The v0.66.0 `_ts-build` guard treated any `packages/cli/package.json` as a build signal and ran `pnpm run build` at deposits that lack a root `build` script, breaking `task check` for repos that committed framework source under `.deft/core`. The guard now requires a root `build` script before building, and `deft doctor` warns when `.deft/core/packages/` is present. Closes #2142.
 
@@ -2971,6 +3058,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Lifecycle tree moves from vbrief/ to xbrief/ on the v0.8 schema, with automatic migration for legacy trees, plus a fix for the v0.65.0 consumer task-check breakage.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **`task reconcile:issues`, `task issue:ingest`, `task project:render`, and `task roadmap:render` now resolve the lifecycle directory through the layout resolver (#2139).** After the `vbrief/`→`xbrief/` rename (#2109), these four task fragments hardcoded the legacy `vbrief/` directory path. On migrated `xbrief/` trees that path no longer exists, breaking all four verbs and the release pipeline's roadmap render step. The task fragments now pass `--project-root`, and the CLI verbs resolve to `xbrief/` on migrated trees (falling back to `vbrief/` for unmigrated trees), consistent with the #2132 spec/prd fix. Closes #2139.
 
@@ -3009,6 +3097,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **xBRIEF v0.8 schema adoption (#2107).** The directive validator now accepts xBRIEF v0.8 documents alongside legacy v0.6 artifacts. New optional structural fields in v0.8 are validated when present; existing v0.6 files continue to pass unchanged. Refs #2034. Closes #2107.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -3023,6 +3112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **reconcile:issues lifecycle fix rewrites child planRefs (#1667).** When `applyLifecycleFixes` moves a closed-issue parent vBRIEF to `completed/` or `cancelled/`, child story vBRIEFs now get their `planRef` and item-level back-links updated so `vbrief:validate` D4 checks no longer fail on stale `proposed/` paths. Closes #1667.
 
@@ -3058,6 +3148,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - Refreshed the project-identity narratives so they describe deft as TypeScript-native. `PROJECT-DEFINITION.vbrief.json` and `specification.vbrief.json` (and the rendered `SPECIFICATION.md` / `PRD.md`) previously still listed Python tooling, the `run`/`run.py`/`run.bat` launchers, and the #1530 migration as current — all removed at v0.63.0. The `codeStructure` metadata dropped the stale `python-tooling` module and now points its validator references at the TypeScript engine. Closes #2089.
 
@@ -3076,6 +3167,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test branch-coverage gate restored to 85% (#2083 follow-up)** — adds targeted branch tests for the content-pack slice helpers and CLI paths, lifting measured branch coverage back over 85%, and restores the vitest `branches` threshold to 85 after the temporary relief from the #1860 Python removal and #2083 parity-harness teardown. Refs #2083, #1860.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -3101,6 +3193,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`task framework:check-updates` runs without Python or the legacy `run` shim** — the read-only upstream version probe (#801) now dispatches through the TypeScript engine (`deft framework:check-updates`), preserving `--force`, `--json`, `DEFT_NO_NETWORK`, and `DEFT_REMOTE_PROBE_TIMEOUT` so npm-only consumer installs can check for framework updates before #1860 deletes the Python `run` CLI. Refs #2069.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **`verify:hooks-installed` no longer false-fails on canonical shipped hook comment headers** — the gate scanned full hook file text, so comment lines mentioning `Python` or `verify:branch` in the #2049 `.githooks/` templates tripped legacy-dispatch detectors even though the hooks dispatch only through the `deft` CLI. Pattern scans now ignore shell `#` comment lines; regression tests load the real repo hook files. Refs #2049.
 
@@ -3115,6 +3208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Post-upgrade doctor no longer fails on stale skill paths or doc-only redirect mentions** — `deft agents:refresh` now writes runtime skill routes under `.deft/core/.agents/skills/` instead of legacy stub paths, adds missing decompose/probe runtime pointers, and `deft doctor` skill-paths-resolve ignores deprecation sentinels that appear only in skill documentation prose. Closes #1404, #1408.
 - **npm upgrade path surfaces `deft migrate` before doctor warns** — UPGRADING.md, README, and release upgrade banners now document the full npm path (`npm i -g`, `deft update`, `deft migrate`, `deft doctor`) with a disambiguation table vs `migrate:vbrief`; `directive init` / `directive update` and session start emit a one-line migrate nudge when `managed_by: npm` is absent. Closes #2059, #2012, #1995. Refs #2057.
@@ -3138,6 +3232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Setup and strategy docs steer greenfield export through `project:export-spec`** — Phase 3 export prompts, speckit Phase 3→4 gates, and the v0.20 contract now document `task project:export-spec` (with `--audience=internal` for proposed scopes) instead of legacy `task spec:render`; upgrade guidance tells v0.60.x consumers to run `deft update` for TS-native git hook refresh (#2049). Closes #2050.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Git hooks work on Python-free consumer installs** — `.githooks/pre-commit` and `pre-push` dispatch branch, encoding, conformance, and destructive-push gates through the `deft` CLI only; `deft verify:hooks-installed` validates deft CLI wiring instead of probing for `scripts/*.py`. Closes #2049.
 
@@ -3161,6 +3256,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The conception-to-ship lifecycle diagram now ships with your install** — the single-picture overview of how Directive turns an idea into shipped work (inception strategy analysis feeding the recurring per-session triage→slice→swarm→review→ship loop) moved into the installed `.deft/core/docs/` payload and is cross-linked from the getting-started guide, so adopters can see the framework's overall shape without visiting the upstream repo. Documentation only.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Pre-push no longer blocks branch hygiene on the default branch** — deleting merged feature branches or pushing non-default refs while checked out on `main`/`master` no longer hits a misleading default-branch refusal from the HEAD-only hook; pre-push now relies on refspec-aware protection so only pushes that actually touch the default branch are blocked. Closes #1814.
 - **`directive session:start` works on npm consumer projects** — the command now routes through native TypeScript `runSessionStart()` instead of the Python framework-commands bridge, so ritual state records correctly when `.deft/core` is deposited via `directive init` without requiring Python on PATH. Closes #2032.
 
@@ -3182,6 +3278,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`deft doctor`'s install-path repair now points at the npm CLI** — the `install-path-consistency` check previously recommended the now-removed `task relocate:relocate -- --confirm`; it now recommends `npx @deftai/directive update`, which (re)deposits the project framework directory. Refs #2022, #1912.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`deft update` / `deft init` no longer abort with `refresh_deposit_failed` on canonical-vendored installs** — the content-package resolver now locates `@deftai/directive-content` through its `package.json` subpath instead of its bare specifier. The content package ships no entry point, so the old bare-specifier resolve threw and stopped the deposit; resolving the always-present `package.json` restores the npm refresh path. Closes #2023.
 
 ### Removed
@@ -3201,6 +3298,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The session-start health gate now points at the node-independent installer binary** — the DEFT-PREAMBLE that agents run before anything else (in `main.md`, the root `SKILL.md`, and the `main-001` rule) now invokes `deft-install gate` instead of `python3 .deft/core/run gate`, so the gate still fires on a broken or Node-less install. Refs #2001, #1933.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`deft-install gate` no longer false-reports `NEEDS-UPGRADE` on healthy installs** — the node-independent health gate now resolves the current framework version from the installed `<install>/VERSION` payload manifest (bare semver) instead of the frozen binary's `v`-prefixed build version. Production binaries (built with `-X main.version=vX.Y.Z`) previously compared `vX.Y.Z` against the bare `.deft-version` marker and always exited 1, so every healthy install looked like it needed an upgrade. Closes #2015.
 
 ### Removed
@@ -3218,6 +3316,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Release skill now treats tag push as the irrevocable npm gate and reframes Phase 5 as optional GitHub draft QA rather than a publish-authority gate; the happy path auto-publishes the GitHub release after draft assets verify. Closes #2002.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Vendored `run update` now points at npm instead of dead-ending** — the compatibility `run update` stub no longer tells operators to manually replace the deft directory; it signposts `npm i -g @deftai/directive@latest` and `npx @deftai/directive update` so future deposits steer consumers to the post-freeze upgrade path. Closes #1998.
 - **Doctor now recommends npm upgrades and surfaces layout advisories on throttled runs** — payload-staleness emits `npm i -g @deftai/directive@latest` (matching AGENTS.md), falls back to the npm registry when GitHub `ls-remote` is unreachable, and warns when payload currency is UNVERIFIED instead of silently passing; legacy-layout and canonical-vendored npm-migration signposts run on normal throttled doctor runs and in the Python doctor. Closes #1997, #2003, #2004.
@@ -3234,6 +3333,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **The `npx @deftai/directive` CLI works again for every command** — on a fresh npm install most verbs (`doctor`, `cache`, `triage`, `release`, `pr`) crashed with a "Cannot find module `@deftai/core`" error because the CLI loaded its sibling engine by a workspace-relative path that only resolves inside the source monorepo. The CLI now imports the engine by its published package name, so the npm-native path the freeze steers consumers toward actually runs. A new check fails the build if a workspace-relative cross-package import is ever reintroduced. Refs #1993.
 - **The local `cache-fresh` check no longer gets permanently stuck on closed issues** — the pre-flight freshness gate aged out cached entries for closed issues, but its own recovery command (`cache:fetch-all --force`) only refreshes open issues, so the hint was a dead end and the gated session-ritual stack stayed blocked. The gate now judges freshness over open issues only (closed issues are terminal), so it agrees with what the recovery command can actually refresh. Closes #1991.
 
@@ -3249,6 +3349,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The Go installer is now frozen at v0.56.0 — future Deft upgrades come from npm** — the legacy stage-1 bridge is pinned to its final published Go-installer release (`v0.56.0`). From here, the release pipeline's freeze gate enforces the line: tags at or below v0.56.0 still build Go binaries, anything above skips the Go build cleanly (per #1987) and ships via npm only. Existing legacy on-disk layouts are still migrated by the frozen v0.56.0 installer, which then hands off to `npx @deftai/directive` for all subsequent updates. Closes #1912. Refs #1972.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **A frozen Go installer no longer makes every later release show up as failed** — once the Go-installer bridge is frozen, the release pipeline's freeze gate now skips the Go binary build cleanly (a green run with a clear annotation) for any release above the frozen line, instead of hard-failing the whole Release workflow with a red X. npm publishing and the GitHub release notes were never affected; this just stops the post-freeze noise that looked like a broken release. An unparseable freeze setting still fails loudly. Closes #1987.
 - **The release rehearsal's frozen-bridge handoff now finds the published installer binary** — the legacy-bridge end-to-end leg matched assets named `deft-install-darwin-*`, but releases publish `install-<os>-<arch>` (with a single `install-macos-universal` fat binary for macOS). The asset matcher now resolves the real names on every host, so the pinned `legacy → bridge → npm` rehearsal exercises the actual v0.56.0 binary instead of failing to locate it. Refs #1912.
 
@@ -3282,6 +3383,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Codebase MAP rollout docs now close out the #1595/#958 implementation path** -- Project/spec source and codebase docs now mark PR1-4 plus PR6 complete, stop describing consumer propagation as future work, and route optional headers, local indexes/materialized views, brownfield reconstruction, and glossary/comment convention to their follow-up trackers. Refs #1498 #1595 #958 #1871 #1618 #1589 #931.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **The published framework content package no longer ships stale compiled Python bytecode** — `@deftai/directive-content` previously bundled ~160 `scripts/__pycache__/*.pyc` files alongside the helper scripts, bloating the package by roughly a third. The prepack now filters out `__pycache__` directories and `.pyc` files, so only the `.py` source and engine surfaces (`.githooks/`, `Taskfile.yml`, `tasks/`) ship. Closes #1985.
 - **roadmap:check now passes immediately after roadmap:render** — both the write and --check paths route through one shared render-to-buffer function, so the checker compares against the exact bytes the renderer emits instead of a separately computed rendering. Closes #1697.
 - **project:render output now passes vbrief:validate for decomposed issues** — registry items no longer copy local ``x-vbrief/plan`` child links into metadata, and the D3 registry-status check uses the same shared scope-uri rule as the renderer, so a cancelled umbrella plus completed story scopes under one GitHub issue round-trips through render and validate without contradiction. Closes #1696.
@@ -3309,6 +3411,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Deprecation signals for `swarmSubagentBackend` enum** — the `plan.policy.swarmSubagentBackend` enum and associated `task policy:subagent-backend(s)` tasks are now visibly marked deprecated (superseded by per-role operator model routing via `.deft/routing.local.json`, introduced in #1739). Deprecation banners added to the TypeScript module (`subagent-backend.ts`), the Python twin (`scripts/policy.py`), and both task descriptions. The swarm skill (`deft-directive-swarm`) source was updated (via `packs/skills/skills-pack-0.1.json`) to demote Phase 0e to a superseded pointer and promote `task swarm:routing-set` / `task verify:routing` as the primary doctrine; the rendered SKILL.md was regenerated. The `task verify:routing --advise` output now includes a one-line enum-deprecated note. No deletion; hard removal tracked by #1860. Closes #1891.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`directive version` now reports the installed engine version (#1918)** — `engineInfo()` previously returned a hardcoded `0.0.0`, so `directive version` and the `deft` alias always showed `@deftai/directive-core@0.0.0` even after a correct npm install. The runtime banner now reads the version from the installed `@deftai/directive-core` package.json, matching registry metadata. Refs #1918 #1909.
 
 - **Release rehearsal no longer false-fails on npm dry-run after real packages are published (#1925)** — `task release:e2e` now passes a throwaway `e2e-rehearsal` dist-tag to `npm publish --dry-run`, so the fixed rehearsal version `0.0.1` no longer trips npm's implicit-`latest` check once `@deftai/directive*` is live at a higher version. Refs #1925.
@@ -3327,6 +3430,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **npm publishing now uses OIDC trusted publishing instead of a stored token (#1919, #1909)** — The publish workflow authenticates to npm via GitHub's short-lived OIDC identity rather than a long-lived `NPM_TOKEN` secret, so there is no standing credential to leak or rotate. Requires a one-time per-package trusted-publisher configuration on npmjs.com. Refs #1919 #1909.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **CI is green again on Windows and the TypeScript coverage gate (#1922, #1923)** — The Windows task-dispatch job no longer hard-fails when the runner's corepack supplies a newer pnpm patch than the pinned version, and the TypeScript branch-coverage gate is back above its 85% threshold (added targeted source-stub scanner tests). Both were blocking unrelated PRs from merging without an admin override. Refs #1922 #1923.
 - **npm packages now actually publish with provenance (#1916, #1909)** — The publish workflow ran on a third-party (Blacksmith) runner, which npm's registry rejects for provenance-signed releases, so the first `v*` tag published nothing. The publish job now runs on a GitHub-hosted runner so the supply-chain provenance attestation is accepted, and a manual re-publish trigger lets an existing release tag be (re)published without recreating the tag. Refs #1916 #1909.
 
@@ -3354,6 +3458,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Product slash commands now live under `/deft:directive:*`** — Directive framework commands (`change`, `run:<strategy>`, etc.) are namespaced under `/deft:directive:*` to match the `deft-directive-*` skills and leave room for sibling-product namespaces. Prior `/deft:*` product forms remain as deprecation-warning aliases; cross-product session commands (`/deft:continue`, `/deft:checkpoint`) stay at the umbrella `/deft:*` level. Refs #418 #1670.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -3370,6 +3475,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **All shippable framework content now lives under a single `content/` root (#1875)** -- Maintainers working in the framework repo will find every shippable asset (skills, templates, packs, languages, strategies, coding/scm/verification guides, and more) relocated under `content/`, with engine code, harness config, and repo-development files staying at the root. The `verify:content-manifest` gate now enforces this as a location invariant rather than a flat top-level classification. This is purely a source-repo reorganization: the consumer-facing `.deft/core/` deposit, AGENTS.md routing, and skill pointers are byte-for-byte unchanged because both packaging paths flatten the `content/` prefix away -- the release-archive build and the `deft-install` bootstrap binary (which deposits straight from the GitHub source tarball) now apply the same flatten, so a fresh install or upgrade lands `.deft/core/coding/...` rather than `.deft/core/content/coding/...`. Refs #1875, #1669.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Gated session-ritual verifier now runs doctor and cache-fresh in-process (#1884)** -- `deft verify:session-ritual --tier=gated` no longer fails with "unknown session ritual command: doctor" on a fresh session-start state; the TS port wires the default gated runner to the in-process doctor and cache-fresh entrypoints (with bootstrap-tolerant cache-fresh), unblocking step 0 of the pre-dispatch gate stack. Closes #1884.
 
 ### Removed
@@ -3386,6 +3492,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Orchestrators now have explicit dispatch doctrine for worker lifecycle, background launch, and model routing (#1880)** -- The canonical preamble, swarm, and review-cycle skills encode three rules from the #1878 session: implementation workers default to owning PR through merge-ready as one unit of work (not hand back at PR-open for separate review agents), long-running workers must launch in the background (Cursor Task `run_in_background: true`) so the conversation stays interactive, and every dispatch requires a deliberate per-role model routing decision via `task verify:routing` / `task swarm:routing-set` rather than silently inheriting the parent model. Deterministic gate enforcement for undecided routes remains tracked under #1877. Ships in v0.53.2. Refs #1880, #1877.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Vitest-based consumer projects no longer get red CI when upgrading to v0.53.x (#1878)** -- The vendored framework engine's own TypeScript test files (`*.test.*` / `*.spec.*` under `.deft/core/packages/`) were being discovered by a consumer's vitest run and failing CI (unresolved `@deftai/core` imports plus parity assertion failures). The installer now prunes those vendored test files from the `.deft/core/` deposit on every install and upgrade, and the release archive omits them too, so the consumer's vitest no longer discovers framework tests. Mirrors the existing Python self-test prune (#1474). Refs #1878.
 
 ### Removed
@@ -3399,6 +3506,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`task release:publish` and `triage:scope` no longer fail with a blank error on large repos (#1867)** -- Several `gh api --paginate` capture sites inherited Node's 1 MB stdout limit, so once a repo's release or label/milestone list grew past ~1 MB the command aborted with an empty error message (this blocked the v0.53.0 publish until a manual workaround). All `gh`/git capture sites now share a single 64 MB ceiling and surface the real failure reason instead of a blank one, so publish, rollback, and `triage:scope --diff-from-upstream` work on mature repos. Refs #1867.
 
 ### Removed
@@ -3428,6 +3536,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **scm/cache/policy and remaining live gates now route through the TS engine (#1828 s6)** -- The scm stub, unified cache, typed policy surface, pack slice/render, roadmap render, codebase validators, and capacity show/backfill tasks now invoke `deft-ts` via `packages/cli/dist/bin.js` instead of `uv run python`, with Python scripts kept in-tree as parity oracles. Refs #1828 #1530.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`task release:e2e` no longer hangs forever (#1864)** -- The release rehearsal harness deadlocked on every run: its synchronous worker bridge blocked the main thread on `Atomics.wait` while waiting for a result that could only arrive through the same blocked event loop, so neither the worker's completion message nor the timeout could ever fire. The rehearsal now wakes via a cross-thread notify from the worker, with `Atomics.wait`'s own timeout as the backstop, so `task release:e2e` completes (or times out cleanly) instead of wedging. Refs #1864 #1729 #1530.
 - **Restored the Windows task-dispatch CI job after the Wave 8 flip (#1828 follow-up)** -- The Wave 8 flip repointed `task scope:promote` to build and invoke the TS engine via `pnpm`/`node`, but the Windows regression-guard job only provisioned Python/uv/Task, so `scope:_ensure-ts` failed with exit 127 (`pnpm` not found) and master CI went red. The job now sets up Node (pinned via `.nvmrc`), enables corepack, and installs pnpm dependencies before exercising `scope:promote` end-to-end. Refs #1828 #1530.
 - **Fixed `task pr:*` and `task swarm:*` after the Wave 8 flip (#1828 s5 follow-up)** -- The pr/swarm Taskfile gates referenced `ts:build` without the leading-colon absolute namespace marker, so from the included fragments it resolved to the non-existent `pr:ts:build`/`swarm:ts:build` and broke `task pr:wait-mergeable-and-merge`, `task swarm:launch`, and siblings. Quoted `:ts:build` restores cross-namespace resolution. Refs #1828 #1530.
@@ -3438,6 +3547,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Scope and vBRIEF lifecycle gates now run on the TypeScript engine (#1828 s4)** -- The scope promote/activate/complete family, slice record-existing, issue ingest, and reconcile-issues Taskfile gates route through the unified `deft-ts` dispatcher instead of inline Python, with Python scripts kept in-tree as parity oracles. Operators get identical lifecycle transitions and intake output while Wave 8 of the migration proceeds. Refs #1828 #1530.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Closed a command-injection risk in the TypeScript version resolver (#1824)** -- The remote-tag lookup now rejects remote names that begin with `-` and passes the `--` end-of-options separator to git, so a crafted remote can no longer be smuggled in as a git option to execute an arbitrary command. Behavior is unchanged for all real remotes; this clears the `js/second-order-command-line-injection` CodeQL alert from the #1787 platform-utilities port. Refs #1824 #1787 #1530.
 - **Hardened a ReDoS-prone regex in the TypeScript swarm launcher (#1822)** -- The swarm cohort branch-name sanitizer no longer uses a backtracking regex to strip leading/trailing separators, so pathological story IDs (long runs of `-`/`.`) can't cause slow processing. Branch names are unchanged for all normal inputs; this clears the `js/polynomial-redos` CodeQL alert introduced by the #1788 swarm-verbs port. Refs #1822 #1788 #1530.
 
@@ -3513,6 +3623,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Project architecture docs now match the implemented framework shape** -- `PROJECT-DEFINITION`, the rendered specification, architecture/concepts/file-map docs, command guidance, and codebase planning notes now describe the Taskfile-first, vBRIEF-backed, `.deft/core` installer, triage/cache/scope, packs, release/PR, and codeStructure contract model instead of the older four-component `run`-centric narrative. Refs #1498 #1595 #1659.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -3530,6 +3641,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Review cycles no longer exit or merge on a partial or stale bot review (#1259)** -- the review-cycle Step 6 exit check is now a fail-closed all-of that passes only when a single fresh fetch shows a terminal Greptile check-run, a reviewed SHA pinned to the current HEAD, a HEAD-matching `Last reviewed commit:` marker, confidence above 3, and zero P0/P1 findings; any missing or ambiguous field keeps the loop running. A new pre-merge re-poll gate re-checks review state immediately before `gh pr merge`, so a verdict observed earlier in the loop can no longer authorize a merge against stale state. The same terminal-check-run requirement now also gates the swarm-dispatched poller (the primary path for parallel review cycles), so an `INCOMPLETE_BUT_RATED` review -- rated and SHA-matched but whose Greptile check-run has not terminally landed -- no longer reports a premature clean exit. Closes #1259.
 - **A clean review whose commit title has bracketed text no longer reads as a stall (#1326)** -- the poller's `Last reviewed commit:` SHA regex is now non-greedy, so a commit subject containing escaped brackets (e.g. `\[Unreleased\]`) in its title link no longer breaks SHA extraction and triggers a false STALL/TIMEOUT on an otherwise-clean Greptile review. Closes #1326.
 - **Reconciling no longer marks decomposition children "done" just because their parent umbrella closed (#1319)** -- `task reconcile:issues --apply-lifecycle-fixes` previously moved a child vBRIEF into `completed/` when the closed umbrella it was carved from (its `decomposition_origin`) showed up in `references[]`, even though the child's own issue was still open. It now anchors each vBRIEF's lifecycle to its own primary issue (`plan.planRef`, then the child's `x-tracking.parent_issue`) and excludes the `decomposition_origin` umbrella from the references fallback, so a closed parent can no longer drag an in-progress child to a terminal state. Closes #1319.
@@ -3556,6 +3668,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Consumer session ritual gates no longer depend on task namespace re-entry (#1648)** -- `task deft:verify:session-ritual -- --tier=gated` now records the doctor and cache-fresh checks by invoking their Python entrypoints in-process instead of reconstructing `task <prefix>:...` commands. Cache freshness preserves the framework wrapper's bootstrap allowance, so fresh checkouts keep passing while vendored consumers avoid nested Taskfile namespace failures. Closes #1648. Refs #1659.
 - **The session-ritual gate can no longer hang forever on a stuck check (#1648)** -- converting the gated `doctor` and cache-fresh checks to in-process calls had dropped the 5-minute cap the old subprocess runner enforced, so a check blocked on I/O or a slow resource could freeze the step-0 gate and silently stall agent dispatch. Each in-process check now runs under the same bounded timeout and a hang is recorded as a fail-closed failure, so dispatch aborts cleanly instead of waiting indefinitely. Refs #1655 #1659.
 
@@ -3579,6 +3692,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bug-labelled issues now rank ahead of feature and RFC work in the triage queue (#1657)** -- `bug` is now a triage ranking label, appended after the existing escalation labels (`blocks-merge`, `blocks-release-tag`, `adoption-blocker`, `breaking-change`, `urgent`). Explicit release-blockers still win, but an open bug now surfaces above the large mass of unlabelled / feature / RFC items instead of sorting purely by recency. The change is also reflected in the consumer-example default so downstream projects inherit bug-prioritisation as the recommended baseline. Closes #1657. Refs #1128 #1186.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -3604,6 +3718,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The "vBRIEF as source of truth for all docs" issue now matches the current architecture (#1292)** -- issue #336 was reframed from its obsolete "five new core vBRIEF content types" mechanism into a documentation-tier application of the Rule Authority [AXIOM]: framework `.md` files are rendered projections of canonical structured source, implemented via the #714 four-tier model and its tier-3 extension packs (#1294 / #1295 / #1296) under the #1284 epic. Contributors reading #336 after the decomposition no longer chase a dropped mechanism. Closes #1292. Refs #336, #1284.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **An umbrella issue closed as "not planned" now routes its dependent vBRIEFs to `cancelled/` automatically, and closing an umbrella no longer drags an entire cohort into the wrong terminal state (#1290)** -- `task reconcile:issues -- --apply-lifecycle-fixes` now consults each closed issue's GitHub `stateReason`, so `NOT_PLANNED` / `DUPLICATE` closures land in `cancelled/` while `COMPLETED` stays in `completed/` (removing the manual `scope:cancel` pre-step). It also resolves each vBRIEF's lifecycle from its own `plan.planRef` first, falling back to `references[]` only when planRef is absent, so a cohort member that merely references a closed umbrella is left untouched when its own planRef issue is still open. Closes #1290.
 
 ### Removed
@@ -3622,6 +3737,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Session-start runtime files no longer dirty freshly installed consumer repositories (#1609)** -- the installer and relocator now deposit selective `.gitignore` entries for `.deft/ritual-state.json` and `.deft/last-session.json`, keeping the ritual sentinels local while preserving the tracked `.deft/core/` framework payload. Closes #1609.
 
 ### Removed
@@ -3640,6 +3756,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Greenfield swarm launches now explain how to proceed when full orchestration is unavailable (#1053)** -- the swarm skill now separates project-infrastructure readiness from machine-tool checks, defaults interactive worktrees to ignored `.deft-scratch/worktrees/` paths, and offers an explicitly labeled serial self-execution downgrade when only a generic terminal is available. Manual prompt paste remains available as an opt-in fallback, but the guidance no longer presents serial execution as true parallel swarm orchestration. Refs #1053.
 - **Lifecycle task commands now have a regression smoke for reliable success reporting (#1053)** -- the promote, activate, and implementation-preflight command trio is exercised through the actual Taskfile wrappers against an isolated fixture project, with captured output checked for zero-exit success and false failure markers. This gives Windows PowerShell 5.1 operators a portable guard against the harness treating successful lifecycle transitions as failed work. Refs #1053.
 - **Issue-ingested vBRIEFs now preserve literal backslash escape text and flag real control characters (#1036)** -- GitHub issue bodies that mention paths like `\vbrief/`, `\task`, or JSON-looking escapes now round-trip through the cache and ingest path as literal Markdown, while decoded upstream control characters surface as warnings and encoding-verifier findings before they silently contaminate vBRIEF narratives. Closes #1036.
@@ -3657,6 +3774,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Vendored encoding checks no longer fail on framework-owned history after upgrade (#1382)** -- consumer installs now omit non-runtime framework history from the packaged payload, and the encoding verifier recognizes its own documented exception files when they live under `.deft/core/`. Consumer-owned mojibake still fails the gate, but packaged Deft artifacts no longer block `task deft:verify:encoding` immediately after upgrade. Closes #1382.
 
 ### Removed
@@ -3673,6 +3791,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Issue-creation workflows now nudge agents toward existing labels (#1510)** -- Directive skills that file or surface GitHub issues now recommend checking the repository's label set, choosing suitable existing labels when practical, and explicitly noting when no label is applied. The guidance stays advisory so issue creation is not blocked when no label fits, while still reducing unlabeled triage drift. Closes #1510.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Consumer `task deft:check` no longer runs framework source self-tests by default (#1519)** -- vendored `.deft/core` installs now route the aggregate check to consumer-safe install and lifecycle gates, while framework source-repo checks remain available behind an explicit self-check target. Closes #1519.
 - **Completed scopes no longer leave PROJECT-DEFINITION registry rows looking proposed (#1527)** -- `task scope:complete` now keeps the matching local project reference and registry item aligned when it moves a scope into `completed/`, and validation catches stale registry status if a referenced scope and its registry row drift apart. Closes #1527.
@@ -3691,6 +3810,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **GitHub Markdown body posting now has a safe path for backticks and shell metacharacters (#1555)** -- agents can post issue bodies, PR bodies, and issue/PR comments through `task scm:body:*` without embedding Markdown in double-quoted shell commands, preserving literal backticks, dollar signs, quotes, and fenced code blocks. The helper performs live `gh` read-back after mutations so cached `ghx` GETs cannot hide stale body content. Closes #1555. Refs #1554.
 
 ### Removed
@@ -3711,6 +3831,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Swarm skill documents provider-neutral sub-agent routing (#1531)** -- heterogeneous dispatch guidance now separates dispatch provider, worker role, and model selection; Composer-class, Grok Build, Cursor/cloud, and future adapters are first-class backends with strong-agent gates for orchestration, review, rebase, merge, and release. Refs #1531.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Linux `deft-install --yes` now bootstraps required tools or fails loud (#1538)** -- non-interactive Linux installs previously reported missing `uv`, `task`, and `gh` with manual fallback prose while still exiting success, leaving fresh WSL consumers with a doctor-failing tree. The installer now attempts portable user-local bootstrap for those tools and only claims success when they are on PATH; otherwise it exits non-zero with structured JSON guidance. Refs #1538.
 - **Greptile informal clean replies without canonical fields now fail loud with a recovery path (#1543)** -- when Greptile posts a separate "diff is clean" comment but omits `Last reviewed commit:` and `Confidence Score: X/5`, merge gates still block (prose alone is not merge-ready) yet `task pr:merge-ready`, the review-cycle skill, and swarm pollers now classify the `informal-clean missing-canonical-fields` state and route operators to retrigger Greptile, wait for canonical evidence, or document an override instead of silent polling. Closes #1543.
 
@@ -3727,6 +3848,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Desktop-app and TUI projects no longer silently fail the coverage gate over un-runnable GUI event loops (#1027)** -- pygame/tkinter entry points can't run headlessly, so they reported near-zero coverage and dragged the whole suite below the 85% threshold after an agent had already reported a passing run. The setup skill now warns when a project is a Desktop App or TUI and recommends excluding the display-bound entry point from coverage, and the Python guide documents the headless-test pattern (`SDL_VIDEODRIVER=dummy`) plus a `[tool.coverage.run] omit` example for event-loop modules. Closes #1027.
 - **Cascading rebases no longer accumulate duplicate CHANGELOG stubs (#1003)** -- the `task changelog:resolve-unreleased` union-merge helper could not deduplicate a truncated orphan header (one that opens `**` but never closes it and carries no `(#NNN)`), so each swarm-cascade rebase re-prepended a fresh copy -- two stray `gh_rest.py` stubs shipped in v0.26.2 this way. The helper now drops orphan stubs from both sides with a stderr warning and adds a content-prefix fallback that collapses issue-numberless duplicates. Closes #1003.
 - **`task triage:bootstrap` no longer crashes a reader thread on non-ASCII command output on Windows (#1002)** -- when bootstrap inferred your repo slug from `git remote get-url origin`, it captured the subprocess output without forcing UTF-8, so on a Windows codepage (cp1252) any non-ASCII byte in git's output raised a `UnicodeDecodeError` deep in Python's subprocess reader thread. The capture now routes through the shared UTF-8-safe helper (`encoding="utf-8", errors="replace"`), so localized or non-ASCII git output decodes cleanly instead of crashing the read. Closes #1002.
@@ -3750,6 +3872,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -3769,6 +3892,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The <1000-line file-size limit is now a recommendation, not a hard cap (#1488)** -- `coding/coding.md` previously stated files MUST be under 1000 lines, but the rule was unenforced, contradicted by the framework's own source, and pushed contributors toward over-fragmented shallow modules. It is now a SHOULD / review-trigger: a large file flags a cohesion check rather than an automatic violation, with one-responsibility-per-file remaining the hard rule. Friendlier for brownfield adoption, where existing files routinely exceed an arbitrary line ceiling. Closes #1488.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Consumer `task deft:check` no longer runs the framework's own self-tests (#1474)** -- a vendored install shipped the framework's `.deft/core/tests/` suite and the consumer-facing check executed it, so a clean consumer checkout always went red (14 failed + 6 errors by construction) on framework-repo-only fixtures. The installer now excludes the framework self-test suite from the consumer deposit on every install and upgrade, so those tests are never vendored and the gate reflects real consumer-relevant results. Closes #1474.
 - **Wired git hooks now actually fire on Linux and macOS consumers (#1477)** -- the installer deposited `.githooks/pre-commit` and `.githooks/pre-push` without the executable bit, so git silently skipped them and the branch-protection and destructive-push gates never ran for Unix consumers. The installer now deposits the hooks executable and records mode 100755 in the git index so the exec bit is tracked cross-platform, and `task verify:hooks-installed` now fails instead of reporting green when a wired hook is non-executable. Closes #1477.
 - **Framework-only `deft-install --upgrade` PRs are no longer rejected by `deft-core-guard` (#1478)** -- the deposited guard's allowlist omitted `.githooks/` and the guard was create-if-absent, so existing consumers kept a stale guard and every upgrade PR that deposited the wired hooks alongside `.deft/core/**` was rejected. The installer now refreshes a stale deft-managed guard on upgrade and the allowlist exempts the wired `.githooks/` deposit, so a framework-only upgrade lands as a single green PR. Closes #1478.
@@ -3791,6 +3915,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`deft-install --upgrade` now refuses a dirty working tree by default instead of warning and proceeding (#1458)** -- an upgrade rewrites the framework payload (`.deft/core/**`) and installer-managed files, and committing those mixed with your own work trips the `deft-core-guard` CI check. The installer now fails loudly -- non-zero exit, no payload swap -- on both the interactive and `--yes`/non-interactive paths when the tree is dirty, with a clear message explaining why a clean tree is wanted plus the clean-up-first vs `--force` tradeoffs. `--force` / `--allow-dirty` still upgrades a dirty tree, and `--require-clean` is kept as an accepted no-op alias. Clean-tree upgrades and initial installs are unaffected. Closes #1458.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **Git hooks now fire in a vendored consumer project (#1463)** -- after a deft install + `task setup`, the branch-protection (#747), PS-5.1 encoding (#798), and destructive-gh-verb (#1019) gates were silently inert in every consumer because the installer never deposited a usable root `.githooks/` and the hooks could not resolve their helpers under the vendored `.deft/core/` payload, so a direct commit to the default branch went through ungated. The installer now wires consumer-root git hooks (layout-aware for both own-repo and vendored installs), and `task verify:hooks-installed` now fails instead of reporting a false green when the hooks are non-functional. Closes #1463.
 - **`task verify:cache-fresh` is no longer slow on large triage caches (#1424)** -- when the active subscription used a `milestone {is-open: true}` rule, the cache-freshness gate re-fetched the open-milestones list from GitHub once per cached issue, so a 500-entry cache took ~92 seconds and the cost was paid on every session start and before every agent dispatch. The subscription filter now evaluates the rule set a single time across the whole cache, collapsing those N network round-trips to one and bringing the gate back under a second with identical results. Closes #1424.
 - **`deft-install --json` now exposes every actionable dirty-tree and rollback signal as a structured field (#1458)** -- a dirty-tree `--upgrade` refusal emits one JSON object on stdout carrying `error_code`, `dirty_files`, and the new `why`, `remediation`, `force_hint`, and `warnings` fields, so an agent that captures only stdout gets the full picture without parsing stderr prose. The `--json` success result on a vendored upgrade now also includes `backup_path` (the out-of-tree rollback location) and `previous_version`. Closes #1458.
@@ -3810,6 +3935,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`deft-install` now gitignores `*.premigrate.*` migration snapshots so they are not left as an untracked, guard-tripping artefact (#1450)** -- the vBRIEF migration / spec-render step run during install/upgrade writes pre-migration safety snapshots (`ROADMAP.premigrate.md`, `SPECIFICATION.premigrate.md`, `vbrief/specification.premigrate.vbrief.json`) into the consumer working tree, but the installer's canonical `.gitignore` deposit did not cover them -- so `git add -A` swept them in and, mixed with a `.deft/core/**` change, they tripped the deft-core-guard (#1440) as "app" files. The installer deposit now includes the leading-slash-free `*.premigrate.*` glob (matching both the repo-root snapshots and the nested `vbrief/` one at any depth), the same leaked-artefact hygiene class as the `vbrief/*.lock` (#1311) and `.deft/*.bak-*` (#1445) guards. Closes #1450.
 - **Vendored installs no longer bleed the consumer repo's git tag into the framework version, and the `0.0.0-dev` sentinel is never persisted into consumer markers/manifests (#1454)** -- on a vendored `.deft/core/` install with no `<install>/VERSION` manifest and no `.deft-version`, both `run::_resolve_version()` and its mirror `scripts/resolve_version.py` fell through to `git describe`, which -- because git discovers the enclosing `.git` by walking upward -- reported the *consumer's* latest tag as the framework version. The `git describe` fallback is now gated on the framework payload directory being its OWN git top-level (`git rev-parse --show-toplevel` resolving to the payload dir itself): a vendored payload skips git and resolves to `0.0.0-dev` instead of the consumer's tag, while framework-self-dev (where the payload IS the repo) still resolves the real tag. Separately, `_write_version_marker` and `_write_install_manifest` now refuse to write the `0.0.0-dev` sentinel into a consumer's `.deft-version` / `<install>/VERSION`, preserving any prior recorded value rather than clobbering it (the resolver may still RETURN the sentinel in-process; only the WRITE is suppressed). Salvaged from #1447. Closes #1454.
 
@@ -3824,6 +3950,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`task project:render` (and triage mutations) no longer leak a `vbrief/PROJECT-DEFINITION.vbrief.json.lock` file (#1311)** -- the PROJECT-DEFINITION mutation lock created its sidecar `.lock` file on acquisition but never removed it, so a clean render or policy mutation left an untracked 1-byte file in `vbrief/` that `git add -A` trapped on the next chore commit. The lock context manager now deletes the sidecar on exit (happy path and on exception), and the same cleanup discipline is applied to the `vbrief/.eval/*.lock` audit-log sidecars (candidates / slices / scope-lifecycle). The installer's canonical `.gitignore` deposit also gains `vbrief/*.lock` as a belt-and-suspenders guard so consumers are protected even on an interrupted render. Closes #1311.
 - **`deft-install --upgrade` no longer leaves a `.deft/core.bak-*` backup inside the consumer working tree (#1445)** -- the vendored file-swap upgrade wrote its pre-swap payload backup to `.deft/core.bak-<timestamp>/` next to the payload, which escaped the `.deft/core/`-only gitignore policy and was trapped by `git add -A`, staging thousands of backup files outside the #1430 neutralization scope. The backup is now written OUTSIDE the working tree (under the user cache dir, OS temp as a fallback) and its path is printed for rollback, so an upgrade leaves no untracked artefact in the repo and repeated upgrades do not accumulate copies in the tree. The installer's canonical `.gitignore` deposit also gains `.deft/core.bak-*/` and `.deft/*.bak-*` to neutralize any in-tree backup left by an older installer. Closes #1445.
 - **Vendored installs now resolve the framework version instead of reporting `0.0.0-dev` (#1323)** -- on a vendored `.deft/core/` install with no nested `.git`, `git describe` had nothing to read so `run` reported `0.0.0-dev`. The resolver chain in both `run::_resolve_version()` and its mirror `scripts/resolve_version.py` now reads the canonical `<install>/VERSION` manifest (`tag`/`ref`) and the `<install>/.deft-version` plaintext before falling back to `git describe`, so the version the Go installer recorded is what the CLI reports. Closes #1323.
@@ -3842,6 +3969,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`task doctor` no longer emits a spurious AGENTS.md-freshness warning (#1389)** -- the freshness check now computes a real fresh/stale/unreadable verdict by comparing the installed managed section against the current framework template, instead of an interim stub that always reported `unreadable`. A consumer whose `AGENTS.md` managed section is present, readable, and current now sees no warning on `task doctor`; a genuinely stale section still points at `task agents:refresh`, and a genuinely unreadable or missing section still warns. Closes #1389.
 - **`deft-core-guard` no longer rejects `deft-install --upgrade` PRs (#1440)** -- the deposited guard counted every installer-managed root file as consumer "app" code, so a `deft-install --upgrade` could never land as a single green PR. The guard now treats installer-managed deposits (`AGENTS.md`, `.agents/`, `.gitattributes`/`.gitignore`, `greptile.json`, the CodeQL config, the guard workflow itself, and the `vbrief/` scaffolding plus `vbrief/.deft-version`) as part of the framework deposit, so an upgrade-only PR passes. Mixing `.deft/core/**` with genuine app files or consumer vBRIEF data (`vbrief/**/*.vbrief.json`) still fails, and the allowlist is rendered from a single in-installer source so the guard and the installer cannot drift. Closes #1440.
 - **Windows installer no longer triggers a UAC prompt; headless `--yes` works (#1441)** -- the Windows binaries now embed an `asInvoker` application manifest, so Windows' installer-detection heuristic no longer auto-elevates the `install-*.exe` asset purely because its name contains "install". `deft-install --yes --upgrade --repo-root . --json` now runs unattended on Windows with no elevation prompt and no "requires elevation" failure, restoring the agent/CI upgrade flow. Closes #1441.
@@ -3857,6 +3985,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`deft-install --upgrade` no longer leaves a duplicate AGENTS.md managed section (#1437)** -- on a vendored install whose `AGENTS.md` already carried a managed section stamped with provenance attributes (the marker `run agents:refresh` and the relocator write), the upgrade appended a second managed section instead of refreshing the existing one, which left `task doctor` reporting the section as unreadable. The installer now recognises an attributed marker and rewrites it in place, and the rewrite is self-healing: an install already broken with two or more managed sections is collapsed back to exactly one on the next upgrade, with your own prose around the section preserved. Closes #1437.
 - **`deft-install --upgrade` now refreshes `vbrief/.deft-version` so the install stays doctor-clean (#1437)** -- the vendored file-swap upgrade refreshed the framework payload and its version manifest but left the bare `vbrief/.deft-version` marker at its old value, so `task doctor` flagged a version-drift mismatch right after a successful upgrade. The upgrade now regenerates that marker from the manifest as part of the swap, so a fresh `--upgrade` is self-consistent and passes doctor without a manual follow-up step. Closes #1437.
 
@@ -3874,6 +4003,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **README documents the vendored (git-free) vs clone install layouts (#1433)** -- Getting Started and the upgrade banner no longer describe only the clone model; they now explain both payload origins (binary/clone with `.git` vs webinstaller/vendored without `.git`), that `deft-install --upgrade` detects the layout and refreshes accordingly, and that it never runs git against the consumer repo. Refs #1428, #1425.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`deft-install --upgrade` on a vendored install no longer aborts on the GitHub tarball PAX header (#1433)** -- `extractCoreTarball` captured its content-root name from the first tar entry, which for GitHub source tarballs is the `pax_global_header` global-PAX record, so every git-free vendored refresh failed with `tarball content root "pax_global_header" missing after extract`. The extractor now skips PAX global/extended header entries before resolving the wrapper directory. Refs #1425, #1428.
 
 ### Removed
@@ -3890,6 +4020,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fresh installs vendor the framework via a git-free tarball; `--upgrade` migrates clone payloads to vendored (#1429)** -- `deft-install` no longer `git clone`s the framework on a fresh install. It downloads the release tarball at the resolved ref and extracts it into `.deft/core/` (excluding `.git`/`.github`/`node_modules`), so a fresh deposit never carries a nested `.git`. On `--upgrade`, a legacy git-clone payload is now migrated to vendored via an atomic file swap (timestamped backup, nested `.git` removed) instead of `git fetch`/`checkout`/`pull`. The `--json` `payload_layout`/`strategy` fields report `vendored` with the `vendor` or `clone-to-vendored` strategy. Closes #1429. Refs #1428.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`deft-install --upgrade` on a tag clone no longer fails with detached-HEAD `git pull` (#1429)** -- migrating a clone payload to vendored runs no git command against the payload or the consumer repo, so the long-standing detached-HEAD `git pull` failure on tag clones can no longer occur. Refs #1428, #1425.
 - **Installer removes an orphaned `.deft/VERSION` on upgrade (#1427)** -- after stamping the canonical manifest at `.deft/core/VERSION`, an `--upgrade` now deletes a stale `.deft/VERSION` left by older installer rails (canonical layout only; the legacy `deft/` layout never touches the consumer's root `VERSION`). Refs #1427, #1428.
 - **`task doctor` now finds a webinstaller-vendored manifest at `.deft/VERSION` (#1427)** -- the doctor locates the install manifest canonical-first (`<install_root>/VERSION`, then `.deft/core/VERSION`, then `.deft/VERSION`, then legacy `deft/VERSION`) across the manifest-agreement, install-path-consistency, and payload-staleness checks, so a webinstaller install whose manifest sits at `.deft/VERSION` is no longer invisible to the doctor (the canonical `.deft/core/VERSION` still wins when both are present). Refs #1428.
@@ -3905,6 +4036,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`deft-install --upgrade` is now safe and works on vendored (webinstaller) installs (#1425)** -- upgrading a project installed via the webinstaller (a vendored `.deft/core/` with no `.git/` of its own) previously ran `git` against the *consumer's own repository* via git's upward `.git` discovery, failing with a misleading `pathspec` error and risking a silent checkout of the user's project. The installer now classifies the on-disk payload (clone / vendored / absent) before any git operation, refreshes vendored payloads through a git-free tarball file-swap with a timestamped backup, and never runs a mutating git command against anything but a genuine framework clone. `--json` now reports `payload_layout` and `strategy`. Closes #1425.
 
 ### Removed
@@ -3923,6 +4055,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doctor and consumer docs now name the canonical headless upgrade command (#1409)** -- the payload-staleness check in `task doctor` / `scripts/doctor.py`, plus README, UPGRADING, the `deft-directive-sync` skill, and the AGENTS.md managed section, now surface the exact one-command refresh `deft-install --yes --upgrade --repo-root . --json` instead of a vague "re-run the installer". Legacy `task upgrade` / `run upgrade` are labeled metadata-only acknowledgment and `task relocate -- --confirm` as back-compat only, so a normal consumer following doctor guidance ends up with a fresh payload, not just refreshed metadata. Refs #1409.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **`task doctor` no longer false-fails on clean installs (#1321)** -- canonical skills (e.g. `deft-directive-setup`, `deft-directive-sync`) that merely mention the deprecation-redirect sentinel in their pre-cutover docs are no longer misclassified as redirect stubs. The doctor now detects stubs by file shape (an exact sentinel line within the first few header lines) instead of a body-wide substring match, so a healthy v0.31+ layout stops reporting a spurious `skill-paths-resolve: fail` and the no-op refresh loop it caused. Re-lands the fix on the consolidated `scripts/doctor.py` after the v0.38.0 extraction reintroduced it. Closes #1321.
 - **Upgrading to v0.37+ no longer breaks `task check` for full-spec consumers (#1381)** -- `verify-strategy-output` now accepts a post-cutover project that keeps `vbrief/specification.vbrief.json` as the canonical source rendered into `SPECIFICATION.md` (detected via the renderer's provenance markers plus complete lifecycle folders) instead of rejecting it as a legacy strategy dual-write. Strategy-produced dual-writes remain rejected. Closes #1381.
 - **`task verify:story-ready` polish (#1378 follow-up)** -- the story-start Gate 0 helper now fails closed on any git spawn error (not just a missing binary), reports "dirty tree allowed (--allow-dirty)" instead of "tree clean" when `--allow-dirty` is used, and parses the dispatch envelope's `## Allocation context` section once instead of twice. Behaviour-only cleanup of the three non-blocking review nits from PR #1402. Refs #1378.
@@ -3944,6 +4077,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation / skills / agent guidance collapsed to the unified installer + doctor path (#1340 Epic-6): AGENTS.md + template, README, UPGRADING.md, and `deft-directive-sync` skill now direct agents to the published installer binary as the canonical (re)bootstrap mechanism, with the automatic doctor --session --json handoff providing staleness detection and next-step recommendations. Old paths (git submodule, `run upgrade`, legacy doctor surfaces) de-emphasized and marked legacy. Clear agent examples provided. Closes #1340.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(install): `--json` stdout is now a single parseable JSON object (PR #1385 review)** -- in `--yes --json` mode `PrintNextSteps` prose used to land on stdout immediately after the JSON, so `jq`, `json.loads`, and `json.Unmarshal` all failed on the trailing non-JSON text. The prose is now routed to stderr in JSON mode; humans / log scrapers still see it, and agents / CI get one clean parseable object on stdout as the documented `--json` contract promised. Companion: explicit logging-by-stderr in the non-`os.ErrNotExist` `Stat` / non-`exec.ErrNotFound` `LookPath` else branches so transient filesystem / PATH errors are visible in agent logs. Refs #1337, #1338.
 - **fix(install): `EnsureTaskfile` inserts deft entry inside `includes:` block, not at EOF (PR #1385 Greptile P0)** -- when an existing Taskfile had `includes:` followed by other top-level keys (`tasks:` / `vars:` / `env:`), the appended `  deft:` block landed under the LAST opened mapping under YAML indent-scope rules, wiring deft into the wrong block while the installer reported `taskfile_wired:true`. New `insertDeftIncludeAfterIncludesLine` helper performs a structural insertion as the first child of the top-level `includes:` block, always correct regardless of what other top-level keys follow. Defence-in-depth fallback appends a fresh block with an inline manual-merge hint when the scanner cannot locate the canonical line shape (CR-LF / unanticipated comment forms). New regression test pins the `includes:` + `tasks:` + `vars:` ordering case end-to-end plus idempotent re-run + helper-level edge cases. Refs #1337, #1338.
 
@@ -3962,6 +4096,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(scripts,tests,skills): pr_merge_readiness layered fallbacks + monitor_pr.py resilient wait-until-ready (#1368)** -- long-running swarm monitors no longer report `head: None` for 15+ minutes when a single `gh` capture fails. `scripts/pr_merge_readiness.py` now cascades primary -> fallback1 (REST + Python-side comment parse) -> fallback2 (coarse PR-view + check-run signal) and emits a `via` discriminator on every JSON response; fallback2 is structurally never CLEAN and total failure produces a `{ error, partial_data, via: "error" }` envelope so monitors step forward instead of going blind. New `scripts/monitor_pr.py` is the canonical wait-until-ready helper with adaptive 1m/3m/5m cadence, routed through `_safe_subprocess.run_text` (#1366). Swarm SKILL.md Phase 5 + Phase 6 Step 1 document the contract. Closes #1368; depends on #1366; cross-refs #1166, #1353, #1365.
 - **fix(scripts,tests,docs): safe-subprocess helper closes the Windows `Thread-3 (_readerthread) UnicodeDecodeError` hole on `gh` capture (#1366)** -- swarm operators on Windows / Grok Build no longer see `Still waiting... (last reviewed: none, head: None)` from background monitors when Greptile rolling-summary bodies contain non-cp1252 glyphs. New `scripts/_safe_subprocess.py::run_text` forces `encoding="utf-8", errors="replace"` so undecodable bytes become U+FFFD instead of crashing Python's internal reader thread; `scripts/pr_merge_readiness.py` is the reference adopter. `AGENTS.md` and `templates/agent-prompt-preamble.md` carry the new rule so future scripts that shell out for parsable output route through the helper from day one. Closes #1366; cross-refs #1353, #1365, #1368, #1369.
 - **fix(gate): generated SPECIFICATION.md no longer trips pre-cutover migration** -- root `SPECIFICATION.md` exports from `task spec:render` are now recognised as current vBRIEF artifacts when they point at `vbrief/specification.vbrief.json` and the lifecycle folders exist. The shared detector feeds the CLI gate, vBRIEF validator, migration preflight, and session-start prose. Migration preflight and `task doctor` now run uv with `--frozen` so read-only safety checks cannot rewrite `uv.lock`.
@@ -3988,6 +4123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat(strategies): migrate interview (light + full) to v0.20 (#1166)** -- The most common spec strategy now emits date-prefixed scope vBRIEFs under proposed/, triggers task project:render for a complete PROJECT-DEFINITION.vbrief.json, seeds the lifecycle folders, and treats specification.vbrief.json as legacy (no longer primary). Interview-generated projects now pass the v0.20 Pre-Cutover Detection Guard on first build. Refs #1166.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -4004,6 +4140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -4026,6 +4163,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **chore(deps): bump arduino/setup-task SHA pin (#1223)** -- pure SHA-pin refresh on the one `arduino/setup-task@...` invocation in `ci.yml` (Windows task-dispatch regression job). The upstream `v2.0.0` tag is unchanged; only the action's internal install script changed. The Task binary it installs is unaffected. Maintains the #1072 SHA-pinning convention.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(skills): review-cycle fully supports `spawn_subagent` / "grok-build" monitoring path (P1 surfaced on #1344)** -- Approach 1, tier detection, and poller launch now use the platform descriptor + launch adapter from #1342 slices 1-2. Grok Build / TUI agents (spawn_subagent + get_command_or_subagent_output + canonical preamble) are first-class alongside Warp/start_agent. Swarm and review-cycle orchestration are aligned for hybrid non-Warp environments. Refs #1342 (TDD plan), #1344 (Greptile P1). Subagent CHANGELOG entries for the slices were present and followed the prompt template; this entry records the cross-slice alignment debt closure.
 
 
@@ -4048,6 +4186,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(templates,agents-md,tests,scripts): propagate welcome / WIP cap / session-start ritual / skill routing from maintainer AGENTS.md into the consumer template (#1309)** -- consumer-installed AGENTS.md now carries the same session-start ritual, WIP cap, cache-as-authoritative work-selection, and skill-routing prescriptions the maintainer follows, so consumer agents see `task triage:welcome`, `task triage:queue`, `task doctor`, and the canonical 5-step ritual instead of a bootstrap-only surface. `task triage:welcome` gains a non-interactive default mode that emits the triage summary one-liner plus a state-conditional first-time / incomplete-onboarding nudge; the 6-phase interactive ritual now lives behind a new `--onboard` flag. A deterministic marker-list gate in `tests/content/test_agents_entry_contract.py` enforces the maintainer-to-template propagation so a future consumer-relevant rule cannot land on AGENTS.md without mirroring into `templates/agents-entry.md`. Closes #1309. Refs #1143, #1149, #1308.
 - **fix(triage): filesystem-truth in-flight count + scope-discrepancy line (#1270)** -- the session-start `task triage:summary` headline now reflects activated work correctly. `in-flight` reads from live `vbrief/active/*.vbrief.json` with `plan.status == "running"` (filesystem-truth) instead of the audit-log-scoped cache view, so activating a vBRIEF moves the count in lockstep with `WIP`. When the filesystem-truth and cache-scoped counts diverge, a second `[triage:scope]` line surfaces the gap and distinguishes whether `plan.policy.triageScope[]` is configured (`outside ...`) or absent/default (`not configured`). Closes #1270.
 - **fix(installer): seed vbrief lifecycle dirs with `.gitkeep` on install (#1179)** -- a fresh `deft-install` run now creates `vbrief/{proposed,pending,active,completed,cancelled}/` each with a `.gitkeep` so consumers can commit scope vBRIEFs into the lifecycle scaffolding without first hand-creating the directories. Reverses the 4g sub-deletion from #1020 that dropped the seeding step on the canonical-install path. Closes #1179.
@@ -4066,6 +4205,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(triage,determinism): `task verify:cache-fresh` no longer false-fails on a backfill-only cache state (#1245)** -- the pre-`start_agent` freshness gate previously refused a fresh `task triage:bootstrap` whenever every cached open issue happened to fall outside the active `plan.policy.triageScope[]` subscription, even though the backfilled `accept` audit-log rows showed the consumer was actively triaging. The recovery hint ("widen the subscription") was wrong for that state. The gate now distinguishes a backfill-only cache (cached entries present, none in subscription, audit log populated) from a genuine misconfiguration (no in-scope entries AND no triage activity); the first state exits 0 with a state-aware message so the pre-`start_agent` gate stack composes, while downstream `--for-issue` dispatch still enforces per-issue scope + decision. Closes #1245.
 - **fix(triage): `task triage:welcome` no longer silently skips bootstrap (#1244)** -- the welcome ritual now reliably populates `vbrief/.eval/candidates.jsonl` on first-session runs. Phase 3 keys off the canonical "bootstrap finished" audit log the same way downstream verbs (`task triage:queue`, `task verify:cache-fresh`) consume, so a partially-populated `.deft-cache/` from a prior run cannot trick the ritual into reporting completion while the cache is empty. Dry-mode runs (`--no-subprocess`) loudly surface that the cache will remain absent, and operators can explicitly decline bootstrap via a new `--skip-bootstrap` flag that records a persistent audit trail. Closes #1244.
 - **fix(ingest): `task issue:ingest` enriches vBRIEFs from issue body (#1248)** -- the ingester no longer produces stub-only scope vBRIEFs. `narratives.Overview` continues to carry the issue body verbatim, and `plan.items[]` is now populated from Markdown task-list checkboxes (`- [ ] ...`) or from a numbered / bulleted list under an `Acceptance Criteria` heading. Closing-keyword cross-refs in the body (`Closes #N`, `Refs #N`, `Blocked by #N`) lift into typed `plan.references[]` entries (`x-vbrief/closes`, `x-vbrief/refs`, `x-vbrief/blocks`); code-fenced examples and self-references are skipped. Closes #1248.
@@ -4081,6 +4221,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > v0.32.0 ships #1119 cache-as-operator-working-set: REST bootstrap (40x faster), ranked triage queue, slice tracking, scope:undo, queue-driven swarm Phase 0.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(cache): REST writer migration + bootstrap state-machine cleanup (#1236, #1237, #1239, #1240)** -- four v0.32.0 release-blocker fixes that cut `task triage:bootstrap` for the 396-issue cohort from ~504s GraphQL to ~13s paginated REST and let `task triage:queue` find cached issues again. The cache writer now goes through paginated REST with defensive lowercase-state normalisation in the reader, `task triage:bootstrap` resolves the repo once and threads it through every step, and `task verify:cache-fresh` distinguishes never-bootstrapped from freshly-bootstrapped from actively-triaging. Closes #1236, Closes #1237, Closes #1239, Closes #1240. Refs #1119, #1186.
 - **fix(slice): atomic idempotency + Greptile P2 cleanup on `slice_record_existing` (#1230, #1231)** -- closes the deferred P1 TOCTOU race on `task slice:record-existing` so two concurrent invocations without `--force` cannot both observe "no duplicate" and double-write a cohort record; also corrects the `--wave-1` double-count in the summary line, replaces an assert-based safety check that disappeared under `python -O`, and documents the Windows `{{.CLI_ARGS}}` quoting limitation in `CONTRIBUTING.md`. Refs #1119, #1147, #1229.
 
@@ -4119,6 +4260,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -4134,6 +4276,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -4160,6 +4303,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **chore(deps): bump actions/download-artifact from 4.3.0 to 8.0.1 (#1080)** -- 4-major hop. Cumulative breaking changes: v5 changed path behavior for `artifact-ids` downloads (we use `name:` exclusively, unaffected); v6 + v7 moved to Node 24 default; v8 added ESM module migration (transparent), made hash-mismatch error-by-default (security improvement; `digest-mismatch` input to override), and added optional `skip-decompress`. Our four usage sites (`release.yml:70, 73, 111, 227` -- all `name:` or `merge-multiple: true`) are unchanged. Verified end-to-end by `workflow_dispatch` against the combined throwaway: 6 build matrix + universal-macos + 4 smoke-test jobs all green, exercising download-artifact@v8 across 7 download steps.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(scripts): `task issue:ingest` -- provenance-aware dedup via `Origin` narrative (#1096)** -- closes the recurring false-positive dedup gate where `task issue:ingest -- <N>` refused to ingest a legitimate issue whenever ANY pre-existing vBRIEF (in any lifecycle folder, including `completed/`) carried a reference whose URI mentioned issue `#N` -- regardless of whether that reference represented provenance (`x-vbrief/github-issue` = "this vBRIEF implements issue #N") or just an informational / companion / related-plan / sibling mention. New `scripts/issue_ingest.py::_scan_provenance_refs` differentiates *provenance* references (the vBRIEF was actually ingested from issue #N -- `plan.narratives.Origin` confirms it AND a canonical `x-vbrief/github-issue` reference points at #N) from *informational* references (companion / sibling / related-plan mentions, even when typed `x-vbrief/github-issue`). Only provenance matches enter the dedup map, so `task issue:ingest -- <N>` no longer false-positives on informational references that merely mention `#N`. The Origin-parser accepts both canonical shapes emitted by `_build_issue_vbrief`: `Ingested from https://github.com/<owner>/<repo>/issues/<N>` and the no-URL fallback `Ingested from issue #<N>`; `vBRIEFInfo.description` is honoured as a secondary signal. Legacy v0.5-shape vBRIEFs that predate the `Origin` convention fall back to a position-aware heuristic (first `x-vbrief/github-issue` reference is implied provenance) so dedup remains correct on unmigrated trees without requiring a data-migration sweep (per the issue's out-of-scope clause). `ingest_one` and `ingest_bulk` both consume the provenance-aware scan. New `tests/cli/test_issue_ingest_direct.py::TestProvenanceAwareDedup` (9 tests) pins the contract end-to-end: false-positive case (companion ref to #480 in #481's vBRIEF -> ingest succeeds), true-positive case (primary provenance ref to #481 -> dedup blocks), recurrence case #835 (completed/ vBRIEF with sibling ref -> ingest succeeds without rewriting history), mixed-refs case (Origin identifies #700, companion refs to #701/#702/#703 are all informational -> ingest of any companion succeeds), legacy v0.5 back-compat (no Origin -> first ref is implied provenance, dedup still works), hand-authored kaizen edge case (legacy fallback honoured), bulk path (companion refs do not false-positive across `ingest_bulk`), no-URL Origin fallback (`Ingested from issue #N` recognised), parser unit pin (URL form / bare form / description fallback / no-signal / non-dict). `conventions/references.md` gains a new `### Origin narrative -- canonical provenance signal (#1096)` section documenting the two canonical Origin shapes, the dedup pass's two-condition contract, the legacy-fallback heuristic, and the anti-patterns (treat-every-ref-as-provenance, mutate-completed-history). Unblocks ingest of deferred consumers #835 (memory-write-security-scan) and #949 (scanner v3 categories) that were skipped from the 2026-05-12 refinement cohort due to this exact false-positive surface against companion references in completed/ vBRIEFs. Refs #481, #883 (the two recurrence records cited in the vBRIEF), #1098 (Wave 1 cohort umbrella). Closes #1096.
 - **fix(ci): release.yml setup-go reads go version from go.mod via `go-version-file` (#1081 follow-up; closes #1071 deferred follow-up)** -- setup-go v6.0.0 changed the default `GOTOOLCHAIN` from unset to `local`, which disables go.mod's `toolchain` directive auto-fetch path. With the hardcoded `go-version: "1.22"` literal in `release.yml:43` (the deferred follow-up the v0.29.1 CHANGELOG explicitly named at #1071), the v5.6.0 -> v6.4.0 bump landed via PR #1081 (2026-05-12) made the next real release cut fail at the build step with `go: go.mod requires go >= 1.25 (running go 1.22.12; GOTOOLCHAIN=local)`. Surfaced by a `workflow_dispatch` smoke test against a combined throwaway branch carrying the in-flight #1079 + #1080 bumps -- the dependabot-triage cohort sub-wave C e2e exercise. Two-line fix in `release.yml`: replace `go-version: "1.22"` with `go-version-file: go.mod` so the release pipeline pins its Go version from the same single source of truth (`go.mod`'s `go 1.25` directive) as `ci.yml:130` already does. setup-go v6's `GOTOOLCHAIN=local` default no longer matters because the installed Go now satisfies the `go.mod` minimum directly. Refs #1081 (the v6 bump that exposed the latent string-drift hazard), #1071 (the parent OSV-resolution PR that named the `1.22` literal as out-of-scope).
 
@@ -4185,6 +4329,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(security): pin GitHub Actions to SHAs + least-privilege `permissions:` blocks (#1072, parent #1069)** -- closes the AFK GitHub-Actions slice of the 2026-05-12 supply-chain hardening cohort. Every remote `uses:` line in `.github/workflows/**` is now pinned to a 40-character commit SHA with a trailing `# vX.Y.Z` comment naming the upstream semver tag for Dependabot tracking + human readability: `actions/checkout@v4` -> `34e1148...` (v4.3.1, 3 sites), `actions/setup-python@v5` -> `a26af69...` (v5.6.0, 3 sites), `astral-sh/setup-uv@v5` -> `d4b2f3b...` (v5.4.2, 2 sites), `actions/setup-go@v5` -> `40f1582...` (v5.6.0, 2 sites), `arduino/setup-task@v2` -> `24c5e13...` (v2.0.0, 1 site), `actions/upload-artifact@v4` -> `ea165f8...` (v4.6.2, 2 sites), `actions/download-artifact@v4` -> `d3f86a1...` (v4.3.0, 3 sites), `softprops/action-gh-release@v2` -> `3bb1273...` (v2.6.2, 1 site). The pin per-site selects the highest semver tag matching the current major; all eight upstream `vN` aliases were cross-validated to point at the chosen SHA so Dependabot's existing major-version pin contract holds without churn (the one exception is `astral-sh/setup-uv`, whose `@v5` alias is ahead of the latest published `vN.M.P` tag -- pinning to `v5.4.2` is the safer single-version anchor). `release.yml` top-level `permissions:` flipped from `contents: write` (workflow-wide elevated scope) to default-deny `contents: read`; the `release` job (the only consumer of `softprops/action-gh-release`, which uploads binaries to the draft GitHub Release) gains an explicit per-job `permissions: contents: write` override with a `# #1072` comment naming the rationale so a future audit reads the scope contract without spelunking job history. `ci.yml` and `branch-gate.yml` already carry `permissions: contents: read` at the top level and have no job that requires elevated scope -- they pass through unchanged on the permissions axis. No workflow now relies on the default broad-scope `GITHUB_TOKEN` for any job (acceptance criterion #1072.4). Coordinates with sibling slice #1073 (docs/security.md baseline note, agent2-owned, disjoint file scope: `docs/security.md` + README security section). PyPI OIDC trusted-publishing carved out to follow-up #1084 (blocked-by #11; deft is not yet on PyPI so the OIDC scaffolding is meaningless until then). Refs #1069 (parent cohort umbrella), Refs #1073, Refs #1084. Closes #1072.
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 ### Removed
 
@@ -4202,6 +4347,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(security): supply-chain quick-wins -- PEM fixture remediation + `curl|bash` removal + `.github/dependabot.yml` deposit (#1070, parent #1069)** -- closes the AFK child of the 2026-05-12 supply-chain hygiene audit (parent #1069). Three coordinated edits in one PR: (1) `tests/test_cache_scanner.py` PEM fixtures at the previously-flagged gitleaks `private-key` hit (commit `90dc6a1e52ad`, lines 340-344) are now synthetic split-literal markers (`"-----BEGIN RSA" + " PRIVATE KEY-----\nREDACTED-FIXTURE-BODY"`) carrying a belt-and-braces `# gitleaks:allow` annotation -- the runtime-concatenated string still matches the scanner regex at `scripts/cache_scanner.py::_CREDENTIAL_PATTERNS` so `test_positive_credentials_hard_fail` continues to flag both PEM variants, but no single source line carries the canonical BEGIN sentinel that the gitleaks rule scans for. (2) `.github/workflows/ci.yml` ghx pre-install steps for both Linux and Windows replace the prior `curl | bash` (line 57) and `irm | iex` (line 178) live-pipe patterns with download-to-temp-file + SHA256-verify + execute-on-match flows; two new pinned-checksum env vars (`GHX_INSTALL_SH_SHA256` / `GHX_INSTALL_PS1_SHA256` for `v1.5.1`) sit alongside the existing `GHX_VERSION` pin so an immutable-tag force-move (supply-chain compromise signal) fails the step with a `::warning::` rather than executing tampered code. Soft-warn-on-failure contract preserved: a checksum mismatch falls back to the `gh` runtime ladder via `scripts/scm.py::resolve_binary` exactly as a network failure does today. (3) new `.github/dependabot.yml` configures weekly version + security update PRs for `pip` (root `pyproject.toml`), `gomod` (root `go.mod` covering `cmd/deft-install/`), and `github-actions` (the workflows at `.github/workflows/**`), with `open-pull-requests-limit: 5` per ecosystem and dependency-class labels for PR triage. Companion supply-chain hardening tracks: #1071 (OSV-advisory resolution on the existing dependency manifests, in-flight from agent2), #1072 (HITL Actions SHA-pinning + least-priv `permissions:` blocks + PyPI OIDC), #1073 (`docs/security.md` baseline). Closes #1070.
 - **fix(security): resolve 22 OSV advisories by bumping `go.mod` to Go 1.25 + `toolchain go1.25.10` (#1071)** -- closes the Go-stdlib slice of the security-audit cohort #1069. `osv-scanner scan source --recursive .` against post-v0.29.0 master surfaced 22 known-vulnerable stdlib advisories against the `go 1.22` directive in `go.mod` (the scanner pessimistically treats `go 1.22` as `stdlib 1.22.99` -- the latest 1.22.x patch -- so every fixed-in-1.23+ stdlib CVE matches). The 22 live advisories range from `GO-2025-3503` (fixed in 1.23.7) through `GO-2026-4971` (fixed in 1.25.10); the parent #1069 scope cited 40 advisories from an earlier scan against pre-merge state, so the live count is lower (no Python advisories surfaced -- `uv.lock`'s 20 packages all scan clean). One coordinated edit in `go.mod`: `go 1.22` -> `go 1.25` plus a new `toolchain go1.25.10` directive that pins the minimum patch covering the highest-patch advisory (`GO-2026-4918` / `GO-2026-4971` both fix at 1.25.10). The `toolchain` directive triggers `GOTOOLCHAIN=auto` (default since Go 1.21) to fetch + use 1.25.10 transparently on any host with Go 1.21+ installed -- which covers the v0.29.0 release pipeline's hardcoded `go-version: "1.22"` step (`.github/workflows/release.yml:43`) per the #1071 scope contract that forbids touching workflow files (owned by sibling slice #1072). Re-running `osv-scanner scan source --recursive .` returns `No issues found`. `task check` passes clean (4938 passed). Coordinates with #1072 (HITL Actions SHA-pinning -- blocked by this PR's manifest bumps landing first) and #1070 (supply-chain quick-wins -- disjoint partition; agent1 owns `tests/test_cache_scanner.py` + `.github/workflows/ci.yml` + `.github/dependabot.yml`). Refs #1069 (parent security-audit umbrella). Closes #1071.
 
@@ -4223,6 +4369,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(scripts,tests): framework_doctor `install-path-consistency` reads `install_root` from `<install>/VERSION` manifest first; legacy AGENTS.md parse becomes the fallback (#1062)** -- the doctor's check #4 (`install-path-consistency`) now probes `<project>/.deft/core/VERSION` and `<project>/deft/VERSION` for the new `install_root` field before falling back to `_parse_install_root_from_agents_md`. When the manifest is present but missing the field (pre-v0.29 shape), the doctor surfaces an INFO note in the check `detail` + `data.fallback_info_note` payload so operators can see when the legacy parse was taken. The check's narrow scope is preserved: it still only verifies the resolved install root resolves to a directory on disk -- the manifest-vs-bare-derivative cross-check stays owned by check #3 (`manifest-agreement`). New Python test `tests/cli/test_framework_doctor_install_root_fallback.py` (consumed alongside the existing `tests/cli/test_framework_doctor.py` suite) covers the manifest-wins / legacy-fallback / fallback-info-note paths. Refs #1062, #1046 PR-B AC-3 (predecessor check this evolves).
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 - **fix(agents-refresh): replace legacy v1/v2 managed block instead of appending (#1044)** -- closes the duplicate-managed-section bug surfaced when a consumer's `AGENTS.md` was bracketed by the v0.26 marker `<!-- deft:managed-section v1 -->`. Before this fix, `run::_AGENTS_MANAGED_OPEN_RE` matched only `v(2|3)`, so `_extract_managed_section` returned `None` on a v1-marker file, `_classify_agents_md` reported `missing`, and `_agents_refresh_plan` routed the file through `_wrap_legacy_in_markers` -- which APPENDED a fresh v3 block beneath the existing v1 block, leaving the consumer with two managed sections. Three coordinated edits in `run`: (1) the open-marker regex `_AGENTS_MANAGED_OPEN_RE` is widened from `v(2|3)` to `v(1|2|3)` so v1 markers are detected by every consumer of `_find_managed_open_marker` / `_extract_managed_section` / `_parse_managed_section_attrs`; (2) `_classify_agents_md` and `_agents_refresh_plan` now extend the legacy-marker force-stale branch from `version == 2` to `version in (1, 2)` so a v1-marker file always classifies as `stale` and routes through the in-place byte-replace path; (3) new helper `_iter_managed_sections(text)` walks the file collecting every well-formed `<open>...<close>` region, and `_agents_refresh_plan` uses it to detect the duplicate-block recovery case (a v1 leftover coexisting with an appended v3 block from a partial pre-#1044 upgrade) and collapse to a single v3-attributed block at the position of the FIRST managed section -- preserving surrounding user content order rather than just deleting the leftover and appending v3 at end-of-file. `_classify_agents_md` returns `stale` whenever more than one managed block is present so `task agents:refresh --check` flags the broken state. New `tests/cli/test_cmd_agents_refresh.py::TestLegacyMarkerUpgrade` (6 tests) pins the contract: v1-only file replaces in place at the original block position (consumer notes above + below preserved in document order); v2-only file replaces in place (regression guard so #1044's expanded regex does not break #1046 PR-B AC-5); v1+v3 broken state collapses to a single v3 block at the position of the FIRST block (acceptance criterion (c)); `_classify_agents_md` returns `stale` for v1-only AND for duplicate-block bodies; double-running refresh from a v1 baseline is byte-stable (idempotency regression guard). Refs #1046 PR-B AC-5 (v2 -> v3 transition this extends back to v1), #768 (managed-section marker contract). Closes #1044.
 
 - **fix(scripts,tests): sharpen `framework:doctor` FAIL prose to cite real commands + structured `data.suggested_fix` field + prose-regression test (#1061)** -- `scripts/framework_doctor.py` FAIL `detail` strings for the four checks (`quick-start-resolves`, `skill-paths-resolve`, `manifest-agreement`, `install-path-consistency`) previously emitted unactionable hints (`Reinstall the framework or update AGENTS.md to match the on-disk install path.`) for three of the four, and the fourth cited `task upgrade` as a Taskfile target that did not exist (the wrapper lands in this same PR under `### Added`). Concrete prose changes per check: `_check_quick_start_resolves` FAIL now names BOTH `.deft/core/run agents:refresh` (Unix) / `.deft\core\run agents:refresh` (Windows) (rewrite AGENTS.md to match on-disk install) AND `task upgrade` (re-pull framework if on-disk install is missing); `_check_skill_paths_resolve` FAIL gains the same dual-form `agents:refresh` recommendation; `_check_manifest_agreement` FAIL (missing-manifest and drift-detected variants) keeps the `task upgrade` recommendation (now a real target); `_check_install_path_consistency` FAIL names BOTH legitimate repair paths explicitly -- (a) `agents:refresh` to rewrite AGENTS.md to match the on-disk framework, (b) `task relocate -- --confirm` to move the framework to the path AGENTS.md / the manifest claims -- with operator-facing guidance on which to pick. Every FAIL `detail` now ends with `See UPGRADING.md for the canonical drift-repair walkthrough.` cross-referencing the new section. Structured `data.suggested_fix` (and `data.suggested_fix_alt` for the dual-repair check) field added to every FAIL payload so programmatic consumers (the agentic-sync skill, downstream CI assertions) can act on the recommendation without parsing prose -- the JSON `--json` mode carries these alongside the human-readable `detail`. New `tests/cli/test_framework_doctor_prose.py` (8 tests across 4 parametrised lanes) is the structural belt-and-braces regression: parses `Taskfile.yml` + every `tasks/*.yml` fragment for reachable Taskfile targets (root-level + namespaced inner-task forms), parses `run::main` `commands = { ... }` dispatch block for documented subcommands, drives the doctor against five contrived drift states (quick-start-missing / manifest-missing / manifest-disagrees / skill-missing / no-agents-md) and asserts every backticked command in every FAIL `detail` either resolves to a real Taskfile target or matches a documented `run` subcommand. The Quick-Start + Install-Path-Consistency checks also carry explicit per-check contract tests that pin the dual-recommendation requirement from the #1061 vBRIEF so a future edit that drops either recommendation fails fast. Refs #1060 (the canonical-reinstall-over-pre-v0.27 recurrence pattern the prose now points operators at), #1062 (`install_root` manifest field the install-path-consistency check now consumes -- prose acknowledges the manifest is authoritative).
@@ -4250,6 +4397,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(scripts,tasks,templates,tests,docs): vbrief:preflight resolver + fail-closed Taskfile semantic + AGENTS.md gate-prose update (#1046 PR-C AC-6 / closes #1047, closes the #1046 cohort)** -- PR-C of the #1046 install/refresh-contract cohort (Choice C ADR, #1051); builds on PR-A (#1054) and PR-B (#1057). Closes the cohort. AC-6 ships `scripts/_resolve_preflight_path.py` -- a pure-stdlib install-layout resolver that probes for `preflight_implementation.py` under the supplied project root in priority order (1) `.deft/core/scripts/` (the v0.27+ canonical install layout per #992); (2) `deft/scripts/` (the legacy v0.20-v0.26 install layout); (3) `scripts/` (the in-repo case when the deft framework itself is the project root). The resolver mirrors the shape of `scripts/resolve_version.py` (#723): `main(argv) -> int` with a CLI for the Taskfile body, a public Python API (`resolve_preflight_path(project_root) -> Path | None`) for tests and future callers, and stdout-without-trailing-newline so the Taskfile body can capture the resolved path via `$(...)` verbatim. On a hit the resolver prints the absolute resolved path on stdout and exits 0; on all-miss the resolver exits 2 with a structured `gate misconfigured: cannot resolve preflight_implementation.py at any expected path (.deft/core/scripts/, deft/scripts/, scripts/) under project root <root> -- run `task framework:doctor` for diagnostics.` error on stderr that names the failure class, enumerates the probed layouts, and points operators at the PR-B install-integrity probe (#1057) for the diagnostic surface. `tasks/vbrief.yml::preflight` is rewritten to consume the resolver via a two-step inline `sh:` block: step 1 captures the resolved path through `resolved=$(uv ... _resolve_preflight_path.py --project-root "{{.USER_WORKING_DIR}}") || exit $?` (the `|| exit $?` short-circuits and propagates the resolver's exit code BEFORE the downstream `uv run python <script>` ever fires), step 2 runs the resolved script with the user-supplied `--vbrief-path {{.CLI_ARGS}}`. The two-step shape makes the fail-closed semantic explicit -- the gate cannot silently fail open on a misconfigured install because there is no path resolution branch that produces exit 0 without a verified file on disk. This is the safety-significant fix from issue #1047: before this PR the Taskfile target wrapped a single `{{.DEFT_ROOT}}/scripts/preflight_implementation.py` path that could fail-open silently on installs where the on-disk layout disagreed with the resolved DEFT_ROOT (the #1047 reproduction shape was a state-B `.deft/core/` install with a stale Taskfile path literal -- the gate's silent-fail-open would route an agent past the #810 contract assertion that its safety gate was in force). AGENTS.md managed-section prose in `templates/agents-entry.md` rewritten: the path-handling claim (`The Taskfile target wraps scripts/preflight_implementation.py so the same invocation works whether deft is the project root or installed as a deft/ subdirectory`) is replaced with a contract-shape claim referencing the resolver (`The Taskfile target resolves the wrapped script via scripts/_resolve_preflight_path.py ... and fails closed with a structured gate misconfigured error pointing at task framework:doctor if no candidate resolves`) -- avoids future drift if a fourth install layout ever surfaces. New `tests/cli/test_vbrief_preflight_resolver.py` (17 tests across 3 suites: Python API state matrix covering each of the four states (state B canonical wins, state A legacy fallback, in-repo fallback, all-three-absent fail-closed via `None` return) plus priority order (canonical-over-legacy, canonical-over-in-repo, legacy-over-in-repo, all-three-present canonical wins), edge cases (directory-at-candidate skipped by `is_file()`, relative project root normalised to absolute); CLI exit-code contract covering exit 0 stdout-only happy path, exit 2 fail-closed structured-error contract (`gate misconfigured` + `preflight_implementation.py` + `task framework:doctor` tokens all present, all three probed-layout substrings present), `--project-root` default-is-cwd behaviour, legacy + in-repo CLI resolution; recursive self-test against the actual deft repo root (in-repo case must surface the framework's own `scripts/preflight_implementation.py`). Existing `tests/cli/test_preflight_implementation.py` (#810 gate-evaluator state matrix) preserved verbatim and continues to pass -- PR-C does NOT touch the inner gate's vBRIEF-lifecycle logic, only the wrapping path resolution. The PR-A `tests/contract/test_no_legacy_deft_paths_in_agents_template.py` contract sweep continues to pass because the rewritten Implementation Intent Gate block carries the canonical `.deft/core/scripts/` literal (not the forbidden `deft/scripts/` substring). Refs #1046 (cohort -- closes on this PR's merge); refs #1047 (absorbed); refs #810 (the gate this resolver wraps); refs #992 (canonical install layout that made the legacy hardcoded path stale); refs #1054 (PR-A canonical-path enforcement); refs #1057 (PR-B framework:doctor probe pointed at by the fail-closed error). Closes #1047, closes #1046.
 
@@ -4306,6 +4454,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(release_publish): paginated /releases list+filter for DRAFT lookup (#1016)**
 
@@ -4342,6 +4491,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 
 
@@ -4389,6 +4539,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(templates): triple-tier Greptile finding detector in swarm poller prompt (#910)** -- closes the recurrence pattern surfaced by the v0.25.1 swarm session (2026-05-04, 4-agent cohort #899/#900/#901/#902 -> PRs #906/#907/#908/#909) where the badge-only detector in `templates/swarm-greptile-poller-prompt.md` produced THREE false-negatives in a single session (#907 first review, #908 first review, #908 retrigger). Greptile renders findings in at least three distinct surface forms across review passes on the same PR (HTML severity badges; markdown-bullet bold like `- **P1 -- ...**`; inline prose like `Three P1 findings ...` or `Not safe to merge`); a single-tier detector is structurally insufficient. The prescribed detector body in the canonical poller template now evaluates ALL THREE tiers and combines them via `has_blocking = (max(tier1_p0, tier2_p0) + max(tier1_p1, tier2_p1)) > 0 or tier3_sentinel`. **Tier 1** (existing) -- HTML badge count: `body.count('<img alt="P0"')` / `body.count('<img alt="P1"')`. **Tier 2** (NEW in detector body, previously only mentioned in Notes prose) -- markdown-bullet bold scan via `re.compile(r"^[\s\-\*]*\*\*P([01])\b[^*]*\*\*", re.MULTILINE)` with line-scoped negation-context guards (`No `, `Zero `, `0 `, `no ` in the same physical line MUST NOT count) so a `No **P1** findings` line elsewhere in the body cannot cancel a real `**P1 -- ...**` bullet. **Tier 3** (NEW) -- inline-prose sentinels: substring match on `Not safe to merge` (Greptile's explicit human-readable verdict, treated as a hard block), case-insensitive count regex `\b(?:One|Two|Three|Four|Five|\d+)\s+P[01]\s+findings?\b` with line-scoped negation guards plus a leading-`0` rejection so `0 P1 findings` does not trigger, and line-anchored regex `^\s*P[01]\s+--\s` for bare-prose finding lines. The `### P0 findings (N)` / `### P1 findings (N)` structured-section parse remains as a diagnostic-only readout (NOT a fourth tier in the verdict) -- per Rule Authority [AXIOM] strongest-applicable-layer the rule body lives in the template itself, with `meta/lessons.md` carrying the short cross-reference. New `tests/content/test_swarm_poller_template.py` ships 14 regression tests across two lanes: (a) six behaviour-matrix cases against a Python reference detector that mirrors the template body verbatim -- markdown-bullet P1 only with zero badges produces `has_blocking=True` (Tier 2 fix), `Not safe to merge` only produces `has_blocking=True` (Tier 3 fix), `Three P1 findings` count-prose only produces `has_blocking=True` (Tier 3 fix), `No P0 findings` / `Zero P1 findings` MUST NOT trigger (negation guard), clean body produces `has_blocking=False`, and pure tier-1 badge body still produces `has_blocking=True` (regression for prior behaviour); (b) eight synchronization tests asserting the template encodes the canonical regex strings + sentinels verbatim plus a structural `str.format(...)` render guard so a future edit that introduces an unescaped `{` in the new code block fails CI immediately. The `tests/content/test_skills.py` `test_swarm_greptile_poller_prompt_*` lane (12 existing tests) keeps passing -- placeholder + format-render contract preserved. Closes #910.
 
@@ -4421,6 +4572,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(triage): bootstrap orchestrator hang post-cache:fetch-all + scrub obsolete `--skip-gitcrawl` flag from task description (#952, #951)** -- closes the v0.26.0 backlog-scale hang surfaced by the 2026-05-06 cache-layer scale smoke (`docs/smoke-2026-05-06-v0.26.0-scale.md`). Phase 1 (limit=50) finished 58.5s clean; Phase 2 against the full `deftai/directive` open backlog hung indefinitely after the cache audit log went silent at `2026-05-06T18:00:09Z` (issue #9 cache:put), 71+ minutes before the maintainer cancelled. Root cause: `cache.cache_fetch_all` shells out to `task scm:issue:view` per issue with no per-call timeout, so a stuck `gh`/`ghx` subprocess (auth re-prompt, network stall, server hang) blocked the orchestrator's main thread indefinitely; the operator had no per-step visibility to diagnose where the run was wedged so the smoke report initially mis-attributed the hang to a post-fetch step. Three coordinated changes in `scripts/triage_bootstrap.py`: (1) **wall-clock watchdog** wraps the wrapped `cache.cache_fetch_all` call in a daemon thread; the main thread joins with a configurable timeout (default `DEFAULT_FETCH_TIMEOUT_S = 3600s`, sized for a 1000-issue backlog at the default 500ms inter-issue delay; CLI `--fetch-timeout-s`; env `DEFT_BOOTSTRAP_FETCH_TIMEOUT_S`; `0` disables for legacy unbounded behavior). On timeout, `step_populate_cache` returns `StepOutcome(ok=False, details={"timed_out": True, ...})` with an actionable error message pointing at the recovery flags. The watchdog cannot interrupt the underlying subprocess (Python lacks reliable thread cancellation in `subprocess.run`) but it guarantees the orchestrator surrenders control inside the deadline -- the load-bearing property the v0.26.0 smoke needed. (2) **per-step structured progress** on stderr: `triage:bootstrap step <i>/4 <name> -- starting (...)` and `... -- done (...)` lines around each of the four steps (populate_cache / backfill_audit_log / ensure_gitignore_entry / ensure_gitignore_eval_dir), matching the cadence of `scripts/cache.py` / `scripts/cache_scanner.py` so a future operator can see exactly which step is in flight if a real run wedges. New `--quiet` CLI flag suppresses the lines without affecting the recap or `--json` output. (3) **defensive `git remote get-url origin` timeout**: `_infer_repo_from_git` now passes `timeout=10` so a stuck git proxy (corporate VPN re-auth, hung credential helper) cannot wedge bootstrap before any progress line lands. The gitignore step helpers (`step_ensure_gitignore_entry`, `step_ensure_gitignore_eval_dir`, plus the underlying `_ensure_gitignore_line` / `_gitignore_already_covers` / `_is_commented_gitignore_line` and the rationale strings) move to a new `scripts/_triage_bootstrap_gitignore.py` submodule so the parent script stays under the 1000-line MUST limit (`coding/coding.md`); the public re-export surface (`triage_bootstrap.step_ensure_gitignore_entry` / `...eval_dir` / `GITIGNORE_LINE` / `GITIGNORE_EVAL_LINE`) is preserved verbatim. The submodule resolves `StepOutcome` lazily via `_outcome_cls()` to avoid a circular import when callers import either module first. **#951 scrub:** `tasks/triage-bootstrap.yml` task description and the `conventions/task-caching.md` rationale comment lose their references to the obsolete `--skip-gitcrawl` flag (the Story 3 rebind dropped the gitcrawl install path entirely; argparse never accepted the flag). The new task description enumerates the actually-supported flags (`--repo`, `--limit`, `--state`, `--fetch-timeout-s`, `--quiet`, `--json`). New `tests/integration/test_triage_bootstrap_at_scale.py` ships four hermetic regressions: (a) a 60-issue fake-gh backlog drives `run_bootstrap` to `exit_code == 0` within a 30s wall-clock cap with all four steps `ok=True` and the cache layout populated for every fixture issue; (b) per-step progress emission captured via an `io.StringIO` sink asserts every step emits both a `starting` and a `done` line; (c) **#952 load-bearing property**: a `cache_fetch_all` that sleeps 60s is bounded by `fetch_timeout_s=0.5` and `step_populate_cache` returns `ok=False` + `timed_out=True` inside the deadline rather than wedging the parent process; (d) `fetch_timeout_s=0` restores the legacy unbounded path and the step still completes against the hermetic fixture. Existing `tests/test_triage_bootstrap.py` (14 tests) preserved verbatim and continue to pass. Closes #952; closes #951.
 
@@ -4493,6 +4645,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 
 
@@ -4521,6 +4674,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(triage): rename fragment-include task names so the documented `triage:*` surface (`task triage:cache`, `task triage:accept`, `task triage:bulk-defer`, etc.) is reachable verbatim (#913)**
 
@@ -4547,6 +4701,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(triage): try uv before pipx in step_ensure_gitcrawl + structured deferred outcome + fallback docs (#901)** -- closes the adoption blocker where `task triage:bootstrap` step `ensure_gitcrawl` deferred silently on Windows. Users got no signal about the gh-only fallback or which fields would be missing from the cache. `scripts/triage_bootstrap.py::step_ensure_gitcrawl` now tries `uv tool install gitcrawl` BEFORE `pipx install gitcrawl` (uv is already a deft requirement); on both-installer failure (or neither installer present) it defers with a visible status line and a structured `StepOutcome` carrying `falling_back_to="gh-only"`, `missing_fields=["body_html", "reactions", "comments_full"]`, and `install_hint`. The status line is visible in normal `task triage:bootstrap` stdout, not buried in `--verbose`-only output. New `docs/gitcrawl-fallback.md` end-user maintainer doc covers the gh-only field gap, manual install commands (`uv tool install gitcrawl` / `pipx install gitcrawl`), and verifying gh-only mode after deferral. `skills/deft-directive-refinement/SKILL.md` Phase 0 gains a See-also link to the new doc. Adds 7 tests under the `test_step_ensure_gitcrawl_*` namespace in `tests/test_triage_bootstrap.py` covering the new install order, structured deferral, and status-line visibility. File-overlap with PR #908 (#900) is strictly disjoint by function: this PR owns `step_ensure_gitcrawl`; #900 owns `_build_parser` + `run_bootstrap` + the populate-flags paragraph in the refinement SKILL. Closes #901.
 
@@ -4605,6 +4760,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 
 
@@ -4651,6 +4807,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(scripts/release.py): release pipeline bypasses #747 branch gate via programmatic env-var (#867)** -- the just-shipped #747 detection-bound branch gate (`.githooks/pre-commit` -> `scripts/preflight_branch.py`, plus `.githooks/pre-push`) refused the in-flight v0.24.0 release-cut at Phase 4 Step 9 because the canonical `task release` pipeline commits release artifacts (CHANGELOG.md, ROADMAP.md, pyproject.toml, uv.lock) on master by design and the gate had no carve-out for that path. The e2e rehearsal did not catch this because the rehearsal's tmp clone is a fresh `git clone` with no `core.hooksPath` configured, so `.githooks/pre-commit` never fires inside the rehearsal -- only operator worktrees that have run `task setup` carry the hooks. The release pipeline is the canonical authorised commit-on-master path, so the fix is programmatic use of the SAME documented operator-side env-var bypass (`scripts/policy.py::ENV_BYPASS = "DEFT_ALLOW_DEFAULT_BRANCH_COMMIT"`) -- not a new bypass, just scoped use of the existing approved escape hatch. New module-level `_release_subprocess_env()` helper returns a copy of `os.environ` with `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT="1"` set, suitable for passing as `env=` to `subprocess.run`/`_run_git`. `_run_git` gained an `env: dict[str, str] | None = None` kwarg defaulting to the pre-#867 behaviour (inherit caller env) so read-only invocations (`git status --porcelain`, `git tag -l`, `git ls-remote`, `git diff --cached`) keep working unchanged. Three call sites in `commit_release_artifacts` (Step 9 -- `git commit`), `create_tag` (Step 10 -- `git tag -a`, defence-in-depth in case a future tag-side hook lands), and `push_release` (Step 11 -- `git push --atomic origin <branch> <tag>`) now call `_release_subprocess_env()` and pass the result as `env=`; each call site carries a one-line `# #867:` comment explaining the bypass. The parent-process `os.environ` is intentionally NEVER mutated -- the env-var lives only in the subprocess env so a stale value cannot leak into a subsequent operator shell session. `scripts/preflight_branch.py` is intentionally untouched per the issue acceptance: the gate's behaviour is correct as-is; the release pipeline must adapt to it. New `tests/cli/test_release_branch_gate.py` (12 tests across `TestReleaseSubprocessEnv`, `TestCommitReleaseArtifactsBranchGate`, `TestCreateTagBranchGate`, `TestPushReleaseBranchGate`, `TestAllThreeMutationsCarryBypass`) mocks `subprocess.run` to capture the `env=` kwarg passed to git commit / tag / push during pipeline-helper invocations; asserts the bypass is present in each; asserts `os.environ` is byte-unchanged after each helper returns (no parent-process pollution); and the aggregate test re-discovers the mutation surface so a future refactor that adds a fourth git mutation without the bypass fails immediately. Closes #867; surfaced during the v0.24.0 release-cut session 2026-05-03 and ships in v0.24.0 to unblock the in-flight cut.
 
@@ -4733,6 +4890,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(scripts): script-bug cluster -- `spec_validate` v0.6 envelope message + wired `VALID_VBRIEF_VERSIONS`, `apply_lifecycle_fixes` dedup, PRD `--force` recovery audit (#565, #573, #756)**: Three coordinated script-level fixes lifted from the 2026-04-30 Phase 1 refinement cohort, batched into a single PR per the orchestrator role-separation guidance (#727).
 
@@ -4789,6 +4947,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - fix(release): vBRIEF-lifecycle-sync gate now scales by vBRIEF-referenced-issue-count, not repo-open-issue-count -- inverted lookup via batched gh api graphql retires the 200-issue pagination cap and the Tier 2 truncation-guard surface (#754)
 
@@ -4851,6 +5010,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(scripts,tests): `gh release create` uses `--notes-file` instead of inline `--notes` to avoid Windows command-line buffer overflow** (#731, refs #720 e2e harness that surfaced this, refs #721 v0.21.0 cut session anchor, refs #722 PATHEXT helper -- correct, not the bug, refs #74/#716 release pipeline foundation + safety hardening): The deepened `task release:e2e` harness landed by #720 surfaced a real Windows production defect during the v0.21.0 re-cut Phase 3 gate -- the kind of platform-specific issue that mocked unit tests cannot reach by definition (`tests/cli/test_release.py` mocks `subprocess.run`, so the cmd-line length never round-trips through `CreateProcess`). `scripts/release.py::create_github_release` invoked `gh release create v<version> --notes "<promoted CHANGELOG section>"` with the entire release notes inlined as a command-line argument; once the promoted `[<version>]` section grows past the OS command-line buffer (~32 KB on Windows; ARG_MAX 128 KB-2 MB elsewhere) the call fails. `subprocess.run` raises `FileNotFoundError(2, 'The filename or extension is too long', None, 206, None)` because Python wraps Windows error code 206 (`ERROR_FILENAME_EXCED_RANGE`) as `FileNotFoundError` -- and the existing exception handler unconditionally mapped that to the canonical `"gh CLI not found on PATH"` reason, mis-pointing the operator at the #722 PATHEXT shim instead of the cmd-line root cause. The v0.21.0 production cut would have hit the same defect (the promoted `[Unreleased] -> [0.21.0]` section is many KB), landing master in state 2 ("tag pushed, no GitHub release") -- handled by `release_rollback.py::_unwind_tag_pushed_no_release` (#725) but with consumer-visible drift in the meantime. Two coordinated changes in `scripts/release.py::create_github_release`: (1) When `notes` is non-empty, materialise it to a UTF-8 temp file via `tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="", suffix=".md", delete=False)` and pass `--notes-file <path>` to `gh release create` instead of `--notes "<text>"` -- the documented gh CLI mechanism for long-form notes (https://cli.github.com/manual/gh_release_create). The temp file is cleaned up in a `try/finally` regardless of subprocess outcome (success, non-zero exit, FileNotFoundError, any other exception). When `notes` is empty we fall through to `--generate-notes` (gh-side auto-generation from PR titles since the previous tag) so the release body is never blank -- pre-existing behaviour preserved byte-for-byte. (2) Tighten the `FileNotFoundError` handler so `getattr(exc, "winerror", None) == 206` emits a distinct `"gh release create command line exceeded Windows limit (winerror 206, ERROR_FILENAME_EXCED_RANGE) ... see #731"` diagnostic with a hint at the `--notes-file` mitigation. All other `FileNotFoundError` cases (e.g. genuinely missing gh binary) keep the canonical `"gh CLI not found on PATH"` message so existing tests + operator expectations are stable. Out of scope: `release_publish.py`, `release_rollback.py`, `release_e2e.py` use `gh release view/edit/delete` only -- no `--notes` argument carrying large text, so the defect is localised to one function. New `tests/cli/test_release.py::TestCreateGithubReleaseNotesFile731` (8 tests) covers: argv contains `--notes-file <path>` and never `--notes <text>` for non-empty notes; temp file content equals notes verbatim, UTF-8 encoded (em dash round-trip); cleanup on success path; cleanup on non-zero exit; cleanup on FileNotFoundError; winerror=206 emits cmdline-exceeded diagnostic citing #731, NOT canonical gh-not-found; plain FileNotFoundError still maps to canonical `"gh CLI not found on PATH"`; empty notes preserves `--generate-notes` fallback. Self-validation: this is the second iteration in the v0.21.0 cut session of the e2e safety net catching a real defect pre-cut (rollback-as-test in the prior cycle surfaced #722-#725; this cycle surfaced #731 and gave us a clean fix path before any production-touching action). Scope vBRIEF: `vbrief/proposed/2026-04-29-731-release-notes-file-windows-cmdline.vbrief.json`. Closes #731.
 
@@ -4907,6 +5067,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(installer): read templates/agents-entry.md via //go:embed** (#636): `cmd/deft-install/setup.go` no longer hard-codes the AGENTS.md body in a `const agentsMDEntry` literal. The installer now sources the entry via a new `templates` Go package (`templates/embed.go`) that uses `//go:embed agents-entry.md` to bind the canonical `templates/agents-entry.md` markdown at build time. `agentsMDEntry` becomes a thin `var` alias around `templates.AgentsEntry`, so editing the template alone is sufficient to change what the installer writes -- no Go file edit required. The `const agentsMDSentinel = "deft/main.md"` idempotency contract is preserved. Added a build-time drift test (`templates/embed_test.go`) asserting the embedded bytes equal `os.ReadFile("agents-entry.md")` so CI fails if the embed target is removed or the path is reorganised, and two cmd-level fixture tests in `cmd/deft-install/main_test.go` (`TestWriteAgentsMD_MatchesTemplateFixture`, `TestAgentsMDEntrySourcedFromTemplate`) walking up to `go.mod` to assert the installer-written AGENTS.md and the `agentsMDEntry` variable both equal the canonical `templates/agents-entry.md` bytes and still contain the `deft/main.md` sentinel. The installer, `task agents:init`, and `QUICK-START.md` now produce byte-identical AGENTS.md content for the same template revision, eliminating the dual-maintenance tax that originally surfaced in #428. Closes #636.
 
@@ -4931,6 +5092,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **docs(skill): fix refinement task-name drift and roadmap:render description** (#612, #615): Two RC4 dogfood docs fixes. (#612) `skills/deft-directive-refinement/SKILL.md` previously referenced non-existent Taskfile task names `task deft:issue:ingest` and `task deft:reconcile:issues` -- RC4 agents following the skill verbatim hit `Task "deft:issue:ingest" does not exist`. Replaced every occurrence with the actual task names `task issue:ingest` and `task reconcile:issues` (canonical task definitions live in `tasks/issue.yml` and `tasks/reconcile.yml`). Pure rename -- no other semantic changes to the skill. (#615) `tasks/roadmap.yml` `render:` `desc:` read `Render ROADMAP.md from vbrief/pending/ vBRIEFs`, but `scripts/roadmap_render.py` emits BOTH the Active section (from `vbrief/pending/`) AND the Completed section (from `vbrief/completed/`). Updated the description to `Render ROADMAP.md from vbrief/pending/ (Active) and vbrief/completed/ (Completed) lifecycle folders` so `task --list` accurately reflects renderer behavior. Closes #612, #615.
 
@@ -4967,6 +5129,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(tasks,scripts): consumer-safe CWD + repo resolution + PYTHONUTF8 + prd:render safety** (#535, #538, #539, #540): Every `tasks/*.yml` task that invokes a Python script now sets `dir: '{{.USER_WORKING_DIR}}'`, standardises on `uv run python`, and resolves the script path via `{{.TASKFILE_DIR}}/scripts/<script>.py` so consumer projects using the documented `includes: deft: ./deft/Taskfile.yml` pattern get their own CWD / git remote / vbrief tree -- not deft's submodule tree. Top-level `env: PYTHONUTF8: "1"` added to `Taskfile.yml` and mirrored per-task (belt and suspenders) so Windows cp1252 default encoding cannot crash scripts that print `-- / -> / x / !` glyphs. `scripts/scope_lifecycle.py` now accepts `--project-root` / `$DEFT_PROJECT_ROOT` and fails loudly (exit 2 + actionable error) when a relative path cannot be resolved, fixing the "File not found: deft/vbrief/..." regression across all 7 `scope:*` commands (promote/activate/complete/cancel/restore/block/unblock). `scripts/issue_ingest.py` and `scripts/reconcile_issues.py` now accept `--repo` / `$DEFT_PROJECT_REPO` / `--project-root` with explicit precedence (flag > env > git remote in project root > legacy CWD detection) and fail loudly when no repo slug can be resolved, so `task deft:issue:ingest` and `task deft:reconcile:issues` no longer silently pull from `deftai/directive` when invoked from a consumer project. `scripts/prd_render.py` refuses to overwrite a PRD.md that lacks the auto-generated banner (pass `--force` to override) so consumer invocations can never silently clobber deft's own hand-authored `PRD.md` again; the task definition passes explicit absolute paths for both `--spec` and `--output`. `tasks/project.yml` switched from `{{.ROOT_DIR}}` (deft's repo root when included) to `{{.USER_WORKING_DIR}}`. New shared helpers `scripts/_project_context.py` (project-root + repo slug resolution) and `scripts/_stdio_utf8.py` (idempotent UTF-8 stdout guard) wire the patterns above consistently across every affected script. New `tests/integration/test_consumer_tasks.py` suite adds smoke coverage: one test per fixed task asserting that writes land in the consumer tree, that repo lookups target the consumer slug, and that the loud-failure paths exit with actionable stderr (prevents silent-fallback regressions from recurring).
 
@@ -4987,6 +5150,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(scripts): `vbrief_validate.py` D11 trusts the schema; exit-code semantics cleaned up** (#536): `scripts/vbrief_validate.py` now treats ANY reference whose `type` matches `^x-vbrief/` as an origin for D11 by default (Option A, schema-trusting) so schema-conformant `x-vbrief/github-issue` references no longer trigger false-positive warnings; added `--strict-origin-types` to opt into the registered allow-list (see `conventions/references.md`). Legacy bare origin types (`github-issue`, `jira-ticket`, `user-request`) continue to be accepted unconditionally so pre-migration vBRIEFs do not regress. Exit-code semantics are now explicit: exit 0 when only warnings are present, exit 1 only when errors exist (or warnings with the new `--warnings-as-errors` flag). The "OK: vBRIEF validation passed" banner is emitted only when the process will actually exit 0 (previously the banner could appear before a non-zero exit). Added new test module `tests/cli/test_vbrief_validate_issue_536.py` covering schema-trusting default, strict allow-list, legacy fallback, exit-code semantics, banner suppression, and dual-version (v0.5/v0.6) acceptance. Closes #536.
 
@@ -5025,6 +5189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(migrate): vBRIEF fidelity regressions (body preservation, trace IDs, Requirements narrative, plan.edges, disambiguated log)** (#495, #506 D2/D3/D4): Added `scripts/_vbrief_fidelity.py` implementing the #506 D2 in-scope findings for `task migrate:vbrief`. Per-task SPECIFICATION.md body + `Depends on:` + acceptance-criteria bullets enrich `spec_vbrief.plan.items[*].narrative` (`Description` / `DependsOn` / `AcceptanceCriteria` / `Traces`) so Agent B's reconciliation (#496) picks them up through its "spec owns body" path -- scope vBRIEFs no longer reduce to a ROADMAP one-liner (#495-1). FR-N / NFR-N trace IDs pass through verbatim with no renumbering (#495-3). Parsed `FR-N:` / `NFR-N:` definitions from `## Requirements` / `## Non-Functional Requirements` emit the `Requirements` narrative on `specification.vbrief.json` (#495-4). Per-task `Depends on:` lines project into `plan.edges[]` with edge type `blocks` (#495-6, #506 D4); free-standing `## Dependency Graph` + `## Parallelisable Work Across Phases` sections flow into #505's `LegacyArtifacts` safety net rather than dropping silently. `Acceptance Criteria (Project-Level)` folds into `SuccessMetrics` via the shared known-mappings list (#495-6b). Migration log is disambiguated: every narrative routing decision logs `ROUTE  {source}:{line_range} -> {target_key} -> {target_file}` (#495-15). Anchor comment `# --- fidelity (Agent A, #495) ---` marks the wiring in `scripts/migrate_vbrief.py`. New tests in `tests/cli/test_vbrief_fidelity_legacy.py`.
 
@@ -5073,6 +5238,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **fix(migrate): lifecycle folder routing uses schema-native status vocabulary** (#499, #506): Extracted folder<->status routing into `scripts/_vbrief_routing.py` with the authoritative #506 mapping (`proposed/` <-> draft|proposed; `pending/` <-> approved|pending; `active/` <-> running|blocked; `completed/` <-> completed; `cancelled/` <-> cancelled). Replaced the previous "dump everything into `pending/`" behaviour -- scope vBRIEFs are now routed by reconciled status (`completed/` for `[done]` tasks, `active/` for in-flight tasks with `plan.status == "running"`, `cancelled/` for abandoned tasks, `proposed/` for ROADMAP orphans, `pending/` only when no completion signal exists). `PROJECT-DEFINITION.vbrief.json plan.items[*].status` now mirrors each scope's reconciled status (#499-registry) instead of hard-defaulting to `pending`. **The migrator never emits `in_progress`** -- per the #499 correction comment and `vbrief/schemas/vbrief-core.schema.json`, `active/` uses `running`. Anchor comment `# --- lifecycle-routing (Agent B, #499) ---` marks the wiring in `scripts/migrate_vbrief.py`. New unit tests in `tests/cli/test_vbrief_routing.py` guard against `in_progress` re-introduction; fixture `forbidden_values` assertion enforces the same rule end-to-end.
 
@@ -5195,6 +5361,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **deft-interview invocation contract clarification** (#302, t1.27.1): Added embedded mode vs delegation mode distinction to Invocation Contract section of `skills/deft-interview/SKILL.md` -- embedded mode (calling skill references rules inline, no contract object needed, used by deft-setup) vs delegation mode (explicit sub-skill invocation with formal contract object)
 
@@ -5227,6 +5394,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **deft-swarm Phase 6 read-back verification after rebase conflict resolution** (#288, t1.21.1): Added `!` rule to Phase 6 Step 1 requiring re-read and structural integrity verification after resolving rebase conflicts and before `git add`; added `!` rule preferring `edit_files` over shell regex for CHANGELOG.md/SPECIFICATION.md; added 2 anti-patterns
 
@@ -5273,6 +5441,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **deft-review-cycle Approach 2 idle-stoppage warning** (#279, t1.14.1): Added warning to Approach 2 section documenting that yield-between-polls is NOT autonomous for swarm agents -- yielding ends the agent's turn with no self-wake mechanism; added `!` rule directing swarm agents to prefer Approach 1 when `start_agent` is available; added anti-pattern against assuming Approach 2 produces a self-sustaining polling loop
 
@@ -5329,6 +5498,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Roadmap-refresh explicit row format template** (#221, t2.8.1): Added explicit `| #NNN | title | Phase |` row format template to `skills/deft-roadmap-refresh/SKILL.md` Phase 2 Step 4 for Open Issues Index rows; added 2 anti-patterns: creating rows without the template format, and double-pipe `||` entries from omitting a column value
 
@@ -5343,6 +5513,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Strengthen batch-fix enforcement in deft-review-cycle** (#250, t1.12.2): Added `!` pre-commit gate to Phase 2 Step 3 requiring agents to re-read the FULL current Greptile review and confirm all P0/P1 issues are addressed in staged changes before committing -- prevents per-finding fix commits that cause N re-review cycles instead of 1; added 2 new `⊗` anti-patterns: push a fix commit addressing fewer findings than the review surfaces, push after fixing a P1 without checking for additional P0/P1 findings
 
@@ -5367,6 +5538,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **ROADMAP.md em-dash migration for Windows compatibility** (#237, t1.11.6): Replaced all 317 Unicode em-dash characters (U+2014) with ASCII `--` in ROADMAP.md phase bodies, Completed section, Open Issues Index rows, and changelog notes -- enables `edit_files` tool on Windows without PowerShell fallback (warpdotdev/warp#9022)
 
@@ -5451,6 +5623,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **pyproject.toml dev deps break task check in fresh worktrees** (#217, t1.10.1): Moved dev dependencies from `[project.optional-dependencies]` to `[dependency-groups]` (PEP 735); `uv sync` now installs dev deps by default in fresh worktrees without needing `--extra dev`; regenerated `uv.lock`; updated `languages/python.md` template to show `[dependency-groups]` pattern
 
@@ -5475,6 +5648,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **PR merge hygiene -- squash-merge issue-close verification** (#167, t1.8.4): Root cause documented in `meta/lessons.md` -- GitHub squash merges can silently fail to process closing keywords (`Closes #N`) from PR bodies, leaving referenced issues open with no error; added closing keyword guidance and post-merge verification checklist to `.github/PULL_REQUEST_TEMPLATE.md`; added Post-Merge Verification section to `skills/deft-review-cycle/SKILL.md` mirroring `deft-swarm` Phase 6 Step 2; added issue-close verification convention to `AGENTS.md` PR conventions; added anti-pattern for assuming squash merge auto-closed issues
 
@@ -5497,6 +5671,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **vBRIEF reference type schema vendor** (#133, t1.8.2): Vendored updated upstream vBRIEF schema — `VBriefReference.type` expanded from `{"enum": ["x-vbrief/plan"]}` to pattern-based `^x-vbrief/` accepting all `x-vbrief/*` reference types (e.g. `x-vbrief/plan`, `x-vbrief/context`, `x-vbrief/research`); unblocks generated vBRIEF files that use context/research references; task t1.8.2 moved from `[blocked]` to `[completed]`
 
@@ -5521,6 +5696,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Change gate UX — replace name-echo with yes/no confirmation** (#185, t1.9.1):
 
@@ -5543,6 +5719,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **vBRIEF schema conformance — agent generation guidance + validation** (#126, #144):
 
@@ -5579,6 +5756,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **No direct-to-master agent commits**: Added `⊗` hard gate to `main.md`, `AGENTS.md`, and `skills/deft-build/SKILL.md` — agents must always create a feature branch and open a PR; `Allow direct commits to master: true` in `PROJECT.md ## Branching` provides opt-in escape hatch for solo/trunk-based projects (#171)
 
@@ -5587,6 +5765,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **oz agent run correction**: Corrected `skills/deft-swarm/SKILL.md` Phase 3 — `oz agent run` is local (preferred automated launch path), `oz agent run-cloud` is the cloud path; rewrote options A/B/C, fixed prerequisites and anti-patterns; added correction addenda to `meta/lessons.md` lessons #1 and #7; updated `SPECIFICATION.md` t2.5.4 acceptance criteria (#172)
 
@@ -5625,6 +5804,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **deft-review-cycle Greptile pre-flight**: Added Pre-Flight Check section to skills/deft-review-cycle/SKILL.md — verifies triggerOnUpdates is enabled before entering the review/fix loop, documents that Greptile posts check runs (Checks API) not commit statuses, adds @greptileai manual re-trigger fallback and anti-pattern for using wrong API endpoint (#166, t1.7.1)
 
@@ -5689,6 +5869,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **commands.md vBRIEF vocabulary**: Status lifecycle rule and example now use canonical vBRIEF v0.5 vocabulary — plan-level `draft`/`proposed`/`approved`, task-level `pending`/`running`/`completed`/`blocked`/`cancelled`; added missing `narrative` to task t3 in example; no use of legacy `todo`/`doing`/`done` (#25, t2.1.5)
 
@@ -5739,6 +5920,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **vBRIEF Generation Chain**: Fixed five-component vBRIEF generation chain that produced invalid `specification.vbrief.json` files — validator now enforces vBRIEF v0.5 schema (`vBRIEFInfo` envelope + `plan` object with `title`/`status`/`items`); migrated `specification.vbrief.json` and `plan.vbrief.json` from legacy flat format to conformant v0.5; renderer reads from new structure; `make-spec.md` and `deft-setup/SKILL.md` now include concrete vBRIEF output examples; `CONVENTIONS.md` corrected from documenting wrong format; `working-memory.md` example and `long-horizon.md` status lifecycle updated to v0.5 vocabulary; vBRIEF file validation tests added (#72, t1.2.1, t1.2.2)
 
@@ -5791,6 +5973,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **AGENTS.md Onboarding**: Install-generated `AGENTS.md` now contains self-contained bootstrap logic — first-session phase detection (USER.md → Phase 1, PROJECT.md → Phase 2, SPECIFICATION.md → Phase 3), returning-session guidance, and available commands reference (#54, closes #85)
 
@@ -5865,6 +6048,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Double Prompting in Bootstrap Chain**: `cmd_project` now reads USER.md defaults (languages/strategy/coverage) instead of re-asking from scratch (#7, #43)
 
@@ -6135,6 +6319,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **TUI Import Error**: Removed Slider widget import (not available in Textual 7.5.0)
 
@@ -6201,6 +6386,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **Documentation Consistency**: Aligned command references across all files to use `deft/run` prefix
 
@@ -6267,6 +6453,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **ANSI Codes**: Fixed raw ANSI escape codes displaying literally in prompt_toolkit prompts
 
@@ -6507,6 +6694,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - **prompt_toolkit installation issues**: Python version mismatch detection
 
@@ -6665,6 +6853,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - Removed all redundant MUST/SHOULD/MAY keywords from technical documentation
 
@@ -6795,6 +6984,7 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Fixed
+- **chore(xbrief): leftover-complete #5318 after #5328.** Lands Prefer-A completed brief with productPullRequest 5328. Tracking #5318.
 
 - All internal references updated to reflect new directory structure
 

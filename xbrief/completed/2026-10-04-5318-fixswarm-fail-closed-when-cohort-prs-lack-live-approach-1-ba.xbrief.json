@@ -1,0 +1,110 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-10-04T22:59:46Z"
+  },
+  "plan": {
+    "id": "github.issue.5699828589",
+    "status": "completed",
+    "title": "fix(swarm): fail closed when cohort PRs lack live Approach 1 babysitters",
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "fix(swarm): fail closed when cohort PRs lack live Approach 1 babysitters",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5328 squash-merge (Tracking #5318). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5328",
+            "mintedAt": "2026-10-04T22:59:45.533Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T22:59:45.533Z"
+        },
+        "x-directive/notes": "Prefer-A leftover-complete disposition."
+      }
+    ],
+    "metadata": {
+      "productPullRequest": 5328,
+      "conflict_group": "cohort-review-monitors-fail-closed",
+      "ambiguity_attestation": "none_found",
+      "admitted_source_digest": "leftover-complete-after-5328",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm/cohort-review-monitors.ts",
+          "packages/core/src/swarm/cohort-review-monitors.test.ts",
+          "packages/cli/src/verify-cohort-review-monitors.ts",
+          "packages/cli/src/verify-cohort-review-monitors.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/swarm/cohort-review-monitors.test.ts packages/cli/src/verify-cohort-review-monitors.test.ts"
+        ],
+        "conflict_group": "cohort-review-monitors-fail-closed"
+      },
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/swarm/cohort-review-monitors.test.ts packages/cli/src/verify-cohort-review-monitors.test.ts",
+          "source": "explicit"
+        }
+      ],
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5328,
+        "prBase": null,
+        "mergeCommit": "d29ba92939aa0ac4817b4ea846c2ad7a18c31e75",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d29ba92939aa0ac4817b4ea846c2ad7a18c31e75",
+        "verifiedAt": "2026-10-04T22:59:46Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-04T22:59:46Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-04T22:59:46Z"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/swarm/cohort-review-monitors.test.ts packages/cli/src/verify-cohort-review-monitors.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "fix(swarm): fail closed when cohort PRs lack live Approach 1 babysitters",
+          "status": "pending",
+          "artifact_path": null,
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5328 squash-merge (Tracking #5318). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5328",
+              "mintedAt": "2026-10-04T22:59:45.533Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T22:59:45.533Z"
+          }
+        }
+      ]
+    },
+    "updated": "2026-10-04T22:59:46Z"
+  }
+}
