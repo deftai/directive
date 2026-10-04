@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Activate #3703 Prefer-A Bound brief with concrete file_scope (#3703).** Lands the continuity-resolved active brief (Path B membership precommitment) so product PR work can pass scope-provenance. Tracking #3703.
 
 - **Leftover-complete #5284 after product #5296.** Retire the active design-critique Prefer-A brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #5284.
+
+- **Leftover-complete #5285 after product #5297.** Retire the active presentation-coverage Prefer-A brief into `xbrief/completed/` with completed item status so orphan-active clears. Tracking #5285.
 - Remove the stale proposed scope brief for #3729 so activation PR #5287 can add the active brief alone (#5299).
 
 - **Activate #5285 Prefer-A Bound brief with concrete file_scope (#5285).** Lands the continuity-resolved active brief (Path B membership precommitment) so product PR work can pass scope-provenance. Tracking #5285.

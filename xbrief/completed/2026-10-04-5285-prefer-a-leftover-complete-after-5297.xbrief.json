@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "bug(release): v0.120.0 Windows Step 5 fail — presentation-coverage snapshot symlink EPERM",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(release): v0.120.0 Windows Step 5 fail — presentation-coverage snapshot symlink EPERM",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5285",
@@ -15,34 +15,106 @@
     },
     "items": [
       {
-        "id": "item.1",
+        "id": "clause.1",
         "title": "In packages/core/src/presentation-coverage/snapshot.test.ts, replace OS symlinkSync(../README.md, …/presentation-ceiling.json) with git plumbing that stages mode 120000 via update-index --index-info (stdin lines 120000 <blob>\\t.deft/presentation-ceiling.json), matching the unmerged-entry idiom already in this file. Prefer --index-info over --cacheinfo.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5297",
+            "mintedAt": "2026-10-04T06:14:00Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:14:00Z"
+        }
       },
       {
-        "id": "item.2",
+        "id": "clause.2",
         "title": "Ordering MUST adjacent to item 1: stage that index entry AFTER any git add ., or drop the now-dead mkdirSync(.deft) + git add . for this path. In-place replace of :64 while leaving :63/:65 is the broken ordering (trailing git add . deletes the plumbing entry).",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5297",
+            "mintedAt": "2026-10-04T06:14:00Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:14:00Z"
+        }
       },
       {
-        "id": "item.3",
+        "id": "clause.3",
         "title": "Keep the unreadable-blob half and the nonexistent-originRef assertion in the same it body; do not wrap the whole it in a Windows skip.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5297",
+            "mintedAt": "2026-10-04T06:14:00Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:14:00Z"
+        }
       },
       {
-        "id": "item.4",
+        "id": "clause.4",
         "title": "Unified skip rule: a Windows skip/catch-return is justified only where the OS symlink is the subject under test (realpath/containment, as in authz/*.test.ts). In snapshot.test.ts the symlink is only a carrier for a git tree mode; snapshot.ts tree() reads ls-tree/cat-file and never the worktree, so plumbing reproduces the subject. Therefore forbid here: try { symlinkSync } catch { return }, inline if (win32) return, and whole-test it.skipIf(win32)/itSymlink. Reject junction borrow: cite packages/cli/src/windows-bin-ps1.test.ts junction fixture (not gates.test.ts); a junction stages as directory tree (no 120000).",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5297",
+            "mintedAt": "2026-10-04T06:14:00Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:14:00Z"
+        }
       },
       {
-        "id": "item.5",
+        "id": "clause.5",
         "title": "Scope control 6a: Narrow the :61 it title to the modes this PR ships (symlink/git mode 120000 + unreadable blob). Do not leave a title that attests non-file authority instead of interpreting it as absent while directory-at-authority stays uncovered. Bound 6b leftover already filed as #5292 — out of this PR denominator.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5297",
+            "mintedAt": "2026-10-04T06:14:00Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:14:00Z"
+        }
       },
       {
-        "id": "item.6",
+        "id": "clause.6",
         "title": "Acceptance: privilege-less Windows host runs the shipped fixtures green; next production cut runs Step 5 without --skip-ci for this incident class. No fail-closed-until-fixed hedge. No privilege-gate OR-limb as a close path.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5297",
+            "mintedAt": "2026-10-04T06:14:00Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-04T06:14:00Z"
+        }
       }
     ],
     "tags": [
@@ -72,7 +144,7 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "Prefer-A Bound lean 5975803565 stamped for cohort add; review residual reconciled acceptance + admitted-source to Bound clauses (no privilege-gate OR-limb); source_rung=derived + none_stated for empty commands (#5287 activation parity)",
+      "derived_reason": "Prefer-A leftover pathless derived after #5297",
       "sentences": [
         "In packages/core/src/presentation-coverage/snapshot.test.ts, replace OS symlinkSync(../README.md, …/presentation-ceiling.json) with git plumbing that stages mode 120000 via update-index --index-info (stdin lines 120000 <blob>\\t.deft/presentation-ceiling.json), matching the unmerged-entry idiom already in this file. Prefer --index-info over --cacheinfo.",
         "Ordering MUST adjacent to item 1: stage that index entry AFTER any git add ., or drop the now-dead mkdirSync(.deft) + git add . for this path. In-place replace of :64 while leaving :63/:65 is the broken ordering (trailing git add . deletes the plumbing entry).",
@@ -94,44 +166,116 @@
         {
           "id": 1,
           "text": "In packages/core/src/presentation-coverage/snapshot.test.ts, replace OS symlinkSync(../README.md, …/presentation-ceiling.json) with git plumbing that stages mode 120000 via update-index --index-info (stdin lines 120000 <blob>\\t.deft/presentation-ceiling.json), matching the unmerged-entry idiom already in this file. Prefer --index-info over --cacheinfo.",
-          "artifact_path": "packages/core/src/presentation-coverage/snapshot.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5297",
+              "mintedAt": "2026-10-04T06:14:00Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:14:00Z"
+          }
         },
         {
           "id": 2,
           "text": "Ordering MUST adjacent to item 1: stage that index entry AFTER any git add ., or drop the now-dead mkdirSync(.deft) + git add . for this path. In-place replace of :64 while leaving :63/:65 is the broken ordering (trailing git add . deletes the plumbing entry).",
-          "artifact_path": "packages/core/src/presentation-coverage/snapshot.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5297",
+              "mintedAt": "2026-10-04T06:14:00Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:14:00Z"
+          }
         },
         {
           "id": 3,
           "text": "Keep the unreadable-blob half and the nonexistent-originRef assertion in the same it body; do not wrap the whole it in a Windows skip.",
-          "artifact_path": "packages/core/src/presentation-coverage/snapshot.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5297",
+              "mintedAt": "2026-10-04T06:14:00Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:14:00Z"
+          }
         },
         {
           "id": 4,
           "text": "Unified skip rule: a Windows skip/catch-return is justified only where the OS symlink is the subject under test (realpath/containment, as in authz/*.test.ts). In snapshot.test.ts the symlink is only a carrier for a git tree mode; snapshot.ts tree() reads ls-tree/cat-file and never the worktree, so plumbing reproduces the subject. Therefore forbid here: try { symlinkSync } catch { return }, inline if (win32) return, and whole-test it.skipIf(win32)/itSymlink. Reject junction borrow: cite packages/cli/src/windows-bin-ps1.test.ts junction fixture (not gates.test.ts); a junction stages as directory tree (no 120000).",
-          "artifact_path": "CHANGELOG.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5297",
+              "mintedAt": "2026-10-04T06:14:00Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:14:00Z"
+          }
         },
         {
           "id": 5,
           "text": "Scope control 6a: Narrow the :61 it title to the modes this PR ships (symlink/git mode 120000 + unreadable blob). Do not leave a title that attests non-file authority instead of interpreting it as absent while directory-at-authority stays uncovered. Bound 6b leftover already filed as #5292 — out of this PR denominator.",
-          "artifact_path": "packages/core/src/presentation-coverage/snapshot.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5297",
+              "mintedAt": "2026-10-04T06:14:00Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:14:00Z"
+          }
         },
         {
           "id": 6,
           "text": "Acceptance: privilege-less Windows host runs the shipped fixtures green; next production cut runs Step 5 without --skip-ci for this incident class. No fail-closed-until-fixed hedge. No privilege-gate OR-limb as a close path.",
-          "artifact_path": "packages/core/src/presentation-coverage/snapshot.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5297 squash-merge (Tracking #5285). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5297",
+              "mintedAt": "2026-10-04T06:14:00Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-04T06:14:00Z"
+          }
         }
       ],
       "ambiguity_attestation": "none_found"
@@ -621,23 +765,27 @@
         "sha256": "7c7d778dd6dcd9f53efe48cba0161e02f106f53f327982be88f4a9e279e3cf7c"
       },
       "swarm": {
-        "file_scope": [
-          "packages/core/src/presentation-coverage/snapshot.test.ts",
-          "CHANGELOG.md"
-        ],
+        "file_scope": [],
         "file_scope_confidence": "high",
-        "verify_commands": [
-          "task check"
-        ],
+        "verify_commands": [],
         "expected_outputs": [
-          "Tracking PR opened"
+          "completed xBRIEF on tip"
         ],
         "depends_on": [],
         "conflict_group": "presentation-coverage-windows-symlink",
         "size": "M",
         "model_tier": "default"
       },
-      "productPullRequest": 5294
+      "productPullRequest": 5297,
+      "admitted_source_digest": "44e5ccb994070aee95a1697172a069acb8c88528924b2bdb47a046c82b254dbc",
+      "lifecycleWrite": {
+        "action": "complete"
+      },
+      "completedAt": "2026-10-04T06:14:00Z",
+      "completionProvenance": {
+        "productMerge": "0914b2364",
+        "productPr": 5297
+      }
     },
     "id": "github.issue.5695169258",
     "updated": "2026-10-04T05:02:21Z"
