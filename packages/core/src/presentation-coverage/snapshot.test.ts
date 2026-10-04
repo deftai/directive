@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -58,11 +58,21 @@ describe("immutable candidate snapshot", () => {
   });
 });
 
-it("records unreadable and non-file authority instead of interpreting it as absent", () => {
+it("records symlink/git mode 120000 and unreadable blob authority instead of interpreting them as absent", () => {
   const { root, git } = repo();
-  mkdirSync(join(root, ".deft"));
-  symlinkSync("../README.md", join(root, ".deft/presentation-ceiling.json"));
-  git("add", ".");
+  // Mode 120000 is a git-tree carrier only (snapshot.ts tree() never reads the worktree).
+  // Forbid OS symlinkSync / win32 skip / catch-return / junction here — a junction stages as a
+  // directory tree (no 120000); see packages/cli/src/windows-bin-ps1.test.ts junction fixture.
+  // Stage after any git add ., or omit mkdirSync(.deft)+git add . (both dead under plumbing).
+  const linkOid = execFileSync("git", ["hash-object", "-w", "--stdin"], {
+    cwd: root,
+    input: "../README.md",
+    encoding: "utf8",
+  }).trim();
+  execFileSync("git", ["update-index", "--index-info"], {
+    cwd: root,
+    input: `120000 ${linkOid} 0\t.deft/presentation-ceiling.json\n`,
+  });
   const s = loadSnapshot({ projectRoot: root, originRef: "HEAD", staged: true });
   if ("error" in s) throw new Error(s.error);
   expect(s.head.read(".deft/presentation-ceiling.json")).toBeNull();
