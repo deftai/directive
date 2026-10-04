@@ -6,7 +6,6 @@ vi.mock("node:child_process", () => ({
   spawnSync: (...args: unknown[]) => spawnSyncMock(...args),
 }));
 
-import * as catalogChipEnsure from "../design-critique/catalog-chip-ensure.js";
 import { peekRepoFlag } from "./argv.js";
 import * as buildCommand from "./build-command.js";
 import { ScmStubError } from "./errors.js";
@@ -22,12 +21,6 @@ describe("main non-rest branches", () => {
   it("dispatches issue design-critique-chip without forwarding to gh (#3642)", () => {
     const apply = vi.fn();
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    // Stub ensure so unit tests do not hit live REST under spawnSync mock (#5326).
-    vi.spyOn(catalogChipEnsure, "ensureCatalogChipLabel").mockReturnValue({
-      ok: true,
-      created: false,
-      skippedExisting: true,
-    });
     // Advisory may resolve git toplevel; only allow that spawn shape.
     spawnSyncMock.mockImplementation((cmd: unknown, args: unknown) => {
       if (
@@ -54,6 +47,8 @@ describe("main non-rest branches", () => {
         ],
         {
           skipReadiness: true,
+          // Seam stub — module spy does not rebind chip's import (#5326).
+          ensureCatalogChip: () => ({ ok: true, created: false, skippedExisting: true }),
           labelClient: {
             fetchLabels: () => ["bug", "design-critique:mechanism-shaped"],
             apply,
