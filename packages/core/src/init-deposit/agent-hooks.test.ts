@@ -920,6 +920,26 @@ describe("inspectAgentHookDeposit", () => {
     });
   });
 
+  it("marks nested hosts drifted when PreToolUse still has the old 5s timeout (#3739)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const claudePath = join(root, ".claude/settings.json");
+    const claude = JSON.parse(readFileSync(claudePath, "utf8")) as {
+      hooks: {
+        PreToolUse: Array<{ hooks?: Array<{ timeout?: number }> }>;
+      };
+    };
+    claude.hooks.PreToolUse = claude.hooks.PreToolUse.map((group) => ({
+      ...group,
+      hooks: (group.hooks ?? []).map((hook) => ({ ...hook, timeout: 5 })),
+    }));
+    writeFileSync(claudePath, `${JSON.stringify(claude, null, 2)}\n`, "utf8");
+
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "claude")).toMatchObject({
+      status: "drifted",
+    });
+  });
+
   it("still deposits shared DIRECT_WRITE_HOOK_MATCHER for grok merge writer (#4574)", () => {
     const root = project();
     writeAgentHookDeposit(root);

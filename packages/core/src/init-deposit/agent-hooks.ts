@@ -550,6 +550,20 @@ function hasSessionStartRegistration(config: Record<string, unknown>, host: Hook
   return host === "cursor" ? hasCursorSessionStart(config) : hasNestedSessionStart(config, host);
 }
 
+/** #3739: nested tool.before health must require the readiness timeout, like Cursor. */
+function nestedToolBeforeTimeoutOk(entry: unknown, toolCommand: string): boolean {
+  const group = object(entry);
+  if (group === null || !Array.isArray(group.hooks)) return false;
+  return group.hooks.some((candidate) => {
+    const hook = object(candidate);
+    return (
+      typeof hook?.command === "string" &&
+      hook.command === toolCommand &&
+      hook.timeout === NESTED_TOOL_BEFORE_TIMEOUT_SECONDS
+    );
+  });
+}
+
 function hasExactPreToolMatchers(
   preTool: readonly unknown[],
   toolCommand: string,
@@ -558,7 +572,11 @@ function hasExactPreToolMatchers(
   return matchers.every((matcher) =>
     preTool.some((entry) => {
       const group = object(entry);
-      return group?.matcher === matcher && nestedCommands(entry).includes(toolCommand);
+      return (
+        group?.matcher === matcher &&
+        nestedCommands(entry).includes(toolCommand) &&
+        nestedToolBeforeTimeoutOk(entry, toolCommand)
+      );
     }),
   );
 }
@@ -576,7 +594,8 @@ function hasGrokDirectWriteRegistration(preTool: readonly unknown[], toolCommand
       return (
         typeof matcher === "string" &&
         nestedCommands(entry).includes(toolCommand) &&
-        matcherHasLiteralToken(matcher, token)
+        matcherHasLiteralToken(matcher, token) &&
+        nestedToolBeforeTimeoutOk(entry, toolCommand)
       );
     }),
   );
