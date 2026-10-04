@@ -5,6 +5,14 @@
  * mutate this tree right now." Those lifetimes differ; do not overload
  * ritual-state.json. Ordinary end is occupancy:release / session:end (#3604).
  *
+ * Fidelity (#3729 Prefer-A / decision record host-payload identity): this is
+ * advisory coordination for accidental same-machine collision, not same-user
+ * authorization. Text that implies protection against a determined same-user
+ * actor is wrong. Non-goals for #3729: do not convert occupancy into
+ * presented-host-key / same-user auth; do not fail-close every product write
+ * without a migration posture (#3156); do not claim #4625/#4624/#4667/#4993 as
+ * AC discharge.
+ *
  * What this boundary is (#3755): a cooperative bearer-id boundary, not a
  * lineage. The lease admits whoever presents an id the record itself names —
  * the occupant's id, or a child id the occupant granted — so possession of a
@@ -122,6 +130,127 @@ export const OCCUPANCY_STALE_WARN_MS = (OCCUPANCY_TTL_MS * 3) / 4;
  * number here.
  */
 export const OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 36;
+
+/**
+ * Lease-versus-ritual lifetime pin (#3729 Prefer-A Bound AC1).
+ *
+ * Tip remeasure: `OCCUPANCY_TTL_MS` is 20 minutes; policy default
+ * `DEFAULT_SESSION_RITUAL_STALENESS_HOURS` is 8 hours → 24:1. Prefer-A does not
+ * restate the Recut body 4h / 12:1 figures. Ritual outlives the lease so
+ * ceremony can span idle gaps; occupancy TTL stays short so a dead holder frees
+ * the tree. Heartbeat refresh (#3599) renews live owners on the hook path; the
+ * absolute age cap bounds the far end. The residual gap is deliberate under
+ * advisory coordination — closing it by fail-closing every product write needs
+ * a migration posture (#3156), which this Bound does not select.
+ *
+ * Authoritative ritual-hours resolver remains `DEFAULT_SESSION_RITUAL_STALENESS_HOURS`
+ * in `policy/index.ts`; this pin mirrors that tip default for the ratio test.
+ */
+export const OCCUPANCY_PINNED_RITUAL_STALENESS_HOURS = 8;
+export const OCCUPANCY_VS_RITUAL_TTL_RATIO =
+  (OCCUPANCY_PINNED_RITUAL_STALENESS_HOURS * 60 * 60 * 1000) / OCCUPANCY_TTL_MS;
+export const OCCUPANCY_VS_RITUAL_LIFETIME_RATIONALE =
+  "Occupancy TTL (20m) detects abandonment; ritual staleness (8h tip default) spans " +
+  "idle ceremony. 24:1 is intentional under advisory coordination (#3729 Prefer-A). " +
+  "Do not raise TTL to close the gap; do not fail-close every product write without " +
+  "a migration posture (#3156).";
+
+/**
+ * Two-axis unknown-actor policy (#3729 Prefer-A Bound AC3).
+ *
+ * - Unknown lease (absent or not live): fail open. A free tree admits writers
+ *   under advisory coordination; requiring a held lease would convert every
+ *   owner whose TTL lapsed while ritual remains valid into a universal deadlock.
+ * - Unknown identity (live lease, stranger presenter): fail closed. Exclusion
+ *   against a named foreign occupant is the whole point of the lease.
+ *
+ * Deny / warn / auto-claim selection: Prefer-A leaves fail-open as the
+ * coordination contract (option b). Auto-claim stays a later posture change
+ * with its own migration; this Bound does not select it. Retires the #4625
+ * "write-gate fail-open leftover stays #3729" park by documenting the choice.
+ */
+export const OCCUPANCY_UNKNOWN_LEASE_POLICY = "fail-open" as const;
+export const OCCUPANCY_UNKNOWN_IDENTITY_POLICY = "fail-closed" as const;
+export const OCCUPANCY_FREE_TREE_SELECTION = "documented-fail-open" as const;
+export const OCCUPANCY_TWO_AXIS_POLICY_RATIONALE =
+  "Advisory coordination: unknown lease fails open so idle owners are not " +
+  "universal deadlocks; unknown identity fails closed so a live named occupant " +
+  "still excludes strangers. Prefer-A selects documented fail-open over auto-claim.";
+
+/**
+ * Mutation-surface matrix (#3729 Prefer-A Bound AC2).
+ *
+ * Occupancy is not universal on every mutation path. A change confined to
+ * `evaluateOccupancyWriteGate` alone does not discharge this limb — tip call
+ * sites in the dispatcher / spawn seam must match these rows.
+ */
+export type OccupancyMutationSurface =
+  | "hook-gated-tool-writes"
+  | "spawn-tools"
+  | "shell-dest-forms"
+  | "push-merge-runtime-authority";
+
+export type OccupancyMutationConsult =
+  | "write-gate"
+  | "dest-consult-or-hard-coded-allow"
+  | "opt-in-shellDestForms-enforce"
+  | "not-consulted";
+
+export interface OccupancyMutationSurfaceRow {
+  readonly surface: OccupancyMutationSurface;
+  readonly consult: OccupancyMutationConsult;
+  /** Repo-relative path whose tip source the assertion test reads. */
+  readonly tipRelpath: string;
+  /** Substrings that must appear in that tip source. */
+  readonly tipMarkers: readonly string[];
+  readonly note: string;
+}
+
+export const OCCUPANCY_MUTATION_SURFACE_MATRIX: readonly OccupancyMutationSurfaceRow[] = [
+  {
+    surface: "hook-gated-tool-writes",
+    consult: "write-gate",
+    tipRelpath: "packages/core/src/hooks/dispatcher.ts",
+    tipMarkers: ["evaluateOccupancyWriteGate(effectiveRoot,"],
+    note: "Edit/Write and other inspectMutationGates direct writes consult evaluateOccupancyWriteGate.",
+  },
+  {
+    surface: "spawn-tools",
+    consult: "dest-consult-or-hard-coded-allow",
+    tipRelpath: "packages/core/src/hooks/dispatcher.ts",
+    tipMarkers: [
+      "consultImplementSpawnOccupancy(",
+      "const occupancyGate = isSpawnTool(toolName)",
+    ],
+    note:
+      "SPAWN_TOOL_NAMES hard-code allow on the parent-tree write gate inside inspectMutationGates; " +
+      "implement-class spawn consults destination occupancy via consultImplementSpawnOccupancy. " +
+      "Process-only critic skips dest occupancy.",
+  },
+  {
+    surface: "shell-dest-forms",
+    consult: "opt-in-shellDestForms-enforce",
+    tipRelpath: "packages/core/src/hooks/dispatcher.ts",
+    tipMarkers: [
+      "decideShellDestFormsThenRuntimeAuthority",
+      'shellDestForms === "enforce"',
+    ],
+    note:
+      "Recognized Shell dest-forms reach inspectMutationGates only when " +
+      "plan.policy.runtimeAuthority.shellDestForms is enforce (default off).",
+  },
+  {
+    surface: "push-merge-runtime-authority",
+    consult: "not-consulted",
+    tipRelpath: "packages/core/src/hooks/dispatcher.ts",
+    tipMarkers: [
+      "decideShellOrMcpRuntimeAuthority",
+      "Push/merge stay",
+    ],
+    note: "Classifiable push/merge route to runtimeAuthority (#2711); occupancy is not consulted.",
+  },
+];
+
 export const OCCUPANCY_INTENTS = ["mutation", "swarm", "review"] as const;
 export type OccupancyIntent = (typeof OCCUPANCY_INTENTS)[number];
 /** Trusted primary-checkout claim exceptions (#4066). `--read-only` never claims. */
@@ -520,6 +649,10 @@ function isOwnInheritedPresentation(occupantId: string, presented: string): bool
   return false;
 }
 
+/** Advisory coordination preface for occupancy denials (#3729 Prefer-A AC4). */
+export const OCCUPANCY_ADVISORY_COORDINATION_PREFACE =
+  "Occupancy is advisory coordination for accidental same-machine collision, not same-user authorization.";
+
 export function formatOccupancyRemediation(
   record: OccupancyRecord,
   now: Date = new Date(),
@@ -528,6 +661,7 @@ export function formatOccupancyRemediation(
 ): string {
   const age = heartbeatAgeSeconds(record, now);
   const header =
+    `${OCCUPANCY_ADVISORY_COORDINATION_PREFACE}\n` +
     `Worktree occupied by session ${record.sessionId} (intent=${record.intent}, heartbeat ${age}s ago, ` +
     `${formatLastWritePhrase(record, now)}, ${occupancyClockLine(record)}).\n`;
   const tail = "\nThe occupant may release (`occupancy:release` / `session:end`).";
@@ -2079,6 +2213,9 @@ export function evaluateOccupancyWriteGate(
       grant: null,
     };
   }
+  // Two-axis unknown-lease axis (#3729 Prefer-A): absent or not-live → fail open
+  // (OCCUPANCY_UNKNOWN_LEASE_POLICY / OCCUPANCY_FREE_TREE_SELECTION). This is the
+  // documented coordination contract, not an unfinished auto-claim.
   if (record === null || liveness !== "live") {
     return {
       allow: true,
@@ -2092,6 +2229,9 @@ export function evaluateOccupancyWriteGate(
   }
   const live = record;
   if (admission === "stranger") {
+    // Two-axis unknown-identity axis (#3729 Prefer-A): live lease + stranger →
+    // fail closed (OCCUPANCY_UNKNOWN_IDENTITY_POLICY). Advisory coordination,
+    // not authorization — prefer another worktree / grant over steal-as-primary.
     return {
       allow: false,
       // The refused caller is told what identity it actually presented (#3873).
