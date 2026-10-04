@@ -466,25 +466,21 @@ export function evaluatePromotionDecision(
   const fp = evidence.false_positive_count === undefined ? null : evidence.false_positive_count;
   const recordedAt = (evidence.now ?? new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
 
-  let decision: PromotionDisposition = "hold";
+  // Prefer-A keeps every branch on hold; durable promote is a later recorded flip.
+  const decision: PromotionDisposition = "hold";
   let rationale = contract.hold_reason ?? `gate ${contract.gate_id} held by promotion contract`;
 
   if (contract.disposition === "hold" || !contract.observation_window_open) {
-    decision = "hold";
+    // keep contract hold_reason
   } else if (contract.false_positive_numerator === null) {
-    decision = "hold";
     rationale =
       `observation window open for ${contract.gate_id}, but false-positive numerator is ` +
       "unnamed; refusing promote (P1-a)";
   } else if (denom === null || denom < minSample) {
-    decision = "hold";
     rationale = `insufficient denominator (${String(denom)} < minSampleSize=${minSample})`;
   } else if (fp === null) {
-    decision = "hold";
     rationale = "false-positive count unclassified; insufficient evidence MUST hold promotion";
   } else {
-    // Contract binds the promote shape; Prefer-A does not auto-land enforce here.
-    decision = "hold";
     rationale =
       "evidence present under named producers, but promote requires an explicit recorded " +
       `human flip citing ${contract.observation_engine ?? "the gate observation engine"}`;

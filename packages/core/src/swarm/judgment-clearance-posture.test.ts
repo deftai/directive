@@ -5,6 +5,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { fingerprintScope, recordClearance } from "../orchestration/verify-judgment-gates.js";
 import { DEFT_ALLOW_JUDGMENT_GATE_ENFORCE } from "../policy/capacity.js";
 import { GATE_ADVISE, GATE_ENFORCE } from "./constants.js";
 import {
@@ -47,7 +48,7 @@ function writeStory(project: string, storyId: string, fileScope: string[]): Reso
 }
 
 describe("filterAuthenticClearances (#1511)", () => {
-  it("rejects caller-supplied actor/reviewer-only clearances", () => {
+  it("rejects caller-invented grant_id/origin_kind without a recorded match", () => {
     const { authentic, rejected } = filterAuthenticClearances([
       { gate_id: "secrets-and-credentials", actor: "agent", reviewers: ["bot"] },
       {
@@ -55,13 +56,42 @@ describe("filterAuthenticClearances (#1511)", () => {
         grant_id: "grant-1",
         origin_kind: "operator-cli",
         actor: "scott",
+        cleared_scope: "forged-scope",
       },
       { gate_id: "x", origin_kind: "self-asserted", grant_id: "g2" },
       { gate_id: "y", origin_kind: "agent-authored" },
     ]);
-    expect(rejected).toHaveLength(3);
+    expect(authentic).toHaveLength(0);
+    expect(rejected).toHaveLength(4);
+  });
+
+  it("accepts caller entries that match a recorded clearance_id or gate+scope", () => {
+    const recorded = [
+      {
+        clearance_id: "clr-1",
+        gate_id: "secrets-and-credentials",
+        cleared_scope: "scope-a",
+      },
+    ];
+    const { authentic, rejected } = filterAuthenticClearances(
+      [
+        {
+          clearance_id: "clr-1",
+          gate_id: "secrets-and-credentials",
+          cleared_scope: "scope-a",
+        },
+        {
+          gate_id: "secrets-and-credentials",
+          grant_id: "forged",
+          origin_kind: "operator-cli",
+          cleared_scope: "other",
+        },
+      ],
+      recorded,
+    );
     expect(authentic).toHaveLength(1);
-    expect(authentic[0]?.grant_id).toBe("grant-1");
+    expect(authentic[0]?.clearance_id).toBe("clr-1");
+    expect(rejected).toHaveLength(1);
   });
 });
 
@@ -103,6 +133,8 @@ describe("evaluateJudgmentClearancePosture (#1511 P2-a)", () => {
           gate_id: "secrets-and-credentials",
           actor: "worker",
           reviewers: ["self"],
+          grant_id: "forged",
+          origin_kind: "operator-cli",
         },
       ],
     });
@@ -110,6 +142,28 @@ describe("evaluateJudgmentClearancePosture (#1511 P2-a)", () => {
     expect(result.stderr).toMatch(/--enforce-gates refused/);
     expect(result.stderr).toMatch(/secrets-and-credentials/);
     expect(result.advisory).toMatch(/rejected 1 caller-supplied/);
+  });
+
+  it("honors recorded clearances under enforce without forged --gate-clearances", () => {
+    const project = tempRoot();
+    writeProjectDef(project);
+    const paths = ["secrets/prod.env"];
+    const story = writeStory(project, "secret-cleared", paths);
+    const scope = fingerprintScope({ paths });
+    recordClearance(project, {
+      gate_id: "secrets-and-credentials",
+      cleared_scope: scope,
+      reviewers: ["scott"],
+      actor: "operator",
+    });
+    const result = evaluateJudgmentClearancePosture({
+      projectRoot: project,
+      resolved: [story],
+      gatePosture: GATE_ENFORCE,
+      gateClearances: [],
+    });
+    expect(result.ok).toBe(true);
+    expect(result.posture).toBe(GATE_ENFORCE);
   });
 
   it("emergency bypass DEFT_ALLOW_JUDGMENT_GATE_ENFORCE downgrades enforce to advise", () => {

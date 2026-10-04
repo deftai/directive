@@ -26,6 +26,7 @@ import { evaluateWorkerInstallationPermissions } from "../one-pr-unit/dest-token
 import {
   buildReport,
   type Candidate,
+  readClearances,
   renderReport,
   reportBlocking,
 } from "../orchestration/verify-judgment-gates.js";
@@ -102,33 +103,62 @@ export function storyFileScopePaths(story: ResolvedStory): string[] {
   }
 }
 
+function clearanceFingerprint(entry: Record<string, unknown>): string | null {
+  const gateId = typeof entry.gate_id === "string" ? entry.gate_id.trim() : "";
+  const scope = typeof entry.cleared_scope === "string" ? entry.cleared_scope.trim() : "";
+  if (gateId.length === 0 || scope.length === 0) {
+    return null;
+  }
+  return `${gateId}\0${scope}`;
+}
+
 /**
  * Clearance authenticity (#1511 Prefer-A §4): caller-supplied actor/reviewer
- * strings alone are not authority. Require an independent approval source
- * (grant_id / approval_ref) or a human-origin kind stamp.
+ * strings, invented grant_id, or claimed origin_kind alone are not authority.
+ * A caller entry is authentic only when it matches an independent recorded
+ * clearance (clearance_id or gate_id+cleared_scope) from the project audit log.
  */
-export function filterAuthenticClearances(entries: readonly Record<string, unknown>[]): {
+export function filterAuthenticClearances(
+  entries: readonly Record<string, unknown>[],
+  recorded: readonly Record<string, unknown>[] = [],
+): {
   authentic: Record<string, unknown>[];
   rejected: Record<string, unknown>[];
 } {
+  const recordedIds = new Set<string>();
+  const recordedFingerprints = new Set<string>();
+  for (const rec of recorded) {
+    if (typeof rec.clearance_id === "string" && rec.clearance_id.trim().length > 0) {
+      recordedIds.add(rec.clearance_id.trim());
+    }
+    const fp = clearanceFingerprint(rec);
+    if (fp !== null) {
+      recordedFingerprints.add(fp);
+    }
+  }
+
   const authentic: Record<string, unknown>[] = [];
   const rejected: Record<string, unknown>[] = [];
   for (const entry of entries) {
-    const grantId =
-      (typeof entry.grant_id === "string" && entry.grant_id.trim()) ||
-      (typeof entry.approval_ref === "string" && entry.approval_ref.trim()) ||
-      null;
+    const clearanceId =
+      typeof entry.clearance_id === "string" && entry.clearance_id.trim().length > 0
+        ? entry.clearance_id.trim()
+        : null;
+    const fp = clearanceFingerprint(entry);
+    const matchedRecorded =
+      (clearanceId !== null && recordedIds.has(clearanceId)) ||
+      (fp !== null && recordedFingerprints.has(fp));
+    if (!matchedRecorded) {
+      rejected.push(entry);
+      continue;
+    }
+
     const originKindRaw =
       (typeof entry.origin_kind === "string" && entry.origin_kind) ||
       (typeof entry.approval_origin === "string" && entry.approval_origin) ||
       (typeof entry.grant_origin_kind === "string" && entry.grant_origin_kind) ||
       null;
     const originKind = originKindRaw !== null ? originKindRaw.trim() : null;
-
-    if (grantId === null && originKind === null) {
-      rejected.push(entry);
-      continue;
-    }
     if (originKind !== null && isRejectedOriginKind(originKind)) {
       rejected.push(entry);
       continue;
@@ -180,7 +210,25 @@ export function evaluateJudgmentClearancePosture(options: {
     }
   }
 
-  const { authentic, rejected } = filterAuthenticClearances(options.gateClearances);
+  const recorded = readClearances(options.projectRoot);
+  const { authentic: matchedCaller, rejected } = filterAuthenticClearances(
+    options.gateClearances,
+    recorded,
+  );
+  const seenKeys = new Set<string>();
+  const authentic: Record<string, unknown>[] = [];
+  for (const entry of [...recorded, ...matchedCaller]) {
+    const id =
+      typeof entry.clearance_id === "string" && entry.clearance_id.trim().length > 0
+        ? `id:${entry.clearance_id.trim()}`
+        : clearanceFingerprint(entry);
+    const key = id ?? `anon:${authentic.length}`;
+    if (seenKeys.has(key)) {
+      continue;
+    }
+    seenKeys.add(key);
+    authentic.push(entry);
+  }
   const candidate: Candidate = {
     paths,
     labels: [],
@@ -196,8 +244,8 @@ export function evaluateJudgmentClearancePosture(options: {
   const advisoryParts: string[] = [];
   if (rejected.length > 0) {
     advisoryParts.push(
-      `judgment-clearance: rejected ${rejected.length} caller-supplied actor/reviewer-only ` +
-        "clearance(s) as non-authority (Prefer-A clearance authenticity)",
+      `judgment-clearance: rejected ${rejected.length} caller-supplied clearance(s) lacking an ` +
+        "independent recorded approval match (Prefer-A clearance authenticity)",
     );
   }
   if (bypassed) {
@@ -216,8 +264,8 @@ export function evaluateJudgmentClearancePosture(options: {
       exitCode: EXIT_GATE_FAILED,
       stderr:
         `Error: swarm:launch --enforce-gates refused -- ${blocking.length} uncleared ` +
-        `block-tier judgment gate(s): ${ids}. Record an independently authenticated clearance ` +
-        `(grant_id / human-origin), drop the matching file_scope path, or set ` +
+        `block-tier judgment gate(s): ${ids}. Record a clearance via the judgment-gate audit ` +
+        `log (task verify:judgment-gates --record), drop the matching file_scope path, or set ` +
         `${DEFT_ALLOW_JUDGMENT_GATE_ENFORCE}=1 for emergency advise recovery.\n` +
         `${advisoryParts.join("\n")}\n`,
       advisory: advisoryParts.join("\n"),
@@ -1871,7 +1919,14 @@ export function swarmLaunch(args: LaunchArgs): {
   }
 
   void args.noAudit;
-  return { exitCode: EXIT_OK, stdout: rendered, stderr: skipRoutingNote, spawnEnvByStory };
+  const advisoryNote =
+    judgmentPosture.advisory.trim().length > 0 ? `${judgmentPosture.advisory.trim()}\n` : "";
+  return {
+    exitCode: EXIT_OK,
+    stdout: rendered,
+    stderr: `${advisoryNote}${skipRoutingNote}`,
+    spawnEnvByStory,
+  };
 }
 
 export function assertDestWorkerInstallationPermissions(requested: unknown): void {
