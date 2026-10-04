@@ -128,9 +128,9 @@ Worked example (a tiered leaf worker on Composer):
 - model_source: cursor-route
 ```
 
-! Pre-dispatch gate (#1739 / #1877): run `deft verify:routing` before spawning ANY sub-agent (cohort OR solo) — it fails when a dispatched worker role has no decision (pinned model or explicit harness default) for the active provider. `deft verify:story-ready` chains the same routing gate for single Cursor/Grok Task dispatches (#1877). Session start runs `deft verify:routing -- --advise` (non-blocking disclosure).
+! Pre-dispatch gate (#1739 / #1877 / #3703): run `deft verify:routing` before spawning ANY sub-agent (cohort OR solo) — it fails when a dispatched worker role has no decision (pinned model or explicit harness default) for the active provider. `deft verify:story-ready` chains the same routing gate for story-ready single dispatches (#1877). Interactive/solo mid-session spawns are gated by the PreToolUse honor-at-dispatch conjunct on every spawn-class allow path (#3703); `swarm:launch` fails closed on absent route file or undecided leaf for gated providers. Default gated role domain is an explicit subset of `SWARM_WORKER_ROLES` (leaf-implementation); critics/process-only stay outside that enum. Explore with structural `subagent_type` explore and no gated role is a decided carve-out after the conjunct. `ROUTING_GATED_DISPATCH_PROVIDERS` (claude, cursor, grok, grok-bot, openclaw) is narrower than `LAUNCHER_FAMILIES` (codex argv-only). Session start `--advise` is additive disclosure only and does not relieve honor-at-dispatch. `--skip-routing` is a recorded silent opt-out.
 
-Reference: `.deft/routing.local.json` + `deft swarm:routing-set` + `deft verify:routing` (#1739, supersedes the `plan.policy.swarmSubagentBackend` enum of #1531a / #1735), `packages/core/src/swarm/routing.ts` `SWARM_WORKER_ROLES`, issue #1531 scope update (dispatch provider / worker role / model selection are three separate concerns).
+Reference: `.deft/routing.local.json` + `deft swarm:routing-set` + `deft verify:routing` (#1739, supersedes the `plan.policy.swarmSubagentBackend` enum of #1531a / #1735), `packages/core/src/swarm/routing.ts` `SWARM_WORKER_ROLES` / `ROUTING_GATED_DISPATCH_PROVIDERS`, `packages/core/src/swarm/routing-honor.ts`, issue #1531 scope update (dispatch provider / worker role / model selection are three separate concerns).
 
 ## 2.7 Runtime and GitHub auth mode (#1557)
 
@@ -530,13 +530,14 @@ These rules bind **orchestrators** dispatching implementation, fix, or review-cy
 - ⊗ Foreground/blocking dispatch for long-running implementation, fix, or review-cycle workers when a background/independent dispatch primitive is available — blocking locks the conversation and prevents user steerability (#1878 / Gap D).
 - ~ Foreground dispatch is reserved for short tasks (<~3 min): quick probes, single-command checks, terse status reads.
 
-**Deliberate model routing before ANY dispatch (doctrine; enforcement #1877):**
+**Deliberate model routing before ANY dispatch (doctrine + #3703 honor):**
 
 - ! Before dispatching ANY sub-agent (cohort OR single), the orchestrator MUST make a deliberate per-`worker_role` model-routing decision — consult `deft verify:routing` / `deft swarm:routing-set`, populate `## Worker metadata` per §2.6, and pass `resolved_model` into the actual dispatch primitive when non-null. Never silently inherit the parent orchestrator's model.
+- ! Honor-at-dispatch (#3703): PreToolUse joins the trusted route snapshot to the spawn request (payload model or launcher argv). Token-only / advisory-only / self-attested `model:` leads are not builder honor proof. Requested-model conformance ≠ proof of the host's served model.
+- ! Default gated role domain is an explicit subset of `SWARM_WORKER_ROLES` (leaf-implementation). Critics stay carved to the `model:` lead. Explore carve-out requires structural `subagent_type` explore (free-text markers refuse).
 - ⊗ Dispatch a worker without a recorded routing decision for its `(dispatch_provider, worker_role)` pair when backend routing applies — silent inheritance of the parent model is forbidden.
-- ~ Deterministic gate enforcement for undecided routes is tracked in #1877; this subsection is the behavioral rule only.
 
-Reference: issue #1880 (doctrine), #1877 (gate enforcement), #954 (multi-agent discipline). Cross-references: `skills/deft-directive-swarm/SKILL.md` Phase 3 dispatch + Phase 5→6, `skills/deft-directive-review-cycle/SKILL.md` Review Monitoring.
+Reference: issue #1880 (doctrine), #1877 / #3703 (gate + honor), #954 (multi-agent discipline). Cross-references: `skills/deft-directive-swarm/SKILL.md` Phase 3 dispatch + Phase 5→6, `skills/deft-directive-review-cycle/SKILL.md` Review Monitoring.
 
 ## 10. Dispatcher lifecycle hygiene -- workers are all-or-nothing (capability-tiered, #3158)
 

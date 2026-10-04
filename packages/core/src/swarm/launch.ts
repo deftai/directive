@@ -42,10 +42,13 @@ import { originActiveBriefPresent } from "./origin-active-brief.js";
 import { readinessReport } from "./readiness.js";
 import {
   loadRoutingFile,
+  ROUTING_GATED_DISPATCH_PROVIDERS,
   resolveDispatchProvider,
   resolveModelRoute,
   resolveRoutingPath,
 } from "./routing.js";
+import { SKIP_ROUTING_RECORD } from "./routing-honor.js";
+import { verifyRouting } from "./routing-verify.js";
 import { dispatchProviderFor, enforceSubagentBackendPolicy } from "./subagent-backend.js";
 import { runText } from "./subprocess.js";
 import {
@@ -1143,6 +1146,12 @@ export interface LaunchArgs {
    * Defaults to `process.env` when unset.
    */
   environ?: NodeJS.ProcessEnv;
+  /**
+   * Silent opt-out for the #3703 fail-closed routing gate (absent file /
+   * undecided leaf). When set, launch records SKIP_ROUTING_RECORD on stderr
+   * and continues without honor/enforce. Same flag name as verify:story-ready.
+   */
+  skipRouting?: boolean;
   /** Optional gh runner for identity-bound credential injection (#1351). */
   runGh?: GhRunner;
   expectedPrincipal?: ExpectedGithubWorkerPrincipal | null;
@@ -1319,15 +1328,54 @@ export function swarmLaunch(args: LaunchArgs): {
     };
   }
 
-  const routingPath = resolveRoutingPath(projectRoot);
+  // Explicit environ is a replacement bag for host/credential markers (#3703):
+  // do not inherit ambient GITHUB_TOKEN / DEFT_PROBE_* / CLAUDE_* from process.env
+  // when the caller supplied a bag (deep-coverage + CI identity-bound). Still
+  // inherit DEFT_ROUTING_PATH from process when absent so #1877 seams keep working.
+  const launchEnviron: NodeJS.ProcessEnv =
+    args.environ !== undefined
+      ? {
+          ...args.environ,
+          ...(args.environ.DEFT_ROUTING_PATH === undefined &&
+          process.env.DEFT_ROUTING_PATH !== undefined
+            ? { DEFT_ROUTING_PATH: process.env.DEFT_ROUTING_PATH }
+            : {}),
+        }
+      : { ...process.env };
+  const routingPath = resolveRoutingPath(projectRoot, launchEnviron);
   const { data: routingFile, error: routingError } = loadRoutingFile(routingPath);
   if (routingError !== null) {
     return { exitCode: EXIT_CONFIG_ERROR, stdout: "", stderr: `Error: ${routingError}\n` };
   }
 
+  const routingProviderEarly = resolveDispatchProvider(launchEnviron);
+  const routingGated = ROUTING_GATED_DISPATCH_PROVIDERS.has(routingProviderEarly);
+  let skipRoutingNote = "";
+  if (args.skipRouting === true) {
+    // Record --skip-routing uses (#3703 acceptance).
+    skipRoutingNote = `${SKIP_ROUTING_RECORD}\n`;
+  } else if (routingGated) {
+    // Fail-closed on absent route file and undecided leaf (#3703). Matches
+    // verifyRouting enforce (missing file → undecided → EXIT_GATE_FAILED).
+    const routingGate = verifyRouting({
+      projectRoot,
+      environ: launchEnviron,
+      provider: routingProviderEarly,
+      roles: [LEAF_CODING_WORKER_ROLE],
+    });
+    if (routingGate.exitCode !== EXIT_OK) {
+      return {
+        exitCode: routingGate.exitCode,
+        stdout: "",
+        stderr: `${routingGate.report}\n`,
+      };
+    }
+  }
+
   // When an operator route file (#1739) is present it is authoritative for
   // model selection, so the legacy swarmSubagentBackend enum gate (#1531 /
-  // #1735) only runs as the fallback when no route file exists.
+  // #1735) only runs as the fallback when no route file exists. Gated
+  // providers already failed closed above when the file was absent.
   let backend: ReturnType<typeof enforceSubagentBackendPolicy>["backend"] = null;
   if (routingFile === null) {
     const { backend: resolvedBackend, error: backendError } =
@@ -1479,7 +1527,7 @@ export function swarmLaunch(args: LaunchArgs): {
   let modelSource: string | null = null;
   let routingProvider: string | null = null;
   if (routingFile !== null) {
-    routingProvider = resolveDispatchProvider(args.environ ?? process.env);
+    routingProvider = routingProviderEarly;
     const route = resolveModelRoute(routingFile, routingProvider, LEAF_CODING_WORKER_ROLE);
     // A malformed decision object must fail loud here: the legacy backend gate
     // was already bypassed above (routingFile !== null), so silently continuing
@@ -1494,6 +1542,12 @@ export function swarmLaunch(args: LaunchArgs): {
     if (route.decided) {
       resolvedModel = route.model;
       modelSource = route.source;
+    } else if (routingGated && args.skipRouting !== true) {
+      // Belt-and-braces with the verifyRouting call above (#3703).
+      return failAfterClaim(
+        EXIT_GATE_FAILED,
+        `Error: routing gate: provider '${routingProvider}' has undecided role(s): ${LEAF_CODING_WORKER_ROLE}.\n`,
+      );
     }
   }
 
@@ -1505,7 +1559,6 @@ export function swarmLaunch(args: LaunchArgs): {
         : null;
   const workerRoleValue = routingFile !== null || backend !== null ? LEAF_CODING_WORKER_ROLE : null;
 
-  const launchEnviron = args.environ ?? process.env;
   const expectedGithubLogin =
     assigned.mode === GITHUB_AUTH_MODE_INJECTED_TOKEN ? assigned.principal.login : null;
   const dests = ordered.map((story) => {
@@ -1646,7 +1699,7 @@ export function swarmLaunch(args: LaunchArgs): {
   }
 
   void args.noAudit;
-  return { exitCode: EXIT_OK, stdout: rendered, stderr: "", spawnEnvByStory };
+  return { exitCode: EXIT_OK, stdout: rendered, stderr: skipRoutingNote, spawnEnvByStory };
 }
 
 export function assertDestWorkerInstallationPermissions(requested: unknown): void {
