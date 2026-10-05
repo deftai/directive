@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Interview strategy matches setup on PRD authority and promote (#5354).** Pack SoT + render remove Full-path Generate-PRD approval-gate and Light/Full promote-on-approval; approval leaves scopes in `proposed/`; `PRD.md` stays optional `task prd:render` export only. Syncs `templates/make-spec.md`. Polarity content-contract locks strategy ↔ setup ↔ interview. Tracking #5354.
+- **Interview strategy matches setup on PRD authority and promote (#5354).** Pack SoT + render remove Full-path Generate-PRD approval-gate and Light/Full promote-on-approval; approval leaves scopes in `proposed/`; `PRD.md` stays optional `task prd:render` export only. Workflow Overview routes through PROJECT-DEFINITION + proposed scopes (optional PRD export edge), not a PRD approval gate. Syncs `templates/make-spec.md`. Polarity content-contract locks strategy ↔ setup ↔ interview (including diagram). Tracking #5354.
 
 - **Complete the #1589 scope brief after product #5315.** Record completion of the brief for shipped spec reconstruction and advisory drift checks. Enforce-mode work continues on #5350.
 

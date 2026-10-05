@@ -27,6 +27,10 @@ function assertNoPrdApprovalGate(surface: string, text: string): void {
   expect(text, surface).not.toContain("PRD (approval gate)");
   expect(text, surface).not.toContain("Interview → PRD →");
   expect(text, surface).not.toMatch(/User MUST review and approve the rendered PRD export/i);
+  // Workflow Overview must not route Full path through a PRD approval gate (#5354).
+  expect(text, surface).not.toContain('P -->|"Approved"| S');
+  expect(text, surface).not.toContain("PRD<br/><i>What to build</i>");
+  expect(text, surface).not.toContain("Brief summary and link to PRD.");
 }
 
 function assertNoPromoteOnApproval(surface: string, text: string): void {

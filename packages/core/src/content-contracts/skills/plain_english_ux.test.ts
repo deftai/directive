@@ -107,8 +107,11 @@ describe("test_plain_english_ux", () => {
       expect(interviewSkillText).toContain("Approval Menu");
     });
 
-    it("strategy_has_prd_approval_menu", () => {
-      expect(interviewStrategyText).toContain("PRD Approval Menu");
+    it("strategy_has_optional_prd_export_not_approval_menu", () => {
+      // #5354: PRD is optional export only — no PRD Approval Menu gate.
+      expect(interviewStrategyText).not.toContain("PRD Approval Menu");
+      expect(interviewStrategyText).toContain("never authoritative");
+      expect(interviewStrategyText).toContain("task prd:render");
     });
 
     it("strategy_has_spec_approval_menu", () => {
@@ -142,14 +145,9 @@ describe("test_plain_english_ux", () => {
       }
     });
 
-    it("strategy_prd_diff_preface", () => {
-      const prdSection =
-        interviewStrategyText
-          .split("### PRD Approval Menu")[1]
-          ?.split("### SPECIFICATION Structure")[0] ?? "";
-      for (const token of CANONICAL_PREFACE_TOKENS) {
-        expect(prdSection).toContain(token);
-      }
+    it("strategy_no_prd_approval_menu_diff_section", () => {
+      // #5354 removed PRD Approval Menu; preface lives on SPECIFICATION review.
+      expect(interviewStrategyText).not.toContain("### PRD Approval Menu");
     });
 
     it("strategy_spec_diff_preface", () => {
