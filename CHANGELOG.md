@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- design-critique: bare-arc spend recommend-first is now a MUST; ask is fallback only; Stop 2 and skill Spend line admit recommend-resolve (#5372)
+
 ### Removed
 
 ## [0.121.0] - 2026-10-05

@@ -77,6 +77,7 @@ The front door is a session-local spend field, not a blast-radius selector and n
 Record `spend:` and `spend-ask: resolved` or `spend-ask: asked` on the Stop 1 write-back. `spendAskRecordLine` emits that field. `asked` is an operator chat answer after the missing-token ask. `spend-why` English, Stop 2 table cells, and default-motion prose are not that field.
 
 - ! Record `spend:` and `spend-ask:` on the Stop 1 write-back before launching critics.
+- ! On bare arc (no closed `n=1` / `n=3` / `n≥3` and no `panel`), record `spend-recommend: N=1` or `spend-recommend: N≥3` before Stop 1, then resolve `spend:` + `spend-ask: resolved` via `parseOperatorSpend` / `evaluateSpendRecord`; explicit `n=` overrides; ambiguous mixes and bare `panel` stay ask-only.
 - ! Missing spend token asks before Stop 1 when no closed `spend-recommend:` is recorded.
 - ⊗ Record `spend-ask: asked` from `spend-why` English or from Stop 2 default-motion prose.
 
@@ -117,7 +118,7 @@ Charter selection and spend permission are evaluated independently.
 
 After Handoff, Stop 2 evaluation does not re-select charter from the issue body on that write-back. Charter is open critique.
 
-Default motion after a mechanism-shaped stamp: fresh open critique. N=1 only after a resolved `n=1` token or a recorded ask-answer. If residual remains, one reiterating pass with a fresh critic that reads a disagreement map, then verified synthesis. Resume is optional sharpening ("does my prior finding still hold"), not the default reiterating agent. A permitted N≥3 does not change that default; the parent records the spend when it uses the permission after parseOperatorSpend or an ask-answer.
+Default motion after a mechanism-shaped stamp: fresh open critique. N=1 (and N≥3 when recommend says so) only after a resolved `n=` token, a recorded ask-answer, or a recorded `spend-recommend:` resolve. If residual remains, one reiterating pass with a fresh critic that reads a disagreement map, then verified synthesis. Resume is optional sharpening ("does my prior finding still hold"), not the default reiterating agent. A permitted N≥3 does not change that default; the parent records the spend when it uses the permission after parseOperatorSpend or an ask-answer.
 
 ### Target shape
 
