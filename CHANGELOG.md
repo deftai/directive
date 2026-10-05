@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Leftover-complete #5387 after product #5388.** Retire the Prefer-A Bound brief into `xbrief/completed/` with lifecycleWrite completion stamp after Path B activation / productPullRequest catch-22 product land. Tracking #5387.
+
 ### Fixed
 
 - **Path B activation vs productPullRequest catch-22 (#5387).** Closing-keywords admits brief-land membership PRs (`proposed|pending|active` ± root `CHANGELOG.md`) when `productPullRequest` stays unset and body has `deft-story: N`; product PRs still require a matching delivery stamp; finalize honesty regressions keep activation from binding as delivery. Tracking #5387.
