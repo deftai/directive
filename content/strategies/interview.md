@@ -346,7 +346,7 @@ flowchart LR
 - ! Edge cases that change required behavior, constraints, acceptance, or feasibility for this deliverable are addressed
 - ! User has approved key tradeoffs (Interview strategy) or Johnbot has chosen recommended options (Yolo strategy)
 - ! On the Full material-decision contract path (#5351): inventory sufficiency + Confirmation Gate dispositions replace open-ended "little ambiguity remains" as the completion strength (aligned with setup Phase 3 Completion)
-- ! Apply the Full material-decision contract when Sizing-Gate is Full, Full-depth questioning is already underway, or reopen/continuation after declared-ready / Rule 6 confirmation (see `skills/deft-directive-interview/SKILL.md` Rule 4)
+- ! Apply the Full material-decision contract when Sizing-Gate is Full, Full-depth questioning is already underway, or reopen/continuation that enters or remains in Full depth after declared-ready / Rule 6 confirmation — not for short-path corrections that stay Light / Add-scope / delta (see `skills/deft-directive-interview/SKILL.md` Rule 4)
 
 ---
 

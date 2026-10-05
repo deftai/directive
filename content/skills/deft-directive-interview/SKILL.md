@@ -177,9 +177,9 @@ Click-commit options block shape:
 ! Apply this contract when any of:
 - Sizing-Gate outcome is **Full** (greenfield Full, or brownfield Replace that reached Sizing after confirmed scrap), or
 - an operator-directed interview that has already entered Full-depth questioning (including a brownfield session that skipped Chaining but is already behaving as Full — treat as conformance debt; still apply the bound rather than invent a "Full/brownfield" compound state), or
-- **reopen / continuation** after a declared-ready state or after Rule 6 confirmation.
+- **reopen / continuation that enters or remains in Full depth** after a declared-ready state or after Rule 6 confirmation (operator explicitly escalates into Full, or the prior path was already Full).
 
-Out of scope unless reopened into Full depth: Light sizing; Add-scope short path; Update/delta interview that stays delta.
+Out of scope: Light sizing; Add-scope short path; Update/delta interview that stays delta — including short-path reopen/correction that stays on that short path. ⊗ Apply the Full material-decision inventory contract to a Light / Add-scope / delta correction solely because Rule 6 ran.
 
 ! The material-decision inventory **is** the depth-bound handoff surface for when questioning may stop. It carries: target deliverable, material required decisions (each with a **resolution condition**), approved constraints, accepted deferrals, and completion conditions. Reuse Delegation Mode required-field semantics without forcing a sub-skill invoke.
 
@@ -198,7 +198,7 @@ Out of scope unless reopened into Full depth: Light sizing; Add-scope short path
 ! Phase-relative sufficiency + follow-up cites:
 - A decision is mandatory for this phase when leaving it unresolved would change the current deliverable's required behavior, constraints, acceptance, or feasibility.
 - A choice among implementations that already satisfy those conditions need not block this phase.
-- Newly discovered questions MUST (a) cite an outstanding material requirement and stay within its resolution condition, or (b) revisit an accepted deferral with operator-visible boundary change, or (c) on **operator-raised gap / inventory defect** after declared-ready: operator-visible inventory amendment (diff) then re-confirm.
+- Newly discovered questions MUST (a) cite an outstanding material requirement and stay within its resolution condition, or (b) revisit an accepted deferral with operator-visible boundary change, or (c) on **operator-raised or agent-discovered gap / inventory defect** after declared-ready: operator-visible inventory amendment (diff) then re-confirm (agent may propose the amendment; operator MUST re-confirm before the ask-set widens).
 - Routine clarification inside an existing resolution condition needs no extra approval.
 
 ! Deferrals vs handoff: Resolved / legitimately deferred-for-this-phase / still-blocking are distinct. A deferral records the unresolved decision, why it does not block this deliverable, and the later trigger — not a fabricated answers-map value. Represent deferrals in the existing handoff / working artifact. Required values remain enforced where the caller needs them now.
@@ -242,7 +242,7 @@ Confirm these values? (yes / no)
 - ~ Note: The confirmation gate is intentionally stricter than Rule 5 (default-acceptance). Rule 5 accepts casual responses like `ok` for individual question defaults because the cost of a wrong default is low (one field, correctable at the confirmation gate). The confirmation gate guards the entire artifact -- accepting `ok` here risks generating artifacts from auto-filled or misunderstood values. This asymmetry is by design.
 - ! If the user says `no`: ask which values to correct, re-ask those specific questions only (do not restart the full interview), then re-display the updated summary and re-confirm
 - ! On the Full material-decision contract path (#5351): the confirmation summary MUST list each inventory item as decided / deferred-with-permit / out-of-phase; require explicit affirm; ⊗ treat artifact write success alone as completion
-- ! Post-gate reopen / continuation after declared-ready uses the same re-ask-those-specific-questions bound, extended by Rule 4 inventory cite/amend branch (c) for operator-raised gaps — ⊗ reopen unbounded Full questioning from a declared-ready state without inventory amendment + re-confirm
+- ! Post-gate reopen / continuation after declared-ready uses the same re-ask-those-specific-questions bound, extended by Rule 4 inventory cite/amend branch (c) for operator-raised or agent-discovered gaps — ⊗ reopen unbounded Full questioning from a declared-ready state without inventory amendment + re-confirm
 - ! If any value appears to be auto-generated filler (repeated default text, placeholder strings, or values that echo the question prompt), warn the user explicitly before confirming
 - ⊗ Proceed to artifact generation without displaying the summary and receiving explicit confirmation
 
@@ -275,9 +275,10 @@ The answers map format:
 ```
 
 - ! The calling skill defines the expected keys in its invocation of deft-directive-interview
-- ! The answers map MUST contain a value for every required key defined by the calling skill
+- ! The answers map MUST contain a value for every required key defined by the calling skill that is **not** legitimately deferred for this phase under the Full material-decision contract (#5351)
+- ! Keys legitimately deferred for this phase MUST NOT be fabricated as placeholder answers-map values; record them as accepted deferrals in the inventory / working-artifact handoff instead
 - ! Optional keys may be omitted if the user did not provide input and no default was applicable
-- ~ The calling skill is responsible for validating the answers map against its own schema and requesting re-interview for any missing or invalid fields
+- ~ The calling skill is responsible for validating the answers map against its own schema and requesting re-interview for any missing or invalid (non-deferred) fields
 
 ## Output Targets
 
