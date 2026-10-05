@@ -2034,7 +2034,12 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(stop1).toContain("evaluateSpendRecord");
     expect(stop1).toContain("spend-ask:");
     expect(stop1).toContain("spend-recommend:");
-    expect(stop1).toContain("On bare arc (no closed `n=1` / `n=3` / `n≥3` and no `panel`), record `spend-recommend: N=1` or `spend-recommend: N≥3` before Stop 1, then resolve `spend:` + `spend-ask: resolved` via `parseOperatorSpend` / `evaluateSpendRecord`");
+    expect(stop1).toContain(
+      "- ! On bare arc (no closed `n=1` / `n=3` / `n≥3` and no `panel`), record `spend-recommend: N=1` before Stop 1 (or `spend-recommend: N≥3` only when Stop 2 panel permission applies), then resolve `spend:` + `spend-ask: resolved` via `parseOperatorSpend` / `evaluateSpendRecord`",
+    );
+    expect(stop1).toContain(
+      "⊗ Record `spend-recommend: N≥3` when Stop 2 panel permission does not apply",
+    );
     expect(stop1).toContain("asks before Stop 1");
     expect(stop1).toContain("Yolo is not a spend token");
     expect(stop1).toContain("Do not copy `resolveArcRunPostureForHost` onto spend");
@@ -2046,14 +2051,18 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     );
     expect(stop2).toContain("unselected until `parseOperatorSpend` resolves");
     expect(stop2).toContain("Those rows are unchanged in behaviour for charter selection only");
-    expect(stop2).toContain("N=1 (and N≥3 when recommend says so) only after a resolved `n=` token, a recorded ask-answer, or a recorded `spend-recommend:` resolve");
+    expect(stop2).toContain(
+      "N=1 (and N≥3 when recommend says so under panel permission) only after a resolved `n=` token, a recorded ask-answer, or a recorded `spend-recommend:` resolve",
+    );
     expect(text).not.toContain("first-match");
     const template = readText(TEMPLATE);
     expect(template).toContain("Charter (refutation | open critique)");
     expect(template).not.toContain("spend (N=1 | N\u22653 when panel permission is used)");
     expect(template).toContain("Spend `spend:` / `spend-ask:`");
     const skill = readText(SKILL_REL);
-    expect(skill).toContain("Spend: closed n= wins; else record spend-recommend then resolve; ask only when recommend missing or tokens ambiguous");
+    expect(skill).toContain(
+      "Spend: closed n= wins; else record spend-recommend then resolve; ask only when recommend missing or tokens ambiguous",
+    );
     expect(skill).toContain("Consume parseOperatorSpend");
     expect(skill).toContain("Yolo standing: default on; noyolo clears; yolo affirms");
     expect(skill).toContain("missing defaults to no-ingest via resolveArcRunPostureForHost");
