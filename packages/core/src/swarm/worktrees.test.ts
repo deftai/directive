@@ -445,6 +445,11 @@ describe("swarm worktrees", () => {
     gitInit(repo);
     mkdirSync(join(repo, ".deft", "core"), { recursive: true });
     writeFileSync(join(repo, ".deft", "core", "main.md"), "# primary payload\n", "utf8");
+    writeFileSync(
+      join(repo, ".deft", "core", "package.json"),
+      JSON.stringify({ version: "1.2.3" }),
+      "utf8",
+    );
     writeFileSync(join(repo, ".deft", "occupancy.json"), '{"sessionId":"primary"}\n', "utf8");
     writeFileSync(join(repo, ".deft", "ritual-state.json"), '{"ready":true}\n', "utf8");
     const wt = join(repo, "wt-dep");

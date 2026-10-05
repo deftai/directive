@@ -531,6 +531,7 @@ describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {
       const payload = join(project, "payload");
       mkdirSync(payload, { recursive: true });
       writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
+      writeFileSync(join(payload, "package.json"), JSON.stringify({ version: "1.0.0" }), "utf8");
       expect(() =>
         reconstituteLinkedWorktreeDeposit(project, {
           isLinkedWorktree: () => true,
