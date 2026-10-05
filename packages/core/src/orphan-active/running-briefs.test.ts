@@ -6,6 +6,7 @@ import {
   briefPairingKey,
   briefPlanIdentity,
   completedTwinRelPath,
+  isProductPullRequestUnset,
   listActiveRunningBriefs,
   listActiveRunningBriefsFromLifecycleRoot,
   productPullRequestFromPlan,
@@ -109,5 +110,31 @@ describe("stampProductPullRequestOntoPlan (#4864)", () => {
     expect(stampProductPullRequestOntoPlan(plan, 5200)).toBe(false);
     expect(productPullRequestFromPlan(plan)).toBe(5100);
     expect(stampProductPullRequestOntoPlan(plan, 0)).toBe(false);
+  });
+});
+
+describe("productPullRequest unset vs malformed (#5387)", () => {
+  it("treats key absence as unset; malformed present is not unset", () => {
+    expect(isProductPullRequestUnset({ status: "running" })).toBe(true);
+    expect(
+      isProductPullRequestUnset({
+        status: "running",
+        metadata: { activationPullRequest: 5380 },
+      }),
+    ).toBe(true);
+    expect(
+      productPullRequestFromPlan({
+        status: "running",
+        metadata: { activationPullRequest: 5380 },
+      }),
+    ).toBeNull();
+    const malformed: Record<string, unknown> = {
+      status: "running",
+      metadata: { productPullRequest: "x" },
+    };
+    expect(isProductPullRequestUnset(malformed)).toBe(false);
+    expect(productPullRequestFromPlan(malformed)).toBeNull();
+    expect(stampProductPullRequestOntoPlan(malformed, 5381)).toBe(true);
+    expect(productPullRequestFromPlan(malformed)).toBe(5381);
   });
 });

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Path B activation vs productPullRequest catch-22 (#5387).** Closing-keywords admits brief-land membership PRs (`proposed|pending|active` ± root `CHANGELOG.md`) when `productPullRequest` stays unset and body has `deft-story: N`; product PRs still require a matching delivery stamp; finalize honesty regressions keep activation from binding as delivery. Tracking #5387.
 - design-critique: bare-arc spend recommend-first is now a MUST; ask is fallback only; Stop 2 and skill Spend line admit recommend-resolve; N≥3 recommend stays panel-permission-gated (#5372)
 
 ### Removed

@@ -143,7 +143,9 @@ export function completedTwinRelPath(relPath: string): string | null {
 
 /**
  * Brief-side full-story mark (#4864 / #4919): plan.metadata.productPullRequest.
- * Equivalent durable mark to PR-body `deft-story: N`. Digits-only; null when absent.
+ * Equivalent durable mark to PR-body `deft-story: N`. Digits-only; null when absent
+ * OR malformed. Delivery bind only — does not read metadata.activationPullRequest
+ * (#5387 Path B provenance is informational only).
  */
 export function productPullRequestFromPlan(plan: Record<string, unknown>): number | null {
   const metadata = plan.metadata;
@@ -165,9 +167,24 @@ export function productPullRequestFromPlan(plan: Record<string, unknown>): numbe
 }
 
 /**
+ * Explicit absence of metadata.productPullRequest (#5387 S1).
+ * True only when the key is missing (or metadata is absent). Malformed present
+ * values are not unset — productPullRequestFromPlan null alone is not enough.
+ */
+export function isProductPullRequestUnset(plan: Record<string, unknown>): boolean {
+  const metadata = plan.metadata;
+  if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata)) {
+    return true;
+  }
+  return !Object.prototype.hasOwnProperty.call(metadata, "productPullRequest");
+}
+
+/**
  * Record or preserve full-story delivery bind (#4864): set metadata.productPullRequest.
  * No-op success when already equal. Refuses overwrite of a different positive stamp.
  * Leftover-complete must keep this field so completed briefs still bind the product PR.
+ * Path B activation leaves the field unset; product stamps the null path (#5387).
+ * No restamp-from-activation flag — refuse-overwrite stays for different positive stamps.
  */
 export function stampProductPullRequestOntoPlan(
   plan: Record<string, unknown>,

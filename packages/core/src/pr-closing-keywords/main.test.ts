@@ -6,10 +6,19 @@ import { mintOnePrUnitGrant } from "../one-pr-unit/mint.js";
 import { DirectiveGitHubAppStore } from "../one-pr-unit/store.js";
 import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
 import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
+import { deriveUnmarkedFinalizeAdmit } from "../orphan-active/evaluate.js";
 import {
+  isProductPullRequestUnset,
+  productPullRequestFromPlan,
+  stampProductPullRequestOntoPlan,
+} from "../orphan-active/running-briefs.js";
+import { bindUnmarkedFinalizePair } from "../swarm/finalize-owed.js";
+import {
+  briefHasMatchingProductPr,
   cmdPrCheckClosingKeywords,
   evaluateFullStoryMarkAdmission,
   fullStoryCloseIntentFromBody,
+  isBriefLandShapedDiff,
   isLeftoverShapedDiff,
   isSkipActiveDeliveryShape,
   parseAllDeftStoryMarks,
@@ -761,6 +770,205 @@ describe("full-story mark admission shapes (#4919)", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.messages.join("\n")).toContain("unbound.xbrief.json");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("admits Path B activation: unset productPullRequest + brief-land + deft-story (#5387)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-path-b-activation-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5380.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "activation",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5373",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+          metadata: { activationPullRequest: 5380 },
+        },
+      }),
+      "utf8",
+    );
+    const files = [
+      {
+        status: "renamed",
+        path: "xbrief/active/story-5380.xbrief.json",
+        previousFilename: "xbrief/proposed/story-5380.xbrief.json",
+      },
+      { status: "modified", path: "CHANGELOG.md" },
+    ];
+    expect(isBriefLandShapedDiff(files)).toBe(true);
+    const result = evaluateFullStoryMarkAdmission({
+      bodyText: "Tracking #5373\n\ndeft-story: 5373\n",
+      prNumber: 5380,
+      projectRoot: root,
+      repo: "deftai/directive",
+      files,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.messages.join("\n")).toMatch(/Path B brief-land activation/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("admits keep-active Path B activation with root CHANGELOG only (#5387 / #5362 shape)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-path-b-keep-active-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "keep.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "keep-active",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5353",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateFullStoryMarkAdmission({
+      bodyText: "Tracking #5353\n\ndeft-story: 5353\n",
+      prNumber: 5362,
+      projectRoot: root,
+      repo: "deftai/directive",
+      files: [
+        { status: "modified", path: "xbrief/active/keep.xbrief.json" },
+        { status: "modified", path: "CHANGELOG.md" },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("refuses unset + packages/ mixed product path (#5387)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-path-b-mixed-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "mixed.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "mixed",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/99",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const files = [
+      { status: "modified", path: "xbrief/active/mixed.xbrief.json" },
+      { status: "modified", path: "packages/core/src/example.ts" },
+    ];
+    expect(isBriefLandShapedDiff(files)).toBe(false);
+    const result = evaluateFullStoryMarkAdmission({
+      bodyText: "deft-story: 99\n",
+      prNumber: 100,
+      projectRoot: root,
+      repo: "deftai/directive",
+      files,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.messages.join("\n")).toMatch(/productPullRequest/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("refuses malformed productPullRequest as not-unset on brief-land (#5387 S1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-path-b-malformed-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "bad.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "bad",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/88",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+          metadata: { productPullRequest: "x" },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateFullStoryMarkAdmission({
+      bodyText: "deft-story: 88\n",
+      prNumber: 880,
+      projectRoot: root,
+      repo: "deftai/directive",
+      files: [{ status: "modified", path: "xbrief/active/bad.xbrief.json" }],
+    });
+    expect(result.ok).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("denies completed/ and nested CHANGELOG from brief-land allowlist (#5387)", () => {
+    expect(
+      isBriefLandShapedDiff([
+        { status: "added", path: "xbrief/completed/story.xbrief.json" },
+        { status: "removed", path: "xbrief/active/story.xbrief.json" },
+      ]),
+    ).toBe(false);
+    expect(
+      isBriefLandShapedDiff([{ status: "modified", path: "docs/CHANGELOG.md" }]),
+    ).toBe(false);
+    expect(
+      isBriefLandShapedDiff([{ status: "modified", path: "CHANGELOG.md" }]),
+    ).toBe(false);
+  });
+
+  it("finalize honesty: activation PR is not delivery bind (#5387 limb 5)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-path-b-finalize-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    const plan = {
+      title: "activation",
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/5373",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+      metadata: { activationPullRequest: 5380 },
+    };
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({ plan }),
+      "utf8",
+    );
+    expect(isProductPullRequestUnset(plan)).toBe(true);
+    expect(productPullRequestFromPlan(plan)).toBeNull();
+    // deftStoryMarkBindsDelivery predicate: stamp === activation PR → false when unset
+    expect(productPullRequestFromPlan(plan) === 5380).toBe(false);
+    const mark = briefHasMatchingProductPr(root, 5373, 5380, "deftai/directive");
+    expect(mark.ok).toBe(false);
+    const admit = deriveUnmarkedFinalizeAdmit(plan, "deftai/directive", () => ({
+      returncode: 0,
+      stdout: "[]",
+      stderr: "",
+    }));
+    expect(admit).toBeNull();
+    const bound = bindUnmarkedFinalizePair({
+      admit,
+      issueFromPlan: 5373,
+      plan,
+    });
+    expect(bound.kind).not.toBe("admit");
+    expect(stampProductPullRequestOntoPlan(plan, 5381)).toBe(true);
+    expect(productPullRequestFromPlan(plan)).toBe(5381);
+    expect(stampProductPullRequestOntoPlan(plan, 5382)).toBe(false);
     rmSync(root, { recursive: true, force: true });
   });
 });

@@ -56,6 +56,10 @@ When the bound story is in the change set:
 - Legacy `.deft/approved-scope` records may still exist for intent-pin history (#3385). Same-PR rewrite of those files with the active brief still hard-fails. Proceed does not write them for scope.
 - Does not free test/fixture roots in membership, treat glob matches as membership without a mint, or restore leave-harness proceed mint as the Path B remedy (#5192).
 
+### Path B activation vs `productPullRequest` (#5387)
+
+Membership-land (Path B activation) PRs that only touch nonterminal `xbrief|vbrief` under `proposed|pending|active` plus optional root `CHANGELOG.md` leave `metadata.productPullRequest` **unset**. Closing-keywords admits that brief-land shape when body has `deft-story: N` covering each changed nonterminal (`isBriefLandShapedDiff` + early return in `evaluateFullStoryMarkAdmission`). Optional `metadata.activationPullRequest` is provenance only — delivery readers ignore it. The stacked product PR stamps virgin `productPullRequest` on the existing null path; leftover keeps the original product stamp. ⊗ Write the activation PR number into `productPullRequest`. Legacy stamped activations unstamp once, then product stamps. Depth: `packages/core/src/pr-closing-keywords/main.ts`.
+
 ## Operator command: `scope:record-approved-scope` (legacy / authz-adjacent)
 
 The verb remains for historical intent-pin minting and for `authz`-shared human-presence machinery. **It is not part of the proceed path** and is not the remediation for production-scope-over-budget (#4956). Prefer `deft scope:record-approved-scope` (consumer include-only: `task deft:scope:record-approved-scope`).
