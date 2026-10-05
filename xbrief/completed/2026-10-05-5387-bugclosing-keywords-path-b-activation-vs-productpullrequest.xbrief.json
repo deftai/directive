@@ -1,0 +1,594 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5387",
+    "updated": "2026-10-05T18:29:21Z"
+  },
+  "plan": {
+    "title": "bug(closing-keywords): Path B activation vs productPullRequest delivery bind catch-22",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(closing-keywords): Path B activation vs productPullRequest delivery bind catch-22",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5387",
+      "Overview": "## Summary\n\nPath B activation PRs that land a nonterminal `xbrief/active/` brief hit a hard catch-22 between `verify:closing-keywords` / full-story mark admission (#4864 / #4919) and finalize / delivery bind via `metadata.productPullRequest`.\n\n- Closing-keywords requires `metadata.productPullRequest === this PR` whenever the PR touches a nonterminal brief (body `deft-story: N` alone is not enough).\n- Path B doctrine wants that field **unset** on the activation (membership) land so the stacked product PR can bind delivery later.\n- `stampProductPullRequestOntoPlan` **refuses overwrite** of a different positive stamp (`running-briefs.ts`), so \"stamp activation PR, restamp product PR after merge\" fails at the helper.\n- Greptile correctly flags activation stamped as delivery (seen on #5380 conf 4/5 P1).\n\nAgents are forced into stamp-then-floor / leave-unset-then-floor theater (#5314 stamped activation; #5362 left unset and floor-merged; #5380 stamped per operator and Approach1 halted on the Greptile P1).\n\n## Evidence trail\n\n| Case | What happened |\n|---|---|\n| #5314 (#1164 Path B activate) | Stamped `productPullRequest=5314` to clear closing-keywords |\n| #5362 (#5353 Path B keep-active) | Stamp activate → Greptile P1; stamp product # → admission fail; leave unset → closing-keywords red; floor-merged unset; product #5357 stamped cleanly later (`7915d7491`) because field was blank |\n| #5380 / #5381 (#5373 Path B) | Same catch-22; operator chose stamp `5380`; closing-keywords green; Greptile P1 \"Activation PR misidentified as delivery\"; Approach1 halted-explicit; restamp to #5381 blocked by refuse-overwrite |\n\nFailing check text (exemplar #5380):\n`FAIL: changed brief ... lacks metadata.productPullRequest=5380`\n\nHelper contract (`stampProductPullRequestOntoPlan`):\n- same PR → no-op success\n- different positive stamp → `false` (refuse)\n\n## Prefer-A direction (Bound target for design-critique)\n\nSplit **membership land** from **delivery bind** so Path B activation is first-class.\n\n### Option A (small carve — preferred for v1)\n\nIn `evaluateFullStoryMarkAdmission` / `bindChangedBriefPath` (`packages/core/src/pr-closing-keywords/main.ts`), admit a Path B **activation shape** when all hold:\n\n1. Diff is brief-land shaped (nonterminal brief ± CHANGELOG; no product implementation paths under `packages/` / skill/content product surfaces as defined by leftover vs product shape helpers already used nearby).\n2. Body has `deft-story: N`.\n3. `productPullRequest` is **unset**, OR equals this PR **and** an explicit activation marker is present (e.g. `plan.metadata.pathB = \"activation\"` / `deliveryKind: membership-land`).\n\nProduct / leftover PRs keep today's rule: must stamp `productPullRequest=<product PR>` before origin-close / leftover-complete.\n\nAlso: allow **activation→product restamp** in `stampProductPullRequestOntoPlan` when the existing stamp is recorded as activation-only (marker), or when an explicit `--allow-restamp-from-activation` path is used by product PR admission — so #5380→#5381 hand-edit bypass is unnecessary.\n\n### Option B (clearer SoT)\n\nAdd `activationPullRequest` (or `membershipPullRequest`) for Path B land. Reserve `productPullRequest` for real delivery only. Closing-keywords accepts activation bind on activation-shaped PRs; finalize-owed / deft-story delivery bind only read `productPullRequest`.\n\n## Non-goals (v1)\n\n- Teaching stamp-then-restamp as the happy path\n- Waiving closing-keywords for arbitrary active-brief PRs\n- Changing Greptile floor (5/5) or Tracking/Refs semantics\n- Auto-merging Path B stacks\n\n## Acceptance\n\n- [ ] Path B activation PR with unset `productPullRequest` + `deft-story: N` + brief-land shape passes `pr:check-closing-keywords`\n- [ ] Product PR still fails closed without matching `productPullRequest=<product PR>`\n- [ ] After activation land, product PR can bind delivery without refuse-overwrite dead-end (restamp allowed under activation marker, or separate field)\n- [ ] finalize-owed does not treat activation PR as product delivery solely because closing-keywords was green\n- [ ] Unit tests cover activation admit, product refuse, leftover unchanged; fixture from #5380 / #5362 shapes\n- [ ] Docs pointer in scope-provenance or closing-keywords / Path B notes; CHANGELOG Unreleased\n\n## Operator note\n\n#5373 Path B stack (#5380 activation / #5381 product) is **held** in through-merge cohort until this carve lands. Do not floor-exception #5380 for this class while the issue is open unless operator overrides.\n\n## Refs\n\n#4864 #4919 #5192 #4774 #5362 #5353 #5357 #5314 #1164 #5380 #5381 #5373",
+      "Labels": "bug, swarm, process, urgent, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Add early return adjacent to isLeftoverShapedDiff short-circuit that admits when isBriefLandShapedDiff + deft-story covers each changed nonterminal + productPullRequestFromPlan is null on every changed nonterminal; short-circuits both stamp gates.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+          "recorded_at": "2026-10-05T19:25:19.319Z",
+          "recorded_by": "Scott"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Mint isBriefLandShapedDiff: allow xbrief|vbrief proposed|pending|active + exact root CHANGELOG.md; require at least one non-removed nonterminal brief; deny packages/**, product surfaces, .github/, Taskfile, scripts, docs, completed/, mixed diffs; keep skip-active refusal ahead.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+          "recorded_at": "2026-10-05T19:25:19.319Z",
+          "recorded_by": "Scott"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Activation leaves productPullRequest unset. Optional metadata.activationPullRequest informational only. Product stamps virgin productPullRequest via null path. Leftover preserves original product delivery stamp.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+          "recorded_at": "2026-10-05T19:25:19.319Z",
+          "recorded_by": "Scott"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Do not teach --allow-restamp-from-activation. Legacy stamped activations (#5380): one-shot unstamp then product stamps null path.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+          "recorded_at": "2026-10-05T19:25:19.319Z",
+          "recorded_by": "Scott"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Keep deftStoryMarkBindsDelivery(activation)=false; finalize-owed not owed for unset+deft-story activation; briefHasMatchingProductPr(activation)=false.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+          "recorded_at": "2026-10-05T19:25:19.319Z",
+          "recorded_by": "Scott"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Tests in pr-closing-keywords/main.test.ts; docs pointer; #1309 agents-entry mirror + agents:refresh; CHANGELOG Unreleased.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+          "recorded_at": "2026-10-05T19:25:19.319Z",
+          "recorded_by": "Scott"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "process",
+      "urgent",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5387",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5387: bug(closing-keywords): Path B activation vs productPullRequest delivery bind catch-22"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4864",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4864"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/pr-closing-keywords/main.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound lean 6000447670; product PR #5388 merge 95419cb32cbd",
+      "sentences": [
+        "bug(closing-keywords): Path B activation vs productPullRequest delivery bind catch-22",
+        "Summary Path B activation PRs that land a nonterminal `xbrief/active/` brief hit a hard catch-22 between `verify:closing-keywords` / full-story mark admission (#4864 / #4919) and finalize / delivery bind via `metadata.productPullRequest`.",
+        "Closing-keywords requires `metadata.productPullRequest === this PR` whenever the PR touches a nonterminal brief (body `deft-story: N` alone is not enough).",
+        "Path B doctrine wants that field unset on the activation (membership) land so the stacked product PR can bind delivery later.",
+        "`stampProductPullRequestOntoPlan` refuses overwrite of a different positive stamp (`running-briefs.ts`), so \"stamp activation PR, restamp product PR after merge\" fails at the helper.",
+        "Greptile correctly flags activation stamped as delivery (seen on #5380 conf 4/5 P1).",
+        "Agents are forced into stamp-then-floor / leave-unset-then-floor theater (#5314 stamped activation; #5362 left unset and floor-merged; #5380 stamped per operator and Approach1 halted on the Greptile P1).",
+        "Evidence trail | Case | What happened | |---|---| | #5314 (#1164 Path B activate) | Stamped `productPullRequest=5314` to clear closing-keywords | | #5362 (#5353 Path B keep-active) | Stamp activate → Greptile P1; stamp product # → admission fail; leave unset → closing-keywords red; floor-merged unset; product #5357 stamped cleanly later (`7915d7491`) because field was blank | | #5380 / #5381 (#5373 Path B) | Same catch-22; operator chose stamp `5380`; closing-keywords green; Greptile P1 \"Activation PR misidentified as delivery\"; Approach1 halted-explicit; restamp to #5381 blocked by refuse-overwrite | Failing check text (exemplar #5380): `FAIL: changed brief ...",
+        "lacks metadata.productPullRequest=5380` Helper contract (`stampProductPullRequestOntoPlan`): - same PR → no-op success - different positive stamp → `false` (refuse) ## Prefer-A direction (Bound target for design-critique) Split membership land from delivery bind so Path B activation is first-class.",
+        "Option A (small carve — preferred for v1) In `evaluateFullStoryMarkAdmission` / `bindChangedBriefPath` (`packages/core/src/pr-closing-keywords/main.ts`), admit a Path B activation shape when all hold: 1.",
+        "Diff is brief-land shaped (nonterminal brief ± CHANGELOG; no product implementation paths under `packages/` / skill/content product surfaces as defined by leftover vs product shape helpers already used nearby).",
+        "Body has `deft-story: N`.",
+        "`productPullRequest` is unset, OR equals this PR and an explicit activation marker is present (e.g.",
+        "`plan.metadata.pathB = \"activation\"` / `deliveryKind: membership-land`).",
+        "Product / leftover PRs keep today's rule: must stamp `productPullRequest=<product PR>` before origin-close / leftover-complete.",
+        "Also: allow activation→product restamp in `stampProductPullRequestOntoPlan` when the existing stamp is recorded as activation-only (marker), or when an explicit `--allow-restamp-from-activation` path is used by product PR admission — so #5380→#5381 hand-edit bypass is unnecessary.",
+        "Option B (clearer SoT) Add `activationPullRequest` (or `membershipPullRequest`) for Path B land.",
+        "Reserve `productPullRequest` for real delivery only.",
+        "Closing-keywords accepts activation bind on activation-shaped PRs; finalize-owed / deft-story delivery bind only read `productPullRequest`.",
+        "Non-goals (v1) - Teaching stamp-then-restamp as the happy path - Waiving closing-keywords for arbitrary active-brief PRs - Changing Greptile floor (5/5) or Tracking/Refs semantics - Auto-merging Path B stacks ## Acceptance - [ ] Path B activation PR with unset `productPullRequest` + `deft-story: N` + brief-land shape passes `pr:check-closing-keywords` - [ ] Product PR still fails closed without matching `productPullRequest=<product PR>` - [ ] After activation land, product PR can bind delivery without refuse-overwrite dead-end (restamp allowed under activation marker, or separate field) - [ ] finalize-owed does not treat activation PR as product delivery solely because closing-keywords was green - [ ] Unit tests cover activation admit, product refuse, leftover unchanged; fixture from #5380 / #5362 shapes - [ ] Docs pointer in scope-provenance or closing-keywords / Path B notes; CHANGELOG Unreleased ## Operator note #5373 Path B stack (#5380 activation / #5381 product) is held in through-merge cohort until this carve lands.",
+        "Do not floor-exception #5380 for this class while the issue is open unless operator overrides.",
+        "Path B activation PR with unset `productPullRequest` + `deft-story: N` + brief-land shape passes `pr:check-closing-keywords`",
+        "Product PR still fails closed without matching `productPullRequest=<product PR>`",
+        "After activation land, product PR can bind delivery without refuse-overwrite dead-end (restamp allowed under activation marker, or separate field)",
+        "finalize-owed does not treat activation PR as product delivery solely because closing-keywords was green",
+        "Unit tests cover activation admit, product refuse, leftover unchanged; fixture from #5380 / #5362 shapes",
+        "Docs pointer in scope-provenance or closing-keywords / Path B notes; CHANGELOG Unreleased"
+      ],
+      "admitted_source_sentences": [
+        "Summary Path B activation PRs that land a nonterminal `xbrief/active/` brief hit a hard catch-22 between `verify:closing-keywords` / full-story mark admission (#4864 / #4919) and finalize / delivery bind via `metadata.productPullRequest`.",
+        "Closing-keywords requires `metadata.productPullRequest === this PR` whenever the PR touches a nonterminal brief (body `deft-story: N` alone is not enough).",
+        "Path B doctrine wants that field unset on the activation (membership) land so the stacked product PR can bind delivery later.",
+        "`stampProductPullRequestOntoPlan` refuses overwrite of a different positive stamp (`running-briefs.ts`), so \"stamp activation PR, restamp product PR after merge\" fails at the helper.",
+        "Greptile correctly flags activation stamped as delivery (seen on #5380 conf 4/5 P1).",
+        "Agents are forced into stamp-then-floor / leave-unset-then-floor theater (#5314 stamped activation; #5362 left unset and floor-merged; #5380 stamped per operator and Approach1 halted on the Greptile P1).",
+        "Evidence trail | Case | What happened | |---|---| | #5314 (#1164 Path B activate) | Stamped `productPullRequest=5314` to clear closing-keywords | | #5362 (#5353 Path B keep-active) | Stamp activate → Greptile P1; stamp product # → admission fail; leave unset → closing-keywords red; floor-merged unset; product #5357 stamped cleanly later (`7915d7491`) because field was blank | | #5380 / #5381 (#5373 Path B) | Same catch-22; operator chose stamp `5380`; closing-keywords green; Greptile P1 \"Activation PR misidentified as delivery\"; Approach1 halted-explicit; restamp to #5381 blocked by refuse-overwrite | Failing check text (exemplar #5380): `FAIL: changed brief ...",
+        "lacks metadata.productPullRequest=5380` Helper contract (`stampProductPullRequestOntoPlan`): - same PR → no-op success - different positive stamp → `false` (refuse) ## Prefer-A direction (Bound target for design-critique) Split membership land from delivery bind so Path B activation is first-class.",
+        "Option A (small carve — preferred for v1) In `evaluateFullStoryMarkAdmission` / `bindChangedBriefPath` (`packages/core/src/pr-closing-keywords/main.ts`), admit a Path B activation shape when all hold: 1.",
+        "Diff is brief-land shaped (nonterminal brief ± CHANGELOG; no product implementation paths under `packages/` / skill/content product surfaces as defined by leftover vs product shape helpers already used nearby).",
+        "Body has `deft-story: N`.",
+        "`productPullRequest` is unset, OR equals this PR and an explicit activation marker is present (e.g.",
+        "`plan.metadata.pathB = \"activation\"` / `deliveryKind: membership-land`).",
+        "Product / leftover PRs keep today's rule: must stamp `productPullRequest=<product PR>` before origin-close / leftover-complete.",
+        "Also: allow activation→product restamp in `stampProductPullRequestOntoPlan` when the existing stamp is recorded as activation-only (marker), or when an explicit `--allow-restamp-from-activation` path is used by product PR admission — so #5380→#5381 hand-edit bypass is unnecessary.",
+        "Option B (clearer SoT) Add `activationPullRequest` (or `membershipPullRequest`) for Path B land.",
+        "Reserve `productPullRequest` for real delivery only.",
+        "Closing-keywords accepts activation bind on activation-shaped PRs; finalize-owed / deft-story delivery bind only read `productPullRequest`.",
+        "Non-goals (v1) - Teaching stamp-then-restamp as the happy path - Waiving closing-keywords for arbitrary active-brief PRs - Changing Greptile floor (5/5) or Tracking/Refs semantics - Auto-merging Path B stacks ## Acceptance - [ ] Path B activation PR with unset `productPullRequest` + `deft-story: N` + brief-land shape passes `pr:check-closing-keywords` - [ ] Product PR still fails closed without matching `productPullRequest=<product PR>` - [ ] After activation land, product PR can bind delivery without refuse-overwrite dead-end (restamp allowed under activation marker, or separate field) - [ ] finalize-owed does not treat activation PR as product delivery solely because closing-keywords was green - [ ] Unit tests cover activation admit, product refuse, leftover unchanged; fixture from #5380 / #5362 shapes - [ ] Docs pointer in scope-provenance or closing-keywords / Path B notes; CHANGELOG Unreleased ## Operator note #5373 Path B stack (#5380 activation / #5381 product) is held in through-merge cohort until this carve lands.",
+        "Do not floor-exception #5380 for this class while the issue is open unless operator overrides."
+      ],
+      "admitted_source_digest": "311c248ff137fb92701fa40b2546b88b39e54f43b99087327d4a39c4c3912909",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add early return adjacent to isLeftoverShapedDiff short-circuit that admits when isBriefLandShapedDiff + deft-story covers each changed nonterminal + productPullRequestFromPlan is null on every changed nonterminal; short-circuits both stamp gates.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+            "recorded_at": "2026-10-05T19:25:19.319Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        },
+        {
+          "id": 2,
+          "text": "Mint isBriefLandShapedDiff: allow xbrief|vbrief proposed|pending|active + exact root CHANGELOG.md; require at least one non-removed nonterminal brief; deny packages/**, product surfaces, .github/, Taskfile, scripts, docs, completed/, mixed diffs; keep skip-active refusal ahead.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+            "recorded_at": "2026-10-05T19:25:19.319Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        },
+        {
+          "id": 3,
+          "text": "Activation leaves productPullRequest unset. Optional metadata.activationPullRequest informational only. Product stamps virgin productPullRequest via null path. Leftover preserves original product delivery stamp.",
+          "artifact_path": "packages/core/src/orphan-active/running-briefs.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+            "recorded_at": "2026-10-05T19:25:19.319Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        },
+        {
+          "id": 4,
+          "text": "Do not teach --allow-restamp-from-activation. Legacy stamped activations (#5380): one-shot unstamp then product stamps null path.",
+          "artifact_path": "packages/core/src/orphan-active/running-briefs.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+            "recorded_at": "2026-10-05T19:25:19.319Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        },
+        {
+          "id": 5,
+          "text": "Keep deftStoryMarkBindsDelivery(activation)=false; finalize-owed not owed for unset+deft-story activation; briefHasMatchingProductPr(activation)=false.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.test.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+            "recorded_at": "2026-10-05T19:25:19.319Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        },
+        {
+          "id": 6,
+          "text": "Tests in pr-closing-keywords/main.test.ts; docs pointer; #1309 agents-entry mirror + agents:refresh; CHANGELOG Unreleased.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "95419cb32cbdd60675f417fe99a731ea32577151",
+            "recorded_at": "2026-10-05T19:25:19.319Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Path B activation lands that touch a nonterminal xbrief/active brief hit a hard catch-22: closing-keywords / full-story mark admission requires metadata.productPullRequest === this PR, while Path B doctrine needs that field unset (or activation-only) so the stacked product PR can bind delivery later — and stampProductPullRequestOntoPlan refuses overwrite of a different positive stamp.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5387\norigin-ref: origin/HEAD\ndispatch-sha: 7c775edf3b5ec858259c0f63ffaa65703140aa28\ndest-wo: leftover-complete\n\nspend: N≥3\nspend-ask: resolved\nspend-recommend: N≥3\nspend-why: Prefer-A drafted from issue Option A (small carve: admit Path B activation shape in evaluateFullStoryMarkAdmission / bindChangedBriefPath; allow activation→product restamp under marker). Blast is pr-closing-keywords admission + stampProductPullRequestOntoPlan + finalize/delivery bind; holds #5373 Path B stack (#5380 activate / #5381 product). Open solution space: Option A carve vs Option B separate activationPullRequest field. Bare arc 5387 had no n= token so resolve from recommend per contract #4705. Panel permission earned by high blast + open A/B fork.\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nDual-stop cap: panel seats + reserved pain-audit; raise after reserved spent\n\npain: P1, P2, P3\n\n- P1. Closing-keywords catch: bindChangedBriefPath / evaluateFullStoryMarkAdmission require productPullRequest === this PR whenever the PR touches a nonterminal brief (body deft-story: N alone is not enough), so Path B activation cannot leave the field unset and still pass pr:check-closing-keywords.\n- P2. Refuse-overwrite dead-end: stampProductPullRequestOntoPlan returns false on a different positive stamp, so \"stamp activation PR, restamp product PR after merge\" fails at the helper (#5380→#5381 hand-edit bypass).\n- P3. Stamp-or-floor theater: agents are forced into stamp-then-floor / leave-unset-then-floor (#5314 stamped; #5362 left unset and floor-merged; #5380 stamped per operator then Greptile P1 \"Activation PR misidentified as delivery\" + Approach1 halted-explicit). Finalize-owed must not treat activation as product delivery solely because closing-keywords was green.\n\nverification-path: pin-read git show 7c775edf3b5ec858259c0f63ffaa65703140aa28:; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:06c48c809a9d4a4cf2661f95d753f245e3d286700a11bae3558f64cf37c901f9\ntarget: #5387\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #4864 #4919 #5192 #4774 #5362 #5353 #5357 #5314 #1164 #5380 #5381 #5373\n\n## Prefer-A draft (charter target; not yet Bound)\n\nSplit membership land from delivery bind so Path B activation is first-class. Prefer Option A (small carve) for v1.\n\n1. **Activation admit (P1).** In `evaluateFullStoryMarkAdmission` / `bindChangedBriefPath` (`packages/core/src/pr-closing-keywords/main.ts`), admit a Path B **activation shape** when all hold:\n   - Diff is brief-land shaped (nonterminal brief ± CHANGELOG; no product implementation paths under `packages/` / skill/content product surfaces as defined by leftover vs product shape helpers already used nearby).\n   - Body has `deft-story: N`.\n   - `productPullRequest` is **unset**, OR equals this PR **and** an explicit activation marker is present (e.g. `plan.metadata.pathB = \"activation\"` / `deliveryKind: membership-land`).\n2. **Product / leftover keep today's rule (P1 / P3).** Product and leftover PRs still must stamp `productPullRequest=<product PR>` before origin-close / leftover-complete. ⊗ Waive closing-keywords for arbitrary active-brief PRs.\n3. **Activation→product restamp (P2).** Allow restamp in `stampProductPullRequestOntoPlan` (`packages/core/src/orphan-active/running-briefs.ts`) when the existing stamp is recorded as activation-only (marker), or via an explicit `--allow-restamp-from-activation` path used by product PR admission — so #5380→#5381 hand-edit bypass is unnecessary. Same-PR remains no-op success; different positive non-activation stamp still refuses.\n4. **Finalize honesty (P3).** finalize-owed / deft-story delivery bind must not treat the activation PR as product delivery solely because closing-keywords was green. Delivery bind continues to read real `productPullRequest` (post-restamp or product-stamped).\n5. **Tests + docs.** Unit tests cover activation admit, product refuse, leftover unchanged; fixtures from #5380 / #5362 shapes. Docs pointer in scope-provenance or closing-keywords / Path B notes; CHANGELOG Unreleased.\n\n### Reject\n\n- Option B for v1 (new `activationPullRequest` / `membershipPullRequest` field) — clearer SoT, larger schema blast; may leftover after Option A lands if marker semantics prove brittle.\n- Teaching stamp-then-restamp as the happy path without an activation marker / restamp allow.\n- Waiving closing-keywords for arbitrary active-brief PRs.\n- Changing Greptile floor (5/5) or Tracking/Refs semantics.\n- Auto-merging Path B stacks.\n- Floor-exception #5380 for this class while #5387 is open (operator override only).\n\n### Non-goals (v1)\n\n- Teaching stamp-then-restamp as the happy path\n- Waiving closing-keywords for arbitrary active-brief PRs\n- Changing Greptile floor (5/5) or Tracking/Refs semantics\n- Auto-merging Path B stacks\n\n## Gate stamp\n\nFresh no-ingest yolo Stop 1 on #5387. Bare operator cue `arc 5387` carried no n= token; parent recorded spend-recommend: N≥3 and resolved spend (spend-ask: resolved) per skill/contract #4705 / #5372. Prefer-A drafted from issue Option A. Charter is open critique of that Prefer-A. Ingest remains a later separate verb. #5373 Path B stack (#5380 / #5381) stays held until Prefer-A Bound lands.\r\n\n",
+          "id": 6000298626,
+          "html_url": "https://github.com/deftai/directive/issues/5387#issuecomment-6000298626",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T18:09:40Z",
+          "updated_at": "2026-10-05T18:09:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6000310728\nfamilies: grok, claude, codex\nseat: grok launcher: grok (CLI last-resort; native spawn_subagent often denied without process_only / active xBRIEF on this host)\nseat: claude launcher: claude\nseat: codex launcher: codex\nlaunch-probe: grok=pong@0; claude=pong@0; codex=pong@0\ndispatch-sha: 7c775edf3b5ec858259c0f63ffaa65703140aa28\nverification-path: pin-read git show 7c775edf3b5ec858259c0f63ffaa65703140aa28:; dest cwd-without-occupy\nStop-1: 6000298626\nTarget-digest: sha256:06c48c809a9d4a4cf2661f95d753f245e3d286700a11bae3558f64cf37c901f9\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5387\n\nRound-1 critics share this ceiling and may read only Stop 1 + this deposit. Sibling critic posts are out of envelope for other siblings. Consent for N≥3 panel after spend-ask: resolved from spend-recommend.\r\n\n",
+          "id": 6000310728,
+          "html_url": "https://github.com/deftai/directive/issues/5387#issuecomment-6000310728",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T18:10:26Z",
+          "updated_at": "2026-10-05T18:10:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nPrefer-A is viable, but is not Bound-ready as written. The unstamped activation path can remove P1; the stamped compatibility path needs a precise state transition and delivery-reader semantics before it safely removes P2/P3.\n\nMethod: pin-read at `7c775edf3b5ec858259c0f63ffaa65703140aa28`, issue body, Stop 1 (6000298626), and panel deposit (6000310728). No sibling posts or later thread comments read. Source and existing tests inspected; tests were not executed. Historical #5380/#5362 outcomes are supplied evidence, not independently fetched reproductions.\n\n### F1 — blocks-the-design: activation must satisfy both admission passes\n\nEvidence: `pr-closing-keywords/main.ts` first binds every changed nonterminal path through `bindChangedBriefPath`, then independently calls `briefHasMatchingProductPr` for every `deft-story` mark. The latter still demands this PR's product stamp and returns on the first matching issue brief. Relaxing only the changed-path binder leaves the unstamped activation red; globally relaxing the issue lookup lets unrelated briefs supply authority.\n\nAmend limb 1: calculate one activation classification from the entire PR diff, and bind each changed activation brief to its same-repo story mark. The mark-validation pass must accept only that exact validated activation set (or an independently valid product binding), never an arbitrary unstamped sibling. Preserve per-path validation and refuse uncovered extra marks. Use explicit absence semantics: `productPullRequestFromPlan` returns null for malformed values as well as absence, so `reader === null` alone must not mean “unset.”\n\nP1 is relieved only after both passes accept the same activation witness.\n\n### F2 — blocks-the-design: “brief-land shaped” needs a closed definition\n\nEvidence: the nearby helper is a leftover predicate, not a positive activation/product classifier. `isLeftoverShapedDiff` accepts only xbrief/vbrief paths and checks removed active plus added completed; `changedNonterminalBriefPaths` includes proposed, pending, and active. `PrDiffPath`/`fetchPrFiles` retain destination filename and status, not `previous_filename`.\n\nFailure: a broad “nonterminal brief +/- CHANGELOG; no packages” carve admits proposed-only edits or arbitrary active-plan rewrites, and a renamed destination alone cannot prove its source was a membership transition. Product documentation or other paths outside packages must not accidentally qualify. This contradicts the rejection of arbitrary active-brief waivers.\n\nAmend limb 1 with a positive allowlist: at least one active/running scope brief; only admitted activation brief paths, paired proposed/pending removals if supported, and the exact changelog path. Reject terminal/cancelled additions and all other paths. Explicitly decide whether modified already-active briefs qualify (needed for the described keep-active shape); if so require an explicit activation declaration and retain per-brief identity binding. Retain rename source information or normalize renames into checked old/new paths. Keep skip-active refusal ahead of any new exception. A marker is a declaration, never permission to ignore the diff.\n\n### F3 — blocks-the-design: marked activation still looks like delivery today\n\nEvidence: `running-briefs.ts:productPullRequestFromPlan` reads only the positive numeric stamp. `swarm/finalize-cohort.ts` uses it in both `collectProductPullRequestOrigins` and `deftStoryMarkBindsDelivery`; `swarm/finalize-owed.ts` uses it for nonterminal and completed briefs. None of those reads inspect an activation marker. The unmarked fallback `deriveUnmarkedFinalizeAdmit` in `orphan-active/evaluate.ts` currently always returns null.\n\nFailure: `productPullRequest=5380` plus a new activation marker still supplies delivery identity to existing readers before restamping. Saying they read the “real” product field does not change this. Green closing-keywords is not their actual predicate; the numeric stamp is.\n\nAmend limb 4: define a single effective delivery reader that returns no delivery identity for activation-marked state, and route every delivery consumer above through it. Keep a separate raw stamp read for conflict detection/migration. Preserve the fail-closed unmarked fallback; do not infer delivery from a merged activation reference. Test the interval after activation merge and before product stamping, not only the final post-restamp state. P3 remains unrelieved without this change.\n\n### F4 — blocks-the-design: constrain and consume restamp authority\n\nEvidence: `stampProductPullRequestOntoPlan` has only plan and PR-number inputs, permits same-number reuse, and refuses a different positive number. Its current test locks that refusal. The helper has no evidence that an old stamp was activation, or that its caller represents a product transition. The file wrapper in `finalize-cohort.ts` also returns early on a same-number match.\n\nFailure: a bare `--allow-restamp-from-activation` boolean becomes an arbitrary overwrite switch. A retained activation marker permits repeated replacement of subsequent product stamps, or suppresses genuine delivery if limb 4 becomes marker-aware. An unmarked historical activation such as the supplied #5380 case remains blocked unless migration is defined.\n\nAmend limb 3: choose one exact marker schema, location, and lifetime. Permit replacement only when the stored activation state is verified, with an expected old PR number; atomically write the new product number and consume the activation marker. Afterward a different positive product number still refuses. Preserve same-number product idempotence, but explicitly reject or separately authorize same-number activation-to-product promotion; do not let current early returns decide it. Provide a narrowly validated legacy-recovery path that proves the old PR was activation-shaped and matches the expected old stamp, rather than treating the flag itself as proof. If that recovery is deferred, report P2 as unresolved for unmarked legacy stamps.\n\nThis is also the authority/shared-state concern: PR-authored marker text and stale stacked branches must not confer unrestricted overwrite authority. Revalidate expected prior state at the transition; conflicts must refuse rather than silently replace another product binding.\n\n### F5 — sharpens-framing: preserve actual leftover behavior and test the lifecycle\n\nEvidence: `evaluateFullStoryMarkAdmission` immediately admits leftover-shaped diffs; its existing test admits an active-to-completed diff with only `Tracking #1`. Thus limb 2's wording is inaccurate if it means leftover must stamp this leftover PR. The stamp helper explicitly says completed briefs preserve the product PR.\n\nSupport limb 2 with corrected wording: product admission requires the matching product PR; leftover admission retains today's exception and preserves the original product delivery stamp, never substitutes the leftover PR number. Otherwise the fix recreates the overwrite dead-end on completion.\n\nSupport/amend limb 5: add tests for both admission passes; marked and absent-stamp activation; malformed stamps; foreign/uncovered marks; multiple briefs; rename and keep-active cases; product paths including content/docs; skip-active refusal; legacy recovery and conflict; consumed-marker second-restamp refusal; and finalize/cohort behavior before and after product bind. Preserve existing leftover tests and add a completion case retaining the product number. Docs must specify the state transition, supported command, and recovery, plus CHANGELOG.\n\n### F6 — sharpens-framing: make Option B's rejection conditional\n\nSupport the rejection of stamp-then-restamp as the happy path, arbitrary closing-keyword waivers, Greptile floor changes, Tracking/Refs changes, auto-merge, and a #5380 floor exception while this issue is open.\n\nThe strongest case for Option B is that reserving `productPullRequest` for delivery avoids teaching every delivery reader that a positive product stamp sometimes means activation. Option A's marker already adds schema/state semantics; smaller blast has not been established merely by avoiding a second PR-number field. Prefer A for v1 only if the bounded marker transition and common delivery-reader amendments above stay smaller. If they require scattered exclusions or an unverified recovery override, reopen B. This does not require adopting B now; it rejects “larger schema blast” as a sufficient permanent exclusion.\n\nDisposition: support the membership/delivery split; amend limbs 1, 3, and 4 before binding; support limb 2 with the leftover correction; expand limb 5 to lifecycle tests. P1/P2/P3 are plausible relief targets, not yet established relief under the current draft.",
+          "id": 6000357164,
+          "html_url": "https://github.com/deftai/directive/issues/5387#issuecomment-6000357164",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T18:13:18Z",
+          "updated_at": "2026-10-05T18:13:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\n## Verdict (open critique of Prefer-A, round 1)\n\nPrefer-A's direction is sound: split membership land from delivery bind, keep product/leftover on today's stamp rule, reject Option B / keyword-waiver / Greptile-floor / auto-merge for v1. **Do not Bound as written.** Limb 1 under-names the second admission gate and invents a brief-land shape that does not exist at the pin. Limb 4 is too soft for P3. With the Bound-ready amendments below, Prefer-A can relieve P1–P3 without taking Option B.\n\nPin: `7c775edf3b5ec858259c0f63ffaa65703140aa28`. Inputs: issue body, Stop 1 `6000298626`, panel-deposit `6000310728`. Ceiling honored.\n\n---\n\n## Per-limb disposition\n\n### 1. Activation admit — **amend** (cannot Bound as written)\n\n**Support** the intent: admit Path B activation when brief-land shaped + `deft-story: N` + (`productPullRequest` unset OR this-PR + activation marker).\n\n**blocks-the-design — second gate omitted.** Evidence: pin `packages/core/src/pr-closing-keywords/main.ts` `evaluateFullStoryMarkAdmission` runs two independent binds after marks parse — `bindChangedBriefPath` (changed nonterminal paths) **and** `briefHasMatchingProductPr` (per `deft-story` mark). Both require `productPullRequestFromPlan(...) === prNumber`. Prefer-A names only `evaluateFullStoryMarkAdmission` / `bindChangedBriefPath`. An unset carve that touches only the first gate still fails the mark-loop with `lacks metadata.productPullRequest=<PR>`. Failure mode: Bound lands, #5380-class unset activation stays red on `pr:check-closing-keywords`. Disposition consequence: Prefer-A limb 1 MUST name both gates (or one shared helper both call) before bind.\n\n**blocks-the-design — brief-land shape is undefined at pin.** Evidence: nearby helpers are `isLeftoverShapedDiff` (active removed + completed added, xbrief|vbrief only) and `isSkipActiveDeliveryShape`. Grep at pin finds no `isBriefLand*` / `membership-land` / `deliveryKind` / `pathB` activation reader. Prefer-A's \"leftover vs product shape helpers already used nearby\" overclaims. Failure mode: implementer freestyles allowlist (CHANGELOG? `content/`? docs?) and either waives too much (P1 \"arbitrary active-brief\" reject) or refuses real activation. Disposition consequence: Bound MUST mint a closed `isBriefLandShapedDiff` (or equivalent) with an explicit path allow/deny list before code.\n\n**sharpens-framing — marker dual-hedge.** Prefer-A offers `plan.metadata.pathB = \"activation\"` **or** `deliveryKind: membership-land`. Bound needs one closed token, one reader, and named writer call sites (activation mint vs recovery on already-stamped #5380).\n\n### 2. Product / leftover keep today's rule — **support**\n\nPin confirms leftover short-circuits admission; product nonterminal path still demands matching stamp. Aligns with Reject \"waive closing-keywords for arbitrary active-brief PRs.\" Keep.\n\n### 3. Activation→product restamp — **amend**\n\n**Support** restamp under activation marker; keep refuse for different positive non-activation stamp; same-PR no-op.\n\n**sharpens-framing — call-site ownership.** Pin `stampProductPullRequestOntoPlan` is a pure library helper (boolean; no CLI flags). `--allow-restamp-from-activation` has no existing argv surface. Bound must name which verb/admission path may pass the allow (product PR full-story admission / stamp caller), and whether marker-alone is sufficient without the flag (Prefer-A says \"marker, **or** flag\" — pick primary).\n\n**Pain honesty (P2):** refuse-overwrite only bites when activation already stamped a different PR. Unset→product stamp already succeeds today (`existing === null`). Limb 3 is recovery for #5380-class stamped activations + any future stamped+marker path; the unset happy path does not need restamp.\n\n### 4. Finalize honesty — **amend** (P3 under-teethed)\n\n**Support** the claim that delivery bind must keep reading real `productPullRequest`.\n\n**sharpens-framing — \"already reads\" is not a carve.** Pin `finalize-owed.ts` inventories via `productPullRequestFromPlan`. Unset → unmarked path (`deriveUnmarkedFinalizeAdmit` / `bindUnmarkedFinalizePair`). Stamped activation PR number → finalize treats that number as `productPr` and can owe leftover against the activation PR. Prefer-A limb 4 currently restates existing read behavior; it does not add a deterministic refuse when the stamp is activation-marked. Failure mode: closing-keywords green on stamped+marker activation → finalize still treats activation as delivery (P3 residual). Disposition consequence: Bound MUST specify finalize / delivery-bind refuse or ignore when stamp carries the activation marker (delivery bind only after restamp to product PR or product-only stamp).\n\n### 5. Tests + docs — **support**, with shape fixtures\n\nSupport #5380 / #5362 fixtures. Amend test matrix to include: (a) unset + brief-land + deft-story → admit; (b) unset + packages/ product path → refuse; (c) stamped+marker activation → admit + finalize does not owe as product; (d) restamp activation→product succeeds; (e) different non-activation stamp still refuses; (f) leftover unchanged.\n\n---\n\n## Pain coverage honesty\n\n| Pain | Prefer-A coverage | Honest gap |\n|---|---|---|\n| P1 closing-keywords catch | Limb 1 direction correct | Incomplete until `briefHasMatchingProductPr` + closed brief-land predicate are in the Bound text |\n| P2 refuse-overwrite | Limb 3 | Real only for already-stamped activation; unset happy path already stamps |\n| P3 stamp-or-floor theater | Unset happy path is the main relief; limb 2 keeps product strict | Limb 4 needs an activation-marker refuse at finalize/delivery bind; Greptile floor correctly stays out of scope (Reject) |\n\nUnset-as-happy-path is the right P3 strategy: agents stop stamping activation as `productPullRequest`, Greptile \"Activation PR misidentified as delivery\" stops firing for that class, floor theater ends. Stamped+marker is recovery, not the taught happy path (aligns with Reject / Non-goals).\n\n---\n\n## Bound-ready amendments (concrete)\n\n1. **Admit helper:** one function used by both `bindChangedBriefPath` and `briefHasMatchingProductPr` (or explicit dual carve) that returns ok when `isBriefLandShapedDiff(files)` ∧ deft-story covers the issue ∧ (`productPullRequest` unset ∨ (equals this PR ∧ `isActivationMarker(plan)`)).\n2. **Closed shape:** define `isBriefLandShapedDiff` — allow `xbrief|vbrief` nonterminal brief add/modify + optional `CHANGELOG*`; deny `packages/**`, leftover active→completed, skip-active, and mixed product surfaces. Do not cite leftover helpers as if they already encode this.\n3. **Closed marker:** one metadata token (recommend `metadata.deliveryKind = \"membership-land\"` **or** `metadata.pathB = \"activation\"` — pick one); export `isActivationMarker` / `productPullRequestFromPlan` stays digits-only delivery bind.\n4. **Restamp API:** `stampProductPullRequestOntoPlan(plan, pr, { allowRestampFromActivation?: boolean })` (or sibling) succeeds when existing stamp differs **and** `isActivationMarker(plan)`; clear or rewrite marker on successful product restamp so finalize sees delivery-only stamp.\n5. **Finalize refuse:** inventory that sees activation-marker + stamp MUST NOT treat that stamp as product delivery; remediation = restamp to product PR (or leave unmarked until product stamps).\n6. **Acceptance add:** \"activation-marked stamp is not finalize delivery bind\" alongside existing unset-admit / product-refuse checks.\n\n---\n\n## Reject list\n\n**Support** Stop 1 Reject as written:\n\n- Option B for v1 (schema blast; Prefer-A leftover if marker brittle)\n- Teaching stamp-then-restamp without marker\n- Waiving closing-keywords for arbitrary active-brief PRs\n- Greptile floor / Tracking/Refs change\n- Auto-merge Path B stacks\n- Floor-exception #5380 while #5387 open\n\n---\n\n## Injection / swarm lens\n\nTarget mutates shared delivery-bind authority (`plan.metadata.productPullRequest`) across stacked PRs (#5380 activation / #5381 product) on one brief. Concurrent writers without a closed marker+restamp rule recreate P2 or false finalize owe. Prefer-A's keep-refuse for non-activation different stamps is the right concurrency fence; Bound must make marker presence machine-checked at both admit and restamp, not a docs convention.\n\n---\n\n## Road-not-taken / steelman\n\n**Road-not-taken:** Option B (`activationPullRequest` / `membershipPullRequest`) — disjoint fields, closing-keywords and finalize never overload one integer. **Steelman:** Option B removes marker brittleness Prefer-A already forecasts (\"may leftover after Option A lands if marker semantics prove brittle\"). **Flip to Option B if** Bound amendments (1)–(5) cannot name one closed marker + brief-land predicate without growing a de-facto second field protocol. Until then Prefer-A + amendments is the smaller blast for the held #5373 stack.\n\n---\n\n## Census\n\n- `blocks-the-design`: (1) omit `briefHasMatchingProductPr`; (2) undefined brief-land shape / false \"helpers already nearby\" cite\n- `sharpens-framing`: marker dual-hedge; restamp call-site; finalize honesty teeth; P2 scope honesty\n- `footnote`: none material (panel-deposit shape matches envelope)\n\n**EXIT** after this post. Process-only. No sibling reads. No product edits.\r\n\n",
+          "id": 6000374672,
+          "html_url": "https://github.com/deftai/directive/issues/5387#issuecomment-6000374672",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T18:14:24Z",
+          "updated_at": "2026-10-05T18:14:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nOpen critique of the Prefer-A draft on Stop 1 (6000298626). Pin-read at `7c775edf3b5ec858259c0f63ffaa65703140aa28`; no sibling critic posts read.\n\n## Headline\n\nPrefer-A is right about the diagnosis and wrong about the cheapest cut. Two load-bearing claims do not survive pin-read:\n\n1. **The carve is aimed at the wrong function.** `bindChangedBriefPath` is not the only stamp gate in `evaluateFullStoryMarkAdmission`. Admitting there leaves the PR red.\n2. **\"Option B = larger schema blast\" is false at the pin.** `plan.metadata` is schema-unconstrained, so a second field costs exactly what the Option A marker costs: nothing.\n\nOnce (2) holds, the Option A/B fork mostly collapses, and limbs 2-4 get much smaller.\n\n## Per-limb\n\n### Limb 1 - activation admit: **AMEND (two defects)**\n\n**1a. Carve point is wrong - this limb as written still fails closed.**\n\n`evaluateFullStoryMarkAdmission` (`packages/core/src/pr-closing-keywords/main.ts:281`) runs **two** independent stamp gates once `deft-story` marks are present:\n\n- per changed path: `bindChangedBriefPath` (main.ts:219), which fails on `stamped !== args.prNumber` (main.ts:253);\n- per mark: `briefHasMatchingProductPr` (main.ts:150), called in the loop at **main.ts:327-332**, which scans all eight lifecycle folders and fails with `no TIP_NONTERMINAL/completed brief for #N with productPullRequest=<pr>`.\n\nThe limb names only the first. Because the activation shape requires `deft-story: N`, `marks.length > 0` is always true on this path, so the second loop always runs. A carve inside `bindChangedBriefPath` yields an activation PR that is still red - with a *different* failure string than the one quoted in the issue body, which is `bindChangedBriefPath`'s message.\n\n**Bound-ready fix:** put the activation carve as an **early return at the top of `evaluateFullStoryMarkAdmission`, adjacent to the `isLeftoverShapedDiff` return at main.ts:289-291**, not inside either per-path/per-mark helper. One shape predicate, one early return, both gates short-circuited. This is also the only form that stays honest when the two helpers drift.\n\n**1b. The shape predicate must be an allowlist, not a denylist.**\n\nStop 1 words the shape as \"no product implementation paths under `packages/` / skill/content product surfaces\". That polarity leaks: `.github/workflows/`, `Taskfile.yml`, `scripts/`, `content/contracts/`, `docs/` all pass a `packages/`-shaped denylist and are all real product surfaces. The sibling helper it should copy, `isLeftoverShapedDiff` (main.ts:37-45), is an **allowlist** - it returns `false` on the first path outside `xbrief/|vbrief/`.\n\n**Bound-ready fix - state the predicate exactly:**\n\n- every changed path matches `^(xbrief|vbrief)/(proposed|pending|active)/`, **or** is exactly `CHANGELOG.md` (root only - not `**/CHANGELOG.md`);\n- at least one changed path is a non-removed nonterminal brief;\n- no path under `*/completed/` (that is the leftover lane, already admitted at main.ts:289);\n- body has `deft-story: N`;\n- `productPullRequestFromPlan` is `null` on every changed nonterminal brief.\n\nNote the deliberate divergence from `isLeftoverShapedDiff`, which does **not** tolerate `CHANGELOG.md`. Fine, but it has to be written down or the next reader will \"fix\" the inconsistency.\n\n**1c. Say which nonterminal folders.** Stop 1 says \"nonterminal brief\" but the two live cases differ: #5380 is `proposed -> active`, #5362 is a keep-active edit. `changedNonterminalBriefPaths` (main.ts:203) already covers `proposed|pending|active`. Recommend the carve cover all three - none of them is delivery - and say so, rather than leaving the implementer to infer it from the exemplars.\n\n### Limb 1, clause (c) second half - self-stamp + activation marker: **REJECT**\n\nThis is the limb I would cut. \"`productPullRequest` equals this PR **and** an activation marker is present\" deliberately writes a **non-delivery PR number into the delivery field** and then asks every downstream reader to disbelieve it. That is the Greptile P1 on #5380 re-expressed as policy, not fixed.\n\nConcretely, under the marker branch these all read the activation PR as delivery unless each is taught the marker:\n\n| Site | Effect if marker-unaware |\n|---|---|\n| `finalize-owed.ts:629` `productPullRequestFromPlan(plan)` | brief is \"marked\" -> `productPr = <activation PR>` -> classified owed/delivery |\n| `finalize-cohort.ts:477` `deftStoryMarkBindsDelivery` | returns **true** for the activation PR -> origin-close of the story issue on the activation merge |\n| `finalize-cohort.ts:454` cohort byIssue map | activation PR mapped as the issue's product PR |\n| `main.ts:150` `briefHasMatchingProductPr` | activation PR satisfies the mark gate |\n\nUnder the plain **unset** branch, every one of those is already correct with **zero changes**: `productPullRequestFromPlan` returns `null`; `deriveUnmarkedFinalizeAdmit` (`orphan-active/evaluate.ts:313`) always returns `null` by design (#3791 P3 / #5122), so the unmarked brief is omitted/unverified rather than owed; `deftStoryMarkBindsDelivery` returns `false`, so no origin-close. The unset branch is not a weaker version of the marker branch - it is the **only** branch that is honest by construction.\n\nIf a positive record of \"this PR activated the brief\" is wanted (and it is - see limb 4), record it as `metadata.activationPullRequest`, a field **no delivery reader consults**. Which brings us to:\n\n### The A/B fork - the stated reason to defer B does not hold\n\nStop 1 rejects Option B for v1 as \"clearer SoT, larger schema blast\". At the pin, `plan.metadata` is declared `{\"type\": \"object\"}` with **no `properties` and no `additionalProperties: false`** in `packages/types/schemas/xbrief-core-0.8.schema.json` (all three occurrences - lines 56-58, 198-200, 326-328). `plan.metadata.productPullRequest` is already a pure convention with no schema backing (`running-briefs.ts:148-170`).\n\nSo `metadata.activationPullRequest` is a zero-schema-change addition, **exactly as cheap as `metadata.pathB = \"activation\"`**. The two options differ only in *which key holds the activation PR number* - and in one option that key is the delivery field.\n\n**Recommended merge of A and B (Bound target):** take Option A's admission carve (small, one early return) and Option B's **field** (free), and drop the marker-in-the-delivery-field entirely:\n\n- activation land: `productPullRequest` **unset**, `activationPullRequest = <this PR>` (optional, informational);\n- admission: early-return carve on the allowlist shape above;\n- product land: stamps a virgin `productPullRequest` - the existing `null` path in `stampProductPullRequestOntoPlan` (`running-briefs.ts:179-182`), no overwrite, no new flag;\n- delivery readers: unchanged, and now correct rather than correct-by-patch.\n\nThis is **smaller** than the drafted Option A, not larger.\n\n### Limb 2 - product / leftover keep today's rule: **SUPPORT, unchanged**\n\nCorrect and load-bearing. The allowlist in 1b is what makes it hold: a mixed brief+product diff fails the shape and falls through to today's rule. Worth an explicit acceptance row because it is the main bypass worry.\n\n### Limb 3 - activation->product restamp + `--allow-restamp-from-activation`: **REJECT**\n\nThis limb exists only to clean up the mess made by 1c. Drop 1c and P2 dissolves - there is nothing to overwrite.\n\nIndependent objections, in case 1c survives:\n\n- `stampProductPullRequestOntoPlan(plan, prNumber)` (`running-briefs.ts:172`) takes no caller identity. It cannot distinguish \"product PR legitimately restamping\" from \"second activation clobbering the first\". The flag would have to be plumbed through `stampProductPullRequestOnBriefFile` (finalize-cohort.ts, ~line 511) and every future caller; the refuse-overwrite invariant degrades from \"mechanism\" to \"please pass the right flag\".\n- The draft never says the marker is **cleared** on restamp. If it is not, the brief ends up `productPullRequest: 5381` **plus** `pathB: \"activation\"` - a permanently restampable plan, and a stale marker that any marker-aware limb-4 reader will use to classify a real delivery as activation. P3 returns through the back door.\n- `--allow-restamp-from-activation` is a CLI surface for a hand-edit that should happen at most once.\n\n**For the concrete #5380 problem** (already stamped `5380`): the fix is a one-shot **unstamp** - delete `metadata.productPullRequest` on the activation branch - which lands in the already-safe unset state and leaves refuse-overwrite untouched. That is a branch commit, not a helper flag. #5381 then stamps cleanly via the existing `null` path, exactly as #5357 did on `7915d7491` - the issue's own evidence row shows the unset path already works.\n\n### Limb 4 - finalize honesty: **AMEND - currently a no-op assertion**\n\n\"Delivery bind continues to read real `productPullRequest`\" is a restatement of what the code already does, not a change. It only becomes a *requirement* under 1c, where it silently expands to \"teach all five readers the marker\" - unbudgeted, and the blast line on Stop 1 never names it.\n\n**Bound-ready fix:** turn limb 4 into named regression tests rather than prose. Under the unset-only design these pass today and must keep passing:\n\n- `deftStoryMarkBindsDelivery(root, N, <activation PR>)` -> `false` (finalize-cohort.ts:477; asserted through the call site at finalize-cohort.ts:1660).\n- finalize-owed inventory over a Path B activation brief (unset stamp, `deft-story: N` on the PR) -> not `owed` (finalize-owed.ts:629 -> `deriveUnmarkedFinalizeAdmit` null path).\n- `briefHasMatchingProductPr(root, N, <activation PR>, repo)` -> `false` (main.ts:150): the activation PR never satisfies the mark gate *positively*. It is admitted by shape, which is a different thing and should be visible in the test names.\n\nThat last distinction is the whole point of the carve and deserves an explicit assertion, not an implication.\n\n### Limb 5 - tests + docs: **SUPPORT, three additions**\n\n- New tests belong in the existing `describe(\"full-story mark admission shapes (#4919)\")` block at `packages/core/src/pr-closing-keywords/main.test.ts:650`, which already carries the leftover/skip-active fixture shapes.\n- Docs pointer: `content/docs/scope-provenance.md` exists and is the right home.\n- **Missing obligation:** a Path B activation rule is consumer-relevant, so AGENTS.md \"Template propagation discipline (#1309)\" applies - mirror into `content/templates/agents-entry.md` and run `task agents:refresh`. Stop 1's limb 5 and the issue's acceptance list both omit this; it will otherwise be caught late by the `agents_entry_contract` marker gate.\n\n## Pain coverage, honestly\n\n| Pain | Prefer-A as drafted | With amendments |\n|---|---|---|\n| P1 closing-keywords catch | **Not covered.** Carve named at `bindChangedBriefPath` leaves `briefHasMatchingProductPr` (main.ts:327-332) red. | Covered by the early-return carve at main.ts:289. |\n| P2 refuse-overwrite dead-end | Carved *around* via limb 3 - a new flag and a weakened invariant. | **Dissolved.** Unset activation -> product stamps the `null` path; `running-briefs.ts` unchanged. |\n| P3 stamp-or-floor theater | **Not covered by limb 4 as worded.** Under 1c the activation PR *is* the delivery stamp, and limb 4 asserts no mechanism against it. | Covered by construction; limb 4 becomes regression tests at two named sites. |\n\n## Latent defect found in passing (not blocking; worth a leftover)\n\n`briefHasMatchingProductPr` (main.ts:150-199) is **first-match-N**: it iterates the eight folders in fixed order and `return`s on the first brief whose refs include the issue - pass *or* fail - without scanning the rest. A multi-brief story (precisely the Path B stack case: a proposed sibling plus the active brief) gets its verdict from `readdirSync` order. #4919 explicitly fixed this class elsewhere - `briefPairingKey` in `running-briefs.ts:78` carries the comment *\"Multi-brief issues must not share twins via first-match N\"* - yet this reader still does it. The early-return carve means activation PRs stop depending on it, which is another argument for carving at main.ts:289; the underlying FP should be filed separately rather than folded into this arc.\n\n## Reject list\n\n**Agree, unchanged:** waiving closing-keywords for arbitrary active-brief PRs (the allowlist in 1b is what makes this real rather than aspirational); changing the Greptile floor or Tracking/Refs semantics; auto-merging Path B stacks; floor-exception #5380 while #5387 is open.\n\n**Agree with a correction:** \"teaching stamp-then-restamp as the happy path **without** an activation marker\" - drop the qualifier. Stamp-then-restamp should not be the happy path *with* a marker either; see limb 3.\n\n**Dispute:** \"Option B for v1 - larger schema blast.\" The blast is zero; `metadata` is unconstrained at the pin. Keep Option B's *field*, drop its framing as the expensive option. If the panel still wants a single-limb v1, the honest minimum is the admission carve alone with `productPullRequest` left unset and no new field at all - that clears P1/P2/P3 by itself, and `activationPullRequest` is then a provenance nice-to-have rather than a prerequisite.\n\n**Add to reject:** any design in which a non-delivery PR number is written to `metadata.productPullRequest`. That is the invariant worth binding, and it makes the reject list enforceable by a test rather than by review attention.\n\n## Bound-ready summary\n\n1. Early-return activation carve in `evaluateFullStoryMarkAdmission` at main.ts:289, allowlist shape per 1b, covering `proposed|pending|active`.\n2. Activation land leaves `productPullRequest` unset; optional `metadata.activationPullRequest` for provenance.\n3. `stampProductPullRequestOntoPlan` **unchanged** - no restamp flag, refuse-overwrite intact.\n4. Regression tests at `deftStoryMarkBindsDelivery` (finalize-cohort.ts:477), the finalize-owed unmarked path (finalize-owed.ts:629), and `briefHasMatchingProductPr` (main.ts:150).\n5. #5380 unblocked by a one-shot unstamp commit on its branch, not by a new CLI flag.\n6. Tests in the main.test.ts:650 block; docs in `content/docs/scope-provenance.md`; **#1309 agents-entry propagation**; CHANGELOG Unreleased.\n7. Leftover: `briefHasMatchingProductPr` first-match-N FP.\n\n",
+          "id": 6000424203,
+          "html_url": "https://github.com/deftai/directive/issues/5387#issuecomment-6000424203",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T18:17:28Z",
+          "updated_at": "2026-10-05T18:17:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nTarget-digest: sha256:06c48c809a9d4a4cf2661f95d753f245e3d286700a11bae3558f64cf37c901f9\nconflict_group: path-b-activation-delivery-bind\narc-mode: no-ingest\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nRound-1 inputs: Stop 1 6000298626; deposit 6000310728; critics codex 6000357164 / grok 6000374672 / claude 6000424203. Ceiling honored; sibling isolation observed.\n\n## Plain-language summary\n\nPath B activation PRs that only land a brief should not have to pretend they are the product delivery PR. Closing-keywords will admit a closed brief-land shape when `productPullRequest` stays unset; the stacked product PR stamps delivery later on the existing null path. Optional provenance may record `activationPullRequest`. Do not write the activation PR number into the delivery field.\n\n## Bound-remedy\n\n### 1. Early-return activation carve (P1)\n\nIn `evaluateFullStoryMarkAdmission` (`packages/core/src/pr-closing-keywords/main.ts`), add an early return adjacent to the existing `isLeftoverShapedDiff` short-circuit (~line 289), not a carve only inside `bindChangedBriefPath`.\n\nAdmit when all hold:\n- `isBriefLandShapedDiff(files)` (limb 2) is true\n- body has `deft-story: N` covering each changed nonterminal brief's same-repo issue\n- on every changed nonterminal brief, `productPullRequestFromPlan` is `null` (explicit absence; malformed values are not \"unset\")\n\nThis short-circuits both stamp gates (`bindChangedBriefPath` and `briefHasMatchingProductPr`). A carve on only the first gate leaves the mark-loop red (codex F1 / grok F1 / claude 1a).\n\n### 2. Closed brief-land allowlist (P1)\n\nMint `isBriefLandShapedDiff` (or equivalent). Do not cite leftover helpers as if they already encode this shape.\n\nAllowlist (positive; first foreign path fails):\n- every changed path matches `^(xbrief|vbrief)/(proposed|pending|active)/` **or** is exactly root `CHANGELOG.md` (not `**/CHANGELOG.md`)\n- at least one changed path is a non-removed nonterminal brief under `proposed|pending|active`\n- no path under `*/completed/` (leftover lane already admitted separately)\n- covers keep-active edits and proposed→active renames; retain rename source/dest for identity binding when status is rename\n\nDeny: `packages/**`, skill/content product surfaces, `.github/`, `Taskfile.yml`, `scripts/`, `docs/`, mixed product+brief diffs, skip-active shapes (keep `isSkipActiveDeliveryShape` refusal ahead of this carve).\n\n### 3. Unset is the taught happy path (P1 / P2 / P3)\n\nActivation land leaves `productPullRequest` **unset**. ⊗ Write a non-delivery PR number into `metadata.productPullRequest` (rejects Stop 1 limb 1c stamped+marker-in-delivery-field).\n\nOptional provenance: `metadata.activationPullRequest = <activation PR>` — informational only; no delivery reader consults it. At pin, `plan.metadata` is schema-unconstrained, so this field costs the same as a marker token (claude A∪B merge; codex F6 conditional).\n\nProduct land stamps a virgin `productPullRequest` via the existing null path in `stampProductPullRequestOntoPlan`. Leftover admission retains today's exception and preserves the original product delivery stamp (never substitutes the leftover PR number) — corrects Stop 1 limb 2 wording (codex F5 / grok limb 2).\n\n### 4. No restamp flag in Prefer-A Bound (P2 dissolved)\n\n`stampProductPullRequestOntoPlan` stays refuse-overwrite for different positive stamps. ⊗ `--allow-restamp-from-activation` as Bound happy path (claude limb 3 reject; dissolves P2).\n\nLegacy recovery for already-stamped activations (#5380 class): one-shot **unstamp** commit on the activation branch (delete `metadata.productPullRequest`), then product stamps the null path — same as #5357 evidence. Optional narrowly validated recovery helper may leftover if operators want a verb; it is not required to relieve P1–P3 under unset happy path.\n\n### 5. Finalize honesty as regression tests (P3)\n\nDelivery readers already treat unset correctly (`productPullRequestFromPlan` null → unmarked finalize path; `deftStoryMarkBindsDelivery` false). Bound does not invent marker-aware exclusions across finalize sites.\n\nNamed regressions that must keep passing:\n- `deftStoryMarkBindsDelivery(root, N, <activation PR>)` → false\n- finalize-owed inventory over Path B activation brief (unset stamp + `deft-story: N`) → not owed\n- `briefHasMatchingProductPr(root, N, <activation PR>, repo)` → false (activation admitted by shape carve, not by positive stamp match)\n\n### 6. Tests, docs, agents-entry (acceptance)\n\nLand tests in `packages/core/src/pr-closing-keywords/main.test.ts` full-story mark admission shapes block (~650):\n- unset + brief-land + deft-story → admit\n- unset + packages/ (or other deny path) → refuse\n- leftover unchanged; skip-active still refused\n- product nonterminal without matching stamp → refuse\n- finalize / `deftStoryMarkBindsDelivery` / mark-gate regressions from limb 5\n\nDocs pointer in `content/docs/scope-provenance.md` (or closing-keywords / Path B notes). **#1309** mirror into `content/templates/agents-entry.md` + `task agents:refresh` (claude limb 5). CHANGELOG Unreleased.\n\n### 7. Leftover (not Bound relief)\n\n`briefHasMatchingProductPr` first-match-N FP across multi-brief stories (claude latent; #4919 class). File separately; activation carve removes dependence for this path.\n\n## Reject\n\n- Writing activation PR into `metadata.productPullRequest` (stamped+marker-in-delivery-field)\n- Teaching stamp-then-restamp / `--allow-restamp-from-activation` as happy path\n- Waiving closing-keywords for arbitrary active-brief PRs (allowlist is what makes this real)\n- Changing Greptile floor (5/5) or Tracking/Refs semantics\n- Auto-merging Path B stacks\n- Floor-exception #5380 for this class while #5387 is open (operator override only)\n- Deferring Option B solely as \"larger schema blast\" — provenance field is in-Bound optional; reopen fuller Option B only if unset+carve proves insufficient after implement\n\n## Non-goals\n\n- Greptile floor / Tracking/Refs change\n- Auto-merge Path B\n- Weakening refuse-overwrite for non-activation different stamps\n- Fixing briefHasMatchingProductPr first-match-N inside this Bound\n\n## Acceptance map\n\n- [ ] Path B activation PR with unset `productPullRequest` + `deft-story: N` + brief-land allowlist passes `pr:check-closing-keywords`\n- [ ] Product PR still fails closed without matching `productPullRequest=<product PR>`\n- [ ] After activation land (unset), product PR binds delivery on null path without refuse-overwrite dead-end\n- [ ] finalize-owed / `deftStoryMarkBindsDelivery` do not treat activation PR as product delivery\n- [ ] Unit tests cover admit / product refuse / leftover unchanged / finalize regressions; fixtures from #5380 / #5362 shapes\n- [ ] Docs + agents-entry (#1309) + CHANGELOG Unreleased\n- [ ] #5380 unblocked via unstamp (or equivalent) then product stamp — not floor-exception for this class\r\n\n",
+          "id": 6000447670,
+          "html_url": "https://github.com/deftai/directive/issues/5387#issuecomment-6000447670",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T18:18:56Z",
+          "updated_at": "2026-10-05T18:18:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: sharpening\nharvest-changed: false\n\nPain-audit of Prefer-A Bound lean 6000447670 against Stop 1 pains P1–P3 (denominator 6000298626).\n\nPin: `7c775edf3b5ec858259c0f63ffaa65703140aa28`. Method: pin-read `git show <sha>:<path>`; dest cwd-without-occupy. Allowed inputs only (issue body; Stop 1; Prefer-A Bound; optional Round-1 corroboration 6000357164 / 6000374672 / 6000424203). Ceiling 6000447670 inclusive. Process-only.\n\n## Verdict\n\n**Bindable-as-posted.** Prefer-A Bound 6000447670 relieves P1, P2, and P3. No blocking findings. Non-harvest sharpenings below carry into PR acceptance (no Bound-limb rewrite; no Dual-stop raise).\n\n## Per-pain disposition\n\n### pain-P1 — support (relieves)\n\nStop 1 P1: `bindChangedBriefPath` / `evaluateFullStoryMarkAdmission` require `productPullRequest === this PR` on nonterminal brief touch, so Path B activation cannot leave the field unset and still pass `pr:check-closing-keywords`.\n\nBound limbs 1–2 relieve it. Pin-read of `packages/core/src/pr-closing-keywords/main.ts` confirms two independent stamp gates after marks parse: per-path `bindChangedBriefPath` and per-mark `briefHasMatchingProductPr`. An early return adjacent to the existing `isLeftoverShapedDiff` short-circuit (~line 289), gated on a mint `isBriefLandShapedDiff` allowlist + `deft-story: N` + unset stamp, short-circuits both. Round-1 F1 (carve only inside `bindChangedBriefPath` leaves the mark loop red) is absorbed. Closed positive allowlist (xbrief|vbrief proposed|pending|active, root `CHANGELOG.md` only; deny packages/skills/content/.github/Taskfile/scripts/docs/completed/mixed) is real at pin — leftover helpers do not encode this shape; Bound correctly mints rather than cites them. Skip-active refusal stays ahead of the carve.\n\n### pain-P2 — support (relieves)\n\nStop 1 P2: `stampProductPullRequestOntoPlan` refuses a different positive stamp, so stamp-activation-then-restamp-product fails.\n\nBound limbs 3–4 relieve by dissolution. Pin-read of `packages/core/src/orphan-active/running-briefs.ts` confirms same-PR no-op and different-positive refuse. Bound teaches unset as the happy path and rejects writing the activation PR into `metadata.productPullRequest` and rejects `--allow-restamp-from-activation`. Product land stamps the existing null path. Refuse-overwrite stays for non-activation different stamps. Legacy #5380-class recovery is one-shot unstamp then product stamp (same as #5357 evidence) — optional recovery helper may leftover; not required to relieve under unset. Round-1 restamp-authority / marker-lifetime blocks are moot under this Bound.\n\n### pain-P3 — support (relieves)\n\nStop 1 P3: stamp-or-floor theater; finalize-owed must not treat activation as product delivery solely because closing-keywords was green.\n\nBound limbs 3 + 5 relieve by construction plus named regressions. With unset happy path, activation never writes a delivery stamp, so Greptile \"Activation PR misidentified as delivery\" and Approach1 halt-on-stamp theater lose their trigger. Pin-read: `productPullRequestFromPlan` null → finalize-owed unmarked path; `deriveUnmarkedFinalizeAdmit` always returns null; `deftStoryMarkBindsDelivery` is false when stamp ≠ prNumber; `briefHasMatchingProductPr` does not positively match an activation PR. Bound correctly turns finalize honesty into regressions that must keep passing rather than inventing marker-aware exclusions across finalize sites. Product / leftover keep today's stamp rule; allowlist is what keeps that fail-closed.\n\n## Non-harvest sharpenings (PR acceptance residue)\n\nS1. **Unset ≠ `productPullRequestFromPlan === null` alone.** At pin the reader returns null for both key-absence and malformed values (`\"x\"`, `0`, `false`, …). Bound limb 1 parenthetical already requires explicit absence and says malformed are not unset. Implement must check raw metadata key absence (or an equivalent dedicated unset predicate), and refuse malformed rather than admitting them through the reader-null path.\n\nS2. **Carve order.** Implement order is leftover-admit → skip-active-refuse → activation early-return → remaining gates. Limb 2's \"skip-active ahead of this carve\" wins over a bare reading of \"adjacent to leftover\" that would place activation before skip-active.\n\nS3. **Rename identity binding.** `PrDiffPath` / `fetchPrFiles` at pin keep only destination `filename` + `status` (no `previous_filename`). Limb 2 already requires retaining rename source/dest for identity binding. Extend the diff type and fetch when implementing proposed→active renames; do not invent a Bound rewrite for it.\n\n## Reject / leftover corroboration\n\nSupport Bound Reject: no activation number in `productPullRequest`; no restamp happy path; no arbitrary closing-keywords waiver; no Greptile floor / Tracking/Refs / auto-merge change; no #5380 floor-exception while #5387 is open. Bound limb 7 leftover (`briefHasMatchingProductPr` first-match-N) stays out of Bound relief — file separately.\n\n## Closing\n\n| Pain | Disposition |\n|---|---|\n| P1 | support — early-return carve + closed brief-land allowlist |\n| P2 | support — unset dissolves restamp dead-end |\n| P3 | support — unset construction + finalize regressions |\n\nbindable-as-posted: true\nharvest-changed: false",
+          "id": 6000487512,
+          "html_url": "https://github.com/deftai/directive/issues/5387#issuecomment-6000487512",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T18:21:28Z",
+          "updated_at": "2026-10-05T18:22:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nrecorded takes for audit 6000487512\n\nevaluatePainAuditFollowThrough({findingClasses:[\"sharpening\"], harvestChanged:false}) — residue carries into PR acceptance rather than another Recut.\n\ntakes:\n- S1 unset ≠ reader-null alone: implement explicit key-absence / dedicated unset predicate; refuse malformed metadata values rather than admitting via productPullRequestFromPlan === null.\n- S2 carve order: leftover-admit → skip-active-refuse → activation early-return → remaining gates.\n- S3 rename identity: extend PrDiffPath / fetchPrFiles to retain previous_filename for proposed→active renames (limb 2 already requires source/dest binding).\n- P1/P2/P3: support; overall bindable-as-posted; harvest-changed: false.\r\n\n",
+          "id": 6000499045,
+          "html_url": "https://github.com/deftai/directive/issues/5387#issuecomment-6000499045",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T18:22:13Z",
+          "updated_at": "2026-10-05T18:22:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Cite |\n|---|---|---|\n| Early-return activation carve in evaluateFullStoryMarkAdmission short-circuits both stamp gates | verified | Prefer-A Bound 6000447670 limb 1; PA 6000487512 P1 support; critics 6000357164 F1 / 6000374672 / 6000424203 1a |\n| Closed isBriefLandShapedDiff allowlist (proposed\\|pending\\|active + root CHANGELOG.md; deny product/mixed/completed) | verified | Bound limb 2; PA P1; critic allowlist polarity |\n| Unset productPullRequest is taught happy path; ⊗ write activation PR into delivery field | verified | Bound limb 3; PA P2/P3; critic 6000424203 |\n| Optional metadata.activationPullRequest is provenance-only; no delivery reader consults it | verified | Bound limb 3; claude A∪B merge |\n| stampProductPullRequestOntoPlan refuse-overwrite unchanged; no --allow-restamp-from-activation happy path | verified | Bound limb 4; PA P2 dissolved |\n| Legacy #5380 recovery is one-shot unstamp then product null-path stamp | verified | Bound limb 4; issue evidence #5357 |\n| Finalize honesty = named regressions (deftStoryMarkBindsDelivery / finalize-owed / briefHasMatchingProductPr) | verified | Bound limb 5; PA P3 |\n| Leftover keeps today's exception and preserves original product delivery stamp | verified | Bound limb 3 leftover correction; critic 6000357164 F5 |\n| Tests + scope-provenance docs + #1309 agents-entry + CHANGELOG | verified | Bound limb 6; critic 6000424203 limb 5 |\n| briefHasMatchingProductPr first-match-N is leftover, not Bound | verified | Bound limb 7; Reject |\n| Non-harvest S1–S3 are PR residue | verified | PA 6000487512; recorded takes |\n\nsuccessor lean 6000447670\npain-audit 6000487512\nStop-1 6000298626\nround-1 critics 6000357164 / 6000374672 / 6000424203\r\n\n",
+          "id": 6000499468,
+          "html_url": "https://github.com/deftai/directive/issues/5387#issuecomment-6000499468",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T18:22:14Z",
+          "updated_at": "2026-10-05T18:22:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 6000447670\nverified-claims table 6000499468\nStop-1 (denominator): 6000298626\nround-1 critics: 6000357164 (codex), 6000374672 (grok), 6000424203 (claude)\nPain-audit (bind lean): 6000487512 — support P1, support P2, support P3; bindable-as-posted; harvest-changed: false; non-harvest S1–S3 (unset-vs-malformed; carve order leftover→skip-active→activation; rename previous_filename) carry into PR acceptance\nrecorded takes: 6000499045\ndispatch-sha: 7c775edf3b5ec858259c0f63ffaa65703140aa28\narc-mode: no-ingest\nyolo-standing: yes\nspend: N≥3\nspend-ask: resolved\nspend-recommend: N≥3\ndual-stop-reserved: spent on pain-audit 6000487512\nconflict_group: path-b-activation-delivery-bind\n\n## In plain English\n\nThe Bound stands. Path B activation PRs that only land a brief keep `productPullRequest` unset and pass closing-keywords via a closed brief-land allowlist carve at the top of full-story admission. The stacked product PR stamps delivery later on the existing null path. Do not write the activation PR number into the delivery field. Finalize already treats unset correctly; named regressions lock that. Legacy stamped activations unstamp once. Ingest remains a separate operator verb. #5373 Path B stack (#5380 / #5381) can unblock after this Prefer-A Bound lands through implement.\n\n## Recording note (no Lean token)\n\nevaluatePainAuditFollowThrough({findingClasses:[\"sharpening\"], harvestChanged:false}) — residue carries into PR acceptance rather than another Recut.\n\n## Plain-language summary\n\nUnset activation + early-return allowlist carve; optional activationPullRequest provenance; refuse-overwrite intact; finalize regressions; S1–S3 PR residue; no floor-exception #5380 while open.\r\n\n",
+          "id": 6000499941,
+          "html_url": "https://github.com/deftai/directive/issues/5387#issuecomment-6000499941",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T18:22:16Z",
+          "updated_at": "2026-10-05T18:22:16Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5716780306,
+        "origin": "deftai/directive#5387",
+        "id": "github.issue.5716780306"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "06c48c809a9d4a4cf2661f95d753f245e3d286700a11bae3558f64cf37c901f9"
+      },
+      "preferABound": {
+        "lean": 6000447670,
+        "conflict_group": "path-b-activation-delivery-bind"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/core/src/orphan-active/running-briefs.ts",
+          "packages/core/src/orphan-active/running-briefs.test.ts",
+          "content/docs/scope-provenance.md",
+          "content/templates/agents-entry.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/pr-closing-keywords/main.test.ts"
+        ],
+        "expected_outputs": [
+          "Path B activation carve admits unset productPullRequest brief-land"
+        ],
+        "depends_on": [],
+        "conflict_group": "path-b-activation-delivery-bind",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "default"
+      },
+      "productPullRequest": 5388
+    },
+    "id": "github.issue.5716780306",
+    "updated": "2026-10-05T19:25:30.340Z"
+  }
+}
