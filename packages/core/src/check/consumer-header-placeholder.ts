@@ -11,8 +11,16 @@
  * marker, remediates via confirmed-Overview CAS when available, then evaluates
  * so refuse conjuncts are reached without depending on the agent remembering
  * to stamp or invoke check / verify:consumer-header-placeholder by name.
+ *
+ * Residual after #5253 (Prefer-A Bound lean 6000271029): pin 7c775edf had only
+ * two production enforce callers (delivered codeBearing scope:complete;
+ * occupancy persistProductMutationMarker=true). Dirty/untracked product paths
+ * are additional this-session product-mutation evidence for weak stacks that
+ * skip those callers (hookless / Shell-bypass / no-marker exits). Process-only
+ * stays legal when neither marker nor dirty product paths exist.
  * Returned failure — no throw.
  */
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
@@ -46,6 +54,11 @@ export interface ConsumerHeaderPlaceholderSeams {
   readonly readAgentsMd?: () => AgentsMdReadResult | string | null;
   /** Test seam: force product-mutation boolean; skips durable-marker lookup. */
   readonly sessionChangedProductFiles?: boolean;
+  /**
+   * Test seam: force dirty-product evidence for reachability (#4544 residual).
+   * When set, skips git porcelain. undefined → probe the worktree.
+   */
+  readonly dirtyProductEvidence?: boolean;
 }
 
 export interface CompletionChokepointSeams {
@@ -73,6 +86,110 @@ export type ConsumerHeaderCompletionChokepointResult = {
     readonly wroteAgentsMd: boolean;
   };
 };
+
+/** Deposit / Process-only path prefixes — not first-ship product evidence. */
+const NON_PRODUCT_PATH_PREFIXES = [
+  ".deft/",
+  ".deft-scratch/",
+  ".deft-cache/",
+  "xbrief/",
+  "vbrief/",
+  ".git/",
+  "node_modules/",
+  "dist/",
+  "coverage/",
+  ".planning/",
+  "temp/",
+  ".cursor/",
+  ".claude/",
+  ".codex/",
+  ".github/",
+] as const;
+
+const NON_PRODUCT_BASENAMES = new Set([
+  "AGENTS.md",
+  "Agents.md",
+  "CLAUDE.md",
+  "USER.md",
+  ".gitignore",
+  ".gitattributes",
+  ".no-deft-directive",
+  ".deft-directive-disable",
+  ".deft-run-summary.json",
+  "package.json",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "yarn.lock",
+  "README.md",
+  "LICENSE",
+  "CHANGELOG.md",
+]);
+
+function toPosixRel(rel: string): string {
+  return rel.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+/** True when a relative path is deposit / Process-only, not product evidence. */
+export function isNonProductMutationPath(relPath: string): boolean {
+  const posix = toPosixRel(relPath);
+  if (posix.length === 0 || posix === ".") return true;
+  const base = posix.includes("/") ? posix.slice(posix.lastIndexOf("/") + 1) : posix;
+  if (NON_PRODUCT_BASENAMES.has(base)) return true;
+  return NON_PRODUCT_PATH_PREFIXES.some(
+    (prefix) => posix === prefix.slice(0, -1) || posix.startsWith(prefix),
+  );
+}
+
+function parsePorcelainPaths(stdout: string): string[] {
+  const paths: string[] = [];
+  for (const raw of stdout.replace(/\r\n/g, "\n").split("\n")) {
+    if (raw.length < 4) continue;
+    // XY<space>path  or  XY<space>old -> new
+    const entry = raw.slice(3);
+    if (entry.includes(" -> ")) {
+      const renamed = entry.split(" -> ").pop();
+      if (renamed !== undefined && renamed.length > 0) paths.push(renamed);
+    } else if (entry.length > 0) {
+      paths.push(entry);
+    }
+  }
+  return paths;
+}
+
+function readGitPorcelainAtRoot(projectRoot: string): string | null {
+  try {
+    const result = spawnSync("git", ["status", "--porcelain", "-uall"], {
+      cwd: resolve(projectRoot),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    if (result.error || result.status !== 0) return null;
+    return typeof result.stdout === "string" ? result.stdout : "";
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * This-session product-mutation evidence beyond Prefer-A marker (#4544 residual).
+ * Dirty/untracked paths outside deposit/Process-only prefixes — catches hookless /
+ * Shell-bypass product writes that never stamped persistProductMutationMarker.
+ * Clean brownfield product trees without dirty product paths stay Process-only.
+ */
+export function hasDirtyProductMutationEvidence(
+  projectRoot: string,
+  seams: { readonly dirtyProductEvidence?: boolean; readonly gitPorcelain?: string | null } = {},
+): boolean {
+  if (seams.dirtyProductEvidence !== undefined) return seams.dirtyProductEvidence;
+  const porcelain =
+    seams.gitPorcelain !== undefined ? seams.gitPorcelain : readGitPorcelainAtRoot(projectRoot);
+  if (porcelain === null) return false;
+  for (const rel of parsePorcelainPaths(porcelain)) {
+    if (!isNonProductMutationPath(rel)) return true;
+  }
+  return false;
+}
 
 function readAgentsMdAtRoot(projectRoot: string): AgentsMdReadResult {
   const path = join(projectRoot, "AGENTS.md");
@@ -171,9 +288,30 @@ export function evaluateConsumerHeaderPlaceholderAtRoot(
     });
   }
 
+  if (marker.kind === "present") {
+    return evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: agentsRead.kind === "ok" ? agentsRead.text : null,
+      productMutationCompletion: true,
+    });
+  }
+
+  // #4544 residual after #5253: dirty product paths are this-session evidence for
+  // stacks that skipped occupancy persistProductMutationMarker / delivered complete.
+  // Reuse enforce (stamp + Overview CAS); do not invent a second evaluator.
+  if (
+    hasDirtyProductMutationEvidence(projectRoot, {
+      dirtyProductEvidence: seams.dirtyProductEvidence,
+    })
+  ) {
+    const chokepoint = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(projectRoot, {
+      readAgentsMd: seams.readAgentsMd,
+    });
+    return chokepoint.evaluation;
+  }
+
   return evaluateFirstShipHeaderPlaceholderGate({
     agentsMd: agentsRead.kind === "ok" ? agentsRead.text : null,
-    productMutationCompletion: marker.kind === "present",
+    productMutationCompletion: false,
   });
 }
 
@@ -421,3 +559,28 @@ export function enforceConsumerHeaderPlaceholderAtCompletionChokepoint(
     },
   };
 }
+
+/**
+ * Reachability wrapper: enforce when Prefer-A marker or dirty product evidence
+ * shows product mutation; skip (Process-only legal) when neither is present.
+ */
+export function enforceConsumerHeaderPlaceholderWhenProductEvidence(
+  projectRoot: string,
+  seams: CompletionChokepointSeams & {
+    readonly dirtyProductEvidence?: boolean;
+    readonly gitPorcelain?: string | null;
+  } = {},
+):
+  | ConsumerHeaderCompletionChokepointResult
+  | { readonly ok: true; readonly skipped: true; readonly reason: "no-product-evidence" } {
+  const marker = lookupProductMutationCompletion(projectRoot);
+  const dirty = hasDirtyProductMutationEvidence(projectRoot, {
+    dirtyProductEvidence: seams.dirtyProductEvidence,
+    gitPorcelain: seams.gitPorcelain,
+  });
+  if (marker.kind !== "present" && marker.kind !== "unreadable" && !dirty) {
+    return { ok: true, skipped: true, reason: "no-product-evidence" };
+  }
+  return enforceConsumerHeaderPlaceholderAtCompletionChokepoint(projectRoot, seams);
+}
+

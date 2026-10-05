@@ -69,7 +69,10 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, realpathSync, renameSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { enforceConsumerHeaderPlaceholderAtCompletionChokepoint } from "../check/consumer-header-placeholder.js";
+import {
+  enforceConsumerHeaderPlaceholderAtCompletionChokepoint,
+  enforceConsumerHeaderPlaceholderWhenProductEvidence,
+} from "../check/consumer-header-placeholder.js";
 import { productMutationCompletionMarkerPath } from "../check/product-mutation-completion.js";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
@@ -1681,6 +1684,20 @@ export function releaseOccupancy(
   const identity = resolvePresentedIdentity(input);
   const caller = identity.sessionId;
   const split = formatPresentedIdentityDisagreement(identity);
+  // #4544 residual after #5253: session exit with dirty product evidence must
+  // still reach Prefer-A enforce when markWrite persist never ran (Shell-bypass /
+  // hookless). Process-only exits with no product evidence skip.
+  const evidenceGate = enforceConsumerHeaderPlaceholderWhenProductEvidence(projectRoot);
+  if (!evidenceGate.ok) {
+    return {
+      action: "denied" as const,
+      sessionId: caller,
+      record: readOccupancy(projectRoot),
+      path,
+      message: evidenceGate.message,
+      code: 1,
+    };
+  }
   return withOccupancyLock(
     projectRoot,
     (fence) => {

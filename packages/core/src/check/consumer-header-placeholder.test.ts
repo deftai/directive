@@ -6,7 +6,10 @@ import { CONSUMER_HEADER_PLACEHOLDER_ONELINER } from "../platform/agents-consume
 import {
   CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID,
   enforceConsumerHeaderPlaceholderAtCompletionChokepoint,
+  enforceConsumerHeaderPlaceholderWhenProductEvidence,
   evaluateConsumerHeaderPlaceholderAtRoot,
+  hasDirtyProductMutationEvidence,
+  isNonProductMutationPath,
 } from "./consumer-header-placeholder.js";
 import {
   productMutationCompletionAtRoot,
@@ -285,5 +288,112 @@ describe("enforceConsumerHeaderPlaceholderAtCompletionChokepoint (#4544 residual
     const processOnly = evaluateConsumerHeaderPlaceholderAtRoot(root);
     expect(processOnly.ok).toBe(true);
     expect(processOnly.reason).toBe("process-only");
+  });
+});
+
+describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)", () => {
+  it("classifies deposit paths as non-product and product paths as evidence", () => {
+    expect(isNonProductMutationPath("xbrief/proposed/a.xbrief.json")).toBe(true);
+    expect(isNonProductMutationPath(".deft/cache/product-mutation-completion.json")).toBe(true);
+    expect(isNonProductMutationPath("AGENTS.md")).toBe(true);
+    expect(isNonProductMutationPath("notes/hello.py")).toBe(false);
+    expect(isNonProductMutationPath("src/app.ts")).toBe(false);
+  });
+
+  it("detects dirty product evidence from porcelain seam", () => {
+    const root = tempRoot();
+    expect(
+      hasDirtyProductMutationEvidence(root, {
+        gitPorcelain: "?? notes/hello.py\n M xbrief/proposed/a.xbrief.json\n",
+      }),
+    ).toBe(true);
+    expect(
+      hasDirtyProductMutationEvidence(root, {
+        gitPorcelain: "?? xbrief/proposed/a.xbrief.json\n M AGENTS.md\n",
+      }),
+    ).toBe(false);
+  });
+
+  it("evaluate reaches enforce via dirty product evidence then remediates Overview CAS", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "demo",
+          narratives: { Overview: "Notes hello corecap", "tech stack": "python" },
+        },
+      })}\n`,
+      "utf8",
+    );
+    const result = evaluateConsumerHeaderPlaceholderAtRoot(root, {
+      dirtyProductEvidence: true,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.reason).toBe("not-placeholder");
+    expect(productMutationCompletionAtRoot(root)).toBe(true);
+    const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
+    expect(agents).toContain("Notes hello corecap");
+    expect(agents).not.toContain(CONSUMER_HEADER_PLACEHOLDER_ONELINER);
+  });
+
+  it("evaluate Process-only still passes without marker and without dirty product evidence", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    const result = evaluateConsumerHeaderPlaceholderAtRoot(root, {
+      dirtyProductEvidence: false,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.reason).toBe("process-only");
+    expect(productMutationCompletionAtRoot(root)).toBe(false);
+  });
+
+  it("enforceWhenProductEvidence skips Process-only and enforces on dirty product", () => {
+    const skipRoot = tempRoot();
+    writeFileSync(
+      join(skipRoot, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    const skipped = enforceConsumerHeaderPlaceholderWhenProductEvidence(skipRoot, {
+      dirtyProductEvidence: false,
+    });
+    expect(skipped.ok).toBe(true);
+    expect("skipped" in skipped && skipped.skipped).toBe(true);
+
+    const dirtyRoot = tempRoot();
+    writeFileSync(
+      join(dirtyRoot, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    const enforced = enforceConsumerHeaderPlaceholderWhenProductEvidence(dirtyRoot, {
+      dirtyProductEvidence: true,
+      confirmedOverview: null,
+      recordedAt: new Date("2026-10-05T12:00:00Z"),
+    });
+    expect(enforced.ok).toBe(false);
+    expect(enforced.message).toContain(CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID);
+    expect(productMutationCompletionAtRoot(dirtyRoot)).toBe(true);
+  });
+
+  it("honesty: pin 7c775edf had only two production enforce callers; residual adds reachability", () => {
+    // Census at dispatch-sha 7c775edf: scope/transition delivered+codeBearing and
+    // occupancy writeOccupancyRecord persistProductMutationMarker=true only.
+    // This residual adds: evaluate dirty-product path, releaseOccupancy evidence
+    // wrapper, and codeBearing-complete (not delivered-only) in transition.
+    expect(typeof enforceConsumerHeaderPlaceholderWhenProductEvidence).toBe("function");
+    expect(typeof hasDirtyProductMutationEvidence).toBe("function");
   });
 });

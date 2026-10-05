@@ -395,10 +395,11 @@ export function runTransition(
       );
       reuseValidatedDeliveryAncestry = gate.provenance.disposition === "delivered";
     }
-    // #4544 residual after #5178: delivered / code-bearing product completion must
-    // not leave scaffold edit-me; Prefer-A evaluator runs here so refuse does not
-    // depend on the agent remembering to stamp the marker or invoke check.
-    if (gate.codeBearing && gate.provenance?.disposition === "delivered") {
+    // #4544 residual after #5178 / #5253: code-bearing product completion must
+    // not leave scaffold edit-me. Prefer-A Bound lean 6000271029 widens beyond
+    // delivered-only so local / non-delivered codeBearing completes still reach
+    // enforce (hookless stacks that never hit occupancy persist marker).
+    if (gate.codeBearing) {
       const chokepoint = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(projectRoot);
       if (!chokepoint.ok) {
         return { ok: false, message: chokepoint.message };
