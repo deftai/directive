@@ -156,6 +156,28 @@ const COMMIT_NAMES = new Set(
   ].map(normalizeName),
 );
 
+/**
+ * Structured-question tool spellings (#5373 / #767).
+ * Hatch gate matches this exported subset only — never the full coordinate set.
+ * `classify.ts` still folds the subset into COORDINATE_NAMES for taxonomy.
+ */
+export const QUESTION_TOOL_NAME_SPELLINGS = [
+  "askuserquestion",
+  "ask_user_question",
+  "askquestion",
+  "AskQuestion",
+  "AskUserQuestion",
+] as const;
+
+/** Normalized question-tool name set (hooks → tool-events import edge; reviewable). */
+export const QUESTION_TOOL_NAMES: ReadonlySet<string> = new Set(
+  QUESTION_TOOL_NAME_SPELLINGS.map(normalizeName),
+);
+
+export function isQuestionToolName(name: string): boolean {
+  return QUESTION_TOOL_NAMES.has(normalizeName(name));
+}
+
 const COORDINATE_NAMES = new Set(
   [
     "task",
@@ -169,9 +191,7 @@ const COORDINATE_NAMES = new Set(
     "create_agent",
     "sessionspawn",
     "sessions_spawn",
-    "askuserquestion",
-    "ask_user_question",
-    "askquestion",
+    ...QUESTION_TOOL_NAME_SPELLINGS,
     "todowrite",
     "todo_write",
     "todoread",

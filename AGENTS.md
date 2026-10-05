@@ -224,7 +224,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Deterministic questions runtime obligation (#1470)
 
-! Structured questions MUST end with `Discuss` and `Back` — `.deft/core/contracts/deterministic-questions.md` (#1470 / #767).
+! Structured questions MUST end with `Discuss` then `Back`; `I have questions` is hatch alias (accepted input); Other free-text matching that set MUST halt; pause latch only where selection ingress is observed — `.deft/core/contracts/deterministic-questions.md` (#1470 / #767 / #5373).
 
 ## Issue body→comments reading (#2143)
 

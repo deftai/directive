@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complete the #5350 scope brief after product #5376; move the spec-guard enforce Prefer-A Bound brief into xbrief/completed.
 - Complete the #5391 scope brief after product #5401; move the CLI DX Prefer-A Bound brief into xbrief/completed.
 
+- **Hard-stop hatch for structured questions (#5373).** Prefer-A Bound: refuse-missing-hatch on hook-admitted question tools (`QUESTION_TOOL_NAMES` subset); Cursor plan-choice deny-and-render keeps Discuss then Back; Discuss-pause latch only where selection ingress is observed; `I have questions` accepted-input alias; Grok `ask_user_question` audit row + render-absent residual named. Tracking #5373. Refs #1470, #767.
+
 ### Changed
 
 - Complete the #5393 verify-ac defect-description brief after product #5396; move the scope brief into xbrief/completed.
@@ -50,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Spec-drift enforce double-record / reseed race / rewrite refs / failed-move rollback (#5350).** Under enforce, `scope:complete` records once before unlink and skips the sync second pass; reseed re-checks unresolved under the ledger lock; rewrite proof accepts declared `x-directive/affectedRequirementRefs` when item ids differ from requirement ids; unlink failure surgically restores this scope’s pre-record rows (and prior requirements fingerprint only when this attempt’s coverage set the live tip — never rewind a concurrent none-completion fingerprint advance) while preserving concurrent other-scope ledger entries, clearing only this attempt’s spent override grants. Tracking #5350.
 - **Spec-guard CI census / agentsMdBudget / RULE-MAP (#5350).** Record `spec-guard.ts` PROJECT-DEFINITION mutation inventory (2 sites); raise `agentsMdBudget` managedMaxLines 200 / absoluteMaxBytes 28000 for the enforce ladder; refresh `docs/RULE-MAP.md`. Tracking #5350.
 - design-critique: bare-arc spend recommend-first is now a MUST; ask is fallback only; Stop 2 and skill Spend line admit recommend-resolve; N≥3 recommend stays panel-permission-gated (#5372)
+- **Vacuous deterministic-questions content tests (#5373).** Repair inverted portable-skill predicate and empty `missing` loops; scan skill prose menus for final-two Discuss then Back. Tracking #5373.
 
 ### Removed
 

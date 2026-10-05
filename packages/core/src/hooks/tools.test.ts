@@ -11,6 +11,7 @@ import {
   KILL_HOOK_MATCHER,
   MCP_HOOK_MATCHER,
   MCP_PUSH_MERGE_BARE_NAMES,
+  QUESTION_HOOK_MATCHER,
   SHELL_HOOK_MATCHER,
   SHELL_TOOL_NAMES,
 } from "./tools.js";
@@ -86,5 +87,13 @@ describe("hooks tools classifiers (#2711 / #2952)", () => {
     expect(KILL_HOOK_MATCHER).toBe("kill_command_or_subagent");
     expect(HOST_TOOL_SURFACE_AUDIT.grok.mutation.kill).toContain("kill_command_or_subagent");
     expect(HOST_TOOL_SURFACE_AUDIT.grok.nonMutation.kill_command_or_subagent).toBeUndefined();
+  });
+
+  it("lists ask_user_question on Grok nonMutation hatch deny-class (#5373)", () => {
+    expect(HOST_TOOL_SURFACE_AUDIT.grok.nonMutation.ask_user_question).toMatch(/#5373/);
+    expect(HOST_TOOL_SURFACE_AUDIT.grok.nonMutation.ask_user_question).toMatch(/hatch/i);
+    expect(HOST_TOOL_SURFACE_AUDIT.grok.unobservedReason).toBeNull();
+    expect(QUESTION_HOOK_MATCHER).toContain("ask_user_question");
+    expect(QUESTION_HOOK_MATCHER).toContain("AskQuestion");
   });
 });
