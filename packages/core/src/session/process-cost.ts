@@ -34,6 +34,78 @@ export interface ProcessCostStepTiming {
   readonly name: string;
   readonly duration_ms: number;
   readonly skipped?: boolean;
+  /**
+   * When set, this step is a child of a named wrap and is excluded from
+   * exclusive honesty sums (#5375 Bound 1 leaf-only).
+   */
+  readonly parent?: string;
+  /** Why a skipped/deferred step did not run (e.g. finalize_owed defer reason). */
+  readonly skip_reason?: string;
+}
+
+/** Bound-1 exclusive cold phase names that must appear on successful cold rows. */
+export const COLD_EXCLUSIVE_PHASE_NAMES = [
+  "ceremony_dial_evidence",
+  "ceremony_dial_resolve",
+  "git_head",
+  "occupancy_plan",
+  "linked_deposit",
+  "user_md_resolve",
+  "branch_sync",
+  "staleness_tickler",
+  "value_readback",
+  "eval_readback",
+  "product_signal_consent",
+  "finalize_owed",
+  "run_summary",
+  "freshness_bind",
+] as const;
+
+export type ColdExclusivePhaseName = (typeof COLD_EXCLUSIVE_PHASE_NAMES)[number];
+
+/** Sum exclusive leaf durations (steps without `parent`) (#5375 Bound 1). */
+export function sumExclusiveLeafDurationsMs(steps: readonly ProcessCostStepTiming[]): number {
+  let sum = 0;
+  for (const step of steps) {
+    if (step.parent !== undefined) {
+      continue;
+    }
+    sum += step.duration_ms;
+  }
+  return sum;
+}
+
+/**
+ * Honesty residual: `duration_ms - sum(exclusive leaves)`.
+ * Positive => unlabeled gap; negative => over-attribution (#5375 Bound 3).
+ */
+export function computeCeremonyResidualMs(
+  durationMs: number,
+  steps: readonly ProcessCostStepTiming[],
+): number {
+  return durationMs - sumExclusiveLeafDurationsMs(steps);
+}
+
+function formatResidualMs(residualMs: number): string {
+  const sign = residualMs > 0 ? "+" : "";
+  return `${sign}${residualMs}ms`;
+}
+
+function formatExclusivePhaseList(steps: readonly ProcessCostStepTiming[]): string {
+  const leaves = steps.filter((step) => step.parent === undefined);
+  if (leaves.length === 0) {
+    return "none";
+  }
+  return leaves
+    .map((step) => {
+      const skip = step.skipped === true ? " skipped" : "";
+      const reason =
+        step.skip_reason !== undefined && step.skip_reason.length > 0
+          ? `(${step.skip_reason})`
+          : "";
+      return `${step.name}=${step.duration_ms}ms${skip}${reason}`;
+    })
+    .join(", ");
 }
 
 export interface EmitProcessCostOptions {
@@ -90,6 +162,12 @@ export function emitSessionStartProcessCost(
         };
         if (step.skipped === true) {
           entry.skipped = true;
+        }
+        if (step.parent !== undefined && step.parent.length > 0) {
+          entry.parent = step.parent;
+        }
+        if (step.skip_reason !== undefined && step.skip_reason.length > 0) {
+          entry.skip_reason = step.skip_reason;
         }
         return entry;
       });
@@ -203,12 +281,13 @@ function parseSteps(payload: Record<string, unknown> | null): ProcessCostStepTim
     const step: ProcessCostStepTiming = {
       name: rec.name,
       duration_ms: rec.duration_ms,
+      ...(rec.skipped === true ? { skipped: true as const } : {}),
+      ...(typeof rec.parent === "string" && rec.parent.length > 0 ? { parent: rec.parent } : {}),
+      ...(typeof rec.skip_reason === "string" && rec.skip_reason.length > 0
+        ? { skip_reason: rec.skip_reason }
+        : {}),
     };
-    if (rec.skipped === true) {
-      out.push({ ...step, skipped: true });
-    } else {
-      out.push(step);
-    }
+    out.push(step);
   }
   return out;
 }
@@ -344,11 +423,21 @@ function formatRecovery(distribution: Readonly<Record<string, number>>): string 
  * CLI process time, not agent-turn wall clock (#3500).
  */
 export function formatCeremonyCostReport(rollup: CeremonyCostRollup): string {
+  const coldResidual =
+    rollup.lastColdDurationMs === null
+      ? null
+      : computeCeremonyResidualMs(rollup.lastColdDurationMs, rollup.lastColdSteps);
+  const rearmResidual =
+    rollup.lastRearmDurationMs === null
+      ? null
+      : computeCeremonyResidualMs(rollup.lastRearmDurationMs, rollup.lastRearmSteps);
   const lines = [
     `[ceremony] CLI process time (not agent-turn wall clock; #3508 / #2994) ` +
       `(${rollup.windowLabel}):`,
-    `  last cold: ${formatMs(rollup.lastColdDurationMs)}`,
-    `  last re-arm: ${formatMs(rollup.lastRearmDurationMs)}`,
+    `  last cold: ${formatMs(rollup.lastColdDurationMs)}` +
+      (coldResidual === null ? "" : `; unaccounted ${formatResidualMs(coldResidual)}`),
+    `  last re-arm: ${formatMs(rollup.lastRearmDurationMs)}` +
+      (rearmResidual === null ? "" : `; unaccounted ${formatResidualMs(rearmResidual)}`),
     `  steps (last cold ${PROCESS_COST_EVENT_NAMES.sessionStart}): ` +
       formatSteps(rollup.lastColdSteps),
     `  steps (last re-arm ${PROCESS_COST_EVENT_NAMES.sessionStart}): ` +
@@ -361,12 +450,37 @@ export function formatCeremonyCostReport(rollup: CeremonyCostRollup): string {
 }
 
 /**
- * Operator-visible mutation `session:start` line (#3508).
+ * Operator-visible mutation `session:start` line (#3508 / #5375 Bound 3).
  * CLI process time only. ⊗ not #3286 Later graduation input.
+ * When `steps` is provided, append exclusive leaf phases and signed unaccounted residual.
  */
 export function formatSessionStartCeremonyCostLine(
   ceremonyTier: ProcessCostCeremonyTier,
   durationMs: number,
+  steps?: readonly ProcessCostStepTiming[],
 ): string {
-  return `[deft session] ceremony ${ceremonyTier} ${durationMs}ms`;
+  const base = `[deft session] ceremony ${ceremonyTier} ${durationMs}ms`;
+  if (steps === undefined) {
+    return base;
+  }
+  const residual = computeCeremonyResidualMs(durationMs, steps);
+  return (
+    `${base}; exclusive: ${formatExclusivePhaseList(steps)}; ` +
+    `unaccounted ${formatResidualMs(residual)}`
+  );
+}
+
+/**
+ * Whether compact mode may hide the ceremony cost line (#5375 Bound 3).
+ * Compact may hide only a zero residual; any non-zero unaccounted cost stays visible.
+ */
+export function shouldEmitCeremonyCostLine(options: {
+  compact: boolean;
+  durationMs: number;
+  steps: readonly ProcessCostStepTiming[];
+}): boolean {
+  if (!options.compact) {
+    return true;
+  }
+  return computeCeremonyResidualMs(options.durationMs, options.steps) !== 0;
 }

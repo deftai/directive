@@ -161,6 +161,12 @@ describe("runSessionStart read-only posture (#2176)", () => {
       skipped?: boolean;
     }>;
     expect(steps.map((s) => s.name)).toEqual([
+      "ceremony_dial_evidence",
+      "ceremony_dial_resolve",
+      "git_head",
+      "occupancy_plan",
+      "linked_deposit",
+      "user_md_resolve",
       "alignment",
       "wsl_ownership_guard",
       "scm_readiness",
@@ -168,8 +174,10 @@ describe("runSessionStart read-only posture (#2176)", () => {
       "effort_budget",
       "lifecycle_visible",
       "branch_policy",
+      "branch_sync",
       "verify_tools",
       // #3286: orientation compression composes doctor + preflight + refresh surfaces
+      // #5375: section leaves carry parent; wrap remains exclusive
       "doctor",
       "preflight",
       "agents_refresh",
@@ -177,7 +185,14 @@ describe("runSessionStart read-only posture (#2176)", () => {
       "orientation",
       "triage_welcome",
       "release_probe",
+      "staleness_tickler",
+      "value_readback",
+      "eval_readback",
+      "product_signal_consent",
+      "finalize_owed",
       "ritual_write",
+      "run_summary",
+      "freshness_bind",
     ]);
     expect(steps.find((s) => s.name === "release_probe")?.skipped).toBe(true);
     expect(typeof result.payload.duration_ms).toBe("number");

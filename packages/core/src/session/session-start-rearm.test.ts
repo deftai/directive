@@ -257,7 +257,11 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
     expect(ticklerCalls).toBe(0);
     expect(result.lines).toContain(REARM_SKIPPED_FAT_PATH_MESSAGE);
     expect(
-      result.lines.some((entry) => /^\[deft session\] ceremony rearm \d+ms$/.test(entry)),
+      result.lines.some((entry) =>
+        /^\[deft session\] ceremony rearm \d+ms; exclusive: .+; unaccounted [+-]?\d+ms$/.test(
+          entry,
+        ),
+      ),
     ).toBe(true);
     expect(result.payload.ceremony_tier).toBe("rearm");
     expect(result.payload.message).toBe("session ritual re-armed");
@@ -267,6 +271,16 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
     expect(steps.find((s) => s.name === "verify_tools")?.skipped).toBe(true);
     expect(steps.find((s) => s.name === "triage_welcome")?.skipped).toBe(true);
     expect(steps.find((s) => s.name === "release_probe")?.skipped).toBe(true);
+    // #5375 Bound 4/5: rearm records real exclusive vocabulary (not hardcoded zeros).
+    expect(steps.find((s) => s.name === "finalize_owed")).toBeDefined();
+    expect(steps.find((s) => s.name === "git_head")).toBeDefined();
+    expect(steps.find((s) => s.name === "occupancy_plan")).toBeDefined();
+    expect(steps.find((s) => s.name === "ritual_write")?.duration_ms).toBeGreaterThanOrEqual(0);
+    expect(steps.find((s) => s.name === "freshness_bind")).toBeDefined();
+    // Bound 4 cheapness: rearm must not absorb fat cold work (call-count gate).
+    expect(toolsCalls).toBe(0);
+    expect(triageCalls).toBe(0);
+    expect(ticklerCalls).toBe(0);
 
     const [state] = readRitualState(root);
     expect(state?.sessionId).toBe("rearm-session");

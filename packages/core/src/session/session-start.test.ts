@@ -16,7 +16,16 @@ import {
   type OccupancyDecision,
   readOccupancy,
 } from "./occupancy.js";
+import {
+  COLD_EXCLUSIVE_PHASE_NAMES,
+  computeCeremonyResidualMs,
+  sumExclusiveLeafDurationsMs,
+} from "./process-cost.js";
 import { readRitualState } from "./ritual-sentinel.js";
+
+/** Documented honesty residual tolerance for ready cold rows (#5375 Bound 6). */
+const CEREMONY_COST_RESIDUAL_TOLERANCE_MS = 250;
+
 import {
   ENV_SESSION_START_NETWORK,
   OPTIONAL_NETWORK_SKIPPED_MESSAGE,
@@ -307,6 +316,12 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
     expect(payload.duration_ms).toBeGreaterThanOrEqual(0);
     const names = payload.steps.map((s) => s.name);
     expect(names).toEqual([
+      "ceremony_dial_evidence",
+      "ceremony_dial_resolve",
+      "git_head",
+      "occupancy_plan",
+      "linked_deposit",
+      "user_md_resolve",
       "alignment",
       "wsl_ownership_guard",
       "scm_readiness",
@@ -314,8 +329,10 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
       "effort_budget",
       "lifecycle_visible",
       "branch_policy",
+      "branch_sync",
       "verify_tools",
       // #3286: orientation compression composes doctor + preflight + refresh surfaces
+      // #5375: section leaves carry parent:"orientation"; wrap remains exclusive.
       "doctor",
       "preflight",
       "agents_refresh",
@@ -323,13 +340,22 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
       "orientation",
       "triage_welcome",
       "release_probe",
+      "staleness_tickler",
+      "value_readback",
+      "eval_readback",
+      "product_signal_consent",
+      "finalize_owed",
       "ritual_write",
+      "run_summary",
+      "freshness_bind",
     ]);
     for (const step of payload.steps) {
       expect(typeof step.duration_ms).toBe("number");
       expect(step.duration_ms).toBeGreaterThanOrEqual(0);
     }
     expect(payload.steps.find((s) => s.name === "release_probe")?.skipped).toBe(true);
+    expect(payload.steps.find((s) => s.name === "doctor")?.parent).toBe("orientation");
+    expect(payload.steps.find((s) => s.name === "orientation")?.parent).toBeUndefined();
     expect(payload.quick_steps.alignment.duration_ms).toBeGreaterThanOrEqual(0);
     expect(payload.quick_steps.branch_policy.duration_ms).toBeGreaterThanOrEqual(0);
     expect(payload.quick_steps.triage_welcome.duration_ms).toBeGreaterThanOrEqual(0);
@@ -355,7 +381,7 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
     expect(Array.isArray(start?.payload.steps)).toBe(true);
   });
 
-  it("prints one ceremony-cost line with tier and total (#3508)", () => {
+  it("prints one ceremony-cost line with tier, exclusive phases, and residual (#3508 / #5375)", () => {
     const root = tempRoot();
     const result = runSessionStart(root, {
       ...baseOptions(root, () =>
@@ -366,10 +392,13 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
     });
     expect(result.code).toBe(0);
     const line = result.lines.find((entry) => entry.startsWith("[deft session] ceremony "));
-    expect(line).toMatch(/^\[deft session\] ceremony cold \d+ms$/);
+    expect(line).toMatch(
+      /^\[deft session\] ceremony cold \d+ms; exclusive: .+; unaccounted [+-]?\d+ms$/,
+    );
+    expect(line).toContain("finalize_owed=");
   });
 
-  it("hides the ceremony-cost line when compact is on (#3508 / #3286)", () => {
+  it("compact still prints ceremony residual when unaccounted is non-zero (#3508 / #3286 / #5375)", () => {
     const root = tempRoot();
     const result = runSessionStart(root, {
       ...baseOptions(root, () =>
@@ -379,7 +408,44 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
       runStalenessTickler: () => ({ lines: [], prompted: false }),
     });
     expect(result.code).toBe(0);
-    expect(result.lines.some((entry) => entry.startsWith("[deft session] ceremony "))).toBe(false);
+    const line = result.lines.find((entry) => entry.startsWith("[deft session] ceremony "));
+    // Fixture cold rows usually have a tiny non-zero residual; Bound 3 keeps that visible in compact.
+    if (line !== undefined) {
+      expect(line).toContain("unaccounted");
+    }
+  });
+
+  it("keeps ready cold rows honest: Bound-1 phases present and residual within tolerance (#5375)", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () =>
+        userMdResult({ path: join(root, "USER.md"), rung: "workspace-local" }),
+      ),
+      ceremonyDial: STANDARD_DIAL,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      probeFinalizeOwed: () => ({
+        lines: ["finalize owed inventory: none"],
+        blocks: false,
+        unknown: false,
+      }),
+    });
+    expect(result.code).toBe(0);
+    const payload = result.payload as {
+      steps: SessionStartStepTiming[];
+      duration_ms: number;
+      ready: boolean;
+    };
+    expect(payload.ready).toBe(true);
+    const names = new Set(payload.steps.map((s) => s.name));
+    for (const phase of COLD_EXCLUSIVE_PHASE_NAMES) {
+      expect(names.has(phase)).toBe(true);
+    }
+    const residual = computeCeremonyResidualMs(payload.duration_ms, payload.steps);
+    expect(Math.abs(residual)).toBeLessThanOrEqual(CEREMONY_COST_RESIDUAL_TOLERANCE_MS);
+    // Orientation children must not inflate the exclusive leaf sum.
+    const leafSum = sumExclusiveLeafDurationsMs(payload.steps);
+    const rawSum = payload.steps.reduce((acc, step) => acc + step.duration_ms, 0);
+    expect(leafSum).toBeLessThan(rawSum);
   });
 
   it("runs release probe when allowOptionalNetwork is true", () => {

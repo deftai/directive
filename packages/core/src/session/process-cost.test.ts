@@ -5,12 +5,15 @@ import { afterEach, describe, expect, it } from "vitest";
 import { clearRegistryCache, readEvents } from "../lifecycle/events.js";
 import {
   computeCeremonyCostRollup,
+  computeCeremonyResidualMs,
   emitSessionRitualBlockedProcessCost,
   emitSessionStartProcessCost,
   formatCeremonyCostReport,
   formatSessionStartCeremonyCostLine,
   PROCESS_COST_EVENT_NAMES,
   PROCESS_COST_REQUIRED_PAYLOAD,
+  shouldEmitCeremonyCostLine,
+  sumExclusiveLeafDurationsMs,
 } from "./process-cost.js";
 
 const roots: string[] = [];
@@ -346,6 +349,23 @@ describe("ceremony-cost reader (#3508)", () => {
     expect(formatSessionStartCeremonyCostLine("rearm", 7)).toBe(
       "[deft session] ceremony rearm 7ms",
     );
+  });
+
+  it("formats exclusive phases and signed residual when steps are provided (#5375)", () => {
+    const steps = [
+      { name: "git_head", duration_ms: 10 },
+      { name: "doctor", duration_ms: 5, parent: "orientation" },
+      { name: "orientation", duration_ms: 20 },
+      { name: "finalize_owed", duration_ms: 3, skipped: true, skip_reason: "deferred" },
+    ];
+    expect(sumExclusiveLeafDurationsMs(steps)).toBe(33);
+    expect(computeCeremonyResidualMs(40, steps)).toBe(7);
+    expect(formatSessionStartCeremonyCostLine("cold", 40, steps)).toBe(
+      "[deft session] ceremony cold 40ms; exclusive: git_head=10ms, orientation=20ms, " +
+        "finalize_owed=3ms skipped(deferred); unaccounted +7ms",
+    );
+    expect(shouldEmitCeremonyCostLine({ compact: true, durationMs: 33, steps })).toBe(false);
+    expect(shouldEmitCeremonyCostLine({ compact: true, durationMs: 40, steps })).toBe(true);
   });
 
   it("honors explicit logPath, missing timestamps, and non-numeric duration", () => {

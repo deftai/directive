@@ -129,7 +129,12 @@ import {
   persistTrustedSessionPosture,
   REQUIREMENTS_OVERLAY_CLEAR_FAILED_PREFIX,
 } from "./posture.js";
-import { emitSessionStartProcessCost, formatSessionStartCeremonyCostLine } from "./process-cost.js";
+import {
+  emitSessionStartProcessCost,
+  formatSessionStartCeremonyCostLine,
+  type ProcessCostStepTiming,
+  shouldEmitCeremonyCostLine,
+} from "./process-cost.js";
 import {
   probeSessionReleaseAvailability,
   type ReleaseAvailabilityProbeOptions,
@@ -246,10 +251,47 @@ export const REARM_SKIPPED_FAT_PATH_MESSAGE =
 /** When --rearm is requested but state requires a full cold ceremony (#2992). */
 export const REARM_INELIGIBLE_PREFIX = "session re-arm refused — full cold session:start required:";
 
+/**
+ * Ceremony step timing (#2994 / #5375).
+ * Honesty sum is exclusive leaves only: steps without `parent` (#5375 Bound 1).
+ * Orientation section children set `parent: "orientation"` so the wrap is not double-counted.
+ */
 export interface SessionStartStepTiming {
   readonly name: string;
   readonly duration_ms: number;
   readonly skipped?: boolean;
+  readonly parent?: string;
+  readonly skip_reason?: string;
+}
+
+function asProcessCostSteps(steps: readonly SessionStartStepTiming[]): ProcessCostStepTiming[] {
+  return steps.map((step) => ({
+    name: step.name,
+    duration_ms: step.duration_ms,
+    ...(step.skipped === true ? { skipped: true as const } : {}),
+    ...(step.parent !== undefined ? { parent: step.parent } : {}),
+    ...(step.skip_reason !== undefined ? { skip_reason: step.skip_reason } : {}),
+  }));
+}
+
+function pushExclusiveStep(
+  steps: SessionStartStepTiming[],
+  name: string,
+  started: number,
+  extras?: { skipped?: boolean; skip_reason?: string | null; parent?: string },
+): void {
+  const entry: SessionStartStepTiming = {
+    name,
+    duration_ms: elapsedMs(started),
+    ...(extras?.skipped === true ? { skipped: true as const } : {}),
+    ...(extras?.parent !== undefined ? { parent: extras.parent } : {}),
+    ...(extras?.skip_reason !== undefined &&
+    extras.skip_reason !== null &&
+    extras.skip_reason.length > 0
+      ? { skip_reason: extras.skip_reason }
+      : {}),
+  };
+  steps.push(entry);
 }
 
 const STEP_ALIASES: Record<string, string> = {
@@ -1487,8 +1529,11 @@ function runSessionRearm(
   environment: EnvironmentContext,
 ): SessionStartResult {
   const overallStarted = performance.now();
+  const stepTimings: SessionStartStepTiming[] = [];
   const runGit = options.runGit ?? defaultGitRunner;
+  const gitHeadStarted = performance.now();
   const eligibility = assessRearmEligibility(projectRoot, { runGit });
+  pushExclusiveStep(stepTimings, "git_head", gitHeadStarted);
   if (!eligibility.eligible) {
     const coldCmd = formatSessionStartRecoveryCommand("cold");
     const message = `${REARM_INELIGIBLE_PREFIX} ${eligibility.reason}. Run \`${coldCmd}\`.`;
@@ -1500,6 +1545,7 @@ function runSessionRearm(
         exitCode: 1,
         ready: false,
         optionalNetwork: false,
+        steps: asProcessCostSteps(stepTimings),
       },
       { projectRoot },
     );
@@ -1512,30 +1558,40 @@ function runSessionRearm(
         rearm_eligible: false,
         environment: environmentContextToDict(environment),
         message,
+        steps: stepTimings,
+        duration_ms: elapsedMs(overallStarted),
       },
       lines: [formatEnvironmentContext(environment), message],
     };
   }
 
+  const occupancyStarted = performance.now();
   const plannedOccupancy = runOccupancy(projectRoot, options, sessionId, instant, false);
+  pushExclusiveStep(stepTimings, "occupancy_plan", occupancyStarted);
   if (plannedOccupancy.code !== 0) {
     return occupancyDeniedResult(plannedOccupancy, environment);
   }
 
+  const linkedStarted = performance.now();
   const linkedDeposit = applyLinkedWorktreeDeposit(projectRoot, options, environment);
+  pushExclusiveStep(stepTimings, "linked_deposit", linkedStarted);
   if ("deny" in linkedDeposit) {
     return linkedDeposit.deny;
   }
 
   const resolveUserMd =
     options.resolveUserMd ?? ((root) => resolveUserMdPath({ projectRoot: root }));
+  const userMdStarted = performance.now();
   const userMd = resolveUserMd(projectRoot);
+  pushExclusiveStep(stepTimings, "user_md_resolve", userMdStarted);
+  const alignmentStarted = performance.now();
   const safePath = userMd.path.replace(/\r?\n/g, " ");
   const safeDiagnostic = userMd.diagnostic.replace(/\r?\n/g, " ");
   const userMdLine = userMd.found
     ? `USER.md resolved (${userMd.rung}): ${safePath}`
     : safeDiagnostic;
   const alignmentMessage = `${READ_ONLY_ALIGNMENT_MESSAGE} ${userMdLine}`;
+  pushExclusiveStep(stepTimings, "alignment", alignmentStarted);
   // #2275: re-arm still reports SCM state (shallow; no network).
   const scm = resolveSessionScmReadiness(options, false);
   // #3162: host content-surface class + managed drift (advisory).
@@ -1555,8 +1611,13 @@ function runSessionRearm(
   ];
   pushLifecycleVisibleAdvisory(lines, projectRoot, options, runGit);
 
-  // #4919: re-arm also runs the finalize-owed gate (private tip fetch).
+  // #4919 / #5375 Bound 5: re-arm finalize-owed is a named exclusive step.
+  const finalizeStarted = performance.now();
   const owedGate = evaluateFinalizeOwedSessionGate(projectRoot, options);
+  pushExclusiveStep(stepTimings, "finalize_owed", finalizeStarted, {
+    skipped: owedGate.deferred,
+    skip_reason: owedGate.deferReason,
+  });
   lines.push(...owedGate.lines);
   if (owedGate.blocks) {
     emitSessionStartProcessCost(
@@ -1566,6 +1627,7 @@ function runSessionRearm(
         exitCode: 1,
         ready: false,
         optionalNetwork: false,
+        steps: asProcessCostSteps(stepTimings),
       },
       { projectRoot },
     );
@@ -1578,12 +1640,15 @@ function runSessionRearm(
         environment: environmentContextToDict(environment),
         finalize_owed_blocked: true,
         message: "finalize owed blocks mutation",
+        steps: stepTimings,
+        duration_ms: elapsedMs(overallStarted),
       },
       lines,
     };
   }
 
   // Light branch-policy disclosure (local only) so re-arm still surfaces policy state.
+  const branchPolicyStarted = performance.now();
   const policyResult = resolvePolicy(projectRoot);
   const policyMessage = disclosureLine(policyResult);
   lines.push(policyMessage);
@@ -1593,12 +1658,14 @@ function runSessionRearm(
     lines.push(humanMergeLine);
   }
   pushCoverageCheckResumeDisclosure(lines, projectRoot);
+  pushExclusiveStep(stepTimings, "branch_policy", branchPolicyStarted);
 
   const priorQuick = eligibility.state.quickSteps;
   const priorTriage = priorQuick.triage_welcome ?? ritualStep({ ok: true, ts: instant });
   // Greptile P1: legacy ritual-state without verify_tools must re-run tools —
   // never invent ok:true. When prior exists, preserve without re-run (#2992).
   let toolsStep: Record<string, unknown>;
+  const toolsStarted = performance.now();
   if (priorQuick.verify_tools && typeof priorQuick.verify_tools === "object") {
     const priorTools = priorQuick.verify_tools as Record<string, unknown>;
     toolsStep = {
@@ -1609,6 +1676,10 @@ function runSessionRearm(
           ? priorTools.message
           : "verify:tools preserved on re-arm",
     };
+    pushExclusiveStep(stepTimings, "verify_tools", toolsStarted, {
+      skipped: true,
+      skip_reason: "preserved",
+    });
   } else {
     const verifyToolsFn =
       options.verifyTools ??
@@ -1622,6 +1693,7 @@ function runSessionRearm(
       });
     const toolsOutcome = verifyToolsFn((line) => lines.push(line));
     const toolsOk = toolsOutcome.exitCode === 0;
+    const toolsDurationMs = elapsedMs(toolsStarted);
     toolsStep = ritualStep({
       ok: toolsOk,
       ts: instant,
@@ -1629,23 +1701,32 @@ function runSessionRearm(
         ? "verify:tools re-run on re-arm (legacy ritual lacked tools step)"
         : `verify:tools failed on re-arm (exit ${toolsOutcome.exitCode})`,
       exitCode: toolsOutcome.exitCode,
-      durationMs: 0,
+      durationMs: toolsDurationMs,
     });
+    pushExclusiveStep(stepTimings, "verify_tools", toolsStarted);
   }
+  pushExclusiveStep(stepTimings, "triage_welcome", performance.now(), {
+    skipped: true,
+    skip_reason: "rearm",
+  });
+  pushExclusiveStep(stepTimings, "release_probe", performance.now(), {
+    skipped: true,
+    skip_reason: "rearm",
+  });
   const policyOk = policyResult.error === null || policyResult.source === "default-fail-closed";
   const quickSteps: Record<string, Record<string, unknown>> = {
     alignment: ritualStep({
       ok: true,
       ts: instant,
       message: alignmentMessage,
-      durationMs: 0,
+      durationMs: stepTimings.find((s) => s.name === "alignment")?.duration_ms ?? 0,
     }),
     branch_policy: ritualStep({
       ok: policyOk,
       ts: instant,
       message: policyMessage,
       exitCode: policyOk ? 0 : 2,
-      durationMs: 0,
+      durationMs: stepTimings.find((s) => s.name === "branch_policy")?.duration_ms ?? 0,
     }),
     verify_tools: toolsStep,
     // Preserve prior triage outcome; do not re-run welcome / self-heal on re-arm.
@@ -1701,6 +1782,7 @@ function runSessionRearm(
     statePath = (options.writeRitualState ?? writeRitualState)(projectRoot, writePayload);
   } catch (cause) {
     // #2994: still record failed attempt when ritual-state write throws.
+    pushExclusiveStep(stepTimings, "ritual_write", writeStarted);
     emitSessionStartProcessCost(
       {
         ceremonyTier: REARM_CEREMONY_TIER,
@@ -1708,28 +1790,13 @@ function runSessionRearm(
         exitCode: 2,
         ready: false,
         optionalNetwork: false,
-        steps: [
-          { name: "alignment", duration_ms: 0 },
-          { name: "branch_policy", duration_ms: 0 },
-          { name: "verify_tools", duration_ms: 0, skipped: true },
-          { name: "triage_welcome", duration_ms: 0, skipped: true },
-          { name: "release_probe", duration_ms: 0, skipped: true },
-          { name: "ritual_write", duration_ms: elapsedMs(writeStarted) },
-        ],
+        steps: asProcessCostSteps(stepTimings),
       },
       { projectRoot },
     );
     throw ritualPersistenceTransitionError(cause, rearmSessionId);
   }
-  const stepTimings: SessionStartStepTiming[] = [
-    { name: "alignment", duration_ms: 0 },
-    { name: "branch_policy", duration_ms: 0 },
-    { name: "verify_tools", duration_ms: 0, skipped: true },
-    { name: "triage_welcome", duration_ms: 0, skipped: true },
-    { name: "release_probe", duration_ms: 0, skipped: true },
-    { name: "ritual_write", duration_ms: elapsedMs(writeStarted) },
-  ];
-  const totalMs = elapsedMs(overallStarted);
+  pushExclusiveStep(stepTimings, "ritual_write", writeStarted);
   const failed = Object.entries(quickSteps)
     .filter(([, step]) => !step.ok && !step.deferred_reason)
     .map(([name]) => name);
@@ -1746,6 +1813,7 @@ function runSessionRearm(
   }
 
   // #3117: bind live deposit generation into session context on re-arm (host-agnostic).
+  const freshnessStarted = performance.now();
   let freshnessBind: Record<string, unknown> | null = null;
   try {
     const bound = bindSessionGeneration(projectRoot, {
@@ -1776,6 +1844,11 @@ function runSessionRearm(
       );
     }
   }
+  pushExclusiveStep(stepTimings, "freshness_bind", freshnessStarted);
+
+  // #5375 Bound 2: close measurement interval immediately before process-cost emit.
+  const totalMs = elapsedMs(overallStarted);
+  const processSteps = asProcessCostSteps(stepTimings);
 
   // #2994: local process-cost event (best-effort; never blocks ceremony).
   emitSessionStartProcessCost(
@@ -1785,13 +1858,20 @@ function runSessionRearm(
       exitCode: code,
       ready: code === 0,
       optionalNetwork: false,
-      steps: stepTimings,
+      steps: processSteps,
     },
     { projectRoot },
   );
-  // #3508: operator-visible CLI process time. ⊗ not #3286 Later graduation input.
-  if (!resolveSessionCompact({ compact: options.compact, env: options.env })) {
-    lines.push(formatSessionStartCeremonyCostLine(REARM_CEREMONY_TIER, totalMs));
+  // #3508 / #5375 Bound 3: operator-visible exclusive phases + residual.
+  const compact = resolveSessionCompact({ compact: options.compact, env: options.env });
+  if (
+    shouldEmitCeremonyCostLine({
+      compact,
+      durationMs: totalMs,
+      steps: processSteps,
+    })
+  ) {
+    lines.push(formatSessionStartCeremonyCostLine(REARM_CEREMONY_TIER, totalMs, processSteps));
   }
   return {
     code,
@@ -1978,9 +2058,13 @@ export function runSessionStart(
   // never block on plan-item effort (post-planning only). Cold incomplete size
   // is tier-conditional (#3263): mid/low → standard; frontier/unknown → rapid.
   // ⊗ Change rapid default when no evidence exists.
+  // #5375 Bound 1: exclusive named phases for previously unlabeled cold prefix.
+  const dialEvidenceStarted = performance.now();
   const consumerDialEvidence = collectCeremonyDialConsumerEvidence(projectRoot, {
     env: options.env,
   });
+  pushExclusiveStep(stepTimings, "ceremony_dial_evidence", dialEvidenceStarted);
+  const dialResolveStarted = performance.now();
   const dialInputsWithEvidence =
     options.ceremonyDial === undefined
       ? mergeCeremonyDialInputsWithConsumerEvidence(
@@ -2002,8 +2086,11 @@ export function runSessionStart(
   });
   const effectiveDeferrals = mergeCeremonyDialDeferrals(deferrals, ceremonyDialSelection);
   const skipFatPath = ceremonyDialSelection.profile.skipFatPath;
+  pushExclusiveStep(stepTimings, "ceremony_dial_resolve", dialResolveStarted);
 
+  const gitHeadStarted = performance.now();
   const { head: gitHeadValue, error: gitError } = gitHead(projectRoot, runGit);
+  pushExclusiveStep(stepTimings, "git_head", gitHeadStarted);
   if (gitHeadValue === null) {
     const payload = {
       ready: false,
@@ -2012,6 +2099,8 @@ export function runSessionStart(
       ceremony_dial: ceremonyDialToDict(ceremonyDialSelection),
       environment: environmentContextToDict(environment),
       message: gitError ?? "could not resolve git HEAD",
+      steps: stepTimings,
+      duration_ms: elapsedMs(overallStarted),
     };
     // #2994: still record failed attempt duration for process-cost rollups.
     emitSessionStartProcessCost(
@@ -2021,6 +2110,7 @@ export function runSessionStart(
         exitCode: 2,
         ready: false,
         optionalNetwork: allowOptionalNetwork,
+        steps: asProcessCostSteps(stepTimings),
       },
       { projectRoot },
     );
@@ -2031,12 +2121,16 @@ export function runSessionStart(
     };
   }
 
+  const occupancyStarted = performance.now();
   const plannedOccupancy = runOccupancy(projectRoot, options, sessionId, instant, false);
+  pushExclusiveStep(stepTimings, "occupancy_plan", occupancyStarted);
   if (plannedOccupancy.code !== 0) {
     return occupancyDeniedResult(plannedOccupancy, environment);
   }
 
+  const linkedStarted = performance.now();
   const linkedDeposit = applyLinkedWorktreeDeposit(projectRoot, options, environment);
+  pushExclusiveStep(stepTimings, "linked_deposit", linkedStarted);
   if ("deny" in linkedDeposit) {
     return linkedDeposit.deny;
   }
@@ -2077,9 +2171,12 @@ export function runSessionStart(
   // step finds preferences automatically in mismatched / headless sandboxes
   // with zero manual DEFT_USER_PATH (#2271 / #2124). Never throws: an absent
   // USER.md degrades to a clear diagnostic below.
+  // #5375 Bound 1: name user_md_resolve exclusive of alignment message assembly.
   const resolveUserMd =
     options.resolveUserMd ?? ((root) => resolveUserMdPath({ projectRoot: root }));
+  const userMdStarted = performance.now();
   const userMd = resolveUserMd(projectRoot);
+  pushExclusiveStep(stepTimings, "user_md_resolve", userMdStarted);
 
   if (!quickSteps.alignment) {
     const stepStarted = performance.now();
@@ -2175,6 +2272,8 @@ export function runSessionStart(
     stepTimings.push({ name: "branch_policy", duration_ms: 0, skipped: true });
   }
   // Orientation is independent of branch_policy deferral (#4291 / Greptile).
+  // #5375 Bound 1: branch_sync is an exclusive named phase (not folded).
+  const branchSyncStarted = performance.now();
   const branchSync = defaultBranchSync(projectRoot, runGit);
   lines.push(branchSync.orientation);
   if (branchSync.warning) {
@@ -2182,6 +2281,7 @@ export function runSessionStart(
   }
   // Standing disclosure is independent of branch_policy deferral (#3314 / Greptile).
   pushCoverageCheckResumeDisclosure(lines, projectRoot);
+  pushExclusiveStep(stepTimings, "branch_sync", branchSyncStarted);
 
   // #3214 / #3156: verify_tools is mutation readiness — always run, even under
   // rapid/minimal. Dial skipFatPath only lightens *ceremony* (triage welcome,
@@ -2250,9 +2350,11 @@ export function runSessionStart(
       toolchainPreflightResult = orientationBundle.preflight;
       lines.push(...orientationBundle.lines);
       for (const section of orientationBundle.sections) {
+        // #5375 Bound 1: section leaves carry parent so honesty sum is exclusive.
         stepTimings.push({
           name: section.name,
           duration_ms: section.durationMs,
+          parent: "orientation",
           ...(section.status === "skipped" ? { skipped: true } : {}),
         });
         // Record gated ritual steps so verify:session-ritual can skip re-runs.
@@ -2295,6 +2397,7 @@ export function runSessionStart(
           stepTimings.push({
             name: section.name,
             duration_ms: section.durationMs,
+            parent: "orientation",
             ...(section.status === "skipped" ? { skipped: true } : {}),
           });
           if (
@@ -2412,6 +2515,8 @@ export function runSessionStart(
     }
   }
 
+  // #5375 Bound 1: name previously unlabeled mid-ceremony phases.
+  const stalenessStarted = performance.now();
   if (!skipFatPath) {
     try {
       const tickler = (options.runStalenessTickler ?? maybeRunStalenessTickler)(projectRoot, {
@@ -2421,12 +2526,19 @@ export function runSessionStart(
     } catch {
       // Staleness tickler is best-effort and must never block session start.
     }
+    pushExclusiveStep(stepTimings, "staleness_tickler", stalenessStarted);
+  } else {
+    pushExclusiveStep(stepTimings, "staleness_tickler", stalenessStarted, {
+      skipped: true,
+      skip_reason: "skipFatPath",
+    });
   }
 
   if (!runningInsideDeftRepo(projectRoot) && shouldEmitMigrateNudge(projectRoot)) {
     lines.push(MIGRATE_COMPLETION_NUDGE);
   }
 
+  const valueReadbackStarted = performance.now();
   try {
     emitSessionValueReadback(projectRoot, {
       output: (line) => lines.push(line),
@@ -2435,7 +2547,9 @@ export function runSessionStart(
   } catch {
     // observability only — session start must not abort on transient readback I/O
   }
+  pushExclusiveStep(stepTimings, "value_readback", valueReadbackStarted);
 
+  const evalReadbackStarted = performance.now();
   try {
     emitSessionEvalReadback(projectRoot, {
       output: (line) => lines.push(line),
@@ -2444,14 +2558,22 @@ export function runSessionStart(
   } catch {
     // observability only — session start must not abort on transient eval readback I/O
   }
+  pushExclusiveStep(stepTimings, "eval_readback", evalReadbackStarted);
 
+  const consentStarted = performance.now();
   const consentPrompt = maybeFormatProductSignalConsentPrompt({ projectRoot });
   if (consentPrompt.length > 0) {
     lines.push(consentPrompt.trimEnd());
   }
+  pushExclusiveStep(stepTimings, "product_signal_consent", consentStarted);
 
-  // #4919: finalize-owed gate (private tip fetch; not allowOptionalNetwork).
+  // #4919 / #5375 Bound 5: finalize-owed is a named exclusive step.
+  const finalizeStarted = performance.now();
   const owedGate = evaluateFinalizeOwedSessionGate(projectRoot, options);
+  pushExclusiveStep(stepTimings, "finalize_owed", finalizeStarted, {
+    skipped: owedGate.deferred,
+    skip_reason: owedGate.deferReason,
+  });
   lines.push(...owedGate.lines);
   if (owedGate.blocks) {
     emitSessionStartProcessCost(
@@ -2461,7 +2583,7 @@ export function runSessionStart(
         exitCode: 1,
         ready: false,
         optionalNetwork: allowOptionalNetwork,
-        steps: stepTimings,
+        steps: asProcessCostSteps(stepTimings),
       },
       { projectRoot },
     );
@@ -2475,6 +2597,8 @@ export function runSessionStart(
         environment: environmentContextToDict(environment),
         finalize_owed_blocked: true,
         message: "finalize owed blocks mutation",
+        steps: stepTimings,
+        duration_ms: elapsedMs(overallStarted),
       },
       lines,
     };
@@ -2546,7 +2670,7 @@ export function runSessionStart(
         exitCode: 2,
         ready: false,
         optionalNetwork: allowOptionalNetwork,
-        steps: stepTimings,
+        steps: asProcessCostSteps(stepTimings),
       },
       { projectRoot },
     );
@@ -2571,10 +2695,11 @@ export function runSessionStart(
       lines.push(overlayErr);
     }
   }
-  const totalMs = elapsedMs(overallStarted);
 
   // #3282 / #3286: event-driven run-summary (dial + preflight + orientation call
   // count for dual-path Later graduation trigger) — fail-open, silent when unset.
+  // #5375 Bound 1/2: keep run_summary inside the measurement wall.
+  const runSummaryStarted = performance.now();
   if (options.emitRunSummary !== false) {
     try {
       const emitter = new RunSummaryEmitter({
@@ -2627,9 +2752,16 @@ export function runSessionStart(
     } catch {
       // fail-open
     }
+    pushExclusiveStep(stepTimings, "run_summary", runSummaryStarted);
+  } else {
+    pushExclusiveStep(stepTimings, "run_summary", runSummaryStarted, {
+      skipped: true,
+      skip_reason: "disabled",
+    });
   }
 
   // #3117: bind live deposit generation when payload surfaces load (cold path).
+  const freshnessStarted = performance.now();
   let freshnessBind: Record<string, unknown> | null = null;
   try {
     const bound = bindSessionGeneration(projectRoot, {
@@ -2660,6 +2792,14 @@ export function runSessionStart(
       );
     }
   }
+  pushExclusiveStep(stepTimings, "freshness_bind", freshnessStarted);
+
+  // #5375 Bound 2: close measurement interval at the last statement before emit.
+  // Intentional exclusions (prelude before overallStarted): env detect, kill-switch,
+  // opt-out, occupancy claim mint, and external CLI/process boot
+  // (exclusion_token: pre_overall_started_prelude).
+  const totalMs = elapsedMs(overallStarted);
+  const processSteps = asProcessCostSteps(stepTimings);
 
   const resultPayload = {
     ready: code === 0,
@@ -2713,13 +2853,20 @@ export function runSessionStart(
       exitCode: code,
       ready: code === 0,
       optionalNetwork: allowOptionalNetwork,
-      steps: stepTimings,
+      steps: processSteps,
     },
     { projectRoot },
   );
-  // #3508: operator-visible CLI process time. ⊗ not #3286 Later graduation input.
-  if (!resolveSessionCompact({ compact: options.compact, env: options.env })) {
-    lines.push(formatSessionStartCeremonyCostLine(COLD_CEREMONY_TIER, totalMs));
+  // #3508 / #5375 Bound 3: exclusive phases + residual; compact must not hide large residual.
+  const compact = resolveSessionCompact({ compact: options.compact, env: options.env });
+  if (
+    shouldEmitCeremonyCostLine({
+      compact,
+      durationMs: totalMs,
+      steps: processSteps,
+    })
+  ) {
+    lines.push(formatSessionStartCeremonyCostLine(COLD_CEREMONY_TIER, totalMs, processSteps));
   }
   return { code, payload: resultPayload, lines };
 }
