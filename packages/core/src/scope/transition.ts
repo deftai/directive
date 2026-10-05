@@ -1,6 +1,9 @@
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { enforceConsumerHeaderPlaceholderAtCompletionChokepoint } from "../check/consumer-header-placeholder.js";
+import {
+  enforceConsumerHeaderPlaceholderAtCompletionChokepoint,
+  enforceConsumerHeaderPlaceholderWhenProductEvidence,
+} from "../check/consumer-header-placeholder.js";
 import {
   SESSION_COMPLETED_AC_REMEDIATION,
   writeSessionCompletedMarker,
@@ -395,12 +398,15 @@ export function runTransition(
       );
       reuseValidatedDeliveryAncestry = gate.provenance.disposition === "delivered";
     }
-    // #4544 residual after #5178 / #5253: code-bearing product completion must
-    // not leave scaffold edit-me. Prefer-A Bound lean 6000271029 widens beyond
-    // delivered-only so local / non-delivered codeBearing completes still reach
-    // enforce (hookless stacks that never hit occupancy persist marker).
+    // #4544 residual after #5178 / #5253: delivered codeBearing always enforces.
+    // Non-delivery dispositions (cancelled / accepted_not_delivered) only enforce
+    // when Prefer-A marker or this-session untracked product evidence exists —
+    // never stamp product completion on a clean non-delivery exit (#4544 P1).
     if (gate.codeBearing) {
-      const chokepoint = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(projectRoot);
+      const chokepoint =
+        gate.provenance?.disposition === "delivered"
+          ? enforceConsumerHeaderPlaceholderAtCompletionChokepoint(projectRoot)
+          : enforceConsumerHeaderPlaceholderWhenProductEvidence(projectRoot);
       if (!chokepoint.ok) {
         return { ok: false, message: chokepoint.message };
       }

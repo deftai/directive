@@ -59,6 +59,8 @@ export interface ConsumerHeaderPlaceholderSeams {
    * When set, skips git porcelain. undefined → probe the worktree.
    */
   readonly dirtyProductEvidence?: boolean;
+  /** Test seam: inject `git status --porcelain` (null = probe unknown). */
+  readonly gitPorcelain?: string | null;
 }
 
 export interface CompletionChokepointSeams {
@@ -116,10 +118,8 @@ const NON_PRODUCT_BASENAMES = new Set([
   ".no-deft-directive",
   ".deft-directive-disable",
   ".deft-run-summary.json",
-  "package.json",
-  "package-lock.json",
-  "pnpm-lock.yaml",
-  "yarn.lock",
+  // package.json / lockfiles ARE product evidence (#4544 Greptile P1): dependency-
+  // only sessions must not Process-only-pass scaffold edit-me.
   "README.md",
   "LICENSE",
   "CHANGELOG.md",
@@ -140,20 +140,42 @@ export function isNonProductMutationPath(relPath: string): boolean {
   );
 }
 
-function parsePorcelainPaths(stdout: string): string[] {
-  const paths: string[] = [];
+type PorcelainEntry = { readonly xy: string; readonly path: string };
+
+function parsePorcelainEntries(stdout: string): PorcelainEntry[] {
+  const entries: PorcelainEntry[] = [];
   for (const raw of stdout.replace(/\r\n/g, "\n").split("\n")) {
     if (raw.length < 4) continue;
+    const xy = raw.slice(0, 2);
     // XY<space>path  or  XY<space>old -> new
     const entry = raw.slice(3);
     if (entry.includes(" -> ")) {
       const renamed = entry.split(" -> ").pop();
-      if (renamed !== undefined && renamed.length > 0) paths.push(renamed);
+      if (renamed !== undefined && renamed.length > 0) {
+        entries.push({ xy, path: renamed });
+      }
     } else if (entry.length > 0) {
-      paths.push(entry);
+      entries.push({ xy, path: entry });
     }
   }
-  return paths;
+  return entries;
+}
+
+/**
+ * Prefer-A Bound: count untracked / index-added product paths as this-session
+ * evidence. Pure modifications to already-tracked files are excluded so
+ * pre-existing brownfield dirt does not impersonate this session (#4544 P1).
+ * Hookless edits to tracked product files still rely on Prefer-A marker stamp.
+ */
+function isThisSessionProductEvidenceXy(xy: string): boolean {
+  if (xy === "??" || xy === "!!") return true;
+  const index = xy[0] ?? " ";
+  // Added / copied / renamed into the index — new path evidence this session.
+  return index === "A" || index === "C" || index === "R";
+}
+
+function parsePorcelainPaths(stdout: string): string[] {
+  return parsePorcelainEntries(stdout).map((e) => e.path);
 }
 
 function readGitPorcelainAtRoot(projectRoot: string): string | null {
@@ -171,24 +193,46 @@ function readGitPorcelainAtRoot(projectRoot: string): string | null {
   }
 }
 
+export type DirtyProductEvidenceProbe =
+  | { readonly kind: "dirty" }
+  | { readonly kind: "clean" }
+  | { readonly kind: "unknown"; readonly detail: string };
+
 /**
  * This-session product-mutation evidence beyond Prefer-A marker (#4544 residual).
- * Dirty/untracked paths outside deposit/Process-only prefixes — catches hookless /
- * Shell-bypass product writes that never stamped persistProductMutationMarker.
- * Clean brownfield product trees without dirty product paths stay Process-only.
+ * Untracked / index-added paths outside deposit/Process-only prefixes — catches
+ * hookless / Shell-bypass product creates that never stamped
+ * persistProductMutationMarker. Clean trees and tracked-only modifications stay
+ * Process-only unless the Prefer-A marker is present.
  */
+export function probeDirtyProductMutationEvidence(
+  projectRoot: string,
+  seams: { readonly dirtyProductEvidence?: boolean; readonly gitPorcelain?: string | null } = {},
+): DirtyProductEvidenceProbe {
+  if (seams.dirtyProductEvidence !== undefined) {
+    return seams.dirtyProductEvidence ? { kind: "dirty" } : { kind: "clean" };
+  }
+  const porcelain =
+    seams.gitPorcelain !== undefined ? seams.gitPorcelain : readGitPorcelainAtRoot(projectRoot);
+  if (porcelain === null) {
+    return {
+      kind: "unknown",
+      detail: "git status unavailable; cannot classify dirty product evidence",
+    };
+  }
+  for (const entry of parsePorcelainEntries(porcelain)) {
+    if (!isThisSessionProductEvidenceXy(entry.xy)) continue;
+    if (!isNonProductMutationPath(entry.path)) return { kind: "dirty" };
+  }
+  return { kind: "clean" };
+}
+
+/** True when probe reports dirty; unknown/clean are false (callers must handle unknown). */
 export function hasDirtyProductMutationEvidence(
   projectRoot: string,
   seams: { readonly dirtyProductEvidence?: boolean; readonly gitPorcelain?: string | null } = {},
 ): boolean {
-  if (seams.dirtyProductEvidence !== undefined) return seams.dirtyProductEvidence;
-  const porcelain =
-    seams.gitPorcelain !== undefined ? seams.gitPorcelain : readGitPorcelainAtRoot(projectRoot);
-  if (porcelain === null) return false;
-  for (const rel of parsePorcelainPaths(porcelain)) {
-    if (!isNonProductMutationPath(rel)) return true;
-  }
-  return false;
+  return probeDirtyProductMutationEvidence(projectRoot, seams).kind === "dirty";
 }
 
 function readAgentsMdAtRoot(projectRoot: string): AgentsMdReadResult {
@@ -295,14 +339,23 @@ export function evaluateConsumerHeaderPlaceholderAtRoot(
     });
   }
 
-  // #4544 residual after #5253: dirty product paths are this-session evidence for
-  // stacks that skipped occupancy persistProductMutationMarker / delivered complete.
-  // Reuse enforce (stamp + Overview CAS); do not invent a second evaluator.
-  if (
-    hasDirtyProductMutationEvidence(projectRoot, {
-      dirtyProductEvidence: seams.dirtyProductEvidence,
-    })
-  ) {
+  // #4544 residual after #5253: untracked/index-added product paths are this-session
+  // evidence for stacks that skipped occupancy persistProductMutationMarker /
+  // delivered complete. Reuse enforce (stamp + Overview CAS); do not invent a
+  // second evaluator. Git probe unknown fails closed (not Process-only).
+  const dirtyProbe = probeDirtyProductMutationEvidence(projectRoot, {
+    dirtyProductEvidence: seams.dirtyProductEvidence,
+    gitPorcelain: seams.gitPorcelain,
+  });
+  if (dirtyProbe.kind === "unknown") {
+    return evaluateFirstShipHeaderPlaceholderGate({
+      agentsMd: agentsRead.kind === "ok" ? agentsRead.text : null,
+      productMutationCompletion: false,
+      productMutationMarkerUnreadable: true,
+      productMutationMarkerDetail: dirtyProbe.detail,
+    });
+  }
+  if (dirtyProbe.kind === "dirty") {
     const chokepoint = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(projectRoot, {
       readAgentsMd: seams.readAgentsMd,
     });
@@ -574,10 +627,31 @@ export function enforceConsumerHeaderPlaceholderWhenProductEvidence(
   | ConsumerHeaderCompletionChokepointResult
   | { readonly ok: true; readonly skipped: true; readonly reason: "no-product-evidence" } {
   const marker = lookupProductMutationCompletion(projectRoot);
-  const dirty = hasDirtyProductMutationEvidence(projectRoot, {
+  const dirtyProbe = probeDirtyProductMutationEvidence(projectRoot, {
     dirtyProductEvidence: seams.dirtyProductEvidence,
     gitPorcelain: seams.gitPorcelain,
   });
+  if (dirtyProbe.kind === "unknown" && marker.kind !== "present") {
+    const message =
+      `${CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID} FAIL: ${dirtyProbe.detail}; ` +
+      `remedy: restore git status then retry completion / occupancy release`;
+    return {
+      ok: false,
+      evaluation: {
+        ok: false,
+        reason: "product-mutation-marker-unreadable",
+        message,
+      },
+      message,
+      marker: { ok: true, skipped: true },
+      remediation: {
+        attempted: false,
+        overviewAvailable: false,
+        wroteAgentsMd: false,
+      },
+    };
+  }
+  const dirty = dirtyProbe.kind === "dirty";
   if (marker.kind !== "present" && marker.kind !== "unreadable" && !dirty) {
     return { ok: true, skipped: true, reason: "no-product-evidence" };
   }

@@ -80,7 +80,9 @@ describe("evaluateConsumerHeaderPlaceholderAtRoot (#4544 Prefer-A)", () => {
       JSON.stringify({ last_write_at: "2026-09-30T12:00:00Z" }),
       "utf8",
     );
-    const stalePass = evaluateConsumerHeaderPlaceholderAtRoot(staleLease);
+    const stalePass = evaluateConsumerHeaderPlaceholderAtRoot(staleLease, {
+      dirtyProductEvidence: false,
+    });
     expect(stalePass.ok).toBe(true);
     expect(stalePass.reason).toBe("process-only");
 
@@ -90,7 +92,9 @@ describe("evaluateConsumerHeaderPlaceholderAtRoot (#4544 Prefer-A)", () => {
       `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
       "utf8",
     );
-    const pass = evaluateConsumerHeaderPlaceholderAtRoot(processOnly);
+    const pass = evaluateConsumerHeaderPlaceholderAtRoot(processOnly, {
+      dirtyProductEvidence: false,
+    });
     expect(pass.ok).toBe(true);
     expect(pass.reason).toBe("process-only");
 
@@ -285,7 +289,9 @@ describe("enforceConsumerHeaderPlaceholderAtCompletionChokepoint (#4544 residual
       `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
       "utf8",
     );
-    const processOnly = evaluateConsumerHeaderPlaceholderAtRoot(root);
+    const processOnly = evaluateConsumerHeaderPlaceholderAtRoot(root, {
+      dirtyProductEvidence: false,
+    });
     expect(processOnly.ok).toBe(true);
     expect(processOnly.reason).toBe("process-only");
   });
@@ -296,11 +302,14 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
     expect(isNonProductMutationPath("xbrief/proposed/a.xbrief.json")).toBe(true);
     expect(isNonProductMutationPath(".deft/cache/product-mutation-completion.json")).toBe(true);
     expect(isNonProductMutationPath("AGENTS.md")).toBe(true);
+    expect(isNonProductMutationPath("README.md")).toBe(true);
     expect(isNonProductMutationPath("notes/hello.py")).toBe(false);
     expect(isNonProductMutationPath("src/app.ts")).toBe(false);
+    expect(isNonProductMutationPath("package.json")).toBe(false);
+    expect(isNonProductMutationPath("pnpm-lock.yaml")).toBe(false);
   });
 
-  it("detects dirty product evidence from porcelain seam", () => {
+  it("detects this-session product evidence from untracked/index-added porcelain", () => {
     const root = tempRoot();
     expect(
       hasDirtyProductMutationEvidence(root, {
@@ -309,7 +318,28 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
     ).toBe(true);
     expect(
       hasDirtyProductMutationEvidence(root, {
+        gitPorcelain: "A  src/app.ts\n",
+      }),
+    ).toBe(true);
+    // Tracked-only modifications are not this-session evidence (#4544 P1).
+    expect(
+      hasDirtyProductMutationEvidence(root, {
+        gitPorcelain: " M notes/hello.py\n M src/app.ts\n",
+      }),
+    ).toBe(false);
+    expect(
+      hasDirtyProductMutationEvidence(root, {
         gitPorcelain: "?? xbrief/proposed/a.xbrief.json\n M AGENTS.md\n",
+      }),
+    ).toBe(false);
+    expect(
+      hasDirtyProductMutationEvidence(root, {
+        gitPorcelain: "?? package.json\n",
+      }),
+    ).toBe(true);
+    expect(
+      hasDirtyProductMutationEvidence(root, {
+        gitPorcelain: null,
       }),
     ).toBe(false);
   });
@@ -391,9 +421,25 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
   it("honesty: pin 7c775edf had only two production enforce callers; residual adds reachability", () => {
     // Census at dispatch-sha 7c775edf: scope/transition delivered+codeBearing and
     // occupancy writeOccupancyRecord persistProductMutationMarker=true only.
-    // This residual adds: evaluate dirty-product path, releaseOccupancy evidence
-    // wrapper, and codeBearing-complete (not delivered-only) in transition.
+    // This residual adds: evaluate untracked-product path, releaseOccupancy
+    // evidence wrapper (after ownership), and delivered-or-evidence codeBearing
+    // complete in transition.
     expect(typeof enforceConsumerHeaderPlaceholderWhenProductEvidence).toBe("function");
     expect(typeof hasDirtyProductMutationEvidence).toBe("function");
+  });
+
+  it("git status unknown fails closed instead of Process-only (#4544 P1)", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
+      "utf8",
+    );
+    const result = evaluateConsumerHeaderPlaceholderAtRoot(root, {
+      gitPorcelain: null,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("product-mutation-marker-unreadable");
+    expect(result.message).toMatch(/git status unavailable/i);
   });
 });
