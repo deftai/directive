@@ -148,28 +148,28 @@
         {
           "id": "ac-3",
           "text": "How-much-is-left interrupt: Operator ask for remaining scope MUST be answered as Rule 2 status-only emission grounded in inventory; then re-render the same pending question. Do not advance to next material decision. Do not open Discuss unless operator chose Discuss.",
-          "artifact_path": "CHANGELOG.md"
+          "artifact_path": "content/skills/deft-directive-interview/SKILL.md"
         },
         {
           "id": "ac-4",
           "text": "Preserve interaction constraints: Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics including Rule 8. Do not remove Rule 8 or switch to yolo as the remedy.",
-          "artifact_path": "CHANGELOG.md"
+          "artifact_path": "content/skills/deft-directive-interview/SKILL.md"
         },
         {
           "id": "ac-5",
           "text": "Land sites: Amend deft-directive-interview SKILL (Rule 1 coexistence + positive progress duty; Rule 2 status class; how-much-is-left interrupt). Mirror into setup Phase 1 and Phase 2 Interview Rules; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).",
-          "artifact_path": "CHANGELOG.md"
+          "artifact_path": "content/skills/deft-directive-setup/SKILL.md"
         },
         {
           "id": "ac-6",
           "text": "Acceptance / regression fixture: Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible. CHANGELOG Unreleased.",
-          "artifact_path": "CHANGELOG.md"
+          "artifact_path": "packages/core/src/content-contracts/skills/interview_progress_checkpoints_5353.test.ts"
         }
       ],
       "ambiguity_attestation": "none_found"
     },
     "metadata": {
-      "productPullRequest": 5362,
+      "productPullRequest": 5357,
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
