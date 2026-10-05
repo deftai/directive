@@ -160,89 +160,6 @@ export function runConsumerDocsImpactSmoke(
 }
 
 function seedMinimalProjectDefinition(projectDir: string): void {
-  // Prefer xbrief 0.8: readConfirmedOverviewAtRoot resolves xbrief before vbrief.
-  // Dirty docs-impact-*.md fixtures are product evidence under #4544 residual
-  // reachability, so Overview must be visible for CAS remediation at check.
-  const overview = "Greenfield smoke fixture (#2022 Phase 3).";
-  const narratives = {
-    Overview: overview,
-    "tech stack": "Node.js",
-  };
-  const xbriefDir = join(projectDir, "xbrief");
-  mkdirSync(xbriefDir, { recursive: true });
-  const xbriefPath = join(xbriefDir, "PROJECT-DEFINITION.xbrief.json");
-  if (existsSync(xbriefPath)) {
-    try {
-      const parsed: unknown = JSON.parse(readFileSync(xbriefPath, "utf8"));
-      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-        const root = parsed as Record<string, unknown>;
-        const plan =
-          typeof root.plan === "object" && root.plan !== null && !Array.isArray(root.plan)
-            ? ({ ...(root.plan as Record<string, unknown>) } as Record<string, unknown>)
-            : {};
-        const existingNarratives =
-          typeof plan.narratives === "object" &&
-          plan.narratives !== null &&
-          !Array.isArray(plan.narratives)
-            ? ({ ...(plan.narratives as Record<string, unknown>) } as Record<string, unknown>)
-            : {};
-        plan.narratives = { ...existingNarratives, ...narratives };
-        if (typeof plan.title !== "string" || plan.title.trim().length === 0) {
-          plan.title = "PROJECT-DEFINITION";
-        }
-        root.plan = plan;
-        if (root.xBRIEFInfo === undefined) {
-          root.xBRIEFInfo = {
-            version: "0.8",
-            description: "greenfield smoke fixture (#2022 Phase 3)",
-          };
-        }
-        writeFileSync(xbriefPath, `${JSON.stringify(root, null, 2)}\n`, "utf8");
-      } else {
-        throw new Error("PROJECT-DEFINITION.xbrief.json is not an object");
-      }
-    } catch {
-      writeFileSync(
-        xbriefPath,
-        `${JSON.stringify(
-          {
-            xBRIEFInfo: { version: "0.8", description: "greenfield smoke fixture (#2022 Phase 3)" },
-            plan: {
-              title: "PROJECT-DEFINITION",
-              status: "running",
-              items: [],
-              policy: {},
-              narratives,
-            },
-          },
-          null,
-          2,
-        )}\n`,
-        "utf8",
-      );
-    }
-  } else {
-    writeFileSync(
-      xbriefPath,
-      `${JSON.stringify(
-        {
-          xBRIEFInfo: { version: "0.8", description: "greenfield smoke fixture (#2022 Phase 3)" },
-          plan: {
-            title: "PROJECT-DEFINITION",
-            status: "running",
-            items: [],
-            policy: {},
-            narratives,
-          },
-        },
-        null,
-        2,
-      )}\n`,
-      "utf8",
-    );
-  }
-
-  // Legacy vbrief seed retained for readers that still resolve 0.6 first.
   const vbriefDir = join(projectDir, "vbrief");
   mkdirSync(vbriefDir, { recursive: true });
   writeFileSync(
@@ -255,7 +172,10 @@ function seedMinimalProjectDefinition(projectDir: string): void {
           status: "running",
           items: [],
           policy: {},
-          narratives,
+          narratives: {
+            Overview: "Greenfield smoke fixture (#2022 Phase 3).",
+            "tech stack": "Node.js",
+          },
         },
       },
       null,
