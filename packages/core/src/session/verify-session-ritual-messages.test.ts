@@ -227,7 +227,45 @@ describe("verify-session-ritual failed-step messaging", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("gated step 'doctor' failed");
-    // #5390: doctor stale stamp recovery names --rearm; ready cannot clear it (#3738).
+    // Generic live doctor failure (VERSION present / no #5390 class) stays cold.
+    expect(result.message).not.toContain("session:start --rearm");
+    expect(result.recoveryTier).toBe("cold");
+  });
+
+  it("names --rearm when doctor failed and .deft/core/VERSION is missing (#5390)", () => {
+    const { root, head } = initRoot();
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# payload\n", "utf8");
+    writeRitualState(
+      root,
+      newRitualStatePayload({
+        sessionId: "s",
+        gitHead: head,
+        worktreePath: resolve(root),
+        startedAt: NOW,
+        quickSteps: {
+          alignment: ritualStep({ ok: true, ts: NOW }),
+          branch_policy: ritualStep({ ok: true, ts: NOW }),
+          triage_welcome: ritualStep({ ok: true, ts: NOW }),
+          verify_tools: ritualStep({ ok: true, ts: NOW }),
+        },
+        gatedSteps: {
+          agent_hooks: ritualStep({ ok: true, ts: NOW }),
+          doctor: ritualStep({ ok: false, ts: NOW, message: "manifest-agreement missing" }),
+          cache_fresh: ritualStep({ ok: true, ts: NOW }),
+        },
+      }),
+    );
+    const result = verifySessionRitual(root, {
+      bypass: false,
+      tier: "gated",
+      now: NOW,
+      runGit: fakeGit(head, resolve(root)),
+      // Do not re-execute gated steps — inspect the recorded #5390-class stamp.
+      executeGatedSteps: [],
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("gated step 'doctor' failed");
     expect(result.message).toContain("session:start --rearm");
     expect(result.message).toContain("session:ready");
     expect(result.recoveryTier).toBe("rearm");

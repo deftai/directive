@@ -795,8 +795,19 @@ export function reconstituteLinkedWorktreeDeposit(
     }
     const source = resolveWorktreePayloadSource(projectRoot, seams);
     const sourceVersion = source ? resolvePayloadSourceVersion(source) : null;
-    if (source === null || sourceVersion === null || sourceVersion !== bare) {
-      // Disagree / unknown provenance: leave VERSION absent; doctor stays update-class.
+    if (source === null || sourceVersion === null) {
+      // Bare present but no recoverable source version: keep refusing so a prior
+      // copy-then-refuse cannot become silent already-present (#5390 / Greptile).
+      return {
+        status: "refused",
+        source,
+        dest,
+        message: "payload already present; VERSION absent and payload source version unresolvable",
+        versionRepaired: false,
+      };
+    }
+    if (sourceVersion !== bare) {
+      // Disagree: leave VERSION absent; doctor stays update-class.
       return {
         status: "already-present",
         source,
@@ -833,6 +844,18 @@ export function reconstituteLinkedWorktreeDeposit(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { status: "refused", source, dest, message, versionRepaired: false };
+  }
+  // Resolve source version before copy so an unresolvable source cannot leave a
+  // main.md-only payload that retries as already-present without VERSION (#5390).
+  const sourceVersion = resolvePayloadSourceVersion(source);
+  if (sourceVersion === null) {
+    return {
+      status: "refused",
+      source,
+      dest,
+      message: "cannot resolve payload source version for .deft/core/VERSION",
+      versionRepaired: false,
+    };
   }
   const copy = seams.copyPayload ?? copyWorktreePayloadSync;
   mkdirSync(join(resolve(projectRoot), ".deft"), { recursive: true, mode: 0o755 });

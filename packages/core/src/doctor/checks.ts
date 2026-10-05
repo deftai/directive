@@ -9,7 +9,6 @@ import {
   resolveWorktreePayloadSource,
 } from "../init-deposit/gitignore.js";
 import { bareVersionMarkerTargets } from "../init-deposit/hygiene.js";
-import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
   detectDualLayout,
   detectLegacyLayout,
@@ -40,6 +39,7 @@ import {
   reviewerConfigPresent,
 } from "../pr-merge-readiness/reviewer-presence.js";
 import { detectPackageManager, type PackageManager } from "../resolution/package-manager.js";
+import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { classifyXbriefSchemaDistance } from "../staleness-tickler/probe-xbrief.js";
 import type { XbriefSchemaDistance } from "../staleness-tickler/types.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";

@@ -630,7 +630,7 @@ describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {
     const payload = join(project, "payload");
     mkdirSync(payload, { recursive: true });
     writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
-    // No package.json / VERSION → source version unresolvable after copy.
+    // No package.json / VERSION → source version unresolvable before copy.
     const result = reconstituteLinkedWorktreeDeposit(project, {
       isLinkedWorktree: () => true,
       isFrameworkSource: () => false,
@@ -638,6 +638,27 @@ describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {
     });
     expect(result.status).toBe("refused");
     expect(result.message).toMatch(/cannot resolve payload source version/i);
+    expect(existsSync(join(project, ".deft", "core", "main.md"))).toBe(false);
+  });
+
+  it("keeps refusing already-present when bare exists but source version is unresolvable (#5390)", () => {
+    const project = freshRoot("wt-dep-retry-");
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(join(project, "xbrief", ".deft-version"), "1.0.0\n", "utf8");
+    const dest = join(project, ".deft", "core");
+    mkdirSync(dest, { recursive: true });
+    writeFileSync(join(dest, "main.md"), "# leftover\n", "utf8");
+    const payload = join(project, "payload");
+    mkdirSync(payload, { recursive: true });
+    writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
+    const result = reconstituteLinkedWorktreeDeposit(project, {
+      isLinkedWorktree: () => true,
+      isFrameworkSource: () => false,
+      resolvePayloadSource: () => payload,
+    });
+    expect(result.status).toBe("refused");
+    expect(result.message).toMatch(/source version unresolvable/i);
+    expect(existsSync(join(dest, "VERSION"))).toBe(false);
   });
 
   it.skipIf(process.platform === "win32")(

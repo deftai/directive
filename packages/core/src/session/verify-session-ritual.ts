@@ -220,16 +220,34 @@ export function formatRitualRecoveryInstruction(tier: SessionCeremonyTier = "col
   );
 }
 
+/** True when doctor recovery should name --rearm for the #5390 class. */
+function isMissingVersionDoctorRecoveryClass(
+  projectRoot: string,
+  step: Record<string, unknown> | undefined | null,
+): boolean {
+  if (!step || typeof step !== "object" || step.ok !== false) return false;
+  const message = typeof step.message === "string" ? step.message : "";
+  if (/UNRESOLVED|manifest-agreement|YAML manifest is missing|missing VERSION/i.test(message)) {
+    return true;
+  }
+  // #5390 class: payload present + VERSION absent (reconstitute can clear).
+  const coreDir = join(projectRoot, ".deft", "core");
+  return existsSync(join(coreDir, "main.md")) && !existsSync(join(coreDir, "VERSION"));
+}
+
 /**
- * Doctor / UNRESOLVED ritual recovery (#5390 / #3738): session:ready cannot
- * clear a stale ritual doctor stamp; name --rearm (or cold) for this class.
+ * Doctor / missing-VERSION ritual recovery (#5390 / #3738): session:ready cannot
+ * clear a stale ritual doctor stamp. Rearm reconstitutes (may write VERSION) and
+ * refreshes the bind; follow with gated verify so a failed doctor step re-runs.
+ * Cold re-runs doctor in-ceremony. Prefer this only for the missing-VERSION class.
  */
 export function formatDoctorStaleRitualRecovery(): string {
   const rearm = formatSessionStartRecoveryCommand("rearm");
   const cold = formatSessionStartRecoveryCommand("cold");
+  const verify = formatFrameworkCommand(["verify:session-ritual", "--", "--tier=gated"]);
   return (
-    `Recovery: run \`${rearm}\` to refresh the ritual doctor stamp ` +
-    `(or \`${cold}\` for a full cold ceremony). ` +
+    `Recovery: run \`${rearm}\` then \`${verify}\` to reconstitute/refresh and ` +
+    `re-run doctor (or \`${cold}\` for a full cold ceremony). ` +
     "`session:ready` cannot clear a stale ritual doctor stamp (#3738 / #5390)."
   );
 }
@@ -466,8 +484,10 @@ function evaluateLoadedState(
     for (const stepName of requiredGated) {
       const step = state.gatedSteps[stepName];
       if (!stepPasses(step)) {
-        // Doctor failures: prefer --rearm; ready cannot clear a stale doctor stamp (#5390 / #3738).
-        if (stepName === "doctor") {
+        // #5390 / #3738: name --rearm only for the missing-VERSION / this-class
+        // stamp. Rearm restamps gated steps and does not re-run doctor; generic
+        // doctor failures stay cold so the preferred recovery can clear them.
+        if (stepName === "doctor" && isMissingVersionDoctorRecoveryClass(projectRoot, step)) {
           return {
             code: 1,
             message: `${failedStepMessage("gated", stepName, step)}. ${formatDoctorStaleRitualRecovery()}`,
