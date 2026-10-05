@@ -26,8 +26,8 @@ N. [feature]
 - ! If not declared, propose a size and **wait for the user to confirm** before proceeding
 - ⊗ Combine the sizing proposal with the first interview question
 
-**Light** (small/medium): Interview → SPECIFICATION with embedded Requirements.
-**Full** (large/complex): Interview → PRD (approval gate) → SPECIFICATION with traceability.
+**Light** (small/medium): Interview → PROJECT-DEFINITION narratives + proposed scopes → SPECIFICATION with embedded Requirements.
+**Full** (large/complex): Interview → PROJECT-DEFINITION narratives + proposed scopes with traceability → SPECIFICATION. `PRD.md` is never an approval gate (? optional `task prd:render` export only).
 
 ## Interview Process
 
@@ -56,54 +56,23 @@ N. [feature]
 
 ## Output Generation
 
-### Full Path: PRD Generation
+### Optional PRD export (never authoritative)
 
-Only on the **Full** path — generate `PRD.md` as a rendered stakeholder-review export before the specification source is finalized:
+! Greenfield authority is PROJECT-DEFINITION narratives + lifecycle scopes in `proposed/`. `PRD.md` is never authoritative.
 
-```markdown
-# [Project Name] PRD
-
-## Problem Statement
-What problem does this solve? Who has this problem?
-
-## Goals
-- Primary goal
-- Secondary goals
-- Non-goals (explicitly out of scope)
-
-## User Stories
-As a [user type], I want [capability] so that [benefit].
-
-## Requirements
-
-### Functional Requirements
-- FR-1: [requirement]
-- FR-2: [requirement]
-
-### Non-Functional Requirements
-- NFR-1: Performance — [requirement]
-- NFR-2: Security — [requirement]
-
-## Success Metrics
-How do we know this succeeded?
-
-## Open Questions
-Any remaining decisions deferred to implementation.
-```
-
-- ! Focus on WHAT, not HOW
-- ! Use RFC 2119 language (MUST, SHOULD, MAY)
-- ! Number all requirements for traceability
-- ! User MUST review and approve the rendered PRD export before specification generation begins
-- ! `vbrief/specification.vbrief.json` and scope vBRIEFs remain authoritative; rendered PRD/SPEC files are exports, not the source of truth
+? Users MAY run `task prd:render` for a read-only stakeholder rendered PRD export after scopes sit in `proposed/`.
+⊗ Generate an authoritative `PRD.md` as an interview approval gate
+⊗ Require PRD approval before writing scopes or PROJECT-DEFINITION
+! Scope xBRIEFs / PROJECT-DEFINITION remain authoritative; rendered PRD/SPEC files are exports, not the source of truth
 
 ### Specification Flow (both paths)
 
 1. ! Write scope vBRIEF(s) to `./vbrief/proposed/` with `status: proposed` using `YYYY-MM-DD-descriptive-slug.vbrief.json` naming
 2. ! Summarize what was decided and ask the user to review
-3. ! On user approval, use `task scope:promote` to move to `./vbrief/pending/` with `status: pending`
+3. ! On user approval, leave scopes in `proposed/` with `status: proposed`. ⊗ Auto-run `task scope:promote` or `task scope:activate` as the effect of approving planning artifacts. Downstream build/swarm/refinement with explicit operator lifecycle intent remains the promote/activate bridge.
 4. ! Update `./vbrief/PROJECT-DEFINITION.vbrief.json` items registry to include the new scope vBRIEF(s)
 5. ? For project-wide spec: write `./vbrief/specification.vbrief.json` and run `task spec:render` to generate `SPECIFICATION.md`
+6. ? Optionally run `task prd:render` for a read-only rendered PRD export
 
 ! The vBRIEF file MUST use this exact top-level structure:
 
@@ -160,7 +129,8 @@ Any remaining decisions deferred to implementation.
 
 ## Afterwards
 
-- ! Let user know to type "implement the scope vBRIEFs in `./vbrief/pending/`" to start implementation
+- ! Tell the user scopes remain in `proposed/` until a downstream build/swarm/refinement step with explicit lifecycle intent runs promote/activate
+- ⊗ Instruct `task scope:promote` solely because planning artifacts were approved
 
 **SPECIFICATION Structure (Light path — embedded Requirements):**
 
@@ -198,13 +168,13 @@ Any remaining decisions deferred to implementation.
 ## Deployment
 ```
 
-**SPECIFICATION Structure (Full path — references PRD):**
+**SPECIFICATION Structure (Full path — requirements in PROJECT-DEFINITION / scopes):**
 
 ```markdown
 # Project Name
 
 ## Overview
-Brief summary and link to PRD.
+Brief summary (optional link to a rendered PRD export if one exists).
 
 ## Architecture
 
@@ -243,4 +213,6 @@ Brief summary and link to PRD.
 - ⊗ Missing dependencies
 - ⊗ Sequential tasks that could be parallel
 - ⊗ Creating PRD.md on the Light path
+- ⊗ Generate an authoritative PRD.md — if needed, users run `task prd:render`
+- ⊗ Auto-run `task scope:promote` or `task scope:activate` when the user approves planning artifacts
 - ⊗ Skipping the sizing gate
