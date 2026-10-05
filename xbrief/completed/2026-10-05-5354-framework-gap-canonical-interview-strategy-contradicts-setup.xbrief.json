@@ -1,0 +1,465 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5354",
+    "updated": "2026-10-05T05:01:59Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Canonical interview strategy contradicts setup on PRD authority and scope promotion",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] Canonical interview strategy contradicts setup on PRD authority and scope promotion",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5354",
+      "Overview": "Prefer-A Bound PRD authority and promote polarity. Operator through-merge overrides arc-mode no-ingest. Product shipped in #5361.",
+      "Labels": "bug, design, agent-experience, process, source-of-truth, urgent, area:skills, area:guidance, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:planning, promise:requirements"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Single authoritative output/lifecycle contract: Reconcile interview strategy so Light and Full match setup Phase 3 + deft-directive-interview: greenfield authority is PROJECT-DEFINITION narratives + lifecycle scopes in proposed/; PRD.md is never authoritative. Edit SoT at content/packs/strategies/strategies-pack-0.1.json then task packs:render. Do not hand-edit only rendered content/strategies/interview.md.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5361 squash-merge (Tracking #5354). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5361",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "PRD as optional export only: Remove Full-path Generate PRD.md approval-gate instructions and Full artifacts-table PRD.md approval-gate framing from pack source. Keep Light forbid of separate PRD. Preserve optional task prd:render / read-only export without making export SoT.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5361 squash-merge (Tracking #5354). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5361",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Artifact approval ≠ promote/activate: Rewrite strategy Light Flow and Full Flow approval transitions so they stop at proposed. Do not instruct task scope:promote (or activate) as automatic effect of approving planning artifacts. Downstream build/swarm/refinement with explicit operator lifecycle intent remains the promote/activate bridge.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5361 squash-merge (Tracking #5354). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5361",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Pack-source + calling-template sync: Land reconcile at pack sources so render stays consistent. Update content/templates/make-spec.md (still carries Full PRD-approval / promote-on-approval language). Update other diagrams/examples only when they still show PRD-as-gate or promote-on-approval for interview strategy path.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5361 squash-merge (Tracking #5354). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5361",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Cross-document polarity contract test: Add content-contract (or equivalent) that fails closed on reintroduction of either contradiction — polarity across strategy (pack and/or rendered) ↔ setup ↔ interview, not phrase-presence alone. CHANGELOG Unreleased.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5361 squash-merge (Tracking #5354). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5361",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:skills",
+      "area:guidance",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:planning",
+      "promise:requirements"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5354",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5354: [framework-gap] Canonical interview strategy contradicts setup on PRD authority and scope promotion"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "⊗ Auto-run scope:promote/activate",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L15"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "content/packs/strategies/strategies-pack-0.1.json",
+          "content/strategies/interview.md",
+          "content/templates/make-spec.md",
+          "content/skills/deft-directive-interview/SKILL.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "conflict_group": "interview-prd-authority-reconcile",
+        "depends_on": [],
+        "verify_commands": [],
+        "expected_outputs": [
+          "completed xBRIEF on tip"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because canonical strategies/interview.md still instructs Full-path Generate PRD.md and Light/Full scope:promote-on-approval while claiming all entry points MUST follow it, yet setup Phase 3 and deft-directive-interview forbid authoritative PRD and auto promote/activate — one SoT sync defect with two independently testable contradictions.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5354\norigin-ref: origin/HEAD\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\ndest-wo: leftover-complete\n\nspend: N=1\nspend-ask: asked\nspend-recommend: N=1\nspend-why: Prefer-A drafted from the issue Requested remedy (reconcile strategy to setup/interview authority: no authoritative PRD; artifact approval leaves scopes proposed; pack-source sync + cross-document contract test; preserve full-spec compatibility and optional prd:render export). Blast is strategies/interview.md pack source plus setup/interview skill pointers and one content-contract lock — constrained sync, not open solution space. Operator cue \"arc using recommended n 5354\" takes the closed recommend with spend-ask: asked.\nDual-stop cap: 6 posts\n\npain: P1, P2\n\n- P1. Artifact authority contradiction: strategy Full flow still says Generate PRD.md as user approval gate while declaring itself the canonical SoT all entry points MUST follow; setup Full output and interview skill instead prohibit authoritative PRD and treat PRD as optional read-only export (task prd:render).\n- P2. Lifecycle transition contradiction: strategy Light/Full still say run scope:promote on approval; setup lifecycle bridge stops at proposed and MUST NOT auto-run promote or activate — that commitment belongs to downstream user-authorized workflow.\n\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:e866a01e2b1c38f3ab551130c7d823f2f6f64d5b049c5854ed6f2a6504a49432\ntarget: #5354\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #4535 (menu-format only; out of denominator) #4377 (transport proposal; out of denominator) #1709 feedback:file filing\n\n## Prefer-A draft (charter target; not yet Bound)\n\n1. **Single authoritative output/lifecycle contract.** Reconcile `content/strategies/interview.md` (pack source) so Light and Full match setup Phase 3 + deft-directive-interview: greenfield authority is PROJECT-DEFINITION narratives + lifecycle scopes in proposed/; PRD.md is never authoritative.\n2. **PRD as optional export only (P1).** Remove Full-path Generate PRD.md approval-gate instructions from the strategy. Keep optional `task prd:render` / read-only export and full-spec compatibility handling without making an export SoT.\n3. **Artifact approval ≠ promote/activate (P2).** Strategy approval transitions stop at proposed. Do not instruct scope:promote (or activate) as the automatic effect of approving planning artifacts. Downstream build/swarm/refinement with explicit operator lifecycle intent remains the promote/activate bridge.\n4. **Pack-source + render consistency.** Land the reconcile at pack sources so `task packs:render` keeps strategy and skills aligned; update diagrams/examples/calling templates that still show PRD-as-gate or promote-on-approval.\n5. **Cross-document contract test.** Add a content-contract (or equivalent) that fails closed if strategy reintroduces authoritative-PRD generation or auto promote/activate-on-approval while setup/interview forbid them — not phrase-presence checks alone.\n6. **Non-goals.** Do not absorb #4535 menu-format work. Do not invent a silent precedence exception that leaves both contradictory instruction paths live. Do not strip full-spec compatibility or optional PRD export.\n\n## Plain-language summary\n\nThe interview strategy and the setup/interview skills disagree on whether PRD.md is the thing you approve and whether approving a plan auto-promotes scope. Prefer-A makes the strategy match setup: plan artifacts stay proposed until you separately authorize promote/activate, and any PRD file is only an export.",
+          "id": 5986232594,
+          "html_url": "https://github.com/deftai/directive/issues/5354#issuecomment-5986232594",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:49:03Z",
+          "updated_at": "2026-10-05T00:49:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\ncharter: open critique of Prefer-A draft on Stop 1 (5986232594)\nround: 1 / spend N=1 / fresh\nverification: pin-read `git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:<path>` for the three Stop-1 paths; dest cwd-without-occupy\ninput-ceiling: 5986232594 (Stop 1 only)\n\n## Verdict\n\n**Support Prefer-A with amendments.** P1 and P2 are honest, independently pin-verified pains. Prefer-A's six limbs aim at the right SoT sync (strategy → setup/interview authority). Do not reject. Amend limb wording so implement edits the real pack source and names the Full-path / calling-template surfaces that still carry the stale instructions.\n\n## Pain honesty\n\n### P1 — Artifact authority contradiction — **honest; Prefer-A can relieve**\n\nPin shows one SoT claim plus contradictory Full-path PRD-as-gate:\n\n- `content/strategies/interview.md` L9–12: strategy declares itself the **canonical source of truth**; **all entry points** (CLI / setup Phase 3 / `deft-directive-setup` Phase 3 / `templates/make-spec.md`) **MUST follow** it.\n- Same file Full Path L373: `Interview → PRD → scope records…`\n- Same file Full Flow L379: `Generate PRD.md — user approval gate`\n- Same file Artifacts Summary Full L650: `` `PRD.md` | What to build (approval gate) | Interview ``\n- Contrast Light L367: already `⊗ Create a separate PRD.md on the Light path` — so P1 is Full-path + Full artifacts table (+ callers that still mirror Full), not a Light-path PRD invent.\n\nSetup forbids authoritative PRD and treats it as export-only:\n\n- `content/skills/deft-directive-setup/SKILL.md` Light output L837–838: `⊗ Create a separate PRD.md` / `⊗ Generate an authoritative PRD.md — if needed, users run task prd:render`\n- Same skill Full output L861: same `⊗ Generate an authoritative PRD.md…`\n- Same skill Anti-Patterns L994: `⊗ Generate an authoritative PRD.md — PRD.md is a read-only export via task prd:render, never a source of truth`\n- Same skill End-of-Phase-3 Export L931–939: optional export menu including `PRD.md` / `task prd:render` after scopes already sit in proposed/\n\nInterview skill matches setup:\n\n- `content/skills/deft-directive-interview/SKILL.md` frontmatter L7–8: output targets xBRIEF narratives — **not PRD.md**\n- Same skill Output Targets L199: `PRD.md is never authoritative`\n- Same skill L238–245: `### PRD.md (deprecated — never authoritative)`; `? task prd:render`; `⊗ Generate an authoritative PRD.md`; `⊗ Treat PRD.md as a source of truth`\n- Same skill Anti-Patterns L516–517: same forbid + export-only polarity\n\n**Relief fit:** Prefer-A limbs 1–2 + 4–5 remove strategy Full Generate-PRD approval-gate instructions, keep optional `task prd:render`, and lock reintroduction. That is the correct relieve shape for P1.\n\n### P2 — Lifecycle transition contradiction — **honest; Prefer-A can relieve**\n\n- Strategy Light Flow L315: `On approval, use task scope:promote…`\n- Strategy Full Flow L383: same `On approval, use task scope:promote…`\n- Setup Lifecycle Bridge L913–915: Phase 3 / Add-scope deposit **stops at** `xbrief/proposed/` with `plan.status: proposed`; promote+activate belong to **downstream** skills, not setup interview.\n- Setup L923: `⊗ Auto-run task scope:promote or task scope:activate from the setup skill on the Phase 3 outputs` — lifecycle commitment is user-authorized swarm/build/refinement intent.\n- Setup L919–921: swarm / refinement / build may run promote/activate only as the **downstream bridge on explicit user approval** — not as the interview approval transition itself.\n\nInterview skill's greenfield approval language (L227, L236) records approval and writes/keeps proposed scopes; it does not instruct setup-time auto-promote. Strategy L315/L383 is the conflicting instruction under the strategy's own \"all entry points MUST follow\" claim (L9–12).\n\n**Relief fit:** Prefer-A limb 3 (approval stops at proposed; promote/activate only via downstream explicit lifecycle intent) matches setup L913–923 and relieves P2 without inventing a silent precedence exception.\n\n## Limb-by-limb\n\n| # | Limb | Disposition | Notes |\n|---|------|-------------|-------|\n| 1 | Single authoritative output/lifecycle contract | **Support + amend** | Direction correct. Amend: do not call `content/strategies/interview.md` the pack source. Pin header L1–4 marks it **AUTO-GENERATED**; SoT comment names `packs/strategies/strategies-pack-0.1.json` relative to content. At this SHA the editable pack is `content/packs/strategies/strategies-pack-0.1.json` (interview strategy entry body carries the same Generate-PRD / promote-on-approval lines). Reconcile pack → `task packs:render`. |\n| 2 | PRD as optional export only (P1) | **Support + sharpen** | Remove Full-path L379 gate + Full artifacts L650 \"approval gate\" row; preserve `task prd:render` / full-spec compatibility per setup L861/L994 and interview L238–245. Sharpen: Light L367 already forbids separate PRD — do not thrash Light; target Full flow + Full table + callers that still show PRD-as-gate. |\n| 3 | Artifact approval ≠ promote/activate (P2) | **Support** | Matches setup L913–923. Keep downstream swarm/refinement/build bridge on explicit operator intent (setup L919–921). Strategy L315 and L383 both need the stop-at-proposed rewrite. |\n| 4 | Pack-source + render consistency | **Support + amend** | Required. Bind edit target to `content/packs/strategies/strategies-pack-0.1.json` (and skills pack only if a skill pointer drifts). Name at least `content/templates/make-spec.md` — strategy L11 lists it as a MUST-follow entry point; it still carries Full PRD-approval and `task scope:promote` on approval language at this SHA. \"Diagrams/examples/calling templates\" is too open without that named surface. |\n| 5 | Cross-document contract test | **Support + amend** | Fail-closed lock is the right preventer. Amend acceptance: not phrase-presence alone — assert polarity across (a) strategy pack/rendered Full path must not instruct Generate-PRD-as-approval-gate or list PRD.md as approval-gate artifact while setup/interview forbid authoritative PRD; (b) strategy Light/Full must not instruct promote-on-approval while setup Lifecycle Bridge `⊗ Auto-run scope:promote/activate` from Phase 3 remains. Three-way: strategy ↔ setup ↔ interview. |\n| 6 | Non-goals | **Support** | Keep #4535 out; no silent dual-path precedence; preserve full-spec compatibility and optional PRD export. |\n\n## Reject list\n\n- **Reject** inventing a precedence note that leaves strategy Full Generate-PRD / promote-on-approval live \"for legacy callers\" while setup/interview forbid them — that fails Prefer-A non-goal 6 and leaves P1/P2 unrelieved under strategy L9–12.\n- **Reject** hand-editing only `content/strategies/interview.md` without pack + render — pin L1–4 will be overwritten on next `task packs:render`.\n\n## Residual (non-harvest for Prefer-A draft)\n\n- Confirm whether enterprise/other strategies that *intentionally* keep PRD-as-stage language (export/derivative) need an explicit out-of-denominator note so the new contract test does not over-fire; Stop 1 related list already parks #4535/#4377 — keep interview strategy as the sole denominator unless synthesis widens.\n- `make-spec.md` promote-on-approval / PRD-approval wording is in-denominator for limb 4 because strategy L11 names it as a MUST-follow entry point; treat as pack/template sync, not a new pain id.\n\n## Bottom line for parent lean\n\nBind Prefer-A. P1 and P2 are real and Prefer-A relieves them. Fold amends: (1) pack path `content/packs/strategies/strategies-pack-0.1.json` + render, (2) Full-path-scoped PRD gate removal, (3) name `templates/make-spec.md` under limb 4, (4) polarity-shaped content-contract across strategy/setup/interview for both PRD-authority and promote-on-approval.",
+          "id": 5986262788,
+          "html_url": "https://github.com/deftai/directive/issues/5354#issuecomment-5986262788",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:52:45Z",
+          "updated_at": "2026-10-05T00:52:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound\n**Spec-path:** Bound remedy below\nTarget-digest: sha256:e866a01e2b1c38f3ab551130c7d823f2f6f64d5b049c5854ed6f2a6504a49432\nStop-1: 5986232594\ncritics: grok 5986262788\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nDual-stop cap: 6 posts\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5354\n\n## In plain English\n\nThe interview strategy still tells agents to generate an authoritative PRD and to promote scopes when a plan is approved, while setup and interview forbid both. Prefer-A makes the strategy (via its pack source + render) match setup/interview: plans stay proposed until a later authorized lifecycle step, and any PRD file is only an optional export.\n\n## Pain cites (closed form)\n\nrelieves: P1\nrelieves: P2\n\n- P1 covers Full-path Generate PRD.md as approval gate under a strategy that claims all entry points MUST follow it, while setup/interview forbid authoritative PRD\n- P2 covers Light/Full strategy instruct scope:promote on approval while setup Lifecycle Bridge stops at proposed and forbids auto promote/activate from Phase 3\n\n## Take map\n\nAbsorbs round-1 critic 5986262788: Support Prefer-A with amendments. Fold (1) editable pack path `content/packs/strategies/strategies-pack-0.1.json` + `task packs:render` — do not hand-edit only rendered `content/strategies/interview.md`; (2) PRD-gate removal scoped to Full path / Full artifacts table / callers that still show PRD-as-gate (Light already forbids separate PRD); (3) name `content/templates/make-spec.md` under pack/template sync because strategy lists it as a MUST-follow entry point; (4) polarity-shaped cross-document content-contract for both contradictions across strategy ↔ setup ↔ interview. Reject inventing a silent dual-path precedence exception. Reject hand-edit-only of rendered interview.md.\n\n## Bound remedy\n\n1. **Single authoritative output/lifecycle contract (P1 / P2).** Reconcile the interview strategy so Light and Full match setup Phase 3 + deft-directive-interview: greenfield authority is PROJECT-DEFINITION narratives + lifecycle scopes in `proposed/`; PRD.md is never authoritative. Edit SoT at `content/packs/strategies/strategies-pack-0.1.json`, then `task packs:render`. ⊗ Hand-edit only `content/strategies/interview.md` (AUTO-GENERATED; next render overwrites).\n\n2. **PRD as optional export only (P1).** Remove Full-path Generate PRD.md approval-gate instructions and Full artifacts-table \"PRD.md | approval gate\" framing from the pack source. Keep Light's existing forbid of separate PRD. Preserve optional `task prd:render` / read-only export and full-spec compatibility handling without making an export SoT. Align setup/interview anti-patterns that already state this polarity.\n\n3. **Artifact approval ≠ promote/activate (P2).** Rewrite strategy Light Flow and Full Flow approval transitions so they stop at proposed. Do not instruct `task scope:promote` (or activate) as the automatic effect of approving planning artifacts. Downstream build/swarm/refinement with explicit operator lifecycle intent remains the promote/activate bridge (setup Lifecycle Bridge polarity).\n\n4. **Pack-source + calling-template sync.** Land the reconcile at pack sources so render stays consistent. Named in-denominator surface: `content/templates/make-spec.md` (strategy names it as a MUST-follow entry point and it still carries Full PRD-approval / promote-on-approval language at the dispatch pin). Update other diagrams/examples only when they still show PRD-as-gate or promote-on-approval for the interview strategy path. Skills pack only if a skill pointer drifts from the Bound polarity.\n\n5. **Cross-document polarity contract test.** Add a content-contract (or equivalent) that fails closed on reintroduction of either contradiction — polarity across strategy (pack and/or rendered) ↔ setup ↔ interview, not phrase-presence alone:\n   - (a) strategy Full path must not instruct Generate-PRD-as-approval-gate or list PRD.md as approval-gate artifact while setup/interview forbid authoritative PRD / treat PRD as export-only;\n   - (b) strategy Light/Full must not instruct promote-on-approval while setup Lifecycle Bridge keeps `⊗ Auto-run scope:promote/activate` from Phase 3.\n   Three-way lock. Keep enterprise/other strategies that intentionally keep PRD-as-stage export language out of this denominator unless a later Recut widens.\n\n6. **Non-goals.** Do not absorb #4535 menu-format work. Do not invent a silent precedence exception that leaves both contradictory instruction paths live. Do not strip full-spec compatibility or optional PRD export. Do not thrash Light-path PRD forbid that already matches setup.\n\n## Reject list\n\n- Silent dual-path precedence that leaves strategy Full Generate-PRD / promote-on-approval live \"for legacy callers\"\n- Hand-edit-only of rendered `content/strategies/interview.md` without pack + render\n- Expanding denominator to unrelated strategy families without an explicit Recut\n\n## Plain-language summary\n\nBind Prefer-A after grok critic support-with-amends. Fix the pack, re-render, align make-spec, and lock both contradictions with a polarity test so the strategy stops telling agents to invent authoritative PRDs or auto-promote on plan approval.",
+          "id": 5986268699,
+          "html_url": "https://github.com/deftai/directive/issues/5354#issuecomment-5986268699",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:53:28Z",
+          "updated_at": "2026-10-05T00:53:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2\nfinding-classes: sharpening\nharvest-changed: false\n\nseat: grok\nlauncher: grok-cli\nround: pain-audit\ncritic-role: fresh\ncharter: pain-audit of Prefer-A Bound relieves\nspend: N=1\narc-mode: no-ingest\nid-ceiling: 5986268699\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nStop-1: 5986232594\nsuccessor-lean: 5986268699\nround-1-critic: 5986262788\ntarget: #5354\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy\n\n## Verdict\n\n**Supports / relieves P1 and P2.** Prefer-A Bound lean `5986268699` (`relieves: P1`, `relieves: P2`) honestly covers Stop 1 pains under pin-read at `3456c6712614e352c5559b3c29caf9cbce26b5cf`. Bound absorbs round-1 critic `5986262788` amends (pack SoT path + render, Full-path-scoped PRD-gate removal, named `make-spec.md`, polarity-shaped three-way contract). No **does-not-relieve**. No harvest-changing Bound rewrite. **bindable-as-posted**; non-harvest S1–S3 are PR acceptance residue only.\n\n## pain-P1 — relieves (support)\n\nStop 1 P1: strategy Full flow still says Generate `PRD.md` as user approval gate while declaring itself the canonical SoT all entry points MUST follow; setup Full output and interview skill prohibit authoritative PRD and treat PRD as optional read-only export (`task prd:render`).\n\nBound relief:\n- Limb 1 reconciles interview strategy so Light/Full match setup Phase 3 + deft-directive-interview: greenfield authority is PROJECT-DEFINITION narratives + scopes in `proposed/`; `PRD.md` is never authoritative. Edit SoT at `content/packs/strategies/strategies-pack-0.1.json`, then `task packs:render` (⊗ hand-edit only rendered `content/strategies/interview.md`).\n- Limb 2 removes Full-path Generate-PRD approval-gate instructions and Full artifacts-table \"`PRD.md` | approval gate\" framing; keeps Light forbid of separate PRD; preserves optional `task prd:render` / full-spec compatibility without making an export SoT.\n- Limb 4 names in-denominator caller `content/templates/make-spec.md` (strategy L11 MUST-follow entry point) that still carries Full PRD-approval language at this pin.\n- Limb 5 polarity contract (a): strategy Full must not instruct Generate-PRD-as-approval-gate or list PRD.md as approval-gate artifact while setup/interview forbid authoritative PRD.\n- Limb 6 / Reject list: no silent dual-path precedence that leaves Full Generate-PRD live \"for legacy callers\".\n\nPin evidence (gap real; limbs attach):\n- Strategy SoT claim L9–12: canonical source; all entry points including `templates/make-spec.md` MUST follow. Header L1–4: AUTO-GENERATED from `packs/strategies/strategies-pack-0.1.json`.\n- Strategy Full Flow L379: `Generate PRD.md — user approval gate`; Artifacts Summary Full L650: `` `PRD.md` | What to build (approval gate) | Interview ``; Light L367 already `⊗ Create a separate PRD.md`.\n- Pack JSON at pin embeds the same `Generate \\`PRD.md\\` — user approval gate` string (SoT edit target confirmed).\n- Setup Full/Light: `⊗ Generate an authoritative PRD.md` + optional `task prd:render` (L838/L861/L994); End-of-Phase-3 export menu treats PRD as optional export (L931–939).\n- Interview skill: `PRD.md is never authoritative` (L199); `### PRD.md (deprecated — never authoritative)` (L238–245); Anti-Patterns L516–517.\n- make-spec.md L30: `Interview → PRD (approval gate) → SPECIFICATION`; L59–97 Full Path PRD Generation with MUST review/approve rendered PRD export before specification.\n\nClassification: **support**. Bound limbs 1–2 + 4–6 relieve P1.\n\n## pain-P2 — relieves (support)\n\nStop 1 P2: strategy Light/Full still say run `scope:promote` on approval; setup Lifecycle Bridge stops at `proposed/` and MUST NOT auto-run promote or activate — that commitment belongs to downstream user-authorized workflow.\n\nBound relief:\n- Limb 1 keeps lifecycle scopes in `proposed/` as the greenfield deposit.\n- Limb 3 rewrites strategy Light Flow and Full Flow approval transitions so they stop at proposed; do not instruct `task scope:promote` (or activate) as the automatic effect of approving planning artifacts; downstream build/swarm/refinement with explicit operator lifecycle intent remains the bridge (setup Lifecycle Bridge polarity).\n- Limb 4 names `make-spec.md` promote-on-approval language at this pin for the same sync.\n- Limb 5 polarity contract (b): strategy Light/Full must not instruct promote-on-approval while setup keeps `⊗ Auto-run scope:promote/activate` from Phase 3.\n- Reject list: no silent precedence exception leaving promote-on-approval live.\n\nPin evidence:\n- Strategy Light Flow L315 and Full Flow L383: `On approval, use task scope:promote…`.\n- Setup Lifecycle Bridge L913–915: Phase 3 / Add-scope deposit stops at `xbrief/proposed/` with `plan.status: proposed`; promote+activate belong downstream.\n- Setup L923: `⊗ Auto-run task scope:promote or task scope:activate from the setup skill on the Phase 3 outputs`.\n- Setup L919–921: swarm / refinement / build may run promote/activate only as the downstream bridge on explicit user approval.\n- Pack JSON at pin embeds `On approval, use \\`task scope:promote\\`` (two hits).\n- make-spec.md L104: `On user approval, use task scope:promote…`.\n- Interview skill greenfield approval (L227/L236) records approval and writes/keeps proposed scopes; it does not instruct setup-time auto-promote — strategy L315/L383 is the conflicting MUST-follow instruction under L9–12.\n\nClassification: **support**. Bound limbs 1 + 3–6 relieve P2.\n\n## Non-harvest sharpenings (PR acceptance residue)\n\n- **S1.** `content/templates/make-spec.md` L97 still says `User MUST review and approve the rendered PRD export before specification generation begins` while L98 says rendered PRD/SPEC are exports, not SoT. Bound limb 4 already names make-spec Full PRD-approval / promote-on-approval. Implement MUST rewrite that MUST-approve-export gate (alongside L30 diagram and L104 promote), not leave a half-migrated export-as-gate under strategy L9–12. Does not change pain cites or Bound text.\n- **S2.** After pack removes Full Generate-PRD step, adjacent Full-path guard prose that still says \"Before writing PRD…\" (rendered interview.md ~L386 / pack equivalent) must update in the same pack edit so orphan \"writing PRD\" instructions do not survive limb 2. Covered by Full-path reconcile; acceptance clarity only.\n- **S3.** Bound limb 2 \"Align setup/interview anti-patterns that already state this polarity\" — those skills are already the authority Prefer-A syncs TO. Leave them unless a skill pointer drifts (limb 4). Do not thrash correct setup/interview forbid text.\n\nNo **does-not-relieve**. No **harvest-changing** findings. Reject list (silent dual-path precedence; hand-edit-only of rendered interview.md; expanding denominator to unrelated strategy families) stays rejected and is covered by Bound limbs 1–6.\n\n## Disposition\n\n**bindable-as-posted.** Prefer-A Bound `5986268699` relieves Stop 1 P1 and P2. Support with non-harvest S1–S3 as PR acceptance residue (`finding-classes: sharpening`, `harvest-changed: false`). No Recut / Dual-stop raise required from this audit.\n\n## Method note\n\nREST-read Stop 1 `5986232594`, round-1 critic `5986262788`, Prefer-A Bound `5986268699` only (id ceiling inclusive `5986268699`). Pin-read at `3456c6712614e352c5559b3c29caf9cbce26b5cf`: `content/strategies/interview.md` (L1–4 AUTO-GENERATED / L9–12 SoT / L315 promote / L367 Light forbid / L379 Generate-PRD gate / L383 promote / L650 artifacts); `content/packs/strategies/strategies-pack-0.1.json` (embeds Generate-PRD + promote strings); `content/skills/deft-directive-setup/SKILL.md` (L838/L861/L913–923/L994); `content/skills/deft-directive-interview/SKILL.md` (L199/L227/L236/L238–245/L516–517); `content/templates/make-spec.md` (L30/L59–97/L104).",
+          "id": 5986301380,
+          "html_url": "https://github.com/deftai/directive/issues/5354#issuecomment-5986301380",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:57:26Z",
+          "updated_at": "2026-10-05T00:57:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5986268699\nStop-1 (denominator): 5986232594\nround-1 critic: 5986262788\nPain-audit (bind lean): 5986301380 — support P1, support P2; bindable-as-posted; finding-classes: sharpening; harvest-changed: false; non-harvest S1–S3 carry into PR acceptance\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5354\n\n## In plain English\n\nThe Bound stands. Reconcile the interview strategy at its pack source so it matches setup/interview: no authoritative PRD on Full path, approval stops at proposed (no auto promote/activate), sync make-spec, and lock both contradictions with a polarity content-contract. Ingest remains a separate operator verb.\n\n## Recording note (no Lean token)\n\nevaluatePainAuditFollowThrough({findingClasses:[\"sharpening\"], harvestChanged:false}) — residue carries into PR acceptance rather than another Recut.\n\n## Bound summary\n\n1. Edit `content/packs/strategies/strategies-pack-0.1.json` then `task packs:render` (not hand-edit-only rendered interview.md).\n2. Remove Full-path Generate-PRD approval-gate / Full artifacts PRD-as-gate; keep optional `task prd:render` and full-spec compatibility.\n3. Stop Light/Full approval at proposed; promote/activate only via downstream explicit lifecycle intent.\n4. Sync `content/templates/make-spec.md` (named MUST-follow entry point).\n5. Three-way polarity content-contract strategy ↔ setup ↔ interview for PRD-authority and promote-on-approval.\n6. Non-goals: no #4535 absorb; no silent dual-path precedence; no stripping exports/compatibility.\n\n## Plain-language summary\n\nStrategy pack + make-spec align to setup: plans stay proposed until you separately authorize promote/activate; PRD is export-only. Pain-audit supported both pains bindable-as-posted.",
+          "id": 5986314975,
+          "html_url": "https://github.com/deftai/directive/issues/5354#issuecomment-5986314975",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:59:06Z",
+          "updated_at": "2026-10-05T00:59:06Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nCanonical interview strategy contradicts setup on PRD authority and scope promotion\n\n## Context\n\nObserved during an operator-directed Full design interview for an existing application, followed by a continuation session. The operator requested planning only, preservation of existing changes, and no implementation. The first artifact batch was explicitly approved; later backend and gap reviews were also requested. This report does not characterize all technical questions or artifact writes as unauthorized.\n\nThe consumer engine and content deposit were 0.119.12. The relevant interview/strategy content was also compared with a 0.120.0 deposit. On 2026-10-04, the cited rules were verified on upstream master at `3d613b146a3880ecb261bf8654d7abe73b498820`. Session examples below come from a local conversation audit; private project files and raw chat logs are not published.\n\n## Expected behavior\n\nLoading either the canonical interview strategy or the setup/interview skills should produce the same authoritative outputs and the same distinction between approving a planning artifact and committing scope to the implementation lifecycle.\n\n## Actual behavior / gap\n\nThe strategy declares itself the canonical source followed by all entry points, but its Full flow instructs generation and approval of PRD.md and later scope promotion on approval. Setup and interview instead prohibit an authoritative PRD, review PROJECT-DEFINITION narratives and proposed scopes, and reserve scope promotion/activation for downstream user intent.\n\nThese contradictory instructions are confirmed in source, independently of the consumer session. They may contribute to phase confusion, but their causal role in the observed proposal proliferation is unproven. The session did not implement or promote scopes as a result.\n\n## Session notes\n\n### Concrete contradictions\n\n1. **Artifact authority.** [Canonical strategy declaration](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/strategies/interview.md#L8) says all entry points MUST follow this strategy. Its [Full flow](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/strategies/interview.md#L371) says 'Generate PRD.md — user approval gate.' [Setup Full output](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/skills/deft-directive-setup/SKILL.md#L847) instead reviews PROJECT-DEFINITION narratives/proposed scope plan and prohibits an authoritative PRD. [Interview output authority](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/skills/deft-directive-interview/SKILL.md#L199) says PRD is only a read-only export, including compatibility handling for an existing full-spec workflow.\n2. **Lifecycle transition.** The strategy's [Light flow](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/strategies/interview.md#L308) and [Full flow](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/strategies/interview.md#L375) say to run scope:promote on approval. [Setup lifecycle bridge](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/skills/deft-directive-setup/SKILL.md#L915) says setup stops at proposed and MUST NOT auto-run promote or activate; that commitment belongs to the downstream user-authorized workflow.\n\nThis is one source-of-truth synchronization defect with two independently testable contradictions. It is not the menu-format mismatch already tracked by #4535.\n\n### Minimal reproduction\n\n1. At the cited commit, read only strategies/interview.md and enumerate Full path outputs and approval transitions.\n2. Independently read deft-directive-setup Phase 3 plus deft-directive-interview and enumerate the same properties.\n3. Compare PRD authority and the effect of artifact approval on scope lifecycle.\n4. The two instruction paths disagree despite both claiming mandatory authority.\n\n### Requested remedy\n\nReconcile the canonical strategy, setup, interview, diagrams/examples, and calling templates at their pack sources. Select one authoritative output/lifecycle contract rather than adding an unexplained precedence exception. Preserve existing full-spec compatibility and optional rendered PRD exports without making an export authoritative. Distinguish artifact approval from explicit scope promotion/activation authorization.\n\n### Acceptance and regression evidence\n\n- Light and Full entry points agree on output authority and phase transitions.\n- Reading strategy alone does not direct authoritative PRD generation.\n- Approving a setup draft leaves scopes proposed unless separately authorized lifecycle intent is present.\n- Explicit downstream build/swarm/refinement authorization still performs the appropriate lifecycle bridge.\n- Compatibility workflows and optional exports are tested separately.\n- A cross-document contract test catches reintroduction of either contradictory instruction, rather than only checking that each file contains its own expected phrase.\n\n### Prior art and limits\n\n#4535 was read with comments and covers question presentation/confirmation contracts, not these output/lifecycle contradictions. #4377 also discusses PRD and scope approval in a transport proposal, not this synchronization defect. No duplicate with the same acceptance target was found in the searches performed. Refs #1709.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5704301746,
+        "origin": "deftai/directive#5354",
+        "id": "github.issue.5704301746"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e866a01e2b1c38f3ab551130c7d823f2f6f64d5b049c5854ed6f2a6504a49432"
+      },
+      "preferA": {
+        "lean": 5986268699,
+        "synth": 5986314975,
+        "conflict_group": "interview-prd-authority-reconcile"
+      },
+      "productPullRequest": 5361,
+      "admitted_source_digest": "39e671e07d67d8cf9fdb7641c7d8b4aa59514c77a8f5c784995d52fc5c91a3bd",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-05T05:01:59Z"
+      },
+      "completedAt": "2026-10-05T05:01:59Z",
+      "completionProvenance": {
+        "productMerge": "2ea4f0979",
+        "productPr": 5361
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover pathless derived after #5361",
+      "sentences": [
+        "Single authoritative output/lifecycle contract: Reconcile interview strategy so Light and Full match setup Phase 3 + deft-directive-interview: greenfield authority is PROJECT-DEFINITION narratives + lifecycle scopes in proposed/; PRD.md is never authoritative. Edit SoT at content/packs/strategies/strategies-pack-0.1.json then task packs:render. Do not hand-edit only rendered content/strategies/interview.md.",
+        "PRD as optional export only: Remove Full-path Generate PRD.md approval-gate instructions and Full artifacts-table PRD.md approval-gate framing from pack source. Keep Light forbid of separate PRD. Preserve optional task prd:render / read-only export without making export SoT.",
+        "Artifact approval ≠ promote/activate: Rewrite strategy Light Flow and Full Flow approval transitions so they stop at proposed. Do not instruct task scope:promote (or activate) as automatic effect of approving planning artifacts. Downstream build/swarm/refinement with explicit operator lifecycle intent remains the promote/activate bridge.",
+        "Pack-source + calling-template sync: Land reconcile at pack sources so render stays consistent. Update content/templates/make-spec.md (still carries Full PRD-approval / promote-on-approval language). Update other diagrams/examples only when they still show PRD-as-gate or promote-on-approval for interview strategy path.",
+        "Cross-document polarity contract test: Add content-contract (or equivalent) that fails closed on reintroduction of either contradiction — polarity across strategy (pack and/or rendered) ↔ setup ↔ interview, not phrase-presence alone. CHANGELOG Unreleased."
+      ],
+      "admitted_source_sentences": [
+        "Single authoritative output/lifecycle contract: Reconcile interview strategy so Light and Full match setup Phase 3 + deft-directive-interview: greenfield authority is PROJECT-DEFINITION narratives + lifecycle scopes in proposed/; PRD.md is never authoritative. Edit SoT at content/packs/strategies/strategies-pack-0.1.json then task packs:render. Do not hand-edit only rendered content/strategies/interview.md.",
+        "PRD as optional export only: Remove Full-path Generate PRD.md approval-gate instructions and Full artifacts-table PRD.md approval-gate framing from pack source. Keep Light forbid of separate PRD. Preserve optional task prd:render / read-only export without making export SoT.",
+        "Artifact approval ≠ promote/activate: Rewrite strategy Light Flow and Full Flow approval transitions so they stop at proposed. Do not instruct task scope:promote (or activate) as automatic effect of approving planning artifacts. Downstream build/swarm/refinement with explicit operator lifecycle intent remains the promote/activate bridge.",
+        "Pack-source + calling-template sync: Land reconcile at pack sources so render stays consistent. Update content/templates/make-spec.md (still carries Full PRD-approval / promote-on-approval language). Update other diagrams/examples only when they still show PRD-as-gate or promote-on-approval for interview strategy path.",
+        "Cross-document polarity contract test: Add content-contract (or equivalent) that fails closed on reintroduction of either contradiction — polarity across strategy (pack and/or rendered) ↔ setup ↔ interview, not phrase-presence alone. CHANGELOG Unreleased."
+      ],
+      "admitted_source_digest": "39e671e07d67d8cf9fdb7641c7d8b4aa59514c77a8f5c784995d52fc5c91a3bd",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Single authoritative output/lifecycle contract: Reconcile interview strategy so Light and Full match setup Phase 3 + deft-directive-interview: greenfield authority is PROJECT-DEFINITION narratives + lifecycle scopes in proposed/; PRD.md is never authoritative. Edit SoT at content/packs/strategies/strategies-pack-0.1.json then task packs:render. Do not hand-edit only rendered content/strategies/interview.md.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5361 squash-merge (Tracking #5354). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5361",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "PRD as optional export only: Remove Full-path Generate PRD.md approval-gate instructions and Full artifacts-table PRD.md approval-gate framing from pack source. Keep Light forbid of separate PRD. Preserve optional task prd:render / read-only export without making export SoT.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5361 squash-merge (Tracking #5354). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5361",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Artifact approval ≠ promote/activate: Rewrite strategy Light Flow and Full Flow approval transitions so they stop at proposed. Do not instruct task scope:promote (or activate) as automatic effect of approving planning artifacts. Downstream build/swarm/refinement with explicit operator lifecycle intent remains the promote/activate bridge.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5361 squash-merge (Tracking #5354). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5361",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Pack-source + calling-template sync: Land reconcile at pack sources so render stays consistent. Update content/templates/make-spec.md (still carries Full PRD-approval / promote-on-approval language). Update other diagrams/examples only when they still show PRD-as-gate or promote-on-approval for interview strategy path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5361 squash-merge (Tracking #5354). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5361",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Cross-document polarity contract test: Add content-contract (or equivalent) that fails closed on reintroduction of either contradiction — polarity across strategy (pack and/or rendered) ↔ setup ↔ interview, not phrase-presence alone. CHANGELOG Unreleased.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5361 squash-merge (Tracking #5354). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5361",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5704301746",
+    "updated": "2026-10-05T05:01:59Z"
+  }
+}

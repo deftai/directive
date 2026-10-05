@@ -1,0 +1,615 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5355",
+    "updated": "2026-10-05T05:01:59Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Interview regression coverage does not exercise phase drift and proposal growth across turns",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] Interview regression coverage does not exercise phase drift and proposal growth across turns",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5355",
+      "Overview": "Prefer-A Bound phase-boundary behavioral oracle. Operator through-merge overrides arc-mode no-ingest. Product shipped in #5360.",
+      "Labels": "bug, determinism, agent-experience, process, source-of-truth, urgent, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities, promise:planning, promise:requirements"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Primary landing: phase-boundary oracle module: Land behavioral oracle under packages/core/src/interview/ as phase-boundary-oracle.ts + colocated phase-boundary-oracle.test.ts. Sole primary write class. Extending interview_* / deterministic_questions toContain suites does not relieve P1–P3. Do not land as eval-trigger-only or PreToolUse write denial.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5360",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Coverage-oracle I/O pin: Oracle accepts closed multi-turn transcript object with declaredDecisionIds (closed declared decision set for current phase, required for P2). Output: { ok: boolean; failures: Array<{ pain: 'P1'|'P2'|'P3'; code: string; detail: string }> }. Companions #5351–#5354 own normative prose; this issue pins oracle I/O + fail codes.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5360",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Closed fail tokens: Required distinct fail codes as string literals locked by fixture for P1 phase-drift growth, P2 false completion without declared-decision evidence, and P3 resume/handoff dropping deferrals or phase.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5360",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Fixture matrix P1/P2/P3: Colocated tests MUST cover phase-drift proposal growth after agreed phase, false completion via schema-valid unfinished + per-answer confirm without declaredDecisionIds evidence, and resume/handoff dropping deferrals or current phase.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5360",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Minimum resume carrier fields: Evaluator input must carry phaseId, acceptedDecisionIds, declaredDecisionIds, deferredIds, and proposalIds. Normative live handoff shape stays with #5352; this Bound only requires oracle fixture carrier.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5360",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Schema / write-gate boundary: Keep validateSpec schema-only. Keep requirements write gate as occupancy/path/auth. Completion claims reference declared-decision evidence via oracle; JSON validity alone never clears P2. Do not repurpose validateSpec as semantic approval.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5360",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Companion dependency posture + acceptance: Land oracle + fixtures without waiting for #5351–#5354 merge. conflict_group interview-phase-boundary-oracle. CHANGELOG Unreleased. Non-goals: no absorb #1176/#4535; no live dispatcher observer in v1; ingest/chip state independent of this oracle.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5360",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:planning",
+      "promise:requirements"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5355",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5355: [framework-gap] Interview regression coverage does not exercise phase drift and proposal growth across turns"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover pathless derived after #5360",
+      "sentences": [
+        "Primary landing: phase-boundary oracle module: Land behavioral oracle under packages/core/src/interview/ as phase-boundary-oracle.ts + colocated phase-boundary-oracle.test.ts. Sole primary write class. Extending interview_* / deterministic_questions toContain suites does not relieve P1–P3. Do not land as eval-trigger-only or PreToolUse write denial.",
+        "Coverage-oracle I/O pin: Oracle accepts closed multi-turn transcript object with declaredDecisionIds (closed declared decision set for current phase, required for P2). Output: { ok: boolean; failures: Array<{ pain: 'P1'|'P2'|'P3'; code: string; detail: string }> }. Companions #5351–#5354 own normative prose; this issue pins oracle I/O + fail codes.",
+        "Closed fail tokens: Required distinct fail codes as string literals locked by fixture for P1 phase-drift growth, P2 false completion without declared-decision evidence, and P3 resume/handoff dropping deferrals or phase.",
+        "Fixture matrix P1/P2/P3: Colocated tests MUST cover phase-drift proposal growth after agreed phase, false completion via schema-valid unfinished + per-answer confirm without declaredDecisionIds evidence, and resume/handoff dropping deferrals or current phase.",
+        "Minimum resume carrier fields: Evaluator input must carry phaseId, acceptedDecisionIds, declaredDecisionIds, deferredIds, and proposalIds. Normative live handoff shape stays with #5352; this Bound only requires oracle fixture carrier.",
+        "Schema / write-gate boundary: Keep validateSpec schema-only. Keep requirements write gate as occupancy/path/auth. Completion claims reference declared-decision evidence via oracle; JSON validity alone never clears P2. Do not repurpose validateSpec as semantic approval.",
+        "Companion dependency posture + acceptance: Land oracle + fixtures without waiting for #5351–#5354 merge. conflict_group interview-phase-boundary-oracle. CHANGELOG Unreleased. Non-goals: no absorb #1176/#4535; no live dispatcher observer in v1; ingest/chip state independent of this oracle."
+      ],
+      "admitted_source_sentences": [
+        "Primary landing: phase-boundary oracle module: Land behavioral oracle under packages/core/src/interview/ as phase-boundary-oracle.ts + colocated phase-boundary-oracle.test.ts. Sole primary write class. Extending interview_* / deterministic_questions toContain suites does not relieve P1–P3. Do not land as eval-trigger-only or PreToolUse write denial.",
+        "Coverage-oracle I/O pin: Oracle accepts closed multi-turn transcript object with declaredDecisionIds (closed declared decision set for current phase, required for P2). Output: { ok: boolean; failures: Array<{ pain: 'P1'|'P2'|'P3'; code: string; detail: string }> }. Companions #5351–#5354 own normative prose; this issue pins oracle I/O + fail codes.",
+        "Closed fail tokens: Required distinct fail codes as string literals locked by fixture for P1 phase-drift growth, P2 false completion without declared-decision evidence, and P3 resume/handoff dropping deferrals or phase.",
+        "Fixture matrix P1/P2/P3: Colocated tests MUST cover phase-drift proposal growth after agreed phase, false completion via schema-valid unfinished + per-answer confirm without declaredDecisionIds evidence, and resume/handoff dropping deferrals or current phase.",
+        "Minimum resume carrier fields: Evaluator input must carry phaseId, acceptedDecisionIds, declaredDecisionIds, deferredIds, and proposalIds. Normative live handoff shape stays with #5352; this Bound only requires oracle fixture carrier.",
+        "Schema / write-gate boundary: Keep validateSpec schema-only. Keep requirements write gate as occupancy/path/auth. Completion claims reference declared-decision evidence via oracle; JSON validity alone never clears P2. Do not repurpose validateSpec as semantic approval.",
+        "Companion dependency posture + acceptance: Land oracle + fixtures without waiting for #5351–#5354 merge. conflict_group interview-phase-boundary-oracle. CHANGELOG Unreleased. Non-goals: no absorb #1176/#4535; no live dispatcher observer in v1; ingest/chip state independent of this oracle."
+      ],
+      "admitted_source_digest": "8df420834f5ed4cf54c1d84d5a6e1ecc22329682b7a9b04f71cf79f7afa855c5",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Primary landing: phase-boundary oracle module: Land behavioral oracle under packages/core/src/interview/ as phase-boundary-oracle.ts + colocated phase-boundary-oracle.test.ts. Sole primary write class. Extending interview_* / deterministic_questions toContain suites does not relieve P1–P3. Do not land as eval-trigger-only or PreToolUse write denial.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5360",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Coverage-oracle I/O pin: Oracle accepts closed multi-turn transcript object with declaredDecisionIds (closed declared decision set for current phase, required for P2). Output: { ok: boolean; failures: Array<{ pain: 'P1'|'P2'|'P3'; code: string; detail: string }> }. Companions #5351–#5354 own normative prose; this issue pins oracle I/O + fail codes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5360",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Closed fail tokens: Required distinct fail codes as string literals locked by fixture for P1 phase-drift growth, P2 false completion without declared-decision evidence, and P3 resume/handoff dropping deferrals or phase.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5360",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Fixture matrix P1/P2/P3: Colocated tests MUST cover phase-drift proposal growth after agreed phase, false completion via schema-valid unfinished + per-answer confirm without declaredDecisionIds evidence, and resume/handoff dropping deferrals or current phase.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5360",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Minimum resume carrier fields: Evaluator input must carry phaseId, acceptedDecisionIds, declaredDecisionIds, deferredIds, and proposalIds. Normative live handoff shape stays with #5352; this Bound only requires oracle fixture carrier.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5360",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 6,
+          "text": "Schema / write-gate boundary: Keep validateSpec schema-only. Keep requirements write gate as occupancy/path/auth. Completion claims reference declared-decision evidence via oracle; JSON validity alone never clears P2. Do not repurpose validateSpec as semantic approval.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5360",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 7,
+          "text": "Companion dependency posture + acceptance: Land oracle + fixtures without waiting for #5351–#5354 merge. conflict_group interview-phase-boundary-oracle. CHANGELOG Unreleased. Non-goals: no absorb #1176/#4535; no live dispatcher observer in v1; ingest/chip state independent of this oracle.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5360 squash-merge (Tracking #5355). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5360",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because interview deterministic/always-structured/click-commit content-contracts only assert rule presence and phrase menus, while validateSpec and the requirements write gate check schema/auth/paths — none of them fail a multi-turn interview that grows proposals after an agreed phase, treats per-answer confirmation as phase completion, or drops deferred work on resume.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5355\norigin-ref: origin/HEAD\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\ndest-wo: leftover-complete\n\nspend: N=1\nspend-ask: asked\nspend-recommend: N=1\nspend-why: Prefer-A drafted from the issue remediations and acceptance (behavioral/state-transition regression layer; reuse eval/content-contract surfaces; keep schema validation distinct from interview completion; depend on companion contracts #5351–#5354 for workflow semantics). Blast is interview content-contracts + eval fixtures, not a whole-motion rewrite. Operator cue \"arc using recommended n 5355\" takes this recommend with spend-ask: asked.\nDual-stop cap: 6 posts\n\npain: P1, P2, P3\n\n- P1. Phase-drift growth: after an agreed Full-interview planning phase is complete, the agent keeps adding prerequisites/proposals; existing tests assert headings/phrases only, so the growth passes.\n- P2. False completion: a single numeric confirmation or schema-valid unfinished draft can be treated as phase/interview completion without evidence for the declared decision set; validateSpec success stays correct for schema and must not be the completion oracle.\n- P3. Resume/deferral loss: a handoff/resume that should preserve explicit deferrals and current phase instead manufactures a new proposal or drops the deferred boundary; no fixture fails for that preservation breach.\n\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:8b5c2075dc36bfc19017c620ca202946d85fe0dd0b9ffa1e1c342ee13456596d\ntarget: #5355\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #5351 #5352 #5353 #5354 #1176 #4535 #1709 interview_deterministic interview_always_structured interview_click_commit deterministic_questions validateSpec\n\n## Prefer-A draft (charter target; not yet Bound)\n\n1. **Behavioral regression layer (P1 / P2 / P3).** Add a multi-turn state-transition / phase-boundary regression surface for the bounded interview contract and continuation semantics. Fixtures must exercise proposal growth after phase-complete, confirmation-vs-phase-transition, targeted revision preserving unrelated accepted decisions, resume preserving deferrals/phase, and a legitimate adaptive follow-up that still passes.\n2. **Narrowest integration point (P1 / P2).** Prefer existing content-contract / eval infrastructure under packages/core (interview_* / deterministic_questions / eval harness) over inventing a new runtime NLP write-denial or repurposing validateSpec as semantic approval. State which properties are mechanically checked versus agent guidance. Report the evaluator detection boundary and host limitations.\n3. **Completion evidence distinct from schema (P2).** Passing artifact-schema validation remains distinct from interview-completion evidence. Completion claims MUST reference evidence for the declared decision set; JSON validity alone is insufficient. A single numeric confirmation MUST NOT satisfy a full-phase completion assertion.\n4. **Companion-contract dependency (P1 / P3).** Workflow semantics for completion, continuation, visibility, and canonical PRD/scope authority live on companion defects #5351–#5354. This coverage issue MUST NOT independently invent conflicting workflow semantics; Prefer-A may depend on those contracts being settled (or pin only the coverage/oracle shape while companions own the decision-boundary text).\n5. **Non-goals.** Do not repurpose schema validation as semantic approval. Do not create an NLP write-denial gate that guesses intent from filenames. Do not block all requirements documentation writes. Do not absorb #1176 plan-detail or #4535 menu-contract scope into this Bound.\n6. **Acceptance.** Fixture exhibiting repeated proposal growth fails for a specific phase/decision-boundary reason even when every document is schema-valid. Single numeric confirmation cannot satisfy full-phase completion. Targeted revision preserves unrelated accepted decisions. Resume preserves explicit deferrals and current phase. Legitimate adaptive follow-up passes. Completion claims cite declared-decision evidence. Show failing-before/passing-after behavioral result; prose-presence assertions alone do not satisfy.\n\n## Gate stamp\n\nFresh no-ingest yolo Stop 1 on #5355. Operator cue \"arc using recommended n 5355\" selected the closed spend-recommend: N=1 with spend-ask: asked. Prefer-A drafted from issue remediations. Charter is open critique of that Prefer-A. Ingest remains a later separate verb.\r\n\n",
+          "id": 5986230409,
+          "html_url": "https://github.com/deftai/directive/issues/5355#issuecomment-5986230409",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:48:47Z",
+          "updated_at": "2026-10-05T00:48:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: 1\ncritic-role: fresh\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\naudit-targets: none\nid-ceiling: 5986230409\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nStop-1: 5986230409\ntarget: #5355\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\n\n## Findings (Prefer-A vs Stop 1 P1–P3)\n\n### F1. Prefer-A leaves the behavioral oracle unnamed — P1/P2/P3 still pass under phrase tests\n- **class:** `blocks-the-design`\n- **evidence (pin `3456c671…`):** `packages/core/src/content-contracts/skills/interview_deterministic.test.ts`, `interview_always_structured.test.ts`, and `interview_click_commit.test.ts` are `readRepoFile` + `toContain` / heading-slice presence checks (e.g. Rule 8 heading, \"number entry alone must not advance\", click-commit menus). `packages/core/src/eval/` at this pin is trigger/health/run/report/readback/version-pin only — `triggers.ts` / eval tree have no interview, multi-turn, transcript, or phase-boundary cases. Prefer-A draft items 1–2 ask for a \"multi-turn state-transition / phase-boundary regression surface\" and to \"prefer existing content-contract / eval infrastructure\" without naming an executable fixture carrier, predicate, or closed fail reason per pain.\n- **failure mode:** An implementer can extend the same `toContain` suite (or add eval trigger rows) and claim Prefer-A landed while Stop 1 P1 proposal-growth, P2 false-completion, and P3 resume/deferral still have no failing-before behavioral result.\n- **disposition consequence:** Do not bind Prefer-A until it names, for each of P1/P2/P3, (a) the fixture object under test, (b) the mechanical predicate, and (c) a closed fail token distinct from schema/auth/path and from prose-presence. Acceptance item 6 already forbids prose-presence-alone; Prefer-A items 1–2 must make that non-optional in the Bound limbs.\n\n```quarantined\n### F2. Companion dependency without a coverage-oracle pin can stall or invent P1/P3 semantics\n- **class:** `sharpens-framing`\n- **evidence:** Stop 1 Prefer-A item 4 defers workflow semantics for completion/continuation/visibility/PRD authority to companions #5351–#5354, allowing this issue to \"pin only the coverage/oracle shape.\" Item 1/6 still require fixtures that fail on phase-complete growth, confirmation-vs-phase, and resume/deferral preservation. At pin, `content/strategies/interview.md` \"Transition Criteria (interview complete)\" and Full/Light path steps are prose; `content/skills/deft-directive-interview/SKILL.md` Rule 6 confirmation gate + answers-map handoff are also prose. No shared oracle interface exists in `packages/core/src/eval` or content-contracts for those properties.\n- **failure mode:** Bound either waits on four companions before any red/green fixture exists, or harvest invents decision-boundary text that conflicts with those companions.\n- **disposition consequence:** Keep companion ownership of normative workflow text, but Prefer-A must pin this issue's minimum coverage-oracle I/O and fail codes so P1–P3 fixtures can land independently of companion prose settlement.\n\n```\n```quarantined\n### F3. Landing surface is a preference bag across three non-equivalent mechanisms\n- **class:** `sharpens-framing`\n- **evidence:** Prefer-A item 2 lists `interview_*` / `deterministic_questions` / \"eval harness\" under `packages/core` as the preferred integration point. Inventory at pin: interview content-contracts = string presence; `deterministic_questions.test.ts` = contract/menu/runtime-obligation markers; `packages/core/src/eval` = skill-trigger and health/golden harnesses with zero interview state. Requirements write path in `hooks/dispatcher.ts` (`write-requirements-ready` / `write-requirements-out-of-class` + `REQUIREMENTS_DEFAULT_ALLOW_PATHS` from `session/posture.ts`) is occupancy/path/auth, matching Stop 1's \"not an interview-state evaluator.\"\n- **failure mode:** Ambiguous primary write class invites either more phrase tests in `interview_*.test.ts` or a new runtime NLP/path gate Prefer-A already non-goals.\n- **disposition consequence:** Name one primary landing module/path for the behavioral evaluator and state that extending `interview_*`/`deterministic_questions` phrase suites does not relieve P1–P3.\n\n```\n### F4. P2 false-completion needs turn-state evidence beyond Rule 8 re-assertion\n- **class:** `sharpens-framing`\n- **evidence:** Prefer-A items 3 and 6 correctly keep `validateSpec` (`packages/core/src/render/spec-validate.ts`: JSON parse + plan/status/narrative schema; success message \"`is valid vBRIEF`\"; missing-file hint points at \"running the interview process\") distinct from interview completion — aligning with P2. Separately, `interview_deterministic.test.ts` already asserts Rule 8 confirm-after-number-press / \"number entry alone must not advance.\" Prefer-A acceptance still requires \"a single numeric confirmation cannot satisfy a full-phase completion assertion,\" which is a different property (phase/decision-set completion vs next-question advance).\n- **failure mode:** Re-stating Rule 8 phrases is treated as P2 relief while a schema-valid unfinished draft plus one numeric confirm still counts as phase-complete in any behavioral fixture that is never written.\n- **disposition consequence:** Prefer-A should require a fixture where schema-valid artifacts + per-answer confirmation still fail a declared decision-set / phase-complete predicate, and explicitly separate that from Rule 8 content-contract coverage.\n\n### F5. P3 resume/deferral lacks named carrier fields on the Prefer-A draft\n- **class:** `sharpens-framing`\n- **evidence:** Stop 1 P3 and Prefer-A items 1/6 require resume preserving explicit deferrals and current phase. Pin interview skill exits with an answers map after confirmation (`SKILL.md` handoff); strategy Full path notes deferred decisions in prose (`content/strategies/interview.md`). No durable `{phase, acceptedDecisions, deferredSet, proposals}` (or equivalent) evaluator input appears under content-contracts or eval at this pin.\n- **failure mode:** Implement invents ad-hoc resume JSON that companions #5352/#5353 later contradict, or ships a narrative-only \"resume\" test that never fails on dropped deferrals.\n- **disposition consequence:** Prefer-A should name the minimum carrier fields the negative control mutates (phase id, accepted decision set, deferred boundary, proposal list) even while #5352 owns normative handoff text.\n\n### F6. Non-goals correctly exclude schema-as-approval and requirements write denial\n- **class:** `footnote`\n- **evidence:** Prefer-A items 3 and 5 match pin reality: `validateSpec` is schema-only; requirements posture gate is path/class allowlisting. No finding against those exclusions.\n- **failure mode:** none for bind\n- **disposition consequence:** Keep as non-goals; do not widen Bound into write-gate NLP.\n\n```quarantined\n## Road-not-taken / steelman\n\nRoad-not-taken: a live PreToolUse interview-phase observer that denies artifact growth after phase-complete. Rejected because Stop 1 / Prefer-A non-goals forbid NLP/filename intent gates and path-blocking of requirements docs, and pin inventory shows no interview-state machine hooked into `dispatcher.ts` today — the issue asks for a behavioral regression/oracle layer first.\n\nSteelman of Prefer-A-as-posted: naming \"reuse content-contract/eval\" plus acceptance bullets may be enough if synthesis later forces fixture limbs. Flip condition for F1: Prefer-A (or immediate Recut) must already enumerate fixture carrier + closed fail tokens per P*, or F1 drops from blocking to sharpening.\n\n```\n## Method note\n\nPin-read only at `3456c6712614e352c5559b3c29caf9cbce26b5cf` via `git show <sha>:` and dest cwd-without-occupy file reads. REST-read issue #5355 body + Stop 1 comment `5986230409` only (id ceiling). Did not read later thread comments. Did not implement product code. Open critique of Prefer-A draft on Stop 1 against P1–P3. Classified findings with evidence, failure mode, and disposition consequence per critic method.",
+          "id": 5986258060,
+          "html_url": "https://github.com/deftai/directive/issues/5355#issuecomment-5986258060",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:52:11Z",
+          "updated_at": "2026-10-05T00:52:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound\n**Spec-path:** Bound remedy below\nTarget-digest: sha256:8b5c2075dc36bfc19017c620ca202946d85fe0dd0b9ffa1e1c342ee13456596d\nStop-1: 5986230409\ncritics: grok 5986258060\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nDual-stop cap: 6 posts\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5355\n\n## In plain English\n\nInterview regression must grow a real multi-turn behavioral oracle with closed fail reasons for phase-drift growth, false phase completion, and resume/deferral loss. Phrase-presence tests and schema validators stay what they are. Companion issues own workflow prose; this Bound pins the oracle shape so fixtures can land without inventing conflicting decision-boundary text.\n\n## Pain cites (closed form)\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n- P1 covers undetected proposal/prerequisite growth after an agreed phase is complete\n- P2 covers false phase/interview completion from schema-valid unfinished artifacts plus per-answer confirmation without declared-decision evidence\n- P3 covers resume/handoff that drops explicit deferrals or current phase\n\n## Take map\n\nAbsorbs round-1 critic 5986258060 F1–F6: name fixture carrier + mechanical predicate + closed fail token per P* (F1 blocks-the-design); pin coverage-oracle I/O independent of companion prose (F2); name one primary landing module and forbid phrase-suite extension as relief (F3); separate P2 from Rule 8 next-question advance (F4); name minimum resume carrier fields (F5); keep schema/write-gate non-goals (F6).\n\n```quarantined\n## Bound remedy\n\n1. **Primary landing (P1 / P2 / P3 / F1 / F3).** Land a new behavioral oracle under `packages/core/src/interview/` (canonical filenames: `phase-boundary-oracle.ts` + colocated `phase-boundary-oracle.test.ts`). That module is the sole primary write class for this Bound. Extending `interview_deterministic.test.ts` / `interview_always_structured.test.ts` / `interview_click_commit.test.ts` / `deterministic_questions.test.ts` phrase/`toContain` suites does **not** relieve P1–P3. Do not land the oracle as an eval trigger row only (`packages/core/src/eval` stays optional consumer/report surface after the oracle exists). Do not land it as a PreToolUse / requirements write denial.\n\n2. **Coverage-oracle I/O pin (F1 / F2).** The oracle accepts a closed multi-turn transcript object (not live chat scrape) with at least:\n   - `turns: Array<{ role: \"operator\"|\"agent\"; kind: \"question\"|\"answer\"|\"confirm\"|\"proposal\"|\"defer\"|\"resume\"|\"summary\"; text?: string; refs?: string[] }>`\n   - `state: { phaseId: string; acceptedDecisionIds: string[]; deferredIds: string[]; proposalIds: string[] }`\n   - `assertions: Array<{ pain: \"P1\"|\"P2\"|\"P3\"; expect: \"fail\"|\"pass\" }>`\n   Output is a closed result: `{ ok: boolean; failures: Array<{ pain: \"P1\"|\"P2\"|\"P3\"; code: string; detail: string }> }`. Companions #5351–#5354 own normative workflow / completion / handoff prose; this issue pins only the oracle I/O + fail codes so fixtures can land before those companions settle. ⊗ Invent conflicting decision-boundary MUST text in this Bound.\n\n3. **Closed fail tokens (F1).** Required distinct codes (string literals locked by fixture):\n   - P1 → `PHASE_DRIFT_PROPOSAL_GROWTH` when, after a recorded phase-complete / agreed-summary boundary in the transcript, a later agent turn adds a new `proposal` or prerequisite `refs` entry that expands `proposalIds` without an operator-introduced requirement turn.\n   - P2 → `FALSE_PHASE_COMPLETION` when a completion claim / phase-complete assertion is recorded while `acceptedDecisionIds` does not cover the declared decision set for that phase, even if accompanying artifacts would pass schema validation and even if a per-answer confirm turn exists. Explicitly **not** Rule 8 \"number entry alone must not advance\" (that remains content-contract phrase coverage).\n   - P3 → `RESUME_DEFERRAL_LOSS` when a `resume` turn’s resulting `state` drops any id that was in `deferredIds` at handoff, or changes `phaseId` away from the handoff phase without an operator phase-change turn.\n\n4. **Fixture matrix (P1 / P2 / P3 / F4 / F5).** Colocated tests MUST include at least:\n   - **P1 negative:** phase-complete boundary then agent adds another proposal → `ok:false` with `PHASE_DRIFT_PROPOSAL_GROWTH` (documents may be schema-valid).\n   - **P1 positive control:** operator introduces a genuine new requirement after phase-complete → adaptive follow-up permitted (`ok:true` for that assertion).\n   - **P2 negative:** schema-shaped unfinished draft evidence + single numeric/per-answer confirm presented as full-phase completion without declared-decision coverage → `FALSE_PHASE_COMPLETION`.\n   - **P2 positive:** completion claim with evidence covering the declared decision set → pass.\n   - **P3 negative:** resume transcript mutates carrier by dropping a deferred id or rewriting phase → `RESUME_DEFERRAL_LOSS`.\n   - **P3 positive:** resume preserves `phaseId`, `acceptedDecisionIds`, `deferredIds` → pass.\n   - **Targeted revision:** change one accepted decision; unrelated accepted ids remain.\n   Show failing-before / passing-after on the oracle, not on prose-presence asserts.\n\n5. **Minimum resume carrier fields (P3 / F5).** Prefer-A requires the evaluator input to carry `phaseId`, `acceptedDecisionIds`, `deferredIds`, and `proposalIds` (names above). Normative handoff document shape for live sessions stays with #5352; this Bound only requires the oracle fixture carrier so negative controls can mutate those fields.\n\n6. **Schema / write-gate boundary (P2 / F6).** Keep `validateSpec` as schema-only. Keep requirements write gate as occupancy/path/auth. Completion claims reference declared-decision evidence via the oracle; JSON validity alone never clears P2. ⊗ Repurpose validateSpec as semantic approval. ⊗ NLP/filename intent write-denial. ⊗ Block all requirements documentation writes.\n\n7. **Companion dependency posture (F2).** Land oracle + fixtures on this issue without waiting for #5351–#5354 merge. When companion Prefer-A Bound text later defines completion/continuation/visibility/PRD authority, align oracle docs/comments to those names via follow-up if needed; do not block red/green fixtures on companion settlement. conflict_group suggestion: `interview-phase-boundary-oracle` (disjoint from companion conflict groups unless ingest later merges).\n\n8. **Non-goals (hold).** No absorb of #1176 plan-detail scope or #4535 menu-contract scope. No live dispatcher interview-phase observer in v1. No making ingest or chip state depend on this oracle.\n\n9. **Acceptance.**\n   - Primary module `packages/core/src/interview/phase-boundary-oracle.ts` (+ test) exists at pin after implement.\n   - Each of P1/P2/P3 has a negative fixture returning its closed fail token and a positive control.\n   - Phrase-suite-only changes do not satisfy this Bound.\n   - validateSpec still passes unfinished schema-valid drafts; that success is not completion evidence.\n   - Report evaluator detection boundary: transcript/state fixture in-process only; host chat logs are out of band unless an adapter later maps them into the closed I/O.\n\n```\n## Reject\n\n- Extending interview_* / deterministic_questions `toContain` suites as the sole P1–P3 relief (F1 / F3)\n- Deferring all red/green fixtures until #5351–#5354 Prefer-A prose settles (F2)\n- Treating Rule 8 phrase coverage as P2 false-completion relief (F4)\n- Unnamed resume carrier / narrative-only resume test (F5)\n- Schema-as-approval or requirements NLP write-denial (F6 / non-goals)\n- Eval-trigger-only landing with no executable oracle predicate (F1 / F3)\n\n## Gate stamp\n\nYolo Prefer-A Bound after round-1 critic 5986258060. F1 blocking finding folded into named oracle I/O + fail tokens + primary landing. Ingest remains a later separate verb.\r\n\n",
+          "id": 5986266124,
+          "html_url": "https://github.com/deftai/directive/issues/5355#issuecomment-5986266124",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:53:10Z",
+          "updated_at": "2026-10-05T00:53:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: pain-audit\ncritic-role: fresh\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nid-ceiling: 5986266124\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nStop-1: 5986230409\nPrefer-A: 5986266124\ntarget: #5355\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: sharpening\nharvest-changed: true\n\n## Pain-audit of Prefer-A Bound 5986266124 vs Stop 1 P1–P3\n\nPin-read only at `3456c6712614e352c5559b3c29caf9cbce26b5cf`. REST-read comments with id ≤ 5986266124 (Stop 1 5986230409, round-1 5986258060, Prefer-A 5986266124). No product implement.\n\n```quarantined\n### pain-P1 — support\n\nStop 1 P1: undetected proposal/prerequisite growth after an agreed phase is complete while phrase tests still pass.\n\nPrefer-A Bound relieves with named primary landing `packages/core/src/interview/phase-boundary-oracle.ts` (+ colocated test), closed fail token `PHASE_DRIFT_PROPOSAL_GROWTH`, negative + positive-control fixtures, and Reject of phrase-suite-only / eval-trigger-only landing (items 1, 3, 4, 9; Reject list).\n\nPin evidence: `packages/core/src/content-contracts/skills/interview_deterministic.test.ts`, `interview_always_structured.test.ts`, and `interview_click_commit.test.ts` are `readRepoFile` + `toContain` / heading-slice presence checks (Rule 8 / always-structured / click-commit menus). `git cat-file` shows `packages/core/src/interview` absent at this SHA. `packages/core/src/eval` has no interview/transcript/phase-boundary cases. Bound item 1 forbids extending those phrase suites as P1 relief — matches the pin gap F1 required.\n\n```\n### pain-P2 — support\n\nStop 1 P2: schema-valid unfinished draft or single numeric/per-answer confirm treated as phase/interview completion; validateSpec must stay schema-only.\n\nPrefer-A Bound relieves with `FALSE_PHASE_COMPLETION` (explicitly not Rule 8 next-question advance), fixture matrix requiring unfinished schema-shaped evidence + confirm to fail without declared-decision coverage, and item 6 keeping `validateSpec` schema-only / requirements write gate occupancy-path-auth (items 3, 4, 6).\n\nPin evidence: `packages/core/src/render/spec-validate.ts` `validateSpec` returns schema/JSON results only (`is valid vBRIEF` / schema violations / missing-file hint pointing at interview process) — not interview-completion. `interview_deterministic.test.ts` already locks Rule 8 \"number entry alone must not advance\"; Bound item 3 separates that from phase/decision-set completion, closing F4.\n\n### pain-P3 — support\n\nStop 1 P3: resume/handoff drops explicit deferrals or current phase (or manufactures a new proposal) with no failing fixture.\n\nPrefer-A Bound relieves with carrier fields `phaseId` / `acceptedDecisionIds` / `deferredIds` / `proposalIds`, fail token `RESUME_DEFERRAL_LOSS` on dropped deferred ids or unauthorized `phaseId` rewrite, and negative/positive resume fixtures (items 2, 3, 4, 5). Companion #5352 keeps normative live handoff prose; this Bound pins the oracle carrier only (F5 fold).\n\nPin evidence: interview skill Rule 7 exits with an answers map after confirmation; strategy Transition Criteria / deferral notes are prose; no durable evaluator carrier under content-contracts or eval at this pin. Bound names the fields the negative control mutates.\n\nStop 1 P3 also names resume-time \"manufactures a new proposal.\" Prefer-A's operative P3 pain cite narrows to deferral/phase preservation; post-phase proposal growth stays under P1 `PHASE_DRIFT_PROPOSAL_GROWTH`. That cross-cite is honest coverage, not silent drop (see S2).\n\n## Sharpenings\n\n### S1. P2 I/O pin omits declared-decision set field — harvest-changing\n\n- **class:** sharpening\n- **evidence:** Bound item 3 P2 predicate requires `acceptedDecisionIds` to cover \"the declared decision set for that phase,\" but Bound item 2 closed `state` is only `{ phaseId, acceptedDecisionIds, deferredIds, proposalIds }` — no `declaredDecisionIds` / `phaseDeclaredDecisionIds` (or equivalent) input. Assertions carry only `{ pain, expect }`.\n- **failure mode:** Implement invents a fixture-local declared set or hard-codes expected incompleteness inside the test, so the reusable oracle never mechanically receives the set the fail token names — same carrier-gap class as round-1 F5 for resume fields.\n- **disposition consequence:** Recut Prefer-A Bound item 2 (and item 3/4 P2 wording as needed) to add a closed declared-decision field on the transcript/state object before another pain-audit. This changes Bound-remedy bytes → harvest-changed.\n\n### S2. Resume proposal invention stays on P1 — non-harvest recording\n\n- **class:** sharpening (recording-only)\n- **evidence:** Stop 1 P3 text includes \"manufactures a new proposal\"; Prefer-A pain cite for P3 and `RESUME_DEFERRAL_LOSS` cover deferral/phase only; P1 token already fails post-boundary proposal growth.\n- **failure mode:** Reader expects a P3 fail code for resume-invented proposals and thinks P3 is under-bound.\n- **disposition consequence:** Parent recording comment (no Lean: token) may note that resume-time proposal expansion after a recorded phase-complete boundary is asserted via P1; mid-phase resume proposal pollution without deferral/phase loss is out of this Bound's P3 token and stays with companion handoff shape if needed. Does not require Bound-remedy byte change if Prefer-A keeps the narrowed P3 cite.\n\n## Overall disposition\n\n**newBindLeanAndAudit**\n\n- Per-pain: support / support / support for pain-P1 / pain-P2 / pain-P3\n- finding-classes: sharpening\n- harvest-changed: true (S1 amends closed I/O / Bound-remedy)\n- No does-not-relieve / blocking finding → no retraction+Handoff\n- Parent must post a Recut Prefer-A that adds the declared-decision field to the oracle I/O, then dispatch another pain-audit (Dual-stop numbered post). Do not bind-as-posted on 5986266124 while S1 is open.\n\nMethod: pin-read `git show 3456c671…:` and dest cwd-without-occupy; id ceiling 5986266124; N=1 yolo leftover-pain / Pain coverage critic seat.",
+          "id": 5986289249,
+          "html_url": "https://github.com/deftai/directive/issues/5355#issuecomment-5986289249",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:55:56Z",
+          "updated_at": "2026-10-05T00:55:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound\nRecut-supersedes: 5986266124\n**Spec-path:** Bound remedy below (self-contained)\nTarget-digest: sha256:8b5c2075dc36bfc19017c620ca202946d85fe0dd0b9ffa1e1c342ee13456596d\nStop-1: 5986230409\ncritics: grok 5986258060; pain-audit 5986289249\nprior-lean: 5986266124\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nDual-stop cap: 6 posts\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5355\n\n## In plain English\n\nSame as Prefer-A 5986266124, plus the oracle transcript/state must carry an explicit declared-decision id set so P2 false-completion is mechanical rather than fixture-local. Pain cites unchanged. Harvest from pain-audit 5986289249 S1.\n\n## Pain cites (closed form)\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n- P1 covers undetected proposal/prerequisite growth after an agreed phase is complete\n- P2 covers false phase/interview completion from schema-valid unfinished artifacts plus per-answer confirmation without declared-decision evidence\n- P3 covers resume/handoff that drops explicit deferrals or current phase\n\n## Take map\n\nSelf-contained Recut of Prefer-A Bound 5986266124. Carries forward all prior Bound limbs. Amends item 2/3/4 for pain-audit S1: add closed `declaredDecisionIds` on oracle state. Recording-only S2 (resume proposal invention stays on P1) does not change Bound bytes — noted under Gate stamp.\n\n```quarantined\n## Bound remedy\n\n1. **Primary landing (P1 / P2 / P3).** Land a new behavioral oracle under `packages/core/src/interview/` (canonical filenames: `phase-boundary-oracle.ts` + colocated `phase-boundary-oracle.test.ts`). That module is the sole primary write class for this Bound. Extending `interview_deterministic.test.ts` / `interview_always_structured.test.ts` / `interview_click_commit.test.ts` / `deterministic_questions.test.ts` phrase/`toContain` suites does **not** relieve P1–P3. Do not land the oracle as an eval trigger row only (`packages/core/src/eval` stays optional consumer/report surface after the oracle exists). Do not land it as a PreToolUse / requirements write denial.\n\n2. **Coverage-oracle I/O pin.** The oracle accepts a closed multi-turn transcript object (not live chat scrape) with at least:\n   - `turns: Array<{ role: \"operator\"|\"agent\"; kind: \"question\"|\"answer\"|\"confirm\"|\"proposal\"|\"defer\"|\"resume\"|\"summary\"; text?: string; refs?: string[] }>`\n   - `state: { phaseId: string; acceptedDecisionIds: string[]; declaredDecisionIds: string[]; deferredIds: string[]; proposalIds: string[] }`\n   - `assertions: Array<{ pain: \"P1\"|\"P2\"|\"P3\"; expect: \"fail\"|\"pass\" }>`\n   `declaredDecisionIds` is the closed declared decision set for the current phase (required for P2). Output is a closed result: `{ ok: boolean; failures: Array<{ pain: \"P1\"|\"P2\"|\"P3\"; code: string; detail: string }> }`. Companions #5351–#5354 own normative workflow / completion / handoff prose; this issue pins only the oracle I/O + fail codes so fixtures can land before those companions settle. ⊗ Invent conflicting decision-boundary MUST text in this Bound.\n\n3. **Closed fail tokens.** Required distinct codes (string literals locked by fixture):\n   - P1 → `PHASE_DRIFT_PROPOSAL_GROWTH` when, after a recorded phase-complete / agreed-summary boundary in the transcript, a later agent turn adds a new `proposal` or prerequisite `refs` entry that expands `proposalIds` without an operator-introduced requirement turn.\n   - P2 → `FALSE_PHASE_COMPLETION` when a completion claim / phase-complete assertion is recorded while `acceptedDecisionIds` does not cover `declaredDecisionIds` for that phase, even if accompanying artifacts would pass schema validation and even if a per-answer confirm turn exists. Explicitly **not** Rule 8 \"number entry alone must not advance\" (that remains content-contract phrase coverage).\n   - P3 → `RESUME_DEFERRAL_LOSS` when a `resume` turn’s resulting `state` drops any id that was in `deferredIds` at handoff, or changes `phaseId` away from the handoff phase without an operator phase-change turn.\n\n4. **Fixture matrix (P1 / P2 / P3).** Colocated tests MUST include at least:\n   - **P1 negative:** phase-complete boundary then agent adds another proposal → `ok:false` with `PHASE_DRIFT_PROPOSAL_GROWTH` (documents may be schema-valid).\n   - **P1 positive control:** operator introduces a genuine new requirement after phase-complete → adaptive follow-up permitted (`ok:true` for that assertion).\n   - **P2 negative:** schema-shaped unfinished draft evidence + single numeric/per-answer confirm presented as full-phase completion while `acceptedDecisionIds` is a proper subset of `declaredDecisionIds` → `FALSE_PHASE_COMPLETION`.\n   - **P2 positive:** completion claim with `acceptedDecisionIds` covering `declaredDecisionIds` → pass.\n   - **P3 negative:** resume transcript mutates carrier by dropping a deferred id or rewriting phase → `RESUME_DEFERRAL_LOSS`.\n   - **P3 positive:** resume preserves `phaseId`, `acceptedDecisionIds`, `declaredDecisionIds`, `deferredIds` → pass.\n   - **Targeted revision:** change one accepted decision; unrelated accepted ids remain.\n   Show failing-before / passing-after on the oracle, not on prose-presence asserts.\n\n5. **Minimum resume carrier fields (P3).** Prefer-A requires the evaluator input to carry `phaseId`, `acceptedDecisionIds`, `declaredDecisionIds`, `deferredIds`, and `proposalIds`. Normative handoff document shape for live sessions stays with #5352; this Bound only requires the oracle fixture carrier so negative controls can mutate those fields.\n\n6. **Schema / write-gate boundary (P2).** Keep `validateSpec` as schema-only. Keep requirements write gate as occupancy/path/auth. Completion claims reference declared-decision evidence via the oracle (`declaredDecisionIds` vs `acceptedDecisionIds`); JSON validity alone never clears P2. ⊗ Repurpose validateSpec as semantic approval. ⊗ NLP/filename intent write-denial. ⊗ Block all requirements documentation writes.\n\n7. **Companion dependency posture.** Land oracle + fixtures on this issue without waiting for #5351–#5354 merge. When companion Prefer-A Bound text later defines completion/continuation/visibility/PRD authority, align oracle docs/comments to those names via follow-up if needed; do not block red/green fixtures on companion settlement. conflict_group suggestion: `interview-phase-boundary-oracle`.\n\n8. **Non-goals (hold).** No absorb of #1176 plan-detail scope or #4535 menu-contract scope. No live dispatcher interview-phase observer in v1. No making ingest or chip state depend on this oracle.\n\n9. **Acceptance.**\n   - Primary module `packages/core/src/interview/phase-boundary-oracle.ts` (+ test) exists at pin after implement.\n   - Each of P1/P2/P3 has a negative fixture returning its closed fail token and a positive control.\n   - Phrase-suite-only changes do not satisfy this Bound.\n   - validateSpec still passes unfinished schema-valid drafts; that success is not completion evidence.\n   - Report evaluator detection boundary: transcript/state fixture in-process only; host chat logs are out of band unless an adapter later maps them into the closed I/O.\n\n```\n## Reject\n\n- Extending interview_* / deterministic_questions `toContain` suites as the sole P1–P3 relief\n- Deferring all red/green fixtures until #5351–#5354 Prefer-A prose settles\n- Treating Rule 8 phrase coverage as P2 false-completion relief\n- Unnamed resume carrier / narrative-only resume test\n- P2 oracle without a closed `declaredDecisionIds` (or equivalent) input field (pain-audit S1)\n- Schema-as-approval or requirements NLP write-denial\n- Eval-trigger-only landing with no executable oracle predicate\n\n## Gate stamp\n\nRecut-supersedes Prefer-A Bound 5986266124 after pain-audit 5986289249 (support P1/P2/P3; harvest-changed S1). Self-contained Bound; S1 folded as `declaredDecisionIds` on state + P2 predicate/fixture wording. Recording-only S2: resume-time proposal expansion after a recorded phase-complete boundary remains asserted via P1 `PHASE_DRIFT_PROPOSAL_GROWTH`; mid-phase resume proposal pollution without deferral/phase loss stays with companion handoff shape if needed. Next: another pain-audit of this Recut (Dual-stop numbered post still in-cap). Ingest remains a later separate verb.\r\n\n",
+          "id": 5986297366,
+          "html_url": "https://github.com/deftai/directive/issues/5355#issuecomment-5986297366",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:56:55Z",
+          "updated_at": "2026-10-05T00:56:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: pain-audit\ncritic-role: fresh\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nid-ceiling: 5986297366\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nStop-1: 5986230409\nPrefer-A: 5986297366\nprior-pain-audit: 5986289249\ntarget: #5355\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Pain-audit of Recut Prefer-A Bound 5986297366 vs Stop 1 P1–P3\n\nPin-read only at `3456c6712614e352c5559b3c29caf9cbce26b5cf`. REST-read comments with id ≤ 5986297366 (Stop 1 5986230409, Prefer-A 5986266124, prior pain-audit 5986289249, Recut Prefer-A 5986297366). No product implement. No comments after the id ceiling.\n\nPrior pain-audit 5986289249: support P1/P2/P3; harvest-changing S1 (`declaredDecisionIds` missing from closed state); recording-only S2 (resume proposal invention stays on P1). Recut-supersedes 5986266124 folds S1 into Bound-remedy bytes.\n\n```quarantined\n### pain-P1 — support\n\nStop 1 P1: undetected proposal/prerequisite growth after an agreed phase is complete while phrase tests still pass.\n\nRecut Prefer-A still relieves with primary landing `packages/core/src/interview/phase-boundary-oracle.ts` (+ colocated test), closed fail token `PHASE_DRIFT_PROPOSAL_GROWTH`, negative + positive-control fixtures, and Reject of phrase-suite-only / eval-trigger-only landing (items 1, 3, 4, 9; Reject list). Recut did not weaken these limbs.\n\nPin evidence unchanged: `interview_deterministic.test.ts` / `interview_always_structured.test.ts` / `interview_click_commit.test.ts` remain `readRepoFile` + `toContain` / heading-slice presence checks (Rule 8 / structured / click-commit). `packages/core/src/interview` absent at this SHA. `packages/core/src/eval` has no interview/transcript/phase-boundary cases.\n\n```\n### pain-P2 — support\n\nStop 1 P2: schema-valid unfinished draft or single numeric/per-answer confirm treated as phase/interview completion; validateSpec must stay schema-only.\n\nPrior S1 is folded. Recut item 2 closed state now includes `declaredDecisionIds: string[]` and states it is the closed declared decision set for the current phase (required for P2). Item 3 P2 predicate fails `FALSE_PHASE_COMPLETION` when `acceptedDecisionIds` does not cover `declaredDecisionIds`. Item 4 P2 negative/positive fixtures use proper-subset / covering against that field. Item 5/6 and Reject list lock the same carrier (Reject: \"P2 oracle without a closed `declaredDecisionIds`\"). Schema/write-gate boundary unchanged: `validateSpec` schema-only; requirements write gate occupancy/path/auth.\n\nPin evidence unchanged: `packages/core/src/render/spec-validate.ts` `validateSpec` returns schema/JSON results only (`is valid vBRIEF` / schema violations). Rule 8 \"number entry alone must not advance\" remains phrase coverage; Bound item 3 still separates that from phase/decision-set completion.\n\n### pain-P3 — support\n\nStop 1 P3: resume/handoff drops explicit deferrals or current phase (or manufactures a new proposal) with no failing fixture.\n\nRecut still relieves deferral/phase loss with carrier fields `phaseId` / `acceptedDecisionIds` / `declaredDecisionIds` / `deferredIds` / `proposalIds`, fail token `RESUME_DEFERRAL_LOSS`, and negative/positive resume fixtures (items 2, 3, 4, 5). Companion #5352 keeps normative live handoff prose.\n\nPrior S2 remains honest and already recorded on the Recut Gate stamp: resume-time proposal expansion after a recorded phase-complete boundary stays under P1 `PHASE_DRIFT_PROPOSAL_GROWTH`; mid-phase resume proposal pollution without deferral/phase loss stays with companion handoff shape. No Bound-remedy byte change required; not re-opened as harvest-changing.\n\nPin evidence unchanged: interview skill Rule 7 / strategy deferral notes are prose; no durable evaluator carrier under content-contracts or eval at this pin.\n\n## Prior-finding disposition\n\n- **S1 (5986289249)** — folded. Closed `declaredDecisionIds` appears on item 2 state, P2 predicate/fixtures, resume carrier (item 5), item 6 completion evidence wording, and Reject. Harvest-changing residue cleared for this Recut.\n- **S2 (5986289249)** — recording-only; already noted on Recut Gate stamp. No new Bound bytes; no new harvest.\n\n## Findings\n\nNo blocking, sharpening, or footnote findings against Recut Prefer-A Bound 5986297366. Remaining implement discretion (e.g. encoding phase-complete / completion-claim via existing `summary` + assertion matrix; non-empty `declaredDecisionIds` on P2 negatives already implied by proper-subset fixture wording) does not change Bound-remedy bytes.\n\n## Overall disposition\n\n**bindable-as-posted**\n\n- Per-pain: support / support / support for pain-P1 / pain-P2 / pain-P3\n- finding-classes: none\n- harvest-changed: false\n- evaluatePainAuditFollowThrough({findingClasses:[], harvestChanged:false}) → bindableWithoutExtraLean\n- No does-not-relieve / blocking → no retraction+Handoff\n- No harvest-changing sharpening → no newBindLeanAndAudit\n\nMethod: pin-read `git show 3456c671…:` and dest cwd-without-occupy; id ceiling 5986297366; N=1 yolo leftover-pain / Pain coverage critic seat.",
+          "id": 5986311972,
+          "html_url": "https://github.com/deftai/directive/issues/5355#issuecomment-5986311972",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:58:43Z",
+          "updated_at": "2026-10-05T00:58:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| P1 phase-drift growth undetected by phrase tests | verified | Stop 1; pin interview_* toContain suites; packages/core/src/interview absent at 3456c671 |\n| P2 false completion vs schema-only validateSpec | verified | Stop 1; spec-validate.ts schema-only; Rule 8 ≠ phase-complete |\n| P3 resume/deferral loss has no fixture carrier | verified | Stop 1; skill answers-map / strategy prose only at pin |\n| Round-1 Prefer-A underspec (F1 blocks) | accepted | critic 5986258060 F1–F5 folded into Bound |\n| Primary landing phase-boundary-oracle.ts | accepted | Bound item 1; Reject phrase-suite-only |\n| Closed fail tokens P1/P2/P3 | accepted | PHASE_DRIFT_PROPOSAL_GROWTH / FALSE_PHASE_COMPLETION / RESUME_DEFERRAL_LOSS |\n| declaredDecisionIds on oracle state (S1 harvest) | accepted | Recut 5986297366 after PA 5986289249 |\n| Companion dependency = oracle pin only | accepted | Bound item 7; #5351–#5354 own workflow prose |\n| Non-goals schema/write-gate | accepted | Bound item 6/8; critic F6 |\n| Pain-audit Recut supports P1/P2/P3; bindable-as-posted | verified | critic 5986311972 finding-classes: none; harvest-changed: false |\n\nDisagreement set: empty.\nRound-1 critic: 5986258060 (grok).\nPain-audits: 5986289249 (harvest Recut), 5986311972 (bindable-as-posted).\nSuccessor lean under synthesis: 5986297366.\r\n\n",
+          "id": 5986316713,
+          "html_url": "https://github.com/deftai/directive/issues/5355#issuecomment-5986316713",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:59:19Z",
+          "updated_at": "2026-10-05T00:59:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5986297366\nverified-claims table 5986316713\nStop-1 (denominator): 5986230409\nround-1 critic: 5986258060\nPain-audit (prior, harvest): 5986289249 — support P1/P2/P3; harvest-changed S1 declaredDecisionIds → Recut\nPain-audit (bind lean): 5986311972 — support P1, support P2, support P3; bindable-as-posted; finding-classes: none; harvest-changed: false\nprior Prefer-A (superseded): 5986266124\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\nspend-recommend: N=1\n\n## In plain English\n\nThe Bound stands. Interview regression gets a real phase-boundary oracle with closed fail tokens for proposal growth after phase-complete, false phase completion without declared-decision coverage, and resume/deferral loss. Phrase tests and schema validators stay what they are. Companions keep workflow prose. Ingest remains a separate operator verb.\n\n## Recording note (no Lean token)\n\nevaluatePainAuditFollowThrough({findingClasses:[], harvestChanged:false}) on pain-audit 5986311972 — bindable-as-posted. Prior S2 recording-only (resume proposal invention via P1) already on Recut Gate stamp.\n\n## Plain-language summary\n\nphase-boundary-oracle.ts + declaredDecisionIds + closed P1/P2/P3 fail tokens — fixtures fail for phase/decision-boundary reasons even when documents are schema-valid.\r\n\n",
+          "id": 5986316857,
+          "html_url": "https://github.com/deftai/directive/issues/5355#issuecomment-5986316857",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:59:20Z",
+          "updated_at": "2026-10-05T00:59:20Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nInterview regression coverage does not exercise phase drift and proposal growth across turns\n\n## Context\n\nObserved during an operator-directed Full design interview for an existing application, followed by a continuation session. The operator requested planning only, preservation of existing changes, and no implementation. The first artifact batch was explicitly approved; later backend and gap reviews were also requested. This report does not characterize all technical questions or artifact writes as unauthorized.\n\nThe consumer engine and content deposit were 0.119.12. The relevant interview/strategy content was also compared with a 0.120.0 deposit. On 2026-10-04, the cited rules were verified on upstream master at `3d613b146a3880ecb261bf8654d7abe73b498820`. Session examples below come from a local conversation audit; private project files and raw chat logs are not published.\n\n## Expected behavior\n\nBehavioral regression coverage should detect an interview that keeps adding prerequisites/proposals after the agreed phase is complete, treats per-answer confirmation as a phase transition, or loses deferred work on resume. Passing artifact-schema validation must remain distinct from evidence of interview completion.\n\n## Actual behavior / gap\n\nThe inspected interview tests assert that rule headings, required phrases, menu affordances, and confirmation instructions exist. The inspected specification validator checks JSON structure, narrative value types, plan fields, and status vocabulary. The requirements write gate checks occupancy, authorization, and allowed paths. None of these inspected surfaces evaluates the multi-turn failure seen in the consumer session.\n\nA read-only invocation of the installed validateSpec against the explicitly unfinished draft returned success. That is correct for a schema validator. This report is a behavioral coverage/enforcement-design gap, not a claim that this validator or the write gate returned an incorrect result, and not a claim that all tests in the repository were executed or that no related eval exists anywhere.\n\n## Session notes\n\n### Inspected evidence\n\n- [Interview deterministic tests](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/packages/core/src/content-contracts/skills/interview_deterministic.test.ts#L12) assert rule presence, echo/confirm text, Back, Discuss, and legend wording.\n- [Always-structured tests](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/packages/core/src/content-contracts/skills/interview_always_structured.test.ts#L13) check rendering instructions and phase-transition phrases.\n- [Click-commit tests](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/packages/core/src/content-contracts/skills/interview_click_commit.test.ts#L10) check menu/confirmation content.\n- [Deterministic-question tests](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/packages/core/src/content-contracts/skills/deterministic_questions.test.ts#L22) check documented menus and runtime-obligation markers.\n- Consumer 0.119.12 installed core: `dist/render/spec-validate.js::validateSpec`, `dist/hooks/dispatcher.js` requirements branch, and `dist/session/posture.js` were inspected. The requirements gate is a write-class boundary, not an interview-state evaluator.\n\n### Reproduction/evaluation fixture\n\nUse a sanitized existing-application planning scenario:\n1. Operator selects Full interview and approves a consolidated planning summary.\n2. One UI correction is requested.\n3. Operator asks for gaps to be resolved while one evidence investigation remains explicitly deferred.\n4. Agent receives a sequence of numeric answers and confirmations.\n5. A handoff resumes at a pending technical proposal in another session.\n6. Observe whether it converges, preserves the delta/deferral boundaries, and reports its phase, or manufactures another proposal and prerequisite after each confirmation.\n\nInclude both positive and negative controls. A genuine newly introduced requirement should permit a necessary follow-up; a derived implementation detail should not automatically expand the current phase.\n\n### Requested remedy and scope\n\nAdd a behavioral/state-transition regression layer for the bounded interview contract and its continuation semantics. Identify the narrowest supported evaluation or runtime integration point and state which properties are mechanically checked versus agent guidance. Do not repurpose schema validation as semantic approval, create an NLP write-denial gate that guesses intent from filenames, or block all requirements documentation writes. Reuse existing evaluation infrastructure where suitable.\n\n### Acceptance and regression evidence\n\n- A fixture exhibiting repeated proposal growth fails for a specific phase/decision-boundary reason even if every document is schema-valid.\n- A single numeric confirmation cannot satisfy a full-phase completion assertion.\n- A targeted revision preserves unrelated accepted decisions.\n- Resume preserves explicit deferrals and current phase.\n- A legitimate adaptive follow-up passes.\n- Completion claims reference evidence for the declared decision set; JSON validity alone is insufficient.\n- Report the evaluator's detection boundary and host limitations.\n- Show a failing-before/passing-after behavioral result; prose-presence assertions alone do not satisfy this issue.\n\n### Prior art and dependency\n\n#1176 concerns placeholders and executable detail inside implementation plans; this report concerns the interactive planning process. #4535 concerns menu contracts. The companion completion, continuation, visibility, and canonical-workflow defects define behavior for this coverage; this issue must not independently invent conflicting workflow semantics. It may depend on those contracts being settled. No adoption-blocker classification is asserted. Refs #1709.\n\n### Companion contract defects\n\n- [framework-gap] Full interview completion has no bounded material-decision contract: https://github.com/deftai/directive/issues/5351\n- [framework-gap] Design interview revisions and handoffs do not preserve a bounded phase and approval scope: https://github.com/deftai/directive/issues/5352\n- [framework-gap] Interview progress rules hide remaining scope while enforcing one-question-at-a-time interaction: https://github.com/deftai/directive/issues/5353\n- [framework-gap] Canonical interview strategy contradicts setup on PRD authority and scope promotion: https://github.com/deftai/directive/issues/5354\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5704302149,
+        "origin": "deftai/directive#5355",
+        "id": "github.issue.5704302149"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "8b5c2075dc36bfc19017c620ca202946d85fe0dd0b9ffa1e1c342ee13456596d"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/interview/phase-boundary-oracle.ts",
+          "packages/core/src/interview/phase-boundary-oracle.test.ts",
+          "CHANGELOG.md"
+        ],
+        "conflict_group": "interview-phase-boundary-oracle",
+        "depends_on": [],
+        "verify_commands": [],
+        "expected_outputs": [
+          "completed xBRIEF on tip"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "preferA": {
+        "lean": 5986297366,
+        "synth": 5986316857,
+        "conflict_group": "interview-phase-boundary-oracle"
+      },
+      "productPullRequest": 5360,
+      "admitted_source_digest": "8df420834f5ed4cf54c1d84d5a6e1ecc22329682b7a9b04f71cf79f7afa855c5",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-05T05:01:59Z"
+      },
+      "completedAt": "2026-10-05T05:01:59Z",
+      "completionProvenance": {
+        "productMerge": "4d6203563",
+        "productPr": 5360
+      }
+    },
+    "id": "github.issue.5704302149",
+    "updated": "2026-10-05T05:01:59Z"
+  }
+}

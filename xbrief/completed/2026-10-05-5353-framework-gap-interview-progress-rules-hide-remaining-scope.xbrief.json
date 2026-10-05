@@ -2,47 +2,119 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5353",
-    "updated": "2026-10-05T01:41:38Z"
+    "updated": "2026-10-05T05:01:59Z"
   },
   "plan": {
     "title": "[framework-gap] Interview progress rules hide remaining scope while enforcing one-question-at-a-time interaction",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] Interview progress rules hide remaining scope while enforcing one-question-at-a-time interaction",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5353",
-      "Overview": "\n\n1. **Progress checkpoint obligation (relieves P1; folds F1).** Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions. A status statement is not a batch of questions and is not a prior-answer summary.\n   - **Coexistence with Rule 1:** Emit checkpoints as Rule 2 Always-Structured **agent-initiated status updates that do NOT ask the user to choose anything**. Do not invent a third plain-text emission class.\n   - **Turn shape:** Prefer a separate status message immediately before the next structured question. If a checkpoint shares a turn with a question, it MUST be non-choice status prose above exactly one structured question (no second question; no upcoming concrete question list).\n   - **Inventory labels vs upcoming questions:** Remaining-scope text MAY name decision-area / inventory labels. It MUST NOT enumerate concrete upcoming question text (Rule 1 `⊗ List upcoming questions` stays).\n2. **Closed triggers + inventory substrate (relieves P1/P2; folds F2).** Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded). Closed checkpoint triggers (no every-turn default):\n   - phase entry / phase exit (including setup Phase 1/2/3 boundaries when those skills own the loop)\n   - after a material decision is added to the inventory\n   - after an accepted deferral is recorded\n   - before Rule 6 confirmation gate\n   - on operator how-much-is-left (item 4)\n   Do not invent a fixed total before adaptive questions are known. Short interviews keep proportionate cost (no every-turn full recap).\n3. **How-much-is-left interrupt (relieves P3; folds F3).** An operator ask for remaining scope MUST be answered as a Rule 2 status-only emission grounded in the inventory from item 2; then re-render the same pending question. Do not advance to the next material decision on that interrupt. Do not open Discuss unless the operator chose Discuss.\n4. **Preserve interaction constraints.** Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics (including Rule 8). Do not remove Rule 8 or switch to yolo as the remedy. Compatible with #4377 adaptive branching / sizing / confirmation; independent of #4535 menu-shape mismatch.\n5. **Land sites (folds F4).** Amend `content/skills/deft-directive-interview/SKILL.md` (Rule 1 coexistence + positive progress duty; Rule 2 status class cite; how-much-is-left interrupt). Mirror the same duty and coexistence into setup Phase 1 `### Interview Rules` and Phase 2 `### Interview Rules (same as Phase 1)`; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).\n6. **Acceptance / regression (folds F4).** Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible.\n7. **Non-goals.** No sole remedy of deleting Rule 8. No every-turn full recap. No fixed question census before adaptive branching is known. No third plain-text emission path beyond Rule 2 status updates. Ingest remains a later separate verb.\n\n\n",
+      "Overview": "Prefer-A Bound interview progress checkpoints. Operator through-merge overrides arc-mode no-ingest. Product shipped in #5357.",
       "Labels": "bug, agent-experience, process, source-of-truth, area:skills, design-critique:ingest-ready, framework-gap, promise:planning"
     },
     "items": [
       {
-        "id": "bound-1-progress-checkpoint",
-        "title": "Progress checkpoint obligation",
-        "status": "pending"
+        "id": "clause.1",
+        "title": "Progress checkpoint obligation: Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions. A status statement is not a batch of questions and is not a prior-answer summary.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5357",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
       },
       {
-        "id": "bound-2-inventory-triggers",
-        "title": "Closed triggers + inventory substrate",
-        "status": "pending"
+        "id": "clause.2",
+        "title": "Closed triggers + inventory substrate: Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded). Closed checkpoint triggers (no every-turn default).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5357",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
       },
       {
-        "id": "bound-3-how-much-left",
-        "title": "How-much-is-left interrupt",
-        "status": "pending"
+        "id": "clause.3",
+        "title": "How-much-is-left interrupt: Operator ask for remaining scope MUST be answered as Rule 2 status-only emission grounded in inventory; then re-render the same pending question. Do not advance to next material decision. Do not open Discuss unless operator chose Discuss.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5357",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
       },
       {
-        "id": "bound-4-preserve-constraints",
-        "title": "Preserve interaction constraints",
-        "status": "pending"
+        "id": "clause.4",
+        "title": "Preserve interaction constraints: Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics including Rule 8. Do not remove Rule 8 or switch to yolo as the remedy.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5357",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
       },
       {
-        "id": "bound-5-land-sites",
-        "title": "Land sites",
-        "status": "pending"
+        "id": "clause.5",
+        "title": "Land sites: Amend deft-directive-interview SKILL (Rule 1 coexistence + positive progress duty; Rule 2 status class; how-much-is-left interrupt). Mirror into setup Phase 1 and Phase 2 Interview Rules; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5357",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
       },
       {
-        "id": "bound-6-acceptance-fixture",
-        "title": "Acceptance / regression fixture",
-        "status": "pending"
+        "id": "clause.6",
+        "title": "Acceptance / regression fixture: Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible. CHANGELOG Unreleased.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5357",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
       }
     ],
     "tags": [
@@ -71,99 +143,138 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 15 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "Prefer-A leftover pathless derived after #5357",
       "sentences": [
-        "[framework-gap] Interview progress rules hide remaining scope while enforcing one-question-at-a-time interaction",
-        "Progress checkpoint obligation (relieves P1; folds F1). Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions.",
-        "A status statement is not a batch of questions and is not a prior-answer summary.",
-        "Coexistence with Rule 1: Emit checkpoints as Rule 2 Always-Structured agent-initiated status updates that do NOT ask the user to choose anything.",
-        "Do not invent a third plain-text emission class.",
-        "Turn shape: Prefer a separate status message immediately before the next structured question.",
-        "If a checkpoint shares a turn with a question, it MUST be non-choice status prose above exactly one structured question (no second question; no upcoming concrete question list).",
-        "Inventory labels vs upcoming questions: Remaining-scope text MAY name decision-area / inventory labels.",
-        "It MUST NOT enumerate concrete upcoming question text (Rule 1 `⊗ List upcoming questions` stays).",
-        "Closed triggers + inventory substrate (relieves P1/P2; folds F2). Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded).",
-        "Closed checkpoint triggers (no every-turn default): - phase entry / phase exit (including setup Phase 1/2/3 boundaries when those skills own the loop) - after a material decision is added to the inventory - after an accepted deferral is recorded - before Rule 6 confirmation gate - on operator how-much-is-left (item 4) Do not invent a fixed total before adaptive questions are known.",
-        "Short interviews keep proportionate cost (no every-turn full recap).",
-        "How-much-is-left interrupt (relieves P3; folds F3). An operator ask for remaining scope MUST be answered as a Rule 2 status-only emission grounded in the inventory from item 2; then re-render the same pending question.",
-        "Do not advance to the next material decision on that interrupt.",
-        "Do not open Discuss unless the operator chose Discuss.",
-        "Preserve interaction constraints. Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics (including Rule 8).",
-        "Do not remove Rule 8 or switch to yolo as the remedy.",
-        "Compatible with #4377 adaptive branching / sizing / confirmation; independent of #4535 menu-shape mismatch.",
-        "Land sites (folds F4). Amend `content/skills/deft-directive-interview/SKILL.md` (Rule 1 coexistence + positive progress duty; Rule 2 status class cite; how-much-is-left interrupt).",
-        "Mirror the same duty and coexistence into setup Phase 1 `### Interview Rules` and Phase 2 `### Interview Rules (same as Phase 1)`; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).",
-        "Acceptance / regression (folds F4). Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible.",
-        "Non-goals. No sole remedy of deleting Rule 8.",
-        "No every-turn full recap.",
-        "No fixed question census before adaptive branching is known.",
-        "No third plain-text emission path beyond Rule 2 status updates.",
-        "Ingest remains a later separate verb.",
-        "Closed checkpoint triggers (no every-turn default):",
-        "phase entry / phase exit (including setup Phase 1/2/3 boundaries when those skills own the loop)",
-        "after a material decision is added to the inventory",
-        "after an accepted deferral is recorded",
-        "before Rule 6 confirmation gate",
-        "on operator how-much-is-left (item 4)"
+        "Progress checkpoint obligation: Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions. A status statement is not a batch of questions and is not a prior-answer summary.",
+        "Closed triggers + inventory substrate: Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded). Closed checkpoint triggers (no every-turn default).",
+        "How-much-is-left interrupt: Operator ask for remaining scope MUST be answered as Rule 2 status-only emission grounded in inventory; then re-render the same pending question. Do not advance to next material decision. Do not open Discuss unless operator chose Discuss.",
+        "Preserve interaction constraints: Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics including Rule 8. Do not remove Rule 8 or switch to yolo as the remedy.",
+        "Land sites: Amend deft-directive-interview SKILL (Rule 1 coexistence + positive progress duty; Rule 2 status class; how-much-is-left interrupt). Mirror into setup Phase 1 and Phase 2 Interview Rules; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).",
+        "Acceptance / regression fixture: Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible. CHANGELOG Unreleased."
       ],
       "admitted_source_sentences": [
-        "Progress checkpoint obligation (relieves P1; folds F1). Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions.",
-        "A status statement is not a batch of questions and is not a prior-answer summary.",
-        "Coexistence with Rule 1: Emit checkpoints as Rule 2 Always-Structured agent-initiated status updates that do NOT ask the user to choose anything.",
-        "Do not invent a third plain-text emission class.",
-        "Turn shape: Prefer a separate status message immediately before the next structured question.",
-        "If a checkpoint shares a turn with a question, it MUST be non-choice status prose above exactly one structured question (no second question; no upcoming concrete question list).",
-        "Inventory labels vs upcoming questions: Remaining-scope text MAY name decision-area / inventory labels.",
-        "It MUST NOT enumerate concrete upcoming question text (Rule 1 `⊗ List upcoming questions` stays).",
-        "Closed triggers + inventory substrate (relieves P1/P2; folds F2). Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded).",
-        "Closed checkpoint triggers (no every-turn default): - phase entry / phase exit (including setup Phase 1/2/3 boundaries when those skills own the loop) - after a material decision is added to the inventory - after an accepted deferral is recorded - before Rule 6 confirmation gate - on operator how-much-is-left (item 4) Do not invent a fixed total before adaptive questions are known.",
-        "Short interviews keep proportionate cost (no every-turn full recap).",
-        "How-much-is-left interrupt (relieves P3; folds F3). An operator ask for remaining scope MUST be answered as a Rule 2 status-only emission grounded in the inventory from item 2; then re-render the same pending question.",
-        "Do not advance to the next material decision on that interrupt.",
-        "Do not open Discuss unless the operator chose Discuss.",
-        "Preserve interaction constraints. Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics (including Rule 8).",
-        "Do not remove Rule 8 or switch to yolo as the remedy.",
-        "Compatible with #4377 adaptive branching / sizing / confirmation; independent of #4535 menu-shape mismatch.",
-        "Land sites (folds F4). Amend `content/skills/deft-directive-interview/SKILL.md` (Rule 1 coexistence + positive progress duty; Rule 2 status class cite; how-much-is-left interrupt).",
-        "Mirror the same duty and coexistence into setup Phase 1 `### Interview Rules` and Phase 2 `### Interview Rules (same as Phase 1)`; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).",
-        "Acceptance / regression (folds F4). Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible.",
-        "Non-goals. No sole remedy of deleting Rule 8.",
-        "No every-turn full recap.",
-        "No fixed question census before adaptive branching is known.",
-        "No third plain-text emission path beyond Rule 2 status updates.",
-        "Ingest remains a later separate verb."
+        "Progress checkpoint obligation: Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions. A status statement is not a batch of questions and is not a prior-answer summary.",
+        "Closed triggers + inventory substrate: Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded). Closed checkpoint triggers (no every-turn default).",
+        "How-much-is-left interrupt: Operator ask for remaining scope MUST be answered as Rule 2 status-only emission grounded in inventory; then re-render the same pending question. Do not advance to next material decision. Do not open Discuss unless operator chose Discuss.",
+        "Preserve interaction constraints: Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics including Rule 8. Do not remove Rule 8 or switch to yolo as the remedy.",
+        "Land sites: Amend deft-directive-interview SKILL (Rule 1 coexistence + positive progress duty; Rule 2 status class; how-much-is-left interrupt). Mirror into setup Phase 1 and Phase 2 Interview Rules; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).",
+        "Acceptance / regression fixture: Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible. CHANGELOG Unreleased."
       ],
-      "admitted_source_digest": "d411b62d3da34fdc520b44e67de35878d1d802d5522e8169560615b4b86f5e6f",
+      "admitted_source_digest": "83704d027656162f4ce6775ffb95f5947379d61683c86d754d83f8afd36414af",
       "clauses": [
         {
-          "id": "ac-1",
+          "id": 1,
           "text": "Progress checkpoint obligation: Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions. A status statement is not a batch of questions and is not a prior-answer summary.",
-          "artifact_path": "content/skills/deft-directive-interview/SKILL.md"
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5357",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
         },
         {
-          "id": "ac-2",
+          "id": 2,
           "text": "Closed triggers + inventory substrate: Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded). Closed checkpoint triggers (no every-turn default).",
-          "artifact_path": "content/skills/deft-directive-setup/SKILL.md"
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5357",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
         },
         {
-          "id": "ac-3",
+          "id": 3,
           "text": "How-much-is-left interrupt: Operator ask for remaining scope MUST be answered as Rule 2 status-only emission grounded in inventory; then re-render the same pending question. Do not advance to next material decision. Do not open Discuss unless operator chose Discuss.",
-          "artifact_path": "content/skills/deft-directive-interview/SKILL.md"
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5357",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
         },
         {
-          "id": "ac-4",
+          "id": 4,
           "text": "Preserve interaction constraints: Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics including Rule 8. Do not remove Rule 8 or switch to yolo as the remedy.",
-          "artifact_path": "content/skills/deft-directive-interview/SKILL.md"
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5357",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
         },
         {
-          "id": "ac-5",
+          "id": 5,
           "text": "Land sites: Amend deft-directive-interview SKILL (Rule 1 coexistence + positive progress duty; Rule 2 status class; how-much-is-left interrupt). Mirror into setup Phase 1 and Phase 2 Interview Rules; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).",
-          "artifact_path": "content/skills/deft-directive-setup/SKILL.md"
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5357",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
         },
         {
-          "id": "ac-6",
+          "id": 6,
           "text": "Acceptance / regression fixture: Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible. CHANGELOG Unreleased.",
-          "artifact_path": "packages/core/src/content-contracts/skills/interview_progress_checkpoints_5353.test.ts"
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5357",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
         }
       ],
       "ambiguity_attestation": "none_found"
@@ -346,11 +457,9 @@
         ],
         "conflict_group": "interview-progress-visibility",
         "depends_on": [],
-        "verify_commands": [
-          "task check"
-        ],
+        "verify_commands": [],
         "expected_outputs": [
-          "CHANGELOG.md"
+          "completed xBRIEF on tip"
         ],
         "size": "M",
         "file_scope_confidence": "high",
@@ -362,9 +471,19 @@
         "lean": 5986257476,
         "synth": 5986279559,
         "conflict_group": "interview-progress-visibility"
+      },
+      "admitted_source_digest": "83704d027656162f4ce6775ffb95f5947379d61683c86d754d83f8afd36414af",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-05T05:01:59Z"
+      },
+      "completedAt": "2026-10-05T05:01:59Z",
+      "completionProvenance": {
+        "productMerge": "3c1ce6d70",
+        "productPr": 5357
       }
     },
     "id": "github.issue.5704301245",
-    "updated": "2026-10-05T01:41:38Z"
+    "updated": "2026-10-05T05:01:59Z"
   }
 }

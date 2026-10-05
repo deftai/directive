@@ -1,0 +1,760 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5351",
+    "updated": "2026-10-05T05:01:59Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Full interview completion has no bounded material-decision contract",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] Full interview completion has no bounded material-decision contract",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5351",
+      "Overview": "Prefer-A Bound lean 5986337306. Synthesis 5986371349. Operator through-merge overrides arc-mode no-ingest. Product shipped in #5359.",
+      "Labels": "bug, agent-experience, process, source-of-truth, urgent, design-critique:ingest-ready, framework-gap, core-capabilities, promise:planning, promise:requirements"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Detectable Full / reopen trigger: Apply material-decision contract when Sizing-Gate is Full, operator-directed Full-depth questioning is already underway, or reopen/continuation after declared-ready / Rule 6 confirmation. Out of scope unless reopened into Full: Light, Add-scope short path, Update/delta that stays delta.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5359",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "One material-decision inventory as depth bound: Material-decision inventory is the depth-bound for when questioning may stop (deliverable, material required decisions with resolution conditions, approved constraints, accepted deferrals, completion conditions). Seven-key Full Path Output remains output-shape narratives. Rule 4 completeness reads the inventory; Rule 7 answers-map still requires non-deferred caller-required keys. Do not ship a competing second required-field list.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5359",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Authorship, confirm, freeze: Agent may draft inventory; operator must explicitly confirm before depth-gate completion pressure. Mark operator-named vs agent-derived provenance; refuse inventing approved constraints/deferrals. After confirm, mutation uses operator-visible diff + re-confirm; silent thin-then-widen refuse.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5359",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Phase-relative sufficiency + follow-up cites: Each material decision carries a resolution condition. New asks must (a) cite outstanding material requirement within resolution condition, (b) revisit accepted deferral with boundary change, or (c) operator-raised gap after declared-ready with inventory amendment + re-confirm. Routine clarification inside an existing condition needs no extra approval.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5359",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Deferrals vs handoff: Distinguish resolved / deferred-for-this-phase / still-blocking. Deferral records unresolved decision, why non-blocking, and later trigger — not a fabricated answers-map value. Required values remain enforced where caller needs them now.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5359",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Persistence on continuation: Carry target deliverable, inventory dispositions, and accepted boundary changes in working artifact / answers handoff and reload on continuation. Do not reconstruct a fresh maximal inventory on resume.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5359",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Question Areas land + phase-scope: Phase-scope Implementation details Question Area so it cannot keep ordering unbounded detail asks after inventory confirm. Reconcile setup MUST vs strategy SHOULD on little-ambiguity to inventory sufficiency strength. Land in setup Phase 3, strategies/interview, make-spec templates.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5359",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Completion evidence via Confirmation Gate: Extend Rule 6 Confirmation Gate: summary lists inventory as decided / deferred-with-permit / out-of-phase; require explicit affirm; refuse treating artifact write success alone as completion. Extend re-ask-those-specific-questions bound to post-gate reopen (item 4c).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5359",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Acceptance honesty + evaluator fixture: Pack prose + presence tests at land sites. At least one pure evaluator/fixture for inventory sufficiency + follow-up cite rules covering finite inventory confirm, focused follow-up, deferral persistence, no silent widen, inventory-supported completion. Do not claim behavioral closure from toContain alone.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5359",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Land sites: Edit pack/render sources: deft-directive-interview SKILL (Rule 4, Embedded vs Delegation, Rule 6 reopen, Full Path Output note); deft-directive-setup SKILL (Phase 3 Question Areas + Completion; inventory confirm/freeze); strategies/interview.md; make-spec.md and make-spec-example.md. CHANGELOG Unreleased.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5359",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:planning",
+      "promise:requirements"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5351",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5351: [framework-gap] Full interview completion has no bounded material-decision contract"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover pathless derived after #5359",
+      "sentences": [
+        "Detectable Full / reopen trigger: Apply material-decision contract when Sizing-Gate is Full, operator-directed Full-depth questioning is already underway, or reopen/continuation after declared-ready / Rule 6 confirmation. Out of scope unless reopened into Full: Light, Add-scope short path, Update/delta that stays delta.",
+        "One material-decision inventory as depth bound: Material-decision inventory is the depth-bound for when questioning may stop (deliverable, material required decisions with resolution conditions, approved constraints, accepted deferrals, completion conditions). Seven-key Full Path Output remains output-shape narratives. Rule 4 completeness reads the inventory; Rule 7 answers-map still requires non-deferred caller-required keys. Do not ship a competing second required-field list.",
+        "Authorship, confirm, freeze: Agent may draft inventory; operator must explicitly confirm before depth-gate completion pressure. Mark operator-named vs agent-derived provenance; refuse inventing approved constraints/deferrals. After confirm, mutation uses operator-visible diff + re-confirm; silent thin-then-widen refuse.",
+        "Phase-relative sufficiency + follow-up cites: Each material decision carries a resolution condition. New asks must (a) cite outstanding material requirement within resolution condition, (b) revisit accepted deferral with boundary change, or (c) operator-raised gap after declared-ready with inventory amendment + re-confirm. Routine clarification inside an existing condition needs no extra approval.",
+        "Deferrals vs handoff: Distinguish resolved / deferred-for-this-phase / still-blocking. Deferral records unresolved decision, why non-blocking, and later trigger — not a fabricated answers-map value. Required values remain enforced where caller needs them now.",
+        "Persistence on continuation: Carry target deliverable, inventory dispositions, and accepted boundary changes in working artifact / answers handoff and reload on continuation. Do not reconstruct a fresh maximal inventory on resume.",
+        "Question Areas land + phase-scope: Phase-scope Implementation details Question Area so it cannot keep ordering unbounded detail asks after inventory confirm. Reconcile setup MUST vs strategy SHOULD on little-ambiguity to inventory sufficiency strength. Land in setup Phase 3, strategies/interview, make-spec templates.",
+        "Completion evidence via Confirmation Gate: Extend Rule 6 Confirmation Gate: summary lists inventory as decided / deferred-with-permit / out-of-phase; require explicit affirm; refuse treating artifact write success alone as completion. Extend re-ask-those-specific-questions bound to post-gate reopen (item 4c).",
+        "Acceptance honesty + evaluator fixture: Pack prose + presence tests at land sites. At least one pure evaluator/fixture for inventory sufficiency + follow-up cite rules covering finite inventory confirm, focused follow-up, deferral persistence, no silent widen, inventory-supported completion. Do not claim behavioral closure from toContain alone.",
+        "Land sites: Edit pack/render sources: deft-directive-interview SKILL (Rule 4, Embedded vs Delegation, Rule 6 reopen, Full Path Output note); deft-directive-setup SKILL (Phase 3 Question Areas + Completion; inventory confirm/freeze); strategies/interview.md; make-spec.md and make-spec-example.md. CHANGELOG Unreleased."
+      ],
+      "admitted_source_sentences": [
+        "Detectable Full / reopen trigger: Apply material-decision contract when Sizing-Gate is Full, operator-directed Full-depth questioning is already underway, or reopen/continuation after declared-ready / Rule 6 confirmation. Out of scope unless reopened into Full: Light, Add-scope short path, Update/delta that stays delta.",
+        "One material-decision inventory as depth bound: Material-decision inventory is the depth-bound for when questioning may stop (deliverable, material required decisions with resolution conditions, approved constraints, accepted deferrals, completion conditions). Seven-key Full Path Output remains output-shape narratives. Rule 4 completeness reads the inventory; Rule 7 answers-map still requires non-deferred caller-required keys. Do not ship a competing second required-field list.",
+        "Authorship, confirm, freeze: Agent may draft inventory; operator must explicitly confirm before depth-gate completion pressure. Mark operator-named vs agent-derived provenance; refuse inventing approved constraints/deferrals. After confirm, mutation uses operator-visible diff + re-confirm; silent thin-then-widen refuse.",
+        "Phase-relative sufficiency + follow-up cites: Each material decision carries a resolution condition. New asks must (a) cite outstanding material requirement within resolution condition, (b) revisit accepted deferral with boundary change, or (c) operator-raised gap after declared-ready with inventory amendment + re-confirm. Routine clarification inside an existing condition needs no extra approval.",
+        "Deferrals vs handoff: Distinguish resolved / deferred-for-this-phase / still-blocking. Deferral records unresolved decision, why non-blocking, and later trigger — not a fabricated answers-map value. Required values remain enforced where caller needs them now.",
+        "Persistence on continuation: Carry target deliverable, inventory dispositions, and accepted boundary changes in working artifact / answers handoff and reload on continuation. Do not reconstruct a fresh maximal inventory on resume.",
+        "Question Areas land + phase-scope: Phase-scope Implementation details Question Area so it cannot keep ordering unbounded detail asks after inventory confirm. Reconcile setup MUST vs strategy SHOULD on little-ambiguity to inventory sufficiency strength. Land in setup Phase 3, strategies/interview, make-spec templates.",
+        "Completion evidence via Confirmation Gate: Extend Rule 6 Confirmation Gate: summary lists inventory as decided / deferred-with-permit / out-of-phase; require explicit affirm; refuse treating artifact write success alone as completion. Extend re-ask-those-specific-questions bound to post-gate reopen (item 4c).",
+        "Acceptance honesty + evaluator fixture: Pack prose + presence tests at land sites. At least one pure evaluator/fixture for inventory sufficiency + follow-up cite rules covering finite inventory confirm, focused follow-up, deferral persistence, no silent widen, inventory-supported completion. Do not claim behavioral closure from toContain alone.",
+        "Land sites: Edit pack/render sources: deft-directive-interview SKILL (Rule 4, Embedded vs Delegation, Rule 6 reopen, Full Path Output note); deft-directive-setup SKILL (Phase 3 Question Areas + Completion; inventory confirm/freeze); strategies/interview.md; make-spec.md and make-spec-example.md. CHANGELOG Unreleased."
+      ],
+      "admitted_source_digest": "a08c0350a7559e8f2237e6cb910df51d833a4b09ff694cc5a4d6461eecd9070b",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Detectable Full / reopen trigger: Apply material-decision contract when Sizing-Gate is Full, operator-directed Full-depth questioning is already underway, or reopen/continuation after declared-ready / Rule 6 confirmation. Out of scope unless reopened into Full: Light, Add-scope short path, Update/delta that stays delta.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5359",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "One material-decision inventory as depth bound: Material-decision inventory is the depth-bound for when questioning may stop (deliverable, material required decisions with resolution conditions, approved constraints, accepted deferrals, completion conditions). Seven-key Full Path Output remains output-shape narratives. Rule 4 completeness reads the inventory; Rule 7 answers-map still requires non-deferred caller-required keys. Do not ship a competing second required-field list.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5359",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Authorship, confirm, freeze: Agent may draft inventory; operator must explicitly confirm before depth-gate completion pressure. Mark operator-named vs agent-derived provenance; refuse inventing approved constraints/deferrals. After confirm, mutation uses operator-visible diff + re-confirm; silent thin-then-widen refuse.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5359",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Phase-relative sufficiency + follow-up cites: Each material decision carries a resolution condition. New asks must (a) cite outstanding material requirement within resolution condition, (b) revisit accepted deferral with boundary change, or (c) operator-raised gap after declared-ready with inventory amendment + re-confirm. Routine clarification inside an existing condition needs no extra approval.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5359",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Deferrals vs handoff: Distinguish resolved / deferred-for-this-phase / still-blocking. Deferral records unresolved decision, why non-blocking, and later trigger — not a fabricated answers-map value. Required values remain enforced where caller needs them now.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5359",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 6,
+          "text": "Persistence on continuation: Carry target deliverable, inventory dispositions, and accepted boundary changes in working artifact / answers handoff and reload on continuation. Do not reconstruct a fresh maximal inventory on resume.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5359",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 7,
+          "text": "Question Areas land + phase-scope: Phase-scope Implementation details Question Area so it cannot keep ordering unbounded detail asks after inventory confirm. Reconcile setup MUST vs strategy SHOULD on little-ambiguity to inventory sufficiency strength. Land in setup Phase 3, strategies/interview, make-spec templates.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5359",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 8,
+          "text": "Completion evidence via Confirmation Gate: Extend Rule 6 Confirmation Gate: summary lists inventory as decided / deferred-with-permit / out-of-phase; require explicit affirm; refuse treating artifact write success alone as completion. Extend re-ask-those-specific-questions bound to post-gate reopen (item 4c).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5359",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 9,
+          "text": "Acceptance honesty + evaluator fixture: Pack prose + presence tests at land sites. At least one pure evaluator/fixture for inventory sufficiency + follow-up cite rules covering finite inventory confirm, focused follow-up, deferral persistence, no silent widen, inventory-supported completion. Do not claim behavioral closure from toContain alone.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5359",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 10,
+          "text": "Land sites: Edit pack/render sources: deft-directive-interview SKILL (Rule 4, Embedded vs Delegation, Rule 6 reopen, Full Path Output note); deft-directive-setup SKILL (Phase 3 Question Areas + Completion; inventory confirm/freeze); strategies/interview.md; make-spec.md and make-spec-example.md. CHANGELOG Unreleased.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5359 squash-merge (Tracking #5351). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5359",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Full/brownfield interview completion is gated only by open-ended \"no material ambiguity remains\" while the required-field handoff is SHOULD and setup Phase 3 / strategy transition use broad subject areas, so the agent can redefine the prerequisite set after every answer and never reach a bounded deliverable.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5351\norigin-ref: origin/master\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\ndest-wo: leftover-complete\n\nspend: N≥3\nspend-ask: asked\nspend-recommend: N≥3\nspend-why: Prefer-A drafted from the issue's requested remedy (adaptive but bounded material-decision contract across interview Rule 4, setup Phase 3, and strategy transition). Solution space is open on where the contract lives and how materiality/deferrals are encoded; blast spans interview + setup + strategy pack sources. Operator cue \"arc using recommended n 5351\" takes closed spend-recommend with spend-ask: asked.\nDual-stop cap: 6 posts\ndual-stop-reserved: first post-lean pain-audit of asserted coverage is in-cap via Dual-stop reserved slot; raise only after that reserved seat is spent\n\npain: P1, P2, P3\n\n- P1. Unbounded depth: Interview Rule 4 MUST keep asking until no material ambiguity remains, but the required-field list that defines sufficient specificity is only SHOULD, so embedded Full interviews can invent new mandatory technical decisions indefinitely after each answer.\n- P2. Broad completion criteria: setup Phase 3 / strategy transition name subject areas and \"comprehensive enough to implement\" / \"all major decisions and edge cases\" without a phase-specific materiality inventory (deliverable, required decisions, approved constraints, accepted deferrals, completion conditions), so the boundary can move without an explicit contract change.\n- P3. Silent prerequisite growth: a newly discovered question need not map to an outstanding material requirement for the current deliverable; derived implementation details (payload fields, SQL sequences, UI copy) can silently widen the phase and reopen after a declared-ready state.\n\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:becae7793aebf668d5702e66088faf1f1998ce4be9ca704847187d3ad9676edc\ntarget: #5351\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #4377 #1176 #1709 interview Rule 4 setup Phase 3 strategies/interview.md consumer feedback 2026-10-04\n\n## Prefer-A draft (charter target; not yet Bound)\n\n1. **Bounded material-decision contract (P1/P2).** For Full/brownfield interviews, require a named inventory before depth-gate completion: target deliverable, material required decisions, approved constraints, accepted deferrals, and completion conditions. Raise the required-field handoff from SHOULD to a MUST for embedded Full paths that today rely on subjective completeness.\n2. **Follow-up must cite material requirement (P3).** A newly discovered question MUST name which outstanding material requirement it resolves (or which accepted deferral it revisits with operator-visible boundary change). Derived implementation details outside the current phase MUST NOT silently become phase prerequisites.\n3. **Preserve adaptivity.** Keep answer-dependent branching and legitimate clarifications. Do not replace with a universal question cap, a complete up-front questionnaire, or extra approval for routine in-bound choices.\n4. **Completion evidence.** Completion is supported by the decision inventory; artifact validity alone cannot establish it. Named source/model/performance deferrals may remain open when the contract permits them without blocking the bounded requirements phase.\n5. **Land sites.** Fix canonical pack sources (interview skill Rule 4 / embedded vs delegation, setup Phase 3 completion, strategies/interview transition criteria) and regenerate dependent instructions.\n6. **Non-goals / distinct.** Distinct from #4377 transport/form and #1176 implementation-plan placeholder validation. No adoption-blocker classification asserted. No universal question cap.\n\n## Gate stamp\n\nFresh no-ingest yolo Stop 1 on #5351. Operator cue \"arc using recommended n 5351\" → arc-mode no-ingest (host default), yolo standing on, Dual-stop spend taken from closed spend-recommend N≥3 with spend-ask: asked. Prefer-A drafted from issue remediations. Charter is open critique of that Prefer-A. Ingest remains a later separate verb.\r\n\n",
+          "id": 5986231390,
+          "html_url": "https://github.com/deftai/directive/issues/5351#issuecomment-5986231390",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:48:54Z",
+          "updated_at": "2026-10-05T00:48:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5986241123\nfamilies: grok, claude, codex\nseat: grok launcher: grok (native deny recorded; CLI last-resort after spawn_subagent no-active-xBRIEF / process_only omit)\nseat: claude launcher: claude\nseat: codex launcher: codex\nlaunch-probe: grok=pong@0; claude=pong@0; codex=pong@0\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy\nStop-1: 5986231390\nTarget-digest: sha256:becae7793aebf668d5702e66088faf1f1998ce4be9ca704847187d3ad9676edc\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5351\n\n",
+          "id": 5986241123,
+          "html_url": "https://github.com/deftai/directive/issues/5351#issuecomment-5986241123",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:50:06Z",
+          "updated_at": "2026-10-05T00:50:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1 open critique of Prefer-A at Stop 1, comment 5986231390. Input ceiling: 5986241123. Verified by `git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:<path>` and bounded REST reads of the issue body, Stop 1, and panel deposit. No sibling posts read. These are source-contract findings, not a reproduced model-behavior measurement or a pain audit.\n\nExisting mechanisms first: [Interview Rules 4-7 and Invocation Contract](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/skills/deft-directive-interview/SKILL.md) already provide caller-defined required inputs, explicit confirmation, a structured answers map, optional keys, and mandatory required-field definitions for delegation. Embedded mode already permits field requirements inline without a formal contract object. [Setup Phase 3](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/skills/deft-directive-setup/SKILL.md#L695) distinguishes Add scope, delta update, replacement, and Starting new; brownfield alone does not select Full. [Interview strategy](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/strategies/interview.md#L275) already preserves questions/answers in the working document, includes deferred implementation decisions in Open Questions (lines 420-421), and distinguishes nonblocking questions at the PRD transition (lines 432-437). Prefer-A should tighten these mechanisms rather than create a second interview or approval system.\n\n### 1. blocks-the-design — Requirement citation does not bound decision depth\n\nEvidence: Prefer-A items 1-2 require an inventory before completion and a citation to an outstanding material requirement. They do not say when that requirement has sufficient evidence to stop, or how a newly discovered material decision enters the inventory. At the pin, Rule 4 still requires clarification when an answer introduces ambiguity; setup lines 798-812 and strategy lines 286-300 include implementation details and broad completeness obligations.\n\nConcrete failure: an inventory row called \"report reliability\" can remain outstanding while the agent asks about retries, leases, clocks, transaction boundaries, and every SQL sequence. Every question truthfully cites that same row. Nothing need silently widen the named phase, yet the original endless-depth failure survives. Conversely, a genuinely new material concern revealed by an answer might fit neither an outstanding row nor an accepted deferral, so a literal reading of item 2 can suppress necessary discovery.\n\nDisposition consequence: Prefer-A cannot bind as written. The bounded object needs a phase-relative sufficiency rule established before depth questioning, with incremental population allowed: a decision is mandatory now when leaving it unresolved would change the current deliverable's required behavior, constraints, acceptance, or feasibility; a choice among implementations already satisfying those conditions need not block this phase. Existing rows need a stated resolution condition, not only a name. Newly discovered material decisions need a visible inventory amendment and reason; routine clarification within an existing condition needs no extra approval. A new phase prerequisite is distinguishable from a new answer to the same prerequisite. This supplies the missing limit without freezing the questionnaire or imposing a question count.\n\n### 2. sharpens-framing — Permitted deferral must reconcile with the existing handoff\n\nEvidence: Prefer-A item 4 allows named deferrals when the contract permits them. Rule 7 requires a value for every required key; Rule 4 requires sufficient specificity before generation. Strategy already has Open Questions for implementation deferrals and a nonblocking-open-question distinction.\n\nConcrete failure: a performance target is marked deferred in the inventory, but its required answers-map key remains absent. The handoff can then reopen questioning, or fill in an invented target to satisfy required-key completeness. The inventory and existing completion rules disagree even though the draft says the deferral is allowed.\n\nDisposition consequence: the direction can bind with an explicit reconciliation: resolved, legitimately deferred for this phase, and still blocking are different outcomes. A deferral carries the unresolved decision, why it does not block this deliverable, and the later trigger for resolving it; it is not a fabricated answer. Its representation belongs in the existing handoff/working artifact, with required values still enforced where the caller actually needs them now. No universal exemption from required fields and no duplicate approval gate are needed.\n\n### 3. sharpens-framing — Name the phase and preserve its boundary on continuation\n\nEvidence: the issue's observation includes a continuation session. Prefer-A names a target deliverable but no persisted location or resume rule. Strategy line 284 already requires appending questions and answers to the working document. Setup lines 716-722 distinguish brownfield routes, while the interview skill's Output Targets delegate artifact authority to the caller.\n\nConcrete failure: a resumed agent sees completed answers but reconstructs a fresh mandatory inventory from broad \"comprehensive enough to implement\" guidance. Or a requirements-phase deferral is treated as permission to leave the same decision unresolved in a later implementation-planning phase. Both lose the phase boundary despite a correct first session.\n\nDisposition consequence: scope the obligation to the actual Full interview phase, including operator-requested Full brownfield work, rather than all brownfield routing. Carry the target deliverable, inventory dispositions, and accepted boundary changes in the caller's existing working artifact/answers handoff and reload them on continuation. Requirements completion and implementation readiness stay separate claims. This is a persistence clarification, not a new artifact family.\n\nAuthority/injection lens: this inventory becomes a source of completion authority. Repository documents and imported issue text can supply evidence or candidate questions; they cannot silently become operator-approved constraints, deferrals, or phase amendments. Existing external-content defenses remain applicable. There is no need to introduce a swarm allocation mechanism for this change.\n\nRoad not taken: a frozen upfront checklist would make missing entries easy to detect, but would mishandle genuinely answer-dependent risks. A universal turn cap would bound cost without establishing completeness. The stronger version of Prefer-A is an evolving inventory with stable phase-relative resolution conditions. A concrete condition that rejects the reliability/lease/clock chain while admitting a newly discovered consequential ambiguity would remove finding 1.\n\nPlain take: the draft chooses the right direction, but a named list and a requirement citation alone can still support an endless interview. It needs a clear rule for when a decision is settled, how genuinely new decisions enter, and how deferrals and that boundary survive handoff and continuation.",
+          "id": 5986259552,
+          "html_url": "https://github.com/deftai/directive/issues/5351#issuecomment-5986259552",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:52:22Z",
+          "updated_at": "2026-10-05T00:52:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nround: 1\ncritic-role: fresh\ntarget: #5351\naudit-targets: none\ncharter: open critique of Prefer-A draft on Stop 1 (5986231390)\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\ninput-ceiling: 5986241123\nseat: grok\n\n## Re-verify (pin 3456c671)\n\nPin-read via `git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:` confirms Stop 1 anchors:\n\n- Interview Rule 4 Depth Gate: MUST keep asking until no material ambiguity remains; required-field handoff is SHOULD (`~`) only.\n- Embedded Mode: no formal contract object; caller embeds field requirements in its own skill. Delegation Mode already MUST-provides required fields / question defs / optional fields for completeness.\n- Setup Phase 3 **Completion**: `Continue until little ambiguity remains` + `Spec must be comprehensive enough to implement` — no named inventory.\n- Setup + strategy **Question Areas**: both mark `Implementation details (architecture, patterns, libraries)` as MUST (`!`).\n- Strategy **Transition Criteria (interview complete)**: all major decisions / edge cases / approved tradeoffs / little ambiguity — no phase-specific materiality inventory.\n- PRD section separately forbids packing implementation details into the PRD artifact (`⊗ Include implementation details or architecture`) while the shared interview Question Areas still MUST-cover them — authority split already exists for artifact shape, not for ask-set bounding.\n\nTarget-digest on Stop 1 (`sha256:becae779…6edc`) does not match live REST `.body` SHA-256 `sha256:e10f38550461b1786c7908ca5173448a0f46b7da0a6ede63162f3eb332ff28aa` (5625 UTF-8 bytes) at critic time. Treat as parent hygiene; Prefer-A prose is still the charter target.\n\n## Inventory (existing mechanisms before new ones)\n\n| Mechanism | What it already does | Gap vs Prefer-A / P1–P3 |\n|---|---|---|\n| Delegation Mode required-fields | Depth-gate completeness from a formal field list | Embedded Full/setup Phase 3 does not use it |\n| Embedded Mode caller-owned fields | Phase 1/2 embed concrete questions in setup skill | Phase 3 Full has subject areas, not a finite decision inventory |\n| Rule 6 / Post-Interview Confirmation Gate | Confirms captured values before write | End-of-ask confirmation; does not freeze the ask-set / material inventory up front |\n| Operator scope-limit (#4545) | Closed-lexicon hard ceiling on seeded brief surfaces | Product-scope ceiling after/beside interview; not a material-decision inventory for adaptive Q&A |\n| `ambiguity_attestation` / plan.acceptance | Post-write AC stamp fields | Explicitly not emitted from setup interview; not completion evidence for the ask phase |\n| #4377 up-front form/TUI | Transport/batching of questions | Prefer-A correctly distinct (preserves adaptive one-at-a-time) |\n| #1176 verify:plan / no-placeholders | Plan completeness after planning artifacts | Prefer-A correctly distinct (interview boundary, not placeholder validation) |\n\nPrefer-A's named inventory is the right *kind* of control. The open critique is whether the draft is specific enough to relieve P1–P3 without fighting other MUST pressure still in the pack.\n\n## Findings\n\n### F1. Inventory authorship, confirm, and freeze are unspecified\n**class:** `blocks-the-design`\n\n**evidence:** Prefer-A item 1 requires a named inventory (deliverable, material decisions, constraints, deferrals, completion conditions) and raises Rule 4's required-field handoff to MUST for embedded Full, but does not say who authors the inventory, when the operator confirms it, or when it freezes. Rule 6 / Post-Interview Confirmation Gate only confirms captured *answers* after the depth gate claims satisfaction. Item 2 covers follow-up cites / deferral revisits, not first publication of an agent-maximal inventory.\n\n**failure mode:** Agent publishes a maximal inventory that restates Question Areas (including every implementation detail) as \"material,\" then never closes; or publishes a thin inventory and later widens it without an operator-visible boundary change because mutability of the inventory itself is unnamed. P1/P2 recur inside the new artifact.\n\n**disposition consequence:** Prefer-A cannot bind as written. Bound must add: (a) proposer (agent-draft vs operator-seed), (b) explicit operator confirm of the inventory *before* depth-gate completion pressure applies, (c) freeze rule — inventory mutation uses the same operator-visible boundary-change path item 2 already sketches for deferral revisits.\n\n### F2. Question Areas still MUST-cover Implementation details; land sites omit them\n**class:** `blocks-the-design`\n\n**evidence:** Prefer-A land sites name Rule 4 / embedded-vs-delegation, setup Phase 3 completion, and strategies/interview transition criteria. They omit shared **Question Areas** in both `content/skills/deft-directive-setup/SKILL.md` (Phase 3 Interview Process) and `content/strategies/interview.md`, where `Implementation details` is `!`. Issue session notes and P3 describe exactly that MUST pressure (payload fields, SQL sequences, UI copy) after a declared-ready state.\n\n**failure mode:** Bound raises completion to an inventory while the same pack still orders agents to cover implementation details as a mandatory question area. Agents obey the stronger local MUST and silently re-widen after \"complete,\" recreating P3.\n\n**disposition consequence:** Prefer-A cannot bind without adding Question Areas to land sites and demoting or phase-scoping `Implementation details` (and possibly unbounded edge-case expansion) for the bounded requirements / planning deliverable phase. Artifact-side `⊗` in the PRD section is not enough — that forbids packing details into PRD text, not asking them forever.\n\n### F3. \"Raise SHOULD→MUST\" without a callee-published list leaves Rule 4 pointing at air\n**class:** `sharpens-framing`\n\n**evidence:** Rule 4 today: completeness = calling skill's required inputs at sufficient specificity; specificity list is SHOULD via handoff. Embedded Mode says no formal contract object — caller embeds requirements in its own SKILL. Prefer-A item 1 raises the handoff to MUST for embedded Full, and separately requires a named inventory, but does not say the inventory *is* that required-field list (or how it differs from Delegation Mode's formal object).\n\n**failure mode:** Implementers raise the RFC keyword on Rule 4 while setup Phase 3 still only has prose Completion bullets; the MUST has no on-disk list to enforce against. Dual vocabulary (\"material-decision contract\" vs \"required fields\") forks without a mapping.\n\n**disposition consequence:** Lean can bind after stating: the named inventory *is* the embedded Full required-field handoff surface (reuse Delegation Mode semantics without forcing a sub-skill invoke), published in setup/strategy land sites, not a parallel undefined object.\n\n### F4. Scope of Prefer-A across Light / Add-scope / continuation is fuzzy\n**class:** `sharpens-framing`\n\n**evidence:** Charter and Prefer-A say Full/brownfield. Shared Interview Rules + Completion/Transition Criteria also gate Light. Setup brownfield **Add-scope** skips the full interview after an explicit product/slice description. Issue context includes a continuation session after an approved artifact batch and a reopen after declared-ready — the P3 shape.\n\n**failure mode:** Bound only patches Full sizing-gate prose; Light keeps unbounded completion; continuation/reopen after confirmation has no cite-or-boundary rule, so silent prerequisite growth survives on the path that actually bit the reporter.\n\n**disposition consequence:** State closed applicability: Full interview path + any reopen/continuation after a declared-ready or confirmed summary; Add-scope keeps its short path unless reopened into Full depth; Light either out of scope or inherits a thinner inventory (deliverable + deferrals only). Parent lean should pick one.\n\n### F5. Completion evidence should extend Confirmation Gate, not invent a parallel verifier in v1\n**class:** `sharpens-framing`\n\n**evidence:** Prefer-A item 4: completion supported by decision inventory; artifact validity alone insufficient; named deferrals may remain. Existing Post-Interview Confirmation Gate already MUST-lists captured values before write. No interview completion verb exists today; `ambiguity_attestation` is a post-write AC field setup must not emit.\n\n**failure mode:** Over-building a new machine gate in the same arc duplicates Confirmation Gate and collides with #1176 plan verification. Under-building leaves \"supported by inventory\" as uncheckable prose beside the same subjective Completion bullets.\n\n**disposition consequence:** Prefer-A should pin v1 completion evidence as an extension of the Confirmation Gate summary: list inventory items (decided / deferred-with-permit / out-of-phase), require explicit affirm, and forbid treating artifact write success as completion. Defer a new `verify:*` verb unless a later pain forces it. Keeps non-goals vs #1176 clean.\n\n### F6. Target-digest drift / mismatch at critic time\n**class:** `footnote`\n\nStop 1 digest `becae779…` ≠ live body `e10f3855…`. Does not change Prefer-A substance; parent should refresh digest on successor lean.\n\n### F7. Distinctness claims vs #4377 / #1176 hold\n**class:** `footnote`\n\n#4377 is up-front form/TUI transport; #1176 is plan placeholder / verify:plan completeness. Prefer-A non-goals are correctly drawn. No disposition weight.\n\n## Injection / swarm lens\n\nTriggered: Prefer-A changes **authority** over when a Full interview may complete and what may reopen the prerequisite set (agent judgment over phase boundary / shared process state).\n\nControl that fits existing machinery: operator-confirmed finite inventory + MUST cite (or operator-visible boundary change) for new asks + demotion of mandatory Implementation-details Question Area for the bounded phase. That is a deterministic process control. \"A reviewer would catch unbounded depth\" is not a close. Swarm/worktree concurrency is N/A for this content-pack boundary.\n\n## Road-not-taken / steelman\n\n**Chosen direction:** Embedded Full keeps Embedded Mode; raise handoff + add named inventory at caller land sites.\n\n**Rejected alternative:** Force Phase 3 Full onto Delegation Mode's formal contract object.\n\n**Steelman for Delegation Mode:** Required-fields MUST already exists; depth gate already keys completeness off that list; no new vocabulary. **Flip condition:** if Full Phase 3 needs structured per-field question defs comparable to Phase 1/2 *and* setup is willing to pass a contract object mid-phase. **Why still reject for Prefer-A v1:** setup's Phase 3 Full is intentionally adaptive/brownfield with answer-dependent branching (Prefer-A item 3); a frozen formal questionnaire object fights that. Better: reuse Delegation Mode *semantics* (finite required list + optional/deferred) inside Embedded caller prose, with operator confirm/freeze (F1/F3).\n\n## Plain-language summary (parent lean)\n\nPrefer-A aims at the right gap: Full interviews need a finite, named decision boundary, not endless \"one more detail.\" Two bind blockers: (1) say who writes the inventory, when Scott confirms it, and how it freezes; (2) stop the pack from still MUST-requiring Implementation details questions while claiming the phase is bounded — put Question Areas on the land list and phase-scope them. Sharpen by making the inventory the embedded required-field surface (reuse Delegation semantics), clarifying Full/continuation vs Light/Add-scope, and hanging completion evidence off the existing Confirmation Gate summary instead of a new verifier. Digests and #4377/#1176 distinctness are footnotes.",
+          "id": 5986269613,
+          "html_url": "https://github.com/deftai/directive/issues/5351#issuecomment-5986269613",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:53:35Z",
+          "updated_at": "2026-10-05T00:53:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\n## Re-verification at the pin\n\nPin-read `git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:` per the recorded verification path. The four source cites in the issue body were taken at `3d613b14`; all four still land at the pin, so the anchors hold:\n\n- `content/skills/deft-directive-interview/SKILL.md:121-127` — Rule 4 Depth Gate, `!` at 123, `~` required-field handoff at 127. Confirmed.\n- same file `:247-261` — Invocation Contract, Embedded Mode at 251-253 (\"No formal contract object is needed\"), Delegation Mode required fields at 257-261. Confirmed.\n- `content/skills/deft-directive-setup/SKILL.md:786-812` — Interview Process under Phase 3 (heading at `:678`), Question Areas `:798-804`, Completion `:810-812`. Confirmed.\n- `content/strategies/interview.md:295-300` — Transition Criteria. Confirmed.\n\nThree things the pin shows that the draft premises do not account for, detailed below: a `!`-strength Full required-key set already exists in both files; the completion sentence lives in five canonical files, not three; and `Full` is a greenfield-scoped sizing outcome that the brownfield default branches never reach.\n\n## Existing mechanisms inventoried before proposing new ones\n\n| Mechanism | Where (at pin) | Bearing on the draft |\n| --- | --- | --- |\n| Full required-key set, `!` | interview `:213-224`; setup `:847-856` (verbatim duplicate) | Already a MUST list for Full. Draft item 1 proposes a second one. |\n| Answers-map completeness, `!` | interview `:193` — MUST contain a value for every required key defined by the calling skill | Rule 4 completeness is already anchored to a caller-defined key set. |\n| Rule 6 bounded re-ask, `!` | interview `:144`, `:160`, `:162` | Summary of ALL captured answers is already a completion inventory; `:160` already forbids restarting the full interview on correction. |\n| Brownfield Chaining Gate, `!` / `⊗` | strategies/interview `:71`, `:87-95`; setup `:740` | Brownfield default is Add-scope (gather only the new scope) or Update (delta interview). Already a depth bound, unlisted in the draft. |\n| Operator scope ceiling (#4545) | setup `:750`; contracts/intent-ceiling.md non-coverage section; `packages/core/src/operator-scope-limit/`, `deft verify:operator-scope-limit` | In-repo precedent for an operator-stated bound: closed lexicon plus seeded artifact plus verify verb. The drafted remedy has none of those parts. |\n| Operator-named / anti-invent polarity, `!` / `⊗` | setup `:764`, `:892`, `:909` | The standing answer in this repo to agent-authored inventories. Absent from the draft. |\n| Interview content-contract tests | `packages/core/src/content-contracts/skills/interview_deterministic.test.ts` and siblings | All `expect(text).toContain(...)`. String presence only; no behavioral interview harness exists. |\n\n## Findings\n\n### 1. `blocks-the-design` — \"Full/brownfield\" names a state the pack cannot evaluate\n\n**Evidence.** `Full` is an outcome of the Sizing Gate (setup `:770-782`), which sits behind the fence at setup `:768` — everything below applies ONLY to the interview strategy. On a brownfield repo the Chaining Gate is mandatory (strategies/interview `:71` is a `⊗` against skipping it; setup `:740` routes scoped/brownfield to it first), and its three live branches are Add-scope, Update, and Replace (strategies/interview `:87-95`). Only Replace — \"only after explicit affirmative (`yes` / `confirmed`)\" at `:91`, \"On confirmed scrap, continue to the Sizing Gate\" at `:92` — reaches the Sizing Gate at all. Reinforcing this, the Full output contract is textually greenfield-scoped: interview `:215` reads \"On the greenfield Full path\".\n\n**Failure mode.** An agent asking whether this is a Full/brownfield interview, and so whether the material-decision contract applies, has no detectable state to read. Brownfield-detector output (greenfield / identity-only / scoped) and sizing output (Light / Full) are orthogonal axes, and the two default brownfield branches terminate before sizing is ever chosen. So the contract either never fires on the audited session, if that session took Add-scope or Update, or it fires only after a scrap confirm, which is not the reported scenario — the operator requested preservation of existing changes and no implementation. There is also a third reading the draft forecloses: a greenfield-shaped Full interview running against an existing application is already a violation of `:71` and setup `:740`, in which case the harm is non-conformance with a standing `⊗`, and a new MUST at Rule 4 will not bind an agent that already skipped one.\n\n**Disposition consequence.** The lean cannot bind as written, because its trigger condition is unevaluable. Item 1 needs restating against a state the pack detects — brownfield-detector outcome by sizing outcome by embedded-or-delegation mode — and the land-site list in item 5 moves with that choice. If the answer turns out to be that the Chaining Gate branches already bound this and the session skipped the gate, the arc is about conformance rather than contract, and the remedy shape changes entirely.\n\n### 2. `blocks-the-design` — the inventory partly exists at `!`, and item 1 would create a competing second list\n\n**Evidence.** P1 states that the required-field list is only SHOULD. At the pin, `~` at interview `:127` governs who *defines* sufficient specificity — but a concrete required-key set for Full already exists at `!` in two places: interview `:213-224` (heading \"Full Path Output\", seven keys: `ProblemStatement`, `Goals`, `UserStories`, `Requirements`, `SuccessMetrics`, `Architecture`, `Overview`) and setup `:847-856`, verbatim. Rule 7 at interview `:193` already MUSTs that the answers map carry a value for every required key the calling skill defines, and setup is that calling skill.\n\n**Failure mode.** Item 1 adds a five-member inventory (deliverable, material required decisions, approved constraints, accepted deferrals, completion conditions) without naming the existing seven-key set or stating the relation between them. The result is two authoritative required-field sets for the same path with no precedence rule, and the copy count for a Full required-field list goes from two to four. An agent that has filled all seven narrative keys still faces an undefined set of material required decisions, so the depth bound is no tighter than before — and a reader reconciling the two lists has nothing in the text to reconcile against.\n\n**Disposition consequence.** Blocking as a bind question, not as a refutation. The seven-key set is genuinely an *output-shape* list rather than a depth bound — an agent can fill all seven after two hundred questions — so item 1 is not redundant. But the lean cannot bind until it says explicitly whether the new inventory subsumes, supersedes, or sits orthogonal to interview `:213-224` and setup `:847-856`, and which one the Rule 4 completeness test reads. Raising the handoff from SHOULD to MUST is the wrong framing for a surface that already carries a MUST.\n\n### 3. `blocks-the-design` — item 2, applied to the audited session, forbids the correct recovery\n\n**Evidence.** The Actual-behavior paragraph in the issue body records the harm as two events: the agent initially declared the complete design ready, then reopened broad questioning after the operator identified missing UI behavior. The operator-identified gap was real — missing UI behavior is named as genuine, and the body is explicit that a technical question is not inherently drift. Item 2 requires a newly discovered question to name which outstanding material requirement it resolves, or which accepted deferral it revisits with an operator-visible boundary change.\n\n**Failure mode.** Once completion is declared against the inventory, the inventory by construction has zero outstanding material requirements, and the gap in question was never an accepted deferral — it was missed. So the one follow-up that was *correct* has nothing to cite. The rule then resolves one of two ways, and both are bad: it blocks a legitimate follow-up at precisely the moment P3 names, or the agent silently amends its own inventory to manufacture the requirement it then cites, in which case item 2 bounds nothing at all. The two drafted branches do not cover inventory defect.\n\n**Disposition consequence.** Item 2 needs a named third branch — operator-raised gap, or discovered inventory defect, resolved by an operator-visible amendment to the inventory with a diff — before the lean can bind. Without it the clause is unimplementable on the exact session that motivated it.\n\n### 4. `sharpens-framing` — an agent-authored inventory is self-ratifying, and the counter-pattern is already written here\n\n**Evidence.** The standing polarity in this repo for operator-sourced artifact members is explicit: setup `:764` requires `plan.metadata.swarm.file_scope` from operator-named paths only, with `⊗ Auto-fill or invent paths`; `:892` repeats it (operator-named path members only, `⊗ Auto-fill or derive`, `⊗ Invent paths`); `:909` carries `⊗ Agent-asserted parent_issue / plan.references`. The #4545 hard ceiling (setup `:750`, plus the non-coverage section of `contracts/intent-ceiling.md`) pairs a closed lexicon with a seeded durable artifact and `deft verify:operator-scope-limit`.\n\n**Failure mode.** Item 4 derives completion evidence from an inventory the same agent authored from its own reading of the conversation, with no provenance polarity and no verify surface. The agent that widened the phase is the agent that writes the record saying the phase is complete, so the bound drifts with the behaviour it exists to catch. This is the failed-safety-case shape with the agent substituted for the reviewer.\n\n**Disposition consequence.** Items 1 and 4 should carry the operator-named provenance clause and the `⊗ invent` clause that `file_scope` already uses, or the lean should state plainly that it ships a prose norm with no deterministic control. Either is bindable; silence on which is not.\n\n### 5. `sharpens-framing` — the acceptance evidence requested in the issue is not obtainable at the named land sites\n\n**Evidence.** The interview content-contract suite is string-presence: `packages/core/src/content-contracts/skills/interview_deterministic.test.ts` is `expect(interview_text).toContain(...)` throughout, and `interview_always_structured.test.ts` and `interview_click_commit.test.ts` follow the same shape. No behavioral interview fixture surface exists at the pin. The issue asks for five behavioral outcomes, including a finite requirements fixture that reaches summary/confirmation without inventing new mandatory technical decisions.\n\n**Failure mode.** Item 5 — fix canonical pack sources and regenerate dependent instructions — plus the existing test shape delivers token presence in SKILL.md. Token presence is not behavioral evidence. The arc would bind having satisfied none of the five acceptance bullets, and the next consumer hits the same session shape with the catalog saying the gap is closed.\n\n**Disposition consequence.** The lean should either name an evaluator surface — `packages/core/src/operator-scope-limit/` is the in-repo precedent for an interview-adjacent pure predicate — or recut the acceptance criteria down to what prose plus presence tests can honestly carry, and say so.\n\n### 6. `sharpens-framing` — item 2 collides with a standing MUST, and the two land sites disagree on normative strength\n\n**Evidence.** The six Question Areas are duplicated verbatim at `!` in setup `:798-804` and strategies/interview `:286-293`, and include `! Implementation details (architecture, patterns, libraries)` and `! Edge cases (errors, boundaries, failure modes)`. Separately, the completion criterion diverges in strength between the two land sites: strategies/interview `:300` has `~ Little ambiguity remains` (SHOULD) alongside `!` at `:297-298`, while setup `:811` has `! Continue until little ambiguity remains` (MUST).\n\n**Failure mode.** Item 2 says derived implementation details MUST NOT silently become phase prerequisites, while a standing MUST at setup `:801` directs the agent to ask about implementation details. On a planning-only brownfield turn those are in direct tension, and the payload-fields / SQL-sequence / UI-copy progression the issue reports is a faithful reading of `:801` rather than a deviation from it. Meanwhile an agent landing the new contract in both files inherits a `~` versus `!` split on the very sentence being replaced, and may satisfy only the weaker one.\n\n**Disposition consequence.** The lean should name the `~` / `!` reconciliation, and say whether the six Question-Area MUSTs are demoted, phase-scoped, or left standing. Leaving them standing while adding item 2 ships a self-contradicting pack.\n\n### 7. `sharpens-framing` — Rule 6 is the nearest existing mechanism to P3 and is not inventoried\n\n**Evidence.** Interview `:144` already requires a summary of ALL captured answers before artifact generation — a completion inventory at confirmation time. Interview `:160` already bounds reopening: ask which values to correct, re-ask those specific questions only (do not restart the full interview), then re-display the updated summary and re-confirm. `:162` is a `⊗` against proceeding without it.\n\n**Failure mode.** The headline harm in P3 — declared ready, then reopened broad questioning — is the exact behaviour `:160` already forbids, but only on the branch where the user says no at the gate. The genuinely uncovered sliver is narrower than P3 states: a gap raised after an affirmative confirm, or before the gate was reached at all. Framing P3 as an absence of any bound oversizes the remedy and points it at the wrong rule.\n\n**Disposition consequence.** The lean must inventory Rule 6 and say why it is insufficient. If the answer is that it only fires on the no branch, the minimal fix is extending the `:160` \"those specific questions only\" bound to post-gate reopening — which relocates the remedy from Rule 4 / Phase 3 / transition criteria to Rule 6, changing item 5 outright.\n\n### 8. `sharpens-framing` — item 5 under-inventories the land sites by two files\n\n**Evidence.** The unbounded completion sentence appears in five canonical content files at the pin, not three: setup `:811`, strategies/interview `:300`, `content/templates/make-spec.md:52-55` (Completion: `! Continue until little ambiguity remains`, `! Ensure spec is comprehensive enough to implement`), and `content/templates/make-spec-example.md:7` (keep asking until you are confident there is little ambiguity left). `make-spec.md:44-50` also carries a third verbatim copy of the six Question Areas. Pack JSONs (`content/packs/skills/skills-pack-0.1.json`, `content/packs/strategies/strategies-pack-0.1.json`) are rendered via `packages/core/src/packs/pack-render.ts`, so those are regenerated rather than hand-edited — but `make-spec.md` is hand-authored. Its own header at `:3-6` says it implements strategies/interview.md and directs the reader to that file for the full canonical strategy, and then restates the rules anyway.\n\n**Failure mode.** A bounded contract landed in three of five files leaves `make-spec.md` as a live unbounded path and `make-spec-example.md` as a worked example demonstrating the forbidden behaviour. A consumer following the template reproduces the reported session with the fix in place.\n\n**Disposition consequence.** Item 5 adds those two files, or states why a template that restates the rules is out of scope. Low cost to fix, but it is a correctness gap in the land-site list rather than a stylistic one.\n\n### 9. `footnote` — the draft reuses the Full/brownfield compound without defining it\n\nCarried for the census only; the substantive version is finding 1. The draft inherits the phrase from the framing in the issue body, so this is not an independent defect.\n\n## Injection / swarm lens\n\nThe lens fires: the target changes prompts (question generation from operator free text), identity (`PROJECT-DEFINITION.xbrief.json` narrative writes at setup `:849`), and shared state that downstream orchestration reads (`plan.metadata.swarm.file_scope` and `plan.metadata.swarm.depends_on`, setup `:866-874`).\n\nThe concrete exposure is the accepted-deferrals member of item 1. As drafted it is agent-authored prose, distilled from operator free-text answers, that becomes a durable record which later consumers read as described content. This repo has already decided the polarity in the adjacent case: `file_scope` members are operator-named only with `⊗ Auto-fill or invent` at setup `:764` and `:892`, and `⊗ Agent-asserted parent_issue` at `:909`. A deferral written as \"auth deferred, no checks needed for now\", carried from a free-text answer into the identity narrative with no provenance marker, is an instruction-shaped fragment sitting in an artifact that later agents load. The same applies to approved constraints: \"approved\" is an authority claim, and nothing in the draft says who approved it, or how a reader distinguishes an operator-approved constraint from an agent-inferred one.\n\nThis is not primarily third-party injection; the realistic failure is an own goal, where an agent paraphrase of a conversational aside becomes a durable constraint carrying the appearance of operator authority. Disposition: items 1 and 4 need per-member provenance marking (operator-named versus agent-derived) and the `⊗ invent` clause, matching the surfaces that already carry it.\n\n## Road not taken\n\nI considered classifying finding 2 as `sharpens-framing` rather than blocking, on the reading that the lean could bind by simply declaring the seven-key set to be the list. I chose blocking because item 1 as literally drafted introduces five new member types and says nothing about the existing set, and two unreconciled required-field lists for one path is a bind defect rather than a wording defect.\n\nI also considered whether findings 1 and 7 collapse into one wrong-land-sites finding. They do not: finding 1 is about an unevaluable trigger, finding 7 is about an uninventoried mechanism. They happen to push the remedy in the same direction, but either could be true without the other.\n\n## Steelman\n\nThe strongest position against this critique: the seven-key narrative set is plainly not a decision inventory, the Rule 6 summary is a *display* obligation rather than a materiality test, and the brownfield-versus-Full distinction is a labeling quibble an author would resolve in one sentence while drafting. On that reading the draft identifies a real absence and all nine findings are editorial.\n\nThat reading is strong on finding 2 and weak on findings 1 and 3. Finding 3 does not depend on any inventory question: the two branches in item 2 genuinely do not cover the audited recovery, and that is a defect in the drafted text itself. What would flip my verdict on findings 1 and 2 together: a revision that names a detectable trigger state (for example, Sizing-Gate outcome Full, on any Chaining-Gate branch that reaches it) and names interview `:213-224` and setup `:847-856` with a stated relation to the new inventory. With those two sentences added, finding 1 drops to `footnote` and finding 2 to `sharpens-framing`.\n\n## Plain take\n\nThe problem reported here is real and the draft points in a sensible direction, but it is drafted against the wrong picture of what the pack already says, so it cannot bind as written.\n\nThree things have to change before it can. First, Full/brownfield is not a state the pack can detect: brownfield interviews default to Add-scope or a delta interview and never reach the Light/Full sizing choice unless the operator confirms a full scrap, so a rule that fires on Full/brownfield fires nowhere the reported session went. Second, a required-field list for Full already exists as a MUST in both files the draft wants to edit, so adding a second one gives the agent two lists and no instruction about which governs completion. Third, the rule that follow-up questions must cite an outstanding requirement would have blocked the one follow-up in the audited session that was correct — the operator noticing genuinely missing UI behaviour after the agent declared completion — because by then there are no outstanding requirements left to cite.\n\nFour smaller things would sharpen it. The completion sentence lives in five content files, not the three the draft lists. A standing MUST to ask about implementation details contradicts the proposed rule against implementation details widening the phase. The confirmation gate already forbids restarting a full interview on correction, which is most of what the third pain describes, so the draft should say why that is not enough. And the inventory is written by the same agent whose drift it is meant to bound, with none of the operator-named and do-not-invent polarity this repo already applies to the nearest comparable artifact — so as drafted it records the drift rather than catching it.\n\n",
+          "id": 5986322839,
+          "html_url": "https://github.com/deftai/directive/issues/5351#issuecomment-5986322839",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T01:00:05Z",
+          "updated_at": "2026-10-05T01:00:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nTarget-digest: sha256:e10f38550461b1786c7908ca5173448a0f46b7da0a6ede63162f3eb332ff28aa\ntarget: #5351\nround: successor lean after round-1 panel\nrelieves: P1\nrelieves: P2\nrelieves: P3\ncritics-in: 5986259552 (codex), 5986269613 (grok), 5986322839 (claude)\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\narc-mode: no-ingest\nyolo-standing: yes\n\n## In plain English\n\nFull interviews can keep inventing mandatory technical questions after every answer because completion is only \"no material ambiguity remains.\" Prefer-A Bound makes a finite, operator-confirmed material-decision inventory the depth gate for Full (and for reopen after declared-ready), with cite-or-amend rules for new asks, phase-scoped Implementation-details Question Areas, and completion evidence hung off the Confirmation Gate.\n\n## Bound remedy\n\n## Bind map (Prefer-A Bound)\n\nBind Approach A — adaptive but bounded material-decision contract for the detectable Full interview path and for reopen/continuation after a declared-ready or confirmed summary. Reject Approach B (universal question cap / frozen up-front questionnaire) and Approach C (extra approval for every routine in-bound choice).\n\n### 1. Detectable trigger (Claude F1)\n\nApply this contract when any of:\n- Sizing-Gate outcome is **Full** (greenfield Full, or brownfield Replace that reached Sizing after confirmed scrap), or\n- an operator-directed interview that has already entered Full-depth questioning (including a brownfield session that skipped Chaining but is already behaving as Full — treat as conformance debt; still apply the bound rather than invent a \"Full/brownfield\" compound state), or\n- **reopen / continuation** after a declared-ready state or after Rule 6 confirmation (Grok F4).\n\nOut of scope unless reopened into Full depth: Light sizing; Add-scope short path; Update/delta interview that stays delta.\n\n### 2. One inventory, not a second list (Claude F2 / Grok F3)\n\nThe named material-decision inventory **is** the embedded Full required-field handoff surface (reuse Delegation Mode semantics without forcing a sub-skill invoke). Relation to the existing seven-key Full Path Output set (`ProblemStatement` … `Overview` at interview Full Path Output / setup Phase 3):\n- Seven-key set = **output-shape** narratives that must be filled for Full artifact write.\n- Material-decision inventory = **depth-bound** for when questioning may stop (deliverable, material required decisions with resolution conditions, approved constraints, accepted deferrals, completion conditions).\n- Rule 4 completeness reads the inventory for ask-set sufficiency; Rule 7 answers-map completeness still requires values for every caller-required key that is **not** legitimately deferred for this phase.\n- Do not ship a competing undefined second required-field list. Do not reframe the existing seven-key MUST as \"only SHOULD.\"\n\n### 3. Authorship, confirm, freeze (Grok F1 / Claude F4)\n\n- Proposer: agent may **draft** the inventory from conversation + pack defaults.\n- Confirm: operator must explicitly confirm the inventory **before** depth-gate completion pressure applies (and before treating the ask-set as closed).\n- Provenance: each inventory member is marked operator-named vs agent-derived; ⊗ invent approved constraints or accepted deferrals as if operator-approved (match file_scope / #4545 polarity).\n- Freeze: after confirm, inventory mutation uses the same operator-visible boundary-change path as item 4 (diff + re-confirm). Silent agent-maximal or silent thin-then-widen inventories are refuse.\n\n### 4. Phase-relative sufficiency + follow-up cites (Codex F1 / Claude F3)\n\nBefore depth questioning under a confirmed inventory:\n- Each material required decision carries a **resolution condition** (what evidence settles it for this deliverable), not only a name.\n- A decision is mandatory for this phase when leaving it unresolved would change the current deliverable's required behavior, constraints, acceptance, or feasibility.\n- A choice among implementations that already satisfy those conditions need not block this phase.\n\nNewly discovered questions:\n- (a) cite an outstanding material requirement and stay within its resolution condition, or\n- (b) revisit an accepted deferral with operator-visible boundary change, or\n- (c) **operator-raised gap / inventory defect** after declared-ready: operator-visible inventory amendment (diff) then re-confirm — covers the audited UI-behavior recovery that (a)/(b) alone would forbid.\n\nRoutine clarification inside an existing resolution condition needs no extra approval. Distinguishing a new phase prerequisite from a new answer to the same prerequisite is required.\n\n### 5. Deferrals vs handoff (Codex F2)\n\nResolved / legitimately deferred-for-this-phase / still-blocking are distinct outcomes. A deferral records: the unresolved decision, why it does not block this deliverable, and the later trigger. It is not a fabricated answers-map value. Represent deferrals in the existing handoff / working artifact. Required values remain enforced where the caller needs them now. No universal exemption from required fields.\n\n### 6. Persistence on continuation (Codex F3)\n\nCarry target deliverable, inventory dispositions, and accepted boundary changes in the caller's existing working artifact / answers handoff and reload them on continuation. Requirements-phase completion and implementation readiness stay separate claims. Do not reconstruct a fresh maximal inventory from \"comprehensive enough to implement\" on resume.\n\n### 7. Question Areas land + phase-scope (Grok F2 / Claude F6)\n\nLand sites include shared **Question Areas** in setup Phase 3 and strategies/interview (and make-spec.md / make-spec-example.md — Claude F8). For the bounded requirements / planning deliverable phase under this contract:\n- Demote or phase-scope `! Implementation details (architecture, patterns, libraries)` so it cannot keep ordering unbounded detail asks after inventory confirm.\n- Reconcile setup MUST vs strategy SHOULD on \"little ambiguity remains\" to one strength aligned with the inventory sufficiency rule.\n- Artifact-side ⊗ packing implementation details into PRD text remains; that alone does not bound the ask-set.\n\n### 8. Completion evidence via Confirmation Gate (Grok F5 / Claude F7)\n\nv1 completion evidence extends Rule 6 Confirmation Gate: summary lists inventory items as decided / deferred-with-permit / out-of-phase; require explicit affirm; ⊗ treat artifact write success alone as completion. Inventory Rule 6's \"re-ask those specific questions only\" insufficiency for post-affirm reopen: extend that bound to post-gate reopen / continuation (item 4c), rather than inventing a parallel interview verifier in this arc. Defer a new `verify:*` verb unless a later pain forces it (#1176 stays distinct).\n\n### 9. Acceptance honesty (Claude F5)\n\nContent-contract string-presence tests alone cannot carry the issue's five behavioral acceptance bullets. Bound acceptance for this arc:\n- Pack prose + presence tests at the named land sites (including Question Areas + make-spec templates).\n- At least one pure evaluator / fixture surface for inventory sufficiency + follow-up cite rules (operator-scope-limit-class precedent), covering: finite inventory reaches confirm without inventing new mandatory technical decisions; material ambiguity from an answer produces focused follow-up; named deferrals do not vanish; optional implementation choices do not silently widen; completion is inventory-supported.\n- Recut any acceptance bullet that cannot be locked that way into honest prose-only residue named in PR acceptance — do not claim behavioral closure from `toContain` alone.\n\n### 10. Land sites\n\nCanonical pack sources (fix + regenerate dependents):\n- `content/skills/deft-directive-interview/SKILL.md` — Rule 4; Embedded vs Delegation; Rule 6 reopen bound; Full Path Output relation note\n- `content/skills/deft-directive-setup/SKILL.md` — Phase 3 Question Areas + Completion; inventory confirm/freeze\n- `content/strategies/interview.md` — Question Areas + Transition Criteria; Chaining/Sizing trigger wording\n- `content/templates/make-spec.md` and `content/templates/make-spec-example.md` — restated completion / Question Areas\n\n### Reject\n\n- Universal question cap / complete up-front questionnaire (Prefer-A item 3 preserved).\n- Extra approval for routine in-bound clarifications.\n- Collapsing into #4377 transport/form or #1176 plan-placeholder verification.\n- Adoption-blocker classification (none asserted).\n- Agent-self-ratifying inventory without operator confirm / provenance.\n- Leaving Implementation-details Question Area as standing MUST for the bounded phase while claiming the phase is bounded.\n\n### Pain cites (honest)\n\n- **P1** relieved by items 2–4 (inventory as required-field surface + resolution conditions + sufficiency rule).\n- **P2** relieved by items 1, 2, 7, 10 (detectable trigger + inventory + Question Areas / completion land).\n- **P3** relieved by items 3, 4, 6, 8 (freeze + cite/amend branches including operator-raised gap + continuation persistence + Rule 6 reopen extension).\n\n## Gate stamp\n\nYolo standing: first all-accept Prefer-A Bound after round-1 siblings. Honest pain cites above. Next under Dual-stop reserved seat: pain-audit of asserted coverage (audit-targets: pain-P1, pain-P2, pain-P3). Ingest remains a later separate verb.\n\n\n\n",
+          "id": 5986337306,
+          "html_url": "https://github.com/deftai/directive/issues/5351#issuecomment-5986337306",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T01:01:50Z",
+          "updated_at": "2026-10-05T01:06:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: sharpening\nharvest-changed: false\n\nseat: grok\nlauncher: grok-cli\nround: pain-audit\ncritic-role: fresh\ncharter: open critique — pain-audit of Prefer-A Bound asserted coverage\nid-ceiling: 5986337306\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nStop-1: 5986231390\nsuccessor-lean: 5986337306\ntarget: #5351 Prefer-A Bound lean 5986337306\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy\narc-mode: no-ingest\n\n## Verdict\n\n**Supports / relieves pain-P1, pain-P2, pain-P3.** Prefer-A Bound lean 5986337306 holds under pin-read against Stop 1 pains. Round-1 blocking load (Codex sufficiency; Grok/Claude Full-trigger, second-list, and post-ready recovery gaps) is folded into Bound items 1–4 / 6–8 / 10. No does-not-relieve. No harvest-changing Recut of Bound remedy limbs. **bindable-as-posted.** Residue below is non-harvest `sharpens-framing` (plus footnotes).\n\n## Pin-read re-verification (gap still present at dispatch-sha)\n\n- Interview Rule 4 (`content/skills/deft-directive-interview/SKILL.md:123`): MUST keep asking until no material ambiguity remains; sufficiency list is SHOULD only (`:127`). Embedded Mode (`:251`) has no formal required-field object; Delegation Mode (`:255-259`) already MUST-provides required fields for completeness.\n- Rule 6 reopen bound (`:160`) limits correction after `no` to those specific questions only; it does not freeze post-affirm reopen / continuation.\n- Setup Phase 3 Question Areas (`content/skills/deft-directive-setup/SKILL.md:798-804`) still MUST-cover `Implementation details`; Completion (`:811-812`) still MUST `Continue until little ambiguity remains` / `comprehensive enough to implement`. Sizing Gate (`:770-779`) is the detectable Full path; brownfield default is Add-scope / delta unless Replace scrap confirms full path (`:719`).\n- Strategy Question Areas / Transition Criteria (`content/strategies/interview.md:286-300`) mirror the same Implementation-details MUST and major-decisions / little-ambiguity completion shape (`~` on little ambiguity at `:300`).\n- Templates restating the unbounded completion sentence remain live: `content/templates/make-spec.md` Completion + Question Areas; `content/templates/make-spec-example.md` keep-asking prose.\n\nThat inventory is exactly Stop 1 P1 (SHOULD required-field + invent-after-answer), P2 (subject-area / comprehensive completion without phase inventory), and P3 (no cite-to-material-requirement + silent implementation widen + post-ready reopen).\n\n## Limb → pain map\n\n| Bound item | What it binds | P1 | P2 | P3 |\n| --- | --- | --- | --- | --- |\n| 1 Detectable trigger (Sizing Full / Full-depth / reopen) | When the contract fires; Light/Add-scope/delta out unless reopened | — | trigger | reopen entry |\n| 2 One inventory = depth-bound handoff surface | Deliverable + material decisions + constraints + deferrals + completion conditions; seven-key set stays output-shape | **direct** | **direct** | — |\n| 3 Authorship / confirm / freeze + provenance | Operator confirm before depth-gate; ⊗ invent approved constraints/deferrals; freeze then visible amend | freeze invent | boundary | freeze invent |\n| 4 Phase-relative sufficiency + cite branches (a)/(b)/(c) | Resolution conditions; mandatory-now rule; operator-raised gap after declared-ready | **direct** | — | **direct** |\n| 5 Deferrals vs handoff | Resolved / deferred-for-phase / still-blocking; no fabricated answers-map values | supports | — | — |\n| 6 Persistence on continuation | Reload inventory dispositions; no fresh maximal inventory from \"comprehensive enough\" | — | — | **direct** |\n| 7 Question Areas land + phase-scope | Demote/phase-scope Implementation-details MUST; reconcile setup `!` vs strategy `~` on little ambiguity | — | **direct** | widen block |\n| 8 Completion via Rule 6 extension | Inventory-supported affirm; extend `:160` bound to post-gate reopen; defer new verify:* | — | — | **direct** |\n| 9 Acceptance honesty | Pack prose + presence + ≥1 evaluator/fixture; recut bullets that cannot lock | honesty | honesty | honesty |\n| 10 Land sites | interview / setup / strategies/interview + make-spec(+example) | — | land | land |\n\nHonest Pain cites on the lean: P1→2–4; P2→1,2,7,10; P3→3,4,6,8. Matches this map.\n\n### pain-P1 — support\n\nStop 1 P1: Rule 4 MUST keep asking while the required-field list that defines sufficient specificity is only SHOULD, so embedded Full can invent new mandatory technical decisions after each answer.\n\nBound items 2–4 relieve: the named material-decision inventory **is** the embedded Full required-field handoff surface (depth-bound), distinct from the seven-key Full Path Output set (output-shape); each decision carries a resolution condition; phase-relative sufficiency stops \"cite the same vague row forever\"; confirm+freeze blocks silent invent. Codex round-1 blocks-the-design (citation without sufficiency) is folded into item 4. Support.\n\n### pain-P2 — support\n\nStop 1 P2: setup Phase 3 / strategy transition name subject areas and \"comprehensive enough to implement\" / \"all major decisions\" without a phase-specific materiality inventory, so the boundary can move without an explicit contract change.\n\nBound items 1, 2, 7, 10 relieve: detectable Full trigger (not unevaluable Full/brownfield compound); inventory members match the pain's named shape; Question Areas / completion land with Implementation-details demotion or phase-scope plus strength reconciliation; make-spec templates included. Grok/Claude round-1 blocks on unevaluable trigger and second competing list are folded into items 1–2. Support.\n\n### pain-P3 — support\n\nStop 1 P3: a newly discovered question need not map to an outstanding material requirement; derived implementation details can silently widen; questioning can reopen after declared-ready.\n\nBound items 3, 4, 6, 8 relieve: freeze + provenance; follow-up must (a) cite outstanding material requirement inside its resolution condition, (b) revisit an accepted deferral with visible boundary change, or (c) operator-raised gap / inventory defect after declared-ready via amend+re-confirm (covers the audited UI-behavior recovery that (a)/(b) alone forbade); continuation persistence; Rule 6 reopen extension past the `no`-only branch. Round-1 blocks-the-design on missing recovery branch is folded into 4c. Support.\n\n## Findings\n\n### S1. `sharpens-framing` — operative pain-cite field is a comma list\n\n**Evidence.** Lean header carries `relieves: P1, P2, P3` as one line. Pain-coverage apply counts only the first id on a comma list; honest per-pain bullets under \"Pain cites (honest)\" are prose, not operative fields. Contract / leftover-pain cite honesty expects one operative `relieves:` line per pain id.\n\n**Failure mode.** Path-1 / ingest-ready can refuse `unrelieved-pain` on P2/P3 even though Bound remedy limbs relieve them and this audit supports them.\n\n**Disposition.** Parent patches the lean body to three operative lines (`relieves: P1` / `relieves: P2` / `relieves: P3`) before path-1. Does not change Bound remedy limbs → not harvest-changing.\n\n### S2. `sharpens-framing` — item 7 leaves demote vs phase-scope open\n\n**Evidence.** Item 7: \"Demote or phase-scope `! Implementation details …`\". Pin still has that MUST at setup `:801` and strategy `:290`.\n\n**Failure mode.** Two land sites can pick different verbs and leave a residual MUST vs depth-bound tension in one file.\n\n**Disposition.** PR acceptance picks one closed verb (demote **or** phase-scope) and applies it consistently across item-10 sites. Binding direction already forbids leaving the standing MUST while claiming the phase is bounded (Reject list). Non-harvest.\n\n### F1. `footnote` — item 9 already names acceptance honesty\n\nContent-contract string-presence alone cannot carry the issue's five behavioral bullets; Bound item 9 already requires ≥1 evaluator/fixture surface and honest recut of bullets that cannot lock. Census only; no disposition weight.\n\n### F2. `footnote` — Target-digest / round-1 hygiene\n\nRound-1 noted Target-digest drift vs live issue body at critic time. Lean restates `Target-digest: sha256:becae779…6edc` matching Stop 1. Parent hygiene if digest must track live body; outside Bound remedy relief.\n\n## Injection / swarm lens\n\nLens fires (prompts + identity narratives + shared plan metadata). Bound item 3 already carries operator-named vs agent-derived provenance and ⊗ invent on approved constraints / accepted deferrals, matching file_scope / #4545 polarity. No new blocking exposure.\n\n## Carrier / follow-through\n\n- `finding-classes: sharpening` (S1–S2; no blocking)\n- `harvest-changed: false` (no Recut of Bound remedy limbs)\n- evaluatePainAuditFollowThrough → bindableWithoutExtraLean + recordingOnlyParentComment\n- **bindable-as-posted**\n\n",
+          "id": 5986361204,
+          "html_url": "https://github.com/deftai/directive/issues/5351#issuecomment-5986361204",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T01:04:46Z",
+          "updated_at": "2026-10-05T01:04:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| P1 unbounded depth (Rule 4 MUST + required-fields SHOULD) is a real pin gap | verified | Stop 1; pin-read interview Rule 4 :123/:127; Embedded Mode :251 |\n| P2 broad completion without materiality inventory | verified | setup Phase 3 Question Areas/Completion; strategies/interview Transition Criteria |\n| P3 silent prerequisite growth + post-ready reopen | verified | Implementation-details MUST; Rule 6 reopen only on no-branch; issue session notes |\n| Prefer-A direction (adaptive bounded inventory) | accepted | Round-1 all three seats; Bound folds blockers |\n| Detectable trigger (not Full/brownfield compound) | accepted | Claude F1 → Bound item 1 |\n| Inventory = depth-bound handoff; seven-key stays output-shape | accepted | Claude F2 / Grok F3 → Bound item 2 |\n| Authorship / confirm / freeze + provenance | accepted | Grok F1 / Claude F4 → Bound item 3 |\n| Phase-relative sufficiency + cite branches (a)(b)(c) | accepted | Codex F1 / Claude F3 → Bound item 4 |\n| Deferrals vs handoff; continuation persistence | accepted | Codex F2/F3 → Bound items 5–6 |\n| Question Areas land + phase-scope Implementation details | accepted | Grok F2 / Claude F6/F8 → Bound items 7, 10 |\n| Completion via Confirmation Gate extension | accepted | Grok F5 / Claude F7 → Bound item 8 |\n| Acceptance honesty (evaluator surface, not toContain alone) | accepted | Claude F5 → Bound item 9 |\n| Pain-audit supports P1/P2/P3; bindable-as-posted | verified | critic 5986361204 finding-classes: sharpening; harvest-changed: false |\n| Non-harvest S1 (relieves cite hygiene — patched) | carried | Lean 5986337306 now has three operative relieves lines |\n| Non-harvest S2 (item 7 demote vs phase-scope pick) | carry to PR | PA 5986361204 S2 |\n\nDisagreement set: empty.\nRound-1 critics: 5986259552 (codex), 5986269613 (grok), 5986322839 (claude).\nPain-audit: 5986361204.\nSuccessor lean under synthesis: 5986337306.\n\n",
+          "id": 5986371171,
+          "html_url": "https://github.com/deftai/directive/issues/5351#issuecomment-5986371171",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T01:05:56Z",
+          "updated_at": "2026-10-05T01:05:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5986337306\nverified-claims table 5986371171\nStop-1 (denominator): 5986231390\nround-1 critics: 5986259552 (codex), 5986269613 (grok), 5986322839 (claude)\nPain-audit (bind lean): 5986361204 — support P1, support P2, support P3; bindable-as-posted; non-harvest sharpenings S1 (relieves cite hygiene — patched on lean) and S2 (item 7 demote vs phase-scope pick) carry into PR acceptance\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\narc-mode: no-ingest\nyolo-standing: yes\nspend: N≥3\n\n## In plain English\n\nFull interviews no longer complete on open-ended \"little ambiguity remains.\" Prefer-A Bound makes an operator-confirmed material-decision inventory the depth gate for Full and for reopen after declared-ready, with cite-or-amend rules, phase-scoped Implementation-details Question Areas, and Confirmation Gate evidence. Ingest remains a separate operator verb.\n\n## Recording note (no Lean token)\n\nevaluatePainAuditFollowThrough({findingClasses:[\"sharpening\"], harvestChanged:false}) — residue carries into PR acceptance rather than another Recut.\n\n## Plain-language summary\n\nBounded Full-interview material-decision contract: detectable trigger, one inventory as depth-bound handoff, confirm/freeze, sufficiency + operator-raised-gap recovery, Question Areas land, Confirmation Gate completion. Chips stay convenience; completed-arc stays ingest clearance.\n\n",
+          "id": 5986371349,
+          "html_url": "https://github.com/deftai/directive/issues/5351#issuecomment-5986371349",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T01:05:57Z",
+          "updated_at": "2026-10-05T01:05:57Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5704297969,
+        "origin": "deftai/directive#5351",
+        "id": "github.issue.5704297969"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e10f38550461b1786c7908ca5173448a0f46b7da0a6ede63162f3eb332ff28aa"
+      },
+      "swarm": {
+        "file_scope": [
+          "content/skills/deft-directive-interview/SKILL.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/strategies/interview.md",
+          "content/templates/make-spec.md",
+          "content/templates/make-spec-example.md",
+          "CHANGELOG.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/packs/strategies/strategies-pack-0.1.json"
+        ],
+        "conflict_group": "interview-material-decision-contract",
+        "depends_on": [],
+        "verify_commands": [],
+        "expected_outputs": [
+          "completed xBRIEF on tip"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "preferA": {
+        "lean": 5986337306,
+        "synth": 5986371349,
+        "conflict_group": "interview-material-decision-contract"
+      },
+      "productPullRequest": 5359,
+      "admitted_source_digest": "a08c0350a7559e8f2237e6cb910df51d833a4b09ff694cc5a4d6461eecd9070b",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-05T05:01:59Z"
+      },
+      "completedAt": "2026-10-05T05:01:59Z",
+      "completionProvenance": {
+        "productMerge": "283bfab5d",
+        "productPr": 5359
+      }
+    },
+    "id": "github.issue.5704297969",
+    "updated": "2026-10-05T05:01:59Z"
+  }
+}

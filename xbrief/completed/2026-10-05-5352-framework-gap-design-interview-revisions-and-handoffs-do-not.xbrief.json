@@ -1,0 +1,709 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5352",
+    "updated": "2026-10-05T05:01:59Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Design interview revisions and handoffs do not preserve a bounded phase and approval scope",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] Design interview revisions and handoffs do not preserve a bounded phase and approval scope",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5352",
+      "Overview": "Prefer-A Bound durable phase/approval carrier. Operator through-merge overrides arc-mode no-ingest. Product shipped in #5358.",
+      "Labels": "bug, agent-experience, process, urgent, design-critique:ingest-ready, framework-gap, core-capabilities"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Durable interview-continuation carrier: Name one durable interview-continuation record owned under ./xbrief/plan.xbrief.json (closed field or adjacent plan-owned artifact). Required fields: target deliverable, current phase (closed enum), reopenable decision set, accepted deferrals, confirmation records with scope tags (answer|artifact|phase), limited delta under review, approval target + revision identity. Exclude ephemeral continue-here / continue.xbrief.json as this carrier. Resume MUST load this durable record; incomplete orientation is fail-closed refuse.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5358",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Closed phase vocabulary: Closed enum covering at least planning-draft-approved, correction-or-gap-review, artifact-approved, deferred-resume. Free-text phase labels refused. Map onto setup Phase 1/2/3 vocabulary without colliding names.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5358",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Approval taxonomy + gate bind-map: Approval scope comes from the explicitly presented gate and its target, never from numeric syntax alone. Map onto existing Rule 6 / Post-Interview / Full Path human approval surfaces.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5358",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Operator-enumerated delta reopen: Changing a decision reopens only operator-enumerated keys (Rule 6 L160 shape). Default refuse-to-widen. Additions require explicit operator widen plus recorded dependency reason. Agent-inferred demonstrable dependents are not a widening path. Stop when bounded delta satisfied. Adversarial fixture: refuse unrelated backend improvement as addition.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5358",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Handoff authority split with read-side refuse: Mid-review / cross-session handoffs MUST use durable carrier (or structured export), not unlabeled chat prose. Human-authorized constraints require reference/excerpt of operator grant. Agent conventions non-binding unless operator adopts via explicit marker. Incomplete-handoff remediation recovers orientation only.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5358",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Authorized incremental recordkeeping: Confirmed state may be recorded under an existing grant without another permission prompt. That grant does not authorize synchronizing unrelated scopes or generating an artifact alongside the next interview question. Keep anti-pattern forbidding combining interview questions with artifact generation.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5358",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Evidence / fixtures: Content-contract pins on both pack SoT and rendered skill surfaces. Prefer verify-style assertion against durable carrier after resume. Include: same-session correction; resume after continue-checkpoint consumption with carrier intact; artifact edit after approval (affected invalid; unchanged remains); incomplete handoff refuse; unsupported authorization label refuse; adversarial unrelated-proposal refuse; positive incremental recordkeeping under existing grant.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5358",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Landing surfaces: Primary: interview skill (pack + rendered), setup Full output/review / Post-Interview gate pointers, strategies/interview brownfield Update / delta continuation, continue-here.md explicit exclusion + pointer to durable carrier, plan.xbrief.json schema/field docs. Dual-surface pins where pack-render applies. CHANGELOG Unreleased.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5358",
+            "mintedAt": "2026-10-05T05:01:59Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T05:01:59Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "urgent",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5352",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5352: [framework-gap] Design interview revisions and handoffs do not preserve a bounded phase and approval scope"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A leftover pathless derived after #5358",
+      "sentences": [
+        "Durable interview-continuation carrier: Name one durable interview-continuation record owned under ./xbrief/plan.xbrief.json (closed field or adjacent plan-owned artifact). Required fields: target deliverable, current phase (closed enum), reopenable decision set, accepted deferrals, confirmation records with scope tags (answer|artifact|phase), limited delta under review, approval target + revision identity. Exclude ephemeral continue-here / continue.xbrief.json as this carrier. Resume MUST load this durable record; incomplete orientation is fail-closed refuse.",
+        "Closed phase vocabulary: Closed enum covering at least planning-draft-approved, correction-or-gap-review, artifact-approved, deferred-resume. Free-text phase labels refused. Map onto setup Phase 1/2/3 vocabulary without colliding names.",
+        "Approval taxonomy + gate bind-map: Approval scope comes from the explicitly presented gate and its target, never from numeric syntax alone. Map onto existing Rule 6 / Post-Interview / Full Path human approval surfaces.",
+        "Operator-enumerated delta reopen: Changing a decision reopens only operator-enumerated keys (Rule 6 L160 shape). Default refuse-to-widen. Additions require explicit operator widen plus recorded dependency reason. Agent-inferred demonstrable dependents are not a widening path. Stop when bounded delta satisfied. Adversarial fixture: refuse unrelated backend improvement as addition.",
+        "Handoff authority split with read-side refuse: Mid-review / cross-session handoffs MUST use durable carrier (or structured export), not unlabeled chat prose. Human-authorized constraints require reference/excerpt of operator grant. Agent conventions non-binding unless operator adopts via explicit marker. Incomplete-handoff remediation recovers orientation only.",
+        "Authorized incremental recordkeeping: Confirmed state may be recorded under an existing grant without another permission prompt. That grant does not authorize synchronizing unrelated scopes or generating an artifact alongside the next interview question. Keep anti-pattern forbidding combining interview questions with artifact generation.",
+        "Evidence / fixtures: Content-contract pins on both pack SoT and rendered skill surfaces. Prefer verify-style assertion against durable carrier after resume. Include: same-session correction; resume after continue-checkpoint consumption with carrier intact; artifact edit after approval (affected invalid; unchanged remains); incomplete handoff refuse; unsupported authorization label refuse; adversarial unrelated-proposal refuse; positive incremental recordkeeping under existing grant.",
+        "Landing surfaces: Primary: interview skill (pack + rendered), setup Full output/review / Post-Interview gate pointers, strategies/interview brownfield Update / delta continuation, continue-here.md explicit exclusion + pointer to durable carrier, plan.xbrief.json schema/field docs. Dual-surface pins where pack-render applies. CHANGELOG Unreleased."
+      ],
+      "admitted_source_sentences": [
+        "Durable interview-continuation carrier: Name one durable interview-continuation record owned under ./xbrief/plan.xbrief.json (closed field or adjacent plan-owned artifact). Required fields: target deliverable, current phase (closed enum), reopenable decision set, accepted deferrals, confirmation records with scope tags (answer|artifact|phase), limited delta under review, approval target + revision identity. Exclude ephemeral continue-here / continue.xbrief.json as this carrier. Resume MUST load this durable record; incomplete orientation is fail-closed refuse.",
+        "Closed phase vocabulary: Closed enum covering at least planning-draft-approved, correction-or-gap-review, artifact-approved, deferred-resume. Free-text phase labels refused. Map onto setup Phase 1/2/3 vocabulary without colliding names.",
+        "Approval taxonomy + gate bind-map: Approval scope comes from the explicitly presented gate and its target, never from numeric syntax alone. Map onto existing Rule 6 / Post-Interview / Full Path human approval surfaces.",
+        "Operator-enumerated delta reopen: Changing a decision reopens only operator-enumerated keys (Rule 6 L160 shape). Default refuse-to-widen. Additions require explicit operator widen plus recorded dependency reason. Agent-inferred demonstrable dependents are not a widening path. Stop when bounded delta satisfied. Adversarial fixture: refuse unrelated backend improvement as addition.",
+        "Handoff authority split with read-side refuse: Mid-review / cross-session handoffs MUST use durable carrier (or structured export), not unlabeled chat prose. Human-authorized constraints require reference/excerpt of operator grant. Agent conventions non-binding unless operator adopts via explicit marker. Incomplete-handoff remediation recovers orientation only.",
+        "Authorized incremental recordkeeping: Confirmed state may be recorded under an existing grant without another permission prompt. That grant does not authorize synchronizing unrelated scopes or generating an artifact alongside the next interview question. Keep anti-pattern forbidding combining interview questions with artifact generation.",
+        "Evidence / fixtures: Content-contract pins on both pack SoT and rendered skill surfaces. Prefer verify-style assertion against durable carrier after resume. Include: same-session correction; resume after continue-checkpoint consumption with carrier intact; artifact edit after approval (affected invalid; unchanged remains); incomplete handoff refuse; unsupported authorization label refuse; adversarial unrelated-proposal refuse; positive incremental recordkeeping under existing grant.",
+        "Landing surfaces: Primary: interview skill (pack + rendered), setup Full output/review / Post-Interview gate pointers, strategies/interview brownfield Update / delta continuation, continue-here.md explicit exclusion + pointer to durable carrier, plan.xbrief.json schema/field docs. Dual-surface pins where pack-render applies. CHANGELOG Unreleased."
+      ],
+      "admitted_source_digest": "3e55d627a08b266e99fef6898a5ea29264fb016d0cdd1489e167884043876326",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Durable interview-continuation carrier: Name one durable interview-continuation record owned under ./xbrief/plan.xbrief.json (closed field or adjacent plan-owned artifact). Required fields: target deliverable, current phase (closed enum), reopenable decision set, accepted deferrals, confirmation records with scope tags (answer|artifact|phase), limited delta under review, approval target + revision identity. Exclude ephemeral continue-here / continue.xbrief.json as this carrier. Resume MUST load this durable record; incomplete orientation is fail-closed refuse.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5358",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 2,
+          "text": "Closed phase vocabulary: Closed enum covering at least planning-draft-approved, correction-or-gap-review, artifact-approved, deferred-resume. Free-text phase labels refused. Map onto setup Phase 1/2/3 vocabulary without colliding names.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5358",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 3,
+          "text": "Approval taxonomy + gate bind-map: Approval scope comes from the explicitly presented gate and its target, never from numeric syntax alone. Map onto existing Rule 6 / Post-Interview / Full Path human approval surfaces.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5358",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 4,
+          "text": "Operator-enumerated delta reopen: Changing a decision reopens only operator-enumerated keys (Rule 6 L160 shape). Default refuse-to-widen. Additions require explicit operator widen plus recorded dependency reason. Agent-inferred demonstrable dependents are not a widening path. Stop when bounded delta satisfied. Adversarial fixture: refuse unrelated backend improvement as addition.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5358",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 5,
+          "text": "Handoff authority split with read-side refuse: Mid-review / cross-session handoffs MUST use durable carrier (or structured export), not unlabeled chat prose. Human-authorized constraints require reference/excerpt of operator grant. Agent conventions non-binding unless operator adopts via explicit marker. Incomplete-handoff remediation recovers orientation only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5358",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 6,
+          "text": "Authorized incremental recordkeeping: Confirmed state may be recorded under an existing grant without another permission prompt. That grant does not authorize synchronizing unrelated scopes or generating an artifact alongside the next interview question. Keep anti-pattern forbidding combining interview questions with artifact generation.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5358",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 7,
+          "text": "Evidence / fixtures: Content-contract pins on both pack SoT and rendered skill surfaces. Prefer verify-style assertion against durable carrier after resume. Include: same-session correction; resume after continue-checkpoint consumption with carrier intact; artifact edit after approval (affected invalid; unchanged remains); incomplete handoff refuse; unsupported authorization label refuse; adversarial unrelated-proposal refuse; positive incremental recordkeeping under existing grant.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5358",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        },
+        {
+          "id": 8,
+          "text": "Landing surfaces: Primary: interview skill (pack + rendered), setup Full output/review / Post-Interview gate pointers, strategies/interview brownfield Update / delta continuation, continue-here.md explicit exclusion + pointer to durable carrier, plan.xbrief.json schema/field docs. Dual-surface pins where pack-render applies. CHANGELOG Unreleased.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5358 squash-merge (Tracking #5352). Bound limbs shipped; Greptile CLEAN then MERGED.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5358",
+              "mintedAt": "2026-10-05T05:01:59Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T05:01:59Z"
+          }
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because post-draft design-interview corrections and cross-session handoffs do not preserve a bounded phase and approval scope: Rule-8 numeric confirm can become the practical workflow unit while answer approval, artifact approval, and phase completion blur, and agent-authored handoff conventions can expand an indefinite proposal loop.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5352\norigin-ref: origin/HEAD\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\ndest-wo: leftover-complete\n\nspend: N≥3\nspend-ask: asked\nspend-recommend: N≥3\nspend-why: Open solution space across interview skill Rules 6–8 / handoff, setup Full output+review, and brownfield delta continuation; high blast on consumer design interviews. Operator cue `arc using recommended n 5352` takes this closed recommend with spend-ask: asked.\nDual-stop cap: 6 posts\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\n\npain: P1, P2, P3\n\n- P1. Missing phase/continuation state: after an approved planning draft, a correction or gap review and a fresh-session resume lack durable fields for deliverable, current phase, reopenable decision set, accepted deferrals, and confirmation scope; preserving only the next question does not bound the work.\n- P2. Approval-scope conflation: Rule-8 numeric selection confirm can be treated as artifact approval, phase completion, or permission to generate unrelated proposals; answer-confirm vs document-approve vs phase-complete are not separated in the continuation contract.\n- P3. Handoff convention bleed: agent-authored handoffs can carry workflow conventions (for example mirror every confirmed decision into project/spec/six scopes and keep a pending proposal queue) that the operator did not authorize as Deft requirements, so continuation expands the proposal loop without a phase boundary.\n\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:eeaa7bc4a16e551b4c62b030d6d1b0c391bcc6e8b2b017d6bbc27880f4880c0a\ntarget: #5352\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #4668 (Depth preference persistence; distinct) #5176 (project-narrative persistence residual; distinct) #1709 (value-feedback filing path) interview Rules 6/7/8 setup Full output+review strategies/interview.md brownfield Update delta\n\n## Prefer-A draft (charter target; not yet Bound)\n\n**Bind Approach A.** Add a lightweight phase/continuation contract that reuses existing planning records where possible. Post-draft correction and cross-session resume restore deliverable, phase, decision set, deferrals, confirmations-with-scope, and the limited delta under review. Handoffs must distinguish human authorization from agent-created workflow conventions. Re-entry after artifact approval must not silently restart a full-depth interview. Existing operator authorization persists; do not add repeated permission prompts.\n\n**Bound remedy limbs (draft):**\n1. **Phase/continuation record.** Specify closed fields (or reuse of existing planning records) that name: target deliverable, current phase, reopenable decision set, accepted deferrals, and each confirmation with its scope (answer vs artifact vs phase). Incomplete orientation (next-question-only without a phase boundary) fails closed as incomplete handoff, not proof the workflow is sound.\n2. **Delta reopen.** Changing one decision reopens that decision and demonstrable dependents only; unrelated backend/design proposals stay out of scope unless the operator widens the delta.\n3. **Approval taxonomy.** Rule-8 numeric confirm records that choice only. Artifact approval and phase completion require their own explicit gates. Numeric confirm does not authorize implementation or unrelated proposal generation.\n4. **Handoff authority split.** Handoffs must label human-authorized constraints separately from agent workflow conventions. Agent conventions are non-binding unless the operator adopts them. Continuation must not invent a mirror-every-decision / expand-proposal-queue duty as a Deft requirement.\n5. **Two-session fixture.** Land regression evidence for same-session correction and a resumed session that restores deferred work and the bounded remaining decision set without restarting full-depth interview.\n6. **Authorized incremental recordkeeping.** Keep lawful incremental updates that the operator already authorized; do not require one technical proposal per answer or copying every answer into every scope.\n\n**Reject / defer:**\n- Rewriting #4668 Depth-preference persistence or #5176 narrative-persistence residual (out of ownership).\n- Adding new permission prompts that re-ask already-granted operator authorization.\n- Treating the observed agent anti-pattern (questions+artifact generation) as excused by the gap; Prefer-A closes the state hole and keeps the existing anti-pattern forbid.\n\n**arc-mode: no-ingest** for this arc. Ingest remains a later separate operator verb after completed-arc.\n\n## Gate stamp\n\nFresh no-ingest yolo Stop 1 on #5352. Operator cue `arc using recommended n 5352` → parent recorded spend-recommend: N≥3 and took that recommend with spend-ask: asked (explicit use-recommended reply path). Charter is open critique of Prefer-A above. Dual-stop reserved literacy recorded. Next: N≥3 launch-probe + panel-deposit, then three-family round-1 critics, then Prefer-A Bound lean with honest pain cites, then reserved pain-audit of asserted coverage.\n\n## Plain-language summary\n\n#5352 closes a hole where design-interview revisions and handoffs lose the phase boundary and what was actually approved. Prefer-A adds a small continuation contract so corrections reopen only the affected decisions, numeric confirms stay answer-scoped, and handoffs separate human authorization from agent-invented workflow habits. Spend is N≥3 from the recorded recommend that you authorized with \"use recommended.\"\r\n\n",
+          "id": 5986230499,
+          "html_url": "https://github.com/deftai/directive/issues/5352#issuecomment-5986230499",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:48:47Z",
+          "updated_at": "2026-10-05T00:48:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5[1m]\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5986259320\nfamilies: grok, claude, codex\nseat: grok launcher: grok --cwd --prompt-file\nseat: claude launcher: claude\nseat: codex launcher: codex exec\n\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5352\naudit-targets: none\n\nlaunch-probe: pass 3/3 at the critic argv class with bypass flags, benign fixed pong, no envelope path, no thread access, stdin closed. claude rc0 `pong`; codex rc0 `pong` (gpt-6-astra); grok rc0 `pong` via dest-rooted `--cwd --prompt-file` after the recorded native-deny recovery path. Launchability only; this is not method-verification.\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads (recorded on Stop 1 comment 5986230499, unchanged for this round)\ndual-stop-reserved: first post-lean pain-audit of asserted coverage is in-cap; raise only after that reserved seat is spent\n\nParent note: Stop 1 (comment 5986230499) was posted by grok-4.5. This round's parent is claude-opus-5[1m]. Same arc, same target revision, same ceiling lineage; no new arc is opened by the parent change.\n\n",
+          "id": 5986259320,
+          "html_url": "https://github.com/deftai/directive/issues/5352#issuecomment-5986259320",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:52:20Z",
+          "updated_at": "2026-10-05T00:52:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5986281058\nfamilies: grok, claude, codex\nseat: grok launcher: grok (CLI last-resort; native spawn_subagent process_only often denied without active xBRIEF)\nseat: claude launcher: claude\nseat: codex launcher: codex\nlaunch-probe: grok=pong@0; claude=pong@0; codex=pong@0\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy\nStop-1: 5986230499\nTarget-digest: sha256:eeaa7bc4a16e551b4c62b030d6d1b0c391bcc6e8b2b017d6bbc27880f4880c0a\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5352\nconsent: operator cue arc using recommended n 5352 → spend N≥3 / spend-ask: asked",
+          "id": 5986281058,
+          "html_url": "https://github.com/deftai/directive/issues/5352#issuecomment-5986281058",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:54:58Z",
+          "updated_at": "2026-10-05T00:55:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\n\nseat: codex\nlauncher: codex\nround: 1\ncritic-role: fresh\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\naudit-targets: none\nid-ceiling: 5986281058\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nStop-1: 5986230499\npanel-deposit: 5986281058\ntarget: #5352\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\n\nF1. P2: distinguish the confirmation mechanism from the authority of the question being confirmed. Prefer-A's blanket statement that numeric confirmation records a choice only and cannot authorize implementation conflicts with an existing explicit approval menu: [strategy lines 550-595](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/strategies/interview.md#L550) offers numbered \"Approve and continue (lock the SPEC, proceed to implementation)\" and maps it to Accept. Meanwhile [Rule 8](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/skills/deft-directive-interview/SKILL.md#L267) describes the selection/confirmation mechanism, not a question-type discriminator. Define approval scope from the explicitly presented gate and its target, never from numeric syntax alone. An ordinary design answer must confer no artifact/build authority; a deliberately presented artifact gate must still work without an extra redundant permission prompt. For planning-only continuation, the existing combined approve/build label needs an explicit routing or precedence rule so artifact approval cannot silently override the planning-only constraint. Fixture: the same numeric response at a design question and at an explicit artifact gate must have different, declared effects.\n\nF2. P1/P2: the proposed record needs an authoritative location and an approval target/revision, not merely a scope label. [Setup Full output lines 847-859](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/skills/deft-directive-setup/SKILL.md#L847) records approval \"in the setup session\" and subsequently generates scopes. [Continue-here lines 28-52](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/resilience/continue-here.md#L28) consumes the checkpoint on resume and distinguishes it from durable plans. Putting the new fields only in that checkpoint would leave the durable authority unclear after consumption; putting unversioned approval in a durable plan could falsely approve a later corrected artifact. Specify one durable owner, checkpoint reference, approval target and revision/change identity, and the effect of delta changes on existing approval. Preserve unchanged authorization; do not invalidate everything and ask again. Exercise a resume after checkpoint consumption and an artifact edit after approval, including an unchanged artifact whose approval remains valid.\n\nF3. P1/P3: a named phase and reopenable set do not yet define a terminating review or constrain dependency expansion. [Rule 4 lines 123-127](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/skills/deft-directive-interview/SKILL.md#L123) keeps questioning until material ambiguity is gone; [Rule 6 lines 144-162](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/skills/deft-directive-interview/SKILL.md#L144) already limits corrections to specific questions. Yet [brownfield Update](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/strategies/interview.md#L94) does not bound the delta, and [Revise lines 562-564](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/strategies/interview.md#L562) returns to the chaining gate. Prefer-A must state which route wins on post-approval correction, what closes the current review, and what evidence makes a decision a demonstrable dependent. Otherwise an agent can call every new backend proposal a dependency and keep the same nominal phase forever. A small remedy suffices: identify the bounded delta, record a concrete dependency reason for additions, preserve accepted deferrals as non-blocking unless explicitly reopened, and stop when that delta's required decisions and review condition are satisfied. Include an adversarial fixture where a plausible but unrelated backend improvement is refused as an addition.\n\nF4. P3: authority labels need a read-side consequence and evidence, particularly for legacy handoffs. [Continue-here lines 39-44](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/resilience/continue-here.md#L39) commands resuming from recorded decisions without re-debating them or reconstructing conversation. A handoff author can therefore label its own mirror-every-answer convention \"human-authorized\" and the receiving agent still inherits the same failure. Specify that authorization entries preserve a reference or faithful bounded excerpt of the actual operator grant; an agent's label alone is insufficient. Unattributed legacy workflow conventions should remain non-binding while verified existing grants remain effective. Also distinguish applicable framework obligations from discretionary agent conventions: the split must not accidentally demote actual rules. Test both a handoff containing only a next question and an unsupported authorization label; neither should generate new proposals or trigger a full interview restart. The incomplete-handoff remediation should recover only missing orientation, without re-asking established grants.\n\nF5. P2/P3: Prefer-A's preservation of lawful incremental recordkeeping is sound, but the fixture must distinguish recording an answer from generating the reviewed artifact. [Rule 7 lines 178-195](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/skills/deft-directive-interview/SKILL.md#L178) hands an answers map to the caller; [anti-patterns lines 508-515](https://github.com/deftai/directive/blob/3456c6712614e352c5559b3c29caf9cbce26b5cf/content/skills/deft-directive-interview/SKILL.md#L508) prohibit unconfirmed artifact generation and combining it with interview questions. Preserve that boundary explicitly when exercising authorized incremental writes. A positive test should record confirmed state under an existing grant without another permission prompt; a negative test should reject using that grant to synchronize unrelated scopes or generate an artifact alongside the next interview question. This supports limb 6 without excusing the reported anti-pattern.",
+          "id": 5986302974,
+          "html_url": "https://github.com/deftai/directive/issues/5352#issuecomment-5986302974",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:57:38Z",
+          "updated_at": "2026-10-05T00:57:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: 1\ncritic-role: fresh\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\naudit-targets: none\nid-ceiling: 5986281058\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nStop-1: 5986230499\npanel-deposit: 5986281058\ntarget: #5352\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\n\n## Open critique of Prefer-A (Stop 1 draft) vs P1–P3\n\nPin-read at `3456c6712614e352c5559b3c29caf9cbce26b5cf`: `content/skills/deft-directive-interview/SKILL.md` (Rules 6/7/8, anti-patterns), `content/skills/deft-directive-setup/SKILL.md` (Output — Full Path human approval; Post-Interview Confirmation Gate), `content/strategies/interview.md` (brownfield Update / delta), `content/resilience/continue-here.md` (nearby continuation/checkpoint helper).\n\nPrefer-A's six limbs correctly name the Stop 1 holes. The pin confirms those holes are real. Prefer-A still underspecifies the binding surfaces enough that a faithful implementer could miss P1 durability, leave P2 gate reuse ambiguous, and leave P3 convention bleed as prose-only.\n\n### F1 — P1 substrate unresolved (reuse-or-invent fork)\n\nLimb 1 says \"closed fields (or reuse of existing planning records)\" without choosing a store.\n\n- Rule 7 handoff is an answers map of field→value after Rule 6 passes (`deft-directive-interview/SKILL.md` Rule 7). It has no deliverable, current phase, reopenable set, deferrals, or confirmation-scope tags.\n- `continue-here.md` already persists Completed / Remaining / Decisions / Resume point / planRef to `./xbrief/continue.xbrief.json`, but checkpoints are **ephemeral and consumed on resume**, and Resume point is \"the exact first thing to do\" — the same next-action-only shape Prefer-A wants to fail closed as incomplete handoff.\n- Brownfield Update loads existing identity + preparatory artifacts (`interview.md` State Tracking) and runs a **delta** interview, with no durable post-draft decision-boundary fields.\n\nUntil Prefer-A picks durable store vs ephemeral continue-here vs Rule 7 expansion vs a new record, limb 1 does not relieve P1's cross-session hole. Reusing continue-here as-is would recreate next-question-only resume.\n\n### F2 — P1 \"fails closed\" has no refuse surface\n\nLimb 1: next-question-only without a phase boundary \"fails closed as incomplete handoff.\" Pin has no interview/setup refuse, verifier, or skill-exit for that shape. Rule 7 only requires a complete answers map at interview-complete; incomplete mid-review orientation is not a named contract breach. Prefer-A must name the refuse (skill halt text, anti-pattern ⊗, or deterministic check) or the incomplete-handoff bar stays aspirational under P1.\n\n### F3 — P1 \"current phase\" vocabulary unbound\n\nLimb 1 requires a current-phase field. On pin, \"phase\" already means setup Phase 1/2/3, preparatory Research/Discuss/Probe/Map, and interview Rule 6→7 completion. Prefer-A does not close an enum for post-draft states the report cares about (e.g. planning-draft-approved, correction/gap-review, artifact-approved, deferred-resume). Without that closed set, agents invent free-text phase labels and P1 resume stays unbounded.\n\n### F4 — P2 approval taxonomy correct in intent, underspecified in gate reuse\n\nLimb 3 correctly scopes Rule 8: pin Rule 8 is echo-selection + Enter before the next question only; it does not authorize artifact write or phase exit.\n\nExisting distinct gates on pin:\n\n- Rule 6 Confirmation Gate — summary of all answers; yes/no before artifact generation; correction re-asks named fields only (`interview` Rule 6).\n- Setup Post-Interview Confirmation Gate — \"Write files? (yes/no)\" before USER.md / PROJECT-DEFINITION / scope writes.\n- Setup Output — Full Path step 2 **Human approval gate** — present PROJECT-DEFINITION narratives + proposed scope plan for review; \"Record approval in the setup session.\"\n\nLimb 3 says artifact approval and phase completion need \"their own explicit gates\" but does not bind those gates to the three above vs invent new ones. Without that bind-map, a continuation can keep using Rule-8 confirms as the practical workflow unit (P2) while claiming a separate taxonomy in prose. Prefer-A should say which existing gate is artifact approval, which is phase completion, and what (if anything) is new for post-draft gap-review exit.\n\n### F5 — P2 confirmation-with-scope has no recording schema\n\nLimb 1 wants each confirmation tagged answer vs artifact vs phase. Pin answers map and continue-here Decisions are unscoped narratives/values. Prefer-A does not specify the schema (per-confirm record shape, where written, how resume reads tags). Taxonomy without a record still lets Rule-8 confirms look like the only durable unit after a handoff (P2 recurrence).\n\n### F6 — P3 authority split is prose-only\n\nLimb 4 correctly targets handoff convention bleed. Pin Rule 7 is the structured interview exit; setup handoffs point at build/lifecycle bridge, not at labeling human-authorized constraints vs agent workflow conventions. Prefer-A does not require:\n\n- labeled sections or fields on mid-review / cross-session handoffs,\n- resume refuse when agent conventions are unlabeled or presented as Deft duties,\n- an anti-pattern ⊗ for inventing mirror-every-decision / expand-proposal-queue as framework obligation.\n\nWithout those, limb 4 restates the pain. Agent-authored pending-queue + mirror-every-decision conventions can still travel inside continue-here Resume point / Hazards prose (P3).\n\n### F7 — delta reopen \"demonstrable dependents\" unbound (P1/P2 adjacent)\n\nLimb 2: changing one decision reopens that decision and demonstrable dependents only. Pin has no dependency oracle for interview answers (answers-map keys are flat; Full Path traces scopes to FR/NFR after write; Update \"delta interview\" has no durable reviewed-delta set). \"Demonstrable\" left to agent judgment reopens the expanding-proposal loop Prefer-A means to close. Prefer-A needs a closed dependency rule (operator-named delta set, explicit dependent keys, or refuse-to-widen without operator widen).\n\n### F8 — two-session fixture vs continue-here lifecycle collision\n\nLimb 5 asks for a resumed session that restores deferred work and the bounded remaining decision set without full-depth restart. That is the right P1 regression. On pin, continue-here marks the checkpoint consumed and forbids re-debating recorded decisions — and its Resume point is next-action narrative. Prefer-A must say the two-session fixture reads a **durable** interview-continuation record (phase, reopenable set, deferrals, confirmation scopes, limited delta), not only ephemeral `continue.xbrief.json`. Otherwise the fixture can pass against the wrong artifact and still miss P1.\n\n### F9 — limbs that hold on pin evidence\n\n- Limb 3's Rule-8 narrowing matches pin Rule 8 vs Rule 6 vs Full Path human approval vs Post-Interview write gate. Directionally relieves P2 once gate bind-map lands (F4/F5).\n- Limb 4's reject of invented Deft mirror/expand duties matches the issue's agent-authored handoff observation; keep it, add enforcement (F6).\n- Limb 6 + Stop 1 reject list correctly keep authorized incremental recordkeeping and keep the questions+artifact anti-pattern forbid (`interview` Anti-Patterns: combine interview questions with artifact generation). Ownership defer of #4668 / #5176 matches the issue body. Do not add re-ask permission prompts.\n\n## Sufficiency\n\nPrefer-A is the right charter target for P1–P3, but as drafted it is **insufficient to bind** without sharpening: durable store choice (F1/F8), closed phase vocabulary (F3), fail-closed refuse surface (F2), explicit reuse map onto Rule 6 / Post-Interview / Full Path human approval (F4), confirmation-scope schema (F5), handoff label+refuse rules (F6), and a closed delta-dependency rule (F7).\n\n**Approach B** (only because Prefer-A underspecifies binding): land a durable interview-continuation record distinct from ephemeral continue-here; closed phase enum; confirmation-scope schema; gate bind-map to existing Rule 6 / Post-Interview / Full Path approval; operator-bounded delta set with refuse-to-widen; incomplete-handoff ⊗ + resume refuse for unlabeled agent conventions. Do not invent Approach C here; B is Prefer-A made bindable on the pin surfaces above.\n\nNo Bound lean in this comment.",
+          "id": 5986306862,
+          "html_url": "https://github.com/deftai/directive/issues/5352#issuecomment-5986306862",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:58:07Z",
+          "updated_at": "2026-10-05T00:58:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nseat: claude\nlauncher: claude\nround: 1\ncritic-role: fresh\ncharter: open critique\nspend: N>=3\narc-mode: no-ingest\naudit-targets: none\nid-ceiling: 5986281058\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nStop-1: 5986230499\npanel-deposit: 5986281058\ntarget: #5352\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:PATH ; dest cwd-without-occupy\n\n## Headline\n\nPrefer-A names the right six obligations and the wrong (zero) carrier. Every limb is an obligation on an agent's prose; none is an obligation on a durable field. The sibling this arc explicitly disowns (#5176) solved the structurally identical problem by naming an artifact and then reading it from a verb - and that difference is the whole difference between a rule that fails closed and a rule an agent grades itself on.\n\n**P1 not relieved as written. P2 partially relieved, aimed at the already-safe rung. P3 not relieved - limb 4 regulates a record shape that does not exist.** All three are reachable by amendment; none is reachable by the current text.\n\n---\n\n### F1. Limb 1's `(or reuse of existing planning records)` disjunction is the load-bearing defect; \"fails closed\" has no evaluator\n\nLimb 1 specifies \"closed fields (**or** reuse of existing planning records)\". The parenthetical is doing the work and it is open. No artifact is named, so no reader exists, so the fail-closed clause (\"next-question-only without a phase boundary fails closed as incomplete handoff\") has exactly one possible evaluator: the agent that just wrote the deficient handoff. That is self-attestation, not fail-closed.\n\nThe contrast is on the pin, and it is this repo's own precedent, one arc old:\n\n- `content/skills/deft-directive-setup/SKILL.md:585` - \"Before Phase 2 can complete, re-read PROJECT-DEFINITION and verify all four postconditions: ... `deft verify:persisted-planning-narratives --project-root <policy-project-root>` exits 0 (#5176 Prefer-A ...). **Any mismatch is a hard stop.**\"\n- `packages/core/src/check/persisted-planning-narratives-gate.ts:22,44` - a real evaluator (`evaluateCheckPersistedPlanningNarratives`) that reads a named artifact.\n\nThat bar is enforceable because the state it guards lives in a field (PROJECT-DEFINITION tracked narratives) that a verb can open. Compare what enforcement looks like on the interview surface today:\n\n- `packages/core/src/content-contracts/skills/interview_deterministic.test.ts:13-40` - every interview obligation is a `toContain` string pin: `expect(interview_text).toContain(\"### Rule 8: ...\")`, `expect(lower).toContain(\"number entry alone must not advance\")`.\n\nThat is the ceiling Prefer-A inherits. Six limbs of prose, landed on a prose surface, verified by asserting the prose contains the prose. The gap #5352 reports *is* a prose-vs-behavior gap; closing it with more prose at the same enforcement tier reproduces it.\n\n**Ask:** collapse the disjunction. Name one carrier field. Every other limb becomes checkable the moment you do, and none of them is checkable until you do.\n\n### F2. `continue-here.md` is the record an implementer will reach for, and two of its MUSTs break Prefer-A\n\n`content/resilience/continue-here.md` is the existing cross-session continuation contract - `xbrief/continue.xbrief.json` (L28) carrying Completed / Remaining / **Decisions** / Hazards / Resume point / `planRef` (L30-35). Under limb 1's open disjunction this is the obvious \"existing planning record.\" It collides twice:\n\n- **L43: `⊗ Re-debate decisions already recorded in the continue checkpoint.`** A direct contradiction of limb 2. A resumed agent obeying continue-here MUST NOT reopen the UI decision the operator just corrected - the exact motion the issue's first acceptance bullet requires (\"Changing one UI decision reopens that decision and demonstrable dependents\").\n- **L48 + L42: checkpoints are \"ephemeral - consumed on resume\"**, marked `status: completed` after a successful resume, with L52 `⊗ Accumulate stale continue checkpoints`. Phase and approval scope stored there evaporate at the first resume. Session 2 works; session 3 is back to square one. The reported harm is an *expanding* loop across sessions, so a record designed to self-destruct after one hop is the wrong substrate by construction.\n\nPrefer-A is silent on continue-here in all six limbs. It must either name it as the carrier **and** amend L43/L48, or exclude it explicitly. Silence is not neutral here - it routes implementers into a contradiction.\n\n### F3. The durable carrier the pin already supports is unnamed\n\n`content/strategies/interview.md:119-127` already defines durable cross-session interview-adjacent state in `./xbrief/plan.xbrief.json`: `completedStrategies` with `runCount`, a flat `artifacts` array, and - critically - L126: \"! The next strategy and eventual spec generation **MUST load all artifacts** listed in `plan.xbrief.json`.\" That is a durable (not consumed-on-resume), machine-readable record with an existing MUST-load obligation on the resuming path. It tracks completed *strategies*; it does not track phase, decision set, deferrals, or confirmation scope.\n\nI post no Bound lean and invent none. The gap stated precisely: a carrier-first amendment of limb 1 (close the disjunction onto a named `plan.xbrief.json` field, then let a verb read it, #5176-shape) converts limbs 2-6 from exhortation into things a test can fail on. Whether that is Prefer-A-amended or a separate approach is the parent's call, not mine.\n\n### F4. P2 - limb 3 fires at the rung that was never loaded, and leaves the missing rung undefined\n\nRead Rule 8 at the pin: `content/skills/deft-directive-interview/SKILL.md:267-295`. It is a pure anti-misclick UX rule - echo the selection, wait for Enter, `⊗ Auto-advance to the next question immediately after the user presses a number key`. It makes **no authorization claim whatsoever**. So limb 3's \"Rule-8 numeric confirm records that choice only\" is a negative clarification of a claim the text never made. It costs nothing and it buys nothing.\n\nMeanwhile two of the three taxonomy rungs already exist on the pin:\n\n- **Answer to artifact gate**: Rule 6, `interview/SKILL.md:144` (\"require explicit yes/no confirmation before proceeding\") and `:162` (`⊗ Proceed to artifact generation without displaying the summary and receiving explicit confirmation`).\n- **Artifact approval gate**: `setup/SKILL.md:857` (\"**Human approval gate**: Present the PROJECT-DEFINITION narratives and proposed scope plan to the user for review. The user may request changes before approving.\")\n\nThe rung genuinely absent is the third: **what ends the post-approval review phase.** Limb 3 asserts phase completion \"needs its own explicit gate\" and stops - no statement of what that gate is, where it renders, or what it writes. As written it also runs into Prefer-A's own reject list: an explicit new phase-completion gate is a new permission prompt, which the reject bullet forbids (\"Adding new permission prompts that re-ask already-granted operator authorization\") and which the issue forbids again (\"Existing operator authorization must persist; do not add repeated permission prompts\"). Prompt, or record? Prefer-A does not say, and the two readings produce opposite implementations. **Partial relief at best.**\n\n### F5. P3 - limb 4 binds a record shape that does not exist, and has no adoption test\n\nThe only handoff contract in the interview skill is Rule 7, `interview/SKILL.md:178-195`: an **answers map**, a flat `{\"field_1\": \"captured value\"}` JSON blob. There is no slot in that shape for provenance, authority, or scope - and `⊗ Exit the interview without producing a structured answers map` (L514) is the only handoff anti-pattern anywhere in the file.\n\nNow read what actually failed, from the issue body: \"The handoff was agent-authored and operator-requested; its detailed convention was not a generic Deft requirement.\" That handoff was **chat prose**, not a Rule-7 answers map. No content contract and no runtime verb could ever have seen it. \"Handoffs must label human-authorized constraints separately from agent workflow conventions\" therefore binds nothing: it is an instruction addressed to a free-text artifact that lives outside every enforcement surface in the repo.\n\nLimb 4 needs one of: extend the Rule-7 answers-map shape with an authority-tagged section (then a schema or content pin can bite), or require the handoff to be a named file at a named path. It does neither.\n\n**And the adoption test is missing.** The issue records the handoff as *operator-requested*. Limb 4 says agent conventions are \"non-binding unless the operator adopts them\" - but requesting a handoff is not cleanly distinct from adopting its contents, and the fresh-session agent has nothing but the handoff text to tell the two apart. That is precisely the ambiguity that produced the five further proposals. Without a positive operator-signed adoption marker plus a default-to-non-binding rule for untagged lines, limb 4 restates the failure as a requirement and calls it a remedy.\n\n### F6. Limb 5 - no harness exists for a two-session fixture, and two is the wrong arity\n\nAt the pin, `evals/` contains exactly one file: `evals/trigger-cases.jsonl`. There is no multi-session interview harness anywhere under `evals/` or `packages/core/src/content-contracts/skills/`. Interview enforcement is `toContain` string pins (F1). A content-contract test cannot \"resume in a fresh session\" - it can only assert that the skill prose contains the phrase \"fresh session.\"\n\nSo limb 5, landed on today's surfaces, degrades into a pin that the text *mentions* two sessions. That is the same evidence class the issue explicitly rejects: \"A handoff that contains a next question but lacks a phase boundary is treated as incomplete orientation, **not proof that the workflow is sound.**\" Limb 5 would ship the prose equivalent of the thing the issue refuses to accept.\n\nArity is the second problem. The reported harm is unbounded growth across N resumes (five further proposals before the operator intervened). A 2-session fixture passes cleanly against an ephemeral consumed-on-resume record (F2) that has nothing left by session 3. Two sessions tests the hop; it does not test the invariant.\n\nThere is a runnable alternative on the pin, and again it is #5176's: `packages/cli/src/verify-persisted-planning-narratives.test.ts` exercises a verb against a project root. If phase/continuation state has a named carrier (F1/F3), then \"after resume, the carrier still names the deliverable, phase, remaining decision set, and deferrals\" is assertable **today** - no new harness, no session simulation. Without the carrier it is not assertable at all. Take that path, or state honestly that limb 5 lands no behavioral evidence.\n\n### F7. Limb 2 hands the scope-widening key back to the party that widened the scope\n\n\"Demonstrable dependents\" has no definition and no arbiter. In practice the agent decides what is demonstrable - and agent-inferred dependency expansion is the reported failure mode, not a safeguard against it.\n\nThe pin already does better one phase upstream. Rule 6, `interview/SKILL.md:160`: \"! If the user says `no`: ask which values to correct, **re-ask those specific questions only** (do not restart the full interview).\" Pre-artifact correction is **operator-enumerated**. Prefer-A's post-artifact reopen would be **agent-inferred**. That inverts the risk gradient: the looser rule sits downstream of the artifact gate, where a wrong call costs more, not less.\n\nPrefer-A already contains the correct clause - \"unless operator widens the delta.\" It should be the *only* widening path, with the default delta operator-enumerated in the Rule 6 L160 shape, rather than a fallback sitting behind agent inference.\n\n### F8. Landing-surface mechanics (procedural, cheap)\n\n`content/skills/deft-directive-interview/SKILL.md:10-14` carries `<!-- AUTO-GENERATED by task packs:render -- DO NOT EDIT MANUALLY -->` and `<!-- Source of truth: packs/skills/skills-pack-0.1.json -->`. The charter's named landing surfaces are rendered artifacts. Prefer-A text must land in the pack and be pinned on **both** surfaces - exactly what #5176's test does: `packages/core/src/content-contracts/skills/setup_persisted_planning_narratives_5176.test.ts:27-30` iterates `[\"packed\", packedSetupBody()]` and `[\"rendered\", readRepoFile(SETUP_SKILL)]`. Single-surface pins drift on the next `packs:render`.\n\n---\n\n## Where Prefer-A holds\n\nStated with evidence, not for balance:\n\n- **Limb 6 and the reject list are well-aimed.** \"Do not require one technical proposal per answer or copying every answer into every scope\" targets the observed convention bleed without touching the authorized incremental write path. Nothing on the pin conflicts with it.\n- **Keeping the anti-pattern forbid is correct.** `interview/SKILL.md:515` (`⊗ Combine interview questions with artifact generation in the same message`) already forbids what the agent did; the issue concedes the violation and asks not to be excused. Prefer-A's refusal to launder it is the right call.\n- **Declining #4668 / #5176 ownership is correct and the pin supports it.** `setup/SKILL.md:1007` (`⊗ ... re-ask the Phase 2 depth question when USER.md already has **Depth**:`, #4668) and the #5176 gate are about *presence of values* and *not re-asking*. #5352 is about *scope of authorization* and *phase boundary*. Orthogonal; no overlap to arbitrate.\n- **The diagnosis is sound.** P1/P2/P3 as named match what the pin shows: Rule 7 (L178-195) hands off a flat answers map with no phase, no scope, no provenance. The hole is real and sits where Stop 1 says it sits.\n\n## Pain verdict (denominator: P1, P2, P3)\n\n| Pain | Verdict | Blocking limb defect |\n|---|---|---|\n| **P1** missing phase/continuation state | **Not relieved as written** | F1 open carrier disjunction; F2 continue-here contradiction + ephemerality; F3 durable carrier unnamed |\n| **P2** approval-scope conflation | **Partially relieved** | F4 limb 3 clarifies the rung that never claimed authority; phase-completion rung undefined; prompt-vs-record unresolved against its own reject bullet |\n| **P3** handoff convention bleed | **Not relieved** | F5 limb 4 binds a record shape that does not exist (Rule 7 answers map has no authority slot; the failing handoff was chat prose); no adoption test for operator-requested handoffs |\n\nHighest-leverage single amendment is F1: close the limb-1 disjunction onto one named durable field. Limbs 2, 4, 5 and 6 all become testable behind it; none is testable in front of it.\n\nNo Bound lean. No synthesis. One comment, per envelope.\n\n",
+          "id": 5986328603,
+          "html_url": "https://github.com/deftai/directive/issues/5352#issuecomment-5986328603",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T01:00:47Z",
+          "updated_at": "2026-10-05T01:00:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound\n**In plain English:** Keep Prefer-A's six obligations, but bind only after naming one durable carrier (not ephemeral continue-here), closing the phase vocabulary, mapping approval gates onto existing Rule 6 / Post-Interview / Full Path surfaces, making delta reopen operator-enumerated, and giving handoff authority labels a read-side refuse. Critic panel agreed Prefer-A is the right charter and insufficient as drafted without those binding surfaces.\n\nround-1 siblings: 3\nleaning-over: critic 5986302974 (gpt-6-astra/codex), critic 5986306862 (grok-4.5), critic 5986328603 (claude-opus-5)\nsupersedes: Stop 1 Prefer-A draft 5986230499\nTarget-digest: sha256:eeaa7bc4a16e551b4c62b030d6d1b0c391bcc6e8b2b017d6bbc27880f4880c0a\nSpec-path: Bound-remedy\nrelieves: P1\nrelieves: P2\nrelieves: P3\narc-mode: no-ingest\n\n## Per-heading takes\n\n| Heading / finding | Take | Note |\n|---|---|---|\n| Prefer-A six-limb direction (Stop 1) | accept-into-contract | Right pains; needs carrier-first bind |\n| Codex F1 gate-vs-mechanism / planning-only precedence | accept-into-contract | Approval scope from presented gate+target, not numeric syntax; planning-only constraint cannot be silently overridden |\n| Codex F2 durable owner + approval target/revision | accept-into-contract | Named durable carrier; approval identity survives checkpoint consumption; delta edit invalidates only affected approval |\n| Codex F3 terminating review + dependency evidence | accept-into-contract | Close review when bounded delta satisfied; refuse unrelated additions |\n| Codex F4 authority evidence + incomplete-handoff recovery | accept-into-contract | Operator-grant evidence required; unlabeled conventions non-binding |\n| Codex F5 incremental write vs artifact boundary | accept-into-contract | Keep limb 6 + anti-pattern forbid |\n| Grok F1 substrate fork | accept-into-contract | Close disjunction onto durable record ≠ continue-here |\n| Grok F2 fail-closed refuse surface | accept-into-contract | Named ⊗ / skill halt / verifier |\n| Grok F3 closed phase enum | accept-into-contract | Closed post-draft phase vocabulary |\n| Grok F4 gate bind-map | accept-into-contract | Map onto Rule 6 / Post-Interview / Full Path human approval |\n| Grok F5 confirmation-scope schema | accept-into-contract | Per-confirm scope tags on the durable record |\n| Grok F6 handoff label+refuse | accept-into-contract | Labeled sections + resume refuse |\n| Grok F7 operator-bounded delta | accept-into-contract | Operator-enumerated reopen set; refuse-to-widen default |\n| Grok F8 two-session vs continue-here collision | accept-into-contract | Fixture asserts durable carrier after resume |\n| Grok F9 limbs that hold | accept-into-contract | Limb 3/4/6 + reject list kept |\n| Claude F1 open disjunction / self-attestation | accept-into-contract | Name one carrier; evaluator reads it (#5176-shape) |\n| Claude F2 continue-here contradiction + ephemerality | accept-into-contract | Exclude continue-here as carrier; amend or refuse reuse |\n| Claude F3 durable plan.xbrief.json adjacent field | accept-into-contract | Prefer durable plan-owned field over ephemeral continue |\n| Claude F4 P2 rung / phase-completion as record | accept-into-contract | Phase completion is a record write, not a new re-ask prompt |\n| Claude F5 handoff shape + adoption test | accept-into-contract | Extend structured handoff / named path; operator-signed adoption marker |\n| Claude F6 fixture arity / carrier-assert | accept-into-contract | Prefer verb-against-carrier evidence over prose-only two-session mention |\n| Claude F7 operator-enumerated reopen | accept-into-contract | Match Rule 6 L160 shape post-artifact |\n| Claude F8 pack+rendered dual pin | accept-into-contract | Land in pack SoT and pin both packed+rendered |\n\n## Bound remedy\n\n1. **Durable carrier (closes P1 F1/F2/F3).** Name one durable interview-continuation record owned under `./xbrief/plan.xbrief.json` (new closed field or adjacent durable plan-owned artifact). Required fields: target deliverable, current phase (closed enum), reopenable decision set, accepted deferrals, confirmation records with scope tags (answer | artifact | phase), limited delta under review, and approval target + revision/change identity. **Exclude** ephemeral `xbrief/continue.xbrief.json` / continue-here as this carrier: checkpoints remain consumed-on-resume and must not own phase/approval scope. Silence on continue-here is forbidden — Prefer-A explicitly excludes it. A resume MUST load this durable record (same MUST-load posture as plan artifacts on pin). Incomplete orientation (next-question-only / Resume-point-only without the required fields) is a named fail-closed refuse (skill ⊗ + verifier or skill-exit halt), not agent self-attestation.\n\n2. **Closed phase vocabulary (P1).** Closed enum covering at least: `planning-draft-approved`, `correction-or-gap-review`, `artifact-approved`, `deferred-resume`. Free-text phase labels are refused. Map these onto setup Phase 1/2/3 vocabulary without colliding names in prose.\n\n3. **Approval taxonomy + gate bind-map (P2).** Approval scope comes from the explicitly presented gate and its target, never from numeric syntax alone.\n   - **Answer confirm:** Rule 8 / Rule 6 answer path — records the choice only.\n   - **Artifact approval:** bind to existing Setup Full Path human approval gate and/or Post-Interview Confirmation Gate as applicable; record approval with target + revision identity on the durable carrier.\n   - **Phase completion:** a durable-record write that closes the current review when the bounded delta's required decisions and review condition are satisfied — **not** a new permission prompt that re-asks already-granted operator authorization.\n   - Ordinary design-answer numerics confer no artifact/build authority. A deliberately presented artifact gate must still work. When a planning-only constraint is in force, artifact-approve/build labels cannot silently override it (explicit routing/precedence on the existing approve menu).\n\n4. **Operator-enumerated delta reopen (P1/P2).** Changing a decision reopens only operator-enumerated keys (Rule 6 L160 shape: those specific questions/decisions). Default refuse-to-widen. Additions require an explicit operator widen of the delta plus a recorded concrete dependency reason. Agent-inferred \"demonstrable dependents\" are not a widening path. Accepted deferrals stay non-blocking unless explicitly reopened. Terminating condition: stop when the bounded delta's required decisions and review condition are satisfied. Adversarial fixture: a plausible unrelated backend improvement is refused as an addition.\n\n5. **Handoff authority split with read-side consequence (P3).** Mid-review / cross-session handoffs that carry continuation state MUST use the durable carrier (or a structured export of it), not unlabeled chat prose as SoT. Human-authorized constraints require a reference or faithful bounded excerpt of the actual operator grant; an agent label alone is insufficient. Agent workflow conventions are non-binding by default unless the operator adopts them via an explicit adoption marker on the durable record. Unlabeled / unsupported authorization labels do not generate new proposals or restart a full-depth interview. Incomplete-handoff remediation recovers missing orientation only and does not re-ask established grants. Framework obligations stay distinct from discretionary agent conventions (do not demote real rules).\n\n6. **Authorized incremental recordkeeping (limb 6 kept).** Confirmed state may be recorded under an existing grant without another permission prompt. That grant does not authorize synchronizing unrelated scopes or generating an artifact alongside the next interview question. Keep the existing anti-pattern ⊗ combining interview questions with artifact generation.\n\n7. **Evidence / fixtures.** Land content-contract pins on **both** pack SoT and rendered skill surfaces. Prefer a verify-style assertion against the durable carrier after resume (carrier still names deliverable, phase, remaining set, deferrals, confirmation scopes, delta) over prose-only \"two-session\" mention. Include: same-session correction; resume after continue-checkpoint consumption with durable carrier intact; artifact edit after approval (affected approval invalid; unchanged artifact approval remains valid); incomplete handoff refuse; unsupported authorization label refuse; adversarial unrelated-proposal refuse; positive incremental recordkeeping under existing grant.\n\n8. **Landing surfaces.** Primary: interview skill (pack + rendered), setup Full output/review / Post-Interview gate pointers, strategies/interview.md brownfield Update / delta continuation, continue-here.md explicit exclusion + pointer to durable carrier, plan.xbrief.json schema/field docs. Dual-surface pins required where pack-render applies.\n\n9. **Named limits / leftovers.**\n   - Do not rewrite #4668 Depth-preference persistence or #5176 narrative-persistence residual (orthogonal ownership).\n   - Do not add repeated permission prompts that re-ask already-granted authorization.\n   - Do not excuse the observed questions+artifact anti-pattern.\n   - Do not select continue-here as the durable carrier or weaken its consume-on-resume semantics for unrelated uses.\n   - Leftover (optional): richer multi-session eval harness beyond carrier-assert verbs — not required to bind if carrier-assert fixtures land.\n\n## Reject list\n\n- Approach that keeps limb 1's open \"fields or reuse\" disjunction without naming a durable owner\n- Using ephemeral continue-here / `continue.xbrief.json` as the phase/approval-scope carrier\n- Agent-inferred demonstrable-dependents as the default widen path\n- New re-ask permission prompts that invalidate unchanged grants\n- Prose-only handoff authority labels without grant evidence and resume refuse\n- Making ingest depend on this arc's catalog chip\n\n## ADR-006 substantiation\n\nParent authored Stop 1 Prefer-A draft and this Bound. Non-self-arbitration: round-1 panel (codex 5986302974, grok 5986306862, claude 5986328603) supplied the carrier-first / gate-bind / operator-enumerated-delta / handoff-refuse load. Pin-read inventory at dispatch-sha 3456c671: interview Rules 6/7/8 + anti-patterns; setup Full output human approval + Post-Interview gate; strategies/interview.md brownfield Update + plan.xbrief.json state tracking; continue-here.md ephemeral checkpoint contract.\n\n## Plain-language summary\n\nPrefer-A still closes the interview phase/approval hole, but the Bound now requires a real durable record (not a disposable continue checkpoint), maps answer/artifact/phase approvals onto gates that already exist, lets only the operator widen the correction set, and refuses handoffs that treat agent habits as Deft rules. Ingest stays a later separate verb.",
+          "id": 5986338413,
+          "html_url": "https://github.com/deftai/directive/issues/5352#issuecomment-5986338413",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T01:01:58Z",
+          "updated_at": "2026-10-05T01:01:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: pain-audit\ncritic-role: fresh\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: sharpening\nharvest-changed: false\nid-ceiling: 5986338413\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nStop-1: 5986230499\nsuccessor-lean: 5986338413\ntarget: #5352\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy\n\n## Pain-audit of Prefer-A Bound 5986338413\n\nPin-read at `3456c6712614e352c5559b3c29caf9cbce26b5cf`: interview Rules 6/7/8 + Anti-Patterns; setup Full Path human approval + Post-Interview Confirmation Gate; `strategies/interview.md` brownfield Update / State Tracking / Acceptance Gate approve menu; `continue-here.md`; `content/vbrief/vbrief.md` strategy-chaining fields for `plan.xbrief.json`.\n\nBound claims `relieves: P1` / `relieves: P2` / `relieves: P3`. Verdict: **all three support**. Bound holds with non-harvest sharpenings only. No does-not-relieve. No harvest-changed rewrite of Bound-remedy limbs.\n\n### pain-P1 — support\n\nStop 1 P1: missing durable deliverable / phase / reopenable set / deferrals / confirmation-scope across correction and fresh-session resume.\n\nBound limbs 1–2, 4, 7 close the round-1 substrate hole:\n- Names a durable interview-continuation record owned under `./xbrief/plan.xbrief.json` with the required fields Stop 1 listed.\n- Explicitly **excludes** ephemeral `xbrief/continue.xbrief.json` / continue-here as carrier.\n- Closed post-draft phase enum; incomplete next-question-only orientation is a named fail-closed refuse.\n- Operator-enumerated reopen (Rule 6 shape); refuse-to-widen default.\n- Fixtures assert the durable carrier after resume / after continue-checkpoint consumption.\n\nPin cites:\n- `continue-here.md` L28–52: checkpoint is ephemeral, consumed on resume; Resume point is next-action narrative; `⊗ Re-debate decisions already recorded` — Bound exclusion is required, not optional.\n- `strategies/interview.md` State Tracking + `vbrief.md` strategy-chaining: `plan.xbrief.json` already hosts durable `completedStrategies` / `artifacts` with MUST-load on resume — plan-owned carrier is the right adjacent substrate.\n- Interview Rule 6: on `no`, re-ask **those specific questions only** — Bound limb 4 correctly reuses that operator-enumerated shape post-artifact.\n\n### pain-P2 — support\n\nStop 1 P2: Rule-8 numeric confirm conflated with artifact approval / phase completion / unrelated proposal permission.\n\nBound limb 3 closes the taxonomy and gate bind:\n- Approval scope from presented gate + target, never numeric syntax alone.\n- Answer confirm → Rule 8 / Rule 6 answer path (choice only).\n- Artifact approval → existing Setup Full Path human approval and/or Post-Interview write gate, recorded with target + revision on the durable carrier.\n- Phase completion → durable-record write when bounded delta is satisfied; **not** a new re-ask permission prompt.\n- Planning-only constraint cannot be silently overridden by approve/build menu labels.\n\nPin cites:\n- Interview Rule 8: echo selection + Enter before next question only; no artifact/build authority claim.\n- Interview Rule 6: summary yes/no before artifact generation; correction re-asks named fields only.\n- Setup Full Path step 2 **Human approval gate** + step 3 \"Record approval in the setup session.\"\n- Setup Post-Interview Confirmation Gate: \"Write files? (yes/no)\" with affirmative-only lexicon.\n- `strategies/interview.md` SPECIFICATION Approval Menu: numbered \"Approve and continue (lock the SPEC, proceed to implementation)\" — Bound's planning-only precedence clause is load-bearing against that label.\n\n### pain-P3 — support\n\nStop 1 P3: agent-authored handoff conventions travel as if Deft requirements and expand the proposal loop.\n\nBound limb 5 gives the read-side consequence round-1 required:\n- Continuation SoT is the durable carrier (or structured export), not unlabeled chat prose.\n- Human-authorized constraints need grant reference / faithful excerpt; agent label alone insufficient.\n- Agent conventions non-binding unless explicit adoption marker on the durable record.\n- Unsupported / unlabeled authorization labels do not generate new proposals or full-depth restart.\n- Incomplete-handoff remediation recovers missing orientation only; does not re-ask established grants.\n- Limb 6 + anti-pattern keep: authorized incremental recordkeeping without laundering questions+artifact generation.\n\nPin cites:\n- Interview Rule 7: answers map is flat field→value with no provenance/authority/scope slots — Bound correctly moves continuation authority onto the durable carrier rather than extending chat prose alone.\n- Interview Anti-Patterns: `⊗ Combine interview questions with artifact generation in the same message`; `⊗ Exit without structured answers map`.\n- `continue-here.md` Resume / Hazards / Decisions can carry unlabeled agent workflow prose — Bound's exclude-as-carrier + resume refuse closes that bleed path for phase/approval scope.\n\n### Non-harvest sharpenings (PR acceptance residue)\n\nBound is bindable-as-posted. These sharpenings do **not** change harvest identity:\n\n- **S1.** Exact carrier path: close limb 1's residual \"new closed field **or** adjacent durable plan-owned artifact\" to one concrete plan-owned read target (named field key vs sibling path) so schema + verifier share a single open path. Durable + under plan + ≠ continue-here already relieves P1 either way.\n- **S2.** Artifact-approval bind-map: replace Full Path \"**and/or**\" Post-Interview with an explicit which-gate-for-which-moment table (first write vs post-draft correction vs planning-only routing). Taxonomy already relieves P2; the and/or is implementer ambiguity only.\n- **S3.** Name the verify-style verb pattern for incomplete-carrier / unsupported-label refuses in acceptance evidence (#5176-shaped carrier assert), matching limb 7's preference over prose-only two-session mention.\n\n### Disposition\n\nPrefer-A Bound 5986338413 **holds**. finding-classes: sharpening. harvest-changed: false. No blocking does-not-relieve. Non-harvest S1–S3 carry into PR acceptance; no Recut / new bind lean required from this reserved seat.\n\nNo Bound lean. No ingest. One comment. EXIT.",
+          "id": 5986353290,
+          "html_url": "https://github.com/deftai/directive/issues/5352#issuecomment-5986353290",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T01:03:49Z",
+          "updated_at": "2026-10-05T01:03:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| P1 missing phase/continuation state is a real pin gap | verified | Stop 1; interview Rule 7 flat answers map; continue-here ephemeral; plan.xbrief.json durable adjacent substrate |\n| P2 approval-scope conflation is a real pin gap | verified | Rule 8 mechanism-only; Rule 6 / Full Path / Post-Interview exist as separate gates; SPEC approve/build menu can collide with planning-only |\n| P3 handoff convention bleed is a real pin gap | verified | Issue body agent-authored handoff; Rule 7 has no authority slot; continue-here can carry unlabeled workflow prose |\n| Prefer-A six-limb direction | accepted | Round-1 all agree right charter; insufficient without carrier-first bind |\n| Durable carrier under plan; exclude continue-here | accepted | Claude F1–F3, Grok F1/F8, Codex F2 → Bound limbs 1–2 |\n| Closed phase enum + fail-closed refuse | accepted | Grok F2/F3, Claude F1 → Bound limbs 1–2 |\n| Gate bind-map + phase completion as record | accepted | Grok F4/F5, Codex F1, Claude F4 → Bound limb 3 |\n| Operator-enumerated delta; refuse-to-widen | accepted | Claude F7, Grok F7, Codex F3 → Bound limb 4 |\n| Handoff authority evidence + resume refuse | accepted | Claude F5, Grok F6, Codex F4 → Bound limb 5 |\n| Incremental recordkeeping + anti-pattern keep | accepted | Codex F5, Grok F9 → Bound limb 6 |\n| Dual pack+rendered pins; carrier-assert fixtures | accepted | Claude F6/F8, Grok F8 → Bound limbs 7–8 |\n| Pain-audit supports P1/P2/P3; bindable-as-posted | verified | critic 5986353290 finding-classes: sharpening; harvest-changed: false |\n| Non-harvest S1–S3 (exact field key; which-gate table; verify verb name) | carry to PR | PA 5986353290 |\n\nDisagreement set: empty.\nRound-1 critics: 5986306862 (grok), 5986302974 (codex), 5986328603 (claude).\nPain-audit: 5986353290.\nSuccessor lean under synthesis: 5986338413.",
+          "id": 5986358353,
+          "html_url": "https://github.com/deftai/directive/issues/5352#issuecomment-5986358353",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T01:04:25Z",
+          "updated_at": "2026-10-05T01:04:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5986338413\nverified-claims table 5986358353\nStop-1 (denominator): 5986230499\nround-1 critics: 5986306862 (grok-4.5), 5986302974 (gpt-6-astra), 5986328603 (claude-opus-5)\nPain-audit (bind lean): 5986353290 — support P1, support P2, support P3; bindable-as-posted; non-harvest S1–S3 (exact plan-owned field key vs sibling path; which-gate-for-which-moment table; named verify-style refuse verb) carry into PR acceptance\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\narc-mode: no-ingest\nyolo-standing: yes\nspend: N≥3\nspend-ask: asked\ndual-stop-reserved: spent by pain-audit 5986353290\n\n## In plain English\n\nDesign-interview revisions and handoffs were losing the phase boundary and what was actually approved. The Bound requires a durable plan-owned continuation record (not a disposable continue checkpoint), maps answer/artifact/phase approvals onto gates that already exist, lets only the operator widen the correction set, and refuses handoffs that treat agent habits as Deft rules. Non-harvest sharpenings (exact field key, gate table, verify verb name) ride into PR acceptance. Ingest remains a separate operator verb.\n\n## Recording note (no Lean token)\n\nevaluatePainAuditFollowThrough({ findingClasses: [\"sharpening\"], harvestChanged: false }) → bindable-as-posted / bindableWithoutExtraLean. Reserved Dual-stop seat spent. Panel complete (3/3). Completed-arc clearance is the gate; catalog chip is convenience.",
+          "id": 5986358575,
+          "html_url": "https://github.com/deftai/directive/issues/5352#issuecomment-5986358575",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T01:04:27Z",
+          "updated_at": "2026-10-05T01:04:27Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nDesign interview revisions and handoffs do not preserve a bounded phase and approval scope\n\n## Context\n\nObserved during an operator-directed Full design interview for an existing application, followed by a continuation session. The operator requested planning only, preservation of existing changes, and no implementation. The first artifact batch was explicitly approved; later backend and gap reviews were also requested. This report does not characterize all technical questions or artifact writes as unauthorized.\n\nThe consumer engine and content deposit were 0.119.12. The relevant interview/strategy content was also compared with a 0.120.0 deposit. On 2026-10-04, the cited rules were verified on upstream master at `3d613b146a3880ecb261bf8654d7abe73b498820`. Session examples below come from a local conversation audit; private project files and raw chat logs are not published.\n\n## Expected behavior\n\nAfter an approved planning draft, a correction or gap review should reopen the affected decisions with an explicit phase boundary. A continuation should preserve the target deliverable, unresolved material decisions, approval scope, and deferrals, rather than inheriting an indefinitely expanding proposal loop.\n\n## Actual behavior / gap\n\nThe interview has a summary gate and an answers-map exit, and brownfield setup has a delta-interview route. The inspected contract does not specify sufficient state for prolonged post-draft review and cross-session continuation. A numeric selection confirmation can become the practical workflow unit while the distinction between answer approval, document approval, and phase completion is lost.\n\nIn the observed sequence, the agent repeatedly recorded one confirmed answer, synchronized multiple artifacts, prepared the next technical proposal, and asked for its adoption. The handoff preserved the current pending queue contract and a convention to mirror every confirmed decision into the project, specification, and six scopes. The continuation followed that convention and created five further proposals before the operator challenged the process. The handoff was agent-authored and operator-requested; its detailed convention was not a generic Deft requirement.\n\n## Session notes\n\n### Source evidence\n\n- [Rule 6 confirmation and Rule 7 exit](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/skills/deft-directive-interview/SKILL.md#L142) distinguish final summary confirmation and an answers-map handoff.\n- [Rule 8](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/skills/deft-directive-interview/SKILL.md#L267) confirms an individual numeric choice.\n- [Brownfield Update path](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/strategies/interview.md#L94) calls for a delta interview, but does not define the reviewed delta's durable decision boundary across sessions.\n- [Full output and review](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/skills/deft-directive-setup/SKILL.md#L847) define artifact review but not the extended review/continuation state observed here.\n- [Anti-pattern](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/skills/deft-directive-interview/SKILL.md#L515) already forbids combining artifact generation with interview questions. The agent violated this rule; this report does not excuse that violation.\n\n### Reproduction scenario\n\n1. Complete a consolidated interview summary and receive authorization to write a planning draft.\n2. Receive a correction or a request to inspect gaps, then resolve several specific decisions.\n3. Prepare a handoff naming the last confirmed answer, next pending proposal, and existing artifact-update conventions.\n4. Resume in a fresh session with 'continue the interview from its checkpoint.'\n5. Observe that preserving the next question is insufficient to establish the current phase, what counts as completion, which decisions may be reopened, or whether new proposals remain in scope.\n\n### Requested remedy\n\nSpecify a lightweight phase/continuation contract using existing planning records where possible. Preserve the deliverable, current phase, decision set, accepted deferrals, confirmations with their scope, and the limited delta being reviewed. A handoff must distinguish human authorization from agent-created workflow conventions. Re-entry after artifact approval should not silently restart a full-depth interview. Existing operator authorization must persist; do not add repeated permission prompts.\n\n### Acceptance and regression evidence\n\n- Changing one UI decision reopens that decision and demonstrable dependents, not unrelated backend design.\n- Confirming a numeric choice records that choice; it does not imply final artifact approval, implementation authorization, or permission to generate unrelated proposals.\n- A resumed session restores deferred work and the bounded remaining decision set.\n- A handoff that contains a next question but lacks a phase boundary is treated as incomplete orientation, not proof that the workflow is sound.\n- Authorized incremental recordkeeping still works; the fix does not require one technical proposal per answer or copying every answer to every scope.\n- Exercise a two-session fixture in addition to same-session corrections.\n\n### Scope and prior art\n\nDistinct from the completion/materiality defect: this report owns approval scope, delta reopening, and continuation state. The body and comments of #4668 were reviewed: its delivered remedy persists the Phase 2 Depth preference and skips re-asking it; its separate project-narrative persistence residual moved to #5176. This report concerns expanding post-draft review and carrying that expansion into another session, not either persistence remedy. No implementation or scope promotion is requested by this report. Refs #1709.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5704300857,
+        "origin": "deftai/directive#5352",
+        "id": "github.issue.5704300857"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "eeaa7bc4a16e551b4c62b030d6d1b0c391bcc6e8b2b017d6bbc27880f4880c0a"
+      },
+      "swarm": {
+        "file_scope": [
+          "content/skills/deft-directive-interview/SKILL.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/strategies/interview.md",
+          "content/resilience/continue-here.md",
+          "xbrief/plan.xbrief.json",
+          "CHANGELOG.md"
+        ],
+        "conflict_group": "interview-phase-approval-scope",
+        "depends_on": [],
+        "verify_commands": [],
+        "expected_outputs": [
+          "completed xBRIEF on tip"
+        ],
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "preferA": {
+        "lean": 5986338413,
+        "synth": 5986358575,
+        "conflict_group": "interview-phase-approval-scope"
+      },
+      "productPullRequest": 5358,
+      "admitted_source_digest": "3e55d627a08b266e99fef6898a5ea29264fb016d0cdd1489e167884043876326",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-05T05:01:59Z"
+      },
+      "completedAt": "2026-10-05T05:01:59Z",
+      "completionProvenance": {
+        "productMerge": "0ab3db280",
+        "productPr": 5358
+      }
+    },
+    "id": "github.issue.5704300857",
+    "updated": "2026-10-05T05:01:59Z"
+  }
+}
