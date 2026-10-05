@@ -1,0 +1,122 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-10-05T00:24:25Z"
+  },
+  "plan": {
+    "id": "github.issue.4642018839",
+    "status": "completed",
+    "title": "epic: spec reconstruction + drift guard - Prefer-A Bound leftover after #5315",
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "epic: spec reconstruction + drift guard - Prefer-A Bound leftover after #5315",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5315 squash-merge under floor exception citing #5350 (Tracking #1589). Bound C1/C2 advise + C3 schema-only shipped; Greptile Bound-intentional soft P1s accepted. Enforce follow-up remains on #5350.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5315-floor-exception",
+            "mintedAt": "2026-10-05T00:22:05.676Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-05T00:22:05.676Z"
+        },
+        "x-directive/notes": "Prefer-A leftover-complete disposition."
+      }
+    ],
+    "metadata": {
+      "productPullRequest": 5315,
+      "floorExceptionIssue": 5350,
+      "conflict_group": "spec-reconstruct-drift-guard",
+      "ambiguity_attestation": "none_found",
+      "admitted_source_digest": "leftover-complete-after-5315",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/policy/spec-guard.ts",
+          "packages/core/src/spec-reconstruct/reconstruct.ts",
+          "packages/core/src/verify-source/spec-drift.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/spec-reconstruct/reconstruct.test.ts packages/core/src/verify-source/spec-drift.test.ts"
+        ],
+        "conflict_group": "spec-reconstruct-drift-guard"
+      },
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/spec-reconstruct/reconstruct.test.ts packages/core/src/verify-source/spec-drift.test.ts",
+          "source": "explicit"
+        }
+      ],
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "6d17a573384df4097a6aac4005ca86d4d16e4d2a",
+        "prNumber": 5315,
+        "prBase": "master",
+        "mergeCommit": "3456c6712614e352c5559b3c29caf9cbce26b5cf",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3456c6712614e352c5559b3c29caf9cbce26b5cf",
+        "verifiedAt": "2026-10-05T00:24:25Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-10-05T00:24:25Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-05T00:24:25Z"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/spec-reconstruct/reconstruct.test.ts packages/core/src/verify-source/spec-drift.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "epic: spec reconstruction + drift guard - Prefer-A Bound leftover after #5315",
+          "status": "pending",
+          "artifact_path": null,
+          "x-directive/disposition": {
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5315 squash-merge under floor exception citing #5350 (Tracking #1589). Bound C1/C2 advise + C3 schema-only shipped; Greptile Bound-intentional soft P1s accepted. Enforce follow-up remains on #5350.",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "eventRef": "leftover-complete-after-5315-floor-exception",
+              "mintedAt": "2026-10-05T00:22:05.676Z",
+              "mintedVia": "parent-retained-closer"
+            },
+            "recorded_at": "2026-10-05T00:22:05.676Z"
+          }
+        }
+      ]
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1589",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1589: epic: spec reconstruction + drift guard"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/5315",
+        "type": "x-xbrief/github-pr",
+        "title": "PR #5315: Prefer-A Bound reconstruct + advise drift guard (Tracking #1589)"
+      }
+    ],
+    "updated": "2026-10-05T00:24:25Z"
+  }
+}

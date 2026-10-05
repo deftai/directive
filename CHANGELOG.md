@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Leftover-complete #1589 after #5315 floor exception.** Prefer-A Bound advise reconstruct + drift guard completed xBRIEF landed; enforce follow-up remains on #5350.
+
 - chore(xbrief): widen #1164 file_scope to include docs/RULE-MAP.md (Path B precommitment for product land).
 
 ### Added
