@@ -140,8 +140,18 @@ See `strategies/map.md` for standalone behavior.
 
 ! On brownfield **Update project definition** (delta interview) and any
   continuation after a planning draft is approved: load that durable carrier
-  before asking the next question. Resume MUST fail closed when orientation is
-  next-question-only / Resume-point-only without the required carrier fields.
+  before asking the next question.
+
+! **First-delta initialize (absent carrier):** When `plan["x-directive/interviewContinuation"]`
+  is absent/omitted (no active continuation), initialize it before the next question from
+  (1) the existing PROJECT-DEFINITION identity / deliverable under review and (2) the
+  operator-named change request. Seed at least: `targetDeliverable`, `phase`
+  (`planning-draft-approved` or `correction-or-gap-review`), `reopenableDecisionSet` /
+  `deltaUnderReview.keys` from the operator-enumerated delta, empty `acceptedDeferrals`
+  and `confirmations` as needed. Absent field means "initialize," not "refuse."
+
+! **Incomplete carrier refuse:** Resume MUST fail closed when a carrier **is present**
+  but orientation is next-question-only / Resume-point-only without the required fields.
 
 ! Delta reopen is operator-enumerated only (Rule 6 L160 shape). Default
   refuse-to-widen; agent-inferred dependents are not a widen path.

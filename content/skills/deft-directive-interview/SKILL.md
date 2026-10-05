@@ -520,12 +520,14 @@ Required fields when the carrier is in force:
 | `phase` | closed enum (below) |
 | `reopenableDecisionSet` | string[] — operator-enumerated keys that may be reopened |
 | `acceptedDeferrals` | string[] — deferred items; non-blocking unless explicitly reopened |
-| `confirmations` | array of `{ scope: "answer" \| "artifact" \| "phase", target, revisionId?, at? }` |
+| `confirmations` | array of `{ scope: "answer" \| "artifact" \| "phase", target, revisionId?, at? }` — **artifact** and **phase** entries MUST include `target` + `revisionId` so multiple approvals retain distinct identities |
 | `deltaUnderReview` | `{ keys: string[], dependencyReasons?: Record<string,string> }` — limited delta |
-| `approval` | `{ target, revisionId }` — approval target + revision/change identity |
+| *(no single `approval` object)* | Artifact/phase approval identity lives only on `confirmations[]` entries; a later edit invalidates matching `target`+`revisionId` only |
 | `operatorAdoptionMarkers` | optional string[] — explicit operator adoption of agent workflow conventions |
 
-! A resume that continues a post-draft design interview MUST load this durable record (same MUST-load posture as other plan artifacts on pin). Incomplete orientation (next-question-only / Resume-point-only without the required fields) is a fail-closed refuse: skill ⊗ halt (skill-exit) — not agent self-attestation. Content-contract / `verify:interview-continuation` posture asserts the carrier still names deliverable, phase, remaining set, deferrals, confirmation scopes, and delta after resume (#5176-shaped carrier assert; S3).
+! A resume that continues a post-draft design interview MUST load this durable record (same MUST-load posture as other plan artifacts on pin). Incomplete orientation (next-question-only / Resume-point-only without the required fields) is a fail-closed refuse: skill ⊗ halt (skill-exit) — not agent self-attestation. Content-contract carrier-assert posture (dual pack+rendered pins) asserts the carrier still names deliverable, phase, remaining set, deferrals, confirmation scopes, and delta after resume (#5176-shaped; S3). ⊗ Invent a CLI `verify:interview-continuation` verb in this Prefer-A Bound land — leftover optional harness may add one later.
+
+! When the carrier is **absent** on first brownfield Update / first post-draft delta, initialize it per `strategies/interview.md` First-delta initialize before asking the next question. Absent means initialize; a **present but incomplete** carrier still fails closed above.
 
 ⊗ Use ephemeral `xbrief/continue.xbrief.json` / continue-here as this phase/approval-scope carrier. Checkpoints remain consumed-on-resume and MUST NOT own phase or approval scope. Silence on continue-here is forbidden — Prefer-A Bound explicitly excludes it.
 
@@ -558,7 +560,7 @@ Required fields when the carrier is in force:
 
 ! Changing a decision reopens only operator-enumerated keys in `reopenableDecisionSet` / `deltaUnderReview.keys` (Rule 6 L160 shape: those specific questions/decisions). Default refuse-to-widen. Additions require an explicit operator widen of the delta plus a recorded concrete dependency reason on the carrier. Agent-inferred "demonstrable dependents" are not a widening path. Accepted deferrals stay non-blocking unless explicitly reopened. Stop when the bounded delta's required decisions and review condition are satisfied. A plausible unrelated backend improvement offered as an addition MUST be refused.
 
-! Editing an approved artifact invalidates only the affected approval (matching target/revision); unchanged artifact approvals on the carrier remain valid.
+! Editing an approved artifact invalidates only the matching `confirmations[]` entry (`scope: "artifact"` with that `target`+`revisionId`); other artifact confirmation entries remain valid. Do not collapse multiple artifact approvals into one `approval` object.
 
 #### Handoff authority split (read-side refuse)
 

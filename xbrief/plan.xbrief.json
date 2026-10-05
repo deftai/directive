@@ -1,7 +1,7 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Deft Directive work plan. Converted from legacy flat format to vBRIEF v0.5. Schema home for plan[\"x-directive/interviewContinuation\"] (#5352 Prefer-A Bound): targetDeliverable, phase (planning-draft-approved|correction-or-gap-review|artifact-approved|deferred-resume), reopenableDecisionSet, acceptedDeferrals, confirmations[], deltaUnderReview, approval{target,revisionId}, optional operatorAdoptionMarkers. Absent/omitted means no active interview continuation."
+    "description": "Deft Directive work plan. Converted from legacy flat format to vBRIEF v0.5. Schema home for plan[\"x-directive/interviewContinuation\"] (#5352 Prefer-A Bound): targetDeliverable, phase (planning-draft-approved|correction-or-gap-review|artifact-approved|deferred-resume), reopenableDecisionSet, acceptedDeferrals, confirmations[] (artifact/phase require target+revisionId; no single approval object), deltaUnderReview, optional operatorAdoptionMarkers. Absent/omitted means initialize on first delta (not refuse); incomplete present carrier refuses."
   },
   "plan": {
     "title": "Deft Directive specification",

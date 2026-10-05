@@ -973,7 +973,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 | Phase completion for a bounded correction delta | Durable-record write on the carrier when required decisions + review condition are satisfied — **not** a new Post-Interview re-ask of already-granted authorization |
 | Planning-only operator constraint in force | Planning-only wins over artifact-approve/build labels on any approve menu; do not silent-override |
 
-! When recording an artifact approval from Full Path or Post-Interview, stamp `confirmations` with `scope: "artifact"` plus `approval.target` / `approval.revisionId` on the carrier. Answer confirms stay `scope: "answer"` only.
+! When recording an artifact approval from Full Path or Post-Interview, append a `confirmations[]` entry with `scope: "artifact"`, `target`, and required `revisionId` (one entry per approved artifact revision). Answer confirms stay `scope: "answer"` only. Do not overwrite other artifact confirmation entries.
 
 ⊗ Use continue-here / `continue.xbrief.json` to own interview phase or approval scope.
 ⊗ Re-prompt Post-Interview "Write files?" solely to close a bounded delta whose authorization was already granted.

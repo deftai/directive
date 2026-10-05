@@ -1,6 +1,6 @@
 /**
  * Prefer-A Bound pins for interview phase/approval durable carrier (#5352).
- * Dual pack+rendered surfaces; carrier-assert posture named verify:interview-continuation (S3).
+ * Dual pack+rendered surfaces; content-contract carrier-assert posture (S3).
  */
 import { describe, expect, it } from "vitest";
 import { readRepoFile } from "./helpers.js";
@@ -25,9 +25,10 @@ const REQUIRED_CARRIER_MARKERS = [
   "correction-or-gap-review",
   "artifact-approved",
   "deferred-resume",
-  "verify:interview-continuation",
+  "Content-contract carrier-assert",
   "reopenableDecisionSet",
   "operatorAdoptionMarkers",
+  "confirmations[]",
 ] as const;
 
 describe("interview continuation carrier (#5352 Prefer-A Bound)", () => {
@@ -55,9 +56,7 @@ describe("interview continuation carrier (#5352 Prefer-A Bound)", () => {
       expect(text).toContain(
         "Treat ordinary design-answer numerics (Rule 8) as artifact or build approval (#5352)",
       );
-      expect(text).toContain(
-        "Widen a post-draft correction delta beyond operator-enumerated keys",
-      );
+      expect(text).toContain("Widen a post-draft correction delta beyond operator-enumerated keys");
     });
   }
 
@@ -80,6 +79,8 @@ describe("interview continuation carrier (#5352 Prefer-A Bound)", () => {
     expect(text).toContain('plan["x-directive/interviewContinuation"]');
     expect(text).toContain("Approve and continue (lock the SPEC, proceed to implementation)");
     expect(text).toContain("silently override");
+    expect(text).toContain("First-delta initialize");
+    expect(text).toContain("Incomplete carrier refuse");
   });
 
   it("continue-here.md explicitly excludes itself as interview phase/approval carrier", () => {
