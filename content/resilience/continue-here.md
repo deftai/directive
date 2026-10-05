@@ -51,6 +51,27 @@ Persist to `./xbrief/continue.xbrief.json` in xBRIEF format (legacy `./vbrief/co
 - ! Scope xBRIEFs (`./xbrief/{proposed,pending,active,completed,cancelled}/`; legacy `./vbrief/` read-accepted) are **durable** — they persist across sessions and are shared between agents; do not conflate them with ephemeral continue checkpoints
 - ⊗ Accumulate stale continue checkpoints — clean up after resume
 
+## Not the interview phase/approval carrier (#5352 Prefer-A Bound)
+
+! Interview phase and approval scope after a planning draft live on
+  `plan["x-directive/interviewContinuation"]` under `./xbrief/plan.xbrief.json`
+  — see `skills/deft-directive-interview/SKILL.md` Rule 12. Continue-here
+  remains the interruption checkpoint only (consumed on resume).
+
+! After a successful continue-checkpoint resume, if a post-draft design
+  interview is still in force, the agent MUST still load that durable carrier.
+  A consumed continue checkpoint MUST NOT be treated as proof of phase,
+  reopenable decision set, deferrals, confirmation scopes, or approval
+  target/revision identity.
+
+⊗ Use `xbrief/continue.xbrief.json` / this continue-here protocol as the
+  durable interview phase/approval-scope carrier. Prefer-A Bound explicitly
+  excludes that substrate. Unlabeled Decisions / Hazards / Resume-point prose
+  in a continue checkpoint is not authorization evidence for handoffs.
+
+⊗ Resume a post-draft design interview from Resume-point-only / next-question
+  orientation without the durable carrier's required fields.
+
 ---
 
 ## Anti-Patterns
@@ -60,3 +81,4 @@ Persist to `./xbrief/continue.xbrief.json` in xBRIEF format (legacy `./vbrief/co
 - ⊗ Losing in-flight decisions because they weren't persisted
 - ⊗ Starting over from scratch after an interruption
 - ⊗ Creating `continue-{ULID}.json` — the file is singular: `continue.xbrief.json`
+- ⊗ Using continue-here as the durable interview phase/approval-scope carrier (#5352) — load `plan["x-directive/interviewContinuation"]` on `./xbrief/plan.xbrief.json` instead

@@ -958,6 +958,26 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ! **Recommended Warp setting**: Before running deft-directive-setup, ensure Warp's AI autonomy is set to **"Always ask"** in **AI -> Profile Settings**. When set to a higher autonomy level (e.g. "Auto-run"), Warp may silently self-answer interview questions without user input, producing garbage USER.md/PROJECT-DEFINITION.xbrief.json with no error or warning. The post-interview confirmation gate (below) is the last line of defense, but prevention is better than detection.
 
+
+
+## Interview continuation carrier (#5352 Prefer-A Bound)
+
+! Post-draft design-interview corrections, gap reviews, and cross-session handoffs that preserve phase/approval scope MUST read and update `plan["x-directive/interviewContinuation"]` on `./xbrief/plan.xbrief.json` — not ephemeral continue-here. Full rules: `skills/deft-directive-interview/SKILL.md` Rule 12.
+
+### Gate bind-map (which gate for which moment)
+
+| Moment | Gate on this skill |
+|--------|--------------------|
+| First write after interview answers (Phase 1/2/3) | **Post-Interview Confirmation Gate** below — "Write files? (yes/no)"; affirmative-only lexicon |
+| Full Path narrative + proposed scope review | **Output — Full Path** human approval gate — present narratives/scope for review; on approval record target + revision identity on the durable carrier |
+| Phase completion for a bounded correction delta | Durable-record write on the carrier when required decisions + review condition are satisfied — **not** a new Post-Interview re-ask of already-granted authorization |
+| Planning-only operator constraint in force | Planning-only wins over artifact-approve/build labels on any approve menu; do not silent-override |
+
+! When recording an artifact approval from Full Path or Post-Interview, stamp `confirmations` with `scope: "artifact"` plus `approval.target` / `approval.revisionId` on the carrier. Answer confirms stay `scope: "answer"` only.
+
+⊗ Use continue-here / `continue.xbrief.json` to own interview phase or approval scope.
+⊗ Re-prompt Post-Interview "Write files?" solely to close a bounded delta whose authorization was already granted.
+
 ## Post-Interview Confirmation Gate
 
 ! After completing ALL interview questions for any phase (Phase 1, Phase 2, or Phase 3), but BEFORE writing any files other than the Phase 2 `**Depth**:` line (#4668):

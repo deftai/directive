@@ -502,6 +502,79 @@ for it.
 - ⊗ Show a red/green diff at first review without a non-alarming
   preface.
 
+
+
+### Rule 12: Durable Interview Continuation (#5352 Prefer-A Bound)
+
+! After a planning draft is approved, mid-interview corrections, gap reviews, and cross-session handoffs MUST preserve a bounded phase and approval scope on one durable carrier. Do not treat Rule-8 numeric confirm as the workflow unit for artifact or build authority.
+
+#### Durable carrier (S1)
+
+! The sole durable interview-continuation record is `plan["x-directive/interviewContinuation"]` on `./xbrief/plan.xbrief.json` (namespaced plan field; plan-owned; durable across sessions).
+
+Required fields when the carrier is in force:
+
+| Field | Shape |
+|-------|--------|
+| `targetDeliverable` | string — what is under review (e.g. PROJECT-DEFINITION narratives, scope set, SPEC) |
+| `phase` | closed enum (below) |
+| `reopenableDecisionSet` | string[] — operator-enumerated keys that may be reopened |
+| `acceptedDeferrals` | string[] — deferred items; non-blocking unless explicitly reopened |
+| `confirmations` | array of `{ scope: "answer" \| "artifact" \| "phase", target, revisionId?, at? }` |
+| `deltaUnderReview` | `{ keys: string[], dependencyReasons?: Record<string,string> }` — limited delta |
+| `approval` | `{ target, revisionId }` — approval target + revision/change identity |
+| `operatorAdoptionMarkers` | optional string[] — explicit operator adoption of agent workflow conventions |
+
+! A resume that continues a post-draft design interview MUST load this durable record (same MUST-load posture as other plan artifacts on pin). Incomplete orientation (next-question-only / Resume-point-only without the required fields) is a fail-closed refuse: skill ⊗ halt (skill-exit) — not agent self-attestation. Content-contract / `verify:interview-continuation` posture asserts the carrier still names deliverable, phase, remaining set, deferrals, confirmation scopes, and delta after resume (#5176-shaped carrier assert; S3).
+
+⊗ Use ephemeral `xbrief/continue.xbrief.json` / continue-here as this phase/approval-scope carrier. Checkpoints remain consumed-on-resume and MUST NOT own phase or approval scope. Silence on continue-here is forbidden — Prefer-A Bound explicitly excludes it.
+
+#### Closed phase vocabulary
+
+! `phase` MUST be one of:
+
+- `planning-draft-approved` — first planning draft accepted; correction/gap work may begin
+- `correction-or-gap-review` — bounded delta under review
+- `artifact-approved` — named artifact approval recorded with target + revision identity
+- `deferred-resume` — accepted deferrals; waiting to resume without reopening the full interview
+
+⊗ Free-text phase labels. Map these onto setup Phase 1/2/3 vocabulary in prose without colliding names (do not rename setup phases; say e.g. "interview continuation phase `artifact-approved` after setup Phase 3 Post-Interview write").
+
+#### Approval taxonomy + gate bind-map (S2)
+
+! Approval scope comes from the explicitly presented gate and its target, never from numeric syntax alone.
+
+| Moment | Gate | Carrier scope tag |
+|--------|------|-------------------|
+| Ordinary design-answer number confirm | Interview Rule 8 echo + confirm; Rule 6 answer-path summary | `answer` — records the choice only |
+| First write after interview answers (any setup phase) | Setup **Post-Interview Confirmation Gate** ("Write files? (yes/no)"; affirmative-only) | `artifact` when files are the target |
+| Full Path narrative / proposed-scope human review | Setup **Output — Full Path** human approval gate | `artifact` with target + revisionId |
+| Brownfield / strategy SPEC or PRD approve menu | Strategy approval menu (see strategies/interview.md); planning-only constraint wins | `artifact` only when that gate was deliberately presented for an artifact |
+| Bounded delta review finished | **Phase completion** = durable-record write closing the review when required decisions + review condition are satisfied | `phase` — not a new permission prompt that re-asks already-granted authorization |
+
+! Ordinary design-answer numerics confer no artifact/build authority. A deliberately presented artifact gate must still work. When a planning-only constraint is in force, artifact-approve/build labels (including SPEC "Approve and continue … proceed to implementation") MUST NOT silently override it — route/refuse with explicit precedence on the existing approve menu.
+
+#### Operator-enumerated delta reopen
+
+! Changing a decision reopens only operator-enumerated keys in `reopenableDecisionSet` / `deltaUnderReview.keys` (Rule 6 L160 shape: those specific questions/decisions). Default refuse-to-widen. Additions require an explicit operator widen of the delta plus a recorded concrete dependency reason on the carrier. Agent-inferred "demonstrable dependents" are not a widening path. Accepted deferrals stay non-blocking unless explicitly reopened. Stop when the bounded delta's required decisions and review condition are satisfied. A plausible unrelated backend improvement offered as an addition MUST be refused.
+
+! Editing an approved artifact invalidates only the affected approval (matching target/revision); unchanged artifact approvals on the carrier remain valid.
+
+#### Handoff authority split (read-side refuse)
+
+! Mid-review / cross-session handoffs that carry continuation state MUST use the durable carrier (or a structured export of it), not unlabeled chat prose as SoT. Human-authorized constraints require a reference or faithful bounded excerpt of the actual operator grant; an agent label alone is insufficient. Agent workflow conventions are non-binding by default unless the operator adopts them via an explicit adoption marker on the durable record (`operatorAdoptionMarkers`). Unlabeled / unsupported authorization labels do not generate new proposals or restart a full-depth interview. Incomplete-handoff remediation recovers missing orientation only and does not re-ask established grants. Framework obligations stay distinct from discretionary agent conventions.
+
+#### Authorized incremental recordkeeping
+
+! Confirmed state MAY be recorded under an existing grant without another permission prompt. That grant does not authorize synchronizing unrelated scopes or generating an artifact alongside the next interview question. Keep Anti-Patterns ⊗ combining interview questions with artifact generation.
+
+#### Named limits
+
+- ⊗ Rewrite #4668 Depth-preference persistence or #5176 narrative-persistence residual (orthogonal).
+- ⊗ Add repeated permission prompts that re-ask already-granted authorization.
+- ⊗ Excuse questions+artifact generation in the same message.
+- ⊗ Select continue-here as the durable carrier or weaken its consume-on-resume semantics for unrelated uses.
+
 ## Anti-Patterns
 
 - ⊗ Ask multiple questions in a single message -- one question per turn, always
@@ -526,3 +599,8 @@ for it.
 - ⊗ Render the Rule 6 Confirmation Gate via a click-commit structured tool on a click-commit host -- the gate MUST be plain-text with a typed `yes` commit (Rule 6 Click-Commit Hosts, #477)
 - ⊗ Render the next user-facing question as plain-text conversational prose because the Rule 6 Gate was just rendered in plain-text -- plain-text mode is released after the typed commit (Rule 6 Mode Restore, #478)
 - ⊗ Render a user-facing question as plain-text because you wanted to include a long preamble -- preamble belongs above the tool call, not instead of it (Rule 2 Preamble Placement, #478)
+- ⊗ Use ephemeral continue-here / `xbrief/continue.xbrief.json` as the durable interview phase/approval-scope carrier (#5352) — load `plan["x-directive/interviewContinuation"]` on `./xbrief/plan.xbrief.json` instead
+- ⊗ Treat ordinary design-answer numerics (Rule 8) as artifact or build approval (#5352)
+- ⊗ Widen a post-draft correction delta beyond operator-enumerated keys without an explicit operator widen + recorded dependency reason (#5352)
+- ⊗ Treat unlabeled agent handoff conventions as Deft authorization or restart a full-depth interview from them (#5352)
+- ⊗ Resume a post-draft design interview from next-question-only / Resume-point-only orientation without the durable carrier's required fields (#5352)
