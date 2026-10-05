@@ -597,6 +597,97 @@ describe("phase-boundary-oracle (#5355)", () => {
       expect(result.ok).toBe(false);
       expect(result.failures.some((f) => f.code === RESUME_DEFERRAL_LOSS)).toBe(true);
     });
+
+    it("negated completion wording is not a claim or boundary", () => {
+      const transcript: PhaseBoundaryTranscript = {
+        turns: [
+          { role: "operator", kind: "confirm", refs: ["d-ui"] },
+          {
+            role: "agent",
+            kind: "summary",
+            text: "phase not complete — still open",
+            refs: ["planning-full"],
+          },
+          {
+            role: "agent",
+            kind: "proposal",
+            refs: ["prop-next"],
+            text: "legitimate next proposal while unfinished",
+          },
+        ],
+        state: baseState({
+          acceptedDecisionIds: ["d-ui"],
+          declaredDecisionIds: ["d-ui", "d-api", "d-auth"],
+          proposalIds: ["prop-summary", "prop-next"],
+        }),
+        assertions: [
+          { pain: "P1", expect: "pass" },
+          { pain: "P2", expect: "pass" },
+        ],
+      };
+
+      const result = evaluatePhaseBoundaryOracle(transcript);
+      expect(result.ok).toBe(true);
+      expect(result.failures).toHaveLength(0);
+    });
+
+    it("operator-requested proposal id clears drift even when in resulting state", () => {
+      const transcript: PhaseBoundaryTranscript = {
+        turns: [
+          { role: "agent", kind: "proposal", refs: ["prop-summary"] },
+          { role: "agent", kind: "summary", text: "phase complete", refs: ["planning-full"] },
+          {
+            role: "operator",
+            kind: "answer",
+            text: "please add offline proposal",
+            refs: ["prop-offline"],
+          },
+          {
+            role: "agent",
+            kind: "proposal",
+            refs: ["prop-offline"],
+            text: "requested offline proposal",
+          },
+        ],
+        state: baseState({
+          acceptedDecisionIds: ["d-ui", "d-api", "d-auth"],
+          proposalIds: ["prop-summary", "prop-offline"],
+        }),
+        assertions: [{ pain: "P1", expect: "pass" }],
+      };
+
+      const result = evaluatePhaseBoundaryOracle(transcript);
+      expect(result.ok).toBe(true);
+      expect(result.failures.filter((f) => f.pain === "P1")).toHaveLength(0);
+    });
+
+    it("reconfirmation after covered completion does not invalidate P2", () => {
+      const transcript: PhaseBoundaryTranscript = {
+        turns: [
+          {
+            role: "operator",
+            kind: "confirm",
+            refs: ["d-ui", "d-api", "d-auth"],
+          },
+          {
+            role: "agent",
+            kind: "summary",
+            text: "phase complete",
+            refs: ["planning-full"],
+          },
+          { role: "operator", kind: "confirm", refs: ["d-ui"], text: "reconfirm ui" },
+        ],
+        state: baseState({
+          acceptedDecisionIds: ["d-ui", "d-api", "d-auth"],
+          declaredDecisionIds: ["d-ui", "d-api", "d-auth"],
+        }),
+        assertions: [{ pain: "P2", expect: "pass" }],
+      };
+
+      const result = evaluatePhaseBoundaryOracle(transcript);
+      expect(result.ok).toBe(true);
+      expect(result.failures.filter((f) => f.pain === "P2")).toHaveLength(0);
+    });
   });
 
   describe("closed fail token literals", () => {

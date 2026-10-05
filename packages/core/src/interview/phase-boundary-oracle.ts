@@ -96,8 +96,17 @@ function covers(accepted: readonly string[], declared: readonly string[]): boole
 /** Agent summary that asserts phase completion (not a progress-only interim). */
 function isCompletionClaim(turn: PhaseBoundaryTurn | undefined): boolean {
   if (turn?.role !== "agent" || turn.kind !== "summary") return false;
+  const text = turn.text ?? "";
+  // Explicit unfinished / negated completion is not a claim.
+  if (
+    /\b(not|no|never|incomplete|unfinished)\b.{0,24}\b(complete|finished|done)\b/i.test(text) ||
+    /\b(complete|finished|done)\b.{0,16}\b(not|yet)\b/i.test(text) ||
+    /\bphase\s+not\s+complete\b/i.test(text)
+  ) {
+    return false;
+  }
   return /(phase|planning).{0,24}\b(complete|finished|done)\b|\b(complete|finished|done)\b.{0,24}(phase|planning)|all\s+decisions|declared-decision\s+coverage|claiming\s+phase/i.test(
-    turn.text ?? "",
+    text,
   );
 }
 
@@ -152,9 +161,10 @@ function detectPhaseDrift(transcript: PhaseBoundaryTranscript): PhaseBoundaryFai
   if (boundaryIdx < 0) return null;
 
   const atBoundary = proposalIdsThrough(turns, boundaryIdx);
+  // Do not seed with resulting state.proposalIds — an operator-requested proposal
+  // id often appears there and must still clear the drift gate when introduced.
   const knownIds = new Set<string>([
     ...atBoundary,
-    ...state.proposalIds,
     ...state.declaredDecisionIds,
     ...state.acceptedDecisionIds,
   ]);
@@ -244,17 +254,19 @@ function detectFalseCompletion(transcript: PhaseBoundaryTranscript): PhaseBounda
       }
     }
 
-    // Later operator confirms that add declared ids imply the claim was premature.
-    const laterAddsDeclared = confirmsAfter.some(
+    const laterNewDeclared = confirmsAfter.filter(
       (id) => state.declaredDecisionIds.includes(id) && !confirmsBefore.includes(id),
     );
-
-    if (laterAddsDeclared) {
-      if (!covers(confirmsBefore, state.declaredDecisionIds)) {
-        const missing = state.declaredDecisionIds.filter((id) => !confirmsBefore.includes(id));
-        return falseCompletion(missing);
-      }
-      continue;
+    // Premature: some operator confirms existed before the claim but did not
+    // cover declared, then later confirms added more declared ids. Pure
+    // reconfirmation after a covered claim (or no pre-claim confirms) uses state.
+    if (
+      laterNewDeclared.length > 0 &&
+      confirmsBefore.length > 0 &&
+      !covers(confirmsBefore, state.declaredDecisionIds)
+    ) {
+      const missing = state.declaredDecisionIds.filter((id) => !confirmsBefore.includes(id));
+      return falseCompletion(missing);
     }
 
     if (!covers(state.acceptedDecisionIds, state.declaredDecisionIds)) {
