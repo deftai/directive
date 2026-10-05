@@ -493,9 +493,12 @@ tasks:
 
   spec-drift:
     desc: >-
-      Three-state semantic spec-vs-reality drift audit (#1589). Exit 0 clean /
-      1 drift / 2 unassessable. Distinct from fail-closed verify:spec-prd-fresh.
-      Advise-first; not spliced into task check in v1. Consumer alias:
+      Three-state semantic spec-vs-reality drift audit (#1589 / #5350). Exit 0 clean /
+      1 drift / 2 unassessable. Mode × exit: advise informational; shadow records
+      warnings (CI must not fail solely on shadow); enforce fails closed on exit 1 and 2
+      for named consumers (pre-move scope:complete + this verify.yml passthrough).
+      Seed/reseed: --seed / --reseed. Not spliced into bare deft check in v1.
+      Distinct from fail-closed verify:spec-prd-fresh. Consumer alias:
       task deft:verify:spec-drift.
     dir: '{{.USER_WORKING_DIR}}'
     deps:

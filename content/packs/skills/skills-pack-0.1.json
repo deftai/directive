@@ -290,18 +290,7 @@
         "shepherd the PR",
         "watch the PR",
         "keep merge-ready",
-        "PR shepherd",
-        "pursue residual",
-        "follow-up hard-stop",
-        "same as conf-hold",
-        "continue dual-stopped PR",
-        "re-babysit residual",
-        "until floor or loop",
-        "until greptile meets policy",
-        "pursue residuals until told otherwise",
-        "policy-anchored review-response",
-        "review-response",
-        "classify against policy anchor"
+        "PR shepherd"
       ],
       "path": "skills/deft-directive-review-cycle/SKILL.md",
       "version": "0.1",
@@ -323,7 +312,7 @@
     },
     {
       "id": "deft-directive-spec-reconstruct",
-      "description": "Brownfield specification reconstruction + advise drift guard (#1589). Draft-only synthesis from completed xBRIEFs + #1595 codebase MAP; never auto-promotes. Use when reconstructing a failed/stale spec, recovering requirements, or checking semantic spec drift. Do NOT trigger on ordinary spec:render / spec:validate / verify:spec-prd-fresh.",
+      "description": "Brownfield specification reconstruction + advise|shadow|enforce drift guard (#1589 / #5350). Draft-only synthesis from completed xBRIEFs + #1595 codebase MAP; never auto-promotes. Use when reconstructing a failed/stale spec, recovering requirements, or checking semantic spec drift. Do NOT trigger on ordinary spec:render / spec:validate / verify:spec-prd-fresh.",
       "triggers": [
         "reconstruct spec",
         "recover spec",
@@ -336,7 +325,7 @@
       ],
       "path": "skills/deft-directive-spec-reconstruct/SKILL.md",
       "version": "0.1",
-      "body": "# Spec Reconstruct + Drift Guard (#1589)\n\nRecover a trustworthy project specification from completed xBRIEFs, then advise when completions skip requirements coverage.\n\nLegend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.\n\n## When to Use\n\n- Spec baseline has failed or drifted after RFC/ADR/feature landings\n- Operator says \"reconstruct spec\", \"recover spec\", or \"spec is stale/failed\"\n- Auditing semantic drift via `verify:spec-drift`\n- ⊗ Ordinary `spec:render` / `spec:validate` / `verify:spec-prd-fresh` freshness work\n\n## Live surfaces (re-authored)\n\n- Policy: `packages/core/src/policy/spec-guard.ts` via `plan[\"x-directive/policy\"].specGuard`\n- Reconstruct: `packages/core/src/spec-reconstruct/` + `task spec:reconstruct`\n- Drift: `packages/core/src/verify-source/spec-drift.ts` + `task verify:spec-drift`\n- Sync hook: extend `syncSpecificationAfterScopeMove` (#2566)\n- Code oracle: shipped `#1595` codebase MAP + `verify:codebase-map-fresh`\n- Corpus: `xbrief/completed/`\n- Installer skill deposit under `.deft/core/skills/`\n\n## C1 — draft-only reconstruct\n\n```bash\ntask spec:reconstruct -- --project-root .\n# consumer: task deft:spec:reconstruct\n```\n\n- ! Emit a **draft candidate only** under `xbrief/.audit/spec-reconstruct-draft.json`\n- ! Tag provenance + confidence; keep observed behavior, intended requirement, and unresolved conflict as separate fields\n- ! Fold with supersession awareness; defer remainder past adjudication budget to `pending-human-decisions`\n- ! Sufficiency feeds `resolveSpecAuthority` (one greenfield predicate) — count is discovery heuristic only\n- ! Consume `#1595` codebase MAP as code oracle; do not build a parallel agent-read oracle\n- ⊗ Auto-promote draft to `xbrief/specification.xbrief.json`\n- ⊗ Treat registry write / projection-fresh alone as proof requirements match reality\n\n## C2 — advise drift guard\n\n- ! Resolve `plan.policy.specGuard` via `readPlanPolicy` (`policy:show --field=specGuard`)\n- ! Declare completion impact as `plan.items[].x-directive/specImpact` (`none|delta|new`) — never a bare key\n- ! Wire advise trigger by **extending** `syncSpecificationAfterScopeMove` (#2566)\n- ! Audit with `task verify:spec-drift` (0 clean / 1 drift / 2 unassessable)\n- ! Discharge only against baseline revision + per-completion requirements/delta coverage\n- ⊗ Clear unresolved drift with registry/render-only or unrelated spec touches\n- ⊗ Splice advisory validate into `task check` in v1\n- ⊗ Enforce-default on the framework tree\n\n## C3 — reserved\n\n- ! Ship `sqaPass` schema only; engine is a documented no-op in v1\n\n## Hardening\n\n- ~ After draft: run interview/probe with a **bounded adjudication budget**\n- ! Remainder stays in pending-human-decisions until human resolve\n- ! Only after hardening may the operator promote a specification artifact\n\n## Anti-Patterns\n\n- ⊗ Retired Python policy/spec-render script paths as implementation targets (Prefer-A Bound re-author onto TypeScript surfaces)\n- ⊗ Bare `plan.policy.specGuard` / bare `specImpact` under #1650\n- ⊗ Parallel code-oracle beside #1595\n- ⊗ Second greenfield predicate that can disagree with `resolveSpecAuthority`\n- ⊗ Building the C3 SQA judgment engine in v1\n\n## EXIT\n\ndeft-directive-spec-reconstruct complete — draft written and/or drift audited; chain to interview/probe for hardening, then operator-promoted `spec:render` only after explicit promote.\n",
+      "body": "# Spec Reconstruct + Drift Guard (#1589 / #5350)\n\nRecover a trustworthy project specification from completed xBRIEFs, then audit drift under advise|shadow|enforce.\n\nLegend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.\n\n## When to Use\n\n- Spec baseline has failed or drifted after RFC/ADR/feature landings\n- Operator says \"reconstruct spec\", \"recover spec\", or \"spec is stale/failed\"\n- Auditing semantic drift via `verify:spec-drift`\n- ⊗ Ordinary `spec:render` / `spec:validate` / `verify:spec-prd-fresh` freshness work\n\n## Live surfaces (re-authored)\n\n- Policy: `packages/core/src/policy/spec-guard.ts` via `plan[\"x-directive/policy\"].specGuard`\n- Reconstruct: `packages/core/src/spec-reconstruct/` + `task spec:reconstruct`\n- Drift: `packages/core/src/verify-source/spec-drift.ts` + `task verify:spec-drift`\n- Promote: `task policy:set-spec-guard-enforcement -- --set shadow|enforce --confirm`\n- Override hatch: `deft authz:grant -- --template spec-drift-override --target <baseline> --plan-ref <scopeId> --story-ids <ids> --confirm`\n- Sync hook: extend `syncSpecificationAfterScopeMove` (#2566) + pre-move gate in `scope:complete`\n- Code oracle: shipped `#1595` codebase MAP + `verify:codebase-map-fresh`\n- Corpus: `xbrief/completed/`\n- Installer skill deposit under `.deft/core/skills/`\n\n## C1 — draft-only reconstruct\n\n```bash\ntask spec:reconstruct -- --project-root .\n# consumer: task deft:spec:reconstruct\n```\n\n- ! Emit a **draft candidate only** under `xbrief/.audit/spec-reconstruct-draft.json`\n- ! Tag provenance + confidence; keep observed behavior, intended requirement, and unresolved conflict as separate fields\n- ! Fold with supersession awareness; defer remainder past adjudication budget to `pending-human-decisions`\n- ! Sufficiency feeds `resolveSpecAuthority` (one greenfield predicate) — count is discovery heuristic only\n- ! Consume `#1595` codebase MAP as code oracle; do not build a parallel agent-read oracle\n- ⊗ Auto-promote draft to `xbrief/specification.xbrief.json`\n- ⊗ Treat registry write / projection-fresh alone as proof requirements match reality\n\n## C2 — advise drift guard\n\n- ! Resolve `plan.policy.specGuard` via `readPlanPolicy` (`policy:show --field=specGuard`)\n- ! Declare completion impact as `plan.items[].x-directive/specImpact` (`none|delta|new`) — never a bare key\n- ! Wire advise trigger by **extending** `syncSpecificationAfterScopeMove` (#2566)\n- ! Audit with `task verify:spec-drift` (0 clean / 1 drift / 2 unassessable)\n- ! Discharge only against baseline revision + per-completion requirements/delta coverage\n- ⊗ Clear unresolved drift with registry/render-only or unrelated spec touches\n- ⊗ Splice advisory validate into `task check` in v1\n- ⊗ Enforce-default on the framework tree without shadow promote\n\n## C3 — enforce capability (#5350)\n\n- ! Enforcement ladder `advise|shadow|enforce` (default advise). Promote via `policy:set-spec-guard-enforcement` — refuse advise→enforce skip without recorded shadow attestation\n- ! Shadow: same evaluator + durable warnings; MUST NOT refuse `scope:complete` or fail CI solely for shadow hits\n- ! Enforce named consumers: pre-move `scope:complete` + `tasks/verify.yml` passthrough; exit 1 and 2 hard-fail; not bare `deft check`\n- ! Under shadow/enforce: per-item `x-directive/specImpact` (nested delta|new MUST NOT clear uncovered siblings); completion-scoped rewrite proof on durable SPECIFICATION via `resolveSpecArtifactPath`\n- ! Operator mint hatch: `authz:grant --template spec-drift-override` binds scopeId + item ids + baseline/revision; Wave-1 grant store is discharge oracle\n- ! Seed/reseed: `verify:spec-drift --seed|--reseed`; empty advise ledger is not proven under enforce\n- ! Ship `sqaPass` schema only; engine is a documented no-op in v1\n- ⊗ Agent-forged override via completing-brief edit; ⊗ one-shot advise→enforce without shadow\n\n## Hardening\n\n- ~ After draft: run interview/probe with a **bounded adjudication budget**\n- ! Remainder stays in pending-human-decisions until human resolve\n- ! Only after hardening may the operator promote a specification artifact\n\n## Anti-Patterns\n\n- ⊗ Retired Python policy/spec-render script paths as implementation targets (Prefer-A Bound re-author onto TypeScript surfaces)\n- ⊗ Bare `plan.policy.specGuard` / bare `specImpact` under #1650\n- ⊗ Parallel code-oracle beside #1595\n- ⊗ Second greenfield predicate that can disagree with `resolveSpecAuthority`\n- ⊗ Building the C3 SQA judgment engine in v1\n- ⊗ Splicing enforce into bare `deft check` in v1\n\n## EXIT\n\ndeft-directive-spec-reconstruct complete — draft written and/or drift audited; chain to interview/probe for hardening, then operator-promoted `spec:render` only after explicit promote.\n",
       "frontmatter_extra": "triggers:\n  - reconstruct spec\n  - recover spec\n  - rebuild spec\n  - spec is stale\n  - spec is failed\n  - spec:reconstruct\n  - verify:spec-drift\n  - spec drift"
     },
     {
@@ -345,15 +334,7 @@
       "triggers": [
         "swarm",
         "parallel agents",
-        "run agents",
-        "pursue residual",
-        "follow-up hard-stop",
-        "same as conf-hold",
-        "continue dual-stopped PR",
-        "re-babysit residual",
-        "until floor or loop",
-        "until greptile meets policy",
-        "pursue residuals until told otherwise"
+        "run agents"
       ],
       "path": "skills/deft-directive-swarm/SKILL.md",
       "version": "0.1",

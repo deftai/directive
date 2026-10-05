@@ -33,6 +33,7 @@ import {
   POLICY_AUDIT_NOOP_STDOUT,
   parseHookHost,
   policyColonInvocation,
+  promoteSpecGuardDriftEnforcement,
   projectDefinitionPath,
   pythonListRepr,
   pythonStringRepr,
@@ -47,6 +48,8 @@ import {
   setCeremonyDial,
   setPolicy,
   setRequireHumanMerge,
+  SPEC_GUARD_ENFORCEMENTS,
+  type SpecGuardEnforcement,
 } from "@deftai/directive-core/policy";
 
 const CAPABILITY_COST_DISCLOSURE =
@@ -82,6 +85,7 @@ interface SetArgs {
     | "enable-value-feedback"
     | "clear-value-feedback"
     | "set-ceremony-dial"
+    | "set-spec-guard-enforcement"
     | "disable-host-hooks"
     | "disable-directive"
     | "enable-directive"
@@ -98,6 +102,8 @@ interface SetArgs {
   ceremonyOverride?: CeremonyDepth | null;
   /** #3214 ceremony dial enabled flag for set-ceremony-dial. */
   ceremonyEnabled?: boolean;
+  /** #5350 driftGuard.enforcement target for set-spec-guard-enforcement. */
+  specGuardEnforcement?: SpecGuardEnforcement;
   error?: string;
 }
 
@@ -191,11 +197,80 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
     const usage =
-      "usage: policy [show|enforce-branches|allow-direct-commits|allow-destructive-gh-verbs|enforce-destructive-gh-verbs|allow-bot-merge|enable-value-feedback|clear-value-feedback|set-ceremony-dial|disable-host-hooks|disable-directive|enable-directive|resolve] ...";
+      "usage: policy [show|enforce-branches|allow-direct-commits|allow-destructive-gh-verbs|enforce-destructive-gh-verbs|allow-bot-merge|enable-value-feedback|clear-value-feedback|set-ceremony-dial|set-spec-guard-enforcement|disable-host-hooks|disable-directive|enable-directive|resolve] ...";
     return makeSetError(usage);
   }
 
   const cmd = argv[0];
+  if (cmd === "set-spec-guard-enforcement") {
+    let confirm = false;
+    let actor = policyColonInvocation("set-spec-guard-enforcement");
+    let note = "";
+    let projectRoot = ".";
+    let specGuardEnforcement: SpecGuardEnforcement | undefined;
+    for (let i = 1; i < argv.length; i += 1) {
+      const arg = argv[i];
+      if (arg === "--confirm") {
+        confirm = true;
+      } else if (arg === "--actor") {
+        const v = argv[i + 1];
+        if (v === undefined) return makeSetError("argument --actor: expected one argument");
+        actor = v;
+        i += 1;
+      } else if (arg?.startsWith("--actor=")) {
+        actor = arg.slice("--actor=".length);
+      } else if (arg === "--note") {
+        const v = argv[i + 1];
+        if (v === undefined) return makeSetError("argument --note: expected one argument");
+        note = v;
+        i += 1;
+      } else if (arg?.startsWith("--note=")) {
+        note = arg.slice("--note=".length);
+      } else if (arg === "--set") {
+        const v = argv[i + 1];
+        if (v === undefined) {
+          return makeSetError("argument --set: expected advise|shadow|enforce");
+        }
+        if (!SPEC_GUARD_ENFORCEMENTS.has(v as SpecGuardEnforcement)) {
+          return makeSetError(
+            `argument --set: expected advise|shadow|enforce, got ${JSON.stringify(v)}`,
+          );
+        }
+        specGuardEnforcement = v as SpecGuardEnforcement;
+        i += 1;
+      } else if (arg?.startsWith("--set=")) {
+        const v = arg.slice("--set=".length);
+        if (!SPEC_GUARD_ENFORCEMENTS.has(v as SpecGuardEnforcement)) {
+          return makeSetError(
+            `argument --set: expected advise|shadow|enforce, got ${JSON.stringify(v)}`,
+          );
+        }
+        specGuardEnforcement = v as SpecGuardEnforcement;
+      } else if (arg === "--project-root") {
+        const v = argv[i + 1];
+        if (v === undefined) return makeSetError("argument --project-root: expected one argument");
+        projectRoot = v;
+        i += 1;
+      } else if (arg?.startsWith("--project-root=")) {
+        projectRoot = arg.slice("--project-root=".length);
+      } else if (arg === "--") {
+        continue;
+      } else {
+        return makeSetError(`unrecognized argument: ${arg}`);
+      }
+    }
+    return {
+      cmd: "set-spec-guard-enforcement",
+      confirm,
+      actor,
+      note,
+      projectRoot,
+      format: "text",
+      changedOnly: false,
+      field: null,
+      specGuardEnforcement,
+    };
+  }
   if (cmd === "show") {
     const show = parseShowArgs(argv.slice(1));
     return {
@@ -706,6 +781,9 @@ export function run(argv: string[]): number {
   if (args.cmd === "set-ceremony-dial") {
     return runSetCeremonyDial(args);
   }
+  if (args.cmd === "set-spec-guard-enforcement") {
+    return runSetSpecGuardEnforcement(args);
+  }
   if (args.cmd === "disable-directive") {
     return runDisableDirective(args);
   }
@@ -713,6 +791,27 @@ export function run(argv: string[]): number {
     return runEnableDirective(args);
   }
   return 2;
+}
+
+/** Persist plan.policy.specGuard.driftGuard.enforcement (#5350). */
+function runSetSpecGuardEnforcement(args: SetArgs): number {
+  const root = pathResolve(args.projectRoot);
+  if (args.specGuardEnforcement === undefined) {
+    process.stdout.write(
+      "usage: policy set-spec-guard-enforcement -- --set advise|shadow|enforce [--confirm] [--project-root PATH]\n" +
+        "  Promote ladder: advise → shadow → enforce (advise→enforce skip refused without shadow attestation).\n" +
+        `  Inspect: ${policyColonInvocation("show", " --field=specGuard")}\n`,
+    );
+    return 1;
+  }
+  const result = promoteSpecGuardDriftEnforcement(root, {
+    to: args.specGuardEnforcement,
+    confirm: args.confirm,
+    actor: args.actor,
+    note: args.note,
+  });
+  process.stdout.write(result.stdout);
+  return result.exitCode;
 }
 
 /** Persist plan.policy.ceremonyDial override/enabled (#3214). */

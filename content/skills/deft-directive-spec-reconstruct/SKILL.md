@@ -1,11 +1,11 @@
 ---
 name: deft-directive-spec-reconstruct
 description: >-
-  Brownfield specification reconstruction + advise drift guard (#1589).
-  Draft-only synthesis from completed xBRIEFs + #1595 codebase MAP; never
-  auto-promotes. Use when reconstructing a failed/stale spec, recovering
-  requirements, or checking semantic spec drift. Do NOT trigger on ordinary
-  spec:render / spec:validate / verify:spec-prd-fresh.
+  Brownfield specification reconstruction + advise|shadow|enforce drift guard
+  (#1589 / #5350). Draft-only synthesis from completed xBRIEFs + #1595
+  codebase MAP; never auto-promotes. Use when reconstructing a failed/stale
+  spec, recovering requirements, or checking semantic spec drift. Do NOT
+  trigger on ordinary spec:render / spec:validate / verify:spec-prd-fresh.
 triggers:
   - reconstruct spec
   - recover spec
@@ -22,9 +22,9 @@ triggers:
 <!-- Regenerate with: task packs:render -->
 <!-- Edit the source, not this file. Slice instead of loading every SKILL.md: task packs:slice skills by-trigger --trigger <kw> (or list) -->
 
-# Spec Reconstruct + Drift Guard (#1589)
+# Spec Reconstruct + Drift Guard (#1589 / #5350)
 
-Recover a trustworthy project specification from completed xBRIEFs, then advise when completions skip requirements coverage.
+Recover a trustworthy project specification from completed xBRIEFs, then audit drift under advise|shadow|enforce.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
@@ -40,7 +40,9 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - Policy: `packages/core/src/policy/spec-guard.ts` via `plan["x-directive/policy"].specGuard`
 - Reconstruct: `packages/core/src/spec-reconstruct/` + `task spec:reconstruct`
 - Drift: `packages/core/src/verify-source/spec-drift.ts` + `task verify:spec-drift`
-- Sync hook: extend `syncSpecificationAfterScopeMove` (#2566)
+- Promote: `task policy:set-spec-guard-enforcement -- --set shadow|enforce --confirm`
+- Override hatch: `deft authz:grant -- --template spec-drift-override --target <baseline> --plan-ref <scopeId> --story-ids <ids> --confirm`
+- Sync hook: extend `syncSpecificationAfterScopeMove` (#2566) + pre-move gate in `scope:complete`
 - Code oracle: shipped `#1595` codebase MAP + `verify:codebase-map-fresh`
 - Corpus: `xbrief/completed/`
 - Installer skill deposit under `.deft/core/skills/`
@@ -69,11 +71,18 @@ task spec:reconstruct -- --project-root .
 - ! Discharge only against baseline revision + per-completion requirements/delta coverage
 - ⊗ Clear unresolved drift with registry/render-only or unrelated spec touches
 - ⊗ Splice advisory validate into `task check` in v1
-- ⊗ Enforce-default on the framework tree
+- ⊗ Enforce-default on the framework tree without shadow promote
 
-## C3 — reserved
+## C3 — enforce capability (#5350)
 
+- ! Enforcement ladder `advise|shadow|enforce` (default advise). Promote via `policy:set-spec-guard-enforcement` — refuse advise→enforce skip without recorded shadow attestation
+- ! Shadow: same evaluator + durable warnings; MUST NOT refuse `scope:complete` or fail CI solely for shadow hits
+- ! Enforce named consumers: pre-move `scope:complete` + `tasks/verify.yml` passthrough; exit 1 and 2 hard-fail; not bare `deft check`
+- ! Under shadow/enforce: per-item `x-directive/specImpact` (nested delta|new MUST NOT clear uncovered siblings); completion-scoped rewrite proof on durable SPECIFICATION via `resolveSpecArtifactPath`
+- ! Operator mint hatch: `authz:grant --template spec-drift-override` binds scopeId + item ids + baseline/revision; Wave-1 grant store is discharge oracle
+- ! Seed/reseed: `verify:spec-drift --seed|--reseed`; empty advise ledger is not proven under enforce
 - ! Ship `sqaPass` schema only; engine is a documented no-op in v1
+- ⊗ Agent-forged override via completing-brief edit; ⊗ one-shot advise→enforce without shadow
 
 ## Hardening
 
@@ -88,6 +97,7 @@ task spec:reconstruct -- --project-root .
 - ⊗ Parallel code-oracle beside #1595
 - ⊗ Second greenfield predicate that can disagree with `resolveSpecAuthority`
 - ⊗ Building the C3 SQA judgment engine in v1
+- ⊗ Splicing enforce into bare `deft check` in v1
 
 ## EXIT
 

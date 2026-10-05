@@ -10,6 +10,7 @@
  *   deft authz:grant -- --operations edit,push --surfaces 'src/**' --cohort <id> ... [--confirm]
  *   deft authz:grant -- --template release-publish --target 0.30.0 [--confirm]
  *   deft authz:grant -- --template finish-loop [--confirm]
+ *   deft authz:grant -- --template spec-drift-override --target <baseline> --plan-ref <scopeId> --story-ids <ids> [--confirm]
  *   deft authz:grant -- --parent <parent.xbrief.json> --draft <draft.json> [--repo owner/name] [--confirm]
  *   deft authz:revoke -- <grant-id> [--confirm]
  *
@@ -594,23 +595,49 @@ export function main(
             );
             return 2;
           }
+          if (args.template.trim().toLowerCase() === "spec-drift-override") {
+            if (args.target === null || args.target.trim().length === 0) {
+              process.stderr.write(
+                "authz:grant --template spec-drift-override requires --target <baselineRevision>\n",
+              );
+              return 2;
+            }
+            if (args.planRef === null || args.planRef.trim().length === 0) {
+              process.stderr.write(
+                "authz:grant --template spec-drift-override requires --plan-ref <scopeId>\n",
+              );
+              return 2;
+            }
+            if (args.storyIds.length === 0) {
+              process.stderr.write(
+                "authz:grant --template spec-drift-override requires --story-ids <covered-item-ids>\n",
+              );
+              return 2;
+            }
+          }
           const blocked = gateConfirm();
           if (blocked !== null) return blocked;
-          const minted = mintAfkTemplateGrant({
-            projectRoot: args.projectRoot,
-            template: args.template,
-            target: args.target,
-            actor: args.actor,
-            expiresAt: args.expiresAt,
-            singleUse: args.singleUse,
-            planRef: args.planRef,
-            repo: args.repo,
-            branch: args.branch,
-            surfaces: args.surfaces,
-            storyIds: args.storyIds,
-            issueIds: args.issueIds,
-            cohortId: args.cohort,
-          });
+          let minted;
+          try {
+            minted = mintAfkTemplateGrant({
+              projectRoot: args.projectRoot,
+              template: args.template,
+              target: args.target,
+              actor: args.actor,
+              expiresAt: args.expiresAt,
+              singleUse: args.singleUse,
+              planRef: args.planRef,
+              repo: args.repo,
+              branch: args.branch,
+              surfaces: args.surfaces,
+              storyIds: args.storyIds,
+              issueIds: args.issueIds,
+              cohortId: args.cohort,
+            });
+          } catch (err) {
+            process.stderr.write(`authz:grant: ${String(err)}\n`);
+            return 2;
+          }
           if (!minted.ok) {
             process.stderr.write(`authz:grant: ${minted.reason}\n`);
             return 2;
@@ -624,6 +651,14 @@ export function main(
             process.stdout.write(
               `  ops=[${grant.scope.operations.join(",")}] ` +
                 `(finish-loop walk-away; release-* NOT authorized)\n`,
+            );
+          } else if (args.template.trim().toLowerCase() === "spec-drift-override") {
+            process.stdout.write(
+              `  ops=[${grant.scope.operations.join(",")}] scope=${grant.scope.planRef} ` +
+                `items=${grant.scope.storyIds.join(",")} surfaces=${grant.scope.surfaces.join(", ")}\n`,
+            );
+            process.stdout.write(
+              "  Hatch: discharges rewrite/coverage refuse for bound ids only under enforce; single-use preferred.\n",
             );
           } else {
             process.stdout.write(

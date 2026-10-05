@@ -97,6 +97,7 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "policy:enable-value-feedback": ["policy", "enable-value-feedback"],
   "policy:disable-host-hooks": ["policy", "disable-host-hooks"],
   "policy:set-ceremony-dial": ["policy", "set-ceremony-dial"],
+  "policy:set-spec-guard-enforcement": ["policy", "set-spec-guard-enforcement"],
   "policy:clear-value-feedback": ["policy", "clear-value-feedback"],
   "authz:show": ["authz", "show"],
   "authz:uat-start": ["authz", "uat-start"],

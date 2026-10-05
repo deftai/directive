@@ -77,6 +77,7 @@ import {
 import { evaluateEffortActivateGate } from "./effort-activate-gate.js";
 import { stampLifecycleWrite } from "./lifecycle-write.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
+import { gateScopeCompleteSpecDrift } from "../verify-source/spec-drift.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
 import { formatUnreachableTransitionHint } from "./transition-hint.js";
 import { utcNowIso } from "./vbrief-json.js";
@@ -478,6 +479,14 @@ export function runTransition(
     }
   }
 
+  // #5350: pre-move spec-drift gate under enforce (advise/shadow do not refuse).
+  if (act === "complete") {
+    const driftGate = gateScopeCompleteSpecDrift(projectRoot, data, resolvedPath);
+    if (!driftGate.ok) {
+      return { ok: false, message: driftGate.message };
+    }
+  }
+
   // #5126: refuse cancel on shipped-closed origin without completed tip twin.
   if (act === "cancel" && options.skipCancelShippedOriginRefuse !== true) {
     const refuse = evaluateCancelShippedOriginRefuse(projectRoot, planObj, {
@@ -618,7 +627,22 @@ export function runTransition(
           acceptanceReports,
         };
       }
-      syncSpecificationAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
+      const specSync = syncSpecificationAfterScopeMove(
+        data,
+        resolvedPath,
+        destPath,
+        vbriefRoot,
+        targetStatus,
+      );
+      if (!specSync.ok) {
+        return {
+          ok: false,
+          message:
+            `${actionLabel} ${basename}: brief moved to ${targetFolder}/ but ` +
+            `specification/drift sync failed: ${specSync.message}`,
+          acceptanceReports,
+        };
+      }
       if (act === "activate" || act === "promote") {
         maybeEmitAcceptanceStampFromChange(projectRoot, previousAcceptance, planObj.acceptance);
       }

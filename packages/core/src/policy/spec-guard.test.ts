@@ -4,9 +4,11 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { inspectOnePolicy } from "./index.js";
 import {
+  assertValidSpecGuardEnforcementPromote,
   FIELD_SPEC_GUARD,
   FIELD_SPEC_GUARD_CLI_ALIAS,
   inspectSpecGuard,
+  promoteSpecGuardDriftEnforcement,
   readSpecImpact,
   resolveSpecGuard,
   resolveSpecGuardFromTypedBlock,
@@ -98,5 +100,57 @@ describe("specGuard policy (#1589)", () => {
     expect(readSpecImpact({ [SPEC_IMPACT_KEY]: "delta" })).toBe("delta");
     expect(readSpecImpact({ [SPEC_IMPACT_KEY]: "bogus" })).toBeNull();
     expect(readSpecImpact({ specImpact: "delta" })).toBeNull();
+  });
+
+  it("accepts shadow in the enforcement closed set", () => {
+    expect(validateSpecGuard({ driftGuard: { enforcement: "shadow" } })).toEqual([]);
+    const resolved = resolveSpecGuardFromTypedBlock({
+      driftGuard: { enforcement: "shadow", trigger: "both" },
+    });
+    expect(resolved.driftGuard.enforcement).toBe("shadow");
+  });
+
+  it("refuses advise→enforce promote without shadow attestation (S1)", () => {
+    const gate = assertValidSpecGuardEnforcementPromote("advise", "enforce");
+    expect(gate.ok).toBe(false);
+    const withAttest = assertValidSpecGuardEnforcementPromote("advise", "enforce", {
+      hasShadowAttestation: true,
+    });
+    expect(withAttest.ok).toBe(true);
+    expect(assertValidSpecGuardEnforcementPromote("advise", "shadow").ok).toBe(true);
+    expect(assertValidSpecGuardEnforcementPromote("shadow", "enforce").ok).toBe(true);
+  });
+
+  it("promotes advise→shadow with --confirm and records attestation", () => {
+    writePd({ specGuard: { enabled: true, driftGuard: { enforcement: "advise" } } });
+    const denied = promoteSpecGuardDriftEnforcement(root, { to: "shadow", confirm: false });
+    expect(denied.exitCode).toBe(1);
+    const ok = promoteSpecGuardDriftEnforcement(root, {
+      to: "shadow",
+      confirm: true,
+      actor: "test",
+    });
+    expect(ok.exitCode).toBe(0);
+    expect(ok.changed).toBe(true);
+    expect(resolveSpecGuard(root).driftGuard.enforcement).toBe("shadow");
+    const toEnforce = promoteSpecGuardDriftEnforcement(root, {
+      to: "enforce",
+      confirm: true,
+      actor: "test",
+    });
+    expect(toEnforce.exitCode).toBe(0);
+    expect(resolveSpecGuard(root).driftGuard.enforcement).toBe("enforce");
+  });
+
+  it("refuses one-shot advise→enforce write without attestation", () => {
+    writePd({ specGuard: { enabled: true, driftGuard: { enforcement: "advise" } } });
+    const result = promoteSpecGuardDriftEnforcement(root, {
+      to: "enforce",
+      confirm: true,
+      actor: "test",
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toMatch(/advise→enforce skip/i);
+    expect(resolveSpecGuard(root).driftGuard.enforcement).toBe("advise");
   });
 });

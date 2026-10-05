@@ -318,6 +318,7 @@ export const POLICY_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> =
   "policy:enforce-destructive-gh-verbs": "enforce-destructive-gh-verbs",
   "policy:allow-bot-merge": "allow-bot-merge",
   "policy:enable-value-feedback": "enable-value-feedback",
+  "policy:set-spec-guard-enforcement": "set-spec-guard-enforcement",
   "policy:disable-host-hooks": "disable-host-hooks",
   "policy:set-ceremony-dial": "set-ceremony-dial",
   "policy:clear-value-feedback": "clear-value-feedback",

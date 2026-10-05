@@ -69,11 +69,12 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! `plan.architecture.codeStructure` is durable SoT; `.planning/codebase/MAP.md` is generated — `deft codebase:map` / `deft verify:codebase-map-fresh` (`commands.md`). ⊗ Do not hand-edit MAP, block on stale/absent MAP, or elevate projection above xBRIEF (#1595 / #1498).
 
-## Spec reconstruction + drift guard (#1589)
+## Spec reconstruction + drift guard (#1589 / #5350)
 
 ! Brownfield recover: `deft spec:reconstruct` (draft-only; never auto-promote) + skill `deft-directive-spec-reconstruct`. Code oracle = `#1595` MAP. Sufficiency feeds `resolveSpecAuthority`.
-! Advise drift: `plan.policy.specGuard` via `deft policy:show --field=specGuard`; completion impact `x-directive/specImpact` (`none|delta|new`); audit `deft verify:spec-drift` (0/1/2). Extends `syncSpecificationAfterScopeMove` (#2566). `sqaPass` schema-only in v1.
-⊗ Treat registry/render/`verify:spec-prd-fresh` alone as requirements-match proof; ⊗ bare `specImpact` / bare `plan.policy.specGuard`; ⊗ splice into `deft check` in v1.
+! Drift guard: `plan.policy.specGuard` via `deft policy:show --field=specGuard`; completion impact `x-directive/specImpact` (`none|delta|new`); audit `deft verify:spec-drift` (0/1/2). Extends `syncSpecificationAfterScopeMove` (#2566). `sqaPass` schema-only in v1.
+! Enforcement ladder `advise|shadow|enforce` (default advise). Promote: `deft policy:set-spec-guard-enforcement -- --set shadow|enforce --confirm` — refuse advise→enforce skip without recorded shadow attestation. Shadow runs the same evaluator and records warnings; MUST NOT refuse `scope:complete` or fail CI solely for shadow hits. Under enforce: exit 1 and 2 hard-fail for named consumers (pre-move `scope:complete` + `tasks/verify.yml`); per-item coverage + completion-scoped rewrite proof on durable SPECIFICATION; override hatch `deft authz:grant -- --template spec-drift-override --target <baseline> --plan-ref <scopeId> --story-ids <ids> --confirm`. Seed/reseed: `deft verify:spec-drift -- --seed|--reseed`.
+⊗ Treat registry/render/`verify:spec-prd-fresh` alone as requirements-match proof; ⊗ bare `specImpact` / bare `plan.policy.specGuard`; ⊗ splice into `deft check` in v1; ⊗ one-shot advise→enforce without shadow; ⊗ agent-forged override via completing-brief edit.
 
 ## Skills
 
