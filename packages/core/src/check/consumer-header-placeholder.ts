@@ -126,7 +126,11 @@ const NON_PRODUCT_BASENAMES = new Set([
 ]);
 
 function toPosixRel(rel: string): string {
-  return rel.replace(/\\/g, "/").replace(/^\.\//, "");
+  // Git porcelain already uses `/`. On POSIX a literal `\` in a filename is
+  // valid; rewriting it to `/` would false-match deposit prefixes (e.g.
+  // `xbrief\app.ts` → `xbrief/…`). Only normalize separators on win32.
+  const normalized = process.platform === "win32" ? rel.replace(/\\/g, "/") : rel;
+  return normalized.replace(/^\.\//, "");
 }
 
 /** True when a relative path is deposit / Process-only, not product evidence. */

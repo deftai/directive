@@ -342,6 +342,13 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
         gitPorcelain: '?? ".deft/my notes"\n',
       }),
     ).toBe(false);
+    // Literal backslash filename after unquote must not become a deposit prefix
+    // on POSIX; win32 still treats `\` as a separator.
+    expect(
+      hasDirtyProductMutationEvidence(root, {
+        gitPorcelain: '?? "xbrief\\\\app.ts"\n',
+      }),
+    ).toBe(process.platform !== "win32");
     expect(
       hasDirtyProductMutationEvidence(root, {
         gitPorcelain: null,
