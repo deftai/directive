@@ -142,6 +142,19 @@ export function isNonProductMutationPath(relPath: string): boolean {
 
 type PorcelainEntry = { readonly xy: string; readonly path: string };
 
+/** Strip git porcelain C-style quoting so path classifiers see real paths. */
+function unquotePorcelainPath(path: string): string {
+  if (path.length < 2 || path[0] !== '"' || path[path.length - 1] !== '"') {
+    return path;
+  }
+  return path.slice(1, -1).replace(/\\([\\"ntr])/g, (_m, c: string) => {
+    if (c === "n") return "\n";
+    if (c === "t") return "\t";
+    if (c === "r") return "\r";
+    return c;
+  });
+}
+
 function parsePorcelainEntries(stdout: string): PorcelainEntry[] {
   const entries: PorcelainEntry[] = [];
   for (const raw of stdout.replace(/\r\n/g, "\n").split("\n")) {
@@ -152,10 +165,10 @@ function parsePorcelainEntries(stdout: string): PorcelainEntry[] {
     if (entry.includes(" -> ")) {
       const renamed = entry.split(" -> ").pop();
       if (renamed !== undefined && renamed.length > 0) {
-        entries.push({ xy, path: renamed });
+        entries.push({ xy, path: unquotePorcelainPath(renamed) });
       }
     } else if (entry.length > 0) {
-      entries.push({ xy, path: entry });
+      entries.push({ xy, path: unquotePorcelainPath(entry) });
     }
   }
   return entries;

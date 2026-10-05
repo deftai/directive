@@ -336,6 +336,12 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
         gitPorcelain: "?? package.json\n",
       }),
     ).toBe(true);
+    // Quoted deposit path with spaces must stay non-product (not false evidence).
+    expect(
+      hasDirtyProductMutationEvidence(root, {
+        gitPorcelain: '?? ".deft/my notes"\n',
+      }),
+    ).toBe(false);
     expect(
       hasDirtyProductMutationEvidence(root, {
         gitPorcelain: null,
