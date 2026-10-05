@@ -309,7 +309,7 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
     expect(isNonProductMutationPath("pnpm-lock.yaml")).toBe(false);
   });
 
-  it("detects this-session product evidence from untracked/index-added porcelain", () => {
+  it("detects dirty product evidence including tracked edits and package manifests", () => {
     const root = tempRoot();
     expect(
       hasDirtyProductMutationEvidence(root, {
@@ -318,15 +318,14 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
     ).toBe(true);
     expect(
       hasDirtyProductMutationEvidence(root, {
+        gitPorcelain: " M notes/hello.py\n",
+      }),
+    ).toBe(true);
+    expect(
+      hasDirtyProductMutationEvidence(root, {
         gitPorcelain: "A  src/app.ts\n",
       }),
     ).toBe(true);
-    // Tracked-only modifications are not this-session evidence (#4544 P1).
-    expect(
-      hasDirtyProductMutationEvidence(root, {
-        gitPorcelain: " M notes/hello.py\n M src/app.ts\n",
-      }),
-    ).toBe(false);
     expect(
       hasDirtyProductMutationEvidence(root, {
         gitPorcelain: "?? xbrief/proposed/a.xbrief.json\n M AGENTS.md\n",
@@ -421,25 +420,29 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
   it("honesty: pin 7c775edf had only two production enforce callers; residual adds reachability", () => {
     // Census at dispatch-sha 7c775edf: scope/transition delivered+codeBearing and
     // occupancy writeOccupancyRecord persistProductMutationMarker=true only.
-    // This residual adds: evaluate untracked-product path, releaseOccupancy
-    // evidence wrapper (after ownership), and delivered-or-evidence codeBearing
-    // complete in transition.
+    // This residual adds: evaluate dirty-product path, releaseOccupancy evidence
+    // wrapper (after ownership), and delivered-or-evidence codeBearing complete.
     expect(typeof enforceConsumerHeaderPlaceholderWhenProductEvidence).toBe("function");
     expect(typeof hasDirtyProductMutationEvidence).toBe("function");
   });
 
-  it("git status unknown fails closed instead of Process-only (#4544 P1)", () => {
+  it("git status unknown does not invent product evidence (Process-only / release skip)", () => {
     const root = tempRoot();
     writeFileSync(
       join(root, "AGENTS.md"),
       `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
       "utf8",
     );
-    const result = evaluateConsumerHeaderPlaceholderAtRoot(root, {
+    const evaluated = evaluateConsumerHeaderPlaceholderAtRoot(root, {
       gitPorcelain: null,
     });
-    expect(result.ok).toBe(false);
-    expect(result.reason).toBe("product-mutation-marker-unreadable");
-    expect(result.message).toMatch(/git status unavailable/i);
+    expect(evaluated.ok).toBe(true);
+    expect(evaluated.reason).toBe("process-only");
+
+    const skipped = enforceConsumerHeaderPlaceholderWhenProductEvidence(root, {
+      gitPorcelain: null,
+    });
+    expect(skipped.ok).toBe(true);
+    expect("skipped" in skipped && skipped.skipped).toBe(true);
   });
 });

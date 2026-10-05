@@ -161,19 +161,6 @@ function parsePorcelainEntries(stdout: string): PorcelainEntry[] {
   return entries;
 }
 
-/**
- * Prefer-A Bound: count untracked / index-added product paths as this-session
- * evidence. Pure modifications to already-tracked files are excluded so
- * pre-existing brownfield dirt does not impersonate this session (#4544 P1).
- * Hookless edits to tracked product files still rely on Prefer-A marker stamp.
- */
-function isThisSessionProductEvidenceXy(xy: string): boolean {
-  if (xy === "??" || xy === "!!") return true;
-  const index = xy[0] ?? " ";
-  // Added / copied / renamed into the index — new path evidence this session.
-  return index === "A" || index === "C" || index === "R";
-}
-
 function parsePorcelainPaths(stdout: string): string[] {
   return parsePorcelainEntries(stdout).map((e) => e.path);
 }
@@ -199,11 +186,12 @@ export type DirtyProductEvidenceProbe =
   | { readonly kind: "unknown"; readonly detail: string };
 
 /**
- * This-session product-mutation evidence beyond Prefer-A marker (#4544 residual).
- * Untracked / index-added paths outside deposit/Process-only prefixes — catches
- * hookless / Shell-bypass product creates that never stamped
- * persistProductMutationMarker. Clean trees and tracked-only modifications stay
- * Process-only unless the Prefer-A marker is present.
+ * Product-mutation evidence beyond Prefer-A marker (#4544 residual).
+ * Any dirty/untracked porcelain path outside deposit/Process-only prefixes —
+ * catches hookless / Shell-bypass product writes (including tracked edits) that
+ * never stamped persistProductMutationMarker. Clean trees stay Process-only.
+ * Probe `unknown` (git unavailable) is returned distinctly so callers can
+ * choose fail-closed check vs non-stranding occupancy release.
  */
 export function probeDirtyProductMutationEvidence(
   projectRoot: string,
@@ -220,9 +208,8 @@ export function probeDirtyProductMutationEvidence(
       detail: "git status unavailable; cannot classify dirty product evidence",
     };
   }
-  for (const entry of parsePorcelainEntries(porcelain)) {
-    if (!isThisSessionProductEvidenceXy(entry.xy)) continue;
-    if (!isNonProductMutationPath(entry.path)) return { kind: "dirty" };
+  for (const rel of parsePorcelainPaths(porcelain)) {
+    if (!isNonProductMutationPath(rel)) return { kind: "dirty" };
   }
   return { kind: "clean" };
 }
@@ -339,22 +326,15 @@ export function evaluateConsumerHeaderPlaceholderAtRoot(
     });
   }
 
-  // #4544 residual after #5253: untracked/index-added product paths are this-session
-  // evidence for stacks that skipped occupancy persistProductMutationMarker /
-  // delivered complete. Reuse enforce (stamp + Overview CAS); do not invent a
-  // second evaluator. Git probe unknown fails closed (not Process-only).
+  // #4544 residual after #5253: dirty/untracked product paths are evidence for
+  // stacks that skipped occupancy persistProductMutationMarker / delivered
+  // complete. Reuse enforce (stamp + Overview CAS); do not invent a second
+  // evaluator. Git probe unknown → Process-only (cannot prove product dirt;
+  // Prefer-A marker still fail-closes when present/unreadable).
   const dirtyProbe = probeDirtyProductMutationEvidence(projectRoot, {
     dirtyProductEvidence: seams.dirtyProductEvidence,
     gitPorcelain: seams.gitPorcelain,
   });
-  if (dirtyProbe.kind === "unknown") {
-    return evaluateFirstShipHeaderPlaceholderGate({
-      agentsMd: agentsRead.kind === "ok" ? agentsRead.text : null,
-      productMutationCompletion: false,
-      productMutationMarkerUnreadable: true,
-      productMutationMarkerDetail: dirtyProbe.detail,
-    });
-  }
   if (dirtyProbe.kind === "dirty") {
     const chokepoint = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(projectRoot, {
       readAgentsMd: seams.readAgentsMd,
@@ -631,26 +611,8 @@ export function enforceConsumerHeaderPlaceholderWhenProductEvidence(
     dirtyProductEvidence: seams.dirtyProductEvidence,
     gitPorcelain: seams.gitPorcelain,
   });
-  if (dirtyProbe.kind === "unknown" && marker.kind !== "present") {
-    const message =
-      `${CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID} FAIL: ${dirtyProbe.detail}; ` +
-      `remedy: restore git status then retry completion / occupancy release`;
-    return {
-      ok: false,
-      evaluation: {
-        ok: false,
-        reason: "product-mutation-marker-unreadable",
-        message,
-      },
-      message,
-      marker: { ok: true, skipped: true },
-      remediation: {
-        attempted: false,
-        overviewAvailable: false,
-        wroteAgentsMd: false,
-      },
-    };
-  }
+  // Git unavailable must not strand occupancy:release when no Prefer-A marker
+  // proves product mutation (#4544 P1). Unknown ≡ no proven product evidence.
   const dirty = dirtyProbe.kind === "dirty";
   if (marker.kind !== "present" && marker.kind !== "unreadable" && !dirty) {
     return { ok: true, skipped: true, reason: "no-product-evidence" };
