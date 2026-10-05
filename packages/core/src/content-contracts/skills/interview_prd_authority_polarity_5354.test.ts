@@ -30,12 +30,8 @@ function assertNoPrdApprovalGate(surface: string, text: string): void {
 }
 
 function assertNoPromoteOnApproval(surface: string, text: string): void {
-  expect(text, surface).not.toMatch(
-    /On (user )?approval, use `task scope:promote`/i,
-  );
-  expect(text, surface).not.toContain(
-    "On approval, use `task scope:promote` (or equivalent)",
-  );
+  expect(text, surface).not.toMatch(/On (user )?approval, use `task scope:promote`/i);
+  expect(text, surface).not.toContain("On approval, use `task scope:promote` (or equivalent)");
 }
 
 describe("interview PRD authority / promote polarity (#5354)", () => {
