@@ -117,10 +117,12 @@
       }
     ],
     "acceptance": {
-      "commands": [],
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+      ],
       "none_stated": false,
-      "source_rung": "bound-prefer-a",
-      "derived_reason": "Prefer-A Bound lean 5997561349; pain-audit 5997577347 bindable-as-posted; synthesis 5997595009",
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound lean 5997561349; pain-audit 5997577347 bindable-as-posted; synthesis 5997595009; commands from plan.metadata.swarm.verify_commands",
       "clauses": [
         {
           "id": 1,
@@ -470,6 +472,10 @@
       },
       "productPullRequest": 5378,
       "productMergeCommit": "ee188f81adff2feb831ef286c0472241fd665cfc",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-05T16:36:16.061Z"
+      },
       "completedAt": "2026-10-05T16:36:16.061Z",
       "completionProvenance": {
         "productMerge": "ee188f81a",
