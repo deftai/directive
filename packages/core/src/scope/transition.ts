@@ -33,6 +33,7 @@ import type { GitRunner } from "../session/git.js";
 import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
 import { validateFilename } from "../vbrief-validate/filename.js";
 import { readAcceptanceClauses } from "../verify-ac/clauses.js";
+import { gateScopeCompleteSpecDrift } from "../verify-source/spec-drift.js";
 import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
 import {
   type CriterionAcceptanceReport,
@@ -77,7 +78,6 @@ import {
 import { evaluateEffortActivateGate } from "./effort-activate-gate.js";
 import { stampLifecycleWrite } from "./lifecycle-write.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
-import { gateScopeCompleteSpecDrift } from "../verify-source/spec-drift.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
 import { formatUnreachableTransitionHint } from "./transition-hint.js";
 import { utcNowIso } from "./vbrief-json.js";

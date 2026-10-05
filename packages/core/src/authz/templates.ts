@@ -417,7 +417,11 @@ export function mintAfkTemplateGrant(input: {
     if (input.target === null || input.target === undefined || input.target.trim().length === 0) {
       throw new Error(`template ${name} requires a non-empty --target <baselineRevision>`);
     }
-    if (input.planRef === null || input.planRef === undefined || input.planRef.trim().length === 0) {
+    if (
+      input.planRef === null ||
+      input.planRef === undefined ||
+      input.planRef.trim().length === 0
+    ) {
       throw new Error(`template ${name} requires --plan-ref <scopeId>`);
     }
     if (input.storyIds === undefined || input.storyIds.length === 0) {
