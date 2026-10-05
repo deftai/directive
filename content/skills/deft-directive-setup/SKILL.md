@@ -802,6 +802,8 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Make assumptions without clarifying
 - ~ Use structured question tools for interview questions only when they preserve visible numeric option labels and return numeric selections or exact displayed option text; otherwise render the numbered menu in chat.
 
+! **Progress checkpoints (#5353):** Emit concise Rule 2 status-only progress checkpoints (current phase, remaining material decision areas / inventory labels, accepted deferrals, reasons for runtime additions) at closed triggers only: phase entry/exit, after a runtime decision-area addition-with-reason (not ordinary field-fill), after an accepted deferral, before the confirmation gate, and on operator how-much-is-left. Prefer a separate status message before the next question; if shared-turn, status prose stays ABOVE the structured-tool call (outside the tool `question` field) with exactly one question. Remaining-scope text MAY name inventory labels; it MUST NOT list concrete upcoming question text (`⊗ List upcoming questions`). On how-much-is-left: status grounded in the session inventory, then re-render the same pending question (do not advance; do not open Discuss unless the operator chose Discuss). Keep one-question / Discuss/Back / Rule 8 confirmation; do not remove Rule 8 or switch to yolo for orientation. Progress status is not a second question.
+
 **Question Areas:**
 - ! Missing decisions (language, framework, deployment)
 - ! Edge cases (errors, boundaries, failure modes)

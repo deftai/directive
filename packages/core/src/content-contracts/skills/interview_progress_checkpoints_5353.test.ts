@@ -28,11 +28,21 @@ function phase2InterviewRules(text: string): string {
   return text.slice(start, end);
 }
 
+function phase3InterviewProcess(text: string): string {
+  const start = text.indexOf("### Interview Process (interview strategy)");
+  expect(start).not.toBe(-1);
+  const end = text.indexOf("**Question Areas:**", start);
+  expect(end).not.toBe(-1);
+  return text.slice(start, end);
+}
+
 describe("interview progress checkpoints (#5353)", () => {
   it("interview skill binds Rule 2 status-only checkpoints with Rule 1 coexistence", () => {
     const text = readRepoFile(INTERVIEW);
     const section = progressSection(text);
-    expect(section).toContain("agent-initiated status updates that do NOT ask the user to choose anything");
+    expect(section).toContain(
+      "agent-initiated status updates that do NOT ask the user to choose anything",
+    );
     expect(section).toContain("outside the tool `question` field");
     expect(section).toContain("inventory labels");
     expect(section).toContain("`⊗ List upcoming questions`");
@@ -53,7 +63,8 @@ describe("interview progress checkpoints (#5353)", () => {
     expect(section).toContain("⊗ Remove Rule 8 or switch to yolo");
   });
 
-  it("multi-topic acceptance fixture clauses are stated", () => {
+  // Content-contract wording lock only — does not execute a live interview loop.
+  it("multi-topic acceptance fixture clauses are stated in skill prose", () => {
     const section = progressSection(readRepoFile(INTERVIEW));
     expect(section).toContain("#### Acceptance / regression fixture (#5353)");
     expect(section).toContain("status-only checkpoint at each closed trigger");
@@ -63,14 +74,17 @@ describe("interview progress checkpoints (#5353)", () => {
     expect(section).toContain("how-much-is-left → status then same-question re-render");
     expect(section).toContain("short path has no every-turn recap");
     expect(section).toContain("accepted deferrals visible");
-    expect(section).toContain("shared-turn checkpoint prose stays outside the structured tool `question` field");
+    expect(section).toContain(
+      "shared-turn checkpoint prose stays outside the structured tool `question` field",
+    );
   });
 
-  it("setup Phase 1 and Phase 2 Interview Rules mirror duty + coexistence", () => {
+  it("setup Phase 1, Phase 2, and Phase 3 interview paths mirror duty + coexistence", () => {
     const text = readRepoFile(SETUP);
     const p1 = phase1InterviewRules(text);
     const p2 = phase2InterviewRules(text);
-    for (const block of [p1, p2]) {
+    const p3 = phase3InterviewProcess(text);
+    for (const block of [p1, p2, p3]) {
       expect(block).toContain("Progress checkpoints (#5353)");
       expect(block).toContain("Rule 2 status-only");
       expect(block).toContain("how-much-is-left");
@@ -81,5 +95,7 @@ describe("interview progress checkpoints (#5353)", () => {
     // S3: Phase 2 must paste duty, not leave a pointer-only stub
     expect(p2).toContain("addition-with-reason");
     expect(p2).toContain("do not remove Rule 8 or switch to yolo");
+    expect(p3).toContain("addition-with-reason");
+    expect(p3).toContain("do not remove Rule 8 or switch to yolo");
   });
 });
