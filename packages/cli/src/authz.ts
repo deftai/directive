@@ -617,7 +617,7 @@ export function main(
           }
           const blocked = gateConfirm();
           if (blocked !== null) return blocked;
-          let minted;
+          let minted: ReturnType<typeof mintAfkTemplateGrant>;
           try {
             minted = mintAfkTemplateGrant({
               projectRoot: args.projectRoot,

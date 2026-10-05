@@ -33,8 +33,8 @@ import {
   POLICY_AUDIT_NOOP_STDOUT,
   parseHookHost,
   policyColonInvocation,
-  promoteSpecGuardDriftEnforcement,
   projectDefinitionPath,
+  promoteSpecGuardDriftEnforcement,
   pythonListRepr,
   pythonStringRepr,
   registeredPolicyNames,
@@ -44,12 +44,12 @@ import {
   resolveHumanMergePolicy,
   resolvePolicy,
   resolveValueFeedback,
+  SPEC_GUARD_ENFORCEMENTS,
+  type SpecGuardEnforcement,
   setAllowDestructiveGhVerbs,
   setCeremonyDial,
   setPolicy,
   setRequireHumanMerge,
-  SPEC_GUARD_ENFORCEMENTS,
-  type SpecGuardEnforcement,
 } from "@deftai/directive-core/policy";
 
 const CAPABILITY_COST_DISCLOSURE =
@@ -254,7 +254,6 @@ export function parseArgs(argv: string[]): SetArgs {
       } else if (arg?.startsWith("--project-root=")) {
         projectRoot = arg.slice("--project-root=".length);
       } else if (arg === "--") {
-        continue;
       } else {
         return makeSetError(`unrecognized argument: ${arg}`);
       }

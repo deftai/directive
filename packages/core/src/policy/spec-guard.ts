@@ -14,11 +14,7 @@ import { resolveAuditPath } from "../layout/resolve.js";
 import { withProjectDefinitionMutation } from "../vbrief-build/project-definition-mutation.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { policyColonInvocation } from "./policy-invocation.js";
-import {
-  appendAuditLog,
-  loadProjectDefinition,
-  POLICY_AUDIT_NOOP_STDOUT,
-} from "./resolve.js";
+import { appendAuditLog, loadProjectDefinition, POLICY_AUDIT_NOOP_STDOUT } from "./resolve.js";
 
 /** Canonical dotted path for policy:show / PROJECT-DEFINITION. */
 export const FIELD_SPEC_GUARD = "plan.policy.specGuard";
@@ -533,7 +529,8 @@ export function promoteSpecGuardDriftEnforcement(
           : {};
       policyBlock.specGuard = {
         ...prevGuard,
-        enabled: typeof prevGuard.enabled === "boolean" ? prevGuard.enabled : DEFAULT_SPEC_GUARD_ENABLED,
+        enabled:
+          typeof prevGuard.enabled === "boolean" ? prevGuard.enabled : DEFAULT_SPEC_GUARD_ENABLED,
         driftGuard: {
           ...prevDrift,
           enforcement: to,
@@ -579,7 +576,11 @@ export function promoteSpecGuardDriftEnforcement(
       `previous=${from}`,
     ];
     if (note.length > 0) auditParts.push(`note=${note}`);
-    appendAuditLog(projectRoot, `${auditParts.join(" ")} changed=${changed ? "true" : "false"}`, changed);
+    appendAuditLog(
+      projectRoot,
+      `${auditParts.join(" ")} changed=${changed ? "true" : "false"}`,
+      changed,
+    );
 
     return {
       exitCode: 0,

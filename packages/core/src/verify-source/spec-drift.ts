@@ -138,9 +138,7 @@ function normalizeLedger(raw: Record<string, unknown>): SpecDriftLedger {
       if (typeof item.afterRequirementsFingerprint !== "string") continue;
       coverage.push({
         scopeId: item.scopeId,
-        coveredItemIds: Array.isArray(item.coveredItemIds)
-          ? item.coveredItemIds.map(String)
-          : [],
+        coveredItemIds: Array.isArray(item.coveredItemIds) ? item.coveredItemIds.map(String) : [],
         beforeRequirementsFingerprint: item.beforeRequirementsFingerprint,
         afterRequirementsFingerprint: item.afterRequirementsFingerprint,
         affectedRequirementRefs: Array.isArray(item.affectedRequirementRefs)
@@ -180,9 +178,7 @@ function normalizeLedger(raw: Record<string, unknown>): SpecDriftLedger {
     coverage,
     shadowFindings,
     lastRequirementsFingerprint:
-      typeof raw.lastRequirementsFingerprint === "string"
-        ? raw.lastRequirementsFingerprint
-        : null,
+      typeof raw.lastRequirementsFingerprint === "string" ? raw.lastRequirementsFingerprint : null,
     cutoverBoundary: typeof raw.cutoverBoundary === "string" ? raw.cutoverBoundary : null,
   };
 }
@@ -642,11 +638,7 @@ export function evaluateCompletionCoverage(
   };
 }
 
-function withLedgerLock<T>(
-  projectRoot: string,
-  enforcement: SpecGuardEnforcement,
-  fn: () => T,
-): T {
+function withLedgerLock<T>(projectRoot: string, enforcement: SpecGuardEnforcement, fn: () => T): T {
   if (enforcement !== "enforce") {
     return fn();
   }
@@ -979,10 +971,7 @@ export function gateScopeCompleteSpecDrift(
   if (enforcement === "shadow") {
     return {
       ok: true,
-      message:
-        finding !== null
-          ? `spec-drift shadow warning: ${finding.reason}`
-          : "",
+      message: finding !== null ? `spec-drift shadow warning: ${finding.reason}` : "",
       enforcement,
       finding: null,
       shadowFinding: finding,
