@@ -34,6 +34,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ⊗ Include two or more questions in the same message under any circumstances
 - ⊗ List upcoming questions -- only show the current one
 - ⊗ Combine the current question with a summary of previous answers unless explicitly at the confirmation gate
+- ! Progress checkpoints (#5353) coexist with these forbids: emit them as Rule 2 agent-initiated non-choice status updates (see Progress Checkpoints). Inventory labels are allowed; concrete upcoming question text is not. A status statement is not a prior-answer summary.
 
 ### Rule 2: Numbered Options with Stated Default
 
@@ -105,6 +106,55 @@ Click-commit options block shape:
 ~ Explanatory preamble (context, consequences, what-happens-next) MAY appear as plain markdown ABOVE the structured-tool call. The question itself -- the sentence that asks for a decision -- MUST be encoded in the structured tool's `question` field, and the enumerable options MUST be encoded in the tool's `options` field.
 
 - ⊗ Render a user-facing question as plain-text because you wanted to include preamble -- preamble belongs above the tool call, not instead of it.
+
+### Progress Checkpoints (#5353)
+
+! Require appropriately timed, concise progress checkpoints during multi-topic and adaptive interviews. Each checkpoint MUST cover: current phase, remaining material decision areas, accepted deferrals, and reasons for runtime additions. A status statement is not a batch of questions and is not a prior-answer summary.
+
+#### Coexistence with Rule 1
+
+! Emit checkpoints as Rule 2 Always-Structured **agent-initiated status updates that do NOT ask the user to choose anything**. Do not invent a third plain-text emission class.
+
+! **Turn shape:** Prefer a separate status message immediately before the next structured question. If a checkpoint shares a turn with a question, it MUST be non-choice status prose ABOVE the structured-tool call (outside the tool `question` field), with exactly one structured question inside the tool (no second question; no upcoming concrete question list).
+
+! **Inventory labels vs upcoming questions:** Remaining-scope text MAY name decision-area / inventory labels. It MUST NOT enumerate concrete upcoming question text. Rule 1 `⊗ List upcoming questions` stays.
+
+#### Decision inventory + closed triggers
+
+! Maintain a session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries. Each runtime addition carries a reason; each accepted deferral is recorded.
+
+! Emit a progress checkpoint at these closed triggers only (no every-turn default):
+- phase entry / phase exit (including setup Phase 1/2/3 boundaries when those skills own the loop)
+- after a material decision-area is **added** to the inventory (runtime append of a new decision-area with reason — distinct from ordinary fill of an existing calling-skill field)
+- after an accepted deferral is recorded
+- before Rule 6 confirmation gate
+- on operator how-much-is-left (below)
+
+! Do not invent a fixed total before adaptive questions are known. Short interviews keep proportionate cost (no every-turn full recap).
+- ⊗ Emit a checkpoint on ordinary field-fill alone
+- ⊗ Invent a fixed question census before adaptive branching is known
+- ⊗ Default to an every-turn full recap
+
+#### How-much-is-left interrupt
+
+! When the operator asks how much remains / remaining scope, answer as a Rule 2 status-only emission grounded in the decision inventory; then re-render the same pending question. Do not advance to the next material decision on that interrupt. Do not open Discuss unless the operator chose Discuss.
+
+#### Preserve interaction constraints
+
+! Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics (including Rule 8). Compatible with #4377 adaptive branching / sizing / confirmation; independent of #4535 menu-shape mismatch.
+- ⊗ Remove Rule 8 or switch to yolo as the remedy for progress visibility
+
+#### Acceptance / regression fixture (#5353)
+
+! A multi-topic fixture MUST assert:
+- status-only checkpoint at each closed trigger
+- no upcoming concrete question list
+- addition-with-reason visible on runtime inventory append
+- no checkpoint on ordinary field-fill alone
+- how-much-is-left → status then same-question re-render
+- short path has no every-turn recap
+- accepted deferrals visible
+- shared-turn checkpoint prose stays outside the structured tool `question` field
 
 ### Rule 3: Explicit "Other / I Don't Know" Escape
 
@@ -606,3 +656,9 @@ Required fields when the carrier is in force:
 - ⊗ Widen a post-draft correction delta beyond operator-enumerated keys without an explicit operator widen + recorded dependency reason (#5352)
 - ⊗ Treat unlabeled agent handoff conventions as Deft authorization or restart a full-depth interview from them (#5352)
 - ⊗ Resume a post-draft design interview from next-question-only / Resume-point-only orientation without the durable carrier's required fields (#5352)
+- ⊗ Treat a progress checkpoint as a second question, an upcoming-question list, or a prior-answer summary -- checkpoints are Rule 2 non-choice status updates (#5353)
+- ⊗ Emit an every-turn full recap or invent a fixed question census before adaptive branching is known (#5353)
+- ⊗ Emit a checkpoint on ordinary field-fill alone -- "added" means runtime append of a new decision-area with reason (#5353)
+- ⊗ Answer how-much-is-left by advancing to the next material decision or by opening Discuss unless the operator chose Discuss -- status then same-question re-render (#5353)
+- ⊗ Stuff shared-turn checkpoint prose into the structured tool `question` field -- status stays above the tool call (#5353)
+

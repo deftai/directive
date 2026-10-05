@@ -238,6 +238,8 @@ a new message. Repeat until all questions for their track are answered.
 - ! Mark which option is RECOMMENDED when showing choices
 - ~ Use structured question tools only when visible option labels preserve the canonical numbers and returns map to numeric selections or exact displayed option text.
 
+! **Progress checkpoints (#5353):** Emit concise Rule 2 status-only progress checkpoints (current phase, remaining material decision areas / inventory labels, accepted deferrals, reasons for runtime additions) at closed triggers only: phase entry/exit, after a runtime decision-area addition-with-reason (not ordinary field-fill), after an accepted deferral, before the confirmation gate, and on operator how-much-is-left. Prefer a separate status message before the next question; if shared-turn, status prose stays ABOVE the structured-tool call (outside the tool `question` field) with exactly one question. Remaining-scope text MAY name inventory labels; it MUST NOT list concrete upcoming question text. On how-much-is-left: status grounded in the session inventory, then re-render the same pending question (do not advance; do not open Discuss unless the operator chose Discuss). Keep one-question / Discuss/Back / Rule 8 confirmation; do not remove Rule 8 or switch to yolo for orientation. Progress status is not a second question.
+
 ### Question Sequence
 
 **Step 0 — Opening (all users):**
@@ -500,6 +502,11 @@ for project-scoped settings (strategy, coverage).
 
 ! **Each message MUST contain exactly ONE question.** The Phase 1 interview rules
 apply here too. Do not combine questions. See `skills/deft-directive-interview/SKILL.md` for the canonical deterministic interview loop.
+
+- ⊗ Include two or more questions in the same message under any circumstances
+- ⊗ List upcoming questions — only show the current one
+
+! **Progress checkpoints (#5353):** Emit concise Rule 2 status-only progress checkpoints (current phase, remaining material decision areas / inventory labels, accepted deferrals, reasons for runtime additions) at closed triggers only: phase entry/exit, after a runtime decision-area addition-with-reason (not ordinary field-fill), after an accepted deferral, before the confirmation gate, and on operator how-much-is-left. Prefer a separate status message before the next question; if shared-turn, status prose stays ABOVE the structured-tool call (outside the tool `question` field) with exactly one question. Remaining-scope text MAY name inventory labels; it MUST NOT list concrete upcoming question text. On how-much-is-left: status grounded in the session inventory, then re-render the same pending question (do not advance; do not open Discuss unless the operator chose Discuss). Keep one-question / Discuss/Back / Rule 8 confirmation; do not remove Rule 8 or switch to yolo for orientation. Progress status is not a second question.
 
 ### Question Sequence
 
@@ -1005,6 +1012,8 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Explore codebase before Phase 1 questions — except the freshness live-reader install-manifest / VERSION lookup (#4987)
 - ⊗ Read framework files before first question — except the freshness live-reader install-manifest / VERSION lookup (#4987)
 - ⊗ Batch multiple questions into one message — ask one at a time, interview style
+- ⊗ Treat a progress checkpoint as a second question or upcoming-question list — progress status is a Rule 2 non-choice status update, not a second question (#5353)
+- ⊗ Skip closed-trigger progress checkpoints on Phase 1/2/3 boundaries, runtime addition-with-reason, accepted deferral, confirmation gate, or how-much-is-left (#5353)
 - ⊗ Ask jargon-heavy questions to non-technical users
 - ⊗ Ask about things inferable from codebase (Phase 2+)
 - ⊗ Skip phases without asking
