@@ -218,6 +218,8 @@ describe("docs-impact CLI transport", () => {
       "develop",
     );
     expect(parseDocsImpactArgs(["--base-ref"]).error).toContain("--base-ref");
+    expect(parseDocsImpactArgs(["--", "--body-file", "x"]).bodyFile).toBe("x");
+    expect(parseDocsImpactArgs(["--"]).error).toBeNull();
     expect(restPullsPath("deftai/directive", 12)).toBe("repos/deftai/directive/pulls/12");
     expect(docsImpactMain([])).toBe(2);
   });
@@ -351,6 +353,7 @@ describe("explicit body seed then same-file verify (#4293)", () => {
     expect(parsed.errors.some((e) => e.includes("missing documentation-impact declaration"))).toBe(
       true,
     );
+    expect(parsed.errors.some((e) => e.includes(DOCS_IMPACT_SEED_BLOCK.trimEnd()))).toBe(true);
     const dir = mkdtempSync(join(tmpdir(), "docs-impact-summary-"));
     const bodyPath = join(dir, "body.md");
     writeFileSync(bodyPath, summaryOnly);

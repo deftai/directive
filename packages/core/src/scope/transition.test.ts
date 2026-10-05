@@ -1354,6 +1354,30 @@ describe("runTransition", () => {
     expect(existsSync(file)).toBe(true);
   });
 
+  it("surfaces source → intended dest when promote validation refuses before unlink (#5391)", () => {
+    root = makeRepo();
+    const name = "2026-01-01-effort-bad.xbrief.json";
+    const source = join(root, "xbrief", "proposed", name);
+    const intended = join(root, "xbrief", "pending", name);
+    writeFile(source, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "proposed",
+        items: [{ id: "t1", title: "Task", status: "pending", effort: "XXL" }],
+        acceptance: derivedStamp(),
+      },
+    });
+    const result = runTransition("promote", source);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("invalid effort");
+    expect(result.message).toContain("source still at");
+    expect(result.message).toContain(source);
+    expect(result.message).toContain(intended);
+    expect(existsSync(source)).toBe(true);
+    expect(existsSync(intended)).toBe(false);
+  });
+
   it("detects lifecycle folder", () => {
     expect(detectLifecycleFolder("/tmp/xbrief/pending/foo.xbrief.json")).toBe("pending");
     expect(detectLifecycleFolder("/tmp/other/foo.xbrief.json")).toBeNull();

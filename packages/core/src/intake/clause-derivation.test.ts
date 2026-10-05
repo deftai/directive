@@ -590,6 +590,8 @@ describe("statement traceability (#3398)", () => {
     const emptyResult = applyEmptyAfterHarvestNoticeForIngest(emptyPlan);
     expect(emptyResult.applied).toBe(true);
     expect(emptyResult.notice).toBe(EMPTY_AFTER_HARVEST_REMEDIATION);
+    expect(EMPTY_AFTER_HARVEST_REMEDIATION).toMatch(/- \[ \]/);
+    expect(EMPTY_AFTER_HARVEST_REMEDIATION).toContain("## Acceptance Criteria");
     expect((emptyPlan.acceptance as { quality_notice: string }).quality_notice).toBe(
       EMPTY_AFTER_HARVEST_REMEDIATION,
     );

@@ -97,6 +97,14 @@ export function parseDeclaredSurfaces(raw: string): DeclaredSurface[] {
   return out;
 }
 
+/** Template fields from .github/PULL_REQUEST_TEMPLATE.md (#4099 / #4293). */
+export const DOCS_IMPACT_SEED_BLOCK =
+  "## Documentation impact\n" +
+  "\n" +
+  "change_class: none\n" +
+  "surfaces: none\n" +
+  'rationale: "No closed user-doc surface added or removed."\n';
+
 export function parseDocsImpactDeclaration(body: string): {
   declaration: ParsedDeclaration | null;
   errors: string[];
@@ -121,7 +129,11 @@ export function parseDocsImpactDeclaration(body: string): {
   if (classRaw.length > 0 && !isChangeClass(classRaw)) {
     errors.push(`invalid change_class: ${classRaw}`);
   }
-  if (errors.length > 0) return { declaration: null, errors };
+  if (errors.length > 0) {
+    // Cite the same seed bytes composeDocsImpactBody already uses (#5391).
+    errors.push(`example:\n${DOCS_IMPACT_SEED_BLOCK.trimEnd()}`);
+    return { declaration: null, errors };
+  }
   const changeClass: DocsImpactChangeClass = isChangeClass(classRaw) ? classRaw : "none";
   const surfaces = noUserDocImpact ? [] : parseDeclaredSurfaces(surfacesMatch?.[1] ?? "none");
   return {
@@ -134,14 +146,6 @@ export function parseDocsImpactDeclaration(body: string): {
     errors,
   };
 }
-
-/** Template fields from .github/PULL_REQUEST_TEMPLATE.md (#4099 / #4293). */
-export const DOCS_IMPACT_SEED_BLOCK =
-  "## Documentation impact\n" +
-  "\n" +
-  "change_class: none\n" +
-  "surfaces: none\n" +
-  'rationale: "No closed user-doc surface added or removed."\n';
 
 /** Compose the template docs-impact block into an explicit PR body. */
 export function composeDocsImpactBody(body: string, seed: string = DOCS_IMPACT_SEED_BLOCK): string {
@@ -477,6 +481,9 @@ export function parseDocsImpactArgs(argv: readonly string[]): DocsImpactArgs {
       i += 1;
     } else if (arg?.startsWith("--base-ref=")) {
       baseRef = arg.slice("--base-ref=".length);
+    } else if (arg === "--") {
+      // Same end-of-options skip as scope/main.ts / xbrief parsers (#5391).
+      continue;
     } else if (arg?.startsWith("-")) {
       return emptyArgs(`unrecognized arguments: ${arg}`);
     }

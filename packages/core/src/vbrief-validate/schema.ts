@@ -157,7 +157,14 @@ function validatePlanItem(item: JsonObject, path: string, errors: string[]): voi
   }
 
   if ("effort" in item && !VALID_PLAN_ITEM_EFFORTS.has(String(item.effort))) {
-    errors.push(`${itemPath} invalid effort: ${pyStrRepr(String(item.effort))}`);
+    const sorted = [...VALID_PLAN_ITEM_EFFORTS]
+      .sort()
+      .map((s) => `'${s}'`)
+      .join(", ");
+    errors.push(
+      `${itemPath} invalid effort: ${pyStrRepr(String(item.effort))} ` +
+        `(expected one of [${sorted}])`,
+    );
   }
 
   if ("stopConditions" in item) {

@@ -111,6 +111,17 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
     };
     const errors = validateVbriefSchema(bad, "effort-bad.json");
     expect(errors.some((e) => e.includes("invalid effort"))).toBe(true);
+    expect(
+      errors.some(
+        (e) =>
+          e.includes("expected one of") &&
+          e.includes("'L'") &&
+          e.includes("'M'") &&
+          e.includes("'S'") &&
+          e.includes("'XL'"),
+      ),
+    ).toBe(true);
+    expect(errors.some((e) => e.includes("'XS'"))).toBe(false);
   });
 
   it("accepts optional PlanItem.stopConditions anchors and rejects malformed (#1613)", () => {

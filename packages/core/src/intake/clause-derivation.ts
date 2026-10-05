@@ -373,7 +373,7 @@ export function applyClauseQualityForIngest(plan: Record<string, unknown>): Clau
  * applyClauseQualityForIngest empty-clause silence.
  */
 export const EMPTY_AFTER_HARVEST_REMEDIATION =
-  "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374.";
+  "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: `- [ ] ship the fix` or a `## Acceptance Criteria` heading plus a fenced command block.";
 
 export function applyEmptyAfterHarvestNoticeForIngest(
   plan: Record<string, unknown>,

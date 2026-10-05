@@ -544,9 +544,15 @@ export function runTransition(
 
       // #2578: stamp terminal status at the destination path in the same write as
       // folder placement — never leave a non-terminal status under completed/.
+      // Validate against destPath (not the still-on-disk source folder). On refuse
+      // before unlink, surface dual source → intended dest so proposed/ is not
+      // reported as already under pending/ (#5391).
       const writeResult = atomicWriteBrief(destPath, data, vbriefRoot, { projectRoot });
       if (!writeResult.ok) {
-        return { ok: false, message: writeResult.message };
+        return {
+          ok: false,
+          message: `${writeResult.message} (source still at ${resolvedPath} → intended dest ${destPath})`,
+        };
       }
       crud.recordTrustedUpdate(destPath, formatted);
       if (act === "complete") {
