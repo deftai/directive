@@ -98,10 +98,12 @@ function isCompletionClaim(turn: PhaseBoundaryTurn | undefined): boolean {
   if (turn?.role !== "agent" || turn.kind !== "summary") return false;
   const text = turn.text ?? "";
   // Explicit unfinished / negated completion is not a claim.
+  // Bare "no" alone must not discard claims like "no blockers — phase complete".
   if (
-    /\b(not|no|never|incomplete|unfinished)\b.{0,24}\b(complete|finished|done)\b/i.test(text) ||
-    /\b(complete|finished|done)\b.{0,16}\b(not|yet)\b/i.test(text) ||
-    /\bphase\s+not\s+complete\b/i.test(text)
+    /\b(not|never|incomplete|unfinished)\b.{0,24}\b(complete|finished|done)\b/i.test(text) ||
+    /\bno\s+(longer\s+)?(complete|finished|done)\b/i.test(text) ||
+    /\bphase\s+not\s+complete\b/i.test(text) ||
+    /\b(complete|finished|done)\b.{0,16}\b(not|yet)\b/i.test(text)
   ) {
     return false;
   }
@@ -161,10 +163,12 @@ function detectPhaseDrift(transcript: PhaseBoundaryTranscript): PhaseBoundaryFai
   if (boundaryIdx < 0) return null;
 
   const atBoundary = proposalIdsThrough(turns, boundaryIdx);
-  // Do not seed with resulting state.proposalIds — an operator-requested proposal
-  // id often appears there and must still clear the drift gate when introduced.
+  // Seed with resulting proposal ids so ordinary answers that merely cite an
+  // existing proposal do not clear the drift gate. Genuine new requirements
+  // use ids outside proposal/decision sets (e.g. req-*), which still clear it.
   const knownIds = new Set<string>([
     ...atBoundary,
+    ...state.proposalIds,
     ...state.declaredDecisionIds,
     ...state.acceptedDecisionIds,
   ]);
@@ -257,14 +261,11 @@ function detectFalseCompletion(transcript: PhaseBoundaryTranscript): PhaseBounda
     const laterNewDeclared = confirmsAfter.filter(
       (id) => state.declaredDecisionIds.includes(id) && !confirmsBefore.includes(id),
     );
-    // Premature: some operator confirms existed before the claim but did not
-    // cover declared, then later confirms added more declared ids. Pure
-    // reconfirmation after a covered claim (or no pre-claim confirms) uses state.
-    if (
-      laterNewDeclared.length > 0 &&
-      confirmsBefore.length > 0 &&
-      !covers(confirmsBefore, state.declaredDecisionIds)
-    ) {
+    // Premature when later operator confirms add declared ids that were not
+    // confirmed before the claim — including the empty-before case (claim
+    // before any operator confirm). Reconfirmation after a covering pre-claim
+    // confirm set does not produce laterNewDeclared for already-confirmed ids.
+    if (laterNewDeclared.length > 0 && !covers(confirmsBefore, state.declaredDecisionIds)) {
       const missing = state.declaredDecisionIds.filter((id) => !confirmsBefore.includes(id));
       return falseCompletion(missing);
     }
