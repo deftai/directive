@@ -17,6 +17,7 @@ import {
   resolveLiveRequirementsFingerprint,
   rollbackScopeCompleteDrift,
   seedSpecDriftLedger,
+  snapshotSpecDriftLedger,
   writeSpecDriftLedger,
 } from "./spec-drift.js";
 
@@ -661,7 +662,7 @@ describe("verify:spec-drift (#1589 C2 / #5350 C3)", () => {
     expect(fake).toEqual([]);
   });
 
-  it("rollbackScopeCompleteDrift removes coverage rows for the failed scope", () => {
+  it("rollbackScopeCompleteDrift restores prior snapshot without wiping earlier same-scope coverage", () => {
     setup({
       withSpec: true,
       policy: {
@@ -669,45 +670,79 @@ describe("verify:spec-drift (#1589 C2 / #5350 C3)", () => {
       },
     });
     expect(seedSpecDriftLedger(root).ok).toBe(true);
+    const prior = {
+      baselineRevision: "b1",
+      unresolved: [] as Array<{
+        scopeId: string;
+        reason: string;
+        specImpact: string | null;
+        completedAt: string | null;
+      }>,
+      coverage: [
+        {
+          scopeId: "failed-move-scope",
+          coveredItemIds: ["earlier"],
+          beforeRequirementsFingerprint: "a0",
+          afterRequirementsFingerprint: "a1",
+          affectedRequirementRefs: [],
+          recordedAt: "2026-10-01T00:00:00Z",
+          source: "rewrite" as const,
+        },
+      ],
+      shadowFindings: [] as Array<{
+        scopeId: string;
+        reason: string;
+        specImpact: string | null;
+        completedAt: string | null;
+      }>,
+      lastRequirementsFingerprint: "a1",
+      cutoverBoundary: "2026-10-01T00:00:00Z",
+    };
+    writeSpecDriftLedger(root, prior, { enforcement: "enforce" });
+    const snap = snapshotSpecDriftLedger(root);
+    // Simulate a failed attempt that added a new coverage row + unresolved for same scope.
     writeSpecDriftLedger(
       root,
       {
-        baselineRevision: "b1",
+        ...prior,
         unresolved: [
           {
             scopeId: "failed-move-scope",
             reason: "partial",
             specImpact: "delta",
-            completedAt: "2026-10-01T00:00:00Z",
+            completedAt: "2026-10-02T00:00:00Z",
           },
         ],
         coverage: [
+          ...prior.coverage,
           {
             scopeId: "failed-move-scope",
             coveredItemIds: ["i1"],
-            beforeRequirementsFingerprint: "a",
+            beforeRequirementsFingerprint: "a1",
             afterRequirementsFingerprint: "b",
             affectedRequirementRefs: [],
-            recordedAt: "2026-10-01T00:00:00Z",
+            recordedAt: "2026-10-02T00:00:00Z",
             source: "override",
             grantId: "grant-that-does-not-exist",
           },
         ],
-        shadowFindings: [],
         lastRequirementsFingerprint: "b",
-        cutoverBoundary: "2026-10-01T00:00:00Z",
       },
       { enforcement: "enforce" },
     );
-    const rolled = rollbackScopeCompleteDrift(root, "failed-move-scope");
+    const rolled = rollbackScopeCompleteDrift(root, "failed-move-scope", {
+      priorLedger: snap,
+      spentGrantIds: ["grant-that-does-not-exist"],
+    });
     expect(rolled.ok).toBe(true);
     const ledgerPath = join(root, "xbrief", ".audit", "spec-drift-ledger.json");
     const ledger = JSON.parse(readFileSync(ledgerPath, "utf8")) as {
-      coverage: Array<{ scopeId: string }>;
+      coverage: Array<{ scopeId: string; coveredItemIds: string[] }>;
       unresolved: Array<{ scopeId: string }>;
     };
-    expect(ledger.coverage.every((c) => c.scopeId !== "failed-move-scope")).toBe(true);
-    expect(ledger.unresolved.every((f) => f.scopeId !== "failed-move-scope")).toBe(true);
+    expect(ledger.unresolved).toEqual([]);
+    expect(ledger.coverage).toHaveLength(1);
+    expect(ledger.coverage[0]?.coveredItemIds).toEqual(["earlier"]);
   });
 
   it("second enforce record with unchanged fingerprint surfaces rewrite failure (sync must skip)", () => {

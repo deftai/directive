@@ -898,23 +898,67 @@ export function seedSpecDriftLedger(
   }
 }
 
+/** Deep-clone the on-disk ledger for failed-move restore (pre-record snapshot). */
+export function snapshotSpecDriftLedger(projectRoot: string): SpecDriftLedger {
+  const ledger = readLedger(resolve(projectRoot));
+  return {
+    baselineRevision: ledger.baselineRevision,
+    unresolved: ledger.unresolved.map((f) => ({ ...f })),
+    coverage: ledger.coverage.map((c) => ({
+      ...c,
+      coveredItemIds: [...c.coveredItemIds],
+      affectedRequirementRefs: [...c.affectedRequirementRefs],
+    })),
+    shadowFindings: ledger.shadowFindings.map((f) => ({ ...f })),
+    lastRequirementsFingerprint: ledger.lastRequirementsFingerprint,
+    cutoverBoundary: ledger.cutoverBoundary,
+  };
+}
+
 /**
- * Roll back a scope's enforce ledger mutation after a failed active→completed move.
- * Removes coverage / unresolved / shadow rows for scopeId and restores any spent
- * single-use override grant recorded on that coverage (#5350 Greptile P1).
+ * Restore a pre-record ledger snapshot after a failed active→completed move.
+ * Prefer this over scopeId wipe so earlier coverage for the same scopeId survives
+ * (#5350 Greptile P1: rollback must not erase prior completion evidence).
+ * Only clears single-use grants spent by THIS attempt (`spentGrantIds`).
  */
 export function rollbackScopeCompleteDrift(
   projectRoot: string,
   scopeId: string,
+  options: {
+    readonly priorLedger?: SpecDriftLedger;
+    readonly spentGrantIds?: readonly string[];
+  } = {},
 ): { readonly ok: boolean; readonly message: string } {
   const root = resolve(projectRoot);
-  if (!hasLedgerFile(root)) {
-    return { ok: true, message: "no ledger to roll back" };
-  }
+  const prior = options.priorLedger;
   try {
     return withLedgerLock(root, "enforce", () => {
+      if (prior !== undefined) {
+        if (!hasLedgerFile(root) && prior.coverage.length === 0 && prior.unresolved.length === 0) {
+          // Nothing durable existed before the failed attempt.
+          return { ok: true, message: `restored empty pre-record ledger for scope ${scopeId}` };
+        }
+        writeSpecDriftLedger(root, prior, { enforcement: "enforce", alreadyLocked: true });
+        for (const grantId of options.spentGrantIds ?? []) {
+          if (grantId.length > 0) clearGrantUsedAt(root, grantId);
+        }
+        return {
+          ok: true,
+          message: `restored pre-record spec-drift ledger snapshot for scope ${scopeId}`,
+        };
+      }
+      // Legacy path: scopeId wipe — only when no snapshot was captured.
+      if (!hasLedgerFile(root)) {
+        return { ok: true, message: "no ledger to roll back" };
+      }
       const ledger = readLedger(root);
-      const removedCoverage = ledger.coverage.filter((c) => c.scopeId === scopeId);
+      const priorGrantIds = new Set(
+        ledger.coverage
+          .filter((c) => c.scopeId === scopeId && typeof c.grantId === "string")
+          .map((c) => c.grantId as string),
+      );
+      // Prefer spentGrantIds when provided even without a full snapshot.
+      const grantIdsToClear = options.spentGrantIds ?? [...priorGrantIds];
       const next: SpecDriftLedger = {
         ...ledger,
         unresolved: ledger.unresolved.filter((f) => f.scopeId !== scopeId),
@@ -922,10 +966,8 @@ export function rollbackScopeCompleteDrift(
         coverage: ledger.coverage.filter((c) => c.scopeId !== scopeId),
       };
       writeSpecDriftLedger(root, next, { enforcement: "enforce", alreadyLocked: true });
-      for (const row of removedCoverage) {
-        if (typeof row.grantId === "string" && row.grantId.length > 0) {
-          clearGrantUsedAt(root, row.grantId);
-        }
+      for (const grantId of grantIdsToClear) {
+        if (grantId.length > 0) clearGrantUsedAt(root, grantId);
       }
       return {
         ok: true,
@@ -938,6 +980,25 @@ export function rollbackScopeCompleteDrift(
       message: `spec-drift rollback failed for scope ${scopeId}: ${String(err)}`,
     };
   }
+}
+
+/** Grant ids newly present on coverage after a record vs a prior snapshot. */
+export function spentGrantIdsSinceSnapshot(
+  prior: SpecDriftLedger,
+  current: SpecDriftLedger,
+): string[] {
+  const before = new Set(
+    prior.coverage
+      .map((c) => c.grantId)
+      .filter((id): id is string => typeof id === "string" && id.length > 0),
+  );
+  const spent: string[] = [];
+  for (const row of current.coverage) {
+    if (typeof row.grantId === "string" && row.grantId.length > 0 && !before.has(row.grantId)) {
+      spent.push(row.grantId);
+    }
+  }
+  return spent;
 }
 
 /** Evaluate semantic drift for audit / advise / shadow / enforce surfaces. */

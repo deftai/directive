@@ -34,10 +34,13 @@ import type { GitRunner } from "../session/git.js";
 import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
 import { validateFilename } from "../vbrief-validate/filename.js";
 import { readAcceptanceClauses } from "../verify-ac/clauses.js";
+import type { SpecDriftLedger } from "../verify-source/spec-drift.js";
 import {
   gateScopeCompleteSpecDrift,
   recordScopeCompleteDrift,
   rollbackScopeCompleteDrift,
+  snapshotSpecDriftLedger,
+  spentGrantIdsSinceSnapshot,
 } from "../verify-source/spec-drift.js";
 import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
 import {
@@ -577,6 +580,8 @@ export function runTransition(
       }
       crud.recordTrustedUpdate(destPath, formatted);
       let enforceDriftRecorded = false;
+      let priorDriftLedger: SpecDriftLedger | null = null;
+      let spentDriftGrantIds: readonly string[] = [];
       if (act === "complete") {
         const sessionId = resolveCompletionSessionId(projectRoot);
         if (sessionId !== null) {
@@ -601,10 +606,15 @@ export function runTransition(
         const enforceGuard = resolveSpecGuard(projectRoot, { hasSpecification: true });
         if (enforceGuard.enabled && enforceGuard.driftGuard.enforcement === "enforce") {
           try {
+            priorDriftLedger = snapshotSpecDriftLedger(projectRoot);
             recordScopeCompleteDrift(
               projectRoot,
               data,
               relative(projectRoot, destPath).replace(/\\/g, "/"),
+            );
+            spentDriftGrantIds = spentGrantIdsSinceSnapshot(
+              priorDriftLedger,
+              snapshotSpecDriftLedger(projectRoot),
             );
             enforceDriftRecorded = true;
           } catch (err: unknown) {
@@ -625,14 +635,18 @@ export function runTransition(
       try {
         unlinkSync(resolvedPath);
       } catch (err: unknown) {
-        // Enforce already recorded above — roll back ledger/grant so a retry is not stranded.
-        if (enforceDriftRecorded) {
+        // Restore pre-record ledger snapshot (not a scopeId wipe) so earlier
+        // coverage for the same scopeId is preserved; clear only this attempt's grants.
+        if (enforceDriftRecorded && priorDriftLedger !== null) {
           const scopeIdForRollback =
             typeof planObj.id === "string"
               ? planObj.id
               : relative(projectRoot, destPath).replace(/\\/g, "/");
           try {
-            rollbackScopeCompleteDrift(projectRoot, scopeIdForRollback);
+            rollbackScopeCompleteDrift(projectRoot, scopeIdForRollback, {
+              priorLedger: priorDriftLedger,
+              spentGrantIds: spentDriftGrantIds,
+            });
           } catch {
             /* best-effort ledger rollback */
           }
