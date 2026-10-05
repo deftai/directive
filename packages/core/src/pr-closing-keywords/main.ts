@@ -185,9 +185,7 @@ function fetchPrFiles(pr: number, repo: string, runGh: RunGhFn): PrDiffPath[] | 
             : undefined;
         if (path.length > 0) {
           out.push(
-            previousFilename === undefined
-              ? { path, status }
-              : { path, status, previousFilename },
+            previousFilename === undefined ? { path, status } : { path, status, previousFilename },
           );
         }
       }

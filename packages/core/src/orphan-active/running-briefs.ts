@@ -176,7 +176,7 @@ export function isProductPullRequestUnset(plan: Record<string, unknown>): boolea
   if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata)) {
     return true;
   }
-  return !Object.prototype.hasOwnProperty.call(metadata, "productPullRequest");
+  return !Object.hasOwn(metadata, "productPullRequest");
 }
 
 /**

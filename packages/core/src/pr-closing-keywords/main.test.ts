@@ -4,8 +4,6 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { mintOnePrUnitGrant } from "../one-pr-unit/mint.js";
 import { DirectiveGitHubAppStore } from "../one-pr-unit/store.js";
-import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
-import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
 import { deriveUnmarkedFinalizeAdmit } from "../orphan-active/evaluate.js";
 import {
   isProductPullRequestUnset,
@@ -13,6 +11,8 @@ import {
   stampProductPullRequestOntoPlan,
 } from "../orphan-active/running-briefs.js";
 import { bindUnmarkedFinalizePair } from "../swarm/finalize-owed.js";
+import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
+import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
 import {
   briefHasMatchingProductPr,
   cmdPrCheckClosingKeywords,
@@ -921,12 +921,8 @@ describe("full-story mark admission shapes (#4919)", () => {
         { status: "removed", path: "xbrief/active/story.xbrief.json" },
       ]),
     ).toBe(false);
-    expect(
-      isBriefLandShapedDiff([{ status: "modified", path: "docs/CHANGELOG.md" }]),
-    ).toBe(false);
-    expect(
-      isBriefLandShapedDiff([{ status: "modified", path: "CHANGELOG.md" }]),
-    ).toBe(false);
+    expect(isBriefLandShapedDiff([{ status: "modified", path: "docs/CHANGELOG.md" }])).toBe(false);
+    expect(isBriefLandShapedDiff([{ status: "modified", path: "CHANGELOG.md" }])).toBe(false);
   });
 
   it("finalize honesty: activation PR is not delivery bind (#5387 limb 5)", () => {
