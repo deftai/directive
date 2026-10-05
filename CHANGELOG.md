@@ -16,11 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Hard-stop hatch for structured questions (#5373).** Prefer-A Bound: refuse-missing-hatch on hook-admitted question tools (`QUESTION_TOOL_NAMES` subset); Cursor plan-choice deny-and-render keeps Discuss then Back; Discuss-pause latch only where selection ingress is observed; `I have questions` accepted-input alias; Grok `ask_user_question` audit row + render-absent residual named. Tracking #5373. Refs #1470, #767.
+
 ### Changed
 
 ### Fixed
 
 - design-critique: bare-arc spend recommend-first is now a MUST; ask is fallback only; Stop 2 and skill Spend line admit recommend-resolve; N≥3 recommend stays panel-permission-gated (#5372)
+- **Vacuous deterministic-questions content tests (#5373).** Repair inverted portable-skill predicate and empty `missing` loops; scan skill prose menus for final-two Discuss then Back. Tracking #5373.
 
 ### Removed
 

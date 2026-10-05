@@ -55,5 +55,45 @@ Each affected skill carries a `!` cross-reference pointing here, mirroring the R
 - `skills/deft-directive-review-cycle/SKILL.md`
 - `skills/deft-directive-release/SKILL.md`
 The `interview` and `build` skills are deliberately not edited under #767 (Agents 2 / 3 own those surfaces); the cross-reference will land there in their PRs and read this contract.
+## Hard-stop hatch (#5373)
+
+Presentation and halt are separate acceptance obligations.
+
+- ! Visible hatch presence and hard-stop-on-select are two gates. Selecting the hatch MUST normalize before any domain-answer processing; hatch wins over domain choices and `Back` in multi-select/batched returns; commit no answers from that return; acknowledge once and yield for operator-led Q&A.
+- ! Canonical **visible** hatch token remains `Discuss`. **I have questions** is an accepted-input alias for the same halt control (trim, case-insensitive exact-display match). Final two options: hatch then `Back`.
+- ! When free-text / `Other` payload matches `{Discuss, I have questions}`, MUST route to halt rather than a domain answer.
+- ⊗ Render `Other` / host free-text widening as the hatch.
+- ⊗ Render `I have questions` as the visible menu label in place of `Discuss` (alias is accepted input, not the normative visible token).
+
+### Deny vs render
+
+Directive-owned enforcement has two limbs:
+
+- **Deny:** refuse a non-conforming structured-question call when PreToolUse/equivalent admits the payload (model-facing refuse is enough). Stable codes: `question-hatch-missing`, `question-hatch-order`.
+- **Render:** operator-visible framework-authored menu ending hatch then `Back`. Primary pattern: deny-and-render (Cursor `user_message` / plan-choice `prompt.submit`).
+- **Allow-with-rewrite** only when an observed payload proves `updated_input` round-trips for that tool on that host. Grok is outside `UPDATED_INPUT_WIRE_HOSTS` at pin — no rewrite inject claim without new observed evidence.
+- On **render-absent** hosts (Grok tool-deny `reason` only; Claude/Codex `permissionDecisionReason` only): deny forces retry; hatch arrives only if the model re-presents. That is not live-payload operator-visible render relief.
+
+### Host locus (deny / render / selection-ingress)
+
+| Host / surface | Deny | Operator-visible render | Selection/resume ingress | Notes |
+|---|---|---|---|---|
+| Cursor plan-choice / `prompt.submit` | yes | yes | yes (`decidePlanChoiceWithHatch`) | menu ending Discuss then Back; pause latch + e2e fixture |
+| Cursor tool-deny with `user_message` | yes when admitted | yes | only if observed post-select path; else residual | AskQuestion PreToolUse often unobserved at pin |
+| Grok `ask_user_question` | yes when hook admits | no at pin | no at pin | residual: model-mediated re-present; free-text Other→halt is prose-class |
+| Claude / Codex structured ask | yes when hook admits | no at pin | no at pin unless observed | carve-out residual |
+
+Pause latch (deny non-ack tools until explicit operator resume) is mechanism-supported **only** on rows with observed selection/resume ingress. Where ingress is unobserved, P3 latch is conditional / model-mediated; Discuss-pause prose still applies.
+
+Question-tool hatch gate matches the exported `QUESTION_TOOL_NAMES` subset from `tool-events/classify.ts` only — never the full coordinate-name set.
+
+### Scoped relief honesty
+
+- **P1:** contract/prose hatch-then-Back on all hosts; mechanism presentation on Cursor-class operator-visible render; Grok measured: deny-conditioned-on-model-compliance + free-text Other→halt (prose-class).
+- **P2:** prose-fixture coverage repaired; live-payload half only where operator-visible render exists. Markers alone ≠ live-payload P2 on render-absent hosts.
+- **P3:** label/alias via this section; halt latch mechanism only on observed selection-ingress rows; elsewhere conditional residual with prose Discuss-pause still owed.
+
+Sibling #5372 owns spend recommend-first salience. Non-goals: ⊗ forbid multi-choice under conversational mode; ⊗ silence selects Spend N; ⊗ remove `Back`.
+
 ## Test surface
-`packages/core/src/content-contracts/skills/deterministic_questions.test.ts` (port of `tests/content/test_deterministic_questions.py`) scans skill prose for documented numbered menus and asserts that `Discuss` and `Back` are the final two options. The test also asserts that this contract file exists, contains the verbatim Discuss-pause semantic, names agent-initiated ad-hoc prompts in scope, and is cross-referenced from each affected skill. Always-loaded runtime obligation markers are enforced separately via `agents_entry_contract.test.ts` (AGENTS.md managed section + template) and the orchestrator preamble self-check section in `templates/agent-prompt-preamble.md` (#1470).
+`packages/core/src/content-contracts/skills/deterministic_questions.test.ts` scans skill prose for documented numbered menus and asserts that `Discuss` and `Back` are the final two options on those menus (not merely that the words appear). The test also asserts that this contract file exists, contains the verbatim Discuss-pause semantic and the #5373 hatch/locus rules, names agent-initiated ad-hoc prompts in scope, and is cross-referenced from each affected skill. Always-loaded runtime obligation markers are enforced separately via `agents_entry_contract.test.ts` (AGENTS.md managed section + template) and the orchestrator preamble self-check section in `templates/agent-prompt-preamble.md` (#1470). Live PreToolUse hatch refuse is covered by `packages/core/src/hooks/dispatcher-plan-choice.test.ts` (admit → deny missing hatch; Cursor plan-choice Discuss → pause latch → tool deny → explicit resume).

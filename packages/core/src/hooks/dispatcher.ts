@@ -137,11 +137,15 @@ import {
 } from "./classify/index.js";
 import {
   type CursorPlanChoiceDeps,
-  decideCursorPlanChoice,
   defaultCursorPlanChoiceDeps,
   isCursorPlanChoiceManagedPath,
   storeDenyMessage,
 } from "./cursor-plan-choice/index.js";
+import {
+  decidePlanChoiceWithHatch,
+  decideQuestionHatchGate,
+  decideQuestionHatchPauseGate,
+} from "./dispatcher-plan-choice.js";
 import {
   classifyGitDestructive,
   classifyProductDestForms,
@@ -333,6 +337,17 @@ export type HookDecisionCode =
   | "plan-choice-ack-ignored"
   | "plan-choice-opt-out"
   | "plan-choice-store-deny"
+  /** Structured-question hatch present (#5373). */
+  | "question-hatch-ready"
+  /** Structured-question missing Discuss then Back (#5373). */
+  | "question-hatch-missing"
+  /** Structured-question hatch present but wrong order/label (#5373). */
+  | "question-hatch-order"
+  /** Discuss-pause latch blocking tools until explicit resume (#5373). */
+  | "question-hatch-pause-active"
+  | "question-hatch-pause-storage-failure"
+  | "question-hatch-pause-lock-busy"
+  | "question-hatch-pause-resumed"
   /** Still-running / status-unknown host kill without green attestation (#5281). */
   | "kill-attestation-deny"
   /** Green pre-cancel or equivalent kill attestation allowed host kill (#5281). */
@@ -3306,7 +3321,7 @@ function routeHookDecision(
   }
 
   if (input.event === "prompt.submit" || input.event === "agent.response") {
-    return decideCursorPlanChoice(
+    return decidePlanChoiceWithHatch(
       input,
       seams.cursorPlanChoice ?? defaultCursorPlanChoiceDeps(input.environ ?? process.env),
     );
@@ -3446,6 +3461,15 @@ function routeHookDecision(
       }),
     );
   }
+
+  // Discuss-pause latch (Cursor plan-choice selection ingress only) (#5373).
+  const pauseDeny = decideQuestionHatchPauseGate(input, toolName);
+  if (pauseDeny !== null) return pauseDeny;
+
+  // Refuse-missing-hatch when PreToolUse admits a structured-question tool (#5373).
+  const hatchGate = decideQuestionHatchGate(input, toolName);
+  if (hatchGate !== null) return hatchGate;
+
   const environ = input.environ ?? process.env;
   const readOnly = isReadOnlyHookContext(input.payload, environ);
   if (readOnly && isDirectWriteTool(toolName)) {

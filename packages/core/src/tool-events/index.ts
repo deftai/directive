@@ -9,6 +9,9 @@ export {
   classifyShellCommandForTest,
   classifyToolEvent,
   classifyToolEvents,
+  isQuestionToolName,
+  QUESTION_TOOL_NAME_SPELLINGS,
+  QUESTION_TOOL_NAMES,
 } from "./classify.js";
 export {
   countToolEventBuckets,

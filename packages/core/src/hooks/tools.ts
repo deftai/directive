@@ -197,6 +197,12 @@ export const SPAWN_HOOK_MATCHER = SPAWN_TOOL_NAMES.join("|");
 export const SHELL_HOOK_MATCHER = SHELL_TOOL_NAMES.join("|");
 export const KILL_HOOK_MATCHER = KILL_TOOL_NAMES.join("|");
 
+/**
+ * PreToolUse matcher tokens for structured-question hatch gate (#5373).
+ * Deposit wiring is separate from this export; gate runs when the host admits.
+ */
+export const QUESTION_HOOK_MATCHER = "ask_user_question|AskQuestion|AskUserQuestion";
+
 /** Mutation tool names a host emits, grouped by the matcher that must carry them. */
 export interface HostMutationToolCatalog {
   readonly directWrite: readonly string[];
@@ -260,6 +266,10 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
       image_edit: "writes generated media to session scratch, never a tracked product path",
       image_to_video: "writes generated media to session scratch, never a tracked product path",
       reference_to_video: "writes generated media to session scratch, never a tracked product path",
+      ask_user_question:
+        "coordinate-class structured question (#5373): deliberate nonMutation / hatch deny-class " +
+        "when PreToolUse admits the payload; not a product-path mutation. Matcher deposit for " +
+        "live admission is separate; render-absent on Grok (reason-only deny).",
       scheduler_create:
         "spawn-class and NOT covered: gating it routes a scheduling primitive through the " +
         "full spawn stack (ritual + active xBRIEF), a new deny class that needs a deliberate " +
@@ -272,7 +282,8 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
     unobservedReason: null,
     source:
       "Observed directly on Grok Build: this host's published tool list, plus the 5,354-call " +
-      "session census recorded on issue #3987; kill deny-class disposition #5281.",
+      "session census recorded on issue #3987; kill deny-class disposition #5281; " +
+      "ask_user_question hatch deny-class #5373.",
   },
   claude: {
     mutation: { directWrite: [], shell: ["Bash"], spawn: [], kill: [] },

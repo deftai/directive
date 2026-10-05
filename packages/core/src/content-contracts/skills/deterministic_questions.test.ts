@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readRepoFile, repoFileExists } from "./helpers.js";
 
-/** Port of tests/content/test_deterministic_questions.py (#1838 #1530) */
+/** Port of tests/content/test_deterministic_questions.py (#1838 #1530 / #5373) */
 
 const _CONTRACT_PATH = "contracts/deterministic-questions.md";
 const AFFECTED_SKILLS = [
@@ -13,11 +13,75 @@ const AFFECTED_SKILLS = [
   "skills/deft-directive-release/SKILL.md",
 ];
 const HOST_PORTABLE_SKILLS = [
-  "skills/deft-directive-triage/SKILL.md",
   "skills/deft-directive-refinement/SKILL.md",
   "skills/deft-directive-swarm/SKILL.md",
   "skills/deft-directive-setup/SKILL.md",
 ];
+
+/** Numbered menu lines: "N. Label" or "> N. Label" */
+const NUMBERED_OPTION_RE = /^(?:>\s*)?(\d+)\.\s+(.+?)\s*$/;
+
+function extractNumberedMenus(text: string): string[][] {
+  const lines = text.split(/\r?\n/);
+  const menus: string[][] = [];
+  let current: string[] = [];
+  let lastNum = 0;
+  for (const line of lines) {
+    const match = NUMBERED_OPTION_RE.exec(line.trim());
+    if (match === null) {
+      if (current.length >= 2) menus.push(current);
+      current = [];
+      lastNum = 0;
+      continue;
+    }
+    const num = Number(match[1]);
+    const label = (match[2] ?? "").trim();
+    if (current.length > 0 && num !== lastNum + 1) {
+      if (current.length >= 2) menus.push(current);
+      current = [];
+    }
+    current.push(label);
+    lastNum = num;
+  }
+  if (current.length >= 2) menus.push(current);
+  return menus;
+}
+
+function optionCore(label: string): string {
+  return label
+    .replace(/^\d+\.\s*/, "")
+    .replace(/^\*+/, "")
+    .replace(/\*+$/, "")
+    .trim()
+    .toLowerCase();
+}
+
+function isDiscussOption(label: string): boolean {
+  const core = optionCore(label);
+  return (
+    core === "discuss" ||
+    core.startsWith("discuss —") ||
+    core.startsWith("discuss -") ||
+    core.startsWith("discuss (")
+  );
+}
+
+function isBackOption(label: string): boolean {
+  const core = optionCore(label);
+  return (
+    core === "back" ||
+    core.startsWith("back —") ||
+    core.startsWith("back -") ||
+    core.startsWith("back (")
+  );
+}
+
+function finalTwoAreDiscussBack(menu: readonly string[]): boolean {
+  if (menu.length < 2) return false;
+  const hatch = menu[menu.length - 2] ?? "";
+  const back = menu[menu.length - 1] ?? "";
+  return isDiscussOption(hatch) && isBackOption(back);
+}
 
 describe("test_deterministic_questions", () => {
   it("contract_file_exists", () => {
@@ -41,6 +105,8 @@ describe("test_deterministic_questions", () => {
     expect(template).toContain("Deterministic questions runtime obligation");
     expect(preamble).toContain("Deterministic questions runtime self-check");
     expect(preamble).toContain("final two options are `Discuss` then `Back`");
+    expect(preamble).toContain("I have questions");
+    expect(preamble).toContain("Unattended");
   });
   it("contract_discuss_pause_semantic_verbatim", () => {
     const text = readRepoFile("contracts/deterministic-questions.md");
@@ -54,6 +120,15 @@ describe("test_deterministic_questions", () => {
     expect(text).toContain("resume");
     expect(text).toContain("continue");
     expect(text).toContain("re-issues the prior selection");
+  });
+  it("contract_documents_hard_stop_hatch_5373", () => {
+    const text = readRepoFile("contracts/deterministic-questions.md");
+    expect(text).toContain("## Hard-stop hatch (#5373)");
+    expect(text).toContain("I have questions");
+    expect(text).toContain("Deny vs render");
+    expect(text).toContain("selection-ingress");
+    expect(text).toContain("QUESTION_TOOL_NAMES");
+    expect(text).toContain("Scoped relief honesty");
   });
   it("contract_prior_art_section_present", () => {
     const text = readRepoFile("contracts/deterministic-questions.md");
@@ -83,17 +158,18 @@ describe("test_deterministic_questions", () => {
     expect(text).toContain("Treat `cursor-cloud` as the implicit default");
   });
   it("host_portable_skills_pin_visible_number_mapping", () => {
-    const missing = [];
+    const missing: string[] = [];
     for (const rel of HOST_PORTABLE_SKILLS) {
       const text = readRepoFile(rel);
       if (
         !["numeric option labels", "exact displayed option text"].every((token) =>
-          token.includes(text),
+          text.includes(token),
         )
       ) {
+        missing.push(rel);
       }
     }
-    expect(missing.length).toBe(0);
+    expect(missing).toEqual([]);
   });
   it("setup_skill_forbids_alphabetic_host_affordance_inference", () => {
     const text = readRepoFile("skills/deft-directive-setup/SKILL.md");
@@ -101,24 +177,43 @@ describe("test_deterministic_questions", () => {
     expect(text).toContain("Infer deterministic answers from host-added letters");
   });
   it("each_affected_skill_cross_references_contract", () => {
-    const missing = [];
+    const missing: string[] = [];
     for (const rel of AFFECTED_SKILLS) {
-      const p = rel;
-      const text = readRepoFile(p);
+      const text = readRepoFile(rel);
       if (!text.includes("contracts/deterministic-questions.md")) {
+        missing.push(rel);
       }
     }
-    expect(missing.length).toBe(0);
+    expect(missing).toEqual([]);
   });
   it("each_affected_skill_documents_discuss_back", () => {
-    const missing = [];
+    const missing: string[] = [];
     for (const rel of AFFECTED_SKILLS) {
-      const p = rel;
-      const text = readRepoFile(p);
+      const text = readRepoFile(rel);
       if (!text.includes("Discuss") || !text.includes("Back")) {
+        missing.push(rel);
       }
     }
-    expect(missing.length).toBe(0);
+    expect(missing).toEqual([]);
+  });
+  it("each_affected_skill_numbered_menus_end_discuss_back", () => {
+    const failures: string[] = [];
+    let scanned = 0;
+    for (const rel of AFFECTED_SKILLS) {
+      const text = readRepoFile(rel);
+      const menus = extractNumberedMenus(text);
+      for (const menu of menus) {
+        // Only menus that carry both hatch controls — not strategy catalogs
+        // that happen to name a "discuss" mode, and not skill rule lists.
+        if (!(menu.some(isDiscussOption) && menu.some(isBackOption))) continue;
+        scanned += 1;
+        if (!finalTwoAreDiscussBack(menu)) {
+          failures.push(`${rel}: ${menu.join(" | ")}`);
+        }
+      }
+    }
+    expect(scanned).toBeGreaterThan(0);
+    expect(failures).toEqual([]);
   });
   it("glossary_has_deterministic_mode_entry", () => {
     const glossary = readRepoFile("glossary.md");
