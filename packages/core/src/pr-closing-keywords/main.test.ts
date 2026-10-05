@@ -847,6 +847,73 @@ describe("full-story mark admission shapes (#4919)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("refuses Path B activation when a nonterminal brief is also deleted (#5388 Greptile P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-path-b-delete-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "keep.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "keep",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5373",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const files = [
+      { status: "added", path: "xbrief/active/keep.xbrief.json" },
+      { status: "removed", path: "xbrief/active/other.xbrief.json" },
+    ];
+    expect(isBriefLandShapedDiff(files)).toBe(true);
+    const result = evaluateFullStoryMarkAdmission({
+      bodyText: "deft-story: 5373\n",
+      prNumber: 5388,
+      projectRoot: root,
+      repo: "deftai/directive",
+      files,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.messages.join("\n")).toMatch(/deleted nonterminal/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("refuses Path B activation when an extra deft-story mark has no changed brief (#5388 Greptile P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-path-b-extra-mark-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "activation",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5373",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateFullStoryMarkAdmission({
+      bodyText: "deft-story: 5373\ndeft-story: 9999\n",
+      prNumber: 5388,
+      projectRoot: root,
+      repo: "deftai/directive",
+      files: [{ status: "modified", path: "xbrief/active/story.xbrief.json" }],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.messages.join("\n")).toMatch(/9999/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("refuses unset + packages/ mixed product path (#5387)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-path-b-mixed-"));
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });

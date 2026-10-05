@@ -328,10 +328,27 @@ function bindChangedBriefPath(args: {
   }
 }
 
+/** Nonterminal brief paths with status=removed (activation must not skip these). */
+function removedNonterminalBriefPaths(files: readonly PrDiffPath[]): string[] {
+  const out: string[] = [];
+  for (const file of files) {
+    const p = normalizeDiffPath(file.path);
+    if (!/^(xbrief|vbrief)\/(proposed|pending|active)\//.test(p)) {
+      continue;
+    }
+    if (file.status.toLowerCase() === "removed") {
+      out.push(p);
+    }
+  }
+  return out;
+}
+
 /**
  * Path B activation admit witness (#5387): brief-land shape + deft-story covers
  * each changed nonterminal + productPullRequest key absent on every changed brief.
  * Short-circuits both stamp gates when true. Malformed stamps are not unset.
+ * Refuses when the diff also deletes a nonterminal brief, and when a deft-story
+ * mark has no matching changed brief (Greptile P1 on #5388).
  */
 function evaluatePathBActivationAdmit(args: {
   readonly bodyText: string | null;
@@ -343,6 +360,15 @@ function evaluatePathBActivationAdmit(args: {
   if (!isBriefLandShapedDiff(args.files) || args.prNumber === null) {
     return { ok: false, detail: "not brief-land shaped" };
   }
+  const removedNonterminal = removedNonterminalBriefPaths(args.files);
+  if (removedNonterminal.length > 0) {
+    return {
+      ok: false,
+      detail:
+        `Path B activation refuses deleted nonterminal brief(s): ${removedNonterminal.join(", ")} ` +
+        "(use leftover-shaped land or keep the brief)",
+    };
+  }
   const changedNonterminal = changedNonterminalBriefPaths(args.files);
   if (changedNonterminal.length === 0) {
     return { ok: false, detail: "no nonterminal brief land" };
@@ -351,6 +377,7 @@ function evaluatePathBActivationAdmit(args: {
   if (marks.length === 0) {
     return { ok: false, detail: "missing deft-story marks" };
   }
+  const coveredIssues = new Set<number>();
   for (const relPath of changedNonterminal) {
     const full = join(args.projectRoot, relPath);
     if (!existsSync(full)) {
@@ -382,6 +409,9 @@ function evaluatePathBActivationAdmit(args: {
           detail: `changed brief ${relPath} has no issue ref for ${args.repo}`,
         };
       }
+      for (const n of matchedIssues) {
+        coveredIssues.add(n);
+      }
       if (!matchedIssues.some((n) => marks.includes(n))) {
         return {
           ok: false,
@@ -392,6 +422,14 @@ function evaluatePathBActivationAdmit(args: {
       return {
         ok: false,
         detail: `changed brief ${relPath}: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+  for (const issue of marks) {
+    if (!coveredIssues.has(issue)) {
+      return {
+        ok: false,
+        detail: `deft-story: ${String(issue)} has no matching changed nonterminal brief on Path B activation`,
       };
     }
   }
@@ -426,6 +464,14 @@ export function evaluateFullStoryMarkAdmission(args: {
   const activation = evaluatePathBActivationAdmit(args);
   if (activation.ok) {
     return { ok: true, messages: [activation.detail] };
+  }
+  // Hard-fail Greptile #5388 gates (deleted nonterminal / unbound deft-story mark).
+  // Other activation misses (e.g. stamped productPullRequest) fall through to product gates.
+  if (
+    activation.detail.startsWith("Path B activation refuses deleted") ||
+    activation.detail.includes("has no matching changed nonterminal brief on Path B activation")
+  ) {
+    return { ok: false, messages: [`FAIL: ${activation.detail}`] };
   }
   const changedNonterminal = changedNonterminalBriefPaths(args.files);
   if (changedNonterminal.length === 0 || args.prNumber === null) {
