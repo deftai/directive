@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Leftover-complete #1589 after #5315 floor exception.** Prefer-A Bound advise reconstruct + drift guard completed xBRIEF landed; enforce follow-up remains on #5350.
+- **Complete the #1589 scope brief after product #5315.** Move the active reconstruct and drift-guard brief into `xbrief/completed/` so orphan tracking clears. Enforce-mode work continues on #5350.
 
 - chore(xbrief): widen #1164 file_scope to include docs/RULE-MAP.md (Path B precommitment for product land).
 
