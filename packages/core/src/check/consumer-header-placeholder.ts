@@ -583,4 +583,3 @@ export function enforceConsumerHeaderPlaceholderWhenProductEvidence(
   }
   return enforceConsumerHeaderPlaceholderAtCompletionChokepoint(projectRoot, seams);
 }
-
