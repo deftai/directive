@@ -233,6 +233,46 @@ function readDurableSpec(projectRoot: string): Record<string, unknown> | null {
   }
 }
 
+/** Collect requirement id/ref strings from durable SPEC plan.requirements / metadata. */
+function listDurableRequirementRefs(projectRoot: string): string[] {
+  const data = readDurableSpec(projectRoot);
+  if (data === null || !isRecord(data.plan)) return [];
+  const plan = data.plan;
+  const out: string[] = [];
+  const push = (value: unknown): void => {
+    if (typeof value === "string" && value.trim().length > 0) out.push(value.trim());
+    else if (isRecord(value)) {
+      if (typeof value.id === "string" && value.id.trim().length > 0) out.push(value.id.trim());
+      else if (typeof value.ref === "string" && value.ref.trim().length > 0)
+        out.push(value.ref.trim());
+    }
+  };
+  if (Array.isArray(plan.requirements)) {
+    for (const row of plan.requirements) push(row);
+  }
+  const metadata = isRecord(plan.metadata) ? plan.metadata : null;
+  if (metadata !== null && Array.isArray(metadata.requirement_ids)) {
+    for (const row of metadata.requirement_ids) push(row);
+  }
+  return [...new Set(out)];
+}
+
+export function durableSpecHasRequirementRefs(projectRoot: string): boolean {
+  return listDurableRequirementRefs(projectRoot).length > 0;
+}
+
+/** Intersect completing item ids with durable SPEC requirement refs when present. */
+export function extractAffectedRequirementRefs(
+  projectRoot: string,
+  coveredItemIds: readonly string[],
+): string[] {
+  const refs = listDurableRequirementRefs(projectRoot);
+  if (refs.length === 0) return [];
+  const idSet = new Set(coveredItemIds.map(String));
+  const hit = refs.filter((r) => idSet.has(r));
+  return hit.length > 0 ? hit : [];
+}
+
 /** Stable baseline revision: metadata when present, requirements-content-bound. */
 export function resolveBaselineRevision(projectRoot: string): string | null {
   try {
@@ -401,6 +441,8 @@ export interface RewriteProofInput {
   readonly afterFingerprint: string | null;
   readonly existingCoverage: readonly SpecDriftCoverageRecord[];
   readonly affectedRequirementRefs?: readonly string[];
+  /** When true, empty affected refs fail (SPEC exposes requirements). */
+  readonly requireAffectedRefs?: boolean;
 }
 
 export type RewriteProofResult =
@@ -449,6 +491,16 @@ export function evaluateRewriteProof(input: RewriteProofInput): RewriteProofResu
       reason: "rewrite proof failed: no covered item ids for delta|new completion",
     };
   }
+  const affected = [...(input.affectedRequirementRefs ?? [])];
+  // Whole-SPEC fingerprint churn alone must not prove an unrelated scope's coverage
+  // when the durable SPEC exposes requirement refs (#5350 limb 4 / Greptile P1).
+  if (affected.length === 0 && input.requireAffectedRefs === true) {
+    return {
+      ok: false,
+      reason:
+        "rewrite proof failed: affected requirement refs required when durable SPEC has requirements (unrelated whole-SPEC churn is not coverage)",
+    };
+  }
   return {
     ok: true,
     record: {
@@ -456,7 +508,7 @@ export function evaluateRewriteProof(input: RewriteProofInput): RewriteProofResu
       coveredItemIds: [...input.coveredItemIds],
       beforeRequirementsFingerprint: before,
       afterRequirementsFingerprint: after,
-      affectedRequirementRefs: [...(input.affectedRequirementRefs ?? [])],
+      affectedRequirementRefs: affected,
       recordedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
       source: "rewrite",
     },
@@ -671,7 +723,11 @@ function withLedgerLock<T>(projectRoot: string, enforcement: SpecGuardEnforcemen
 export function writeSpecDriftLedger(
   projectRoot: string,
   ledger: SpecDriftLedger,
-  options: { readonly enforcement?: SpecGuardEnforcement } = {},
+  options: {
+    readonly enforcement?: SpecGuardEnforcement;
+    /** Caller already holds withLedgerLock (full RMW). */
+    readonly alreadyLocked?: boolean;
+  } = {},
 ): string {
   const root = resolve(projectRoot);
   const abs = resolveAuditPath(root, SPEC_DRIFT_LEDGER_NAME);
@@ -685,7 +741,7 @@ export function writeSpecDriftLedger(
     lastRequirementsFingerprint: ledger.lastRequirementsFingerprint,
     cutoverBoundary: ledger.cutoverBoundary,
   };
-  return withLedgerLock(root, enforcement, () => {
+  const write = (): string => {
     containedWrite({
       root,
       target: rel,
@@ -693,7 +749,11 @@ export function writeSpecDriftLedger(
       mode: existsSync(abs) ? "replace" : "create",
     });
     return abs;
-  });
+  };
+  if (options.alreadyLocked === true || enforcement !== "enforce") {
+    return write();
+  }
+  return withLedgerLock(root, enforcement, write);
 }
 
 /** Seed or reseed the drift ledger from the live durable SPEC baseline (#5350 limb 7). */
@@ -723,6 +783,18 @@ export function seedSpecDriftLedger(
       message: "spec-drift ledger already present — pass --reseed to replace (records cutover)",
       baselineRevision,
     };
+  }
+  if (existing && options.reseed === true) {
+    const prior = readLedger(root);
+    if (prior.unresolved.length > 0) {
+      return {
+        ok: false,
+        message:
+          `spec-drift reseed refused: ${prior.unresolved.length} unresolved completion(s) remain — ` +
+          "resolve coverage before reseeding (reseed must not erase known drift)",
+        baselineRevision,
+      };
+    }
   }
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   const ledger: SpecDriftLedger = {
@@ -803,10 +875,21 @@ export function evaluateSpecDrift(projectRoot: string): SpecDriftResult {
 
   if (!hasLedgerFile(root)) {
     // Under enforce, empty advise-era absence is unassessable until seed/cutover.
+    // Under shadow, same state is a warning only — must not fail CI (#5350 limb 2/3).
     const msg =
       enforcement === "enforce"
         ? "verify:spec-drift: drift ledger missing under enforce — unassessable until seed/reseed or reconstruct (empty advise ledger is not proven)"
         : "verify:spec-drift: drift ledger missing — coverage unknown until scope-complete records or an operator seeds the ledger";
+    if (enforcement === "shadow") {
+      return {
+        code: 0,
+        state: "unassessable",
+        message: `verify:spec-drift shadow warning: ${msg}`,
+        findings: [],
+        baselineRevision,
+        guard,
+      };
+    }
     return {
       code: 2,
       state: "unassessable",
@@ -841,13 +924,37 @@ export function evaluateSpecDrift(projectRoot: string): SpecDriftResult {
 
   if (ledger.unresolved.length > 0) {
     if (ledger.baselineRevision !== null && ledger.baselineRevision !== baselineRevision) {
+      const driftMsg =
+        `verify:spec-drift: unresolved drift remains after baseline moved ` +
+        `(ledger=${ledger.baselineRevision} live=${baselineRevision}); ` +
+        `registry/render-only touches do not clear requirements/delta coverage`;
+      if (enforcement === "shadow") {
+        return {
+          code: 0,
+          state: "drift",
+          message: `verify:spec-drift shadow warning: ${driftMsg}`,
+          findings: ledger.unresolved,
+          baselineRevision,
+          guard,
+          shadowFindings: ledger.shadowFindings,
+        };
+      }
       return {
         code: 1,
         state: "drift",
-        message:
-          `verify:spec-drift: unresolved drift remains after baseline moved ` +
-          `(ledger=${ledger.baselineRevision} live=${baselineRevision}); ` +
-          `registry/render-only touches do not clear requirements/delta coverage`,
+        message: driftMsg,
+        findings: ledger.unresolved,
+        baselineRevision,
+        guard,
+        shadowFindings: ledger.shadowFindings,
+      };
+    }
+    const unresolvedMsg = `verify:spec-drift: ${ledger.unresolved.length} unresolved completion(s) lack requirements/delta coverage`;
+    if (enforcement === "shadow") {
+      return {
+        code: 0,
+        state: "drift",
+        message: `verify:spec-drift shadow warning: ${unresolvedMsg}`,
         findings: ledger.unresolved,
         baselineRevision,
         guard,
@@ -857,7 +964,7 @@ export function evaluateSpecDrift(projectRoot: string): SpecDriftResult {
     return {
       code: 1,
       state: "drift",
-      message: `verify:spec-drift: ${ledger.unresolved.length} unresolved completion(s) lack requirements/delta coverage`,
+      message: unresolvedMsg,
       findings: ledger.unresolved,
       baselineRevision,
       guard,
@@ -866,11 +973,23 @@ export function evaluateSpecDrift(projectRoot: string): SpecDriftResult {
   }
 
   if (ledger.baselineRevision === null) {
+    const unsetMsg =
+      "verify:spec-drift: ledger present but baselineRevision unset — seed baseline before claiming clean";
+    if (enforcement === "shadow") {
+      return {
+        code: 0,
+        state: "unassessable",
+        message: `verify:spec-drift shadow warning: ${unsetMsg}`,
+        findings: [],
+        baselineRevision,
+        guard,
+        shadowFindings: ledger.shadowFindings,
+      };
+    }
     return {
       code: 2,
       state: "unassessable",
-      message:
-        "verify:spec-drift: ledger present but baselineRevision unset — seed baseline before claiming clean",
+      message: unsetMsg,
       findings: [],
       baselineRevision,
       guard,
@@ -878,10 +997,22 @@ export function evaluateSpecDrift(projectRoot: string): SpecDriftResult {
     };
   }
 
+  const mismatchMsg = `verify:spec-drift: ledger baseline ${ledger.baselineRevision} does not match live ${baselineRevision}`;
+  if (enforcement === "shadow") {
+    return {
+      code: 0,
+      state: "drift",
+      message: `verify:spec-drift shadow warning: ${mismatchMsg}`,
+      findings: [],
+      baselineRevision,
+      guard,
+      shadowFindings: ledger.shadowFindings,
+    };
+  }
   return {
     code: 1,
     state: "drift",
-    message: `verify:spec-drift: ledger baseline ${ledger.baselineRevision} does not match live ${baselineRevision}`,
+    message: mismatchMsg,
     findings: [],
     baselineRevision,
     guard,
@@ -919,6 +1050,24 @@ export function gateScopeCompleteSpecDrift(
     return { ok: true, message: "", enforcement, finding: null, shadowFinding: null };
   }
 
+  // Limb 7: empty advise ledger is not proven under enforce.
+  if (enforcement === "enforce" && !hasLedgerFile(root)) {
+    return {
+      ok: false,
+      message:
+        "scope:complete refused under specGuard enforce: drift ledger missing — unassessable until seed/reseed (empty advise ledger is not proven)",
+      enforcement,
+      finding: {
+        scopeId: scopeIdFrom(scopeData, scopeRelPath),
+        reason: "drift ledger missing under enforce",
+        specImpact: null,
+        completedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+        uncoveredItemIds: [],
+      },
+      shadowFinding: null,
+    };
+  }
+
   const coverage = evaluateCompletionCoverage(scopeData, scopeRelPath, enforcement);
   const scopeId = scopeIdFrom(scopeData, scopeRelPath);
   const baselineRevision = resolveBaselineRevision(root);
@@ -928,13 +1077,29 @@ export function gateScopeCompleteSpecDrift(
 
   let finding = coverage.finding;
 
+  // Override hatch may discharge uncovered (missing impact) item ids (#5350 limb 5).
+  if (finding !== null && finding.uncoveredItemIds.length > 0 && baselineRevision !== null) {
+    const grant = findLiveSpecDriftOverrideGrant(
+      root,
+      scopeId,
+      finding.uncoveredItemIds,
+      baselineRevision,
+    );
+    if (grant !== null) {
+      finding = null;
+    }
+  }
+
   if (finding === null && coverage.needsRewriteProof) {
+    const affected = extractAffectedRequirementRefs(root, coverage.deltaOrNewItemIds);
     const proof = evaluateRewriteProof({
       scopeId,
       coveredItemIds: coverage.deltaOrNewItemIds,
       beforeFingerprint: beforeFp,
       afterFingerprint: afterFp,
       existingCoverage: ledger.coverage,
+      affectedRequirementRefs: affected,
+      requireAffectedRefs: durableSpecHasRequirementRefs(root),
     });
     if (!proof.ok) {
       // Override hatch (enforce only for refuse relief; shadow still warns).
@@ -1021,30 +1186,22 @@ export function recordScopeCompleteDrift(
     return recordAdvisePath(root, scopeData, scopeRelPath, scopeId, baselineRevision);
   }
 
-  const coverage = evaluateCompletionCoverage(scopeData, scopeRelPath, enforcement);
-  const ledger = readLedger(root);
-  const beforeFp = ledger.lastRequirementsFingerprint;
+  const mutate = (): SpecDriftFinding | null => {
+    const coverage = evaluateCompletionCoverage(scopeData, scopeRelPath, enforcement);
+    const ledger = readLedger(root);
+    const beforeFp = ledger.lastRequirementsFingerprint;
 
-  let coverageRecords = [...ledger.coverage];
-  let unresolved = ledger.unresolved.filter((f) => f.scopeId !== scopeId);
-  let shadowFindings = ledger.shadowFindings.filter((f) => f.scopeId !== scopeId);
-  let finding: SpecDriftFinding | null = coverage.finding;
+    let coverageRecords = [...ledger.coverage];
+    let unresolved = ledger.unresolved.filter((f) => f.scopeId !== scopeId);
+    let shadowFindings = ledger.shadowFindings.filter((f) => f.scopeId !== scopeId);
+    let finding: SpecDriftFinding | null = coverage.finding;
 
-  if (finding === null && coverage.needsRewriteProof) {
-    const proof = evaluateRewriteProof({
-      scopeId,
-      coveredItemIds: coverage.deltaOrNewItemIds,
-      beforeFingerprint: beforeFp,
-      afterFingerprint: afterFp,
-      existingCoverage: coverageRecords,
-    });
-    if (proof.ok) {
-      coverageRecords = [...coverageRecords.filter((c) => c.scopeId !== scopeId), proof.record];
-    } else if (baselineRevision !== null) {
+    // Override hatch may discharge uncovered (missing impact) item ids.
+    if (finding !== null && finding.uncoveredItemIds.length > 0 && baselineRevision !== null) {
       const grant = findLiveSpecDriftOverrideGrant(
         root,
         scopeId,
-        coverage.deltaOrNewItemIds,
+        finding.uncoveredItemIds,
         baselineRevision,
       );
       if (grant !== null) {
@@ -1053,7 +1210,7 @@ export function recordScopeCompleteDrift(
           ...coverageRecords.filter((c) => c.scopeId !== scopeId),
           {
             scopeId,
-            coveredItemIds: [...coverage.deltaOrNewItemIds],
+            coveredItemIds: [...finding.uncoveredItemIds],
             beforeRequirementsFingerprint: beforeFp ?? "override",
             afterRequirementsFingerprint: afterFp ?? "override",
             affectedRequirementRefs: [],
@@ -1062,6 +1219,54 @@ export function recordScopeCompleteDrift(
             grantId: grant.id,
           },
         ];
+        finding = null;
+      }
+    }
+
+    if (finding === null && coverage.needsRewriteProof) {
+      const affected = extractAffectedRequirementRefs(root, coverage.deltaOrNewItemIds);
+      const proof = evaluateRewriteProof({
+        scopeId,
+        coveredItemIds: coverage.deltaOrNewItemIds,
+        beforeFingerprint: beforeFp,
+        afterFingerprint: afterFp,
+        existingCoverage: coverageRecords,
+        affectedRequirementRefs: affected,
+        requireAffectedRefs: durableSpecHasRequirementRefs(root),
+      });
+      if (proof.ok) {
+        coverageRecords = [...coverageRecords.filter((c) => c.scopeId !== scopeId), proof.record];
+      } else if (baselineRevision !== null) {
+        const grant = findLiveSpecDriftOverrideGrant(
+          root,
+          scopeId,
+          coverage.deltaOrNewItemIds,
+          baselineRevision,
+        );
+        if (grant !== null) {
+          markGrantUsed(root, grant.id);
+          coverageRecords = [
+            ...coverageRecords.filter((c) => c.scopeId !== scopeId),
+            {
+              scopeId,
+              coveredItemIds: [...coverage.deltaOrNewItemIds],
+              beforeRequirementsFingerprint: beforeFp ?? "override",
+              afterRequirementsFingerprint: afterFp ?? "override",
+              affectedRequirementRefs: affected,
+              recordedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+              source: "override",
+              grantId: grant.id,
+            },
+          ];
+        } else {
+          finding = {
+            scopeId,
+            reason: proof.reason,
+            specImpact: "delta",
+            completedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+            uncoveredItemIds: [...coverage.deltaOrNewItemIds],
+          };
+        }
       } else {
         finding = {
           scopeId,
@@ -1071,47 +1276,46 @@ export function recordScopeCompleteDrift(
           uncoveredItemIds: [...coverage.deltaOrNewItemIds],
         };
       }
-    } else {
-      finding = {
-        scopeId,
-        reason: proof.reason,
-        specImpact: "delta",
-        completedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
-        uncoveredItemIds: [...coverage.deltaOrNewItemIds],
-      };
     }
-  }
 
-  if (finding !== null) {
-    if (enforcement === "shadow") {
-      shadowFindings = [...shadowFindings, finding];
-    } else {
-      unresolved = [...unresolved, finding];
+    if (finding !== null) {
+      if (enforcement === "shadow") {
+        shadowFindings = [...shadowFindings, finding];
+      } else {
+        unresolved = [...unresolved, finding];
+      }
     }
-  }
 
-  const next: SpecDriftLedger = {
-    baselineRevision: ledger.baselineRevision ?? baselineRevision,
-    unresolved,
-    coverage: coverageRecords,
-    shadowFindings,
-    lastRequirementsFingerprint: afterFp ?? ledger.lastRequirementsFingerprint,
-    cutoverBoundary: ledger.cutoverBoundary,
+    const next: SpecDriftLedger = {
+      baselineRevision: ledger.baselineRevision ?? baselineRevision,
+      unresolved,
+      coverage: coverageRecords,
+      shadowFindings,
+      lastRequirementsFingerprint: afterFp ?? ledger.lastRequirementsFingerprint,
+      cutoverBoundary: ledger.cutoverBoundary,
+    };
+
+    // Do not seed a brand-new empty ledger from a covered completion alone (advise-era rule).
+    if (finding === null && !hasLedgerFile(root) && coverageRecords.length === 0) {
+      return null;
+    }
+    if (!hasLedgerFile(root) && finding === null && coverageRecords.length === 0) {
+      return null;
+    }
+
+    writeSpecDriftLedger(root, next, {
+      enforcement,
+      alreadyLocked: enforcement === "enforce",
+    });
+    return enforcement === "shadow" ? null : finding;
   };
 
-  // Do not seed a brand-new empty ledger from a covered completion alone (advise-era rule).
-  if (finding === null && !hasLedgerFile(root) && coverageRecords.length === 0) {
-    return null;
+  // Limb 7: under enforce, lock the full read-modify-write so concurrent completions
+  // cannot overwrite each other's coverage/findings.
+  if (enforcement === "enforce") {
+    return withLedgerLock(root, enforcement, mutate);
   }
-  if (!hasLedgerFile(root) && finding === null && coverageRecords.length === 0) {
-    return null;
-  }
-  if (!hasLedgerFile(root) && finding === null) {
-    // Coverage recorded implies ledger should exist under shadow/enforce.
-  }
-
-  writeSpecDriftLedger(root, next, { enforcement });
-  return enforcement === "shadow" ? null : finding;
+  return mutate();
 }
 
 function recordAdvisePath(

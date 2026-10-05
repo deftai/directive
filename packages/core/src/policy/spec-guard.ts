@@ -555,18 +555,63 @@ export function promoteSpecGuardDriftEnforcement(
       return { changed: true };
     });
 
-    if (to === "shadow") {
-      writeSpecGuardShadowAttestation(projectRoot, {
-        startedAt: stampedAt,
-        endedAt: null,
-        actor,
-        fromEnforcement: from,
-      });
-    } else if (to === "enforce" && attestation !== null) {
-      writeSpecGuardShadowAttestation(projectRoot, {
-        ...attestation,
-        endedAt: stampedAt,
-      });
+    try {
+      if (to === "shadow") {
+        writeSpecGuardShadowAttestation(projectRoot, {
+          startedAt: stampedAt,
+          endedAt: null,
+          actor,
+          fromEnforcement: from,
+        });
+      } else if (to === "enforce" && attestation !== null) {
+        writeSpecGuardShadowAttestation(projectRoot, {
+          ...attestation,
+          endedAt: stampedAt,
+        });
+      }
+    } catch (attestationErr) {
+      // Attestation failure after policy persist must not leave shadow active
+      // without a recorded attestation (advise→enforce skip hatch).
+      if (changed) {
+        try {
+          withProjectDefinitionMutation(projectRoot, (mutation) => {
+            const data = mutation.load();
+            const plan = data.plan as Record<string, unknown>;
+            migrateLegacyPolicyKey(plan);
+            const policyBlock = plan[PLAN_POLICY_KEY] as Record<string, unknown>;
+            const prevGuard =
+              typeof policyBlock.specGuard === "object" &&
+              policyBlock.specGuard !== null &&
+              !Array.isArray(policyBlock.specGuard)
+                ? (policyBlock.specGuard as Record<string, unknown>)
+                : {};
+            const prevDrift =
+              typeof prevGuard.driftGuard === "object" &&
+              prevGuard.driftGuard !== null &&
+              !Array.isArray(prevGuard.driftGuard)
+                ? (prevGuard.driftGuard as Record<string, unknown>)
+                : {};
+            policyBlock.specGuard = {
+              ...prevGuard,
+              driftGuard: {
+                ...prevDrift,
+                enforcement: from,
+              },
+            };
+            mutation.persist(data);
+            return { changed: true };
+          });
+        } catch {
+          /* best-effort rollback */
+        }
+      }
+      return {
+        exitCode: 2,
+        stdout: `specGuard promote failed (attestation): ${String(attestationErr)}\n`,
+        changed: false,
+        from,
+        to,
+      };
     }
 
     const note = options.note?.replace(/\n/g, " ").replace(/\r/g, " ") ?? "";

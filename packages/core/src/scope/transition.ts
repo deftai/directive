@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import {
   enforceConsumerHeaderPlaceholderAtCompletionChokepoint,
   enforceConsumerHeaderPlaceholderWhenProductEvidence,
@@ -28,12 +28,16 @@ import {
 } from "../lifecycle/completed-tracked-on-delivery.js";
 import type { LiteralAcceptanceRunner } from "../literal-acceptance/index.js";
 import type { IssueRef } from "../orphan-active/refs.js";
+import { resolveSpecGuard } from "../policy/spec-guard.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import type { GitRunner } from "../session/git.js";
 import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
 import { validateFilename } from "../vbrief-validate/filename.js";
 import { readAcceptanceClauses } from "../verify-ac/clauses.js";
-import { gateScopeCompleteSpecDrift } from "../verify-source/spec-drift.js";
+import {
+  gateScopeCompleteSpecDrift,
+  recordScopeCompleteDrift,
+} from "../verify-source/spec-drift.js";
 import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
 import {
   type CriterionAcceptanceReport,
@@ -587,6 +591,29 @@ export function runTransition(
               /* dest rollback after marker failure */
             }
             return { ok: false, message: SESSION_COMPLETED_AC_REMEDIATION };
+          }
+        }
+        // #5350: under enforce, record drift BEFORE unlinking active so a ledger
+        // write failure cannot leave a completed brief without its required record.
+        const enforceGuard = resolveSpecGuard(projectRoot, { hasSpecification: true });
+        if (enforceGuard.enabled && enforceGuard.driftGuard.enforcement === "enforce") {
+          try {
+            recordScopeCompleteDrift(
+              projectRoot,
+              data,
+              relative(projectRoot, destPath).replace(/\\/g, "/"),
+            );
+          } catch (err: unknown) {
+            try {
+              unlinkSync(destPath);
+            } catch {
+              /* dest rollback after enforce ledger failure */
+            }
+            return {
+              ok: false,
+              message: `spec-drift ledger write failed under enforce: ${String(err)}`,
+              acceptanceReports,
+            };
           }
         }
       }
