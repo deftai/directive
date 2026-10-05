@@ -97,5 +97,13 @@ describe("interview progress checkpoints (#5353)", () => {
     expect(p2).toContain("do not remove Rule 8 or switch to yolo");
     expect(p3).toContain("addition-with-reason");
     expect(p3).toContain("do not remove Rule 8 or switch to yolo");
+    // Phase 3 entry (before Strategy Gate) carries checkpoint duty too
+    const phase3Start = text.indexOf("## Phase 3 — Specification");
+    const onboarding = text.indexOf("### Onboarding Question", phase3Start);
+    expect(phase3Start).not.toBe(-1);
+    expect(onboarding).not.toBe(-1);
+    const phase3Entry = text.slice(phase3Start, onboarding);
+    expect(phase3Entry).toContain("Progress checkpoints (#5353) — Phase 3 entry");
+    expect(phase3Entry).toContain("before Onboarding / Strategy Gate");
   });
 });

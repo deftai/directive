@@ -686,6 +686,8 @@ omit = [
 
 **Goal:** Generate an implementable spec using the strategy chosen in Phase 2, producing scope xBRIEFs in `xbrief/proposed/` and PROJECT-DEFINITION narratives for human approval — greenfield v0.20 does not create `specification.xbrief.json`.
 
+! **Progress checkpoints (#5353) — Phase 3 entry:** On Phase 3 entry (before Onboarding / Strategy Gate / strategy-dispatched interview), emit a Rule 2 status-only progress checkpoint naming current phase and remaining material decision areas for this phase. The same closed-trigger duty continues on the interview strategy path under Interview Process and on non-interview strategy workflows after dispatch. Progress status is not a second question.
+
 ! **Path Resolution Anchor**: Same rule as Phase 2 -- resolve ALL paths relative to the user's pwd at skill entry, never relative to the skill file, AGENTS.md, or any framework directory.
 
 ! When this setup run performs Phase 2, Phase 3 waits for the successful identity write (`deft project:write-narratives`) (#4660). Do not emit a proposed work brief before that write succeeds.
