@@ -31,6 +31,15 @@ function assertNoPrdApprovalGate(surface: string, text: string): void {
   expect(text, surface).not.toContain('P -->|"Approved"| S');
   expect(text, surface).not.toContain("PRD<br/><i>What to build</i>");
   expect(text, surface).not.toContain("Brief summary and link to PRD.");
+  // Shared Light+Full optional-export edge is forbidden (#5354).
+  expect(text, surface).not.toContain('PD -. "optional export" .-> R');
+}
+
+function assertWorkflowOverviewPolarity(surface: string, text: string): void {
+  assertNoPrdApprovalGate(surface, text);
+  // Optional PRD export is Full-only in the strategy diagram (#5354).
+  expect(text, surface).toContain("Full only: optional export");
+  expect(text, surface).toContain("PD_F");
 }
 
 function assertNoPromoteOnApproval(surface: string, text: string): void {
@@ -50,7 +59,7 @@ describe("interview PRD authority / promote polarity (#5354)", () => {
     ["rendered strategy", rendered],
   ] as const) {
     it(`${surface} Full path does not instruct PRD-as-approval-gate`, () => {
-      assertNoPrdApprovalGate(surface, text);
+      assertWorkflowOverviewPolarity(surface, text);
       expect(text).toContain("never authoritative");
       expect(text).toContain("task prd:render");
       expect(text).toContain("⊗ Create a separate PRD.md on the Light path");
@@ -89,7 +98,7 @@ describe("interview PRD authority / promote polarity (#5354)", () => {
   it("three-way lock: strategy does not contradict setup/interview polarity", () => {
     const strategySurfaces = [packed, rendered];
     for (const text of strategySurfaces) {
-      assertNoPrdApprovalGate("strategy", text);
+      assertWorkflowOverviewPolarity("strategy", text);
       assertNoPromoteOnApproval("strategy", text);
     }
     expect(setup).toMatch(/authoritative PRD\.md/i);

@@ -295,23 +295,26 @@ flowchart LR
         G{"⚖️ Sizing Gate"}
         I_L["💬 Interview<br/><i>Light path</i>"]
         I_F["💬 Interview<br/><i>Full path</i>"]
-        PD["📋 PROJECT-DEFINITION<br/>+ proposed scopes"]
+        PD_L["📋 PROJECT-DEFINITION<br/>+ proposed (Light)"]
+        PD_F["📋 PROJECT-DEFINITION<br/>+ proposed (Full)"]
         S["📋 SPECIFICATION<br/><i>How to build it</i>"]
         R["📄 PRD.md<br/><i>optional export</i>"]
     end
 
     G -->|"Light"| I_L
     G -->|"Full"| I_F
-    I_L -->|"Ambiguity resolved"| PD
-    I_F -->|"Ambiguity resolved"| PD
-    PD -->|"Accepted (stay proposed)"| S
-    PD -. "optional export" .-> R
+    I_L -->|"Ambiguity resolved"| PD_L
+    I_F -->|"Ambiguity resolved"| PD_F
+    PD_L -->|"Accepted (stay proposed)"| S
+    PD_F -->|"Accepted (stay proposed)"| S
+    PD_F -. "Full only: optional export" .-> R
     S -->|"Ready"| IMPL["🔨 Implementation"]
 
     style G fill:#f0abfc,stroke:#a21caf,color:#000
     style I_L fill:#c4b5fd,stroke:#7c3aed,color:#000
     style I_F fill:#c4b5fd,stroke:#7c3aed,color:#000
-    style PD fill:#fef08a,stroke:#ca8a04,color:#000
+    style PD_L fill:#fef08a,stroke:#ca8a04,color:#000
+    style PD_F fill:#fef08a,stroke:#ca8a04,color:#000
     style R fill:#fde68a,stroke:#d97706,color:#000
     style S fill:#6ee7b7,stroke:#059669,color:#000
     style IMPL fill:#7dd3fc,stroke:#0284c7,color:#000
