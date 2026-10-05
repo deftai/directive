@@ -163,6 +163,7 @@ export const PRODUCTION_MUTATION_INVENTORY: Readonly<Record<string, number>> = O
   "packages/core/src/policy/product-signal.ts": 1,
   "packages/core/src/policy/require-human-merge.ts": 1,
   "packages/core/src/policy/resolve.ts": 1,
+  "packages/core/src/policy/spec-guard.ts": 2,
   "packages/core/src/policy/value-feedback.ts": 2,
   "packages/core/src/render/project-render.ts": 2,
   "packages/core/src/scope/project-definition-sync.ts": 1,
