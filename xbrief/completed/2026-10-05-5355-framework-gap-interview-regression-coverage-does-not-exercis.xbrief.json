@@ -23,7 +23,8 @@
           "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
           "recorded_at": "2026-10-05T05:09:45Z",
           "recorded_by": "Scott"
-        }
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
@@ -34,7 +35,8 @@
           "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
           "recorded_at": "2026-10-05T05:09:45Z",
           "recorded_by": "Scott"
-        }
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
@@ -45,7 +47,8 @@
           "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
           "recorded_at": "2026-10-05T05:09:45Z",
           "recorded_by": "Scott"
-        }
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
@@ -56,7 +59,8 @@
           "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
           "recorded_at": "2026-10-05T05:09:45Z",
           "recorded_by": "Scott"
-        }
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.5",
@@ -67,7 +71,8 @@
           "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
           "recorded_at": "2026-10-05T05:09:45Z",
           "recorded_by": "Scott"
-        }
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.6",
@@ -78,7 +83,8 @@
           "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
           "recorded_at": "2026-10-05T05:09:45Z",
           "recorded_by": "Scott"
-        }
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.7",
@@ -89,7 +95,8 @@
           "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
           "recorded_at": "2026-10-05T05:09:45Z",
           "recorded_by": "Scott"
-        }
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -154,7 +161,8 @@
             "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
             "recorded_at": "2026-10-05T05:09:45Z",
             "recorded_by": "Scott"
-          }
+          },
+          "x-directive/requires": "merge"
         },
         {
           "id": 2,
@@ -167,7 +175,8 @@
             "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
             "recorded_at": "2026-10-05T05:09:45Z",
             "recorded_by": "Scott"
-          }
+          },
+          "x-directive/requires": "merge"
         },
         {
           "id": 3,
@@ -180,7 +189,8 @@
             "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
             "recorded_at": "2026-10-05T05:09:45Z",
             "recorded_by": "Scott"
-          }
+          },
+          "x-directive/requires": "merge"
         },
         {
           "id": 4,
@@ -193,7 +203,8 @@
             "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
             "recorded_at": "2026-10-05T05:09:45Z",
             "recorded_by": "Scott"
-          }
+          },
+          "x-directive/requires": "merge"
         },
         {
           "id": 5,
@@ -206,7 +217,8 @@
             "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
             "recorded_at": "2026-10-05T05:09:45Z",
             "recorded_by": "Scott"
-          }
+          },
+          "x-directive/requires": "merge"
         },
         {
           "id": 6,
@@ -219,7 +231,8 @@
             "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
             "recorded_at": "2026-10-05T05:09:45Z",
             "recorded_by": "Scott"
-          }
+          },
+          "x-directive/requires": "merge"
         },
         {
           "id": 7,
@@ -232,7 +245,8 @@
             "pointer": "4d620356334d93118941cb71bc9d2474b154feb1",
             "recorded_at": "2026-10-05T05:09:45Z",
             "recorded_by": "Scott"
-          }
+          },
+          "x-directive/requires": "merge"
         }
       ],
       "ambiguity_attestation": "none_found"
