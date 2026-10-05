@@ -221,6 +221,20 @@ export function formatRitualRecoveryInstruction(tier: SessionCeremonyTier = "col
 }
 
 /**
+ * Doctor / UNRESOLVED ritual recovery (#5390 / #3738): session:ready cannot
+ * clear a stale ritual doctor stamp; name --rearm (or cold) for this class.
+ */
+export function formatDoctorStaleRitualRecovery(): string {
+  const rearm = formatSessionStartRecoveryCommand("rearm");
+  const cold = formatSessionStartRecoveryCommand("cold");
+  return (
+    `Recovery: run \`${rearm}\` to refresh the ritual doctor stamp ` +
+    `(or \`${cold}\` for a full cold ceremony). ` +
+    "`session:ready` cannot clear a stale ritual doctor stamp (#3738 / #5390)."
+  );
+}
+
+/**
  * Sanctioned audited defer copy for gated `cache_fresh` failure (#3506 / #3507).
  * Independent of the #3507 work-selection argv seam — defer is still the
  * operator-audited escape, not the drift-probe skip.
@@ -452,6 +466,15 @@ function evaluateLoadedState(
     for (const stepName of requiredGated) {
       const step = state.gatedSteps[stepName];
       if (!stepPasses(step)) {
+        // Doctor failures: prefer --rearm; ready cannot clear a stale doctor stamp (#5390 / #3738).
+        if (stepName === "doctor") {
+          return {
+            code: 1,
+            message: `${failedStepMessage("gated", stepName, step)}. ${formatDoctorStaleRitualRecovery()}`,
+            recoveryTier: "rearm",
+            boundSessionId: state.sessionId,
+          };
+        }
         return {
           code: 1,
           message: failedStepMessage("gated", stepName, step),

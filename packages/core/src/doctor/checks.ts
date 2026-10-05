@@ -2,8 +2,14 @@ import { existsSync, lstatSync, readdirSync, readlinkSync, statSync } from "node
 import { dirname, isAbsolute, join, relative, resolve as resolvePath } from "node:path";
 import { VBRIEF_VERSION } from "@deftai/directive-types";
 import { isAgentScratchWorktreePath } from "../fs/non-product-dirs.js";
-import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
+import {
+  CANONICAL_GITIGNORE_BASELINE,
+  looksLikePayload,
+  resolvePayloadSourceVersion,
+  resolveWorktreePayloadSource,
+} from "../init-deposit/gitignore.js";
 import { bareVersionMarkerTargets } from "../init-deposit/hygiene.js";
+import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
   detectDualLayout,
   detectLegacyLayout,
@@ -66,8 +72,11 @@ import {
   parseInstallRootFromAgentsMd,
   parseManifest,
 } from "./manifest.js";
-import { readTextSafe } from "./paths.js";
+import { readTextSafe, runningInsideDeftRepo } from "./paths.js";
 import type { CheckResult, DanglingNodeModulesLink } from "./types.js";
+
+/** Narrow recovery for linked-worktree missing VERSION with agreeing bare (#5390). */
+export const MISSING_MANIFEST_RECONSTITUTE_FIX = "deft session:start" as const;
 
 /** Remediation verb for project envelope behind-major (#2971 / #3243 / #3236). */
 export const XBRIEF_ENVELOPE_MIGRATE_COMMAND = "deft migrate:xbrief" as const;
@@ -127,6 +136,11 @@ export interface CheckSeams {
   readonly isDir?: (path: string) => boolean;
   /** List directory entries; throws on enum failure (fail-closed for live lifecycle dirs). */
   readonly readdir?: (path: string) => string[];
+  /** #5390: linked-worktree eligibility for missing-YAML reconstitution route. */
+  readonly isLinkedWorktree?: (projectRoot: string) => boolean;
+  readonly isFrameworkSource?: (projectRoot: string) => boolean;
+  readonly payloadPresent?: (projectRoot: string) => boolean;
+  readonly resolvePayloadSourceVersion?: (projectRoot: string) => string | null;
 }
 
 /** Dirent-like entry for the bounded dangling-link walk (#3749). */
@@ -1059,6 +1073,48 @@ export function checkManifestAgreement(
     };
   }
   if (manifestText === null) {
+    const bareValue = bareText?.trim().replace(/^v/i, "") ?? null;
+    const linked = (seams.isLinkedWorktree ?? isLinkedWorktreePath)(projectRoot);
+    const framework = (seams.isFrameworkSource ?? runningInsideDeftRepo)(projectRoot);
+    const coreDir = join(projectRoot, ".deft", "core");
+    const payloadOk =
+      seams.payloadPresent?.(projectRoot) ??
+      // Same main.md completeness predicate reconstitution uses (#5390 S2).
+      looksLikePayload(coreDir);
+    const sourceVersion =
+      seams.resolvePayloadSourceVersion?.(projectRoot) ??
+      (() => {
+        const source = resolveWorktreePayloadSource(projectRoot);
+        return source ? resolvePayloadSourceVersion(source) : null;
+      })();
+    const eligibleReconstitute =
+      linked &&
+      !framework &&
+      payloadOk &&
+      bareValue !== null &&
+      bareValue.length > 0 &&
+      sourceVersion !== null &&
+      sourceVersion === bareValue;
+    if (eligibleReconstitute) {
+      return {
+        name: "manifest-agreement",
+        status: "fail",
+        detail:
+          `Bare .deft-version exists at ${barePath} but YAML manifest is missing at ${expectedManifestPath}. ` +
+          `Linked worktree payload is present and bare agrees with recoverable source provenance — ` +
+          `run \`${MISSING_MANIFEST_RECONSTITUTE_FIX}\` so reconstitution writes \`.deft/core/VERSION\` (#5390 / #4443). ` +
+          `If the ritual doctor stamp stays UNRESOLVED after VERSION exists, run \`deft session:start --rearm\` ` +
+          `(session:ready cannot clear that stamp; #3738). Keep \`deft update\` for true skew or absent payload.`,
+        data: {
+          manifest_path: manifestPath,
+          expected_manifest_path: expectedManifestPath,
+          bare_path: barePath,
+          bare_value: bareValue,
+          missing_manifest_reconstitute_eligible: true,
+          suggested_fix: MISSING_MANIFEST_RECONSTITUTE_FIX,
+        },
+      };
+    }
     return {
       name: "manifest-agreement",
       status: "fail",
@@ -1068,6 +1124,7 @@ export function checkManifestAgreement(
         expected_manifest_path: expectedManifestPath,
         bare_path: barePath,
         bare_value: bareText?.trim() ?? null,
+        missing_manifest_reconstitute_eligible: false,
         suggested_fix: "deft update",
       },
     };

@@ -227,8 +227,10 @@ describe("verify-session-ritual failed-step messaging", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("gated step 'doctor' failed");
-    expect(result.message).not.toContain("Recovery: run");
-    expect(result.recoveryTier).toBe("cold");
+    // #5390: doctor stale stamp recovery names --rearm; ready cannot clear it (#3738).
+    expect(result.message).toContain("session:start --rearm");
+    expect(result.message).toContain("session:ready");
+    expect(result.recoveryTier).toBe("rearm");
   });
 
   it("reports gated cache_fresh stale recovery with runnable cache fetch-all (#2574)", () => {

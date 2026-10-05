@@ -482,6 +482,7 @@ describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {
     mkdirSync(payload, { recursive: true });
     writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
     writeFileSync(join(payload, "QUICK-START.md"), "# qs\n", "utf8");
+    writeFileSync(join(payload, "package.json"), JSON.stringify({ version: "0.1.0" }), "utf8");
     writeFileSync(join(payload, "occupancy.json"), '{"stolen":true}\n', "utf8");
     writeFileSync(join(payload, "ritual-state.json"), '{"ready":true}\n', "utf8");
     const result = reconstituteLinkedWorktreeDeposit(project, {
@@ -493,6 +494,7 @@ describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {
     const dest = join(project, ".deft", "core");
     expect(readFileSync(join(dest, "main.md"), "utf8")).toContain("# payload");
     expect(readFileSync(join(dest, "QUICK-START.md"), "utf8")).toContain("# qs");
+    expect(existsSync(join(dest, "VERSION"))).toBe(true);
     expect(existsSync(join(dest, "occupancy.json"))).toBe(false);
     expect(existsSync(join(dest, "ritual-state.json"))).toBe(false);
     expect(existsSync(join(project, ".deft", "occupancy.json"))).toBe(false);
@@ -506,6 +508,7 @@ describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {
     const payload = join(project, "payload");
     mkdirSync(payload, { recursive: true });
     writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
+    writeFileSync(join(payload, "package.json"), JSON.stringify({ version: "0.1.0" }), "utf8");
     const result = reconstituteLinkedWorktreeDeposit(project, {
       isLinkedWorktree: () => true,
       isFrameworkSource: () => false,
@@ -513,6 +516,7 @@ describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {
     });
     expect(result.status).toBe("reconstituted");
     expect(readFileSync(join(dest, "main.md"), "utf8")).toContain("# payload");
+    expect(readFileSync(join(dest, "VERSION"), "utf8")).toContain("tag: 'v0.1.0'");
   });
 
   it.skipIf(process.platform === "win32")(
@@ -551,5 +555,137 @@ describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {
       },
     });
     expect(result.status).toBe("already-present");
+  });
+
+  it("writes VERSION from VERSION-less engine-like source after copy (#5390)", () => {
+    const project = freshRoot("wt-dep-ver-");
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(join(project, "xbrief", ".deft-version"), "1.2.3\n", "utf8");
+    const payload = join(project, "payload");
+    mkdirSync(payload, { recursive: true });
+    writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
+    writeFileSync(join(payload, "package.json"), JSON.stringify({ version: "1.2.3" }), "utf8");
+    const result = reconstituteLinkedWorktreeDeposit(project, {
+      isLinkedWorktree: () => true,
+      isFrameworkSource: () => false,
+      resolvePayloadSource: () => payload,
+      nowIso: () => "2026-10-05T00:00:00Z",
+    });
+    expect(result.status).toBe("reconstituted");
+    expect(result.versionRepaired).toBe(true);
+    const versionPath = join(project, ".deft", "core", "VERSION");
+    const body = readFileSync(versionPath, "utf8");
+    expect(body).toContain("tag: 'v1.2.3'");
+    expect(body).toContain("fetched_by: 'directive-worktree-reconstitute'");
+    expect(body).toContain("sha: 'content-package'");
+    expect(body).toContain("install_root: '.deft/core'");
+  });
+
+  it("repairs already-present missing VERSION when bare agrees (#5390)", () => {
+    const project = freshRoot("wt-dep-repair-");
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(join(project, "xbrief", ".deft-version"), "9.9.9\n", "utf8");
+    const dest = join(project, ".deft", "core");
+    mkdirSync(dest, { recursive: true });
+    writeFileSync(join(dest, "main.md"), "# existing\n", "utf8");
+    const payload = join(project, "payload");
+    mkdirSync(payload, { recursive: true });
+    writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
+    writeFileSync(join(payload, "package.json"), JSON.stringify({ version: "9.9.9" }), "utf8");
+    const result = reconstituteLinkedWorktreeDeposit(project, {
+      isLinkedWorktree: () => true,
+      isFrameworkSource: () => false,
+      resolvePayloadSource: () => payload,
+      nowIso: () => "2026-10-05T00:00:00Z",
+    });
+    expect(result.status).toBe("already-present");
+    expect(result.versionRepaired).toBe(true);
+    expect(readFileSync(join(dest, "VERSION"), "utf8")).toContain(
+      "fetched_by: 'directive-worktree-reconstitute'",
+    );
+  });
+
+  it("refuses bare-only synthesize when bare disagrees with source (#5390)", () => {
+    const project = freshRoot("wt-dep-disagree-");
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(join(project, "xbrief", ".deft-version"), "0.1.0\n", "utf8");
+    const payload = join(project, "payload");
+    mkdirSync(payload, { recursive: true });
+    writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
+    writeFileSync(join(payload, "package.json"), JSON.stringify({ version: "2.0.0" }), "utf8");
+    const result = reconstituteLinkedWorktreeDeposit(project, {
+      isLinkedWorktree: () => true,
+      isFrameworkSource: () => false,
+      resolvePayloadSource: () => payload,
+    });
+    expect(result.status).toBe("reconstituted");
+    expect(result.versionRepaired).toBe(false);
+    expect(existsSync(join(project, ".deft", "core", "VERSION"))).toBe(false);
+  });
+
+  it("refuses ensure-failure instead of reconstituted success (#5390)", () => {
+    const project = freshRoot("wt-dep-ensfail-");
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(join(project, "xbrief", ".deft-version"), "1.0.0\n", "utf8");
+    const payload = join(project, "payload");
+    mkdirSync(payload, { recursive: true });
+    writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
+    // No package.json / VERSION → source version unresolvable after copy.
+    const result = reconstituteLinkedWorktreeDeposit(project, {
+      isLinkedWorktree: () => true,
+      isFrameworkSource: () => false,
+      resolvePayloadSource: () => payload,
+    });
+    expect(result.status).toBe("refused");
+    expect(result.message).toMatch(/cannot resolve payload source version/i);
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "refuses already-present repair through a VERSION symlink (#5390)",
+    () => {
+      const project = freshRoot("wt-dep-versym-");
+      mkdirSync(join(project, "xbrief"), { recursive: true });
+      writeFileSync(join(project, "xbrief", ".deft-version"), "3.3.3\n", "utf8");
+      const dest = join(project, ".deft", "core");
+      mkdirSync(dest, { recursive: true });
+      writeFileSync(join(dest, "main.md"), "# existing\n", "utf8");
+      const escapeTarget = join(project, "escape-version.txt");
+      writeFileSync(escapeTarget, "keep\n", "utf8");
+      symlinkSync(escapeTarget, join(dest, "VERSION"));
+      const payload = join(project, "payload");
+      mkdirSync(payload, { recursive: true });
+      writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
+      writeFileSync(join(payload, "package.json"), JSON.stringify({ version: "3.3.3" }), "utf8");
+      const result = reconstituteLinkedWorktreeDeposit(project, {
+        isLinkedWorktree: () => true,
+        isFrameworkSource: () => false,
+        resolvePayloadSource: () => payload,
+      });
+      expect(result.status).toBe("refused");
+      expect(readFileSync(escapeTarget, "utf8")).toBe("keep\n");
+    },
+  );
+
+  it("leaves an existing valid VERSION unchanged on repeat (#5390)", () => {
+    const project = freshRoot("wt-dep-keepver-");
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(join(project, "xbrief", ".deft-version"), "4.4.4\n", "utf8");
+    const dest = join(project, ".deft", "core");
+    mkdirSync(dest, { recursive: true });
+    writeFileSync(join(dest, "main.md"), "# existing\n", "utf8");
+    const prior =
+      "ref: 'v4.4.4'\nsha: 'prior'\ntag: 'v4.4.4'\ninstall_root: '.deft/core'\n" +
+      "fetched_at: '2020-01-01T00:00:00Z'\nfetched_by: 'directive-update'\n";
+    writeFileSync(join(dest, "VERSION"), prior, "utf8");
+    const result = reconstituteLinkedWorktreeDeposit(project, {
+      isLinkedWorktree: () => true,
+      isFrameworkSource: () => false,
+      resolvePayloadSource: () => {
+        throw new Error("must not resolve source when VERSION valid");
+      },
+    });
+    expect(result.status).toBe("already-present");
+    expect(result.versionRepaired).toBe(false);
+    expect(readFileSync(join(dest, "VERSION"), "utf8")).toBe(prior);
   });
 });

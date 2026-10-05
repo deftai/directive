@@ -15,6 +15,7 @@ import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { CONTENT_PACKAGE_NAME } from "../content-root.js";
 import { assertDepositContained } from "../deposit/contain.js";
+import { manifestTagToVersion, parseManifest } from "../doctor/manifest.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
@@ -25,7 +26,9 @@ import {
   FORBIDDEN_BLANKET_EVAL_LINES,
   stripGitignoreInlineComment,
 } from "../triage/bootstrap/gitignore.js";
-import type { InitDepositIo } from "./scaffold.js";
+import { CANONICAL_INSTALL_ROOT } from "./constants.js";
+import { bareVersionMarkerTargets } from "./hygiene.js";
+import { buildInstallManifestText, type InitDepositIo } from "./scaffold.js";
 
 /** Directory ignore entry for the hybrid deposit (greenfield only). */
 export const GITIGNORE_DEFT_CORE_LINE = ".deft/core/";
@@ -482,11 +485,16 @@ export type WorktreeDepositReconstituteStatus =
   | "skipped"
   | "refused";
 
+/** Stable VERSION `fetched_by` for linked-worktree reconstitution (#5390 S1). */
+export const WORKTREE_RECONSTITUTE_FETCHED_BY = "directive-worktree-reconstitute" as const;
+
 export interface WorktreeDepositReconstituteResult {
   readonly status: WorktreeDepositReconstituteStatus;
   readonly source: string | null;
   readonly dest: string;
   readonly message: string;
+  /** True when this call wrote a missing `.deft/core/VERSION` (#5390). */
+  readonly versionRepaired?: boolean;
 }
 
 export interface WorktreeDepositReconstituteSeams {
@@ -497,6 +505,8 @@ export interface WorktreeDepositReconstituteSeams {
   readonly runGit?: GitRunner;
   /** Reservation path: copy only from primary `.deft/core`, never the engine package. */
   readonly preferPrimaryCore?: boolean;
+  /** Deterministic UTC ISO for VERSION `fetched_at` (tests). */
+  readonly nowIso?: () => string;
 }
 
 const PAYLOAD_ENTRY = "main.md";
@@ -511,7 +521,12 @@ function isRealDirectory(path: string): boolean {
   }
 }
 
-function looksLikePayload(dir: string): boolean {
+/**
+ * Payload presence predicate for reconstitution and doctor eligibility (#5390).
+ * Keys on main.md only — requiring VERSION would disqualify the engine package
+ * source and make the missing-manifest class unreachable.
+ */
+export function looksLikePayload(dir: string): boolean {
   if (!isRealDirectory(dir)) return false;
   try {
     const st = lstatSync(join(dir, PAYLOAD_ENTRY));
@@ -519,6 +534,132 @@ function looksLikePayload(dir: string): boolean {
   } catch {
     return false;
   }
+}
+
+function normalizeVersionToken(raw: string | null | undefined): string | null {
+  if (raw === null || raw === undefined) return null;
+  const trimmed = raw.trim().replace(/^v/i, "");
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function defaultNowIso(): string {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+/** Read bare lifecycle `.deft-version` (first present marker). */
+export function readBareDeftVersionMarker(projectRoot: string): string | null {
+  for (const path of bareVersionMarkerTargets(projectRoot)) {
+    try {
+      const st = lstatSync(path);
+      if (!st.isFile() || st.isSymbolicLink()) continue;
+      return normalizeVersionToken(readFileSync(path, "utf8"));
+    } catch {
+      // try next candidate
+    }
+  }
+  return null;
+}
+
+/**
+ * Version authority for a payload source: package.json, else a present VERSION
+ * tag/ref. Never invents from the bare marker alone (#5390).
+ */
+export function resolvePayloadSourceVersion(sourceRoot: string): string | null {
+  try {
+    const pkgPath = join(sourceRoot, "package.json");
+    const st = lstatSync(pkgPath);
+    if (st.isFile() && !st.isSymbolicLink()) {
+      const parsed: unknown = JSON.parse(readFileSync(pkgPath, "utf8"));
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const version = normalizeVersionToken((parsed as { version?: string }).version);
+        if (version) return version;
+      }
+    }
+  } catch {
+    // Fall through to VERSION.
+  }
+  try {
+    const versionPath = join(sourceRoot, "VERSION");
+    const st = lstatSync(versionPath);
+    if (!st.isFile() || st.isSymbolicLink()) return null;
+    return normalizeVersionToken(
+      manifestTagToVersion(parseManifest(readFileSync(versionPath, "utf8"))),
+    );
+  } catch {
+    return null;
+  }
+}
+
+function versionManifestPresent(destCore: string): boolean {
+  try {
+    const versionPath = join(destCore, "VERSION");
+    const st = lstatSync(versionPath);
+    if (!st.isFile() || st.isSymbolicLink()) return false;
+    return manifestTagToVersion(parseManifest(readFileSync(versionPath, "utf8"))) !== null;
+  } catch {
+    return false;
+  }
+}
+
+type EnsureVersionResult =
+  | { readonly ok: true; readonly repaired: boolean; readonly skippedDisagree: boolean }
+  | { readonly ok: false; readonly message: string };
+
+/**
+ * Write `.deft/core/VERSION` from source-version authority when missing.
+ * Disagree with bare marker → leave absent (no bare-only synthesize).
+ */
+function ensureWorktreeVersionManifest(
+  projectRoot: string,
+  destCore: string,
+  sourceRoot: string | null,
+  seams: WorktreeDepositReconstituteSeams,
+): EnsureVersionResult {
+  if (versionManifestPresent(destCore)) {
+    return { ok: true, repaired: false, skippedDisagree: false };
+  }
+  const versionPath = join(destCore, "VERSION");
+  try {
+    assertNotDestSymlink(versionPath);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, message };
+  }
+  const sourceVersion = sourceRoot ? resolvePayloadSourceVersion(sourceRoot) : null;
+  if (sourceVersion === null) {
+    return {
+      ok: false,
+      message: "cannot resolve payload source version for .deft/core/VERSION",
+    };
+  }
+  const bare = readBareDeftVersionMarker(projectRoot);
+  if (bare !== null && bare !== sourceVersion) {
+    // Disagree: never synthesize from bare alone; leave VERSION absent.
+    return { ok: true, repaired: false, skippedDisagree: true };
+  }
+  try {
+    assertDepositContained(projectRoot, destCore);
+    assertNotDestSymlink(versionPath);
+    const tag = `v${sourceVersion}`;
+    const body = buildInstallManifestText({
+      ref: tag,
+      sha: "content-package",
+      tag,
+      installRoot: CANONICAL_INSTALL_ROOT,
+      fetchedAt: (seams.nowIso ?? defaultNowIso)(),
+      fetchedBy: WORKTREE_RECONSTITUTE_FETCHED_BY,
+    });
+    containedWrite({
+      root: resolve(projectRoot),
+      target: versionPath,
+      data: body,
+      mode: "replace",
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, message };
+  }
+  return { ok: true, repaired: true, skippedDisagree: false };
 }
 
 function resolveEngineContentPackage(): string | null {
@@ -600,9 +741,11 @@ export function copyWorktreePayloadSync(src: string, dst: string): void {
 }
 
 /**
- * Payload-only reconstitution for a linked worktree missing `.deft/core` (#4443).
+ * Payload-only reconstitution for a linked worktree missing `.deft/core` (#4443 / #5390).
  *
  * Copies flattened content into dest `.deft/core` after `assertDepositContained`.
+ * After a successful copy (and on already-present + missing VERSION + agreeing
+ * bare/provenance), ensures `.deft/core/VERSION` via source-version authority.
  * Never copies occupancy/ritual files, never creates a symlink to another tree,
  * and never writes during a framework-source checkout (would flip maintainer mode).
  */
@@ -630,11 +773,50 @@ export function reconstituteLinkedWorktreeDeposit(
     };
   }
   if (looksLikePayload(dest)) {
+    // already-present repair: missing VERSION + bare agrees with recoverable source.
+    if (versionManifestPresent(dest)) {
+      return {
+        status: "already-present",
+        source: null,
+        dest,
+        message: "payload already present",
+        versionRepaired: false,
+      };
+    }
+    const bare = readBareDeftVersionMarker(projectRoot);
+    if (bare === null) {
+      return {
+        status: "already-present",
+        source: null,
+        dest,
+        message: "payload already present",
+        versionRepaired: false,
+      };
+    }
+    const source = resolveWorktreePayloadSource(projectRoot, seams);
+    const sourceVersion = source ? resolvePayloadSourceVersion(source) : null;
+    if (source === null || sourceVersion === null || sourceVersion !== bare) {
+      // Disagree / unknown provenance: leave VERSION absent; doctor stays update-class.
+      return {
+        status: "already-present",
+        source,
+        dest,
+        message: "payload already present; VERSION absent (provenance not agreeing)",
+        versionRepaired: false,
+      };
+    }
+    const ensured = ensureWorktreeVersionManifest(projectRoot, dest, source, seams);
+    if (!ensured.ok) {
+      return { status: "refused", source, dest, message: ensured.message, versionRepaired: false };
+    }
     return {
       status: "already-present",
-      source: null,
+      source,
       dest,
-      message: "payload already present",
+      message: ensured.repaired
+        ? `payload already present; repaired missing VERSION from ${source}`
+        : "payload already present",
+      versionRepaired: ensured.repaired,
     };
   }
   const source = resolveWorktreePayloadSource(projectRoot, seams);
@@ -650,15 +832,31 @@ export function reconstituteLinkedWorktreeDeposit(
     assertDepositContained(projectRoot, dest);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { status: "refused", source, dest, message };
+    return { status: "refused", source, dest, message, versionRepaired: false };
   }
   const copy = seams.copyPayload ?? copyWorktreePayloadSync;
   mkdirSync(join(resolve(projectRoot), ".deft"), { recursive: true, mode: 0o755 });
   copy(source, dest);
+  const ensured = ensureWorktreeVersionManifest(projectRoot, dest, source, seams);
+  if (!ensured.ok) {
+    return { status: "refused", source, dest, message: ensured.message, versionRepaired: false };
+  }
+  if (ensured.skippedDisagree) {
+    return {
+      status: "reconstituted",
+      source,
+      dest,
+      message: `reconstituted .deft/core from local payload (${source}); VERSION left absent (bare/source disagree)`,
+      versionRepaired: false,
+    };
+  }
   return {
     status: "reconstituted",
     source,
     dest,
-    message: `reconstituted .deft/core from local payload (${source})`,
+    message: ensured.repaired
+      ? `reconstituted .deft/core from local payload (${source}); wrote VERSION`
+      : `reconstituted .deft/core from local payload (${source})`,
+    versionRepaired: ensured.repaired,
   };
 }
