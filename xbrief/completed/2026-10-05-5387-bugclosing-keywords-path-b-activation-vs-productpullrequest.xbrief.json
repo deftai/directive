@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5387",
-    "updated": "2026-10-05T18:29:21Z"
+    "updated": "2026-10-05T20:40:17.864Z"
   },
   "plan": {
     "title": "bug(closing-keywords): Path B activation vs productPullRequest delivery bind catch-22",
@@ -586,9 +586,22 @@
         "file_scope_confidence": "high",
         "model_tier": "default"
       },
-      "productPullRequest": 5388
+      "productPullRequest": 5388,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-05T20:40:17.864Z"
+      },
+      "completedAt": "2026-10-05T20:40:17.864Z",
+      "completionProvenance": {
+        "productMerge": "95419cb32",
+        "productPr": 5388,
+        "disposition": "delivered",
+        "verifier": "approach1-leftover-stamp-residual",
+        "recorded_at": "2026-10-05T20:40:17.864Z"
+      },
+      "productMergeCommit": "95419cb32cbdd60675f417fe99a731ea32577151"
     },
     "id": "github.issue.5716780306",
-    "updated": "2026-10-05T19:25:30.340Z"
+    "updated": "2026-10-05T20:40:17.864Z"
   }
 }
