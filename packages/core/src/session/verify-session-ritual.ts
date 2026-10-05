@@ -222,17 +222,17 @@ export function formatRitualRecoveryInstruction(tier: SessionCeremonyTier = "col
 
 /** True when doctor recovery should name --rearm for the #5390 class. */
 function isMissingVersionDoctorRecoveryClass(
-  projectRoot: string,
+  _projectRoot: string,
   step: Record<string, unknown> | undefined | null,
 ): boolean {
   if (!step || typeof step !== "object" || step.ok !== false) return false;
   const message = typeof step.message === "string" ? step.message : "";
-  if (/UNRESOLVED|manifest-agreement|YAML manifest is missing|missing VERSION/i.test(message)) {
-    return true;
-  }
-  // #5390 class: payload present + VERSION absent (reconstitute can clear).
-  const coreDir = join(projectRoot, ".deft", "core");
-  return existsSync(join(coreDir, "main.md")) && !existsSync(join(coreDir, "VERSION"));
+  // Only the reconstitutable missing-YAML class (#5390). Update-class copy also
+  // says "YAML manifest is missing" but recommends deft update — do not rearm.
+  if (/bare agrees with recoverable source provenance/i.test(message)) return true;
+  if (/missing_manifest_reconstitute_eligible/i.test(message)) return true;
+  if (/#5390/.test(message) && /session:start --rearm/i.test(message)) return true;
+  return false;
 }
 
 /**

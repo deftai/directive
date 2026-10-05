@@ -251,7 +251,14 @@ describe("verify-session-ritual failed-step messaging", () => {
         },
         gatedSteps: {
           agent_hooks: ritualStep({ ok: true, ts: NOW }),
-          doctor: ritualStep({ ok: false, ts: NOW, message: "manifest-agreement missing" }),
+          doctor: ritualStep({
+            ok: false,
+            ts: NOW,
+            message:
+              "manifest-agreement: Bare .deft-version exists but YAML manifest is missing. " +
+              "Linked worktree payload is present and bare agrees with recoverable source provenance — " +
+              "run `deft session:start` (#5390).",
+          }),
           cache_fresh: ritualStep({ ok: true, ts: NOW }),
         },
       }),
