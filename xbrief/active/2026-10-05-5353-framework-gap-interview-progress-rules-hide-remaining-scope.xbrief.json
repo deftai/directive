@@ -1,0 +1,370 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5353",
+    "updated": "2026-10-05T01:41:38Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Interview progress rules hide remaining scope while enforcing one-question-at-a-time interaction",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Interview progress rules hide remaining scope while enforcing one-question-at-a-time interaction",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5353",
+      "Overview": "\n\n1. **Progress checkpoint obligation (relieves P1; folds F1).** Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions. A status statement is not a batch of questions and is not a prior-answer summary.\n   - **Coexistence with Rule 1:** Emit checkpoints as Rule 2 Always-Structured **agent-initiated status updates that do NOT ask the user to choose anything**. Do not invent a third plain-text emission class.\n   - **Turn shape:** Prefer a separate status message immediately before the next structured question. If a checkpoint shares a turn with a question, it MUST be non-choice status prose above exactly one structured question (no second question; no upcoming concrete question list).\n   - **Inventory labels vs upcoming questions:** Remaining-scope text MAY name decision-area / inventory labels. It MUST NOT enumerate concrete upcoming question text (Rule 1 `⊗ List upcoming questions` stays).\n2. **Closed triggers + inventory substrate (relieves P1/P2; folds F2).** Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded). Closed checkpoint triggers (no every-turn default):\n   - phase entry / phase exit (including setup Phase 1/2/3 boundaries when those skills own the loop)\n   - after a material decision is added to the inventory\n   - after an accepted deferral is recorded\n   - before Rule 6 confirmation gate\n   - on operator how-much-is-left (item 4)\n   Do not invent a fixed total before adaptive questions are known. Short interviews keep proportionate cost (no every-turn full recap).\n3. **How-much-is-left interrupt (relieves P3; folds F3).** An operator ask for remaining scope MUST be answered as a Rule 2 status-only emission grounded in the inventory from item 2; then re-render the same pending question. Do not advance to the next material decision on that interrupt. Do not open Discuss unless the operator chose Discuss.\n4. **Preserve interaction constraints.** Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics (including Rule 8). Do not remove Rule 8 or switch to yolo as the remedy. Compatible with #4377 adaptive branching / sizing / confirmation; independent of #4535 menu-shape mismatch.\n5. **Land sites (folds F4).** Amend `content/skills/deft-directive-interview/SKILL.md` (Rule 1 coexistence + positive progress duty; Rule 2 status class cite; how-much-is-left interrupt). Mirror the same duty and coexistence into setup Phase 1 `### Interview Rules` and Phase 2 `### Interview Rules (same as Phase 1)`; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).\n6. **Acceptance / regression (folds F4).** Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible.\n7. **Non-goals.** No sole remedy of deleting Rule 8. No every-turn full recap. No fixed question census before adaptive branching is known. No third plain-text emission path beyond Rule 2 status updates. Ingest remains a later separate verb.\n\n\n",
+      "Labels": "bug, agent-experience, process, source-of-truth, area:skills, design-critique:ingest-ready, framework-gap, promise:planning"
+    },
+    "items": [
+      {
+        "id": "bound-1-progress-checkpoint",
+        "title": "Progress checkpoint obligation",
+        "status": "pending"
+      },
+      {
+        "id": "bound-2-inventory-triggers",
+        "title": "Closed triggers + inventory substrate",
+        "status": "pending"
+      },
+      {
+        "id": "bound-3-how-much-left",
+        "title": "How-much-is-left interrupt",
+        "status": "pending"
+      },
+      {
+        "id": "bound-4-preserve-constraints",
+        "title": "Preserve interaction constraints",
+        "status": "pending"
+      },
+      {
+        "id": "bound-5-land-sites",
+        "title": "Land sites",
+        "status": "pending"
+      },
+      {
+        "id": "bound-6-acceptance-fixture",
+        "title": "Acceptance / regression fixture",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "promise:planning"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5353",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5353: [framework-gap] Interview progress rules hide remaining scope while enforcing one-question-at-a-time interaction"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 15 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "[framework-gap] Interview progress rules hide remaining scope while enforcing one-question-at-a-time interaction",
+        "Progress checkpoint obligation (relieves P1; folds F1). Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions.",
+        "A status statement is not a batch of questions and is not a prior-answer summary.",
+        "Coexistence with Rule 1: Emit checkpoints as Rule 2 Always-Structured agent-initiated status updates that do NOT ask the user to choose anything.",
+        "Do not invent a third plain-text emission class.",
+        "Turn shape: Prefer a separate status message immediately before the next structured question.",
+        "If a checkpoint shares a turn with a question, it MUST be non-choice status prose above exactly one structured question (no second question; no upcoming concrete question list).",
+        "Inventory labels vs upcoming questions: Remaining-scope text MAY name decision-area / inventory labels.",
+        "It MUST NOT enumerate concrete upcoming question text (Rule 1 `⊗ List upcoming questions` stays).",
+        "Closed triggers + inventory substrate (relieves P1/P2; folds F2). Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded).",
+        "Closed checkpoint triggers (no every-turn default): - phase entry / phase exit (including setup Phase 1/2/3 boundaries when those skills own the loop) - after a material decision is added to the inventory - after an accepted deferral is recorded - before Rule 6 confirmation gate - on operator how-much-is-left (item 4) Do not invent a fixed total before adaptive questions are known.",
+        "Short interviews keep proportionate cost (no every-turn full recap).",
+        "How-much-is-left interrupt (relieves P3; folds F3). An operator ask for remaining scope MUST be answered as a Rule 2 status-only emission grounded in the inventory from item 2; then re-render the same pending question.",
+        "Do not advance to the next material decision on that interrupt.",
+        "Do not open Discuss unless the operator chose Discuss.",
+        "Preserve interaction constraints. Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics (including Rule 8).",
+        "Do not remove Rule 8 or switch to yolo as the remedy.",
+        "Compatible with #4377 adaptive branching / sizing / confirmation; independent of #4535 menu-shape mismatch.",
+        "Land sites (folds F4). Amend `content/skills/deft-directive-interview/SKILL.md` (Rule 1 coexistence + positive progress duty; Rule 2 status class cite; how-much-is-left interrupt).",
+        "Mirror the same duty and coexistence into setup Phase 1 `### Interview Rules` and Phase 2 `### Interview Rules (same as Phase 1)`; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).",
+        "Acceptance / regression (folds F4). Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible.",
+        "Non-goals. No sole remedy of deleting Rule 8.",
+        "No every-turn full recap.",
+        "No fixed question census before adaptive branching is known.",
+        "No third plain-text emission path beyond Rule 2 status updates.",
+        "Ingest remains a later separate verb.",
+        "Closed checkpoint triggers (no every-turn default):",
+        "phase entry / phase exit (including setup Phase 1/2/3 boundaries when those skills own the loop)",
+        "after a material decision is added to the inventory",
+        "after an accepted deferral is recorded",
+        "before Rule 6 confirmation gate",
+        "on operator how-much-is-left (item 4)"
+      ],
+      "admitted_source_sentences": [
+        "Progress checkpoint obligation (relieves P1; folds F1). Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions.",
+        "A status statement is not a batch of questions and is not a prior-answer summary.",
+        "Coexistence with Rule 1: Emit checkpoints as Rule 2 Always-Structured agent-initiated status updates that do NOT ask the user to choose anything.",
+        "Do not invent a third plain-text emission class.",
+        "Turn shape: Prefer a separate status message immediately before the next structured question.",
+        "If a checkpoint shares a turn with a question, it MUST be non-choice status prose above exactly one structured question (no second question; no upcoming concrete question list).",
+        "Inventory labels vs upcoming questions: Remaining-scope text MAY name decision-area / inventory labels.",
+        "It MUST NOT enumerate concrete upcoming question text (Rule 1 `⊗ List upcoming questions` stays).",
+        "Closed triggers + inventory substrate (relieves P1/P2; folds F2). Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded).",
+        "Closed checkpoint triggers (no every-turn default): - phase entry / phase exit (including setup Phase 1/2/3 boundaries when those skills own the loop) - after a material decision is added to the inventory - after an accepted deferral is recorded - before Rule 6 confirmation gate - on operator how-much-is-left (item 4) Do not invent a fixed total before adaptive questions are known.",
+        "Short interviews keep proportionate cost (no every-turn full recap).",
+        "How-much-is-left interrupt (relieves P3; folds F3). An operator ask for remaining scope MUST be answered as a Rule 2 status-only emission grounded in the inventory from item 2; then re-render the same pending question.",
+        "Do not advance to the next material decision on that interrupt.",
+        "Do not open Discuss unless the operator chose Discuss.",
+        "Preserve interaction constraints. Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics (including Rule 8).",
+        "Do not remove Rule 8 or switch to yolo as the remedy.",
+        "Compatible with #4377 adaptive branching / sizing / confirmation; independent of #4535 menu-shape mismatch.",
+        "Land sites (folds F4). Amend `content/skills/deft-directive-interview/SKILL.md` (Rule 1 coexistence + positive progress duty; Rule 2 status class cite; how-much-is-left interrupt).",
+        "Mirror the same duty and coexistence into setup Phase 1 `### Interview Rules` and Phase 2 `### Interview Rules (same as Phase 1)`; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).",
+        "Acceptance / regression (folds F4). Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible.",
+        "Non-goals. No sole remedy of deleting Rule 8.",
+        "No every-turn full recap.",
+        "No fixed question census before adaptive branching is known.",
+        "No third plain-text emission path beyond Rule 2 status updates.",
+        "Ingest remains a later separate verb."
+      ],
+      "admitted_source_digest": "d411b62d3da34fdc520b44e67de35878d1d802d5522e8169560615b4b86f5e6f",
+      "clauses": [
+        {
+          "id": "ac-1",
+          "text": "Progress checkpoint obligation: Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions. A status statement is not a batch of questions and is not a prior-answer summary.",
+          "artifact_path": "content/skills/deft-directive-interview/SKILL.md"
+        },
+        {
+          "id": "ac-2",
+          "text": "Closed triggers + inventory substrate: Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded). Closed checkpoint triggers (no every-turn default).",
+          "artifact_path": "content/skills/deft-directive-setup/SKILL.md"
+        },
+        {
+          "id": "ac-3",
+          "text": "How-much-is-left interrupt: Operator ask for remaining scope MUST be answered as Rule 2 status-only emission grounded in inventory; then re-render the same pending question. Do not advance to next material decision. Do not open Discuss unless operator chose Discuss.",
+          "artifact_path": "CHANGELOG.md"
+        },
+        {
+          "id": "ac-4",
+          "text": "Preserve interaction constraints: Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics including Rule 8. Do not remove Rule 8 or switch to yolo as the remedy.",
+          "artifact_path": "CHANGELOG.md"
+        },
+        {
+          "id": "ac-5",
+          "text": "Land sites: Amend deft-directive-interview SKILL (Rule 1 coexistence + positive progress duty; Rule 2 status class; how-much-is-left interrupt). Mirror into setup Phase 1 and Phase 2 Interview Rules; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).",
+          "artifact_path": "CHANGELOG.md"
+        },
+        {
+          "id": "ac-6",
+          "text": "Acceptance / regression fixture: Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible. CHANGELOG Unreleased.",
+          "artifact_path": "CHANGELOG.md"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "productPullRequest": 5357,
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because interview Rule 1 and setup shared interaction rules forbid listing upcoming questions and combining the current question with prior-answer summaries, while supplying no positive obligation for concise phase/remaining-scope visibility, so long adaptive interviews hide orientation even when one-question interaction is retained.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5353\norigin-ref: origin/HEAD\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\ndest-wo: leftover-complete\n\nspend: N=1\nspend-ask: asked\nspend-recommend: N=1\nspend-why: Prefer-A drafted from the issue requested remedy (timed progress checkpoints for phase, remaining material decision areas, accepted deferrals, and addition reasons; preserve one-question / Discuss/Back / confirmation; no every-turn recap; no invented fixed total; honest addition recording; grounded answer to how-much-is-left). Blast is interview skill + setup shared interaction rules + multi-topic fixtures. Operator cue \"arc using recommended n 5353\" takes the closed spend-recommend with spend-ask: asked.\nDual-stop cap: 6 posts\n\npain: P1, P2, P3\n\n- P1. Orientation ban without progress duty: Rule 1 / setup prohibit listing upcoming questions and generally combining the current question with prior-answer summaries, with no corresponding requirement for a concise progress checkpoint against the current decision inventory at meaningful transitions.\n- P2. Adaptive denominator silence: material decision additions and accepted deferrals can move remaining scope without an obligatory visible addition/deferral reason, so the operator cannot tell whether the activity is still interview or has drifted into artifact generation.\n- P3. How-much-is-left dead-end: an operator ask for remaining scope can receive another decision question instead of a direct, grounded progress answer that preserves one-question interaction for the next material decision.\n\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:344effff64824f47eb1689519e9357a14db8e276e59c302182b3cd958f813504\ntarget: #5353\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #4377 #4535 #1709 interview Rule 1/8 setup shared interaction rules\n\n## Prefer-A draft (charter target; not yet Bound)\n\n1. **Progress checkpoint obligation (P1).** Allow and require appropriately timed, concise progress information at meaningful transitions: current phase, remaining material decision areas, accepted deferrals, and reasons for additions. A status statement is not a batch of questions. Land in `content/skills/deft-directive-interview/SKILL.md` and mirror the shared interaction rules in `content/skills/deft-directive-setup/SKILL.md`.\n2. **Preserve interaction constraints.** Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics (including Rule 8). Do not remove Rule 8 or switch to yolo as the remedy. Compatible with #4377 adaptive branching / sizing / confirmation and independent of #4535 menu-shape mismatch.\n3. **Honest denominator (P2).** When a material decision is added, surface it as an addition with a reason. Accepted deferrals stay visible and are not presented as unexplained incompleteness. Do not invent a fixed total before adaptive questions are known.\n4. **How-much-is-left (P3).** An operator ask for remaining scope receives a direct, grounded progress answer; the next material decision still follows one-question rules.\n5. **Proportionate cost.** Short interviews keep proportionate interaction cost; do not impose a long recap every turn.\n6. **Acceptance / regression.** Multi-topic fixture surfaces phase and remaining scope at meaningful transitions; addition-with-reason is visible; progress checkpoint is permitted without violating one-question; how-much-is-left is grounded; deferrals are visible.\n7. **Non-goals.** No sole remedy of deleting Rule 8. No every-turn full recap. No fixed question census before adaptive branching is known. Ingest remains a later separate verb.\n\n## Gate stamp\n\nFresh no-ingest yolo Stop 1 on #5353. Operator cue \"arc using recommended n 5353\" authorized Dual-stop from closed spend-recommend: N=1 with spend-ask: asked. Prefer-A drafted from the issue requested remedy. Charter is open critique of that Prefer-A. Ingest remains a later separate verb.",
+          "id": 5986233837,
+          "html_url": "https://github.com/deftai/directive/issues/5353#issuecomment-5986233837",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:49:12Z",
+          "updated_at": "2026-10-05T00:49:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: 1\ncritic-role: fresh\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\naudit-targets: none\nid-ceiling: 5986233837\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nStop-1: 5986233837\ntarget: #5353\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\n\n## Findings\n\nOpen critique of Stop 1 Prefer-A draft (charter target; not Bound) against pains P1–P3. Pin-read: interview Rule 1 / Rule 2 Always-Structured / Rule 6 / Rule 8 / Rule 10; setup Phase 1 `### Interview Rules` and Phase 2 `### Interview Rules (same as Phase 1)`.\n\n### F1. Progress obligation vs Rule 1 coexistence is unresolved — `blocks-the-design`\n\n**Evidence.** Prefer-A item 1 requires timed progress checkpoints (phase, remaining material decision areas, deferrals, addition reasons) and says a status statement is not a batch of questions. Item 2 keeps Rule 1 / Discuss/Back / Rule 8. Live Rule 1 still carries both forbids: `⊗ List upcoming questions -- only show the current one` and `⊗ Combine the current question with a summary of previous answers unless explicitly at the confirmation gate`. Live Rule 2 Always-Structured already names a second permitted plain-text class: `Agent-initiated status updates that do NOT ask the user to choose anything`. Prefer-A does not cite that existing emission class, does not amend Rule 1, and does not forbid placing the checkpoint in the same turn as the next decision question.\n\n**Failure mode.** An implementer can keep Rule 1 verbatim and either (a) never emit checkpoints because they look like upcoming-question lists or prior-answer summaries (P1 unreieved), or (b) emit checkpoint + next question in one message and re-hit the combine forbid. Setup Phase 1 Interview Rules repeats the one-question / no-upcoming-list bans without the Rule 2 status carve, so the mirror land site can keep the ban without the positive duty.\n\n**Disposition.** Prefer-A cannot bind as written until it names coexistence: require checkpoints as Rule 2 status-only emissions (no choice request), and either mandate a separate status message before the next structured question or add an explicit Rule 1 carve that a non-question progress status may share a turn with exactly one question. Also distinguish remaining **decision-area / inventory labels** from enumerating concrete upcoming question text, or `⊗ List upcoming questions` will keep swallowing P1.\n\n**Existing mechanism inventory.** Prefer Rule 2's status-update class over inventing a third plain-text emission path. Do not invent a parallel progress UI.\n\n### F2. \"Meaningful transitions\" and remaining-scope inventory lack closed triggers — `sharpens-framing` (P1, P2)\n\n**Evidence.** Prefer-A items 1 and 3 require checkpoints \"at meaningful transitions\" and honest addition/deferral visibility, but name no closed trigger set and no substrate for the \"current decision inventory.\" Live skills have phase boundaries (setup Phase 1/2/3, Rule 6 confirmation gate, depth-gate follow-ups) and adaptive additions (Rule 4 depth gate: new ambiguity → clarifying questions) with no obligatory inventory object.\n\n**Failure mode.** Without closed triggers (e.g. phase entry/exit, after a material decision is added, after an accepted deferral, before Rule 6, and on operator how-much-is-left), agents choose either never / every turn. That either leaves P1/P2 silent or breaks Prefer-A item 5 proportionate cost. Without a named session-local inventory (calling-skill required fields + runtime deferred/added set), \"addition with reason\" and \"accepted deferrals stay visible\" remain prose duties with nothing durable to read.\n\n**Disposition.** Bind Prefer-A with a closed trigger inventory and a named inventory source (calling-skill required/optional fields plus session deferred/added entries). Keep \"no invented fixed total before adaptive questions are known.\"\n\n### F3. How-much-is-left interrupt vs pending question / Discuss is unspecified — `sharpens-framing` (P3)\n\n**Evidence.** Prefer-A item 4: operator ask for remaining scope gets a direct grounded progress answer; the next material decision still follows one-question rules. Live Rule 10 Discuss pauses structured flow and re-renders the same question after resolve. Live Rule 1 forbids a second decision question in the same message. Prefer-A does not say whether how-much-is-left is (i) a status interrupt that answers then re-renders the pending question, (ii) answered then advances to the next material decision, or (iii) routed through Discuss.\n\n**Failure mode.** Agents treat \"how much is left?\" as another decision question (the P3 dead-end in Stop 1) or as Discuss freeform, delaying the grounded status answer. Ambiguous advance-vs-rerender also lets the interrupt silently drop the pending question.\n\n**Disposition.** Sharpen Prefer-A: how-much-is-left MUST be answered as a Rule 2 status-only emission grounded in the inventory from F2; then re-render the same pending question (do not advance; do not open Discuss unless the operator chose Discuss). That preserves one-question interaction for the next material decision.\n\n### F4. Setup dual land sites and fixture triggers — `sharpens-framing`\n\n**Evidence.** Prefer-A item 1 lands interview SKILL and mirrors setup shared interaction rules. Setup repeats Interview Rules under Phase 1 and again under Phase 2 (\"same as Phase 1\"); Anti-Patterns also forbid batching questions. Prefer-A item 6 acceptance text says a multi-topic fixture surfaces phase/remaining scope at meaningful transitions, but does not lock the F1 coexistence shape or F2 triggers.\n\n**Failure mode.** Patching only interview Rule 1 leaves setup Phase 1/2 copies as ban-without-duty. Fixtures that only assert \"some progress text appeared\" can pass while same-turn checkpoint+question still violates Rule 1, or while triggers remain agent-discretionary.\n\n**Disposition.** Require explicit amendment of setup Phase 1 and Phase 2 Interview Rules (and keep Anti-Patterns aligned). Fixture acceptance MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left status then same-question re-render; short path has no every-turn recap.\n\n### Injection / swarm lens\n\nTarget changes interview/setup skill authority and user-facing prompt shape. Keep checkpoints inside the existing non-choice status class so they cannot become a second decision channel or an instruction-stuffing surface. No worktree/concurrency change in Prefer-A; swarm lens otherwise N/A beyond that authority surface.\n\n### Road-not-taken / steelman\n\n- Road not taken: delete `⊗ List upcoming questions` wholesale so orientation rides on previewing the next questions. Rejected because Prefer-A non-goals and Stop 1 keep one-question local format; orientation should be inventory/status, not a question batch.\n- Steelman of every-turn recap: maximizes orientation under long adaptive interviews. Flip condition would be evidence that proportionate-cost item 5 is false (short interviews tolerate full recap). Prefer-A correctly keeps timed triggers; F2 must make those triggers closed so the steelman does not re-enter by underspecification.\n\n### Pain map (critic view; parent owns cites)\n\n- P1: Prefer-A aims at the right remedy class, but F1 blocks bind until Rule 1 / Rule 2 coexistence and decision-area vs upcoming-question distinction are stated.\n- P2: F2 sharpens — honest denominator needs closed addition/deferral triggers plus an inventory substrate.\n- P3: F3 sharpens — status interrupt + same-question re-render closes the dead-end without Discuss collapse.\n\nNo lean. No ingest. No product code.",
+          "id": 5986252669,
+          "html_url": "https://github.com/deftai/directive/issues/5353#issuecomment-5986252669",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:51:31Z",
+          "updated_at": "2026-10-05T00:51:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound\n**Spec-path:** Bound remedy below\nTarget-digest: sha256:344effff64824f47eb1689519e9357a14db8e276e59c302182b3cd958f813504\narc-mode: no-ingest\nyolo-standing: yes\ncharter: open critique\nspend: N=1\nStop-1: 5986233837\nround-1-critic: 5986252669\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5353\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\noperator-deferred: none\n\n## Bound-remedy\n\n1. **Progress checkpoint obligation (relieves P1; folds F1).** Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions. A status statement is not a batch of questions and is not a prior-answer summary.\n   - **Coexistence with Rule 1:** Emit checkpoints as Rule 2 Always-Structured **agent-initiated status updates that do NOT ask the user to choose anything**. Do not invent a third plain-text emission class.\n   - **Turn shape:** Prefer a separate status message immediately before the next structured question. If a checkpoint shares a turn with a question, it MUST be non-choice status prose above exactly one structured question (no second question; no upcoming concrete question list).\n   - **Inventory labels vs upcoming questions:** Remaining-scope text MAY name decision-area / inventory labels. It MUST NOT enumerate concrete upcoming question text (Rule 1 `⊗ List upcoming questions` stays).\n2. **Closed triggers + inventory substrate (relieves P1/P2; folds F2).** Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded). Closed checkpoint triggers (no every-turn default):\n   - phase entry / phase exit (including setup Phase 1/2/3 boundaries when those skills own the loop)\n   - after a material decision is added to the inventory\n   - after an accepted deferral is recorded\n   - before Rule 6 confirmation gate\n   - on operator how-much-is-left (item 4)\n   Do not invent a fixed total before adaptive questions are known. Short interviews keep proportionate cost (no every-turn full recap).\n3. **How-much-is-left interrupt (relieves P3; folds F3).** An operator ask for remaining scope MUST be answered as a Rule 2 status-only emission grounded in the inventory from item 2; then re-render the same pending question. Do not advance to the next material decision on that interrupt. Do not open Discuss unless the operator chose Discuss.\n4. **Preserve interaction constraints.** Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics (including Rule 8). Do not remove Rule 8 or switch to yolo as the remedy. Compatible with #4377 adaptive branching / sizing / confirmation; independent of #4535 menu-shape mismatch.\n5. **Land sites (folds F4).** Amend `content/skills/deft-directive-interview/SKILL.md` (Rule 1 coexistence + positive progress duty; Rule 2 status class cite; how-much-is-left interrupt). Mirror the same duty and coexistence into setup Phase 1 `### Interview Rules` and Phase 2 `### Interview Rules (same as Phase 1)`; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).\n6. **Acceptance / regression (folds F4).** Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible.\n7. **Non-goals.** No sole remedy of deleting Rule 8. No every-turn full recap. No fixed question census before adaptive branching is known. No third plain-text emission path beyond Rule 2 status updates. Ingest remains a later separate verb.\n\n## Reject\n\n- B. Delete `⊗ List upcoming questions` so orientation is a preview of next questions (road-not-taken in critic; Prefer-A non-goals keep one-question local format).\n- C. Every-turn full recap as the default orientation mechanism (breaks proportionate cost; triggers stay closed).\n- D. Route how-much-is-left only through Discuss (delays grounded status; collapses P3 into freeform).\n\n## Pain cites (honest)\n\n- **P1** relieved by Bound items 1–2 + 5 (status-only checkpoints with Rule 1 coexistence; closed triggers; dual land).\n- **P2** relieved by Bound item 2 (inventory substrate + addition/deferral triggers and visibility).\n- **P3** relieved by Bound item 3 (status interrupt + same-question re-render).\n\n## Gate note\n\nYolo first successor lean after round-1 critic 5986252669. F1 `blocks-the-design` folded into Bound coexistence; F2–F4 sharpenings folded. Cite-form fix: one `relieves: Pn` line per pain (comma list is not accepted grammar). Charter remains open critique of Prefer-A. Dual-stop reserved seat funds the first post-lean pain-audit of asserted coverage. Ingest remains a later separate verb.",
+          "id": 5986257476,
+          "html_url": "https://github.com/deftai/directive/issues/5353#issuecomment-5986257476",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:52:07Z",
+          "updated_at": "2026-10-05T00:55:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: pain-audit\ncritic-role: fresh\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nid-ceiling: 5986257476\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\nStop-1: 5986233837\nsuccessor-lean: 5986257476\ntarget: #5353\nverification-path: pin-read git show 3456c6712614e352c5559b3c29caf9cbce26b5cf:; dest cwd-without-occupy for on-pin file reads\nfinding-classes: sharpening\nharvest-changed: false\n\n## Pain-audit of asserted coverage\n\nAudited Prefer-A Bound lean 5986257476 against Stop 1 pains P1–P3. Pin-read interview Rule 1 / Rule 2 Always-Structured status class / Rule 6 / Rule 8 / Rule 10; setup Phase 1 `### Interview Rules` and Phase 2 `### Interview Rules (same as Phase 1)`; contract Critic method / Pain coverage / Yolo leftover-pain at dispatch-sha 3456c6712614e352c5559b3c29caf9cbce26b5cf.\n\n### pain-P1 — support\n\nStop 1 P1: orientation ban (no upcoming-question list; no prior-answer summary combine) with no positive progress duty.\n\nBound items 1–2 + 5 relieve: positive checkpoint duty (phase, remaining decision areas, deferrals, addition reasons); Rule 2 status-only emission class (no third plain-text path); turn shape (prefer separate status message; shared-turn carve = non-choice status above exactly one question); inventory labels allowed, concrete upcoming question text forbidden; closed triggers; dual land into interview + setup Phase 1/2.\n\nPin-read confirms Rule 2 already names agent-initiated non-choice status updates; Rule 1 still carries the two forbids Prefer-A must coexist with. Bound names that coexistence. Round-1 F1 `blocks-the-design` is folded. Does not reopen as does-not-relieve.\n\n### pain-P2 — support\n\nStop 1 P2: adaptive additions/deferrals can move remaining scope without obligatory visible reason.\n\nBound item 2 relieves: session-local inventory = calling-skill required/optional fields plus runtime deferred/added entries; each addition carries a reason; each accepted deferral is recorded; closed triggers after addition and after deferral (plus phase boundaries / before Rule 6 / how-much-is-left); no invented fixed total; proportionate cost (no every-turn default). Acceptance item 6 requires addition-with-reason and visible deferrals. Round-1 F2 folded. Support.\n\n### pain-P3 — support\n\nStop 1 P3: how-much-is-left can receive another decision question instead of a grounded progress answer.\n\nBound item 3 relieves: operator ask MUST answer as Rule 2 status-only emission grounded in the item-2 inventory, then re-render the same pending question; do not advance; do not open Discuss unless the operator chose Discuss. Preserves one-question for the next material decision. Round-1 F3 folded. Support.\n\n## Sharpenings (non-harvest)\n\n### S1. Fill vs addition on the inventory trigger — `sharpens-framing`\n\n**Evidence.** Bound item 2 fires a checkpoint \"after a material decision is added to the inventory.\" Pin-read Rule 4 depth gate can append clarifying questions that refine an already-listed field.\n\n**Failure mode.** An implementer treats every answered field (ordinary fill) as an \"addition\" and emits a checkpoint every turn, breaking Bound proportionate-cost / no-every-turn language.\n\n**Disposition.** Read \"added\" as runtime append of a new decision-area with reason, distinct from ordinary fill of an existing calling-skill field. Fixture acceptance SHOULD assert: no checkpoint on ordinary field-fill alone; checkpoint on runtime addition-with-reason. Does not change Bound-remedy limbs; carries into PR acceptance.\n\n### S2. Shared-turn status stays outside the structured `question` field — `sharpens-framing`\n\n**Evidence.** Bound item 1 shared-turn carve allows non-choice status prose above exactly one structured question. Pin-read Rule 2 Preamble Placement: the decision sentence belongs in the structured tool `question` field; preamble/status belongs above the tool call.\n\n**Failure mode.** Implementer stuffs the checkpoint into the tool `question` string, mixing status with the decision prompt and weakening Always-Structured separation.\n\n**Disposition.** Acceptance / land text SHOULD state that shared-turn checkpoint prose stays outside the structured tool `question` field (above the tool call), with exactly one decision question inside the tool. Non-harvest; bind map unchanged.\n\n### S3. Setup Phase 2 copy is thinner today — `footnote`\n\nPin-read: Phase 1 Interview Rules repeats the one-question / no-upcoming-list bans; Phase 2 is a shorter \"exactly ONE question\" plus pointer. Bound item 5 already requires amending both Phase 1 and Phase 2 with duty + coexistence. Footnote only: the Phase 2 land must paste the coexistence/status duty, not leave a pointer-only stub.\n\n## Disposition\n\n- finding-classes: sharpening\n- harvest-changed: false\n- Per-pain: support pain-P1, support pain-P2, support pain-P3\n- Follow-through: sharpening-only non-harvest → bindable-as-posted on successor lean 5986257476; S1–S2 carry into PR acceptance; no Recut required for these takes.\n\nNo lean. No ingest. No product code. No synthesis.",
+          "id": 5986274090,
+          "html_url": "https://github.com/deftai/directive/issues/5353#issuecomment-5986274090",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:54:07Z",
+          "updated_at": "2026-10-05T00:54:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5986257476\nStop-1 (denominator): 5986233837\nround-1 critic: 5986252669\nPain-audit (bind lean): 5986274090 — support P1, support P2, support P3; bindable-as-posted; non-harvest sharpenings S1–S2 (fill vs addition; shared-turn status outside structured question field) and footnote S3 (Phase 2 paste duty) carry into PR acceptance\ndispatch-sha: 3456c6712614e352c5559b3c29caf9cbce26b5cf\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\nTarget-digest (issue body at Stop 1): sha256:344effff64824f47eb1689519e9357a14db8e276e59c302182b3cd958f813504\n\n## In plain English\n\nThe Bound stands. Interview and setup must emit concise progress checkpoints (phase, remaining decision areas, deferrals, addition reasons) as non-choice status updates, with closed triggers and a session inventory, while keeping one-question interaction. Asking how much is left gets a grounded status answer then the same pending question again. Ingest remains a separate operator verb.\n\n## Recording note (no Lean token)\n\nevaluatePainAuditFollowThrough({findingClasses:[\"sharpening\"], harvestChanged:false}) — residue carries into PR acceptance rather than another Recut.\n\n## Plain-language summary\n\nProgress visibility without breaking one-question: Rule 2 status checkpoints, closed triggers, inventory with addition reasons, how-much-is-left interrupt + re-render; dual land interview + setup Phase 1/2.",
+          "id": 5986279559,
+          "html_url": "https://github.com/deftai/directive/issues/5353#issuecomment-5986279559",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T00:54:47Z",
+          "updated_at": "2026-10-05T00:54:47Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nInterview progress rules hide remaining scope while enforcing one-question-at-a-time interaction\n\n## Context\n\nObserved during an operator-directed Full design interview for an existing application, followed by a continuation session. The operator requested planning only, preservation of existing changes, and no implementation. The first artifact batch was explicitly approved; later backend and gap reviews were also requested. This report does not characterize all technical questions or artifact writes as unauthorized.\n\nThe consumer engine and content deposit were 0.119.12. The relevant interview/strategy content was also compared with a 0.120.0 deposit. On 2026-10-04, the cited rules were verified on upstream master at `3d613b146a3880ecb261bf8654d7abe73b498820`. Session examples below come from a local conversation audit; private project files and raw chat logs are not published.\n\n## Expected behavior\n\nThe operator should be able to understand the current interview phase, what material decisions remain, what is deferred, and why the remaining scope changed, while still answering one focused question at a time.\n\n## Actual behavior / gap\n\nRule 1 prohibits listing upcoming questions and generally prohibits combining the current question with a summary of previous answers. Setup repeats the restriction. The flow requires confirmations for numeric selections but has no corresponding requirement for a concise progress checkpoint against the current decision inventory.\n\nThe audited first session contained 355 recorded turns, including 121 numeric-only and 134 confirmation-only user messages. These counts measure interaction burden, not the number of unnecessary questions. The operator eventually reported confusion about whether the activity was still an interview or had become artifact generation. The agent failed to communicate the phase boundary; the rules supply no clear progress-visibility requirement to counterbalance their strong local-format constraints.\n\n## Session notes\n\n### Source evidence\n\n- [Rule 1](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/skills/deft-directive-interview/SKILL.md#L30): one question per turn; MUST NOT list upcoming questions; MUST NOT combine the current question with prior-answer summaries except at the confirmation gate.\n- [Rule 8](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/skills/deft-directive-interview/SKILL.md#L267) mandates a second confirmation interaction after numeric selection.\n- [Setup shared interaction rules](https://github.com/deftai/directive/blob/3d613b146a3880ecb261bf8654d7abe73b498820/content/skills/deft-directive-setup/SKILL.md#L230) also prohibit listing upcoming questions.\n\n### Reproduction scenario\n\n1. Run a Full interview long enough to require several topic areas and answer-dependent follow-ups.\n2. Follow the one-question rule and numeric confirmation rule.\n3. Introduce new material questions as the answers evolve.\n4. Check whether the prescribed output makes the growing remaining scope and current phase visible without the user explicitly asking for a process audit.\n\n### Requested remedy\n\nAllow and require appropriately timed, concise progress information: current phase, remaining material decision areas, accepted deferrals, and reasons for additions. A status statement is not a batch of questions. Preserve one-question interaction where required, Discuss/Back, and explicit confirmation semantics. Do not impose a long recap every turn or invent a fixed total before adaptive questions are known. Record additions honestly rather than continuously moving the denominator without explanation.\n\n### Acceptance and regression evidence\n\n- A multi-topic fixture surfaces phase and remaining scope at meaningful transitions.\n- Adding a material decision is visible as an addition with a reason.\n- A progress checkpoint is permitted without violating the one-question constraint.\n- The operator's 'how much is left?' receives a direct, grounded answer instead of another decision question.\n- Accepted deferrals are visible and are not presented as unexplained incompleteness.\n- Short interviews retain a proportionate interaction cost.\n\n### Scope and prior art\n\n#4377 concerns transport cost and form collection; this report concerns orientation even when adaptive one-question chat is retained. Its latest accepted recut preserves adaptive branching, sizing, and confirmation; this remedy is compatible with those constraints. #4535 concerns incompatible menu shapes; progress visibility is independent of that mismatch. Do not resolve this solely by removing Rule 8 or switching to yolo. Refs #1709.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5704301245,
+        "origin": "deftai/directive#5353",
+        "id": "github.issue.5704301245"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "344effff64824f47eb1689519e9357a14db8e276e59c302182b3cd958f813504"
+      },
+      "swarm": {
+        "file_scope": [
+          "content/skills/deft-directive-interview/SKILL.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "docs/RULE-MAP.md",
+          "packages/core/src/content-contracts/skills/interview_progress_checkpoints_5353.test.ts",
+          "CHANGELOG.md"
+        ],
+        "conflict_group": "interview-progress-visibility",
+        "depends_on": [],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true
+      },
+      "preferA": {
+        "lean": 5986257476,
+        "synth": 5986279559,
+        "conflict_group": "interview-progress-visibility"
+      }
+    },
+    "id": "github.issue.5704301245",
+    "updated": "2026-10-05T01:41:38Z"
+  }
+}
