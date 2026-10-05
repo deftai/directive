@@ -1571,7 +1571,24 @@ export function evaluateScopeCompleteAcceptanceWalk(
       servedFrom: "executed",
     };
   }
-  const verdict = resolveAcceptanceVerdict(walk);
+  // #5393: thread merge+pr into clause-walk-failed remedy selection.
+  const prov = readCompletionProvenance(plan);
+  const mergeCommit =
+    prov !== null && typeof prov.mergeCommit === "string" ? prov.mergeCommit.trim() : "";
+  const prNumber =
+    prov !== null &&
+    typeof prov.prNumber === "number" &&
+    Number.isFinite(prov.prNumber) &&
+    prov.prNumber > 0
+      ? prov.prNumber
+      : null;
+  const verdict = resolveAcceptanceVerdict({
+    ...walk,
+    completionContext:
+      mergeCommit.length > 0 || prNumber !== null
+        ? { mergeCommit: mergeCommit.length > 0 ? mergeCommit : null, prNumber }
+        : undefined,
+  });
   if (walk.ok) {
     // #4870: refuse the #4866 zero-verified print on complete unless a green
     // executable oracle ran. verify:ac / #3826 stay unreverted.

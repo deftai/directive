@@ -75,10 +75,39 @@ export interface AcceptanceReading {
   readonly commands: readonly unknown[];
   readonly rejected?: readonly { readonly command: string; readonly reason: string }[];
   readonly advisoryRejected?: readonly { readonly command: string }[];
-  readonly clauseOutcomes?: readonly { readonly id: number; readonly outcome: string }[];
+  readonly clauseOutcomes?: readonly {
+    readonly id: number;
+    readonly outcome: string;
+    readonly detail?: string;
+    readonly text?: string;
+    readonly adjudicable?: boolean;
+  }[];
   readonly unmappedSentenceCount?: number;
   readonly acceptance: { readonly commands: readonly unknown[] };
+  /**
+   * Optional scope:complete / delivery context (#5393). When merge + pr hold and
+   * remaining fails are defect-polarity, clause-walk-failed names stampable
+   * allowlisted executables instead of only "ship the artifact".
+   */
+  readonly completionContext?: {
+    readonly mergeCommit?: string | null;
+    readonly prNumber?: number | null;
+  };
 }
+
+/** Default clause-walk-failed remedy (#3323). */
+export const CLAUSE_WALK_FAILED_REMEDY =
+  "ship the artifact each failed clause names, or bind the clause to the path it actually landed at (#3323)";
+
+/**
+ * When merge+pr hold and remaining fails are defect-polarity / would clear under
+ * #5393 limb 1, name the stampable allowlisted executable (#5393 / #4870).
+ * Disposition does not clear the clause walk (#3357/#3497).
+ */
+export const CLAUSE_WALK_FAILED_SHIPPED_REMEDY =
+  "stamp an allowlisted executable on plan.acceptance.commands (npm run check / npm test / " +
+  "pnpm run check) so a green run can clear via executable-pass — disposition is not a " +
+  "substitute for the clause walk (#5393/#3357/#3497)";
 
 const REMEDY: Record<AcceptancePredicate, string> = {
   "executable-pass": "",
@@ -91,14 +120,59 @@ const REMEDY: Record<AcceptancePredicate, string> = {
     "fix the product until the stated acceptance command exits as expected — the command, not the gate, is the oracle (#3284)",
   "empty-acceptance":
     "stamp executable commands on plan.acceptance.commands (or plan.metadata.swarm.verify_commands) with source_rung derived|project_floor (#3334)",
-  "clause-walk-failed":
-    "ship the artifact each failed clause names, or bind the clause to the path it actually landed at (#3323)",
+  "clause-walk-failed": CLAUSE_WALK_FAILED_REMEDY,
   "unmapped-sentence":
     "map each plan.acceptance.sentences entry to a clause or name it in plan.acceptance.confessions; the sentence list does not select a file (#3550)",
   "integrity-discrepancy":
     "resolve by a product change under the same method (#3322); independent_rederivation on the run-summary is not a security waiver (#3925)",
   unclassified: "read the verify:ac message below; the deciding check did not name itself",
 };
+
+function hasMergeAndPr(reading: AcceptanceReading): boolean {
+  const ctx = reading.completionContext;
+  if (ctx === undefined) {
+    return false;
+  }
+  const merge =
+    typeof ctx.mergeCommit === "string" && ctx.mergeCommit.trim().length > 0
+      ? ctx.mergeCommit.trim()
+      : "";
+  const pr =
+    typeof ctx.prNumber === "number" && Number.isFinite(ctx.prNumber) && ctx.prNumber > 0
+      ? ctx.prNumber
+      : null;
+  return merge.length > 0 && pr !== null;
+}
+
+/** True when remaining fails look like defect quoted-token polarity (#5393). */
+export function clauseOutcomesLookDefectPolarity(
+  outcomes: AcceptanceReading["clauseOutcomes"],
+): boolean {
+  if (outcomes === undefined || outcomes.length === 0) {
+    return false;
+  }
+  return outcomes.some((row) => {
+    if (row.outcome !== "failed" && row.outcome !== "unverifiable") {
+      return false;
+    }
+    const detail = typeof row.detail === "string" ? row.detail : "";
+    const text = typeof row.text === "string" ? row.text : "";
+    if (/defect-description/i.test(detail) || /expected token\(s\) missing/i.test(detail)) {
+      return true;
+    }
+    if (/\b(?:TS|ES)\d{3,5}\b|\bpossibly undefined\b/i.test(text)) {
+      return true;
+    }
+    return false;
+  });
+}
+
+export function resolveClauseWalkFailedRemedy(reading: AcceptanceReading): string {
+  if (hasMergeAndPr(reading) && clauseOutcomesLookDefectPolarity(reading.clauseOutcomes)) {
+    return CLAUSE_WALK_FAILED_SHIPPED_REMEDY;
+  }
+  return CLAUSE_WALK_FAILED_REMEDY;
+}
 
 function countClauses(reading: AcceptanceReading, outcome: string): number {
   return (reading.clauseOutcomes ?? []).filter((row) => row.outcome === outcome).length;
@@ -109,8 +183,18 @@ function firstLine(message: string): string {
   return line === undefined ? "(no detail)" : line.trim();
 }
 
-function verdict(ok: boolean, predicate: AcceptancePredicate, observed: string): AcceptanceVerdict {
-  return { ok, predicate, observed, remedy: REMEDY[predicate] };
+function verdict(
+  ok: boolean,
+  predicate: AcceptancePredicate,
+  observed: string,
+  remedyOverride?: string,
+): AcceptanceVerdict {
+  return {
+    ok,
+    predicate,
+    observed,
+    remedy: remedyOverride ?? REMEDY[predicate],
+  };
 }
 
 /** Executable command count this reading resolved (stamped or ledger). */
@@ -275,6 +359,7 @@ export function resolveAcceptanceVerdict(reading: AcceptanceReading): Acceptance
       "clause-walk-failed",
       `clause walk read ${verified} verified, ${unverifiable} unverifiable, ${failed} failed ` +
         `against ${commandCount} stamped command(s) and ${reading.runs.length} run(s)`,
+      resolveClauseWalkFailedRemedy(reading),
     );
   }
   if (/#3322/.test(reading.message)) {
