@@ -93,6 +93,28 @@ function covers(accepted: readonly string[], declared: readonly string[]): boole
   return declared.every((id) => set.has(id));
 }
 
+/** Agent summary that asserts phase completion (not a progress-only interim). */
+function isCompletionClaim(turn: PhaseBoundaryTurn | undefined): boolean {
+  if (!turn || turn.role !== "agent" || turn.kind !== "summary") return false;
+  return /phase\s*complete|completed?\s+phase|all\s+decisions|declared-decision\s+coverage|claiming\s+phase\s+complete/i.test(
+    turn.text ?? "",
+  );
+}
+
+/** Affirmative operator text authorizing a phase change (negations do not count). */
+function isAffirmativePhaseChangeText(text: string | undefined): boolean {
+  const body = text ?? "";
+  if (
+    /\b(no|not|don't|do\s+not|without|skip|avoid|decline)\b.{0,40}\bphase\s*change\b/i.test(
+      body,
+    ) ||
+    /\bphase\s*change\b.{0,40}\b(not\s+needed|unnecessary|declined)\b/i.test(body)
+  ) {
+    return false;
+  }
+  return /\b(new|switch|change)\s+phase\b|\bphase\s*change\b|\bmove\s+to\s+\w[\w-]*/i.test(body);
+}
+
 function proposalIdsThrough(
   turns: readonly PhaseBoundaryTurn[],
   endInclusive: number,
@@ -115,11 +137,13 @@ function proposalIdsThrough(
  */
 function detectPhaseDrift(transcript: PhaseBoundaryTranscript): PhaseBoundaryFailure | null {
   const { turns, state } = transcript;
+  // First completion claim is the agreed boundary — later summaries must not
+  // swallow post-boundary proposal growth into a new baseline.
   let boundaryIdx = -1;
   for (let i = 0; i < turns.length; i += 1) {
-    const turn = turns[i];
-    if (turn?.role === "agent" && turn.kind === "summary") {
+    if (isCompletionClaim(turns[i])) {
       boundaryIdx = i;
+      break;
     }
   }
   if (boundaryIdx < 0) return null;
@@ -131,32 +155,36 @@ function detectPhaseDrift(transcript: PhaseBoundaryTranscript): PhaseBoundaryFai
     const turn = turns[i];
     if (!turn) continue;
 
+    // Only an operator turn that introduces new requirement refs clears the
+    // drift gate — ordinary option selections do not.
     if (turn.role === "operator" && (turn.kind === "answer" || turn.kind === "question")) {
-      operatorRequirementAfter = true;
+      const newReqs = (turn.refs ?? []).filter((ref) => !atBoundary.has(ref));
+      if (newReqs.length > 0) {
+        operatorRequirementAfter = true;
+      }
       continue;
     }
 
     if (operatorRequirementAfter || turn.role !== "agent") continue;
 
     const newRefs = (turn.refs ?? []).filter((ref) => !atBoundary.has(ref));
-    const proposalTurnExpands =
-      turn.kind === "proposal" && (newRefs.length > 0 || (turn.refs?.length ?? 0) === 0);
-    // Empty-refs proposal after boundary still counts when state.proposalIds grew.
     const stateGrowth = state.proposalIds.filter((id) => !atBoundary.has(id));
+    // Empty-refs proposal counts only when resulting state.proposalIds grew.
+    const proposalTurnExpands =
+      turn.kind === "proposal" && (newRefs.length > 0 || stateGrowth.length > 0);
     const refsExpandProposals =
       newRefs.length > 0 &&
       (turn.kind === "proposal" || newRefs.some((ref) => state.proposalIds.includes(ref)));
 
     if (proposalTurnExpands || refsExpandProposals) {
-      const added = newRefs.length > 0 ? newRefs : stateGrowth;
-      if (added.length > 0 || (turn.kind === "proposal" && stateGrowth.length > 0)) {
-        const detailIds = added.length > 0 ? added : stateGrowth;
+      const detailIds = newRefs.length > 0 ? newRefs : stateGrowth;
+      if (detailIds.length > 0) {
         return {
           pain: "P1",
           code: PHASE_DRIFT_PROPOSAL_GROWTH,
           detail:
             `After phase-complete summary at turn ${boundaryIdx}, agent expanded ` +
-            `proposals (${detailIds.join(", ") || "(unnamed)"}) without an ` +
+            `proposals (${detailIds.join(", ")}) without an ` +
             "operator-introduced requirement turn.",
         };
       }
@@ -171,25 +199,63 @@ function detectPhaseDrift(transcript: PhaseBoundaryTranscript): PhaseBoundaryFai
  * does not cover declaredDecisionIds — even if artifacts would pass schema
  * validation and even if a per-answer confirm turn exists.
  * Explicitly not Rule 8 "number entry alone must not advance".
+ *
+ * Coverage is checked at each completion-claim turn (confirms accumulated so
+ * far when any exist; otherwise the fixture `state` carrier). Later confirms
+ * must not erase a premature claim.
  */
 function detectFalseCompletion(transcript: PhaseBoundaryTranscript): PhaseBoundaryFailure | null {
   const { turns, state } = transcript;
-  const hasCompletionClaim = turns.some((turn) => turn.role === "agent" && turn.kind === "summary");
-  if (!hasCompletionClaim) return null;
+  const acceptedSoFar: string[] = [];
+  let sawConfirm = false;
+  let sawClaim = false;
+  let prematureMissing: string[] | null = null;
 
-  if (covers(state.acceptedDecisionIds, state.declaredDecisionIds)) {
-    return null;
+  for (const turn of turns) {
+    if (turn.kind === "confirm" && turn.refs && turn.refs.length > 0) {
+      sawConfirm = true;
+      for (const ref of turn.refs) {
+        if (!acceptedSoFar.includes(ref)) acceptedSoFar.push(ref);
+      }
+    }
+
+    if (!isCompletionClaim(turn)) continue;
+    sawClaim = true;
+    const acceptedAtClaim = sawConfirm ? acceptedSoFar : state.acceptedDecisionIds;
+    if (!covers(acceptedAtClaim, state.declaredDecisionIds)) {
+      prematureMissing = state.declaredDecisionIds.filter((id) => !acceptedAtClaim.includes(id));
+      break;
+    }
   }
 
-  const missing = state.declaredDecisionIds.filter((id) => !state.acceptedDecisionIds.includes(id));
-  return {
-    pain: "P2",
-    code: FALSE_PHASE_COMPLETION,
-    detail:
-      "Completion claim recorded while acceptedDecisionIds does not cover " +
-      `declaredDecisionIds (missing: ${missing.join(", ") || "(none listed)"}). ` +
-      "Schema validity and per-answer confirm are not phase-completion evidence.",
-  };
+  if (!sawClaim) return null;
+
+  if (prematureMissing) {
+    return {
+      pain: "P2",
+      code: FALSE_PHASE_COMPLETION,
+      detail:
+        "Completion claim recorded while acceptedDecisionIds does not cover " +
+        `declaredDecisionIds (missing: ${prematureMissing.join(", ") || "(none listed)"}). ` +
+        "Schema validity and per-answer confirm are not phase-completion evidence.",
+    };
+  }
+
+  if (!covers(state.acceptedDecisionIds, state.declaredDecisionIds)) {
+    const missing = state.declaredDecisionIds.filter(
+      (id) => !state.acceptedDecisionIds.includes(id),
+    );
+    return {
+      pain: "P2",
+      code: FALSE_PHASE_COMPLETION,
+      detail:
+        "Completion claim recorded while acceptedDecisionIds does not cover " +
+        `declaredDecisionIds (missing: ${missing.join(", ") || "(none listed)"}). ` +
+        "Schema validity and per-answer confirm are not phase-completion evidence.",
+    };
+  }
+
+  return null;
 }
 
 function deriveHandoffState(
@@ -204,7 +270,9 @@ function deriveHandoffState(
   const accepted: string[] = [];
   const declared: string[] = [];
   const proposals: string[] = [];
+  // Prefer last pre-resume summary refs[0]; do not let resume text rewrite phase.
   let phaseId = transcript.state.phaseId;
+  let sawSummaryPhase = false;
 
   for (let i = 0; i < resumeIdx; i += 1) {
     const turn = transcript.turns[i];
@@ -220,6 +288,7 @@ function deriveHandoffState(
     }
     if (turn.kind === "summary" && turn.refs?.[0]) {
       phaseId = turn.refs[0];
+      sawSummaryPhase = true;
     }
   }
 
@@ -227,8 +296,9 @@ function deriveHandoffState(
   if (deferred.size === 0 && resumeTurn?.refs?.length) {
     for (const ref of resumeTurn.refs) deferred.add(ref);
   }
-  if (resumeTurn?.text && !/\s/.test(resumeTurn.text.trim())) {
-    phaseId = resumeTurn.text.trim();
+  // Resume text is not a phaseId carrier — keep summary/handoff evidence.
+  if (!sawSummaryPhase && !transcript.handoffState) {
+    // phaseId stays transcript.state.phaseId when no pre-resume summary refs.
   }
 
   return {
@@ -259,9 +329,11 @@ function detectResumeLoss(transcript: PhaseBoundaryTranscript): PhaseBoundaryFai
     if (turn.kind !== "answer" && turn.kind !== "confirm" && turn.kind !== "question") {
       continue;
     }
+    // Destination phase ref or affirmative phase-change text — not negations
+    // and not ordinary decision confirm refs.
     if (
       (turn.refs ?? []).includes(state.phaseId) ||
-      /phase\s*change|new\s*phase|switch\s*phase/i.test(turn.text ?? "")
+      isAffirmativePhaseChangeText(turn.text)
     ) {
       operatorPhaseChange = true;
     }

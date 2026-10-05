@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Interview phase-boundary behavioral oracle (#5355).** Lands `packages/core/src/interview/phase-boundary-oracle.ts` (+ colocated fixtures) with closed fail tokens `PHASE_DRIFT_PROPOSAL_GROWTH` / `FALSE_PHASE_COMPLETION` / `RESUME_DEFERRAL_LOSS` over a multi-turn transcript + `declaredDecisionIds` carrier. Phrase-suite and schema validators stay distinct; companions #5351–#5354 own workflow prose. Tracking #5355.
+- **Interview phase-boundary behavioral oracle (#5355).** Lands `packages/core/src/interview/phase-boundary-oracle.ts` (+ colocated `phase-boundary-oracle.test.ts` in-code fixtures) with closed fail tokens `PHASE_DRIFT_PROPOSAL_GROWTH` / `FALSE_PHASE_COMPLETION` / `RESUME_DEFERRAL_LOSS` over a multi-turn transcript + `declaredDecisionIds` carrier. Phrase-suite and schema validators stay distinct; companions #5351–#5354 own workflow prose. Tracking #5355.
 
 ### Changed
 

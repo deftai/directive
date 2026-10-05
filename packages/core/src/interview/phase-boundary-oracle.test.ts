@@ -247,7 +247,7 @@ describe("phase-boundary-oracle (#5355)", () => {
 
   describe("assertion matrix / failing-before passing-after", () => {
     it("same P2 shape flips from fail to pass when coverage is completed", () => {
-      const turns = [
+      const beforeTurns = [
         { role: "operator" as const, kind: "confirm" as const, text: "1", refs: ["d-ui"] },
         {
           role: "agent" as const,
@@ -258,7 +258,7 @@ describe("phase-boundary-oracle (#5355)", () => {
       ];
 
       const before = evaluatePhaseBoundaryOracle({
-        turns,
+        turns: beforeTurns,
         state: baseState({
           acceptedDecisionIds: ["d-ui"],
           declaredDecisionIds: ["d-ui", "d-api", "d-auth"],
@@ -269,7 +269,20 @@ describe("phase-boundary-oracle (#5355)", () => {
       expect(before.failures[0]?.code).toBe(FALSE_PHASE_COMPLETION);
 
       const after = evaluatePhaseBoundaryOracle({
-        turns,
+        turns: [
+          {
+            role: "operator",
+            kind: "confirm",
+            text: "all",
+            refs: ["d-ui", "d-api", "d-auth"],
+          },
+          {
+            role: "agent",
+            kind: "summary",
+            text: "claiming phase complete",
+            refs: ["planning-full"],
+          },
+        ],
         state: baseState({
           acceptedDecisionIds: ["d-ui", "d-api", "d-auth"],
           declaredDecisionIds: ["d-ui", "d-api", "d-auth"],
@@ -278,6 +291,158 @@ describe("phase-boundary-oracle (#5355)", () => {
       });
       expect(after.ok).toBe(true);
       expect(after.failures).toHaveLength(0);
+    });
+  });
+
+  describe("Greptile P1 regression guards", () => {
+    it("later summary does not hide proposal drift after first completion claim", () => {
+      const transcript: PhaseBoundaryTranscript = {
+        turns: [
+          { role: "agent", kind: "proposal", refs: ["prop-summary"] },
+          { role: "agent", kind: "summary", text: "phase complete", refs: ["planning-full"] },
+          {
+            role: "agent",
+            kind: "proposal",
+            refs: ["prop-backend-gap"],
+            text: "unsolicited growth",
+          },
+          {
+            role: "agent",
+            kind: "summary",
+            text: "phase complete again",
+            refs: ["planning-full"],
+          },
+        ],
+        state: baseState({
+          acceptedDecisionIds: ["d-ui", "d-api", "d-auth"],
+          proposalIds: ["prop-summary", "prop-backend-gap"],
+        }),
+        assertions: [{ pain: "P1", expect: "fail" }],
+      };
+
+      const result = evaluatePhaseBoundaryOracle(transcript);
+      expect(result.ok).toBe(false);
+      expect(result.failures.some((f) => f.code === PHASE_DRIFT_PROPOSAL_GROWTH)).toBe(true);
+    });
+
+    it("ordinary operator answer without new requirement refs does not disable drift", () => {
+      const transcript: PhaseBoundaryTranscript = {
+        turns: [
+          { role: "agent", kind: "proposal", refs: ["prop-summary"] },
+          { role: "agent", kind: "summary", text: "phase complete", refs: ["planning-full"] },
+          { role: "operator", kind: "answer", text: "2" },
+          {
+            role: "agent",
+            kind: "proposal",
+            refs: ["prop-invented"],
+            text: "unsolicited after ordinary answer",
+          },
+        ],
+        state: baseState({
+          acceptedDecisionIds: ["d-ui", "d-api", "d-auth"],
+          proposalIds: ["prop-summary", "prop-invented"],
+        }),
+        assertions: [{ pain: "P1", expect: "fail" }],
+      };
+
+      const result = evaluatePhaseBoundaryOracle(transcript);
+      expect(result.ok).toBe(false);
+      expect(result.failures.some((f) => f.code === PHASE_DRIFT_PROPOSAL_GROWTH)).toBe(true);
+    });
+
+    it("interim progress summary is not a completion claim (no false P2)", () => {
+      const transcript: PhaseBoundaryTranscript = {
+        turns: [
+          { role: "operator", kind: "confirm", refs: ["d-ui"] },
+          {
+            role: "agent",
+            kind: "summary",
+            text: "progress update: still gathering auth choice",
+            refs: ["planning-full"],
+          },
+        ],
+        state: baseState({
+          acceptedDecisionIds: ["d-ui"],
+          declaredDecisionIds: ["d-ui", "d-api", "d-auth"],
+        }),
+        assertions: [{ pain: "P2", expect: "pass" }],
+      };
+
+      const result = evaluatePhaseBoundaryOracle(transcript);
+      expect(result.ok).toBe(true);
+      expect(result.failures.filter((f) => f.pain === "P2")).toHaveLength(0);
+    });
+
+    it("later confirms do not erase a premature completion claim", () => {
+      const transcript: PhaseBoundaryTranscript = {
+        turns: [
+          { role: "operator", kind: "confirm", refs: ["d-ui"] },
+          {
+            role: "agent",
+            kind: "summary",
+            text: "phase complete",
+            refs: ["planning-full"],
+          },
+          { role: "operator", kind: "confirm", refs: ["d-api", "d-auth"] },
+        ],
+        state: baseState({
+          acceptedDecisionIds: ["d-ui", "d-api", "d-auth"],
+          declaredDecisionIds: ["d-ui", "d-api", "d-auth"],
+        }),
+        assertions: [{ pain: "P2", expect: "fail" }],
+      };
+
+      const result = evaluatePhaseBoundaryOracle(transcript);
+      expect(result.ok).toBe(false);
+      expect(result.failures.some((f) => f.code === FALSE_PHASE_COMPLETION)).toBe(true);
+    });
+
+    it("resume text does not erase pre-resume summary phase evidence", () => {
+      const transcript: PhaseBoundaryTranscript = {
+        turns: [
+          { role: "agent", kind: "defer", refs: ["defer-evidence"] },
+          { role: "agent", kind: "summary", refs: ["planning-full"], text: "phase complete" },
+          { role: "agent", kind: "resume", text: "implementation" },
+        ],
+        // No handoffState — derive from turns; resume text must not rewrite phase.
+        state: baseState({
+          phaseId: "implementation",
+          acceptedDecisionIds: ["d-ui", "d-api", "d-auth"],
+          deferredIds: ["defer-evidence"],
+        }),
+        assertions: [{ pain: "P3", expect: "fail" }],
+      };
+
+      const result = evaluatePhaseBoundaryOracle(transcript);
+      expect(result.ok).toBe(false);
+      expect(result.failures.some((f) => f.code === RESUME_DEFERRAL_LOSS)).toBe(true);
+      expect(result.failures.find((f) => f.pain === "P3")?.detail).toMatch(/phaseId changed/);
+    });
+
+    it("negated phase-change wording does not authorize a rewrite", () => {
+      const handoff = baseState({
+        phaseId: "planning-full",
+        acceptedDecisionIds: ["d-ui", "d-api", "d-auth"],
+      });
+      const transcript: PhaseBoundaryTranscript = {
+        turns: [
+          { role: "agent", kind: "defer", refs: ["defer-evidence"] },
+          { role: "agent", kind: "summary", refs: ["planning-full"], text: "phase complete" },
+          { role: "agent", kind: "resume", text: "planning-full" },
+          { role: "operator", kind: "answer", text: "no phase change needed" },
+        ],
+        handoffState: handoff,
+        state: {
+          ...handoff,
+          phaseId: "implementation",
+        },
+        assertions: [{ pain: "P3", expect: "fail" }],
+      };
+
+      const result = evaluatePhaseBoundaryOracle(transcript);
+      expect(result.ok).toBe(false);
+      expect(result.failures.some((f) => f.code === RESUME_DEFERRAL_LOSS)).toBe(true);
+      expect(result.failures.find((f) => f.pain === "P3")?.detail).toMatch(/phaseId changed/);
     });
   });
 
