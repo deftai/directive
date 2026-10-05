@@ -809,7 +809,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 **Question Areas:**
 - ! Missing decisions (language, framework, deployment)
 - ! Edge cases (errors, boundaries, failure modes)
-- ! Implementation details (architecture, patterns, libraries)
+- ~ Implementation details (architecture, patterns, libraries) — **phase-scoped** under the Full material-decision contract (#5351): after inventory confirm, implementation-detail asks MUST cite an outstanding material requirement's resolution condition or an accepted inventory amendment; ⊗ keep ordering unbounded detail asks after inventory confirm
 - ! Requirements (performance, security, scalability)
 - ! UX/constraints (users, timeline, compatibility)
 - ! Tradeoffs (simplicity vs features, speed vs safety)
@@ -819,8 +819,11 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ~ "Will other apps talk to this?" not "REST or GraphQL?"
 
 **Completion:**
-- ! Continue until little ambiguity remains
-- ! Spec must be comprehensive enough to implement
+- ! On the Full material-decision contract path (#5351): questioning may stop when the operator-confirmed inventory is satisfied (resolved or deferred-with-permit for this phase) and the Confirmation Gate lists those dispositions — not when an open-ended "little ambiguity remains" judgment fires
+- ! Spec / planning deliverable must cover the inventory's completion conditions for this phase
+- ! Inventory confirm/freeze: agent may draft; operator must confirm before depth-gate completion pressure; post-confirm mutation is operator-visible diff + re-confirm
+- ⊗ Treat artifact write success alone as Full interview completion
+- ! On Light / Add-scope / delta that stays delta (unless reopened into Full): continue until the path's required decisions for that deliverable are captured
 
 ### Output — Light Path
 

@@ -170,11 +170,44 @@ Click-commit options block shape:
 
 ### Rule 4: Depth Gate
 
-! Keep asking until no material ambiguity remains before artifact generation. The interview is NOT complete until the calling skill's required inputs are all captured with sufficient specificity to generate the target artifact.
+! Keep asking until the calling skill's required inputs are captured with sufficient specificity to generate the target artifact. On the **Full material-decision contract** path (#5351), "sufficient specificity" is the operator-confirmed **material-decision inventory** — not an open-ended "no material ambiguity remains" judgment.
 
-- ! If an answer introduces new ambiguity (e.g. user selects "Other" and describes something that requires follow-up), ask clarifying questions before moving on
-- ! Do not truncate the interview to save time -- completeness takes priority over brevity
-- ~ The calling skill defines what "sufficient specificity" means by providing a list of required fields in the handoff contract
+#### Material-decision contract (#5351)
+
+! Apply this contract when any of:
+- Sizing-Gate outcome is **Full** (greenfield Full, or brownfield Replace that reached Sizing after confirmed scrap), or
+- an operator-directed interview that has already entered Full-depth questioning (including a brownfield session that skipped Chaining but is already behaving as Full — treat as conformance debt; still apply the bound rather than invent a "Full/brownfield" compound state), or
+- **reopen / continuation** after a declared-ready state or after Rule 6 confirmation.
+
+Out of scope unless reopened into Full depth: Light sizing; Add-scope short path; Update/delta interview that stays delta.
+
+! The material-decision inventory **is** the depth-bound handoff surface for when questioning may stop. It carries: target deliverable, material required decisions (each with a **resolution condition**), approved constraints, accepted deferrals, and completion conditions. Reuse Delegation Mode required-field semantics without forcing a sub-skill invoke.
+
+! Relation to the seven-key Full Path Output set (`ProblemStatement` … `Overview`):
+- Seven-key set = **output-shape** narratives that must be filled for Full artifact write.
+- Material-decision inventory = **depth-bound** for when questioning may stop.
+- Rule 4 completeness reads the inventory for ask-set sufficiency; Rule 7 answers-map completeness still requires values for every caller-required key that is **not** legitimately deferred for this phase.
+- ⊗ Ship a competing undefined second required-field list. ⊗ Reframe the existing seven-key MUST as "only SHOULD."
+
+! Authorship / confirm / freeze:
+- Agent MAY draft the inventory from conversation + pack defaults.
+- Operator MUST explicitly confirm the inventory **before** depth-gate completion pressure applies (and before treating the ask-set as closed).
+- Each inventory member is marked operator-named vs agent-derived; ⊗ invent approved constraints or accepted deferrals as if operator-approved.
+- After confirm, inventory mutation uses an operator-visible boundary-change path (diff + re-confirm). ⊗ Silent agent-maximal or silent thin-then-widen inventories.
+
+! Phase-relative sufficiency + follow-up cites:
+- A decision is mandatory for this phase when leaving it unresolved would change the current deliverable's required behavior, constraints, acceptance, or feasibility.
+- A choice among implementations that already satisfy those conditions need not block this phase.
+- Newly discovered questions MUST (a) cite an outstanding material requirement and stay within its resolution condition, or (b) revisit an accepted deferral with operator-visible boundary change, or (c) on **operator-raised gap / inventory defect** after declared-ready: operator-visible inventory amendment (diff) then re-confirm.
+- Routine clarification inside an existing resolution condition needs no extra approval.
+
+! Deferrals vs handoff: Resolved / legitimately deferred-for-this-phase / still-blocking are distinct. A deferral records the unresolved decision, why it does not block this deliverable, and the later trigger — not a fabricated answers-map value. Represent deferrals in the existing handoff / working artifact. Required values remain enforced where the caller needs them now.
+
+! Persistence on continuation: Carry target deliverable, inventory dispositions, and accepted boundary changes in the caller's working artifact / answers handoff and reload them on continuation. Requirements-phase completion and implementation readiness stay separate claims. ⊗ Reconstruct a fresh maximal inventory from "comprehensive enough to implement" on resume.
+
+- ! If an answer introduces new ambiguity within an outstanding resolution condition, ask clarifying questions before moving on
+- ! Do not truncate the interview to save time when inventory items remain unresolved or still-blocking
+- ! On non-Full paths (Light / Add-scope / delta that stays delta), the calling skill still defines sufficient specificity via its required-field handoff; the Full material-decision contract does not apply unless reopened into Full depth
 
 ### Rule 5: Default Acceptance
 
@@ -208,6 +241,8 @@ Confirm these values? (yes / no)
 - ! Accept only explicit affirmative responses (`yes`, `confirmed`, `approve`) -- reject vague responses (`proceed`, `do it`, `go ahead`)
 - ~ Note: The confirmation gate is intentionally stricter than Rule 5 (default-acceptance). Rule 5 accepts casual responses like `ok` for individual question defaults because the cost of a wrong default is low (one field, correctable at the confirmation gate). The confirmation gate guards the entire artifact -- accepting `ok` here risks generating artifacts from auto-filled or misunderstood values. This asymmetry is by design.
 - ! If the user says `no`: ask which values to correct, re-ask those specific questions only (do not restart the full interview), then re-display the updated summary and re-confirm
+- ! On the Full material-decision contract path (#5351): the confirmation summary MUST list each inventory item as decided / deferred-with-permit / out-of-phase; require explicit affirm; ⊗ treat artifact write success alone as completion
+- ! Post-gate reopen / continuation after declared-ready uses the same re-ask-those-specific-questions bound, extended by Rule 4 inventory cite/amend branch (c) for operator-raised gaps — ⊗ reopen unbounded Full questioning from a declared-ready state without inventory amendment + re-confirm
 - ! If any value appears to be auto-generated filler (repeated default text, placeholder strings, or values that echo the question prompt), warn the user explicitly before confirming
 - ⊗ Proceed to artifact generation without displaying the summary and receiving explicit confirmation
 
@@ -272,6 +307,8 @@ When the interview captures origin provenance (e.g. the user links to a GitHub i
 - `Architecture`: System design and technical architecture
 - `Overview`: Brief project summary
 
+! These seven keys are the **output-shape** narratives for Full artifact write. Under the Full material-decision contract (#5351), the material-decision inventory is the separate **depth-bound** for when questioning may stop — not a competing second required-field list, and not a demotion of this seven-key MUST to SHOULD.
+
 ! All narrative values MUST be plain strings — never objects or arrays.
 
 ! The human approval gate reviews the PROJECT-DEFINITION narratives and proposed scope plan directly. On approval, the calling setup skill records the decision and generates downstream scope xBRIEFs without manufacturing a specification artifact.
@@ -301,6 +338,8 @@ deft-directive-interview supports two usage modes:
 ### Embedded Mode
 
 The calling skill references deft-directive-interview rules inline (e.g. "this phase follows the deterministic interview loop defined in `skills/deft-directive-interview/SKILL.md`") and applies the rules directly within its own question sequence. No formal contract object is needed -- the calling skill embeds the question definitions and field requirements in its own SKILL.md. This is the current approach used by `skills/deft-directive-setup/SKILL.md` Phase 1 and Phase 2.
+
+! When the calling skill is on the Full material-decision contract path (#5351), the material-decision inventory is the embedded required-field handoff (Delegation Mode semantics without a formal contract object). ⊗ Rely on open-ended "little ambiguity remains" / "no material ambiguity remains" as the Full depth gate.
 
 ### Delegation Mode
 

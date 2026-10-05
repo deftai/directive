@@ -335,17 +335,18 @@ flowchart LR
 
 - ! Missing decisions (language, framework, deployment)
 - ! Edge cases (errors, boundaries, failure modes)
-- ! Implementation details (architecture, patterns, libraries)
+- ~ Implementation details (architecture, patterns, libraries) — **phase-scoped** under the Full material-decision contract (#5351): after inventory confirm, implementation-detail asks MUST cite an outstanding material requirement's resolution condition or an accepted inventory amendment; ⊗ keep ordering unbounded detail asks after inventory confirm
 - ! Requirements (performance, security, scalability)
 - ! UX/constraints (users, timeline, compatibility)
 - ! Tradeoffs (simplicity vs features, speed vs safety)
 
 ### Transition Criteria (interview complete)
 
-- ! All major decisions have answers
-- ! Edge cases are addressed
+- ! All major decisions required for the current deliverable have answers (or accepted deferrals under the Full material-decision contract)
+- ! Edge cases that change required behavior, constraints, acceptance, or feasibility for this deliverable are addressed
 - ! User has approved key tradeoffs (Interview strategy) or Johnbot has chosen recommended options (Yolo strategy)
-- ~ Little ambiguity remains
+- ! On the Full material-decision contract path (#5351): inventory sufficiency + Confirmation Gate dispositions replace open-ended "little ambiguity remains" as the completion strength (aligned with setup Phase 3 Completion)
+- ! Apply the Full material-decision contract when Sizing-Gate is Full, Full-depth questioning is already underway, or reopen/continuation after declared-ready / Rule 6 confirmation (see `skills/deft-directive-interview/SKILL.md` Rule 4)
 
 ---
 

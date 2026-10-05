@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Interview strategy matches setup on PRD authority and promote (#5354).** Pack SoT + render remove Full-path Generate-PRD approval-gate and Light/Full promote-on-approval; approval leaves scopes in `proposed/`; `PRD.md` stays optional `task prd:render` export only. Workflow Overview routes through PROJECT-DEFINITION + proposed scopes (optional PRD export edge), not a PRD approval gate. Syncs `templates/make-spec.md`. Polarity content-contract locks strategy ↔ setup ↔ interview (including diagram). Tracking #5354.
+- **Full interview material-decision contract (#5351).** Prefer-A Bound: Full / reopen-after-declared-ready depth uses an operator-confirmed material-decision inventory (resolution conditions, provenance, confirm/freeze, cite-or-amend follow-ups including operator-raised gaps) instead of open-ended "little ambiguity remains." Phase-scopes Implementation-details Question Areas; extends Rule 6 Confirmation Gate with inventory dispositions; persists inventory on continuation. Lands interview + setup skills, interview strategy, and make-spec templates (pack SoT + render). Pure evaluator/fixture deferred as honest prose residue (file_scope is pack/content; Bound deferred new `verify:*`). Tracking #5351.
 
 - **Complete the #1589 scope brief after product #5315.** Record completion of the brief for shipped spec reconstruction and advisory drift checks. Enforce-mode work continues on #5350.
 
