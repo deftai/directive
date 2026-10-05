@@ -345,7 +345,15 @@
       "triggers": [
         "swarm",
         "parallel agents",
-        "run agents"
+        "run agents",
+        "pursue residual",
+        "follow-up hard-stop",
+        "same as conf-hold",
+        "continue dual-stopped PR",
+        "re-babysit residual",
+        "until floor or loop",
+        "until greptile meets policy",
+        "pursue residuals until told otherwise"
       ],
       "path": "skills/deft-directive-swarm/SKILL.md",
       "version": "0.1",
