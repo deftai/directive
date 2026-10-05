@@ -1,0 +1,485 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Prefer-A Bound hand-stamp for through-merge #5372 (bare-arc spend recommend-first)",
+    "updated": "2026-10-05T16:36:16.061Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): bare-arc spend recommend-first is prose-only; agents hit ask MUST instead",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(design-critique): bare-arc spend recommend-first is prose-only; agents hit ask MUST instead",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5372",
+      "Overview": "Prefer-A Bound lean 5997561349. Synthesis 5997595009. Pain-audit 5997577347. Operator add-to-cohort overrides arc-mode no-ingest. conflict_group design-critique-bare-arc-spend-recommend-first.",
+      "Labels": "bug, design, determinism, agent-experience, process, source-of-truth, urgent, area:skills, area:guidance, critic, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates",
+      "BoundRemedy": "Elevate bare-arc spend-recommend-first to ! MUST; ask fallback only; align Stop 2; tighten skill one-liner; replace content-contract pins; no parser rewrite."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Elevate recommend-first to a ! MUST under Spend: on bare arc (no closed n=1/n=3/n≥3 and no panel token), parent records spend-recommend: N=1|N≥3 before Stop 1, then resolves spend + spend-ask: resolved from that line via parseOperatorSpend / evaluateSpendRecord; explicit n= overrides; ambiguous mixes and bare panel stay ask-only (not inside recommend-MUST trigger).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+          "recorded_at": "2026-10-05T16:36:16.061Z",
+          "recorded_by": "Scott"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.2",
+        "title": "Keep ask as fallback only when no closed spend-recommend was recorded or tokens are ambiguous; retain existing MUST that missing spend token asks before Stop 1 when no closed spend-recommend is recorded.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+          "recorded_at": "2026-10-05T16:36:16.061Z",
+          "recorded_by": "Scott"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.3",
+        "title": "Align Stop 2 default-motion so N=1 (and N≥3 when recommend says so) is lawful after resolved n= token, recorded ask-answer, or recorded spend-recommend resolve; replace locked sentence that currently says N=1 only after n=1 or ask-answer.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+          "recorded_at": "2026-10-05T16:36:16.061Z",
+          "recorded_by": "Scott"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.4",
+        "title": "Tighten skill Spend one-liner in packs/skills/skills-pack-0.1.json then task packs:render to recommend-first shape: Spend: closed n= wins; else record spend-recommend then resolve; ask only when recommend missing or tokens ambiguous. Field lives in the contract. Consume parseOperatorSpend.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+          "recorded_at": "2026-10-05T16:36:16.061Z",
+          "recorded_by": "Scott"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.5",
+        "title": "Content-contract pin replacements in design_critique_contract.test.ts: replace (do not merely add alongside) the three locked old strings for Spend recommend-first ! MUST, Stop 2 recommend-resolve sentence, and new skill one-liner; optional additive bare-arc recommend-then-resolve fixture if string pins alone are judged thin.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+          "recorded_at": "2026-10-05T16:36:16.061Z",
+          "recorded_by": "Scott"
+        },
+        "x-directive/requires": "merge"
+      },
+      {
+        "id": "clause.6",
+        "title": "Implementation note: content/skill/pin change only for recording obligation + Stop 2/skill wording; parseOperatorSpend / evaluateSpendRecord already implement recommend-resolve when closed recommend line is supplied — no parser rewrite required.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+          "recorded_at": "2026-10-05T16:36:16.061Z",
+          "recorded_by": "Scott"
+        },
+        "x-directive/requires": "merge"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "determinism",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:skills",
+      "area:guidance",
+      "critic",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5372",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5372: bug(design-critique): bare-arc spend recommend-first is prose-only; agents hit ask MUST instead"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5111",
+        "type": "x-xbrief/closes",
+        "title": "Issue #5111"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "source_rung": "bound-prefer-a",
+      "derived_reason": "Prefer-A Bound lean 5997561349; pain-audit 5997577347 bindable-as-posted; synthesis 5997595009",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Elevate recommend-first to a ! MUST under Spend: on bare arc (no closed n=1/n=3/n≥3 and no panel token), parent records spend-recommend: N=1|N≥3 before Stop 1, then resolves spend + spend-ask: resolved from that line via parseOperatorSpend / evaluateSpendRecord; explicit n= overrides; ambiguous mixes and bare panel stay ask-only (not inside recommend-MUST trigger).",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+            "recorded_at": "2026-10-05T16:36:16.061Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        },
+        {
+          "id": 2,
+          "text": "Keep ask as fallback only when no closed spend-recommend was recorded or tokens are ambiguous; retain existing MUST that missing spend token asks before Stop 1 when no closed spend-recommend is recorded.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+            "recorded_at": "2026-10-05T16:36:16.061Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        },
+        {
+          "id": 3,
+          "text": "Align Stop 2 default-motion so N=1 (and N≥3 when recommend says so) is lawful after resolved n= token, recorded ask-answer, or recorded spend-recommend resolve; replace locked sentence that currently says N=1 only after n=1 or ask-answer.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+            "recorded_at": "2026-10-05T16:36:16.061Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        },
+        {
+          "id": 4,
+          "text": "Tighten skill Spend one-liner in packs/skills/skills-pack-0.1.json then task packs:render to recommend-first shape: Spend: closed n= wins; else record spend-recommend then resolve; ask only when recommend missing or tokens ambiguous. Field lives in the contract. Consume parseOperatorSpend.",
+          "artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+            "recorded_at": "2026-10-05T16:36:16.061Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        },
+        {
+          "id": 5,
+          "text": "Content-contract pin replacements in design_critique_contract.test.ts: replace (do not merely add alongside) the three locked old strings for Spend recommend-first ! MUST, Stop 2 recommend-resolve sentence, and new skill one-liner; optional additive bare-arc recommend-then-resolve fixture if string pins alone are judged thin.",
+          "artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+            "recorded_at": "2026-10-05T16:36:16.061Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        },
+        {
+          "id": 6,
+          "text": "Implementation note: content/skill/pin change only for recording obligation + Stop 2/skill wording; parseOperatorSpend / evaluateSpendRecord already implement recommend-resolve when closed recommend line is supplied — no parser rewrite required.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "ee188f81adff2feb831ef286c0472241fd665cfc",
+            "recorded_at": "2026-10-05T16:36:16.061Z",
+            "recorded_by": "Scott"
+          },
+          "x-directive/requires": "merge"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Spend (#4705 / closed #5111) intends bare-arc recommend-first then spend-ask: resolved, but the only RFC2119 MUST under Spend is the no-recommend ask, so agents that obey MUST bullets skip recording spend-recommend and hit ask; measured on Grok Build against deftai/statusreport#139 bare arc 139.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5372\norigin-ref: origin/HEAD\ndispatch-sha: 9e9054bac952d49edf2a563bb4dba67e3c3da096\ndest-wo: leftover-complete\n\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\nspend-why: Prefer-A drafted from the issue desired fix (elevate recommend-first to ! MUST; keep ask as no-recommend/ambiguous fallback; align Stop 2 with recommend-resolve; tighten skill Spend one-liner). Blast is design-critique contract Spend + Stop 2 default-motion sentence + thin skill Spend line + content-contract pins. Closed solution space; content/skill pin. Bare label-and-arc with recorded spend-recommend resolves spend-ask: resolved (#4705 / #5111).\nDual-stop cap: 6 posts\n\npain: P1, P2, P3\n\n- P1. Recommend-first is prose-only: Spend has no ! MUST that on bare arc (no closed spend token) the parent records spend-recommend: N=1|N≥3 before Stop 1; an RFC2119-bullet agent can skip recommend, leave none recorded, and then the ask MUST fires.\n- P2. Skill Spend one-liner reads ask-primary: \"Spend: closed n= or spend-recommend; else ask.\" makes the else-ask path the first reading when no closed n= is on the utterance, instead of recommend-then-resolve.\n- P3. Stop 2 fights recommend-resolve: \"N=1 only after a resolved n=1 token or a recorded ask-answer\" can be read to exclude spend-recommend resolve unless the Spend prose paragraph is already loaded.\n\nverification-path: pin-read git show 9e9054bac952d49edf2a563bb4dba67e3c3da096:; dest cwd-without-occupy for on-pin file reads\n\nTarget-digest: sha256:617197beee04ae22b88895434d37b9918f680654e310e175f83926669f90409e\ntarget: #5372\ntarget-shape: single-issue (default)\naudit-targets: none\nrelated: #4705 #5111 #3846 #5321 statusreport#139\n\n## Prefer-A draft (charter target; not yet Bound)\n\n1. **Elevate recommend-first to a `!` MUST** under Spend: on bare arc with no closed spend token (`n=1` / `n=3` / `n≥3` / ambiguous `panel`), parent records a closed `spend-recommend: N=1` or `spend-recommend: N≥3` line before Stop 1, then resolves `spend:` + `spend-ask: resolved` from that line via `parseOperatorSpend` / `evaluateSpendRecord`.\n2. **Keep ask as fallback only** when no closed `spend-recommend:` was recorded, or when tokens are ambiguous (both classes / bare `panel`). Retain existing MUST: missing spend token asks before Stop 1 when no closed spend-recommend is recorded.\n3. **Align Stop 2 default-motion** so N=1 (and N≥3 when recommend says so) is lawful after a resolved `n=` token, a recorded ask-answer, **or** a recorded `spend-recommend:` resolve — recommend counts as resolved, same as `n=1` / ask-answer.\n4. **Tighten the skill Spend one-liner** so recommend-first is the default on bare arc; ask is the no-recommend / ambiguous fallback — not the first reading. Land via pack source + `task packs:render` (skill is AUTO-GENERATED).\n5. **Content-contract pin** in `design_critique_contract.test.ts` (and any Spend fixture already covering recommend-resolve) so bare-arc → record recommend then resolve; ask only when recommend missing or tokens ambiguous; Stop 2 wording admits recommend-resolve.\n\n### Reject\n\n- Silence alone as N=1 (#4705).\n- Blast radius / open solution space auto-selecting N≥3.\n- Treating yolo as spend.\n- Dropping the ask MUST for the true no-recommend / ambiguous cases.\n- Host-memory \"always ask\" beating a recorded spend-recommend (#5321 exemplar).\n\n### Non-goals\n\n- No change to Dual-stop numbered/reserved seat accounting beyond wording that admit recommend-resolve.\n- No change to panel-deposit / launch-probe / N≥3 seat families.\n- Ingest remains a later separate operator verb (`arc-mode: no-ingest`).",
+          "id": 5997510334,
+          "html_url": "https://github.com/deftai/directive/issues/5372#issuecomment-5997510334",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T15:23:00Z",
+          "updated_at": "2026-10-05T15:23:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: 1\ncritic-role: fresh\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\naudit-targets: none\nid-ceiling: 5997510334\ndispatch-sha: 9e9054bac952d49edf2a563bb4dba67e3c3da096\nStop-1: 5997510334\ntarget: #5372\nverification-path: pin-read git show 9e9054bac952d49edf2a563bb4dba67e3c3da096:; dest cwd-without-occupy for on-pin file reads\n\n## Open critique of Prefer-A (Stop 1 5997510334)\n\nPrefer-A is close to bindable. The five limbs match the measured gap and the pin-read shape. Code already admits recommend-resolve; the hole is agent-facing obligation + locked wording that still points at ask. Disposition below is **support+amends** — bind after the amends, do not invent Prefer-B.\n\n### Finding 1 — Limb 1 correctly elevates the missing MUST (P1)\n\n**Evidence (pin-read Spend):** Prose already says “Before Stop 1, parent records a closed `spend-recommend: N=1` or `spend-recommend: N≥3` line … On a bare arc with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`.” The RFC2119 MUST list under Spend is only:\n- `! Record spend: and spend-ask: on the Stop 1 write-back before launching critics.`\n- `! Missing spend token asks before Stop 1 when no closed spend-recommend: is recorded.`\nThere is no `!` that obligates recording `spend-recommend:` on bare arc.\n\n**Evidence (spend.ts):** `parseOperatorSpend(utterance, { spendRecommend })` already resolves when recommend is supplied; `evaluateSpendRecord` admits that path with `spend-ask: resolved`. The runtime front door is ready; agents that obey only MUST bullets never feed it.\n\n**Failure mode:** Same as statusreport#139 / issue Measured gap — skip recommend → no closed recommend → ask MUST fires.\n\n**Disposition:** support (limb 1 is the right fix for P1).\n**Pains:** P1.\n\n### Finding 2 — Limb 1 parenthetical conflates bare with ambiguous (drafting amend)\n\n**Evidence (Stop 1 Prefer-A limb 1):** “on bare arc with no closed spend token (`n=1` / `n=3` / `n≥3` / ambiguous `panel`), parent records …”\n\n**Evidence (pin-read Spend + limb 2):** Bare `panel` asks (ambiguous). Limb 2 correctly keeps ask for “tokens are ambiguous (both classes / bare `panel`).”\n\n**Failure mode:** An agent can read limb 1 as “when panel is present, still record spend-recommend then resolve,” which fights limb 2 and the pin-read ambiguous path.\n\n**Disposition:** support+amends — rewrite limb 1 scope to: bare = no `n=` and no `panel` on the utterance; ambiguous / colliding classes stay ask-only per limb 2; do not put `ambiguous panel` inside the recommend-MUST trigger.\n**Pains:** P1 (precision), intersects limb 2 / Reject “Dropping the ask MUST…”.\n\n### Finding 3 — Limb 3 + 5 relieve Stop 2 fight; pins currently lock the fight (P3)\n\n**Evidence (pin-read Stop 2):** “N=1 only after a resolved `n=1` token or a recorded ask-answer.”\n\n**Evidence (design_critique_contract.test.ts spend lock):** expects that exact Stop 2 sentence; also expects skill `Spend: closed n= or spend-recommend; else ask`.\n\n**Failure mode:** Even after Spend prose is loaded, Stop 2 + CI pins teach “recommend does not count,” so parents re-ask or refuse N=1 after recommend-resolve.\n\n**Disposition:** support — limbs 3 and 5 are required together. Amend limb 5 to **replace** (not merely add) the three locked strings: (a) new Spend recommend-first `!` MUST, (b) Stop 2 sentence that names recommend-resolve alongside `n=` / ask-answer, (c) new skill one-liner. Leaving the old expects in place would re-lock the bug.\n**Pains:** P3 primarily; P1/P2 via pin replacement.\n\n### Finding 4 — Limb 4 intent is right; concrete one-liner still missing (P2)\n\n**Evidence (pin-read skill):** `Spend: closed n= or spend-recommend; else ask. Field lives in the contract. Consume parseOperatorSpend.`\n\n**Evidence (Stop 1 P2 / Prefer-A limb 4):** names tighten + pack source + `task packs:render` (skill is AUTO-GENERATED) — correct land path.\n\n**Failure mode:** “Tighten” without a closed proposed string can land another else-ask-first reading. The current line already mentions `spend-recommend` and still reads ask-primary when no closed `n=` is on the utterance and no recommend line has been written yet.\n\n**Disposition:** support+amends — Prefer-A should bind a concrete pack-source string before bind, e.g. recommend-first shape: closed `n=` wins; else record `spend-recommend` then resolve; ask only when recommend missing or tokens ambiguous. Keep “Consume parseOperatorSpend.” Keep line-cap discipline (`MAX_SKILL_LINES`).\n**Pains:** P2.\n\n### Finding 5 — Code vs obligation: Prefer-A must not imply a parser rewrite\n\n**Evidence (spend.ts JSDoc / evaluateSpendRecord):** “Admit N=1 only from a resolved n=1 token, a closed spend-recommend, or a recorded ask-answer.” Host-memory fixture (#5321) already shows `spendRecommend: N1_SPEND` → `spend-ask: resolved`.\n\n**Failure mode:** Treat Prefer-A as a `spend.ts` behavior change and churn working fixtures; or omit the parent recording MUST and hope the parser “defaults.”\n\n**Disposition:** non-blocking sharpening — state explicitly in Bound text: content/skill/pin change only for the recording obligation + Stop 2/skill wording; `parseOperatorSpend` / `evaluateSpendRecord` already implement recommend-resolve when the closed line is supplied. Optional fixture add: bare-arc parent path that asserts recommend-then-resolve without ask (content-contract string pins may suffice).\n**Pains:** P1 acceptance / implementation clarity.\n\n### Finding 6 — Reject / Non-goals align with pin-read ⊗ set\n\n**Evidence:** pin-read Spend ⊗ Treat silence as N=1; ⊗ Select N≥3 from blast radius or open solution space; ⊗ Treat yolo as spend; ask MUST retained for true no-recommend / ambiguous; #5321 host-memory “always ask” loses to closed recommend.\n\n**Disposition:** support — keep Reject/Non-goals as written; they prevent Prefer-A from overshooting into silence-as-N=1 or dropping ask.\n**Pains:** none opened; protects P1–P3 fix from regression.\n\n### Limb checklist\n\n| Limb | Verdict |\n|------|---------|\n| 1 Elevate recommend-first `!` MUST | support — with Finding 2 scope amend |\n| 2 Ask as fallback only | support — keep; do not drop |\n| 3 Align Stop 2 default-motion | support |\n| 4 Tighten skill one-liner | support+amends — need concrete string + pack render |\n| 5 Content-contract pin | support — must replace the three locked old strings |\n\n### Overall disposition\n\n**support+amends** toward Prefer-A. Prefer-A is not irreparable; Prefer-B is unnecessary.\n\nMust change before bind:\n1. Clarify limb 1 trigger: bare arc = no `n=` and no `panel`; ambiguous stays ask (Finding 2).\n2. Propose the exact skill Spend one-liner text and land via pack source + `packs:render` (Finding 4).\n3. Require content-contract expect replacements for Spend MUST / Stop 2 sentence / skill one-liner so CI cannot re-pin the ask-primary shape (Finding 3).\n\n### Pain relief vs Prefer-A as drafted\n\n| Pain | Relief |\n|------|--------|\n| P1 Recommend-first prose-only | **Relieved** by limb 1 (subject to Finding 2 scope amend) |\n| P2 Skill else-ask primary | **Partially relieved** — direction clear; concrete one-liner not yet Bound |\n| P3 Stop 2 fights recommend-resolve | **Relieved** by limbs 3 + 5 |\n\nEXIT after this post.\r\n\n",
+          "id": 5997548561,
+          "html_url": "https://github.com/deftai/directive/issues/5372#issuecomment-5997548561",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T15:25:06Z",
+          "updated_at": "2026-10-05T15:25:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound\n\n## In plain English\n\nBare `arc N` should record a spend recommendation, then treat that recommendation as the resolved spend, instead of asking Scott every time. Ask stays only when there was no recommendation or the spend tokens conflict. The skill one-liner and Stop 2 wording will say the same thing, and the content-contract tests will lock the new wording so the old ask-first reading cannot sneak back.\n\narc-mode: no-ingest\nyolo-standing: yes\ncharter: open critique\nspend: N=1\nStop-1: 5997510334\nround-1 critic: 5997548561 (siblings: 1)\ndispatch-sha: 9e9054bac952d49edf2a563bb4dba67e3c3da096\nTarget-digest: sha256:617197beee04ae22b88895434d37b9918f680654e310e175f83926669f90409e\ntarget: #5372\nsupersedes-write-back: 5997510334 Prefer-A draft\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Proposed takes (per heading)\n\n- Prefer-A Bound remedy: accept-into-contract\n- Reject: accept-into-contract\n- Non-goals: accept-into-contract\n- Critic Finding 2 (limb 1 bare vs ambiguous scope): accept-into-contract (folded)\n- Critic Finding 4 (concrete skill one-liner): accept-into-contract (folded)\n- Critic Finding 3/5 (replace locked expect strings; content/skill/pin only): accept-into-contract (folded)\n- Critic Finding 5 (no parser rewrite): accept-into-contract (folded as Bound note)\n\n## Bound remedy\n\n1. **Elevate recommend-first to a `!` MUST under Spend.** On bare arc — meaning the operator utterance carries no closed spend token `n=1` / `n=3` / `n≥3` and no `panel` token — parent records a closed `spend-recommend: N=1` or `spend-recommend: N≥3` line before Stop 1, then resolves `spend:` + `spend-ask: resolved` from that line via `parseOperatorSpend` / `evaluateSpendRecord`. Explicit `n=` still overrides. Ambiguous mixes (both resolved classes on one utterance) and bare `panel` stay ask-only; they are **not** inside the recommend-MUST trigger.\n2. **Keep ask as fallback only** when no closed `spend-recommend:` was recorded, or when tokens are ambiguous. Retain the existing MUST: missing spend token asks before Stop 1 when no closed spend-recommend is recorded.\n3. **Align Stop 2 default-motion** so N=1 (and N≥3 when recommend says so) is lawful after a resolved `n=` token, a recorded ask-answer, **or** a recorded `spend-recommend:` resolve — recommend counts as resolved, same as `n=1` / ask-answer. Replace the locked sentence that currently says N=1 only after `n=1` or ask-answer.\n4. **Tighten the skill Spend one-liner** (pack source `packs/skills/skills-pack-0.1.json` → `task packs:render`; skill is AUTO-GENERATED) to a recommend-first shape that cannot be read as ask-primary on bare arc. Bound string (or equivalent line-cap-safe paraphrase that preserves this order):\n   `Spend: closed n= wins; else record spend-recommend then resolve; ask only when recommend missing or tokens ambiguous. Field lives in the contract. Consume parseOperatorSpend.`\n5. **Content-contract pin replacements** in `design_critique_contract.test.ts` (and any Spend fixture covering recommend-resolve): **replace** (do not merely add alongside) the three locked old strings — (a) Spend recommend-first `!` MUST, (b) Stop 2 sentence naming recommend-resolve beside `n=` / ask-answer, (c) new skill one-liner — so CI cannot re-pin the ask-primary shape. Optional additive fixture: bare-arc parent path that asserts recommend-then-resolve without ask.\n6. **Implementation note (non-behavior):** content/skill/pin change only for the recording obligation + Stop 2/skill wording. `parseOperatorSpend` / `evaluateSpendRecord` already implement recommend-resolve when a closed recommend line is supplied; Prefer-A does not require a parser rewrite.\n\n### Reject\n\n- Silence alone as N=1 (#4705).\n- Blast radius / open solution space auto-selecting N≥3.\n- Treating yolo as spend.\n- Dropping the ask MUST for true no-recommend / ambiguous cases.\n- Host-memory \"always ask\" beating a recorded spend-recommend (#5321 exemplar).\n- Putting ambiguous `panel` / colliding classes inside the recommend-MUST trigger.\n\n### Non-goals\n\n- No change to Dual-stop numbered/reserved seat accounting beyond wording that admits recommend-resolve.\n- No change to panel-deposit / launch-probe / N≥3 seat families.\n- No `spend.ts` behavior rewrite for the recommend-resolve path (already implemented).\n- Ingest remains a later separate operator verb (`arc-mode: no-ingest`).\n\n## Residual\n\n- None that changes disposition before pain-audit. Critic Finding 5 optional fixture is PR residue if content-contract string pins already lock the three lands.\n\n## Cite\n\n- Round-1 critic 5997548561: support+amends; P1 relieved (subject to bare/ambiguous amend); P2 partially relieved → Bound limb 4 closes with concrete string; P3 relieved by limbs 3+5.\n- Stop 1 Prefer-A draft 5997510334 superseded as draft; Bound folds Findings 2/3/4/5.\n\nSpec-path: harvest Bound remedy\nconflict_group: design-critique-bare-arc-spend-recommend-first",
+          "id": 5997561349,
+          "html_url": "https://github.com/deftai/directive/issues/5372#issuecomment-5997561349",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T15:25:47Z",
+          "updated_at": "2026-10-05T15:25:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nseat: grok\nlauncher: grok-cli\nround: pain-audit\ncritic-role: fresh\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: sharpening\nharvest-changed: false\nid-ceiling: 5997561349\ndispatch-sha: 9e9054bac952d49edf2a563bb4dba67e3c3da096\nStop-1: 5997510334\nPrefer-A Bound lean: 5997561349\nround-1 critic: 5997548561\ntarget: #5372\nverification-path: pin-read git show 9e9054bac952d49edf2a563bb4dba67e3c3da096:; dest cwd-without-occupy for on-pin file reads\n\n## Pain-audit of Prefer-A Bound 5997561349 vs Stop 1 P1–P3\n\nPin-read at 9e9054ba confirms the measured gap still holds in SoT: Spend prose already narrates recommend-then-resolve, but the only Spend `!` MUSTs are (1) record `spend:`/`spend-ask:` before critics and (2) missing token asks when no closed `spend-recommend:` is recorded — no `!` obligates recording recommend on bare arc. Skill one-liner is still `Spend: closed n= or spend-recommend; else ask.` Stop 2 still locks `N=1 only after a resolved n=1 token or a recorded ask-answer.` `spend.ts` already admits recommend-resolve when a closed recommend is supplied. Content-contract test locks the old Stop 2 sentence and the ask-primary skill line.\n\nRound-1 critic 5997548561 was **support+amends**. Prefer-A Bound 5997561349 folds Findings 2/3/4/5 into Bound limbs and asserts `relieves: P1` / `relieves: P2` / `relieves: P3` one line each.\n\n### P1 — Recommend-first is prose-only\n\n**Stop 1 pain:** No `!` MUST that on bare arc the parent records `spend-recommend:` before Stop 1; RFC2119-bullet agents skip recommend → ask MUST fires.\n\n**Bound limbs:** 1 (elevate recommend-first `!` MUST; bare = no `n=` and no `panel`; then resolve via `parseOperatorSpend` / `evaluateSpendRecord`; explicit `n=` overrides; ambiguous mixes / bare `panel` stay ask-only and are **not** inside the recommend-MUST trigger), 2 (ask fallback retained), 5 (replace locked Spend MUST expect), 6 (content/skill/pin only; no parser rewrite).\n\n**Verdict: supports.** Limb 1 is the missing obligation; Finding 2 bare-vs-ambiguous scope is folded so the MUST cannot be read as covering ask-only `panel`. Runtime path already exists when the closed recommend line is supplied.\n\n### P2 — Skill Spend one-liner reads ask-primary\n\n**Stop 1 pain:** `Spend: closed n= or spend-recommend; else ask.` makes else-ask the first reading when no closed `n=` is on the utterance.\n\n**Bound limbs:** 4 (concrete pack-source one-liner via `packs/skills/skills-pack-0.1.json` → `task packs:render`: `Spend: closed n= wins; else record spend-recommend then resolve; ask only when recommend missing or tokens ambiguous. Field lives in the contract. Consume parseOperatorSpend.` — or line-cap-safe paraphrase preserving that order), 5 (replace locked skill expect string).\n\n**Verdict: supports.** Bound closes the round-1 \"partially relieved\" gap with a closed recommend-first string and CI replace of the ask-primary lock.\n\n### P3 — Stop 2 fights recommend-resolve\n\n**Stop 1 pain:** `N=1 only after a resolved n=1 token or a recorded ask-answer` can exclude recommend-resolve unless Spend prose is already loaded.\n\n**Bound limbs:** 3 (Stop 2 default-motion admits resolved `n=`, recorded ask-answer, **or** recorded `spend-recommend:` resolve), 5 (replace the locked Stop 2 sentence expect).\n\n**Verdict: supports.** Limbs 3+5 together rewrite the agent-facing sentence and unlock CI so the old fight cannot re-pin.\n\n### Harvest vs residue\n\nNo blocking does-not-relieve. No operator-deferred. Bound Residual already names Critic Finding 5 optional bare-arc parent-path fixture as PR residue when the three string pins lock the lands — that does not change Bound harvest identity.\n\n**S1 (non-harvest):** Optional additive fixture asserting bare-arc recommend-then-resolve without ask, if string-pin replacements alone are judged thin at PR acceptance. Already Bound Residual; carry into implement acceptance.\n\n### Closing\n\n- P1: support (limbs 1, 2, 5, 6)\n- P2: support (limbs 4, 5)\n- P3: support (limbs 3, 5)\n- overall: bindable-as-posted\n- harvest-changed: false\n- non-harvest sharpenings: S1 (optional bare-arc recommend-then-resolve fixture; PR residue)\n\nEXIT after this post.",
+          "id": 5997577347,
+          "html_url": "https://github.com/deftai/directive/issues/5372#issuecomment-5997577347",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T15:26:40Z",
+          "updated_at": "2026-10-05T15:28:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nrecorded takes for audit 5997577347\n\nevaluatePainAuditFollowThrough({findingClasses:[\"sharpening\"], harvestChanged:false}) — residue carries into PR acceptance rather than another Recut.\n\ntakes:\n- S1 optional additive bare-arc recommend-then-resolve fixture: carry into PR acceptance if content-contract string-pin replacements alone are judged thin; does not change Bound harvest identity.\n- P1/P2/P3: support; overall bindable-as-posted; harvest-changed: false.",
+          "id": 5997589885,
+          "html_url": "https://github.com/deftai/directive/issues/5372#issuecomment-5997589885",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T15:27:22Z",
+          "updated_at": "2026-10-05T15:27:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Cite |\n|---|---|---|\n| Bare arc with no n= and no panel MUST record spend-recommend then resolve spend-ask: resolved | verified | Prefer-A Bound 5997561349 limb 1; PA 5997577347 P1 support |\n| Ask remains for missing recommend and ambiguous tokens (both classes / bare panel) | verified | Bound limbs 1–2; Reject; PA P1 support |\n| Stop 2 admits recommend-resolve as lawful N=1 / N≥3 path | verified | Bound limb 3; PA P3 support |\n| Skill Spend one-liner is recommend-first via pack source + packs:render | verified | Bound limb 4 concrete string; PA P2 support |\n| Content-contract replaces (not adds beside) Spend MUST / Stop 2 / skill locked strings | verified | Bound limb 5; critic 5997548561 F3; PA P1–P3 |\n| parseOperatorSpend / evaluateSpendRecord already implement recommend-resolve; no parser rewrite | verified | Bound limb 6; critic F5 |\n| Silence / blast / yolo are not spend; host-memory always-ask loses to closed recommend | verified | Reject; #4705 #5321 |\n| Non-harvest S1 optional fixture is PR residue | verified | PA 5997577347; recorded takes |\n\nsuccessor lean 5997561349\npain-audit 5997577347\nStop-1 5997510334\nround-1 critic 5997548561",
+          "id": 5997590284,
+          "html_url": "https://github.com/deftai/directive/issues/5372#issuecomment-5997590284",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T15:27:23Z",
+          "updated_at": "2026-10-05T15:27:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5997561349\nverified-claims table 5997590284\nStop-1 (denominator): 5997510334\nround-1 critic: 5997548561\nPain-audit (bind lean): 5997577347 — support P1, support P2, support P3; bindable-as-posted; harvest-changed: false; non-harvest S1 (optional bare-arc recommend-then-resolve fixture) carries into PR acceptance\nrecorded takes: 5997589885\ndispatch-sha: 9e9054bac952d49edf2a563bb4dba67e3c3da096\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\n\n## In plain English\n\nThe Bound stands. On a bare arc, the parent must record a spend recommendation and then resolve spend from it, instead of asking first. Ask stays only when there was no recommendation or the spend tokens conflict. Stop 2 and the skill one-liner will say the same thing, and the content-contract tests will replace the old ask-first locks so they cannot come back. Ingest remains a separate operator verb.\n\n## Recording note (no Lean token)\n\nevaluatePainAuditFollowThrough({findingClasses:[\"sharpening\"], harvestChanged:false}) — residue carries into PR acceptance rather than another Recut.\n\n## Plain-language summary\n\nBare arc recommend-first MUST + resolve; ask only as no-recommend/ambiguous fallback; Stop 2 and skill one-liner aligned; CI replaces the three locked ask-primary strings; no parser rewrite.",
+          "id": 5997595009,
+          "html_url": "https://github.com/deftai/directive/issues/5372#issuecomment-5997595009",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-05T15:27:39Z",
+          "updated_at": "2026-10-05T15:27:39Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nOn a bare `arc <N>`, Spend (#4705 / closed #5111) intends: parent records `spend-recommend: N=1|N≥3`, then resolves with `spend-ask: resolved`. Ask is only the no-recommend fallback.\n\nIn practice, agents still ask. Measured on Grok Build against `deftai/statusreport#139` (`arc 139`, no spend token): parent used a structured spend ask instead of recording `spend-recommend` and resolving.\n\n## Measured gap\n\nContract / skill shape that agents actually follow:\n\n1. Skill one-liner (`deft-directive-design-critique`): `Spend: closed n= or spend-recommend; else ask.`\n2. Contract MUST list under Spend: `! Missing spend token asks before Stop 1 when no closed spend-recommend: is recorded.`\n3. The recommend-first path exists only as prose: \"Before Stop 1, parent records a closed `spend-recommend: …` line … On a bare arc … resolve spend from that recorded `spend-recommend:` value\"\n\nThere is **no** `!` MUST that says: on bare arc, record `spend-recommend` before Stop 1. An agent that obeys only RFC2119 bullets can skip recommend, leave no recommend recorded, and then the ask MUST fires. The skill's `else ask` makes that path look primary.\n\n## Related tension\n\nStop 2 still says \"N=1 only after a resolved `n=1` token or a recorded ask-answer,\" which can be read as fighting the #5111 recommend-resolve path unless Spend prose is already loaded.\n\n## Desired fix\n\n1. Elevate recommend-first to a `!` MUST: on bare arc (no closed spend token), parent records `spend-recommend: N=1|N≥3` before Stop 1, then resolves `spend:` + `spend-ask: resolved` from that line.\n2. Keep ask as the fallback only when no closed `spend-recommend:` was recorded (and for ambiguous token mixes).\n3. Align Stop 2 \"N=1 only after…\" with the recommend-resolve path (recommend counts as resolved, same as `n=1` / ask-answer).\n4. Tighten the skill one-liner so recommend-first is the default on bare arc; ask is the no-recommend / ambiguous fallback — not the first reading.\n\n## What this does not change\n\n- ⊗ Silence alone is still not N=1 (#4705).\n- ⊗ Blast radius / open solution space still does not auto-select N≥3.\n- ⊗ Explicit `n=1` / `n=3` / `n≥3` still override.\n- ⊗ Yolo still is not spend.\n\n## Acceptance\n\n- Content-contract / skill pin: bare arc → record `spend-recommend` then resolve; ask only when recommend missing or tokens ambiguous.\n- Stop 2 wording admits recommend-resolve as a lawful N=1 (or N≥3) path.\n- Skill Spend line cannot be read as \"missing token → ask first.\"\n\nRefs: #4705, #5111, #3846. Measured: statusreport#139 bare `arc 139` → structured spend ask instead of recommend-resolve.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5713745264,
+        "origin": "deftai/directive#5372",
+        "id": "github.issue.5713745264"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "617197beee04ae22b88895434d37b9918f680654e310e175f83926669f90409e"
+      },
+      "preferABound": {
+        "leanCommentId": 5997561349,
+        "painAuditCommentId": 5997577347,
+        "synthesisCommentId": 5997595009,
+        "stop1CommentId": 5997510334,
+        "conflict_group": "design-critique-bare-arc-spend-recommend-first"
+      },
+      "swarm": {
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "conflict_group": "design-critique-bare-arc-spend-recommend-first",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "Tracking PR for #5372 with Prefer-A Bound bare-arc spend recommend-first"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "Traces": [
+          "#5372",
+          "#4705",
+          "#5111",
+          "#5321"
+        ]
+      },
+      "productPullRequest": 5378,
+      "productMergeCommit": "ee188f81adff2feb831ef286c0472241fd665cfc",
+      "completedAt": "2026-10-05T16:36:16.061Z",
+      "completionProvenance": {
+        "productMerge": "ee188f81a",
+        "productPr": 5378,
+        "disposition": "delivered",
+        "verifier": "parent-leftover-complete-tracking",
+        "recorded_at": "2026-10-05T16:36:16.061Z"
+      }
+    },
+    "id": "github.issue.5713745264",
+    "updated": "2026-10-05T15:43:29Z"
+  }
+}
