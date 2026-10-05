@@ -71,6 +71,48 @@ Before rendering menu options, classify the repo (same rule as setup Phase 3; #4
 ⊗ Skip this gate on scoped/brownfield repos.
 ⊗ Skip this gate when the operator chose Add-scope, Update, or Replace.
 
+### Interview continuation carrier (#5352 Prefer-A Bound)
+
+! Post-draft design-interview corrections, gap reviews, and cross-session
+  handoffs MUST preserve phase/approval scope on
+  `plan["x-directive/interviewContinuation"]` under `./xbrief/plan.xbrief.json`
+  (closed namespaced field). Full field list, closed phase enum, and refuse
+  surfaces: `skills/deft-directive-interview/SKILL.md` Rule 12.
+
+! On brownfield **Update project definition** (delta interview) and any
+  continuation after a planning draft is approved: load that durable carrier
+  before asking the next question.
+
+! **First-delta initialize (absent carrier):** When `plan["x-directive/interviewContinuation"]`
+  is absent/omitted (no active continuation), initialize it before the next question from
+  (1) the existing PROJECT-DEFINITION identity / deliverable under review and (2) the
+  operator-named change request. Seed at least: `targetDeliverable`, `phase`
+  (`planning-draft-approved` or `correction-or-gap-review`), `reopenableDecisionSet` /
+  `deltaUnderReview.keys` from the operator-enumerated delta, empty `acceptedDeferrals`
+  and `confirmations` as needed. Absent field means "initialize," not "refuse."
+
+! **Incomplete carrier refuse:** Resume MUST fail closed when a carrier **is present**
+  but orientation is next-question-only / Resume-point-only without the required fields.
+
+! Delta reopen is operator-enumerated only (Rule 6 L160 shape). Default
+  refuse-to-widen; agent-inferred dependents are not a widen path.
+
+#### Approval menu bind-map (S2)
+
+| Moment | Gate |
+|--------|------|
+| Design-answer numeric confirm | Interview Rule 8 / Rule 6 — `answer` scope only |
+| First write after answers | Setup Post-Interview Confirmation Gate |
+| Full Path narrative/scope approval | Setup Output — Full Path human approval |
+| SPEC "Approve and continue" (optional PRD export is never this gate) | This strategy's SPECIFICATION Approval Menu — still subject to planning-only precedence |
+| Bounded delta phase completion | Durable-record write on the carrier (not a new re-ask prompt) |
+
+! When a planning-only constraint is in force, option 1
+  (`Approve and continue (lock the SPEC, proceed to implementation)`) MUST NOT
+  silently override it — refuse or re-route with explicit precedence.
+
+⊗ Use ephemeral `xbrief/continue.xbrief.json` / continue-here as this carrier.
+
 ### Options
 
 ! Numbered Chaining Gate menus (greenfield and brownfield examples below) MUST end with `Discuss` and `Back` as the final two options per [deterministic-questions.md](../contracts/deterministic-questions.md).
@@ -127,50 +169,6 @@ See `strategies/map.md` for standalone behavior.
   listed in `plan.xbrief.json`
 - ! On brownfield **Add scope** or **Update project definition**, load existing
   PROJECT-DEFINITION identity and preparatory artifacts before asking questions
-
-
-
-### Interview continuation carrier (#5352 Prefer-A Bound)
-
-! Post-draft design-interview corrections, gap reviews, and cross-session
-  handoffs MUST preserve phase/approval scope on
-  `plan["x-directive/interviewContinuation"]` under `./xbrief/plan.xbrief.json`
-  (closed namespaced field). Full field list, closed phase enum, and refuse
-  surfaces: `skills/deft-directive-interview/SKILL.md` Rule 12.
-
-! On brownfield **Update project definition** (delta interview) and any
-  continuation after a planning draft is approved: load that durable carrier
-  before asking the next question.
-
-! **First-delta initialize (absent carrier):** When `plan["x-directive/interviewContinuation"]`
-  is absent/omitted (no active continuation), initialize it before the next question from
-  (1) the existing PROJECT-DEFINITION identity / deliverable under review and (2) the
-  operator-named change request. Seed at least: `targetDeliverable`, `phase`
-  (`planning-draft-approved` or `correction-or-gap-review`), `reopenableDecisionSet` /
-  `deltaUnderReview.keys` from the operator-enumerated delta, empty `acceptedDeferrals`
-  and `confirmations` as needed. Absent field means "initialize," not "refuse."
-
-! **Incomplete carrier refuse:** Resume MUST fail closed when a carrier **is present**
-  but orientation is next-question-only / Resume-point-only without the required fields.
-
-! Delta reopen is operator-enumerated only (Rule 6 L160 shape). Default
-  refuse-to-widen; agent-inferred dependents are not a widen path.
-
-#### Approval menu bind-map (S2)
-
-| Moment | Gate |
-|--------|------|
-| Design-answer numeric confirm | Interview Rule 8 / Rule 6 — `answer` scope only |
-| First write after answers | Setup Post-Interview Confirmation Gate |
-| Full Path narrative/scope approval | Setup Output — Full Path human approval |
-| SPEC/PRD "Approve and continue" | This strategy's approval menus — still subject to planning-only precedence |
-| Bounded delta phase completion | Durable-record write on the carrier (not a new re-ask prompt) |
-
-! When a planning-only constraint is in force, option 1
-  (`Approve and continue (lock the SPEC, proceed to implementation)`) MUST NOT
-  silently override it — refuse or re-route with explicit precedence.
-
-⊗ Use ephemeral `xbrief/continue.xbrief.json` / continue-here as this carrier.
 
 ### Write Guards (interview)
 
