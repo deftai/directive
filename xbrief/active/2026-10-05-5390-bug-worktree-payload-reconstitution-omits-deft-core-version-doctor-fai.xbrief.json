@@ -100,7 +100,8 @@
         "file_scope_confidence": "high",
         "model_tier": "default"
       },
-      "activationPullRequest": 5394
+      "activationPullRequest": 5394,
+      "productPullRequest": 5395
     },
     "references": [
       {
