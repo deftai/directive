@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5353",
-    "updated": "2026-10-05T05:01:59Z"
+    "updated": "2026-10-05T05:09:45Z"
   },
   "plan": {
     "title": "[framework-gap] Interview progress rules hide remaining scope while enforcing one-question-at-a-time interaction",
@@ -18,102 +18,66 @@
         "id": "clause.1",
         "title": "Progress checkpoint obligation: Require appropriately timed, concise progress checkpoints: current phase, remaining material decision areas, accepted deferrals, and reasons for additions. A status statement is not a batch of questions and is not a prior-answer summary.",
         "status": "completed",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "eventRef": "leftover-complete-after-5357",
-            "mintedAt": "2026-10-05T05:01:59Z",
-            "mintedVia": "parent-retained-closer"
-          },
-          "recorded_at": "2026-10-05T05:01:59Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+          "recorded_at": "2026-10-05T05:09:45Z",
+          "recorded_by": "Scott"
         }
       },
       {
         "id": "clause.2",
         "title": "Closed triggers + inventory substrate: Session-local decision inventory = calling-skill required/optional fields plus runtime deferred/added entries (each addition carries a reason; each accepted deferral is recorded). Closed checkpoint triggers (no every-turn default).",
         "status": "completed",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "eventRef": "leftover-complete-after-5357",
-            "mintedAt": "2026-10-05T05:01:59Z",
-            "mintedVia": "parent-retained-closer"
-          },
-          "recorded_at": "2026-10-05T05:01:59Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+          "recorded_at": "2026-10-05T05:09:45Z",
+          "recorded_by": "Scott"
         }
       },
       {
         "id": "clause.3",
         "title": "How-much-is-left interrupt: Operator ask for remaining scope MUST be answered as Rule 2 status-only emission grounded in inventory; then re-render the same pending question. Do not advance to next material decision. Do not open Discuss unless operator chose Discuss.",
         "status": "completed",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "eventRef": "leftover-complete-after-5357",
-            "mintedAt": "2026-10-05T05:01:59Z",
-            "mintedVia": "parent-retained-closer"
-          },
-          "recorded_at": "2026-10-05T05:01:59Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+          "recorded_at": "2026-10-05T05:09:45Z",
+          "recorded_by": "Scott"
         }
       },
       {
         "id": "clause.4",
         "title": "Preserve interaction constraints: Keep one-question interaction where required, Discuss/Back, and explicit confirmation semantics including Rule 8. Do not remove Rule 8 or switch to yolo as the remedy.",
         "status": "completed",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "eventRef": "leftover-complete-after-5357",
-            "mintedAt": "2026-10-05T05:01:59Z",
-            "mintedVia": "parent-retained-closer"
-          },
-          "recorded_at": "2026-10-05T05:01:59Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+          "recorded_at": "2026-10-05T05:09:45Z",
+          "recorded_by": "Scott"
         }
       },
       {
         "id": "clause.5",
         "title": "Land sites: Amend deft-directive-interview SKILL (Rule 1 coexistence + positive progress duty; Rule 2 status class; how-much-is-left interrupt). Mirror into setup Phase 1 and Phase 2 Interview Rules; keep Anti-Patterns aligned (batching still forbidden; progress status is not a second question).",
         "status": "completed",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "eventRef": "leftover-complete-after-5357",
-            "mintedAt": "2026-10-05T05:01:59Z",
-            "mintedVia": "parent-retained-closer"
-          },
-          "recorded_at": "2026-10-05T05:01:59Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+          "recorded_at": "2026-10-05T05:09:45Z",
+          "recorded_by": "Scott"
         }
       },
       {
         "id": "clause.6",
         "title": "Acceptance / regression fixture: Multi-topic fixture MUST assert: status-only checkpoint at each closed trigger; no upcoming concrete question list; addition-with-reason visible; how-much-is-left → status then same-question re-render; short path has no every-turn recap; accepted deferrals visible. CHANGELOG Unreleased.",
         "status": "completed",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "eventRef": "leftover-complete-after-5357",
-            "mintedAt": "2026-10-05T05:01:59Z",
-            "mintedVia": "parent-retained-closer"
-          },
-          "recorded_at": "2026-10-05T05:01:59Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+          "recorded_at": "2026-10-05T05:09:45Z",
+          "recorded_by": "Scott"
         }
       }
     ],
@@ -168,17 +132,11 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a",
-          "x-directive/disposition": {
-            "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "eventRef": "leftover-complete-after-5357",
-              "mintedAt": "2026-10-05T05:01:59Z",
-              "mintedVia": "parent-retained-closer"
-            },
-            "recorded_at": "2026-10-05T05:01:59Z"
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+            "recorded_at": "2026-10-05T05:09:45Z",
+            "recorded_by": "Scott"
           }
         },
         {
@@ -187,17 +145,11 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a",
-          "x-directive/disposition": {
-            "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "eventRef": "leftover-complete-after-5357",
-              "mintedAt": "2026-10-05T05:01:59Z",
-              "mintedVia": "parent-retained-closer"
-            },
-            "recorded_at": "2026-10-05T05:01:59Z"
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+            "recorded_at": "2026-10-05T05:09:45Z",
+            "recorded_by": "Scott"
           }
         },
         {
@@ -206,17 +158,11 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a",
-          "x-directive/disposition": {
-            "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "eventRef": "leftover-complete-after-5357",
-              "mintedAt": "2026-10-05T05:01:59Z",
-              "mintedVia": "parent-retained-closer"
-            },
-            "recorded_at": "2026-10-05T05:01:59Z"
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+            "recorded_at": "2026-10-05T05:09:45Z",
+            "recorded_by": "Scott"
           }
         },
         {
@@ -225,17 +171,11 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a",
-          "x-directive/disposition": {
-            "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "eventRef": "leftover-complete-after-5357",
-              "mintedAt": "2026-10-05T05:01:59Z",
-              "mintedVia": "parent-retained-closer"
-            },
-            "recorded_at": "2026-10-05T05:01:59Z"
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+            "recorded_at": "2026-10-05T05:09:45Z",
+            "recorded_by": "Scott"
           }
         },
         {
@@ -244,17 +184,11 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a",
-          "x-directive/disposition": {
-            "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "eventRef": "leftover-complete-after-5357",
-              "mintedAt": "2026-10-05T05:01:59Z",
-              "mintedVia": "parent-retained-closer"
-            },
-            "recorded_at": "2026-10-05T05:01:59Z"
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+            "recorded_at": "2026-10-05T05:09:45Z",
+            "recorded_by": "Scott"
           }
         },
         {
@@ -263,17 +197,11 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a",
-          "x-directive/disposition": {
-            "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5357 squash-merge (Tracking #5353). Bound limbs shipped; Greptile CLEAN then MERGED.",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "eventRef": "leftover-complete-after-5357",
-              "mintedAt": "2026-10-05T05:01:59Z",
-              "mintedVia": "parent-retained-closer"
-            },
-            "recorded_at": "2026-10-05T05:01:59Z"
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "3c1ce6d70a30753133b4f45b1dd95122dcc595c8",
+            "recorded_at": "2026-10-05T05:09:45Z",
+            "recorded_by": "Scott"
           }
         }
       ],
