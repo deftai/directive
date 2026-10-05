@@ -1078,11 +1078,12 @@ export function gateScopeCompleteSpecDrift(
   let finding = coverage.finding;
 
   // Override hatch may discharge uncovered (missing impact) item ids (#5350 limb 5).
-  if (finding !== null && finding.uncoveredItemIds.length > 0 && baselineRevision !== null) {
+  const uncoveredForOverride = finding?.uncoveredItemIds ?? [];
+  if (finding !== null && uncoveredForOverride.length > 0 && baselineRevision !== null) {
     const grant = findLiveSpecDriftOverrideGrant(
       root,
       scopeId,
-      finding.uncoveredItemIds,
+      uncoveredForOverride,
       baselineRevision,
     );
     if (grant !== null) {
@@ -1197,11 +1198,12 @@ export function recordScopeCompleteDrift(
     let finding: SpecDriftFinding | null = coverage.finding;
 
     // Override hatch may discharge uncovered (missing impact) item ids.
-    if (finding !== null && finding.uncoveredItemIds.length > 0 && baselineRevision !== null) {
+    const uncoveredForOverride = finding?.uncoveredItemIds ?? [];
+    if (finding !== null && uncoveredForOverride.length > 0 && baselineRevision !== null) {
       const grant = findLiveSpecDriftOverrideGrant(
         root,
         scopeId,
-        finding.uncoveredItemIds,
+        uncoveredForOverride,
         baselineRevision,
       );
       if (grant !== null) {
@@ -1210,7 +1212,7 @@ export function recordScopeCompleteDrift(
           ...coverageRecords.filter((c) => c.scopeId !== scopeId),
           {
             scopeId,
-            coveredItemIds: [...finding.uncoveredItemIds],
+            coveredItemIds: [...uncoveredForOverride],
             beforeRequirementsFingerprint: beforeFp ?? "override",
             afterRequirementsFingerprint: afterFp ?? "override",
             affectedRequirementRefs: [],
