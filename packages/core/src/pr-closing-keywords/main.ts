@@ -465,10 +465,10 @@ export function evaluateFullStoryMarkAdmission(args: {
   if (activation.ok) {
     return { ok: true, messages: [activation.detail] };
   }
-  // Hard-fail Greptile #5388 gates (deleted nonterminal / unbound deft-story mark).
-  // Other activation misses (e.g. stamped productPullRequest) fall through to product gates.
+  // Hard-fail unbound deft-story on an otherwise activation-shaped unset land.
+  // Deletion refusal stays inside evaluatePathBActivationAdmit only — stamped
+  // product PRs that also delete a brief must reach product stamp gates (#5388).
   if (
-    activation.detail.startsWith("Path B activation refuses deleted") ||
     activation.detail.includes("has no matching changed nonterminal brief on Path B activation")
   ) {
     return { ok: false, messages: [`FAIL: ${activation.detail}`] };

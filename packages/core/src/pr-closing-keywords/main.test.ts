@@ -847,7 +847,7 @@ describe("full-story mark admission shapes (#4919)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("refuses Path B activation when a nonterminal brief is also deleted (#5388 Greptile P1)", () => {
+  it("refuses unset Path B activation when a nonterminal brief is also deleted (#5388 Greptile P1)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-path-b-delete-"));
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     writeFileSync(
@@ -878,8 +878,44 @@ describe("full-story mark admission shapes (#4919)", () => {
       repo: "deftai/directive",
       files,
     });
+    // Activation refuses deletion; unset brief then fails product stamp fallthrough.
     expect(result.ok).toBe(false);
-    expect(result.messages.join("\n")).toMatch(/deleted nonterminal/);
+    expect(result.messages.join("\n")).toMatch(/productPullRequest/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("admits stamped product PR that deletes a sibling nonterminal brief (#5388 Greptile P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-path-b-product-delete-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "keep.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "keep",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5373",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+          metadata: { productPullRequest: 5388 },
+        },
+      }),
+      "utf8",
+    );
+    const files = [
+      { status: "modified", path: "xbrief/active/keep.xbrief.json" },
+      { status: "removed", path: "xbrief/active/other.xbrief.json" },
+    ];
+    const result = evaluateFullStoryMarkAdmission({
+      bodyText: "deft-story: 5373\n",
+      prNumber: 5388,
+      projectRoot: root,
+      repo: "deftai/directive",
+      files,
+    });
+    expect(result.ok).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
 
