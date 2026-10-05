@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Leftover-complete #5387 after product #5388.** Retire the Prefer-A Bound brief into `xbrief/completed/` with lifecycleWrite completion stamp after Path B activation / productPullRequest catch-22 product land. Tracking #5387.
+- **Leftover-complete #5387 after product #5388.** Record completion of the Path B activation versus productPullRequest catch-22 Prefer-A Bound brief after the product land. Tracking #5387.
 
 ### Fixed
 
