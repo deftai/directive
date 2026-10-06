@@ -8,8 +8,8 @@
     "title": "feat(spec): C3 enforce specGuard / verify:spec-drift (proof-of-rewrite + per-item impact) — leftover of #1589 / #5315",
     "status": "completed",
     "narratives": {
-      "Description": "",
-      "Overview": "",
+      "Description": "Leftover-complete after product PR #5376 (merge 79339c82ab686dd629fec88c63ecb0cc8f15cbbf). Prefer-A Bound pathless not_applicable dispositions preserve #5055 admitted identities. C3 enforce design discussion remains on issue #5350 comments / current-shape; this completed brief is the close record with delivery provenance.",
+      "Overview": "Product capability landed in #5376; this chore moves the active Prefer-A Bound brief to completed/ with delivery evidence bound to that merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5350"
     },
     "items": [
@@ -1023,7 +1023,7 @@
       },
       "productPullRequest": 5376,
       "delivery": {
-        "required": false
+        "required": true
       },
       "completedAt": "2026-10-06T07:04:27Z",
       "completedSessionId": "host:grok:v1:MDFhMTBjOTAtOGM2MS03NjMzLTk0YjAtMzFmZTVmMGE3Mjlj",
@@ -1031,7 +1031,25 @@
       "lifecycleWrite": {
         "action": "complete",
         "writtenAt": "2026-10-06T07:04:27Z"
-      }
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5376,
+        "prBase": "master",
+        "mergeCommit": "79339c82ab686dd629fec88c63ecb0cc8f15cbbf",
+        "deliveryBranch": "master",
+        "deliveryCommit": "79339c82ab686dd629fec88c63ecb0cc8f15cbbf",
+        "verifiedAt": "2026-10-06T07:13:58Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTBjOTAtOGM2MS03NjMzLTk0YjAtMzFmZTVmMGE3Mjlj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered"
     },
     "id": "github.issue.5704263582",
     "updated": "2026-10-06T07:04:27Z"
