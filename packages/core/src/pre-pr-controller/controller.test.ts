@@ -393,10 +393,16 @@ describe("controller observations", () => {
       applicabilityDeps: {
         runGit: (args) => {
           const joined = args.join(" ");
-          if (joined.includes("rev-parse") && joined.includes("^{tree}")) return "tree";
-          if (joined.includes("rev-parse")) return args.includes("base") ? "base" : "head";
-          if (joined.includes("name-status")) return "A\tdocs/design.md\n";
-          return "";
+          if (joined.includes("rev-parse") && joined.includes("^{tree}")) {
+            return { ok: true as const, stdout: "tree" };
+          }
+          if (joined.includes("rev-parse")) {
+            return { ok: true as const, stdout: args.includes("base") ? "base" : "head" };
+          }
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: "A\tdocs/design.md\n" };
+          }
+          return { ok: true as const, stdout: "" };
         },
         classifyPath: () => "inert",
       },

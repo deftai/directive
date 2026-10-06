@@ -170,10 +170,12 @@ describe("evaluateCoverageApplicability", () => {
     const renamed = evaluateCoverageApplicability(renameBind, {
       runGit: (args) => {
         const joined = args.join(" ");
-        if (joined.includes("^{tree}")) return renameBind.treeHash;
-        if (joined.includes("rev-parse")) return renameBind.headSha;
-        if (joined.includes("name-status")) return "R100\tsrc/code.ts\tdocs/code.md\n";
-        return "";
+        if (joined.includes("^{tree}")) return { ok: true as const, stdout: renameBind.treeHash };
+        if (joined.includes("rev-parse")) return { ok: true as const, stdout: renameBind.headSha };
+        if (joined.includes("name-status")) {
+          return { ok: true as const, stdout: "R100\tsrc/code.ts\tdocs/code.md\n" };
+        }
+        return { ok: true as const, stdout: "" };
       },
     });
     expect(renamed.outcome).toBe("refuse");
@@ -182,10 +184,12 @@ describe("evaluateCoverageApplicability", () => {
     const unknownRename = evaluateCoverageApplicability(renameBind, {
       runGit: (args) => {
         const joined = args.join(" ");
-        if (joined.includes("^{tree}")) return renameBind.treeHash;
-        if (joined.includes("rev-parse")) return renameBind.headSha;
-        if (joined.includes("name-status")) return "R100\tmystery.bin\tdocs/guide.md\n";
-        return "";
+        if (joined.includes("^{tree}")) return { ok: true as const, stdout: renameBind.treeHash };
+        if (joined.includes("rev-parse")) return { ok: true as const, stdout: renameBind.headSha };
+        if (joined.includes("name-status")) {
+          return { ok: true as const, stdout: "R100\tmystery.bin\tdocs/guide.md\n" };
+        }
+        return { ok: true as const, stdout: "" };
       },
     });
     expect(unknownRename.outcome).toBe("refuse");

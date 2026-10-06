@@ -42,8 +42,13 @@ export interface EvaluateCoverageApplicabilityInput {
   readonly requireTreeMatch?: boolean;
 }
 
+export type GitRunResult =
+  | { readonly ok: true; readonly stdout: string }
+  | { readonly ok: false; readonly message: string };
+
 export interface CoverageApplicabilityDeps {
-  readonly runGit?: (args: readonly string[], cwd: string) => string;
+  /** Returned-failure git runner — must not throw; map spawn failures to `{ ok: false }`. */
+  readonly runGit?: (args: readonly string[], cwd: string) => GitRunResult;
   readonly classifyPath?: (
     path: string,
     status: string,
@@ -51,20 +56,45 @@ export interface CoverageApplicabilityDeps {
   ) => PathClassification;
 }
 
-class GitCommandError extends Error {}
-
-function defaultRunGit(args: readonly string[], cwd: string): string {
-  try {
-    return childProcess.execFileSync("git", [...args], {
-      cwd,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-  } catch (err: unknown) {
-    const e = err as NodeJS.ErrnoException & { stderr?: string | Buffer };
-    const stderr = String(e.stderr ?? e.message ?? err).trim();
-    throw new GitCommandError(`coverage-applicability: git ${args.join(" ")} failed: ${stderr}`);
+function defaultRunGit(args: readonly string[], cwd: string): GitRunResult {
+  const result = childProcess.spawnSync("git", [...args], {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (result.status !== 0) {
+    const stderr = String(result.stderr ?? result.error?.message ?? "git failed").trim();
+    return {
+      ok: false,
+      message: `coverage-applicability: git ${args.join(" ")} failed: ${stderr}`,
+    };
   }
+  return { ok: true, stdout: String(result.stdout ?? "") };
+}
+
+function refuseGitFailure(
+  message: string,
+  input: EvaluateCoverageApplicabilityInput,
+  empty: ClassifiedChange[],
+): CoverageApplicabilityResult {
+  if (
+    message.includes("baseSha") ||
+    message.includes(input.baseSha) ||
+    /unknown revision|bad revision|needed a single revision/i.test(message)
+  ) {
+    return {
+      outcome: "refuse",
+      code: "invalid-base",
+      reason: message,
+      changes: empty,
+    };
+  }
+  return {
+    outcome: "refuse",
+    code: "git-failure",
+    reason: message,
+    changes: empty,
+  };
 }
 
 /** Closed executable / measurement-relevant extensions. */
@@ -394,128 +424,101 @@ export function evaluateCoverageApplicability(
     };
   }
 
-  try {
-    if (input.requireTreeMatch !== false) {
-      const headTree = runGit(["rev-parse", `${input.headSha}^{tree}`], input.projectRoot).trim();
-      if (headTree !== input.treeHash.trim()) {
-        return {
-          outcome: "refuse",
-          code: "tree-mismatch",
-          reason: "coverage-applicability: binding treeHash does not match the reviewed head tree",
-          changes: empty,
-        };
-      }
-    }
-
-    // Validate base is resolvable.
-    runGit(["rev-parse", "--verify", "-q", input.baseSha], input.projectRoot);
-
-    const nameStatusText = runGit(
-      ["diff", "--name-status", "--find-renames", input.baseSha, input.headSha],
-      input.projectRoot,
-    );
-    const rows = parseNameStatus(nameStatusText);
-    if (rows.length === 0) {
+  if (input.requireTreeMatch !== false) {
+    const headTreeResult = runGit(["rev-parse", `${input.headSha}^{tree}`], input.projectRoot);
+    if (!headTreeResult.ok) return refuseGitFailure(headTreeResult.message, input, empty);
+    if (headTreeResult.stdout.trim() !== input.treeHash.trim()) {
       return {
         outcome: "refuse",
-        code: "empty-selection",
-        reason:
-          "coverage-applicability: empty or failed path selection is not proof of an inert diff",
+        code: "tree-mismatch",
+        reason: "coverage-applicability: binding treeHash does not match the reviewed head tree",
         changes: empty,
       };
     }
+  }
 
-    const changes: ClassifiedChange[] = [];
-    for (const row of rows) {
-      if (isRenameToDocumentWithoutProof(row, classify)) {
-        return {
-          outcome: "refuse",
-          code: "rename-to-document",
-          reason: `coverage-applicability: rename-to-document without content/type proof (${row.oldPath} -> ${row.path})`,
-          changes,
-        };
-      }
-      let classification: PathClassification;
-      try {
-        classification = classify(row.path, row.status, row.oldPath);
-      } catch (err: unknown) {
-        return {
-          outcome: "refuse",
-          code: "classifier-failure",
-          reason: `coverage-applicability: classifier failure: ${String((err as Error).message ?? err)}`,
-          changes,
-        };
-      }
-      changes.push({
-        status: row.status,
-        path: row.path,
-        oldPath: row.oldPath,
-        classification,
-      });
-    }
+  // Validate base is resolvable.
+  const baseResult = runGit(["rev-parse", "--verify", "-q", input.baseSha], input.projectRoot);
+  if (!baseResult.ok) return refuseGitFailure(baseResult.message, input, empty);
 
-    if (changes.some((c) => c.classification === "unknown")) {
-      const unknownPaths = changes.filter((c) => c.classification === "unknown").map((c) => c.path);
-      return {
-        outcome: "refuse",
-        code: "unknown-path",
-        reason: `coverage-applicability: unknown path classification: ${unknownPaths.join(", ")}`,
-        changes,
-      };
-    }
-
-    const coverable = changes.filter((c) => c.classification === "coverable");
-    if (coverable.length > 0) {
-      return {
-        outcome: "applicable",
-        coverablePaths: coverable.map((c) => c.path),
-        changes,
-      };
-    }
-
-    if (!changes.every((c) => c.classification === "inert")) {
-      return {
-        outcome: "refuse",
-        code: "mixed-unclassified",
-        reason: "coverage-applicability: mixed classification without all-inert proof",
-        changes,
-      };
-    }
-
-    return {
-      outcome: "not-applicable",
-      reason: COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
-      changes,
-    };
-  } catch (err: unknown) {
-    if (err instanceof GitCommandError) {
-      const msg = err.message;
-      if (
-        msg.includes("baseSha") ||
-        msg.includes(input.baseSha) ||
-        /unknown revision|bad revision|needed a single revision/i.test(msg)
-      ) {
-        return {
-          outcome: "refuse",
-          code: "invalid-base",
-          reason: msg,
-          changes: empty,
-        };
-      }
-      return {
-        outcome: "refuse",
-        code: "git-failure",
-        reason: msg,
-        changes: empty,
-      };
-    }
+  const nameStatusResult = runGit(
+    ["diff", "--name-status", "--find-renames", input.baseSha, input.headSha],
+    input.projectRoot,
+  );
+  if (!nameStatusResult.ok) return refuseGitFailure(nameStatusResult.message, input, empty);
+  const rows = parseNameStatus(nameStatusResult.stdout);
+  if (rows.length === 0) {
     return {
       outcome: "refuse",
-      code: "classifier-failure",
-      reason: `coverage-applicability: ${String((err as Error).message ?? err)}`,
+      code: "empty-selection",
+      reason:
+        "coverage-applicability: empty or failed path selection is not proof of an inert diff",
       changes: empty,
     };
   }
+
+  const changes: ClassifiedChange[] = [];
+  for (const row of rows) {
+    if (isRenameToDocumentWithoutProof(row, classify)) {
+      return {
+        outcome: "refuse",
+        code: "rename-to-document",
+        reason: `coverage-applicability: rename-to-document without content/type proof (${row.oldPath} -> ${row.path})`,
+        changes,
+      };
+    }
+    let classification: PathClassification;
+    try {
+      classification = classify(row.path, row.status, row.oldPath);
+    } catch (err: unknown) {
+      return {
+        outcome: "refuse",
+        code: "classifier-failure",
+        reason: `coverage-applicability: classifier failure: ${String((err as Error).message ?? err)}`,
+        changes,
+      };
+    }
+    changes.push({
+      status: row.status,
+      path: row.path,
+      oldPath: row.oldPath,
+      classification,
+    });
+  }
+
+  if (changes.some((c) => c.classification === "unknown")) {
+    const unknownPaths = changes.filter((c) => c.classification === "unknown").map((c) => c.path);
+    return {
+      outcome: "refuse",
+      code: "unknown-path",
+      reason: `coverage-applicability: unknown path classification: ${unknownPaths.join(", ")}`,
+      changes,
+    };
+  }
+
+  const coverable = changes.filter((c) => c.classification === "coverable");
+  if (coverable.length > 0) {
+    return {
+      outcome: "applicable",
+      coverablePaths: coverable.map((c) => c.path),
+      changes,
+    };
+  }
+
+  if (!changes.every((c) => c.classification === "inert")) {
+    return {
+      outcome: "refuse",
+      code: "mixed-unclassified",
+      reason: "coverage-applicability: mixed classification without all-inert proof",
+      changes,
+    };
+  }
+
+  return {
+    outcome: "not-applicable",
+    reason: COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
+    changes,
+  };
 }
 
 /** True when the controller may honor the coverage_headroom skip channel. */
