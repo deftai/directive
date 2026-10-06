@@ -1711,8 +1711,7 @@ Done when npm run check exits 0 on main.
   });
 
   it("does not classify mixed diagnostic + must-contain as defect-description", () => {
-    const text =
-      "After fixing TS2304, `src/output.ts` must contain 'resolved'";
+    const text = "After fixing TS2304, `src/output.ts` must contain 'resolved'";
     expect(looksLikeDefectDescription(text)).toBe(false);
     expect(
       resolveClauseSourceKind({
