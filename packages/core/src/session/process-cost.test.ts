@@ -356,13 +356,18 @@ describe("ceremony-cost reader (#3508)", () => {
       { name: "git_head", duration_ms: 10 },
       { name: "doctor", duration_ms: 5, parent: "orientation" },
       { name: "orientation", duration_ms: 20 },
-      { name: "finalize_owed", duration_ms: 3, skipped: true, skip_reason: "deferred" },
+      {
+        name: "finalize_owed",
+        duration_ms: 3,
+        deferred_decision: true,
+        skip_reason: "cohort-add",
+      },
     ];
     expect(sumExclusiveLeafDurationsMs(steps)).toBe(33);
     expect(computeCeremonyResidualMs(40, steps)).toBe(7);
     expect(formatSessionStartCeremonyCostLine("cold", 40, steps)).toBe(
       "[deft session] ceremony cold 40ms; exclusive: git_head=10ms, orientation=20ms, " +
-        "finalize_owed=3ms skipped(deferred); unaccounted +7ms",
+        "finalize_owed=3ms deferred(cohort-add); unaccounted +7ms",
     );
     expect(shouldEmitCeremonyCostLine({ compact: true, durationMs: 33, steps })).toBe(false);
     expect(shouldEmitCeremonyCostLine({ compact: true, durationMs: 40, steps })).toBe(true);

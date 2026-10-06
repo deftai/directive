@@ -35,11 +35,16 @@ export interface ProcessCostStepTiming {
   readonly duration_ms: number;
   readonly skipped?: boolean;
   /**
+   * Inventory/work ran, but a blocking decision was deferred (e.g. finalize_owed
+   * under `--defer-owed`). Distinct from `skipped` — duration stays honesty-real.
+   */
+  readonly deferred_decision?: boolean;
+  /**
    * When set, this step is a child of a named wrap and is excluded from
    * exclusive honesty sums (#5375 Bound 1 leaf-only).
    */
   readonly parent?: string;
-  /** Why a skipped/deferred step did not run (e.g. finalize_owed defer reason). */
+  /** Why a step was skipped, or why a blocking decision was deferred. */
   readonly skip_reason?: string;
 }
 
@@ -98,12 +103,17 @@ function formatExclusivePhaseList(steps: readonly ProcessCostStepTiming[]): stri
   }
   return leaves
     .map((step) => {
-      const skip = step.skipped === true ? " skipped" : "";
+      const marker =
+        step.skipped === true
+          ? " skipped"
+          : step.deferred_decision === true
+            ? " deferred"
+            : "";
       const reason =
         step.skip_reason !== undefined && step.skip_reason.length > 0
           ? `(${step.skip_reason})`
           : "";
-      return `${step.name}=${step.duration_ms}ms${skip}${reason}`;
+      return `${step.name}=${step.duration_ms}ms${marker}${reason}`;
     })
     .join(", ");
 }
@@ -162,6 +172,9 @@ export function emitSessionStartProcessCost(
         };
         if (step.skipped === true) {
           entry.skipped = true;
+        }
+        if (step.deferred_decision === true) {
+          entry.deferred_decision = true;
         }
         if (step.parent !== undefined && step.parent.length > 0) {
           entry.parent = step.parent;
@@ -282,6 +295,7 @@ function parseSteps(payload: Record<string, unknown> | null): ProcessCostStepTim
       name: rec.name,
       duration_ms: rec.duration_ms,
       ...(rec.skipped === true ? { skipped: true as const } : {}),
+      ...(rec.deferred_decision === true ? { deferred_decision: true as const } : {}),
       ...(typeof rec.parent === "string" && rec.parent.length > 0 ? { parent: rec.parent } : {}),
       ...(typeof rec.skip_reason === "string" && rec.skip_reason.length > 0
         ? { skip_reason: rec.skip_reason }

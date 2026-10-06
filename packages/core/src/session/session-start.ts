@@ -260,6 +260,8 @@ export interface SessionStartStepTiming {
   readonly name: string;
   readonly duration_ms: number;
   readonly skipped?: boolean;
+  /** Inventory ran; only the blocking decision was deferred (#5171 / #5375). */
+  readonly deferred_decision?: boolean;
   readonly parent?: string;
   readonly skip_reason?: string;
 }
@@ -269,6 +271,7 @@ function asProcessCostSteps(steps: readonly SessionStartStepTiming[]): ProcessCo
     name: step.name,
     duration_ms: step.duration_ms,
     ...(step.skipped === true ? { skipped: true as const } : {}),
+    ...(step.deferred_decision === true ? { deferred_decision: true as const } : {}),
     ...(step.parent !== undefined ? { parent: step.parent } : {}),
     ...(step.skip_reason !== undefined ? { skip_reason: step.skip_reason } : {}),
   }));
@@ -278,12 +281,18 @@ function pushExclusiveStep(
   steps: SessionStartStepTiming[],
   name: string,
   started: number,
-  extras?: { skipped?: boolean; skip_reason?: string | null; parent?: string },
+  extras?: {
+    skipped?: boolean;
+    deferred_decision?: boolean;
+    skip_reason?: string | null;
+    parent?: string;
+  },
 ): void {
   const entry: SessionStartStepTiming = {
     name,
     duration_ms: elapsedMs(started),
     ...(extras?.skipped === true ? { skipped: true as const } : {}),
+    ...(extras?.deferred_decision === true ? { deferred_decision: true as const } : {}),
     ...(extras?.parent !== undefined ? { parent: extras.parent } : {}),
     ...(extras?.skip_reason !== undefined &&
     extras.skip_reason !== null &&
@@ -1612,10 +1621,11 @@ function runSessionRearm(
   pushLifecycleVisibleAdvisory(lines, projectRoot, options, runGit);
 
   // #4919 / #5375 Bound 5: re-arm finalize-owed is a named exclusive step.
+  // Inventory always runs (#5171); defer only clears the block — not skipped.
   const finalizeStarted = performance.now();
   const owedGate = evaluateFinalizeOwedSessionGate(projectRoot, options);
   pushExclusiveStep(stepTimings, "finalize_owed", finalizeStarted, {
-    skipped: owedGate.deferred,
+    deferred_decision: owedGate.deferred,
     skip_reason: owedGate.deferReason,
   });
   lines.push(...owedGate.lines);
@@ -2568,10 +2578,11 @@ export function runSessionStart(
   pushExclusiveStep(stepTimings, "product_signal_consent", consentStarted);
 
   // #4919 / #5375 Bound 5: finalize-owed is a named exclusive step.
+  // Inventory always runs (#5171); defer only clears the block — not skipped.
   const finalizeStarted = performance.now();
   const owedGate = evaluateFinalizeOwedSessionGate(projectRoot, options);
   pushExclusiveStep(stepTimings, "finalize_owed", finalizeStarted, {
-    skipped: owedGate.deferred,
+    deferred_decision: owedGate.deferred,
     skip_reason: owedGate.deferReason,
   });
   lines.push(...owedGate.lines);
