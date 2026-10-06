@@ -123,6 +123,10 @@ const NON_PRODUCT_BASENAMES = new Set([
   "README.md",
   "LICENSE",
   "CHANGELOG.md",
+  // Greenfield smoke docs-impact body fixtures (not product source). Keeps
+  // Class-1-safe smoke green when Overview lives only on the selected PD.
+  "docs-impact-invalid.md",
+  "docs-impact-valid.md",
 ]);
 
 function toPosixRel(rel: string): string {

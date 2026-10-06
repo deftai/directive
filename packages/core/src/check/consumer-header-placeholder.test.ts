@@ -373,6 +373,8 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
     expect(isNonProductMutationPath(".deft/cache/product-mutation-completion.json")).toBe(true);
     expect(isNonProductMutationPath("AGENTS.md")).toBe(true);
     expect(isNonProductMutationPath("README.md")).toBe(true);
+    expect(isNonProductMutationPath("docs-impact-invalid.md")).toBe(true);
+    expect(isNonProductMutationPath("docs-impact-valid.md")).toBe(true);
     expect(isNonProductMutationPath("notes/hello.py")).toBe(false);
     expect(isNonProductMutationPath("src/app.ts")).toBe(false);
     expect(isNonProductMutationPath("package.json")).toBe(false);

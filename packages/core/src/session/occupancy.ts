@@ -69,7 +69,10 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, realpathSync, renameSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { enforceConsumerHeaderPlaceholderAtCompletionChokepoint } from "../check/consumer-header-placeholder.js";
+import {
+  enforceConsumerHeaderPlaceholderAtCompletionChokepoint,
+  enforceConsumerHeaderPlaceholderWhenProductEvidence,
+} from "../check/consumer-header-placeholder.js";
 import { productMutationCompletionMarkerPath } from "../check/product-mutation-completion.js";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
@@ -1704,6 +1707,21 @@ export function releaseOccupancy(
           record: existing,
           path,
           message: membershipOwnerDenial(existing, caller, now, "occupancy:release") + split,
+          code: 1,
+        };
+      }
+      // #4544 residual after #5253: only after ownership/expiry admits release —
+      // never stamp Prefer-A marker / rewrite AGENTS.md for a denied caller (#4544 P1).
+      // Session exit with this-session untracked product evidence must still reach
+      // enforce when markWrite persist never ran (Shell-bypass / hookless).
+      const evidenceGate = enforceConsumerHeaderPlaceholderWhenProductEvidence(projectRoot);
+      if (!evidenceGate.ok) {
+        return {
+          action: "denied" as const,
+          sessionId: caller,
+          record: existing,
+          path,
+          message: evidenceGate.message,
           code: 1,
         };
       }
