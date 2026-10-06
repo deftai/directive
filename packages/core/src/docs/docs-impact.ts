@@ -130,8 +130,18 @@ export function parseDocsImpactDeclaration(body: string): {
     errors.push(`invalid change_class: ${classRaw}`);
   }
   if (errors.length > 0) {
-    // Cite the same seed bytes composeDocsImpactBody already uses (#5391).
-    errors.push(`example:\n${DOCS_IMPACT_SEED_BLOCK.trimEnd()}`);
+    // Missing declaration: cite the no-impact seed (#5391). Field-level errors
+    // get shape guidance so copying `none` does not hide a real surface.
+    const missingDeclaration = errors.some((e) =>
+      e.includes("missing documentation-impact declaration"),
+    );
+    if (missingDeclaration) {
+      errors.push(`no-impact seed example:\n${DOCS_IMPACT_SEED_BLOCK.trimEnd()}`);
+    } else {
+      errors.push(
+        'field shape: change_class: none|delta|new; surfaces: none or kind:id[,kind:id...]; rationale: "..." — use none only when there is no closed user-doc surface impact',
+      );
+    }
     return { declaration: null, errors };
   }
   const changeClass: DocsImpactChangeClass = isChangeClass(classRaw) ? classRaw : "none";
