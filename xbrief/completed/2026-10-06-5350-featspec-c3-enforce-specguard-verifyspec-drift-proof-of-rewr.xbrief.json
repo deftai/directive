@@ -9,7 +9,7 @@
     "status": "completed",
     "narratives": {
       "Description": "Leftover-complete after product PR #5376 (merge 79339c82ab686dd629fec88c63ecb0cc8f15cbbf). Prefer-A Bound pathless not_applicable dispositions preserve #5055 admitted identities. C3 enforce design discussion remains on issue #5350 comments / current-shape; this completed brief is the close record with delivery provenance.",
-      "Overview": "Product capability landed in #5376; this chore moves the active Prefer-A Bound brief to completed/ with delivery evidence bound to that merge.",
+      "Overview": "Product PR #5376 delivered the Prefer-A Bound enforce capability; this leftover retires the #5350 scope brief into xbrief/completed.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5350"
     },
     "items": [
@@ -993,32 +993,8 @@
       },
       "swarm": {
         "file_scope": [
-          "AGENTS.md",
           "CHANGELOG.md",
-          "content/commands.md",
-          "content/packs/skills/skills-pack-0.1.json",
-          "content/skills/deft-directive-spec-reconstruct/SKILL.md",
-          "content/templates/agents-entry.md",
-          "docs/RULE-MAP.md",
-          "packages/cli/src/authz.ts",
-          "packages/cli/src/cli-router/route-argv.ts",
-          "packages/cli/src/dispatch.ts",
-          "packages/cli/src/policy.ts",
-          "packages/core/src/policy/index.ts",
-          "packages/core/src/policy/spec-drift-override-grant.test.ts",
-          "packages/core/src/policy/spec-drift-override-grant.ts",
-          "packages/core/src/policy/spec-guard.test.ts",
-          "packages/core/src/policy/spec-guard.ts",
-          "packages/core/src/scope/specification-sync.ts",
-          "packages/core/src/scope/transition.ts",
-          "packages/core/src/verify-source/project-definition-mutation-boundary.ts",
-          "packages/core/src/verify-source/spec-drift.test.ts",
-          "packages/core/src/verify-source/spec-drift.ts",
-          "tasks/policy.yml",
-          "tasks/verify.yml",
-          "xbrief/PROJECT-DEFINITION.xbrief.json",
-          "xbrief/evaluator-surface-disposition.json",
-          "xbrief/active/2026-10-06-5350-featspec-c3-enforce-specguard-verifyspec-drift-proof-of-rewr.xbrief.json"
+          "xbrief/completed/2026-10-06-5350-featspec-c3-enforce-specguard-verifyspec-drift-proof-of-rewr.xbrief.json"
         ]
       },
       "productPullRequest": 5376,
