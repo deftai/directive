@@ -63,9 +63,22 @@ describe("classifyChangedPath", () => {
     expect(classifyChangedPath("CHANGELOG.md", "M", null)).toBe("inert");
   });
 
+  it("keeps live xbrief settings coverable (not inert planning prose)", () => {
+    expect(classifyChangedPath("xbrief/PROJECT-DEFINITION.xbrief.json", "M", null)).toBe(
+      "coverable",
+    );
+    expect(classifyChangedPath("xbrief/plan.xbrief.json", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("xbrief/specification.xbrief.json", "M", null)).toBe("coverable");
+  });
+
   it("does not treat arbitrary json as inherently inert", () => {
     expect(classifyChangedPath("mystery/data.bin", "A", null)).toBe("unknown");
     expect(classifyChangedPath("config/unknown.dat", "M", null)).toBe("unknown");
+  });
+
+  it("classifies coverage tool output as inert measurement artifacts", () => {
+    expect(classifyChangedPath("coverage/coverage-final.json", "A", null)).toBe("inert");
+    expect(classifyChangedPath("coverage/lcov.info", "M", null)).toBe("inert");
   });
 });
 
@@ -165,6 +178,18 @@ describe("evaluateCoverageApplicability", () => {
     });
     expect(renamed.outcome).toBe("refuse");
     if (renamed.outcome === "refuse") expect(renamed.code).toBe("rename-to-document");
+
+    const unknownRename = evaluateCoverageApplicability(renameBind, {
+      runGit: (args) => {
+        const joined = args.join(" ");
+        if (joined.includes("^{tree}")) return renameBind.treeHash;
+        if (joined.includes("rev-parse")) return renameBind.headSha;
+        if (joined.includes("name-status")) return "R100\tmystery.bin\tdocs/guide.md\n";
+        return "";
+      },
+    });
+    expect(unknownRename.outcome).toBe("refuse");
+    if (unknownRename.outcome === "refuse") expect(unknownRename.code).toBe("rename-to-document");
   });
 
   it("refuses a treeHash that does not match the reviewed head", () => {

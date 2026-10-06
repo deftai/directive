@@ -216,11 +216,23 @@ function isUnderPrefix(path: string, prefixes: readonly string[]): boolean {
   return prefixes.some((prefix) => p === prefix || p.startsWith(`${prefix}/`));
 }
 
+/** Live project settings under xbrief/ — not planning prose; must stay applicable. */
+const LIVE_SETTINGS_PATHS = new Set([
+  "xbrief/project-definition.xbrief.json",
+  "xbrief/plan.xbrief.json",
+  "xbrief/specification.xbrief.json",
+]);
+
+function isLiveSettingsPath(path: string): boolean {
+  return LIVE_SETTINGS_PATHS.has(posixPath(path).toLowerCase());
+}
+
 function isCoverableConfig(path: string): boolean {
   const base = basenameOf(path);
   if (COVERABLE_BASENAMES.has(base)) return true;
   if (COVERABLE_BASENAME_PREFIXES.some((prefix) => base.startsWith(prefix))) return true;
   const p = posixPath(path).toLowerCase();
+  if (isLiveSettingsPath(p)) return true;
   if (p.includes(".github/workflows/") && (base.endsWith(".yml") || base.endsWith(".yaml"))) {
     return true;
   }
@@ -290,6 +302,17 @@ export function classifyChangedPath(
     return "inert";
   }
 
+  // Istanbul / coverage tool output — measurement artifact, not product under review.
+  if (
+    isUnderPrefix(p, ["coverage", ".nyc_output"]) ||
+    base === "coverage-final.json" ||
+    base === "lcov.info" ||
+    base === "clover.xml" ||
+    base.endsWith(".lcov")
+  ) {
+    return "inert";
+  }
+
   return "unknown";
 }
 
@@ -333,8 +356,9 @@ function isRenameToDocumentWithoutProof(
   if (row.oldPath === null) return true;
   const oldClass = classify(row.oldPath, row.status, null);
   const newClass = classify(row.path, row.status, row.oldPath);
-  // Coverable → inert rename without content/type proof refuses.
-  return oldClass === "coverable" && newClass === "inert";
+  // Only proven-inert old paths may rename to inert without further proof.
+  // Coverable or unknown → inert is rename-to-document without proof.
+  return oldClass !== "inert" && newClass === "inert";
 }
 
 export function evaluateCoverageApplicability(

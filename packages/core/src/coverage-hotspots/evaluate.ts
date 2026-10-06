@@ -348,13 +348,19 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
       };
     }
 
-    if (applicability.outcome === "refuse" && !reportExists) {
-      return {
-        exitCode: 2,
-        report: null,
-        message: `${applicability.reason}\n`,
-        applicability: artifact,
-      };
+    if (applicability.outcome === "refuse") {
+      // Fail closed on refuse even when a prior report exists — unknown/mismatched
+      // diffs must not inherit a measured pass from stale Istanbul dogfood.
+      // Exception: empty-selection refuse is "not proof of N/A"; with a report present
+      // continue to the measured floor path (Bound limb 4 dogfood), not exit-0 N/A.
+      if (!(applicability.code === "empty-selection" && reportExists)) {
+        return {
+          exitCode: 2,
+          report: null,
+          message: `${applicability.reason}\n`,
+          applicability: artifact,
+        };
+      }
     }
 
     // applicable, or not-applicable with an available report → continue to measured path.
