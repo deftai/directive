@@ -107,7 +107,9 @@ describe("dispatcher shared-active story fence (#4007)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
     expect(decision.message).toContain("Multiple active xBRIEF artifacts");
     expect(decision.message).toContain(ACTIVE_SCOPE_PIN_ENV);
-    expect(decision.message).toContain("scope:stamp-evidence");
+    expect(decision.message).not.toContain("scope:stamp-evidence");
+    expect(decision.message).toContain("scope:block");
+    expect(decision.message).toContain("scope:complete");
   });
 
   it("names scope:unblock on a zero-eligible blocked deny and omits activate (#4840)", () => {

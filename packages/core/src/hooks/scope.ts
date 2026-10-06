@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { evaluate } from "../preflight/evaluate.js";
@@ -40,8 +40,17 @@ export type SoftMissingAcTargetResolution =
       readonly scannedCount: number;
     };
 
-/** Evidence-only lifecycle verb named on the multiple-eligible deny (#4840). */
+/** Evidence-only lifecycle verb (kept for stamp-evidence callers; not an eligibility fix) (#4840 / #5403). */
 export const STAMP_EVIDENCE_VERB = "scope:stamp-evidence";
+
+/** Local fence-unblock verb that clears eligibility without network (#5403). */
+export const BLOCK_SCOPE_VERB = "scope:block";
+
+/** Explicit-target historical ship-closeout named on multi-eligible deny (#5403). */
+export const HISTORICAL_SHIP_CLOSEOUT_HINT =
+  "If an eligible brief is already shipped on the delivery tip, close it out with " +
+  "`deft scope:complete -- <brief> --merge-commit <sha> --pr <n>` " +
+  "(delivery ancestry required; completed-tracked is post-land proof only).";
 
 export interface InspectActiveScopeOptions {
   /** Explicit dispatched story path; wins over {@link ACTIVE_SCOPE_PIN_ENV}. */
@@ -139,14 +148,33 @@ function fencePinValue(pin: string): string {
 
 function formatMultipleActiveMessage(eligible: readonly EligibleScope[]): string {
   const names = eligible.map((item) => fenceActiveScopeName(item.path)).join(", ");
+  const localShipHint = eligible.some((item) => briefHasLocalMergeProvenance(item.path))
+    ? " Local completionProvenance.mergeCommit is already present on at least one eligible brief. "
+    : " ";
   return (
     `Multiple active xBRIEF artifacts are eligible (${names}). ` +
     "The write fence cannot bind the first-sorted story: a cohort would share that " +
     "story's file_scope and over-permit every other worker (#4007). " +
-    `Set ${ACTIVE_SCOPE_PIN_ENV} to the dispatched story path, or record acceptance ` +
-    `with \`deft ${STAMP_EVIDENCE_VERB} -- <brief>\`. ` +
-    "Or keep one running brief in xbrief/active/."
+    `Set ${ACTIVE_SCOPE_PIN_ENV} to the dispatched story path, or run ` +
+    `\`deft ${BLOCK_SCOPE_VERB} -- <brief>\` to remove a competitor from eligibility, ` +
+    "or keep one running brief in xbrief/active/." +
+    localShipHint +
+    HISTORICAL_SHIP_CLOSEOUT_HINT
   );
+}
+
+/** Local-only hint: completionProvenance already on disk (no gh) (#5403). */
+function briefHasLocalMergeProvenance(briefPath: string): boolean {
+  try {
+    const raw = readFileSync(briefPath, "utf8");
+    const data = JSON.parse(raw) as {
+      plan?: { metadata?: { completionProvenance?: { mergeCommit?: unknown } } };
+    };
+    const merge = data.plan?.metadata?.completionProvenance?.mergeCommit;
+    return typeof merge === "string" && merge.trim().length > 0;
+  } catch {
+    return false;
+  }
 }
 
 function formatZeroEligibleBlockedMessage(blocked: readonly string[]): string {

@@ -48,6 +48,7 @@ import {
   evaluateAcceptanceEvidenceGate,
   evaluateScopeCompleteAcceptanceWalk,
   formatAcceptanceCompletionListing,
+  migrateNoneStatedForHistoricalShip,
   persistClauseKeyedPendingItems,
   stampMergeFromCompletionProvenance,
 } from "./acceptance-evidence.js";
@@ -425,6 +426,8 @@ export function runTransition(
   let acceptanceReports: readonly CriterionAcceptanceReport[] | undefined;
   let acceptanceListing = "";
   if (act === "complete" && options.skipAcceptanceEvidenceGate !== true) {
+    // #5403 Stage-1: empty commands → none_stated only when merge provenance is present.
+    migrateNoneStatedForHistoricalShip(planObj);
     const persist = persistClauseKeyedPendingItems(planObj);
     const mergeStamp = stampMergeFromCompletionProvenance(planObj, {
       projectRoot,

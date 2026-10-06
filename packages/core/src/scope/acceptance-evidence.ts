@@ -902,13 +902,21 @@ export interface StampDeclaredMergeEvidenceOptions {
   readonly deliveryBranch: string;
   readonly verifyAncestry?: MergeAncestryVerifier;
   readonly runGit?: GitRunner;
+  /**
+   * When true, stamp merge on items that omit x-directive/requires:merge
+   * (declaration-side admit for historical ship-closeout / #5403).
+   * Strict-axis items (smoke/uat/deploy/observed_behavior) still skip.
+   */
+  readonly admitUndeclaredMerge?: boolean;
 }
 
 /**
- * Merge-kind stamp sibling (#5105). Stamps only criteria that explicitly declare
- * merge. Pointer is the merge commit after verifyDeliveryAncestry-shaped check
- * against the refreshed delivery tip. Never auto-stamps from keywords or
- * empty-axis alone.
+ * Merge-kind stamp sibling (#5105). By default stamps only criteria that
+ * explicitly declare merge. With admitUndeclaredMerge (historical ship-closeout
+ * / #5403), undeclared non-strict items may also receive kind:merge when
+ * completion provenance already proved delivery. Pointer is the merge commit
+ * after verifyDeliveryAncestry-shaped check against the refreshed delivery tip.
+ * Never auto-stamps from keywords or empty-axis alone.
  *
  * Production caller: stampMergeFromCompletionProvenance on the scope:complete
  * persist path after delivery provenance is on the plan and before the shared
@@ -969,7 +977,7 @@ export function stampDeclaredMergeEvidence(
       skipped.push({ clauseId: clause.id, reason: "already-stamped" });
       continue;
     }
-    if (!itemDeclaresMergeRequirement(item)) {
+    if (!itemDeclaresMergeRequirement(item) && options.admitUndeclaredMerge !== true) {
       skipped.push({ clauseId: clause.id, reason: "undeclared-merge" });
       continue;
     }
@@ -1077,6 +1085,8 @@ export function stampMergeFromCompletionProvenance(
     deliveryBranch,
     verifyAncestry,
     runGit: options.runGit,
+    // #5403: completion provenance is the declaration-side admit for historical class.
+    admitUndeclaredMerge: true,
   });
 }
 
@@ -1532,6 +1542,56 @@ function walkItems(
  * (a verifier that authors the acceptance it then checks is not a gate). Stamping
  * happens at intake / promote via clause derivation (#3323).
  */
+
+/** True when plan.metadata.completionProvenance carries mergeCommit + deliveryBranch (#5403). */
+export function isHistoricalShipCloseout(plan: Record<string, unknown>): boolean {
+  const prov = readCompletionProvenance(plan);
+  if (prov === null) {
+    return false;
+  }
+  const mergeCommit = typeof prov.mergeCommit === "string" ? prov.mergeCommit.trim() : "";
+  const deliveryBranch =
+    typeof prov.deliveryBranch === "string" ? prov.deliveryBranch.trim() : "";
+  return mergeCommit.length > 0 && deliveryBranch.length > 0;
+}
+
+/** True when acceptance.clauses is absent or empty (Stage-2 clause-less hatch, #5403). */
+export function isClauseLessAcceptance(plan: Record<string, unknown>): boolean {
+  return readAcceptanceClauses(plan.acceptance).length === 0;
+}
+
+/**
+ * Stage-1 (#3284): migrate empty commands → none_stated:true only when merge
+ * provenance is already on the plan (historical ship-closeout). Returns true
+ * when the plan was mutated.
+ */
+export function migrateNoneStatedForHistoricalShip(plan: Record<string, unknown>): boolean {
+  if (!isHistoricalShipCloseout(plan)) {
+    return false;
+  }
+  const acc = asRecord(plan.acceptance);
+  if (acc === null) {
+    return false;
+  }
+  const commands = Array.isArray(acc.commands) ? acc.commands : [];
+  if (commands.length > 0) {
+    return false;
+  }
+  if (acc.none_stated === true) {
+    return false;
+  }
+  acc.none_stated = true;
+  return true;
+}
+
+export const HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE =
+  "Historical ship-closeout admitted clause-less empty acceptance with merge provenance (#5403)";
+
+export const HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION =
+  "Historical ship-closeout (#5403) covers clause-less pre-schema briefs only. " +
+  "For clause-bearing actives, stamp dispositions/evidence on clause-keyed items " +
+  "or add allowlisted executables — do not invent commands solely to clear the fence.";
+
 export const SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION =
   "scope:complete requires executable plan.acceptance that runs green; stamp commands on " +
   "plan.acceptance.commands (or plan.metadata.swarm.verify_commands) — task verify:ac verifies, " +
@@ -1589,6 +1649,8 @@ export function evaluateScopeCompleteAcceptanceWalk(
         ? { mergeCommit: mergeCommit.length > 0 ? mergeCommit : null, prNumber }
         : undefined,
   });
+  const historical = isHistoricalShipCloseout(plan);
+  const clauseLess = isClauseLessAcceptance(plan);
   if (walk.ok) {
     // #4870: refuse the #4866 zero-verified print on complete unless a green
     // executable oracle ran. verify:ac / #3826 stay unreverted.
@@ -1598,11 +1660,25 @@ export function evaluateScopeCompleteAcceptanceWalk(
         predicate: verdict.predicate,
       })
     ) {
+      // #5403 Stage-2 (a): clause-less + merge provenance admits without inventing commands.
+      if (historical && clauseLess) {
+        return {
+          ok: true,
+          message: HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE,
+          reports: [],
+          servedFrom,
+          predicate: "empty-pass",
+        };
+      }
+      const remediation =
+        historical && !clauseLess
+          ? HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION
+          : SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION;
       return {
         ok: false,
         message:
           `${SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE}` +
-          `${SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION}\n${walk.message}`,
+          `${remediation}\n${walk.message}`,
         reports: [],
         servedFrom,
         predicate: verdict.predicate,
@@ -1616,13 +1692,31 @@ export function evaluateScopeCompleteAcceptanceWalk(
       predicate: verdict.predicate,
     };
   }
+  // #5403 Stage-2 (a): empty-acceptance / soft_empty on clause-less historical ship.
+  if (
+    historical &&
+    clauseLess &&
+    (verdict.predicate === "empty-acceptance" || verdict.predicate === "empty-pass")
+  ) {
+    return {
+      ok: true,
+      message: HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE,
+      reports: [],
+      servedFrom,
+      predicate: "empty-pass",
+    };
+  }
+  const remediation =
+    historical && !clauseLess
+      ? HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION
+      : SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION;
   return {
     ok: false,
     // Name the check that refused and the value it read BEFORE the standing
     // contract, so the first line the operator sees is the actual cause (#3497).
     message:
       `scope:complete refused acceptance — ${formatAcceptanceVerdict(verdict)}\n` +
-      `${SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION}\n${walk.message}`,
+      `${remediation}\n${walk.message}`,
     reports: [],
     servedFrom,
     predicate: verdict.predicate,

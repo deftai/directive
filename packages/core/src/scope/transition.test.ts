@@ -1840,7 +1840,11 @@ describe("runTransition complete persist-path merge stamp (#5120)", () => {
       kind: "merge",
       pointer: "abcdef1",
     });
-    expect(data.plan.items[1]?.["x-directive/evidence"]).toBeUndefined();
+    // #5403: completion provenance admits undeclared non-strict items on the persist path.
+    expect(data.plan.items[1]?.["x-directive/evidence"]).toMatchObject({
+      kind: "merge",
+      pointer: "abcdef1",
+    });
   });
 
   it("reuses delivery ancestry so a second fetch failure still stamps", () => {
@@ -1970,5 +1974,109 @@ describe("runTransition complete persist-path merge stamp (#5120)", () => {
       kind: "merge",
       pointer: "abcdef1",
     });
+  });
+
+  it("historical ship-closeout lands clause-less empty-commands active in completed/ (#5403)", () => {
+    root = makeRepo();
+    writeProjectDefinition(root);
+    const path = join(root, "xbrief", "active", "historical-ship.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "historical-ship",
+        status: "running",
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/5120",
+            type: "x-xbrief/github-issue",
+          },
+        ],
+        items: [],
+        acceptance: {
+          commands: [],
+          none_stated: false,
+          source_rung: "project_floor",
+        },
+        metadata: {
+          swarm: {
+            file_scope: ["CHANGELOG.md"],
+            verify_commands: [],
+          },
+        },
+      },
+    });
+    const now = new Date("2026-10-06T12:00:00.000Z");
+    const result = runTransition("complete", path, now, {
+      ...deliveryOpts(),
+      assumeEvidenceValidated: true,
+    });
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "completed", "historical-ship.xbrief.json");
+    expect(existsSync(path)).toBe(false);
+    expect(existsSync(dest)).toBe(true);
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: {
+        status: string;
+        acceptance: { none_stated?: boolean; commands?: unknown[] };
+        metadata?: { completionProvenance?: { mergeCommit?: string } };
+      };
+    };
+    expect(data.plan.status).toBe("completed");
+    expect(data.plan.acceptance.none_stated).toBe(true);
+    expect(data.plan.metadata?.completionProvenance?.mergeCommit).toBe("abcdef1");
+  });
+
+  it("historical ship-closeout refuses absent ancestry without moving the brief (#5403)", () => {
+    root = makeRepo();
+    writeProjectDefinition(root);
+    const path = join(root, "xbrief", "active", "historical-refuse.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "historical-refuse",
+        status: "running",
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/5120",
+            type: "x-xbrief/github-issue",
+          },
+        ],
+        items: [],
+        acceptance: { commands: [], none_stated: false },
+      },
+    });
+    const runGit: GitRunner = (_cwd, args) => {
+      const joined = args.join(" ");
+      if (joined.includes("merge-base") && joined.includes("--is-ancestor")) {
+        return { code: 1, stdout: "", stderr: "not ancestor" };
+      }
+      if (joined.includes("rev-parse") && joined.includes("origin/")) {
+        return { code: 0, stdout: "tipsha", stderr: "" };
+      }
+      if (joined.includes("symbolic-ref")) {
+        return { code: 0, stdout: "origin/master", stderr: "" };
+      }
+      if (args[0] === "fetch") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "ok", stderr: "" };
+    };
+    const result = runTransition("complete", path, new Date("2026-10-06T12:00:00.000Z"), {
+      runGit,
+      ...deliveryIdentity(),
+      deliveryEvidence: {
+        repository: "deftai/directive",
+        prNumber: 5120,
+        prBase: "master",
+        mergeCommit: "abcdef1",
+        mergedAt: "2026-10-06T11:00:00Z",
+        deliveryBranch: "master",
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(existsSync(path)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "completed", "historical-refuse.xbrief.json"))).toBe(
+      false,
+    );
   });
 });

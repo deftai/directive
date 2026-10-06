@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -137,7 +137,25 @@ describe("shared-active write-fence bind (#4007)", () => {
     expect(result.message).toContain("Multiple active xBRIEF artifacts");
     expect(result.message).toContain(ACTIVE_SCOPE_PIN_ENV);
     expect(result.message).toContain("#4007");
-    expect(result.message).toContain("scope:stamp-evidence");
+    expect(result.message).not.toContain("scope:stamp-evidence");
+    expect(result.message).toContain("scope:block");
+    expect(result.message).toContain("scope:complete");
+    expect(result.message).toContain("--merge-commit");
+  });
+
+  it("names local completionProvenance hint without claiming network class (#5403)", () => {
+    const project = root();
+    const a = writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
+    writeRunning(project, "b-story.xbrief.json", ["packages/b/**"]);
+    const data = JSON.parse(readFileSync(a, "utf8")) as {
+      plan: { metadata: Record<string, unknown> };
+    };
+    data.plan.metadata.completionProvenance = { mergeCommit: "abcdef1", deliveryBranch: "master" };
+    writeFileSync(a, JSON.stringify(data), "utf8");
+    const result = inspectActiveScope(project, { env: {} });
+    expect(result.ready).toBe(false);
+    expect(result.message).toContain("completionProvenance.mergeCommit");
+    expect(result.message).toContain("scope:block");
   });
 
   it("reports structured zero-eligible-blocked when scanned candidates are blocked (#4840)", () => {

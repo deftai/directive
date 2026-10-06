@@ -175,7 +175,8 @@ import {
   type ActiveScopeInspection,
   type InspectActiveScopeOptions,
   inspectActiveScope,
-  STAMP_EVIDENCE_VERB,
+  BLOCK_SCOPE_VERB,
+  HISTORICAL_SHIP_CLOSEOUT_HINT,
 } from "./scope.js";
 import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 import {
@@ -2134,9 +2135,9 @@ function inspectMutationGates(
         proposedPathHint = " Recovery: run `deft scope:unblock -- <blocked-brief>`.";
       } else if (scope.denyKind === "multiple-eligible") {
         proposedPathHint =
-          ` Recovery: record acceptance with \`deft ${STAMP_EVIDENCE_VERB} -- <brief>\` ` +
-          "(evidence-only; no Edit of the brief), or set DEFT_ACTIVE_SCOPE to the " +
-          "dispatched story path.";
+          ` Recovery: set DEFT_ACTIVE_SCOPE to the dispatched story path, or run ` +
+          `\`deft ${BLOCK_SCOPE_VERB} -- <brief>\` to clear a competitor from eligibility. ` +
+          HISTORICAL_SHIP_CLOSEOUT_HINT;
       } else if (scope.denyKind === "pin-miss") {
         // #5386: recovery copy is composed in inspectActiveScope (source-aware;
         // S1 — do not string-sniff evaluator prose here). Suppress promote/activate.

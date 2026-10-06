@@ -60,6 +60,23 @@ When the bound story is in the change set:
 
 Membership-land (Path B activation) PRs that only touch nonterminal `xbrief|vbrief` under `proposed|pending|active` plus optional root `CHANGELOG.md` leave `metadata.productPullRequest` **unset**. Closing-keywords admits that brief-land shape when body has `deft-story: N` covering each changed nonterminal (`isBriefLandShapedDiff` + early return in `evaluateFullStoryMarkAdmission`). Optional `metadata.activationPullRequest` is provenance only — delivery readers ignore it. The stacked product PR stamps virgin `productPullRequest` on the existing null path; leftover keeps the original product stamp. ⊗ Write the activation PR number into `productPullRequest`. Legacy stamped activations unstamp once, then product stamps. Depth: `packages/core/src/pr-closing-keywords/main.ts`.
 
+
+## Historical ship-closeout for stale merged actives (#5403)
+
+Already-shipped briefs can remain in `xbrief/active/` when `scope:complete` refuses empty `plan.acceptance.commands` without `none_stated` (#3284). That keeps the multi-active write fence red for unrelated work.
+
+**Closeout:** `deft scope:complete -- <stale-brief> --merge-commit <sha> --pr <n> [--delivery-branch <branch>]`. Admission is repository-qualified delivery ancestry + linked PR (existing completion-provenance / #5105 machinery). `verify:completed-tracked` (#3476) is post-land DONE proof only — not an entry gate.
+
+**Stage ladder (historical class):**
+
+1. Stage 1 (#3284): empty commands migrate to `none_stated: true` only when merge provenance is present.
+2. Stage 2 (#4870): Prefer-A binds the **clause-less** path (`acceptance.clauses` absent/empty). Clause-bearing empty-commands are refused with an honest remedy (not "stamp npm test" as the only path).
+3. Stage 3 (#3240 / #5105): with completion provenance present, merge-kind stamps may land on items missing `x-directive/requires: merge` (declaration-side admit). Strict axes (smoke/uat/deploy/observed_behavior) are not relabeled as merge.
+
+**Fence unblock (local):** `deft scope:block -- <brief>` removes a competitor from eligibility without network. Multi-eligible deny also names `DEFT_ACTIVE_SCOPE`, keep-one-running, and the conditional closeout above. Softening #4007 for true concurrency is rejected.
+
+**Deferred leftovers:** general `scope:park-active` for non-merged actives; unrecognized shell-form fence parity.
+
 ## Operator command: `scope:record-approved-scope` (legacy / authz-adjacent)
 
 The verb remains for historical intent-pin minting and for `authz`-shared human-presence machinery. **It is not part of the proceed path** and is not the remediation for production-scope-over-budget (#4956). Prefer `deft scope:record-approved-scope` (consumer include-only: `task deft:scope:record-approved-scope`).
