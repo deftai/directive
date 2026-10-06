@@ -13,10 +13,11 @@ describe("verify-scope-provenance CLI (#3145)", () => {
     expect(parseArgs(["--bad"]).error).toMatch(/unrecognized/);
   });
 
-  it("runs against framework root", { timeout: 120_000 }, () => {
+  // Windows dest worktrees: one git show per lifecycle brief (~1800) is ~200ms
+  // each here (~6 min serial); suite load pushes past the 240s win32 project
+  // default. Do not undercut with a tighter per-it timeout (#5391 lane flake).
+  it("runs against framework root", { timeout: 900_000 }, () => {
     // Exit 2 is config/network (e.g. PR-aware base resolution) — still a successful CLI smoke.
-    // Live merge-base census is one git show per lifecycle brief (~1700); dest
-    // worktree spawnSync is ~12ms each (~25s serial, longer under suite load).
     const code = run(["--project-root", ".", "--quiet", "--base-ref", "HEAD"]);
     expect([0, 1, 2]).toContain(code);
   });
