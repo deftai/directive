@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Linked worktree reconstitution writes `.deft/core/VERSION` (#5390).** After #4443 payload copy (and on already-present + agreeing bare), ensure a truthful install manifest via source-version authority; disagree leaves VERSION absent (doctor stays `deft update`). Eligible missing-YAML doctor detail/`suggested_fix` name `deft session:start`; stale ritual doctor recovery names `session:start --rearm` (not ready-only; #3738). Tracking #5390.
+- **Linked worktrees recover a complete install after payload copy (#5390).** Dest worktrees get a truthful versioned deposit when the primary source can supply it; mismatched sources stay on `deft update`. Doctor and ritual recovery point operators at `session:start` / `--rearm` for reconstitutable gaps (#3738). Tracking #5390.
 - **Path B activation vs productPullRequest catch-22 (#5387).** Closing-keywords admits brief-land membership PRs (`proposed|pending|active` ± root `CHANGELOG.md`) when `productPullRequest` stays unset and body has `deft-story: N`; product PRs still require a matching delivery stamp; finalize honesty regressions keep activation from binding as delivery. Tracking #5387.
 - design-critique: bare-arc spend recommend-first is now a MUST; ask is fallback only; Stop 2 and skill Spend line admit recommend-resolve; N≥3 recommend stays panel-permission-gated (#5372)
 

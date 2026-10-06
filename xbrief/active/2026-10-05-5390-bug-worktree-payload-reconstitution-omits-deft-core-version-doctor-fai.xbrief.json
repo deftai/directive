@@ -89,8 +89,7 @@
           "packages/core/src/doctor/checks.test.ts",
           "packages/core/src/session/verify-session-ritual.ts",
           "packages/core/src/session/verify-session-ritual-messages.test.ts",
-          "CHANGELOG.md",
-          "packages/core/src/swarm/worktrees.test.ts"
+          "CHANGELOG.md"
         ],
         "verify_commands": [],
         "expected_outputs": [
