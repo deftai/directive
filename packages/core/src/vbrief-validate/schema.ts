@@ -423,7 +423,11 @@ export function validateVbriefSchema(
           planObj.narratives,
           `${filepath}: plan.narratives`,
           errors,
-          { grandfatherUnkeyed: planObj.status === "completed" },
+          {
+            // Terminal set for Source grandfather (#5385); Confidence WARN still fires.
+            grandfatherUnkeyed: isTerminalPlanStatus(planObj.status),
+            warnings,
+          },
         );
       }
 

@@ -119,6 +119,26 @@ describe("evaluateContractDrift (#1799, #2107)", () => {
     expect(result.message).toContain("VBRIEF_VERSION");
   });
 
+  it("fails when 0.8 Confidence carries a hard enum (#5385)", () => {
+    const root = mkdtempSync(join(tmpdir(), "contract-drift-"));
+    const bad = JSON.parse(MINIMAL_V08_SCHEMA) as Record<string, unknown>;
+    const defs = bad.$defs as Record<string, unknown>;
+    defs.Plan = {
+      properties: {
+        narratives: {
+          properties: {
+            Confidence: { type: "string", enum: ["high", "medium", "low"] },
+          },
+        },
+      },
+    };
+    writeBoth(root, MINIMAL_V06_SCHEMA, `${JSON.stringify(bad, null, 2)}\n`);
+    const result = evaluateContractDrift(root);
+    expect(result.code).toBe(EXIT_DRIFT);
+    expect(result.message).toContain("Confidence");
+    expect(result.message).toContain("enum");
+  });
+
   it("returns config error when schema JSON is invalid", () => {
     const root = mkdtempSync(join(tmpdir(), "contract-drift-"));
     writeBoth(root, "not-json");

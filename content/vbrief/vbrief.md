@@ -129,7 +129,7 @@ Named vocabulary for how a plan-level claim was established. Measured placement 
 - `assumed` -- proceeding without a check because cost or scope does not warrant one
 - `propagated` -- source is another vBRIEF entry; include the source path so audits can trace false-memory chains
 
-**Confidence** (case-sensitive): `high` | `medium` | `low`. Confidence does not substitute for evidence.
+**Confidence** (writer vocabulary, case-sensitive): `high` | `medium` | `low`. Confidence does not substitute for evidence.
 
 **Atomic claim unit** -- bind these keys on the same `plan.narratives` object:
 
@@ -142,10 +142,12 @@ Named vocabulary for how a plan-level claim was established. Measured placement 
 
 - ! When `plan.narratives` carries `Evidence`, `Verifier`, or `VerifiedAt`, `Source` MUST be present and each `;`-separated token MUST use a named class above
 - ! When `Source` includes class `verified`, `Evidence`, `Verifier`, and `VerifiedAt` MUST be present and non-empty
-- ! `Confidence`, when present, MUST be `high`, `medium`, or `low`
+- ! Writers that set `Confidence` MUST emit `high`, `medium`, or `low`
+- ! Readers of envelope `0.8` that see a noncanonical Confidence string MUST warn (`Confidence-compat`); they MUST NOT hard-fail string shape or rewrite the value during validate
 - ⊗ Treat `Confidence` as a substitute for `Evidence` on a `verified` claim
 - ⊗ Add named `Source` / `Confidence` keys on `PlanItem.narrative` as if they were the Plan.narratives contract -- item narrative remains a free string map until a named consumer ships
 - ~ Historical `Source` strings without the atomic-claim keys remain readable; new verified claims SHOULD bind the atomic unit
+- ~ Historical `Confidence` prose on terminal records (`completed` | `failed` | `cancelled`) remains readable under the same WARN rule; optional `deft migrate:confidence` normalizes leading-token prose
 
 `task vbrief:validate` enforces the rule body on `plan.narratives`. Cross-reference: `### TrustLevel (#480)` (authorial provenance on `references[]`; orthogonal to Source).
 

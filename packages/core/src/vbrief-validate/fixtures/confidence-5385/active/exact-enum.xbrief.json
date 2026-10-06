@@ -1,0 +1,15 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Fixture #5385 exact enum Confidence silent pass"
+  },
+  "plan": {
+    "title": "5385 exact enum Confidence",
+    "status": "running",
+    "narratives": {
+      "Description": "Canonical writer shape",
+      "Confidence": "high"
+    },
+    "items": []
+  }
+}

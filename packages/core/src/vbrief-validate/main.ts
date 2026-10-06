@@ -82,6 +82,14 @@ export function runValidate(argv: string[]): number {
     process.stdout.write(`FAIL: ${e}\n`);
   }
 
+  const confidenceCompat = warnings.filter((w) => w.includes("Confidence-compat"));
+  if (confidenceCompat.length > 0) {
+    process.stdout.write(
+      `Confidence-compat: ${confidenceCompat.length} warning(s); sample: ${confidenceCompat[0]}\n` +
+        `  Optional cleanup: deft migrate:confidence\n`,
+    );
+  }
+
   const warningsEscalated = warnings.length > 0 && warningsAsErrors;
   const exitCode = errors.length > 0 || warningsEscalated ? 1 : 0;
 

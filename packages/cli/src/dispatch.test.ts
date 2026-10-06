@@ -73,6 +73,12 @@ describe("registeredVerbs", () => {
     );
   });
 
+  it("registers migrate:confidence (#5385)", async () => {
+    expect(CORE_MODULE_VERBS).toContain("migrate-confidence");
+    expect(resolveCanonicalVerb("migrate:confidence")).toBe("migrate-confidence");
+    expect(VERB_ALIASES["migrate:confidence"]).toBe("migrate-confidence");
+  });
+
   it("registers migrate:clause-ids (#5011)", async () => {
     expect(CORE_MODULE_VERBS).toContain("migrate-clause-ids");
     expect(resolveCanonicalVerb("migrate:clause-ids")).toBe("migrate-clause-ids");

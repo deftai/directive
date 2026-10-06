@@ -1,0 +1,15 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Fixture #5385 active prose Confidence"
+  },
+  "plan": {
+    "title": "5385 active prose Confidence",
+    "status": "running",
+    "narratives": {
+      "Description": "Active brief with legacy prose Confidence (WARN, 0 hard FAIL)",
+      "Confidence": "Fairly high — repro is solid"
+    },
+    "items": []
+  }
+}

@@ -8,6 +8,8 @@
  *      content/vbrief/schemas/xbrief-core-0.8.schema.json byte-for-byte.
  *   3. @deftai/directive-types VALID_STATUSES matches v0.6 $defs.Status enum.
  *   4. @deftai/directive-types VBRIEF_VERSION matches v0.8 $defs.xBRIEFInfo.version const.
+ *   5. CONFIDENCE_VALUES writer vocabulary binds to 0.8 Confidence shape (#5385):
+ *      type string, no hard JSON Schema enum under the same envelope.
  *
  * Exit codes: 0 clean / 1 drift / 2 config error.
  */
@@ -15,6 +17,7 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { type GateExitCode, VALID_STATUSES, VBRIEF_VERSION } from "@deftai/directive-types";
+import { CONFIDENCE_VALUES } from "../vbrief-validate/provenance.js";
 
 export const EXIT_OK = 0;
 export const EXIT_DRIFT = 1;
@@ -91,6 +94,41 @@ function xbriefVersionConst(schema: Record<string, unknown>): string {
     throw new Error("schema $defs.xBRIEFInfo.properties.version.const must be a string");
   }
   return constValue;
+}
+
+/** Confidence node under $defs.Plan.properties.narratives.properties, when present. */
+function xbriefConfidenceNode(
+  schema: Record<string, unknown>,
+): Record<string, unknown> | null {
+  const defs = schema.$defs;
+  if (typeof defs !== "object" || defs === null || Array.isArray(defs)) {
+    return null;
+  }
+  const plan = (defs as Record<string, unknown>).Plan;
+  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+    return null;
+  }
+  const planProps = (plan as Record<string, unknown>).properties;
+  if (typeof planProps !== "object" || planProps === null || Array.isArray(planProps)) {
+    return null;
+  }
+  const narratives = (planProps as Record<string, unknown>).narratives;
+  if (typeof narratives !== "object" || narratives === null || Array.isArray(narratives)) {
+    return null;
+  }
+  const narrativeProps = (narratives as Record<string, unknown>).properties;
+  if (
+    typeof narrativeProps !== "object" ||
+    narrativeProps === null ||
+    Array.isArray(narrativeProps)
+  ) {
+    return null;
+  }
+  const confidence = (narrativeProps as Record<string, unknown>).Confidence;
+  if (typeof confidence !== "object" || confidence === null || Array.isArray(confidence)) {
+    return null;
+  }
+  return confidence as Record<string, unknown>;
 }
 
 function sortedStrings(values: readonly string[]): string[] {
@@ -187,6 +225,28 @@ export function evaluateContractDrift(
           "schema xBRIEFInfo.version const.",
         stream: "stderr",
       };
+    }
+
+    const confidence = xbriefConfidenceNode(v08Schema);
+    if (confidence !== null) {
+      if (confidence.type !== "string") {
+        return {
+          code: EXIT_DRIFT,
+          message:
+            "contract-drift: plan.narratives.Confidence must be type string " +
+            `(writer vocabulary ${CONFIDENCE_VALUES.join("|")}; #5385).`,
+          stream: "stderr",
+        };
+      }
+      if ("enum" in confidence) {
+        return {
+          code: EXIT_DRIFT,
+          message:
+            "contract-drift: plan.narratives.Confidence must not carry a hard JSON Schema enum " +
+            `under 0.8 (writer vocabulary ${CONFIDENCE_VALUES.join("|")} lives in TS; #5385).`,
+          stream: "stderr",
+        };
+      }
     }
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);

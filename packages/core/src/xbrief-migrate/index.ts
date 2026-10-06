@@ -58,6 +58,11 @@ export {
 } from "./migrate-project.js";
 export { renderXbriefMigrationLine, xbriefMigrationGuidance } from "./signpost.js";
 export {
+  CONFIDENCE_MIGRATE_COMMAND,
+  migrateConfidenceCorpus,
+  mainEntry as migrateConfidenceMainEntry,
+} from "./confidence.js";
+export {
   assertFeatureEmissionAllowed,
   assertLayoutAwareWritePath,
   FeatureEmissionRejectedError,

@@ -1,0 +1,15 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Fixture #5385 failed-status noncanonical Confidence"
+  },
+  "plan": {
+    "title": "5385 failed-status noncanonical Confidence",
+    "status": "failed",
+    "narratives": {
+      "Description": "Failed terminal brief with non-leading-token Confidence",
+      "Confidence": "Not assessed against the suite"
+    },
+    "items": []
+  }
+}

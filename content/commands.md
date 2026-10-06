@@ -265,6 +265,7 @@ Edit the xBRIEF source, then render the markdown view.
 - `task project:render` -- refresh the `PROJECT-DEFINITION.xbrief.json` items registry from lifecycle folders.
 - `deft xbrief:validate` -- validate xBRIEF schema, filenames, folders, statuses, and cross-file consistency.
 - `deft migrate:xbrief` (or `task migrate:xbrief`) -- convert a legacy `vbrief/` project tree to `xbrief/` (v0.6→v0.8 semantic transforms; requires clean working tree unless `--force`). Legacy `vbrief/` and `x-vbrief/` tokens remain read-accepted until this runs.
+- `deft migrate:confidence` -- optional map of unambiguous leading High/Medium/Low `plan.narratives.Confidence` prose to `high|medium|low` (+ residual → `ConfidenceNote`). Default dry-run; `--apply` writes; `--include-historical` covers completed/cancelled. Validate never requires this (#5385).
 - `task migrate:vbrief` -- **frozen pre-v0.20 only** (pinned v0.59.0): migrate authoritative root `PROJECT.md` / `SPECIFICATION.md` into the xBRIEF lifecycle model. Not shipped on current npm releases — see UPGRADING.md § Frozen pre-v0.20 document-model migration.
 
 Generated markdown files carry machine-generated banners. Durable edits belong in the `.xbrief.json` source.

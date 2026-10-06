@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   CONFIDENCE_VALUES,
+  extractLeadingConfidenceToken,
   isSourceToken,
   parseSourceTokens,
+  requireCanonicalConfidence,
   SOURCE_CLASSES,
   sourceTokenClass,
   validatePlanNarrativesProvenance,
@@ -54,14 +56,47 @@ describe("Plan.narratives source provenance (#479)", () => {
     expect(errors.some((e) => e.includes("VerifiedAt is required"))).toBe(true);
   });
 
-  it("rejects Confidence outside high|medium|low", () => {
+  it("warns on legacy Confidence strings and hard-fails non-string (#5385)", () => {
     const errors: string[] = [];
-    validatePlanNarrativesProvenance({ Confidence: "pretty-sure" }, "n", errors);
-    expect(errors.some((e) => e.includes("Confidence invalid"))).toBe(true);
+    const warnings: string[] = [];
+    validatePlanNarrativesProvenance(
+      { Confidence: "pretty-sure" },
+      "n",
+      errors,
+      { warnings },
+    );
+    expect(errors.some((e) => e.includes("Confidence invalid"))).toBe(false);
+    expect(warnings.some((w) => w.includes("Confidence-compat"))).toBe(true);
+
+    const proseErrors: string[] = [];
+    const proseWarnings: string[] = [];
+    validatePlanNarrativesProvenance(
+      { Confidence: "High. The defect was reproduced locally." },
+      "n",
+      proseErrors,
+      { warnings: proseWarnings },
+    );
+    expect(proseErrors).toEqual([]);
+    expect(proseWarnings.some((w) => w.includes("Confidence-compat"))).toBe(true);
 
     const nonString: string[] = [];
     validatePlanNarrativesProvenance({ Confidence: 1 }, "n", nonString);
     expect(nonString.some((e) => e.includes("Confidence invalid"))).toBe(true);
+  });
+
+  it("requireCanonicalConfidence admits only high|medium|low for writers", () => {
+    expect(requireCanonicalConfidence("high")).toBe("high");
+    expect(() => requireCanonicalConfidence("High. prose")).toThrow(/MUST emit/);
+  });
+
+  it("extractLeadingConfidenceToken maps unambiguous prose and declines ambiguous", () => {
+    expect(extractLeadingConfidenceToken("High. The defect was reproduced.")).toEqual({
+      confidence: "high",
+      residual: "The defect was reproduced.",
+    });
+    expect(extractLeadingConfidenceToken("Highly uncertain")).toBeNull();
+    expect(extractLeadingConfidenceToken("High uncertainty")).toBeNull();
+    expect(extractLeadingConfidenceToken("Not assessed")).toBeNull();
   });
 
   it("treats Evidence-only as a narrative section, not an atomic claim", () => {
@@ -237,18 +272,46 @@ describe("validateVbriefSchema provenance placement (#479)", () => {
     };
     expect(validateVbriefSchema(completedHistorical, "completed-hist.json")).toEqual([]);
 
-    const badConfidence = {
+    const legacyConfidence = {
       ...MINIMAL_V08,
       plan: {
         ...MINIMAL_V08.plan,
         narratives: { Confidence: "unknown" },
       },
     };
+    const legacyWarnings: string[] = [];
+    expect(validateVbriefSchema(legacyConfidence, "conf-legacy.json", legacyWarnings)).toEqual([]);
+    expect(legacyWarnings.some((w) => w.includes("Confidence-compat"))).toBe(true);
+
+    const nonStringConfidence = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        narratives: { Confidence: 3 },
+      },
+    };
     expect(
-      validateVbriefSchema(badConfidence, "conf-bad.json").some((e) =>
+      validateVbriefSchema(nonStringConfidence, "conf-bad.json").some((e) =>
         e.includes("plan.narratives.Confidence invalid"),
       ),
     ).toBe(true);
+
+    const completedProse = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        status: "completed",
+        narratives: {
+          Confidence: "Not assessed against the suite",
+          Source: "historical freeform note",
+        },
+      },
+    };
+    const completedWarnings: string[] = [];
+    expect(validateVbriefSchema(completedProse, "completed-prose.json", completedWarnings)).toEqual(
+      [],
+    );
+    expect(completedWarnings.some((w) => w.includes("Confidence-compat"))).toBe(true);
   });
 
   it("accepts TrustLevel verified and rejects unknown TrustLevel", () => {

@@ -1,0 +1,15 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Fixture #5385 completed prose Confidence"
+  },
+  "plan": {
+    "title": "5385 completed prose Confidence",
+    "status": "completed",
+    "narratives": {
+      "Description": "Historical completed brief with leading-token prose Confidence",
+      "Confidence": "High. The defect was reproduced, the fix is what the error message asks for, and the guard is static."
+    },
+    "items": []
+  }
+}

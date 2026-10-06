@@ -159,12 +159,7 @@
             },
             "Confidence": {
               "type": "string",
-              "enum": [
-                "high",
-                "medium",
-                "low"
-              ],
-              "description": "Agent certainty (#479). Does not substitute for Evidence on a verified claim."
+              "description": "Agent certainty (#479 / #5385). Writers MUST emit high|medium|low. Readers of 0.8 MAY see legacy prose strings; Directive validate warns (Confidence-compat) and does not hard-fail string shape. Does not substitute for Evidence on a verified claim."
             },
             "Evidence": {
               "type": "string",
