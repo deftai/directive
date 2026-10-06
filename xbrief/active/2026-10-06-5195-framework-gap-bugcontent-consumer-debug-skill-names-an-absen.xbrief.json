@@ -17,37 +17,37 @@
       {
         "id": "1",
         "title": "Place native investigation.xbrief.json + outcome-template.md under content/skills/deft-directive-debug/",
-        "status": "completed"
+        "status": "pending"
       },
       {
         "id": "2",
         "title": "Edit authored skills-pack then packs:render; skill MUST paths name pack-relative flatten objects",
-        "status": "completed"
+        "status": "pending"
       },
       {
         "id": "3",
         "title": "Ship 0.8 xBRIEFInfo ledger scaffold with forensic-research-v1 profile; omit created/updated",
-        "status": "completed"
+        "status": "pending"
       },
       {
         "id": "4",
         "title": "Drop parallel-wave MUST pointer to orchestrator-protocol this ship",
-        "status": "completed"
+        "status": "pending"
       },
       {
         "id": "5",
         "title": "Extend deposit-required-paths + evaluateDepositClosure against stageContentPack; rewrite debugging test",
-        "status": "completed"
+        "status": "pending"
       },
       {
         "id": "6",
         "title": "Preserve close-gate profile check and VENDORED.md verbatim vendor tree",
-        "status": "completed"
+        "status": "pending"
       },
       {
         "id": "7",
         "title": "Exclude repo-root docs/ deposit extension and vendored protocol ship",
-        "status": "completed"
+        "status": "pending"
       }
     ],
     "tags": [
