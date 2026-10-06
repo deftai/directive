@@ -139,7 +139,7 @@ export function parseDocsImpactDeclaration(body: string): {
       errors.push(`no-impact seed example:\n${DOCS_IMPACT_SEED_BLOCK.trimEnd()}`);
     } else {
       errors.push(
-        'field shape: change_class: none|delta|new; surfaces: none or kind:id[,kind:id...]; rationale: "..." — use none only when there is no closed user-doc surface impact',
+        'field shape: change_class: none|add|change|withdraw; surfaces: none or kind:id[,kind:id...]; rationale: "..." — use none only when there is no closed user-doc surface impact',
       );
     }
     return { declaration: null, errors };
