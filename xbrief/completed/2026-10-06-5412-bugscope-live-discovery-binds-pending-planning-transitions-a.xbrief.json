@@ -1,0 +1,459 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5412",
+    "updated": "2026-10-06T15:42:11Z"
+  },
+  "plan": {
+    "title": "bug(scope): live discovery must not bind pending planning transitions as active (#5412)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(scope): live discovery binds pending planning transitions as active scopes",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5412",
+      "Overview": "## Summary\n`verify:scope-provenance` treats a newly promoted pending brief as active in real filesystem discovery. The injected-map path correctly omits it. A supported proposed → pending planning transition therefore fails on its own proposed deletion and generated registry/specification changes, with no active story or product implementation.\n\n## Reproduction and observed result\nObserved with published 0.120.0; `evaluate.ts` and `continuity.ts` are unchanged at v0.121.0 and upstream `05d382bad`.\n1. Commit `xbrief/proposed/a2.xbrief.json` with plan.id `story-a2`, status proposed and a concrete file_scope.\n2. Move it to pending, set status pending, and update `xbrief/PROJECT-DEFINITION.xbrief.json`.\n3. Evaluate against the base commit without injected activeXbriefs: exit 1, `active-xbrief-modified-without-digest`, expanded proposed path plus registry.\n4. Evaluate the identical Git fixture with `activeXbriefs: new Map()`: exit 0, zero active scopes.\n\nA consumer refinement PR and even a separate concrete proposed-scope precommit cannot progress: the continuity census excludes proposed, so the printed land-on-base remediation cannot admit this supported transition. No runtime gate was bypassed.\n\n## Existing contract and cause\nThe reviewed [#5192 bound remedy, item 6](https://github.com/deftai/directive/issues/5192#issuecomment-5920264657) limits evaluation to active-on-disk stories and active-on-base stories moved/completed by the change; pending-on-base participates through continuity when the head is active.\n\nThe changed-lifecycle discovery comment in `packages/core/src/scope-provenance/evaluate.ts` says not to re-add pending. That exclusion currently applies only when `options.activeXbriefs` was injected, while real disk discovery appends every changed lifecycle brief. This is a trigger mismatch, not a request to exempt arbitrary documentation or generated files.\n\n## Intended narrow correction\nRestore equivalent active-scope selection for live and injected discovery. New/remaining pending stories do not become active solely through planning edits. A genuinely active base story moved to pending, completed or cancelled must retain its original scope fence and membership checks; preserve identity ambiguity, relabel and unreadable-base failures. Keep first-active product introduction refusal, source allowances, test-root membership and same-change approval anti-forgery.\n\n## Acceptance criteria\n- A real-Git proposed-to-pending planning transition with generated registry/specification companions and no active story passes, consistently with the injected selection path.\n- Refining an already pending planning story does not bind its future execution file_scope to current planning companions.\n- An active base story moved to pending or completed cannot escape membership or expand its own file_scope on the same branch.\n- Existing first-active introduction, same-change approval rewrite, peer identity and out-of-scope source/test regression tests continue to pass.\n- No blanket path exemption, policy flag, mint, verifier-disable switch, consumer local patch or gate-floor change is introduced.\n\nRelated: #5192, #4774. This correction requires normal upstream review before any consumer runtime adoption.\n\n",
+      "Labels": "bug, determinism, agent-experience, process, source-of-truth, area:cli, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Shared changed-lifecycle admission: active seed OR active-on-base move/complete",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5417",
+          "recorded_at": "2026-10-06T16:53:05.091Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5417",
+            "mintedAt": "2026-10-06T16:53:05.091Z"
+          }
+        }
+      },
+      {
+        "id": "2",
+        "title": "Active-on-base detection reuses listLifecycleBriefsAtRef / continuity census",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5417",
+          "recorded_at": "2026-10-06T16:53:05.091Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5417",
+            "mintedAt": "2026-10-06T16:53:05.091Z"
+          }
+        }
+      },
+      {
+        "id": "3",
+        "title": "Real-Git fixture: proposed to pending planning transition exits 0 under live discovery",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5417",
+          "recorded_at": "2026-10-06T16:53:05.091Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5417",
+            "mintedAt": "2026-10-06T16:53:05.091Z"
+          }
+        }
+      },
+      {
+        "id": "4",
+        "title": "Keep first-active refusal, anti-forgery, peer identity; no path exemptions",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5417",
+          "recorded_at": "2026-10-06T16:53:05.091Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5417",
+            "mintedAt": "2026-10-06T16:53:05.091Z"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates",
+      "prefer-a-bound",
+      "scope-provenance",
+      "through-merge"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5412",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5412: bug(scope): live discovery binds pending planning transitions as active scopes"
+      }
+    ],
+    "acceptance": {
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Changed-lifecycle admission (live and injected) MUST use one shared predicate: admit a changed lifecycle brief iff it is already in the active seed (live xbrief/active/ or injected map) OR it was active on the merge base and appears in the change set under pending|completed|cancelled. New or remaining pending briefs that were never active on base MUST NOT become active scopes solely because they appear in the change set.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5417",
+            "recorded_at": "2026-10-06T16:53:05.091Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5417",
+              "mintedAt": "2026-10-06T16:53:05.091Z"
+            }
+          }
+        },
+        {
+          "id": 2,
+          "text": "Active-on-base detection for limb 1 MUST reuse existing merge-base probes (listLifecycleBriefsAtRef, preMoveSameBasenameLifecyclePaths / continuity census with active-before-pending exclusivity). Preserve identity-ambiguity, relabel, and unreadable-base fail-closed outcomes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5417",
+            "recorded_at": "2026-10-06T16:53:05.091Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5417",
+              "mintedAt": "2026-10-06T16:53:05.091Z"
+            }
+          }
+        },
+        {
+          "id": 3,
+          "text": "Real-Git fixture: proposed to pending planning transition with generated registry/specification companions and no active story MUST exit 0 under live discovery, consistent with activeXbriefs: new Map() under the shared predicate. Add closed regression for active-on-base to pending/completed that agrees under live discovery and empty-map-plus-shared-predicate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5417",
+            "recorded_at": "2026-10-06T16:53:05.091Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5417",
+              "mintedAt": "2026-10-06T16:53:05.091Z"
+            }
+          }
+        },
+        {
+          "id": 4,
+          "text": "Refining an already-pending planning story MUST NOT bind its future execution file_scope to current planning companions. Keep existing first-active product introduction refusal, same-change approval anti-forgery, peer identity, source allowances, and out-of-scope source/test regressions green. No blanket path exemption, policy flag, mint, verifier-disable switch, or gate-floor change.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5417",
+            "recorded_at": "2026-10-06T16:53:05.091Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5417",
+              "mintedAt": "2026-10-06T16:53:05.091Z"
+            }
+          }
+        }
+      ],
+      "x-directive/admitted_source_sentences": [
+        "Changed-lifecycle admission (live and injected) MUST use one shared predicate: admit a changed lifecycle brief iff it is already in the active seed (live xbrief/active/ or injected map) OR it was active on the merge base and appears in the change set under pending|completed|cancelled. New or remaining pending briefs that were never active on base MUST NOT become active scopes solely because they appear in the change set.",
+        "Active-on-base detection for limb 1 MUST reuse existing merge-base probes (listLifecycleBriefsAtRef, preMoveSameBasenameLifecyclePaths / continuity census with active-before-pending exclusivity). Preserve identity-ambiguity, relabel, and unreadable-base fail-closed outcomes.",
+        "Real-Git fixture: proposed to pending planning transition with generated registry/specification companions and no active story MUST exit 0 under live discovery, consistent with activeXbriefs: new Map() under the shared predicate. Add closed regression for active-on-base to pending/completed that agrees under live discovery and empty-map-plus-shared-predicate.",
+        "Refining an already-pending planning story MUST NOT bind its future execution file_scope to current planning companions. Keep existing first-active product introduction refusal, same-change approval anti-forgery, peer identity, source allowances, and out-of-scope source/test regressions green. No blanket path exemption, policy flag, mint, verifier-disable switch, or gate-floor change."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft (pre-Stop-1)\n\n## In plain English\n`verify:scope-provenance` has two ways to decide which xbriefs are \"active.\" Tests that hand in an empty map correctly ignore a brand-new pending brief. Real git checkouts do not — they treat that pending brief as active and fail the PR. Prefer-A makes the live path pick the same active set as the injected path, without letting a story that was already active on the base slip its fence by moving to pending.\n\n## Bound remedy (draft limbs)\n1. Live changed-lifecycle discovery MUST NOT append new or remaining `xbrief/pending/` (or proposed) briefs as active scopes solely because they appear in the change set — match the injected-map exclusion for those folders (`packages/core/src/scope-provenance/evaluate.ts` #5192 item 6 block).\n2. A story that was active on the merge base and appears in the change set as pending, completed, or cancelled MUST still be evaluated with its original scope fence and membership checks (identity ambiguity, relabel, and unreadable-base failures preserved).\n3. Add a real-Git fixture: proposed→pending planning transition with generated registry/specification companions and no active story MUST exit 0, consistent with `activeXbriefs: new Map()`.\n4. Refining an already-pending planning story MUST NOT bind its future execution `file_scope` to current planning companions.\n5. Keep existing first-active product introduction refusal, same-change approval anti-forgery, peer identity, source allowances, and out-of-scope source/test regressions green.\n6. No blanket path exemption, policy flag, mint, verifier-disable switch, consumer local patch, or gate-floor change.\n\nspend-recommend: N=1",
+          "id": 6019172497,
+          "html_url": "https://github.com/deftai/directive/issues/5412#issuecomment-6019172497",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T15:05:58Z",
+          "updated_at": "2026-10-06T15:05:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because live changed-lifecycle discovery binds a new pending brief as an active scope while the injected activeXbriefs path correctly omits it — a trigger mismatch against the #5192 item 6 comment in evaluate.ts that blocks supported proposed→pending planning PRs with no product work.\n\ncharter: open critique\nrefutation-target: (none — open critique; Prefer-A drafted)\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5412\norigin-ref: origin/HEAD\ndispatch-sha: 7bab68cffce7d8dc57df490969759ca4b5649df1\ndest-wo: leftover-complete\nverification-path: pin-read git show 7bab68cffce7d8dc57df490969759ca4b5649df1:\n\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: Prefer-A drafted from the issue intended narrow correction (align live discovery with injected active-scope selection; keep active-on-base→pending/completed fences). Solution space is closed — not Stop 2 panel permission. Bare arc with recorded spend-recommend resolves spend-ask: resolved (#4705 / #5372).\nDual-stop cap: 6 posts\n\npain: P1, P2, P3\n\npain-prose:\nP1: Live disk discovery appends changed `xbrief/pending/` briefs into activeEntries, so a proposed→pending planning transition fails with active-xbrief-modified-without-digest (and blocks registry/spec companions) even when no active story exists.\nP2: A naive \"skip every pending path\" fix would let an active-on-base story that moves to pending/completed/cancelled drop its original membership fence on the same branch.\nP3: Injected `activeXbriefs: new Map()` and live discovery disagree on the same Git fixture, so unit coverage that injects maps cannot see the consumer failure mode.\n\nPrefer-A draft: 6019172497\nTarget-digest: sha256:0461ec3fcca3c121bac998f055916d58a0239706f40046271dbfb0b861acd653",
+          "id": 6019177352,
+          "html_url": "https://github.com/deftai/directive/issues/5412#issuecomment-6019177352",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T15:06:13Z",
+          "updated_at": "2026-10-06T15:06:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\n## Round-1 critic — Prefer-A draft 6019172497 vs Stop 1 pains (ceiling 6019177352)\n\ncharter: open critique\nspend: N=1\ndispatch-sha: 7bab68cffce7d8dc57df490969759ca4b5649df1\nverification-path: pin-read git show 7bab68cffce7d8dc57df490969759ca4b5649df1:\nStop 1: 6019177352\nPrefer-A draft: 6019172497\npain denominator: P1, P2, P3\n\n### Pin-read anchors\n\nAt `packages/core/src/scope-provenance/evaluate.ts` (dispatch SHA):\n\n- Active seed: `listActiveXbriefPaths` reads only `xbrief/active/` (live) or the injected `activeXbriefs` map.\n- `#5192 item 6` changed-lifecycle loop (~716–744): for every changed `isLifecycleXbriefPath`, live falls through to HEAD disk and appends; injected continues past any path that is not `completed/` or `cancelled/` when absent from the map (`!isCompletedOrCancelled continue`).\n- Comment text says do not re-add `pending/`; that exclusion is implemented only on the injected arm.\n- `continuity.ts`: `LIFECYCLE_FOLDERS` / `LIFECYCLE_XBRIEF_RE` are pending|active|completed|cancelled — `proposed/` never enters this loop.\n\nNormative #5192 item 6 (cited from issue body / prior Bound): evaluate when active on disk, or active on base and moved/completed in the change set; pending-on-base alone is not an active scope.\n\n### Existing mechanisms (inventory)\n\nReuse merge-base lifecycle census / same-basename probes already in-tree (`listLifecycleBriefsAtRef`, `preMoveSameBasenameLifecyclePaths`, continuity census) for the active-on-base limb. Do not add a policy flag, mint, or path-exemption switch (Prefer-A limb 6 already forbids those).\n\nInjection / authority lens: this gate chooses which briefs become fail-closed \"active scopes.\" A wrong predicate either blocks supported planning PRs (P1) or drops membership/fence on demotion/completion (P2). Shared-state / verifier-authority case; N/A would be theater.\n\n### Pain ↔ Prefer-A draft limbs\n\n| Pain | Draft limbs that speak to it | Critic read |\n| --- | --- | --- |\n| P1 new pending bound as active | 1, 3, 4 | Relieved if limb 1 means omit new/remaining pending that were never active on base |\n| P2 active-on-base must keep fence when moved to pending/completed/cancelled | 2, 5 | Relieved only if limb 2 is a hard predicate, not collapsed into a blanket pending skip |\n| P3 injected empty Map vs live disagree | 1, 3 | Relieved for the motivating proposed→pending fixture; active→pending parity still under-specified (F2) |\n\n### Findings\n\n#### F1 — Limb 1 \"match the injected-map exclusion\" names the wrong exemplar\nclass: sharpens-framing\n\nEvidence: pin-read `evaluate.ts` 725–734. Injected arm skips disk for every non-completed/cancelled path missing from the map, including `xbrief/pending/`. Prefer-A limb 1 tells implementers to match that exclusion; limb 2 requires evaluating active-on-base→pending.\n\nFailure mode: a literal copy of `!isCompletedOrCancelled continue` onto the live arm omits active→pending demotions, drops the original membership/fence on the same branch, and re-opens P2 while claiming P1 fixed.\n\nDisposition consequence: Prefer-A Bound MUST state the selection rule as the #5192 item 6 predicate — active-on-disk ∪ (active-on-merge-base ∧ present in the change set as pending|completed|cancelled) — and MUST NOT define success as \"copy today's injected continue.\" Limb 2 stays; limb 1 is reworded to cite that predicate.\n\n#### F2 — Live≡injected parity must share one predicate, not only the proposed→pending happy path\nclass: sharpens-framing\n\nEvidence: Stop 1 P3; Prefer-A limbs 1 and 3; injected blank-map still skips all pending (pin-read 732–734). Limb 3 requires a real-Git proposed→pending fixture exit 0 consistent with `activeXbriefs: new Map()`. After a live-only active-on-base fix, an active→pending Git fixture would still diverge: fixed live evaluates; empty Map skips.\n\nFailure mode: unit suites that inject maps keep missing the demotion fence case; P3's \"same fixture\" claim stays half-true; later refactors re-specialize the two arms.\n\nDisposition consequence: Bound SHOULD require one shared changed-lifecycle admission predicate for both arms (injected fallthrough uses the same active-on-base test when the map omits the path). Keep limb 3's proposed→pending real-Git fixture. Add or name an active-on-base→pending (or →completed) regression that must agree under live discovery and under empty-map-plus-shared-predicate (or document that demotion tests must inject the moved brief — pick one closed rule).\n\n#### F3 — Bind limb 2 to existing merge-base probes\nclass: sharpens-framing\n\nEvidence: `listLifecycleBriefsAtRef`, `preMoveSameBasenameLifecyclePaths` (active before pending), continuity census already decide active-on-base identity for fence/membership. Prefer-A limb 2 says \"was active on the merge base\" in free English only.\n\nFailure mode: implementer adds a parallel ad-hoc `git show` / basename check that drifts from continuity exclusivity, duplicate-refuse, and relabel-refuse already wired into the evaluator loop.\n\nDisposition consequence: Bound SHOULD name those existing probes as the limb-2 mechanism and require identity-ambiguity / relabel / unreadable-base failures to keep failing closed (limb 2 already preserves those outcomes; pin the how).\n\n#### F4 — \"or proposed\" in limb 1 is redundant\nclass: footnote\n\nEvidence: `isLifecycleXbriefPath` / `LIFECYCLE_XBRIEF_RE` exclude `xbrief/proposed/`; line 724 continues before any append. Proposed deletion in the motivating fixture is charged only because a wrongly admitted pending brief becomes an active scope whose change set includes the proposed path.\n\nFailure mode: none for correctness; mild scope confusion if someone adds proposed into lifecycle discovery.\n\nDisposition consequence: drop or parenthesize \"proposed\" in Bound limb 1; keep acceptance that proposed→pending planning companions pass once pending is not admitted.\n\n#### F5 — Limbs 5–6 are keep / no-exemption hygiene\nclass: footnote\n\nEvidence: Prefer-A limbs 5–6; Stop 1 acceptance; #5192 item 6 preserve list.\n\nFailure mode: none relative to P1–P3 relief.\n\nDisposition consequence: carry forward unchanged; they are not residual.\n\n### Road not taken\n\nPath-class exemption for registry/specification companions on pending-only change sets would green P1 without fixing discovery and would violate Prefer-A limb 6 / gate-integrity. Removing changed-lifecycle discovery entirely would green P1 and break P2 for active→completed. Prefer-A's dual-limb shape (omit new pending; keep active-on-base moves) is the right mechanism family; F1–F3 only tighten how that shape is stated and shared across arms.\n\n### Verdict on Prefer-A draft\n\nNo `blocks-the-design` finding. Limbs 1–3 can relieve P1–P3 if Bound absorbs F1–F3 (predicate wording, shared live/injected rule, named existing probes). Footnotes F4–F5 need no harvest change.\n\nclassified-headings: F1, F2, F3, F4, F5\nblocking: (none)\nsharpening: F1, F2, F3\nfootnote: F4, F5",
+          "id": 6019351988,
+          "html_url": "https://github.com/deftai/directive/issues/5412#issuecomment-6019351988",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T15:15:01Z",
+          "updated_at": "2026-10-06T15:15:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nTarget-digest: sha256:0461ec3fcca3c121bac998f055916d58a0239706f40046271dbfb0b861acd653\ncritic: 6019351988\nStop 1: 6019177352\nPrefer-A draft: 6019172497\ndispatch-sha: 7bab68cffce7d8dc57df490969759ca4b5649df1\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## In plain English\n\nPlanning PRs that only promote a story from proposed to pending currently fail `verify:scope-provenance` on a real checkout, because the verifier treats that new pending brief as an active story. Tests that inject an empty active map do not. Prefer-A Bound makes both paths use one rule: a brief is an active scope only if it is active on disk now, or it was active on the merge base and this change moves or completes it. Brand-new pending briefs stay out. Stories that were already active keep their fence when demoted or completed.\n\n## Bind map\n\n- Bind Approach A (Prefer-A Bound limbs below).\n- Reject: path-class exemption for registry/specification companions; removing changed-lifecycle discovery; copying today's injected `!isCompletedOrCancelled continue` onto the live arm without an active-on-base predicate (critic F1).\n\n## Bound remedy\n\n1. Changed-lifecycle admission (live and injected) MUST use one shared predicate: admit a changed lifecycle brief iff it is already in the active seed (live `xbrief/active/` or injected map entry) OR it was active on the merge base and appears in the change set under pending|completed|cancelled. Do NOT define success as copying today's injected `!isCompletedOrCancelled continue` (absorbs F1, F2). New or remaining pending briefs that were never active on base MUST NOT become active scopes solely because they appear in the change set.\n2. Active-on-base detection for limb 1 MUST reuse existing merge-base probes (`listLifecycleBriefsAtRef`, `preMoveSameBasenameLifecyclePaths` / continuity census with active-before-pending exclusivity). Preserve identity-ambiguity, relabel, and unreadable-base fail-closed outcomes (absorbs F3).\n3. Real-Git fixture: proposed→pending planning transition with generated registry/specification companions and no active story MUST exit 0 under live discovery, consistent with `activeXbriefs: new Map()` under the shared predicate.\n4. Add or name a closed regression for active-on-base→pending (or →completed) that agrees under live discovery and under empty-map-plus-shared-predicate (or document that demotion tests MUST inject the moved brief — one closed rule) (absorbs F2 remainder).\n5. Refining an already-pending planning story MUST NOT bind its future execution `file_scope` to current planning companions.\n6. Keep existing first-active product introduction refusal, same-change approval anti-forgery, peer identity, source allowances, and out-of-scope source/test regressions green.\n7. No blanket path exemption, policy flag, mint, verifier-disable switch, consumer local patch, or gate-floor change. Drop redundant \"proposed\" from limb-1 wording (`proposed/` is already outside `isLifecycleXbriefPath`) (F4 footnote).\n\n## Reject list\n\n- Registry/spec path exemptions to green planning PRs without fixing discovery.\n- Removing the changed-lifecycle loop.\n- Live-only pending skip that omits active-on-base→pending evaluation.",
+          "id": 6019367342,
+          "html_url": "https://github.com/deftai/directive/issues/5412#issuecomment-6019367342",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T15:15:47Z",
+          "updated_at": "2026-10-06T15:15:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Pain-audit — Prefer-A Bound 6019367342 vs Stop 1 P1–P3\n\ncharter: open critique\nspend: N=1\ndispatch-sha: 7bab68cffce7d8dc57df490969759ca4b5649df1\nverification-path: pin-read git show 7bab68cffce7d8dc57df490969759ca4b5649df1:\nStop 1: 6019177352\nround-1 critic: 6019351988\nPrefer-A Bound: 6019367342\nid-ceiling: 6019367342\n\n### Pin-read check (evaluate.ts @ dispatch SHA)\n\n- Live seed: `listActiveXbriefPaths` reads only `xbrief/active/`.\n- `#5192 item 6` loop (~716–744): live appends every changed lifecycle path present on HEAD disk; injected arm continues past non-completed/cancelled paths missing from the map (`!isCompletedOrCancelled continue`). Comment says do not re-add `pending/`; that exclusion exists only on the injected arm today.\n- `listLifecycleBriefsAtRef` and `preMoveSameBasenameLifecyclePaths` / continuity census already decide merge-base identity for fence/membership (active-before-pending exclusivity; fail-closed on ambiguity / unreadable base).\n- `LIFECYCLE_XBRIEF_RE` is pending|active|completed|cancelled — `proposed/` never enters this loop.\n\n### Pain dispositions\n\nrelieves: P1 — Bound limb 1 shared predicate omits new/remaining pending that were never active on the merge base, so a proposed→pending planning change set is not bound as an active scope. Limb 3 names the real-Git exit-0 fixture. Does not copy today's injected continue (Reject list / F1).\n\nrelieves: P2 — Bound limb 1 keeps active-on-base ∧ pending|completed|cancelled in the admission set; limb 2 pins that detection to existing `listLifecycleBriefsAtRef` / `preMoveSameBasenameLifecyclePaths` / continuity census and preserves fail-closed outcomes. Naive blanket pending-skip is on the Reject list.\n\nrelieves: P3 — Bound limbs 1 and 3 force one shared predicate across live discovery and `activeXbriefs: new Map()` for the motivating proposed→pending fixture. Limb 4 closes the demotion-parity remainder from round-1 F2 with one closed regression rule (dual-arm agreement or documented inject-the-moved-brief). Live≡injected disagreement on the Stop 1 fixture is covered.\n\n### Round-1 absorption\n\nF1–F3 are already in Prefer-A Bound limbs 1–4 and the Reject list. F4–F5 are footnotes already carried (drop redundant \"proposed\"; keep/no-exemption hygiene). No Bound limb must change for asserted coverage.\n\n### Verdict\n\nPrefer-A Bound 6019367342 relieves P1, P2, and P3 as posted. No blocking finding. No harvest change. Bindable-as-posted for pain coverage follow-through.",
+          "id": 6019409683,
+          "html_url": "https://github.com/deftai/directive/issues/5412#issuecomment-6019409683",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T15:17:48Z",
+          "updated_at": "2026-10-06T15:17:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n| --- | --- | --- |\n| Live changed-lifecycle discovery appends pending briefs that the injected arm skips | pin-read evaluate.ts ~716–744 at 7bab68cffce7; Stop 1 P1; critic 6019351988 | verified |\n| #5192 item 6 comment says do not re-add pending; exclusion is injected-only today | pin-read evaluate.ts comment + injected `!isCompletedOrCancelled continue` | verified |\n| Prefer-A Bound shared predicate (active-on-disk ∪ active-on-base∧moved) relieves P1–P3 without copying injected continue | lean 6019367342 limbs 1–4; pain-audit 6019409683 | verified |\n| Active-on-base detection reuses listLifecycleBriefsAtRef / preMoveSameBasenameLifecyclePaths / continuity | lean limb 2; pain-audit pin-read | verified |\n| No blocks-the-design; harvest-changed false; bindable-as-posted | critic 6019351988; pain-audit 6019409683 finding-classes: none | verified |\n| proposed/ already outside isLifecycleXbriefPath | continuity LIFECYCLE_XBRIEF_RE; critic F4 | verified |\n\nStop 1: 6019177352\nPrefer-A Bound: 6019367342\npain-audit: 6019409683\ndispatch-sha: 7bab68cffce7d8dc57df490969759ca4b5649df1",
+          "id": 6019425348,
+          "html_url": "https://github.com/deftai/directive/issues/5412#issuecomment-6019425348",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T15:18:33Z",
+          "updated_at": "2026-10-06T15:18:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound relieves P1–P3 with a shared live/injected admission predicate and named merge-base probes; pain-audit finding-classes none and harvest-changed false; verified-claims table corroborates pin-read anchors.\n\n## In plain English\n\nThe verifier was treating brand-new pending planning briefs as active stories on real checkouts while tests that inject an empty map did not. The accepted Bound makes both paths use one rule: only active-on-disk briefs, or briefs that were active on the merge base and this change moves or completes, count as active scopes. Planning-only proposed→pending PRs can pass; demotions keep their fence.\n\nCitations:\nsuccessor lean 6019367342\nverified-claims table 6019425348\npain-audit 6019409683\nStop 1 6019177352\nround-1 critic 6019351988\n\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 7bab68cffce7d8dc57df490969759ca4b5649df1",
+          "id": 6019425884,
+          "html_url": "https://github.com/deftai/directive/issues/5412#issuecomment-6019425884",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T15:18:35Z",
+          "updated_at": "2026-10-06T15:18:35Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5729299595,
+        "origin": "deftai/directive#5412",
+        "id": "github.issue.5729299595"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0461ec3fcca3c121bac998f055916d58a0239706f40046271dbfb0b861acd653"
+      },
+      "preferABound": {
+        "leanCommentId": 6019367342,
+        "conflict_group": "scope-provenance-pending-not-active",
+        "targetDigest": "sha256:0461ec3fcca3c121bac998f055916d58a0239706f40046271dbfb0b861acd653",
+        "dispatchSha": "7bab68cffce7d8dc57df490969759ca4b5649df1"
+      },
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/core/src/scope-provenance/evaluate.test.ts",
+          "packages/core/src/scope-provenance/evaluate.ts"
+        ],
+        "conflict_group": "scope-provenance-pending-not-active",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope-provenance/evaluate.test.ts"
+        ],
+        "expected_outputs": [
+          "Tracking PR for #5412 Prefer-A Bound pending-not-active discovery"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "Traces": [
+          "#5412",
+          "#5192",
+          "#4774"
+        ]
+      },
+      "productPullRequest": 5417,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-06T16:53:05.091Z"
+      }
+    },
+    "id": "github.issue.5729299595",
+    "updated": "2026-10-06T16:53:19.662Z"
+  }
+}
