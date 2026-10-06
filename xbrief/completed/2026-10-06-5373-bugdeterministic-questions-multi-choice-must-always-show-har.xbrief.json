@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Prefer-A Bound hand-stamp for through-merge #5373 (hard-stop hatch)",
-    "updated": "2026-10-05T16:21:17.245Z"
+    "updated": "2026-10-06T13:57:12.405Z"
   },
   "plan": {
     "title": "bug(deterministic-questions): multi-choice must always show hard-stop 'I have questions' escape (Other is not enough)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(deterministic-questions): multi-choice must always show hard-stop 'I have questions' escape (Other is not enough)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5373",
@@ -18,62 +18,206 @@
       {
         "id": "clause.1",
         "title": "Hard-stop hatch presentation vs halt gates (Discuss hatch, explicit resume) exist at content/contracts/deterministic-questions.md",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       },
       {
         "id": "clause.2",
         "title": "Deny vs render hatch gate and UPDATED_INPUT honesty exist at packages/core/src/hooks/dispatcher-plan-choice.ts",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       },
       {
         "id": "clause.3",
         "title": "Host locus table with deny/render/selection-ingress columns exists at content/contracts/deterministic-questions.md",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       },
       {
         "id": "clause.4",
         "title": "Exported QUESTION_TOOL_NAMES subset exists at packages/core/src/tool-events/classify.ts",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       },
       {
         "id": "clause.5",
         "title": "Canonical Discuss hatch and I have questions alias rules exist at content/contracts/deterministic-questions.md",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       },
       {
         "id": "clause.6",
         "title": "Exact-display hatch alias and Other-never-hatch rules exist at content/contracts/deterministic-questions.md",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       },
       {
         "id": "clause.7",
         "title": "Attended/unattended Discuss-pause latch guidance exists at content/templates/agent-prompt-preamble.md",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       },
       {
         "id": "clause.8",
         "title": "Refuse-missing-hatch deny codes exist at packages/core/src/hooks/dispatcher-plan-choice.ts",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       },
       {
         "id": "clause.9",
         "title": "Final-two Discuss/Back skill-prose coverage exists at packages/core/src/content-contracts/skills/deterministic_questions.test.ts",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       },
       {
         "id": "clause.10",
         "title": "ask_user_question HOST_TOOL_SURFACE_AUDIT.grok row exists at packages/core/src/hooks/tools.ts",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       },
       {
         "id": "clause.11",
         "title": "Deterministic-questions #1470/#5373 agents-entry markers exist at content/templates/agents-entry.md",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       },
       {
         "id": "clause.12",
         "title": "Scoped P1/P2/P3 relief honesty section exists at content/contracts/deterministic-questions.md",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5410",
+          "recorded_at": "2026-10-06T13:56:27.310Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5410",
+            "mintedAt": "2026-10-06T13:56:27.310Z"
+          }
+        }
       }
     ],
     "tags": [
@@ -98,90 +242,248 @@
         {
           "id": 1,
           "text": "Hard-stop hatch presentation vs halt gates (Discuss hatch, explicit resume) exist at content/contracts/deterministic-questions.md",
-          "artifact_path": "content/contracts/deterministic-questions.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         },
         {
           "id": 2,
           "text": "Deny vs render hatch gate and UPDATED_INPUT honesty exist at packages/core/src/hooks/dispatcher-plan-choice.ts",
-          "artifact_path": "packages/core/src/hooks/dispatcher-plan-choice.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         },
         {
           "id": 3,
           "text": "Host locus table with deny/render/selection-ingress columns exists at content/contracts/deterministic-questions.md",
-          "artifact_path": "content/contracts/deterministic-questions.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         },
         {
           "id": 4,
           "text": "Exported QUESTION_TOOL_NAMES subset exists at packages/core/src/tool-events/classify.ts",
-          "artifact_path": "packages/core/src/tool-events/classify.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         },
         {
           "id": 5,
           "text": "Canonical Discuss hatch and I have questions alias rules exist at content/contracts/deterministic-questions.md",
-          "artifact_path": "content/contracts/deterministic-questions.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         },
         {
           "id": 6,
           "text": "Exact-display hatch alias and Other-never-hatch rules exist at content/contracts/deterministic-questions.md",
-          "artifact_path": "content/contracts/deterministic-questions.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         },
         {
           "id": 7,
           "text": "Attended/unattended Discuss-pause latch guidance exists at content/templates/agent-prompt-preamble.md",
-          "artifact_path": "content/templates/agent-prompt-preamble.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         },
         {
           "id": 8,
           "text": "Refuse-missing-hatch deny codes exist at packages/core/src/hooks/dispatcher-plan-choice.ts",
-          "artifact_path": "packages/core/src/hooks/dispatcher-plan-choice.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         },
         {
           "id": 9,
           "text": "Final-two Discuss/Back skill-prose coverage exists at packages/core/src/content-contracts/skills/deterministic_questions.test.ts",
-          "artifact_path": "packages/core/src/content-contracts/skills/deterministic_questions.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         },
         {
           "id": 10,
           "text": "ask_user_question HOST_TOOL_SURFACE_AUDIT.grok row exists at packages/core/src/hooks/tools.ts",
-          "artifact_path": "packages/core/src/hooks/tools.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         },
         {
           "id": 11,
           "text": "Deterministic-questions #1470/#5373 agents-entry markers exist at content/templates/agents-entry.md",
-          "artifact_path": "content/templates/agents-entry.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         },
         {
           "id": 12,
           "text": "Scoped P1/P2/P3 relief honesty section exists at content/contracts/deterministic-questions.md",
-          "artifact_path": "content/contracts/deterministic-questions.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5410",
+            "recorded_at": "2026-10-06T13:56:27.310Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5410",
+              "mintedAt": "2026-10-06T13:56:27.310Z"
+            }
+          }
         }
       ],
       "ambiguity_attestation": "none_found",
       "sentences": [
+        "Hard-stop hatch presentation vs halt gates (Discuss hatch, explicit resume) exist at content/contracts/deterministic-questions.md",
+        "Deny vs render hatch gate and UPDATED_INPUT honesty exist at packages/core/src/hooks/dispatcher-plan-choice.ts",
+        "Host locus table with deny/render/selection-ingress columns exists at content/contracts/deterministic-questions.md",
+        "Exported QUESTION_TOOL_NAMES subset exists at packages/core/src/tool-events/classify.ts",
+        "Canonical Discuss hatch and I have questions alias rules exist at content/contracts/deterministic-questions.md",
+        "Exact-display hatch alias and Other-never-hatch rules exist at content/contracts/deterministic-questions.md",
+        "Attended/unattended Discuss-pause latch guidance exists at content/templates/agent-prompt-preamble.md",
+        "Refuse-missing-hatch deny codes exist at packages/core/src/hooks/dispatcher-plan-choice.ts",
+        "Final-two Discuss/Back skill-prose coverage exists at packages/core/src/content-contracts/skills/deterministic_questions.test.ts",
+        "ask_user_question HOST_TOOL_SURFACE_AUDIT.grok row exists at packages/core/src/hooks/tools.ts",
+        "Deterministic-questions #1470/#5373 agents-entry markers exist at content/templates/agents-entry.md",
+        "Scoped P1/P2/P3 relief honesty section exists at content/contracts/deterministic-questions.md"
+      ],
+      "x-directive/admitted_source_sentences": [
         "Hard-stop hatch presentation vs halt gates (Discuss hatch, explicit resume) exist at content/contracts/deterministic-questions.md",
         "Deny vs render hatch gate and UPDATED_INPUT honesty exist at packages/core/src/hooks/dispatcher-plan-choice.ts",
         "Host locus table with deny/render/selection-ingress columns exists at content/contracts/deterministic-questions.md",
@@ -726,9 +1028,13 @@
         ]
       },
       "activationPullRequest": 5380,
-      "productPullRequest": 5410
+      "productPullRequest": 5410,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-06T13:57:58.479Z"
+      }
     },
     "id": "github.issue.5713952089",
-    "updated": "2026-10-06T12:59:00.080Z"
+    "updated": "2026-10-06T13:57:12.405Z"
   }
 }
