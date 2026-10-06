@@ -6851,12 +6851,12 @@ describe("stale DEFT_ACTIVE_SCOPE pin-miss Write/Edit recovery (#5386)", () => {
     expect(grokWire.reason).toContain("stale-gone.xbrief.json");
     const claudeWire = JSON.parse(renderHostDecision("claude", decision)) as {
       hookSpecificOutput: {
-        permissionDecision: string;
-        permissionDecisionReason: string;
+        additionalContext: string;
+        permissionDecision?: string;
       };
     };
-    expect(claudeWire.hookSpecificOutput.permissionDecision).toBe("allow");
-    expect(claudeWire.hookSpecificOutput.permissionDecisionReason).toMatch(/Warning:/);
+    expect(claudeWire.hookSpecificOutput.additionalContext).toMatch(/Warning:/);
+    expect(claudeWire.hookSpecificOutput.permissionDecision).toBeUndefined();
     const cursorWire = JSON.parse(
       renderHostDecision("cursor", { ...decision, host: "cursor" }),
     ) as {

@@ -3881,6 +3881,8 @@ export function renderHostDecision(host: HookHost, decision: HookDecision): stri
       }
     }
     // tool.before allow advisories must print (#5281 kill-force; #5386 Warning:).
+    // Claude/Codex: additionalContext only — do not set permissionDecision (that
+    // would auto-approve and skip the host permission prompt; Greptile #5433).
     if (advisory !== null) {
       if (host === "grok") {
         return JSON.stringify({
@@ -3892,8 +3894,7 @@ export function renderHostDecision(host: HookHost, decision: HookDecision): stri
         return JSON.stringify({
           hookSpecificOutput: {
             hookEventName: "PreToolUse",
-            permissionDecision: "allow",
-            permissionDecisionReason: advisory,
+            additionalContext: advisory,
           },
         });
       }
