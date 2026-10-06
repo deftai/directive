@@ -40,7 +40,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 104 | 10 | 55 | 1 | 5 |
 | tools | Tooling standards (telemetry, search, formatters, the Taskfile contract). | 7 | 91 | 73 | 33 | 1 | 15 |
-| vbrief | The durable state format: project definition, specification, scopes, plans. | 1 | 81 | 28 | 30 | 0 | 9 |
+| vbrief | The durable state format: project definition, specification, scopes, plans. | 1 | 82 | 29 | 30 | 0 | 9 |
 | verification | How agents prove work is done: gates, validators, coverage, review. | 4 | 39 | 22 | 26 | 0 | 4 |
 
 ### ci-cd
