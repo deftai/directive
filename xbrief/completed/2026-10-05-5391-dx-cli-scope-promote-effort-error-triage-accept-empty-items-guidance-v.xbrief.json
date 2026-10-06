@@ -1,0 +1,226 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "dx(cli): scope:promote effort error, triage:accept empty-items guidance, verify:docs-impact '--' handling",
+    "updated": "2026-10-06T04:20:00Z"
+  },
+  "plan": {
+    "id": "github.issue.5717551267",
+    "title": "dx(cli): scope:promote effort error, triage:accept empty-items guidance, verify:docs-impact '--' handling",
+    "status": "completed",
+    "items": [
+      {
+        "id": "1",
+        "title": "On invalid plan.items[].effort, append (expected one of [S,M,L,XL]) matching plan.status shape; do not widen enum with XS.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5401",
+          "recorded_at": "2026-10-06T04:19:58.228Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5401",
+            "mintedAt": "2026-10-06T04:19:58.228Z"
+          }
+        }
+      },
+      {
+        "id": "2",
+        "title": "On validation refuse before unlink, surface source/on-disk path or dual source→intended dest so proposed/ is not reported as pending/.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5401",
+          "recorded_at": "2026-10-06T04:19:58.228Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5401",
+            "mintedAt": "2026-10-06T04:19:58.228Z"
+          }
+        }
+      },
+      {
+        "id": "3",
+        "title": "Extend EMPTY_AFTER_HARVEST_REMEDIATION with one pasteable acceptance-criteria example.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5401",
+          "recorded_at": "2026-10-06T04:19:58.228Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5401",
+            "mintedAt": "2026-10-06T04:19:58.228Z"
+          }
+        }
+      },
+      {
+        "id": "4",
+        "title": "parseDocsImpactArgs treats lone -- as separator like sibling verbs; do not reject as unknown flag.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5401",
+          "recorded_at": "2026-10-06T04:19:58.228Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5401",
+            "mintedAt": "2026-10-06T04:19:58.228Z"
+          }
+        }
+      }
+    ],
+    "acceptance": {
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound lean 6002625656; cohort-add hand-stamp",
+      "commands": [
+        "pnpm exec vitest run packages/core/src/vbrief-validate/schema-v08.test.ts packages/core/src/docs/docs-impact.test.ts packages/core/src/intake/clause-derivation.test.ts packages/core/src/scope/transition.test.ts"
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On invalid plan.items[].effort, append (expected one of [S,M,L,XL]) matching plan.status shape; do not widen enum with XS.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5401",
+            "recorded_at": "2026-10-06T04:19:58.228Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5401",
+              "mintedAt": "2026-10-06T04:19:58.228Z"
+            }
+          }
+        },
+        {
+          "id": 2,
+          "text": "On validation refuse before unlink, surface source/on-disk path or dual source→intended dest so proposed/ is not reported as pending/.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5401",
+            "recorded_at": "2026-10-06T04:19:58.228Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5401",
+              "mintedAt": "2026-10-06T04:19:58.228Z"
+            }
+          }
+        },
+        {
+          "id": 3,
+          "text": "Extend EMPTY_AFTER_HARVEST_REMEDIATION with one pasteable acceptance-criteria example.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5401",
+            "recorded_at": "2026-10-06T04:19:58.228Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5401",
+              "mintedAt": "2026-10-06T04:19:58.228Z"
+            }
+          }
+        },
+        {
+          "id": 4,
+          "text": "parseDocsImpactArgs treats lone -- as separator like sibling verbs; do not reject as unknown flag.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5401",
+            "recorded_at": "2026-10-06T04:19:58.228Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5401",
+              "mintedAt": "2026-10-06T04:19:58.228Z"
+            }
+          }
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5717551267,
+        "origin": "deftai/directive#5391",
+        "id": "github.issue.5717551267"
+      },
+      "preferABound": {
+        "lean": 6002625656,
+        "conflict_group": "cli-dx-promote-accept-docs-impact"
+      },
+      "swarm": {
+        "conflict_group": "cli-dx-promote-accept-docs-impact",
+        "size": "M",
+        "file_scope": [
+          "packages/core/src/vbrief-validate/schema.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/intake/clause-derivation.ts",
+          "packages/core/src/docs/docs-impact.ts",
+          "packages/cli/src/verify-scope-provenance.test.ts"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "Prefer-A Bound land"
+        ],
+        "depends_on": [],
+        "file_scope_confidence": "high",
+        "model_tier": "default"
+      },
+      "productPullRequest": 5401,
+      "delivery": {
+        "required": false
+      },
+      "completedAt": "2026-10-06T04:20:00Z",
+      "completedSessionId": "host:grok:v1:MDFhMTBjOTAtOGM2MS03NjMzLTk0YjAtMzFmZTVmMGE3Mjlj",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-06T04:20:00Z"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5391",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5391: dx(cli): scope:promote effort error, triage:accept empty-items guidance, verify:docs-impact '--' handling"
+      }
+    ],
+    "tags": [
+      "prefer-a",
+      "cohort"
+    ],
+    "narratives": {
+      "overview": "dx(cli): scope:promote effort error, triage:accept empty-items guidance, verify:docs-impact '--' handling"
+    },
+    "updated": "2026-10-06T04:20:00Z"
+  }
+}
