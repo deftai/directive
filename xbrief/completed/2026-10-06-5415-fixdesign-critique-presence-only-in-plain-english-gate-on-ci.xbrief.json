@@ -1,0 +1,217 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-10-06T17:43:08.088Z",
+    "description": "Prefer-A leftover-complete for #5415 after product #5419"
+  },
+  "plan": {
+    "title": "fix(design-critique): presence-only ## In plain English gate before ingest-ready (#5415)",
+    "status": "completed",
+    "id": "github.issue.5730491425",
+    "items": [
+      {
+        "id": "1",
+        "title": "Contract recut for cited-artifact plain-English presence",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5419",
+          "recorded_at": "2026-10-06T17:43:08.088Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5419",
+            "mintedAt": "2026-10-06T17:43:08.088Z"
+          }
+        }
+      },
+      {
+        "id": "2",
+        "title": "evaluateCompletedArcRecord presence-only check",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5419",
+          "recorded_at": "2026-10-06T17:43:08.088Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5419",
+            "mintedAt": "2026-10-06T17:43:08.088Z"
+          }
+        }
+      },
+      {
+        "id": "3",
+        "title": "Path-1 auto-synthesis producer requires real summary",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5419",
+          "recorded_at": "2026-10-06T17:43:08.088Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5419",
+            "mintedAt": "2026-10-06T17:43:08.088Z"
+          }
+        }
+      },
+      {
+        "id": "4",
+        "title": "ingest-ready remaining-set refuses on missing-plain-english",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5419",
+          "recorded_at": "2026-10-06T17:43:08.088Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5419",
+            "mintedAt": "2026-10-06T17:43:08.088Z"
+          }
+        }
+      }
+    ],
+    "metadata": {
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "content/contracts/design-critique.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "packages/core/src/design-critique/auto-stamp-path1.test.ts",
+          "packages/core/src/design-critique/auto-stamp-path1.ts",
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "packages/core/src/intake/issue-ingest-comments-paginate.test.ts",
+          "packages/core/src/scm/design-critique-chip.test.ts",
+          "packages/core/src/scm/design-critique-stale-ready.test.ts",
+          "packages/core/src/vbrief-reconcile/main.test.ts",
+          "docs/RULE-MAP.md"
+        ],
+        "conflict_group": "plain-english-presence-gate"
+      },
+      "productPullRequest": 5419,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-06T17:43:08.088Z"
+      },
+      "preferABound": {
+        "leanCommentId": 6019152112,
+        "conflict_group": "plain-english-presence-gate",
+        "targetDigest": "sha256:1cc4148aa4101c2699be310aad81eff5f5190e0cd2961ddf2a62112dbdb9d89e",
+        "dispatchSha": "7bab68cffce7d8dc57df490969759ca4b5649df1"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5730491425,
+        "origin": "deftai/directive#5415",
+        "id": "github.issue.5730491425"
+      }
+    },
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "5",
+          "unit": "detail-ids",
+          "rejectionScope": "operation",
+          "rationale": "DETAIL_ID_LIMIT=5 and DesignCritiqueIngestBlockedError throw on missing-plain-english in completed-arc-record.ts (#5415). Operator Scott approving in-harness mint."
+        }
+      ]
+    },
+    "acceptance": {
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut content/contracts/design-critique.md ## Plain-language summary to retire the unobservable claim for the cited-artifact selector only; co-recut locked strings in design_critique_contract.test.ts and the Test-surface paragraph; keep the ban on prose-quality/NLP parsers; publish closed reason missing-plain-english in the completed-arc refusal table (fifteen reasons) with gate-evolution for previously accepted ingest-ready records via design-critique-stale-ready.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5419",
+            "recorded_at": "2026-10-06T17:43:08.088Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5419",
+              "mintedAt": "2026-10-06T17:43:08.088Z"
+            }
+          }
+        },
+        {
+          "id": 2,
+          "text": "After record selection and lean/table/pain clearance, require an operative non-empty ## In plain English section on both citedLeanId and synthesisCommentId; reuse findBoundRemedyHeading/sliceAcSection family; trim-empty fails; fence/blockquote/inline-code headings are not operative; missing-plain-english detail names which artifact(s) fail without masking earlier closed reasons.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5419",
+            "recorded_at": "2026-10-06T17:43:08.088Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5419",
+              "mintedAt": "2026-10-06T17:43:08.088Z"
+            }
+          }
+        },
+        {
+          "id": 3,
+          "text": "Compose a parent-supplied non-empty plain-English summary into leanCiteOnlyPath1Body / evaluateAutoStampPath1Write; refuse path-1 writes and paired remaining-set write when the summary is absent or empty; do not satisfy with a generic placeholder or Bound-remedy pointer-only stub; reject unpublished-candidate carve.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5419",
+            "recorded_at": "2026-10-06T17:43:08.088Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5419",
+              "mintedAt": "2026-10-06T17:43:08.088Z"
+            }
+          }
+        },
+        {
+          "id": 4,
+          "text": "Refuse via applyIngestReadyRemainingSet → proveLiveThreadCompletedArcForIngestReady once missing-plain-english is live; do not invent a gate inside resolveAutoStampCatalogChip.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5419",
+            "recorded_at": "2026-10-06T17:43:08.088Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5419",
+              "mintedAt": "2026-10-06T17:43:08.088Z"
+            }
+          }
+        }
+      ],
+      "x-directive/admitted_source_sentences": [
+        "Recut content/contracts/design-critique.md ## Plain-language summary to retire the unobservable claim for the cited-artifact selector only; co-recut locked strings in design_critique_contract.test.ts and the Test-surface paragraph; keep the ban on prose-quality/NLP parsers; publish closed reason missing-plain-english in the completed-arc refusal table (fifteen reasons) with gate-evolution for previously accepted ingest-ready records via design-critique-stale-ready.",
+        "After record selection and lean/table/pain clearance, require an operative non-empty ## In plain English section on both citedLeanId and synthesisCommentId; reuse findBoundRemedyHeading/sliceAcSection family; trim-empty fails; fence/blockquote/inline-code headings are not operative; missing-plain-english detail names which artifact(s) fail without masking earlier closed reasons.",
+        "Compose a parent-supplied non-empty plain-English summary into leanCiteOnlyPath1Body / evaluateAutoStampPath1Write; refuse path-1 writes and paired remaining-set write when the summary is absent or empty; do not satisfy with a generic placeholder or Bound-remedy pointer-only stub; reject unpublished-candidate carve.",
+        "Refuse via applyIngestReadyRemainingSet → proveLiveThreadCompletedArcForIngestReady once missing-plain-english is live; do not invent a gate inside resolveAutoStampCatalogChip."
+      ]
+    }
+  }
+}
