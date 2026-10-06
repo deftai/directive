@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Keep active #5195 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5195.
+- **Approved-scope mint for #5195 includes `docs/RULE-MAP.md`.** Operator TTY mint lands `.deft/approved-scope/github.issue.5652287218` so product PR #5436 can regenerate the rule map without membership failure. Tracking #5195.
 
 ### Changed
 
