@@ -67,6 +67,7 @@ export const COMPLETED_ARC_BLOCK_REASONS = [
   "unrelieved-pain",
   "unresolved-pain-audit",
   "later-arc-in-flight",
+  "missing-plain-english",
 ] as const;
 
 export type CompletedArcBlockReason = (typeof COMPLETED_ARC_BLOCK_REASONS)[number];
@@ -545,12 +546,162 @@ function applyPainCoverage(
   return verdict;
 }
 
+/**
+ * Exact level-2 `## In plain English` line (horizontal whitespace / CRLF via
+ * trim). Prefix near-miss (`## In plain Englishness`) fails. Same classifyPosition
+ * family as findBoundRemedyHeading (#5415).
+ */
+function matchPlainEnglishHeadingLine(line: string): { level: number; end: number } | null {
+  if (!line.startsWith("#")) return null;
+  let level = 0;
+  while (level < line.length && line[level] === "#") level += 1;
+  if (level !== 2) return null;
+  if (level >= line.length || line[level] !== " ") return null;
+  const headingText = line.slice(level + 1).trim().toLowerCase();
+  if (headingText !== "in plain english") return null;
+  return { level, end: line.length };
+}
+
+function findOperativePlainEnglishHeading(
+  text: string,
+): { readonly sectionStart: number; readonly headingOffset: number } | null {
+  let offset = 0;
+  for (const line of text.split("\n")) {
+    const match = matchPlainEnglishHeadingLine(line);
+    if (match !== null && classifyPosition(text, offset) === null) {
+      return { sectionStart: offset + match.end, headingOffset: offset };
+    }
+    offset += line.length + 1;
+  }
+  return null;
+}
+
+function isOperativeLevel2HeadingLine(text: string, line: string, absoluteOffset: number): boolean {
+  if (!line.startsWith("#")) return false;
+  let hashes = 0;
+  while (hashes < line.length && line[hashes] === "#") hashes += 1;
+  if (hashes !== 2) return false;
+  if (hashes < line.length && line[hashes] !== " " && line[hashes] !== "\r") return false;
+  return classifyPosition(text, absoluteOffset) === null;
+}
+
+/** Lean-family reserved line-starts that end a plain-English slice (#5415). */
+const PLAIN_ENGLISH_SLICE_END_RE =
+  /^(?:\*{0,2}Lean:\*{0,2}|Spec-path:|Recut:|\*{0,2}Target-digest:\*{0,2}|design-critique:\s*synthesis accepted,\s*because\b)/i;
+
+function slicePlainEnglishBody(text: string, sectionStart: number): string {
+  const after = text.slice(sectionStart);
+  let offset = 0;
+  for (const line of after.split("\n")) {
+    if (offset > 0) {
+      const absolute = sectionStart + offset;
+      const trimmed = line.trim();
+      if (isOperativeLevel2HeadingLine(text, line, absolute)) break;
+      if (PLAIN_ENGLISH_SLICE_END_RE.test(trimmed)) break;
+    }
+    offset += line.length + 1;
+  }
+  return after.slice(0, offset);
+}
+
+function lineNumberAt(text: string, offset: number): number {
+  let line = 1;
+  const end = Math.min(offset, text.length);
+  for (let i = 0; i < end; i += 1) {
+    if (text[i] === "\n") line += 1;
+  }
+  return line;
+}
+
+function leanResolutionDetail(lean: ThreadComment): string {
+  const parts: string[] = [];
+  const leanMatch = lean.body.match(LEAN_HEADING_RE);
+  if (leanMatch !== null) {
+    parts.push(
+      `Lean: token matched at line ${String(lineNumberAt(lean.body, leanMatch.index ?? 0))}`,
+    );
+  }
+  if (hasOperativeTargetDigestLine(lean.body)) {
+    parts.push("operative Target-digest: matched");
+  }
+  return parts.length > 0 ? parts.join("; ") : "successor-lean predicate matched";
+}
+
+type PlainEnglishPresence =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly detail: string };
+
+function plainEnglishPresenceOnBody(body: string, artifactLabel: string, id: number): PlainEnglishPresence {
+  const heading = findOperativePlainEnglishHeading(body);
+  if (heading === null) {
+    return {
+      ok: false,
+      detail:
+        `${artifactLabel} ${String(id)} lacks an operative ## In plain English heading`,
+    };
+  }
+  const slice = slicePlainEnglishBody(body, heading.sectionStart).trim();
+  if (slice.length === 0) {
+    return {
+      ok: false,
+      detail:
+        `${artifactLabel} ${String(id)} has ## In plain English with an empty body slice`,
+    };
+  }
+  return { ok: true };
+}
+
+/**
+ * After lean/table/pain clearance, require operative non-empty ## In plain English
+ * on both citedLeanId and synthesisCommentId (#5415). Does not mask earlier reasons.
+ */
+function applyPlainEnglishPresence(
+  verdict: CompletedArcVerdict,
+  comments: readonly ThreadComment[],
+): CompletedArcVerdict {
+  if (verdict.status !== "complete") return verdict;
+  const failures: string[] = [];
+  const lean = comments.find((comment) => comment.id === verdict.citedLeanId);
+  if (lean === undefined) {
+    failures.push(`cited lean ${String(verdict.citedLeanId)} is missing from this thread`);
+  } else {
+    const leanPresence = plainEnglishPresenceOnBody(lean.body, "cited lean", lean.id);
+    if (!leanPresence.ok) {
+      failures.push(`${leanPresence.detail} (${leanResolutionDetail(lean)})`);
+    }
+  }
+  const synthesis = comments.find((comment) => comment.id === verdict.synthesisCommentId);
+  if (synthesis === undefined) {
+    failures.push(
+      `synthesis ${String(verdict.synthesisCommentId)} is missing from this thread`,
+    );
+  } else {
+    const synthPresence = plainEnglishPresenceOnBody(
+      synthesis.body,
+      "synthesis",
+      synthesis.id,
+    );
+    if (!synthPresence.ok) failures.push(synthPresence.detail);
+  }
+  if (failures.length === 0) return verdict;
+  return {
+    status: "blocked",
+    reason: "missing-plain-english",
+    detail:
+      failures.join("; ") +
+      "; recovery: patch named comment id(s), then re-evaluate / re-chip",
+  };
+}
+
 function finalizeComplete(
   comments: readonly ThreadComment[],
   verdict: CompletedArcVerdict,
   issueNumber: number | undefined,
 ): CompletedArcVerdict {
-  return applyPainCoverage(refuseSetLevelBody(comments, verdict), comments, issueNumber);
+  return applyPlainEnglishPresence(
+    applyPainCoverage(refuseSetLevelBody(comments, verdict), comments, issueNumber),
+    comments,
+  );
 }
 
 function refuseSetLevelBody(

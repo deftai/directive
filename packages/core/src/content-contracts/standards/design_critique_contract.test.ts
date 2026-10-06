@@ -1722,10 +1722,17 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       "## Plain-language summary",
     );
     expect(summary).toContain("one fixed heading token: `## In plain English`.");
-    expect(summary).toContain("Read the token as placement only.");
-    expect(summary).toContain("⊗ Justify the token as presence checkable later.");
+    expect(summary).toContain(
+      "Read the token as the presence-check heading on the cited lean and synthesis.",
+    );
+    expect(summary).toContain("citedLeanId");
+    expect(summary).toContain("synthesisCommentId");
+    expect(summary).toContain(
+      "⊗ Justify an undiscriminated token on the whole thread as presence-checkable.",
+    );
     expect(summary).toContain("author-blindness is a locked test");
-    expect(summary).toContain("no selector could pick a canonical one");
+    expect(summary).toContain("Path B does not add that authorship gate");
+    expect(summary).toContain("thread-wide anonymous heading count lint");
     expect(summary).toContain("### Why MUST and not SHOULD");
     expect(summary).toContain("does not rest on exemplar count");
     expect(summary).toContain("identical on every arc by construction");
@@ -1753,8 +1760,12 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(summary).toContain("A fence does not help.");
     expect(summary).toContain("no one quoting convention is safe for both parsers");
     expect(summary).toContain("⊗ Read the inert cell as licence.");
-    expect(summary).toContain("Nothing observes this section.");
-    expect(summary).toContain("do not add a prose-quality parser");
+    expect(summary).toContain(
+      "observes presence only on the completed-arc cited artifacts (`citedLeanId` and `synthesisCommentId`)",
+    );
+    expect(summary).toContain("What this observer does and does not see");
+    expect(summary).toContain("do not add a prose-quality or NLP parser");
+    expect(summary).not.toContain("Nothing observes this section.");
 
     // Both artifact-local MUSTs name the token, not the section heading.
     const lean = markdownSection(text, "## Successor lean");
@@ -1775,7 +1786,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     );
     const testSurface = markdownSection(text, "## Test surface");
     expect(testSurface).toContain("reserved-line-starts.test.ts");
-    expect(testSurface).toContain("No predicate observes a summary on a live arc (#3929).");
+    expect(testSurface).toContain(
+      "`evaluateCompletedArcRecord` observes presence-only `## In plain English` on `citedLeanId` + `synthesisCommentId` (#5415)",
+    );
+    expect(testSurface).toContain("missing-plain-english");
+    expect(testSurface).not.toContain("No predicate observes a summary on a live arc (#3929).");
 
     const skill = readText(SKILL_REL);
     expect(skill).not.toContain("## In plain English");
@@ -1804,8 +1819,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       'Put ingest-open protocol or the sentence "Ingest may proceed" under this heading.',
     );
     expect(summary).toContain("Ingest still reads the bound lean and the verified-claims table.");
-    expect(summary).toContain("Nothing observes this section.");
-    expect(summary).toContain("do not add a prose-quality parser");
+    expect(summary).toContain("What this observer does and does not see");
+    expect(summary).toContain("Pointer-only summaries (#4309)");
+    expect(summary).toContain("do not add a prose-quality or NLP parser");
     expect(summary).toContain("⊗ Address an implementer in the summary.");
     expect(summary).toContain(
       "⊗ Mandate a next-step or recommended-action field on either artifact.",
@@ -1813,9 +1829,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const stop5 = markdownSection(text, "## Stop 5 — Verified synthesis");
     expect(stop5).toContain("A Bound-remedy or comment-id pointer is not that summary.");
     const testSurface = markdownSection(text, "## Test surface");
-    expect(testSurface).toContain(
-      "Live parent turns stay unenforced. No prose-quality parser (#4309)",
-    );
+    expect(testSurface).toContain("No prose-quality parser (#4309)");
     expect(testSurface).toContain("the thin skill names `## Plain-language summary`");
     const skill = readText(SKILL_REL);
     expect(skill).toContain("## Plain-language summary");

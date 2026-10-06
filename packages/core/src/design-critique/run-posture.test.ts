@@ -269,9 +269,13 @@ describe("evaluateDirectDispatch (#4072 / #4296)", () => {
 
 describe("completed-arc record ignores arc-mode (#4072)", () => {
   it("still completes when the synthesis carries arc-mode: no-ingest", () => {
+    const pe =
+      "## In plain English\n\n" +
+      "The problem was arc-mode leaking into clearance.\n\n" +
+      "The accepted design ignores arc-mode on the completed-arc record.\n\n";
     const lean: ThreadComment = {
       id: LEAN_ID,
-      body: "**Lean:** operator amend of 5442883752. Chips stay convenience.\n",
+      body: `${pe}**Lean:** operator amend of 5442883752. Chips stay convenience.\n`,
     };
     const table: ThreadComment = {
       id: TABLE_ID,
@@ -281,6 +285,7 @@ describe("completed-arc record ignores arc-mode (#4072)", () => {
       id: SYNTHESIS_ID,
       body:
         "model: grok-4.6\nrole: parent\n\n" +
+        pe +
         "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
         `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n` +
         "arc-mode: no-ingest\n",

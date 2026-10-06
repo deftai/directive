@@ -21,13 +21,19 @@ const SYNTHESIS_ID = 5443114746;
 /** Unpinned complete-thread fixture body (no Target-digest on lean). */
 const UNPINNED_LIVE_BODY = "## Summary\n\nunpinned live body";
 
+const PE =
+  "## In plain English\n\n" +
+  "The problem was chip exclusivity without completed-arc clearance.\n\n" +
+  "The accepted design keeps remaining-set behind the live-thread proof.\n\n";
+
 const completeComments: ThreadComment[] = [
-  { id: LEAN_ID, body: "**Lean:** operator amend of 5442883752. Chips stay convenience.\n" },
+  { id: LEAN_ID, body: `${PE}**Lean:** operator amend of 5442883752. Chips stay convenience.\n` },
   { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
   {
     id: SYNTHESIS_ID,
     body:
       "model: grok-4.6\nrole: parent\n\n" +
+      PE +
       "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
       `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
   },
@@ -46,12 +52,13 @@ const unresolvedPainComments: ThreadComment[] = [
     id: 10,
     body: "role: parent\n\ndesign-critique: warranted, because coverage gap.\n\npain: P1\npain: P2\n",
   },
-  { id: LEAN_ID, body: "**Lean:** bind relief.\n\nrelieves: P1\nrelieves: P2\n" },
+  { id: LEAN_ID, body: `${PE}**Lean:** bind relief.\n\nrelieves: P1\nrelieves: P2\n` },
   { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
   {
     id: SYNTHESIS_ID,
     body:
       "model: grok-4.6\nrole: parent\n\n" +
+      PE +
       "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
       `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
   },
@@ -291,13 +298,14 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
     const comments: ThreadComment[] = [
       {
         id: LEAN_ID,
-        body: `**Lean:** pin.\n\nTarget-digest: sha256:${pinned}\n`,
+        body: `${PE}**Lean:** pin.\n\nTarget-digest: sha256:${pinned}\n`,
       },
       { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
       {
         id: SYNTHESIS_ID,
         body:
           "model: grok-4.6\nrole: parent\n\n" +
+          PE +
           "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
           `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
       },
@@ -325,13 +333,14 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
     const comments: ThreadComment[] = [
       {
         id: LEAN_ID,
-        body: `**Lean:** pin.\n\nTarget-digest: sha256:${digest}\n`,
+        body: `${PE}**Lean:** pin.\n\nTarget-digest: sha256:${digest}\n`,
       },
       { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
       {
         id: SYNTHESIS_ID,
         body:
           "model: grok-4.6\nrole: parent\n\n" +
+          PE +
           "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
           `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
       },
@@ -358,13 +367,14 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
     const comments: ThreadComment[] = [
       {
         id: LEAN_ID,
-        body: `**Lean:** pin.\n\nTarget-digest: sha256:${newlineDigest}\n`,
+        body: `${PE}**Lean:** pin.\n\nTarget-digest: sha256:${newlineDigest}\n`,
       },
       { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
       {
         id: SYNTHESIS_ID,
         body:
           "model: grok-4.6\nrole: parent\n\n" +
+          PE +
           "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
           `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
       },

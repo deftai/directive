@@ -45,15 +45,21 @@ const table: ThreadComment = {
   body: "## Verified-claims table\n\n| Verified claim | Result |\n",
 };
 
+const PE =
+  "## In plain English\n\n" +
+  "The problem was standing ingest-ready without live clearance.\n\n" +
+  "The accepted design maps blocked reasons to recovery diagnostics.\n\n";
+
 const completeLean: ThreadComment = {
   id: LEAN_ID,
-  body: "**Lean:** operator amend of 5442883752. Chips stay convenience.\n",
+  body: `${PE}**Lean:** operator amend of 5442883752. Chips stay convenience.\n`,
 };
 
 const completeSynthesis: ThreadComment = {
   id: SYNTHESIS_ID,
   body:
     "model: grok-4.6\nrole: parent\n\n" +
+    PE +
     "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
     `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
 };
@@ -274,7 +280,7 @@ describe("missing-pain later-arc recovery through to complete", () => {
     };
     const newLean: ThreadComment = {
       id: 9000000002,
-      body: "**Lean:** later-arc relief.\n\nrelieves: P1\n",
+      body: `${PE}**Lean:** later-arc relief.\n\nrelieves: P1\n`,
     };
     const critic: ThreadComment = {
       id: 9000000003,
@@ -286,6 +292,7 @@ describe("missing-pain later-arc recovery through to complete", () => {
       id: 9000000004,
       body:
         "model: grok-4.6\nrole: parent\n\n" +
+        PE +
         "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
         "Bound contract: successor lean 9000000002.\n",
     };

@@ -818,6 +818,9 @@ describe("pain-audit follow-through gate Prefer-A Bound (#5233)", () => {
     return {
       id,
       body:
+        "## In plain English\n\n" +
+        "The problem was adverse follow-through on the cited harvest.\n\n" +
+        "The accepted design keeps path-1 and ingest-ready behind disposed audits.\n\n" +
         "**Lean:** Prefer-A Bound.\n\nSpec-path: Bound-remedy\n\n## Bound remedy\n\n" +
         remedy +
         "\n\nrelieves: P1\n",
@@ -829,6 +832,9 @@ describe("pain-audit follow-through gate Prefer-A Bound (#5233)", () => {
       id: SYNTHESIS_ID,
       body:
         "model: grok-4.6\nrole: parent\n\n" +
+        "## In plain English\n\n" +
+        "The problem was adverse follow-through on the cited harvest.\n\n" +
+        "The accepted design keeps clearance behind disposed audits.\n\n" +
         "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
         `Citing successor lean ${leanId} and verified-claims table ${TABLE_ID}.\n`,
     };
@@ -1033,6 +1039,9 @@ describe("pain-audit follow-through gate Prefer-A Bound (#5233)", () => {
         id: SYNTHESIS_ID + 20,
         body:
           "model: grok-4.6\nrole: parent\n\n" +
+          "## In plain English\n\n" +
+          "The problem was a harvest-changing audit without a changed Bound-remedy.\n\n" +
+          "The accepted design requires a new lean plus a later clear audit.\n\n" +
           "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
           `Citing successor lean ${lean2.id} and verified-claims table ${TABLE_ID}.\n`,
       },
@@ -1045,6 +1054,8 @@ describe("pain-audit follow-through gate Prefer-A Bound (#5233)", () => {
       evaluateAutoStampPath1Write({
         comments: [stop1, lean1, adverse, lean2, later],
         issueNumber: 5233,
+        plainEnglishSummary:
+          "The problem was a harvest-changing audit. The accepted design requires a changed lean.",
       }).writePath1,
     ).toBe(true);
   });

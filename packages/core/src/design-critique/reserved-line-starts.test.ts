@@ -73,7 +73,12 @@ const completeArc = [lean, table, synthesis];
 function summaryWithLine(base: ThreadComment, line: string, id?: number): ThreadComment {
   return {
     id: id ?? base.id,
-    body: base.body.replace("## In plain English\n\n", () => `## In plain English\n\n${line}\n\n`),
+    // Keep non-empty plain-English prose before a reserved line-start so the
+    // #5415 presence slice is not trim-empty when the token lands mid-summary.
+    body: base.body.replace(
+      "## In plain English\n\n",
+      () => `## In plain English\n\nSummary prose before reserved token.\n\n${line}\n\n`,
+    ),
   };
 }
 

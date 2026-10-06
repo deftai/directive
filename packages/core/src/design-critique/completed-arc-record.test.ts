@@ -19,9 +19,44 @@ const TABLE_ID = 5443106967;
 const SYNTHESIS_ID = 5443114746;
 const CRITIC_ID = 5442800000;
 
+const PLAIN_ENGLISH_SUMMARY =
+  "## In plain English\n\n" +
+  "The problem was missing machine clearance for ordinary-language summaries.\n\n" +
+  "The accepted design adds a presence-only gate on the cited lean and synthesis.\n\n";
+
+function withPlainEnglish(body: string, summary = PLAIN_ENGLISH_SUMMARY): string {
+  if (/(?:^|\n)##\s+In plain English\b/i.test(body)) return body;
+  return `${summary}${body}`;
+}
+
+/** Fixture adapter: ensure lean/synthesis-shaped bodies carry ## In plain English (#5415). */
+function evalArc(
+  input: Parameters<typeof evaluateCompletedArcRecord>[0],
+): ReturnType<typeof evaluateCompletedArcRecord> {
+  return evaluateCompletedArcRecord({
+    ...input,
+    comments: input.comments.map((comment) => ({
+      ...comment,
+      body: withPlainEnglish(comment.body),
+    })),
+  });
+}
+
+function assertArc(
+  input: Parameters<typeof assertCompletedArcAllowsIngest>[0],
+): ReturnType<typeof assertCompletedArcAllowsIngest> {
+  return assertCompletedArcAllowsIngest({
+    ...input,
+    comments: input.comments.map((comment) => ({
+      ...comment,
+      body: withPlainEnglish(comment.body),
+    })),
+  });
+}
+
 const lean: ThreadComment = {
   id: LEAN_ID,
-  body: "**Lean:** operator amend of 5442883752. Chips stay convenience.\n",
+  body: withPlainEnglish("**Lean:** operator amend of 5442883752. Chips stay convenience.\n"),
 };
 
 const table: ThreadComment = {
@@ -31,10 +66,11 @@ const table: ThreadComment = {
 
 const synthesis: ThreadComment = {
   id: SYNTHESIS_ID,
-  body:
+  body: withPlainEnglish(
     "model: grok-4.6\nrole: parent\n\n" +
-    "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-    `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+  ),
 };
 
 describe("extractCitedCommentIds", () => {
@@ -50,13 +86,13 @@ describe("extractCitedCommentIds", () => {
 
 describe("evaluateCompletedArcRecord (#3806)", () => {
   it("lets ordinary issues through with no chip and no synthesis shape", () => {
-    expect(evaluateCompletedArcRecord({ labels: ["bug"], comments: [] })).toEqual({
+    expect(evalArc({ labels: ["bug"], comments: [] })).toEqual({
       status: "not-in-arc",
     });
   });
 
   it("completes when synthesis cites the accepted lean and table", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       labels: ["design-critique:mechanism-shaped", "bug"],
       comments: [lean, table, synthesis],
     });
@@ -69,7 +105,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
   });
 
   it("does not treat leftover mechanism-shaped or ingest-ready as clearance", () => {
-    const missing = evaluateCompletedArcRecord({
+    const missing = evalArc({
       labels: ["design-critique:ingest-ready"],
       comments: [{ id: 1, body: "role: critic\n\n## Finding 1\n" }],
     });
@@ -87,7 +123,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       "design-critique:triage-ready",
       "design-critique:recut-needed",
     ]) {
-      const verdict = evaluateCompletedArcRecord({
+      const verdict = evalArc({
         labels: [chip],
         comments: [],
       });
@@ -100,7 +136,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       id: SYNTHESIS_ID,
       body: "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n",
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       labels: ["design-critique:triage-ready"],
       comments: [lean, lone],
     });
@@ -116,7 +152,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       id: SYNTHESIS_ID,
       body: `design-critique: synthesis accepted, because yes\n\ncomment ${CRITIC_ID}\n`,
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [critic, shaped],
     });
     expect(verdict).toMatchObject({
@@ -126,7 +162,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
   });
 
   it("ignores author_association and GitHub login", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       labels: ["design-critique:mechanism-shaped"],
       comments: [lean, table, synthesis],
     });
@@ -134,7 +170,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
   });
 
   it("does not require the triage-ready chip once the record is present", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       labels: ["bug", "design-critique:mechanism-shaped"],
       comments: [lean, table, synthesis],
     });
@@ -146,7 +182,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       id: SYNTHESIS_ID - 1,
       body: "design-critique: synthesis accepted, because stale\n",
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [synthesis, older, lean, table],
     });
     expect(verdict.status).toBe("complete");
@@ -160,7 +196,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       id: SYNTHESIS_ID,
       body: `design-critique: synthesis accepted, because yes\n\nsuccessor lean ${LEAN_ID}\n`,
     };
-    const verdict = evaluateCompletedArcRecord({ comments: [lean, shaped] });
+    const verdict = evalArc({ comments: [lean, shaped] });
     expect(verdict).toEqual({
       status: "complete",
       synthesisCommentId: SYNTHESIS_ID,
@@ -174,7 +210,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       id: SYNTHESIS_ID,
       body: `design-critique: synthesis accepted, because yes\n\nsuccessor lean ${LEAN_ID}\n`,
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [lean, table, shaped],
     });
     expect(verdict).toEqual({
@@ -190,7 +226,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       id: CRITIC_ID,
       body: "model: grok-4.6\nrole: critic\n\n## Finding 1\nchips are load-bearing\n",
     };
-    const verdict = evaluateCompletedArcRecord({ comments: [critic] });
+    const verdict = evalArc({ comments: [critic] });
     expect(verdict).toMatchObject({
       status: "blocked",
       reason: "missing-record",
@@ -202,7 +238,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       id: SYNTHESIS_ID + 1,
       body: "design-critique: synthesis accepted, because noise\n",
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [lean, table, synthesis, lone],
     });
     expect(verdict.status).toBe("complete");
@@ -216,7 +252,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       id: CRITIC_ID - 1,
       body: "model: grok-4.6\nrole: parent\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5390001612\nfamilies: grok, claude, codex\n",
     };
-    const verdict = evaluateCompletedArcRecord({ comments: [deposit] });
+    const verdict = evalArc({ comments: [deposit] });
     expect(verdict).toMatchObject({
       status: "blocked",
       reason: "missing-record",
@@ -228,7 +264,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       id: CRITIC_ID - 1,
       body: "model: grok-4.6\nrole: parent\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5390001612\n",
     };
-    const verdict = evaluateCompletedArcRecord({ comments: [deposit] });
+    const verdict = evalArc({ comments: [deposit] });
     expect(verdict).toMatchObject({
       status: "blocked",
       reason: "missing-record",
@@ -244,7 +280,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       id: SYNTHESIS_ID + 20,
       body: "design-critique: synthesis accepted, because recut still open\n",
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [lean, table, synthesis, recutLean, incomplete],
     });
     expect(verdict).toMatchObject({ status: "blocked", reason: "lone-shape" });
@@ -255,7 +291,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       id: SYNTHESIS_ID + 10,
       body: "**Lean:** recut of 5442939496. New takes.\n",
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [lean, table, synthesis, recutLean],
     });
     expect(verdict).toMatchObject({
@@ -275,7 +311,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
         "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
         `successor lean ${recutLean.id}\n`,
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [lean, table, synthesis, recutLean, recutSynthesis],
     });
     expect(verdict).toEqual({
@@ -297,7 +333,7 @@ describe("completed-arc citation grammar (#3831)", () => {
   };
 
   it("completes a synthesis whose ids sit in code spans", () => {
-    expect(evaluateCompletedArcRecord({ comments: [lean, table, houseStyle] })).toEqual({
+    expect(evalArc({ comments: [lean, table, houseStyle] })).toEqual({
       status: "complete",
       synthesisCommentId: SYNTHESIS_ID,
       citedLeanId: LEAN_ID,
@@ -312,7 +348,7 @@ describe("completed-arc citation grammar (#3831)", () => {
         "design-critique: synthesis accepted, because agents agreed\n\n" +
         `**successor lean:** ${LEAN_ID}. **verified-claims table:** ${TABLE_ID}.\n`,
     };
-    expect(evaluateCompletedArcRecord({ comments: [lean, table, bolded] })).toEqual({
+    expect(evalArc({ comments: [lean, table, bolded] })).toEqual({
       status: "complete",
       synthesisCommentId: SYNTHESIS_ID,
       citedLeanId: LEAN_ID,
@@ -328,7 +364,7 @@ describe("completed-arc citation grammar (#3831)", () => {
         `Bound contract: [successor lean](https://github.com/deftai/directive/issues/3831#issuecomment-${LEAN_ID}), ` +
         `[verified-claims table](https://github.com/deftai/directive/issues/3831#issuecomment-${TABLE_ID}).\n`,
     };
-    expect(evaluateCompletedArcRecord({ comments: [lean, table, permalink] })).toEqual({
+    expect(evalArc({ comments: [lean, table, permalink] })).toEqual({
       status: "complete",
       synthesisCommentId: SYNTHESIS_ID,
       citedLeanId: LEAN_ID,
@@ -343,7 +379,7 @@ describe("completed-arc citation grammar (#3831)", () => {
         "design-critique: synthesis accepted, because agents agreed\n\n" +
         `successor lean ${LEAN_ID}, verified-claims table \`5439999999\`.\n`,
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [lean, table, ghostTable],
     });
     expect(verdict).toMatchObject({
@@ -375,7 +411,7 @@ describe("completed-arc citation grammar (#3831)", () => {
         id: SYNTHESIS_ID,
         body: `design-critique: synthesis accepted, because agents agreed\n\n${cite}\n`,
       };
-      expect(evaluateCompletedArcRecord({ comments: [lean, table, shaped] }), label).toEqual({
+      expect(evalArc({ comments: [lean, table, shaped] }), label).toEqual({
         status: "complete",
         synthesisCommentId: SYNTHESIS_ID,
         citedLeanId: LEAN_ID,
@@ -403,7 +439,7 @@ describe("completed-arc citation grammar (#3831)", () => {
     };
     for (const record of [supersededFirst, boundFirst]) {
       expect(
-        evaluateCompletedArcRecord({
+        evalArc({
           comments: [lean, table, recutLean, record],
         }),
         record.body,
@@ -421,7 +457,7 @@ describe("completed-arc citation grammar (#3831)", () => {
       id: SYNTHESIS_ID + 10,
       body: "**Lean:** recut of 5442939496. New takes.\n",
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [lean, table, synthesis, recutLean],
     });
     expect(verdict).toMatchObject({
@@ -448,7 +484,7 @@ describe("completed-arc citation grammar (#3831)", () => {
         id: SYNTHESIS_ID,
         body: `design-critique: synthesis accepted, because I say so\n\n${cite}\n`,
       };
-      const verdict = evaluateCompletedArcRecord({
+      const verdict = evalArc({
         comments: [lean, table, shaped],
       });
       expect(verdict, label).toMatchObject({
@@ -468,7 +504,7 @@ describe("completed-arc citation grammar (#3831)", () => {
         "design-critique: synthesis accepted, because agents agreed\n\n" +
         `successor lean **${LEAN_ID}**, verified-claims table **${TABLE_ID}**.\n`,
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [lean, table, decorated],
     });
     expect(verdict).toMatchObject({ status: "blocked", reason: "lone-shape" });
@@ -486,7 +522,7 @@ describe("completed-arc citation grammar (#3831)", () => {
       id: SYNTHESIS_ID,
       body: "design-critique: synthesis accepted, because agents agreed\n",
     };
-    const verdict = evaluateCompletedArcRecord({ comments: [lean, bare] });
+    const verdict = evalArc({ comments: [lean, bare] });
     expect(verdict).toMatchObject({ status: "blocked", reason: "lone-shape" });
     if (verdict.status === "blocked") {
       expect(verdict.detail).toContain("no 8-or-more digit id appears in the body");
@@ -501,7 +537,7 @@ describe("completed-arc citation grammar (#3831)", () => {
         "design-critique: synthesis accepted, because agents agreed\n\n" +
         `ids: ${many.join(" ")}\n`,
     };
-    const verdict = evaluateCompletedArcRecord({ comments: [lean, noisy] });
+    const verdict = evalArc({ comments: [lean, noisy] });
     expect(verdict).toMatchObject({ status: "blocked", reason: "lone-shape" });
     if (verdict.status === "blocked") {
       expect(verdict.detail).toContain("and 2 more");
@@ -517,7 +553,7 @@ describe("completed-arc citation grammar (#3831)", () => {
       id: SYNTHESIS_ID,
       body: `design-critique: synthesis accepted, because yes\n\ncomment ${CRITIC_ID}\n`,
     };
-    const verdict = evaluateCompletedArcRecord({ comments: [critic, shaped] });
+    const verdict = evalArc({ comments: [critic, shaped] });
     expect(verdict).toMatchObject({
       status: "blocked",
       reason: "cite-not-lean",
@@ -540,7 +576,7 @@ describe("completed-arc citation grammar (#3831)", () => {
       [lean, first, second],
       [lean, second, first],
     ]) {
-      const verdict = evaluateCompletedArcRecord({ comments: order });
+      const verdict = evalArc({ comments: order });
       expect(verdict).toMatchObject({ status: "complete", synthesisCommentId: second.id });
     }
   });
@@ -558,7 +594,7 @@ describe("completed-arc citation grammar (#3831)", () => {
       id: SYNTHESIS_ID + 30,
       body: `design-critique: synthesis accepted, because recut bound\n\nsuccessor lean ${recutLean.id}\n`,
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [lean, synthesis, recutLean, staleLater, newestLater],
     });
     expect(verdict).toMatchObject({ status: "complete", synthesisCommentId: newestLater.id });
@@ -574,7 +610,7 @@ describe("completed-arc citation grammar (#3831)", () => {
       body: `design-critique: synthesis accepted, because newer\n\ncomment ${CRITIC_ID}\n`,
     };
     const critic: ThreadComment = { id: CRITIC_ID, body: "role: critic\n\n## Finding 1\n" };
-    expect(evaluateCompletedArcRecord({ comments: [critic, older, newer] })).toMatchObject({
+    expect(evalArc({ comments: [critic, older, newer] })).toMatchObject({
       status: "blocked",
       reason: "cite-not-lean",
     });
@@ -586,7 +622,7 @@ describe("completed-arc citation grammar (#3831)", () => {
       id: SYNTHESIS_ID,
       body: `design-critique: synthesis accepted, because yes\n\nsuccessor lean ${newerLean.id}\n`,
     };
-    expect(evaluateCompletedArcRecord({ comments: [newerLean, lean, record] })).toMatchObject({
+    expect(evalArc({ comments: [newerLean, lean, record] })).toMatchObject({
       status: "complete",
       citedLeanId: newerLean.id,
     });
@@ -597,7 +633,7 @@ describe("completed-arc citation grammar (#3831)", () => {
       id: CRITIC_ID,
       body: "model: grok-4.6\nrole: parent\n\nround: 1\nsiblings: 3\ninput-ceiling: 5390001612\n",
     };
-    expect(evaluateCompletedArcRecord({ comments: [deposit] })).toMatchObject({
+    expect(evalArc({ comments: [deposit] })).toMatchObject({
       status: "blocked",
       reason: "missing-record",
     });
@@ -605,11 +641,11 @@ describe("completed-arc citation grammar (#3831)", () => {
 
   it("leaves a thread with neither deposit fields nor a critic post out of the arc", () => {
     const chatter: ThreadComment = { id: CRITIC_ID, body: "role: parent\n\nsiblings: 3\n" };
-    expect(evaluateCompletedArcRecord({ comments: [chatter] })).toEqual({ status: "not-in-arc" });
+    expect(evalArc({ comments: [chatter] })).toEqual({ status: "not-in-arc" });
   });
 
   it("names the accepted forms when the record is missing entirely", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       labels: ["design-critique:mechanism-shaped"],
       comments: [lean],
     });
@@ -626,7 +662,7 @@ describe("completed-arc citation grammar (#3831)", () => {
 describe("assertCompletedArcAllowsIngest", () => {
   it("throws a non-halt ingest error on lone shape", () => {
     expect(() =>
-      assertCompletedArcAllowsIngest({
+      assertArc({
         issueNumber: 3806,
         comments: [
           {
@@ -639,7 +675,7 @@ describe("assertCompletedArcAllowsIngest", () => {
   });
 
   it("returns complete for the bound #3806 record", () => {
-    const verdict = assertCompletedArcAllowsIngest({
+    const verdict = assertArc({
       issueNumber: 3806,
       labels: ["design-critique:triage-ready"],
       comments: [lean, table, synthesis],
@@ -672,7 +708,7 @@ describe("verified-claims table resolution precedence (#3932)", () => {
   });
 
   it("refuses a typed table claim that is not a table, even when another cited body is table-shaped", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [
         lean,
         tableShapedCritic,
@@ -702,7 +738,7 @@ describe("verified-claims table resolution precedence (#3932)", () => {
       ],
     ];
     for (const [label, cite] of orders) {
-      const verdict = evaluateCompletedArcRecord({ comments: [lean, table, record(cite)] });
+      const verdict = evalArc({ comments: [lean, table, record(cite)] });
       expect(verdict, label).toMatchObject({ status: "blocked", reason: "missing-table-cite" });
       expect(verdict, label).not.toHaveProperty("citedTableId");
       if (verdict.status === "blocked") {
@@ -712,7 +748,7 @@ describe("verified-claims table resolution precedence (#3932)", () => {
   });
 
   it("refuses two typed claims that name different tables", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [
         lean,
         table,
@@ -731,7 +767,7 @@ describe("verified-claims table resolution precedence (#3932)", () => {
   });
 
   it("resolves the typed claim, not the generic citation that precedes it", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [
         lean,
         table,
@@ -751,7 +787,7 @@ describe("verified-claims table resolution precedence (#3932)", () => {
   });
 
   it("reads a repeated citation of one table id as a single claim", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [
         lean,
         table,
@@ -776,7 +812,7 @@ describe("verified-claims table resolution precedence (#3932)", () => {
       ["comments permalink", `/issues/comments/${LEAN_ID} and /issues/comments/${TABLE_ID}`],
     ];
     for (const [label, cite] of generic) {
-      expect(evaluateCompletedArcRecord({ comments: [lean, table, record(cite)] }), label).toEqual({
+      expect(evalArc({ comments: [lean, table, record(cite)] }), label).toEqual({
         status: "complete",
         synthesisCommentId: SYNTHESIS_ID,
         citedLeanId: LEAN_ID,
@@ -812,7 +848,7 @@ describe("typed table refusal partition (#3942)", () => {
   });
 
   it("refuses a cited thread comment that carries no heading with its own reason", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [lean, headinglessTable, typedRecord(TABLE_ID)],
     });
     expect(verdict).toMatchObject({ status: "blocked", reason: "unshaped-table-cite" });
@@ -826,7 +862,7 @@ describe("typed table refusal partition (#3942)", () => {
   });
 
   it("keeps the existing reason for a typed id that is not on the thread", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [lean, headinglessTable, typedRecord(GHOST_TABLE_ID)],
     });
     expect(verdict).toMatchObject({ status: "blocked", reason: "missing-table-cite" });
@@ -837,10 +873,10 @@ describe("typed table refusal partition (#3942)", () => {
   });
 
   it("gives the two states different reasons and details that differ by more than the id", () => {
-    const onThread = evaluateCompletedArcRecord({
+    const onThread = evalArc({
       comments: [lean, headinglessTable, typedRecord(TABLE_ID)],
     });
-    const offThread = evaluateCompletedArcRecord({
+    const offThread = evalArc({
       comments: [lean, headinglessTable, typedRecord(GHOST_TABLE_ID)],
     });
     expect(onThread).toMatchObject({ status: "blocked" });
@@ -855,7 +891,7 @@ describe("typed table refusal partition (#3942)", () => {
   });
 
   it("reports both classes when one typed claim is absent and another carries no heading", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       comments: [
         lean,
         headinglessTable,
@@ -888,7 +924,7 @@ describe("typed table refusal partition (#3942)", () => {
         body: `design-critique: synthesis accepted, because agents agreed\n\n${cite}\n`,
       };
       expect(
-        evaluateCompletedArcRecord({ comments: [lean, headinglessTable, record] }),
+        evalArc({ comments: [lean, headinglessTable, record] }),
         label,
       ).toEqual({
         status: "complete",
@@ -902,7 +938,7 @@ describe("typed table refusal partition (#3942)", () => {
   it("carries the new reason through the ingest assertion", () => {
     let thrown: unknown;
     try {
-      assertCompletedArcAllowsIngest({
+      assertArc({
         issueNumber: 3942,
         comments: [lean, headinglessTable, typedRecord(TABLE_ID)],
       });
@@ -922,7 +958,7 @@ describe("typed table refusal partition (#3942)", () => {
           "| --- | --- | --- | --- |\n",
       };
       expect(
-        evaluateCompletedArcRecord({ comments: [lean, live, typedRecord(id)] }),
+        evalArc({ comments: [lean, live, typedRecord(id)] }),
         String(id),
       ).toEqual({
         status: "complete",
@@ -967,14 +1003,14 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
   };
 
   it("lets a parent dominate pointer through as not-in-arc", () => {
-    expect(evaluateCompletedArcRecord({ comments: [dominatePointer] })).toEqual({
+    expect(evalArc({ comments: [dominatePointer] })).toEqual({
       status: "not-in-arc",
     });
   });
 
   it("keeps leftover mechanism-shaped without cancel as missing-record", () => {
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         labels: ["design-critique:mechanism-shaped"],
         comments: [leftoverCritic],
       }),
@@ -982,7 +1018,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
   });
 
   it("treats cancel as terminal refuse even with leftover critic", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       labels: ["design-critique:mechanism-shaped"],
       comments: [leftoverCritic, cancel],
     });
@@ -999,7 +1035,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
         "model: grok-4.5\nrole: critic\n\n" +
         "design-critique: cancelled, because this is an example of the refuse line\n",
     };
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       labels: ["design-critique:triage-ready"],
       comments: [lean, table, synthesis, criticCancel],
     });
@@ -1015,7 +1051,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
         "```\ndesign-critique: cancelled, because example\n```\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         labels: ["design-critique:triage-ready"],
         comments: [lean, table, synthesis, fencedCancel],
       }),
@@ -1032,13 +1068,13 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
       id: 5499000002,
       body: "model: grok-4.6\nrole: parent\n\ndesign-critique: halted, because same-fingerprint\n",
     };
-    expect(evaluateCompletedArcRecord({ comments: [halted] })).toEqual({
+    expect(evalArc({ comments: [halted] })).toEqual({
       status: "not-in-arc",
     });
   });
 
   it("refuses a complete set-level anchor as set-level-body", () => {
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       labels: ["design-critique:triage-ready"],
       comments: [setLevelCharter, lean, table, synthesis],
     });
@@ -1051,7 +1087,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
       body: "**Lean:** next-build is not this body.\n\nSpec-path:\n\n## Bound remedy\n\n1. leftover story\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         labels: ["design-critique:ingest-ready"],
         comments: [setLevelCharter, specPathLean, table, synthesis],
       }),
@@ -1060,7 +1096,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
 
   it("lets a later non-set-level target shape clear set-level-body", () => {
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         labels: ["design-critique:triage-ready"],
         comments: [setLevelCharter, lean, table, synthesis, recutShape],
       }),
@@ -1074,7 +1110,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
 
   it("still completes a single-issue bound record", () => {
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         labels: ["design-critique:triage-ready"],
         comments: [lean, table, synthesis],
       }),
@@ -1088,7 +1124,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
 
   it("lets a later recut lean after cancel start a new arc", () => {
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         comments: [leftoverCritic, cancel, recutLean],
       }),
     ).toMatchObject({ status: "blocked", reason: "missing-record" });
@@ -1096,7 +1132,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
 
   it("completes a recut single-issue arc after cancel", () => {
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         comments: [leftoverCritic, cancel, recutShape, recutLean, recutSynthesis],
       }),
     ).toEqual({
@@ -1113,7 +1149,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
       body: "model: grok-4.6\nrole: parent\n\n```\ntarget shape: single issue premise\n```\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         labels: ["design-critique:triage-ready"],
         comments: [setLevelCharter, lean, table, synthesis, fenced],
       }),
@@ -1126,7 +1162,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
       body: "model: grok-4.5\nrole: critic\n\ntarget shape: single issue premise\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         labels: ["design-critique:triage-ready"],
         comments: [setLevelCharter, lean, table, synthesis, criticQuote],
       }),
@@ -1141,7 +1177,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
         `successor lean ${LEAN_ID}\n`,
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         comments: [lean, table, synthesis, leftoverCritic, cancel, recutLean, staleSynthesis],
       }),
     ).toMatchObject({ status: "blocked" });
@@ -1149,13 +1185,13 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
 
   it("throws cancelled through the ingest assertion", () => {
     expect(() =>
-      assertCompletedArcAllowsIngest({
+      assertArc({
         issueNumber: 3918,
         comments: [cancel],
       }),
     ).toThrow(DesignCritiqueIngestBlockedError);
     try {
-      assertCompletedArcAllowsIngest({ issueNumber: 3918, comments: [cancel] });
+      assertArc({ issueNumber: 3918, comments: [cancel] });
     } catch (error) {
       expect(error).toBeInstanceOf(DesignCritiqueIngestBlockedError);
       expect((error as DesignCritiqueIngestBlockedError).reason).toBe("cancelled");
@@ -1240,7 +1276,7 @@ describe("applyIngestReadyRemainingSet Target-digest admission (#4995)", () => {
   }
 
   const completeThread = (leanBody: string): ThreadComment[] => [
-    { id: LEAN_ID, body: leanBody },
+    { id: LEAN_ID, body: withPlainEnglish(leanBody) },
     table,
     synthesis,
   ];
@@ -1291,6 +1327,29 @@ describe("applyIngestReadyRemainingSet Target-digest admission (#4995)", () => {
     expect(result.ok).toBe(true);
     expect(client.applyCalls).toHaveLength(1);
   });
+
+  it("refuses ingest-ready remaining-set when cited lean lacks plain English (#5415)", () => {
+    const client = new FakeLabelClient(["bug"]);
+    const leanBare: ThreadComment = {
+      id: LEAN_ID,
+      body: "**Lean:** no summary on this lean.\n",
+    };
+    const result = applyIngestReadyRemainingSet(
+      client,
+      "deftai/directive",
+      5415,
+      [leanBare, table, synthesis],
+      "## any body",
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.verdict).toMatchObject({
+        status: "blocked",
+        reason: "missing-plain-english",
+      });
+    }
+    expect(client.applyCalls).toHaveLength(0);
+  });
 });
 
 describe("pain coverage (#4496)", () => {
@@ -1326,7 +1385,7 @@ describe("pain coverage (#4496)", () => {
   }
 
   it("still completes a record with no Stop 1 write-back", () => {
-    expect(evaluateCompletedArcRecord({ comments: [lean, table, synthesis] })).toMatchObject({
+    expect(evalArc({ comments: [lean, table, synthesis] })).toMatchObject({
       status: "complete",
     });
   });
@@ -1336,13 +1395,13 @@ describe("pain coverage (#4496)", () => {
       "model: grok-4.6\nrole: parent\n\n" +
         "design-critique: warranted, because USER.md onboarding is still a chat loop.\n",
     );
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       issueNumber: 4378,
       comments: [warrant, leftoverLean, table4378, synthesis4378],
     });
     expect(verdict).toMatchObject({ status: "blocked", reason: "missing-pain" });
     expect(() =>
-      assertCompletedArcAllowsIngest({
+      assertArc({
         issueNumber: 4378,
         comments: [warrant, leftoverLean, table4378, synthesis4378],
       }),
@@ -1355,7 +1414,7 @@ describe("pain coverage (#4496)", () => {
         "design-critique: warranted, because USER.md onboarding is still a chat loop.\n\n" +
         "pain: P1\npain: P2\npain: P3\npain: P4\n",
     );
-    const verdict = evaluateCompletedArcRecord({
+    const verdict = evalArc({
       issueNumber: 4378,
       labels: ["design-critique:ingest-ready"],
       comments: [warrant, leftoverLean, table4378, synthesis4378],
@@ -1368,7 +1427,7 @@ describe("pain coverage (#4496)", () => {
   });
 
   it("does not restore recut-needed as a block reason", () => {
-    expect(evaluateCompletedArcRecord({ comments: [lean, table, synthesis] }).status).toBe(
+    expect(evalArc({ comments: [lean, table, synthesis] }).status).toBe(
       "complete",
     );
     expect(COMPLETED_ARC_BLOCK_REASONS).not.toContain("recut-needed");
@@ -1384,7 +1443,7 @@ describe("pain coverage (#4496)", () => {
       body: "**Lean:** bind relief.\n\nrelieves: P1\nrelieves: P2\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         issueNumber: 4496,
         comments: [warrant, covered, table, synthesis],
       }),
@@ -1396,7 +1455,7 @@ describe("pain coverage (#4496)", () => {
         "finding-classes: none\nharvest-changed: false\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         issueNumber: 4496,
         comments: [warrant, covered, table, critic, synthesis],
       }),
@@ -1415,7 +1474,7 @@ describe("pain coverage (#4496)", () => {
       body: "**Lean:** forbids only.\n\ndoes-not-relieve: P1\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         issueNumber: 4496,
         comments: [warrant, leanResidual, table, synthesis],
       }),
@@ -1431,7 +1490,7 @@ describe("pain coverage (#4496)", () => {
       body: "**Lean:** defer on this number.\n\noperator-deferred: P1 #4496\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         issueNumber: 4496,
         comments: [warrant, deferredSame, table, synthesis],
       }),
@@ -1447,7 +1506,7 @@ describe("pain coverage (#4496)", () => {
       body: "**Lean:** later slice.\n\noperator-deferred: P1 #4377\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         issueNumber: 4496,
         comments: [warrant, deferredOther, table, synthesis],
       }),
@@ -1458,7 +1517,7 @@ describe("pain coverage (#4496)", () => {
       body: "role: critic\n\naudit-targets: pain-P1\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         issueNumber: 4496,
         comments: [warrant, deferredOther, table, staleCritic, synthesis],
       }),
@@ -1470,7 +1529,7 @@ describe("pain coverage (#4496)", () => {
         "finding-classes: none\nharvest-changed: false\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         issueNumber: 4496,
         comments: [warrant, deferredOther, table, critic, synthesis],
       }),
@@ -1482,7 +1541,7 @@ describe("pain coverage (#4496)", () => {
       "role: parent\n\ndesign-critique: warranted, because x.\n\npain: P1\npain: P1\n",
     );
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         comments: [dup, leftoverLean, table4378, synthesis4378],
       }),
     ).toMatchObject({ status: "blocked", reason: "malformed-pain" });
@@ -1493,7 +1552,7 @@ describe("pain coverage (#4496)", () => {
       body: "**Lean:** cites a ghost.\n\nrelieves: P9\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         comments: [warrant, unknown, table, synthesis],
       }),
     ).toMatchObject({ status: "blocked", reason: "malformed-pain" });
@@ -1502,7 +1561,7 @@ describe("pain coverage (#4496)", () => {
   it("does not let a quoted Stop 1 pain list create the denominator", () => {
     const warrant = stop1("role: parent\n\ndesign-critique: warranted, because x.\n\n> pain: P1\n");
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         comments: [warrant, leftoverLean, table4378, synthesis4378],
       }),
     ).toMatchObject({ status: "blocked", reason: "missing-pain" });
@@ -1515,7 +1574,7 @@ describe("pain coverage (#4496)", () => {
       body: "**Lean:** example only.\n\n> relieves: P1\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         comments: [warrant, quoted, table, synthesis],
       }),
     ).toMatchObject({ status: "blocked", reason: "unrelieved-pain" });
@@ -1541,7 +1600,7 @@ describe("pain coverage (#4496)", () => {
         "finding-classes: none\nharvest-changed: false\n",
     };
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         comments: [oldWarrant, newWarrant, covered, table, critic, synthesis],
       }),
     ).toMatchObject({ status: "complete" });
@@ -1552,7 +1611,7 @@ describe("pain coverage (#4496)", () => {
       "role: parent\n\ndesign-critique: warranted, because x.\n\npain: prose P1\n",
     );
     expect(
-      evaluateCompletedArcRecord({
+      evalArc({
         comments: [warrant, leftoverLean, table4378, synthesis4378],
       }),
     ).toMatchObject({ status: "blocked", reason: "malformed-pain" });
@@ -1600,7 +1659,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
   it("keeps bound-only complete; whole-thread in-flight is not the close", () => {
     expect(isInFlightCritiqueThread(bound)).toBe(true);
     expect(isInFlightCritiqueThread(suffixAfter(SYNTHESIS_ID, bound))).toBe(false);
-    expect(evaluateCompletedArcRecord({ comments: bound })).toEqual({
+    expect(evalArc({ comments: bound })).toEqual({
       status: "complete",
       synthesisCommentId: SYNTHESIS_ID,
       citedLeanId: LEAN_ID,
@@ -1612,7 +1671,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
     expect(isInFlightCritiqueThread(suffixAfter(LEAN_ID, boundWithPain))).toBe(true);
     expect(isInFlightCritiqueThread(suffixAfter(SYNTHESIS_ID, boundWithPain))).toBe(false);
     expect(
-      evaluateCompletedArcRecord({ comments: boundWithPain, issueNumber: 4590 }),
+      evalArc({ comments: boundWithPain, issueNumber: 4590 }),
     ).toMatchObject({
       status: "complete",
       synthesisCommentId: SYNTHESIS_ID,
@@ -1623,7 +1682,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
   it("refuses later mechanism-shaped: true while the bound lean still stands", () => {
     const comments = [...bound, laterMechanism];
     expect(isInFlightCritiqueThread(suffixAfter(SYNTHESIS_ID, comments))).toBe(true);
-    expect(evaluateCompletedArcRecord({ comments })).toMatchObject({
+    expect(evalArc({ comments })).toMatchObject({
       status: "blocked",
       reason: "later-arc-in-flight",
     });
@@ -1631,7 +1690,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
 
   it("refuses a later panel-deposit", () => {
     const comments = [...bound, laterMechanism, laterDeposit];
-    expect(evaluateCompletedArcRecord({ comments })).toMatchObject({
+    expect(evalArc({ comments })).toMatchObject({
       status: "blocked",
       reason: "later-arc-in-flight",
     });
@@ -1639,7 +1698,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
 
   it("refuses a later role: critic", () => {
     const comments = [...bound, laterMechanism, laterDeposit, laterCritic];
-    const verdict = evaluateCompletedArcRecord({ comments });
+    const verdict = evalArc({ comments });
     expect(verdict).toMatchObject({ status: "blocked", reason: "later-arc-in-flight" });
     if (verdict.status === "blocked") {
       expect(verdict.detail).toContain(String(SYNTHESIS_ID));
@@ -1650,7 +1709,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
 
   it("refuses a later critic with no new Stop 1", () => {
     const comments = [...bound, laterCritic];
-    expect(evaluateCompletedArcRecord({ comments })).toMatchObject({
+    expect(evalArc({ comments })).toMatchObject({
       status: "blocked",
       reason: "later-arc-in-flight",
     });
@@ -1664,7 +1723,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
         "design-critique: warranted, because later-arc P2.\n\npain: P2\n",
     };
     const comments = [...boundWithPain, laterStop1, laterDeposit, laterCritic];
-    expect(evaluateCompletedArcRecord({ comments, issueNumber: 4590 })).toMatchObject({
+    expect(evalArc({ comments, issueNumber: 4590 })).toMatchObject({
       status: "blocked",
       reason: "malformed-pain",
     });
@@ -1678,7 +1737,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
         "design-critique: warranted, because later-arc with no pain list.\n",
     };
     const comments = [...boundWithPain, laterStop1];
-    expect(evaluateCompletedArcRecord({ comments, issueNumber: 4590 })).toMatchObject({
+    expect(evalArc({ comments, issueNumber: 4590 })).toMatchObject({
       status: "blocked",
       reason: "missing-pain",
     });
@@ -1694,7 +1753,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
     const comments = [...bound, laterMechanism, laterDeposit, laterCritic, laterSynthesis];
     expect(isInFlightCritiqueThread(suffixAfter(laterSynthesis.id, comments))).toBe(false);
     expect(isInFlightCritiqueThread(suffixAfter(SYNTHESIS_ID, comments))).toBe(true);
-    const verdict = evaluateCompletedArcRecord({ comments });
+    const verdict = evalArc({ comments });
     expect(verdict).toMatchObject({ status: "blocked", reason: "later-arc-in-flight" });
     if (verdict.status === "blocked") {
       expect(verdict.detail).toContain(String(SYNTHESIS_ID));
@@ -1722,7 +1781,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
       recutSynthesis,
     ];
     expect(isInFlightCritiqueThread(suffixAfter(recutSynthesis.id, comments))).toBe(false);
-    expect(evaluateCompletedArcRecord({ comments })).toEqual({
+    expect(evalArc({ comments })).toEqual({
       status: "complete",
       synthesisCommentId: recutSynthesis.id,
       citedLeanId: recutLean.id,
@@ -1736,7 +1795,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
       body: "**Lean:** later-arc recut of the standing map.\n",
     };
     const comments = [...bound, recutLean];
-    expect(evaluateCompletedArcRecord({ comments })).toMatchObject({
+    expect(evalArc({ comments })).toMatchObject({
       status: "blocked",
       reason: "missing-record",
     });
@@ -1751,7 +1810,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
     };
     const comments = [...boundWithPain, laterWarrant];
     expect(isInFlightCritiqueThread(suffixAfter(SYNTHESIS_ID, comments))).toBe(false);
-    expect(evaluateCompletedArcRecord({ comments, issueNumber: 4590 })).toMatchObject({
+    expect(evalArc({ comments, issueNumber: 4590 })).toMatchObject({
       status: "complete",
       citedLeanId: LEAN_ID,
     });
@@ -1759,11 +1818,11 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
 
   it("throws later-arc-in-flight through the ingest assertion", () => {
     const comments = [...bound, laterCritic];
-    expect(() => assertCompletedArcAllowsIngest({ issueNumber: 4590, comments })).toThrow(
+    expect(() => assertArc({ issueNumber: 4590, comments })).toThrow(
       DesignCritiqueIngestBlockedError,
     );
     try {
-      assertCompletedArcAllowsIngest({ issueNumber: 4590, comments });
+      assertArc({ issueNumber: 4590, comments });
     } catch (error) {
       expect(error).toBeInstanceOf(DesignCritiqueIngestBlockedError);
       expect((error as DesignCritiqueIngestBlockedError).reason).toBe("later-arc-in-flight");
@@ -1774,11 +1833,159 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
     expect(COMPLETED_ARC_BLOCK_REASONS).toContain("later-arc-in-flight");
     expect(COMPLETED_ARC_BLOCK_REASONS).toContain("missing-record");
     const comments = [...bound, laterMechanism];
-    expect(evaluateCompletedArcRecord({ comments })).toMatchObject({
+    expect(evalArc({ comments })).toMatchObject({
       reason: "later-arc-in-flight",
     });
-    expect(evaluateCompletedArcRecord({ comments })).not.toMatchObject({
+    expect(evalArc({ comments })).not.toMatchObject({
       reason: "missing-record",
     });
+  });
+});
+
+describe("plain-English presence on cited lean + synthesis (#5415)", () => {
+  const summary =
+    "## In plain English\n\n" +
+    "The problem was missing ordinary-language summaries at ingest-ready.\n\n" +
+    "The accepted design adds a presence-only gate on the cited artifacts.\n\n";
+
+  const leanOk: ThreadComment = {
+    id: LEAN_ID,
+    body: `${summary}**Lean:** Prefer-A Bound for presence gate.\n`,
+  };
+
+  const synthOk = (id: number, leanId: number, includeSummary = true): ThreadComment => ({
+    id,
+    body:
+      (includeSummary ? summary : "") +
+      "model: grok-4.6\nrole: parent\n\n" +
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      `Bound contract: successor lean ${leanId}.\n`,
+  });
+
+  it("publishes missing-plain-english as a closed reason", () => {
+    expect(COMPLETED_ARC_BLOCK_REASONS).toContain("missing-plain-english");
+  });
+
+  it("completes when both cited lean and synthesis carry operative non-empty summaries", () => {
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [leanOk, synthOk(SYNTHESIS_ID, LEAN_ID)],
+      }),
+    ).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: null,
+    });
+  });
+
+  it("blocks when the cited lean lacks the heading and names lean resolution", () => {
+    const leanBare: ThreadComment = {
+      id: LEAN_ID,
+      body: "**Lean:** Prefer-A Bound without summary.\n",
+    };
+    const verdict = evaluateCompletedArcRecord({
+      comments: [leanBare, synthOk(SYNTHESIS_ID, LEAN_ID)],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-plain-english" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(`cited lean ${String(LEAN_ID)}`);
+      expect(verdict.detail).toContain("Lean: token matched");
+      expect(verdict.detail).not.toContain("synthesis");
+    }
+  });
+
+  it("blocks when the synthesis lacks the heading", () => {
+    const verdict = evaluateCompletedArcRecord({
+      comments: [leanOk, synthOk(SYNTHESIS_ID, LEAN_ID, false)],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-plain-english" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(`synthesis ${String(SYNTHESIS_ID)}`);
+      expect(verdict.detail).not.toContain("cited lean");
+    }
+  });
+
+  it("blocks a trim-empty slice (bare heading then Lean:)", () => {
+    const leanEmpty: ThreadComment = {
+      id: LEAN_ID,
+      body: "## In plain English\n\n**Lean:** Prefer-A Bound.\n",
+    };
+    const verdict = evaluateCompletedArcRecord({
+      comments: [leanEmpty, synthOk(SYNTHESIS_ID, LEAN_ID)],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-plain-english" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain("empty body slice");
+    }
+  });
+
+  it("rejects prefix near-miss and fenced headings as non-operative", () => {
+    const leanPrefix: ThreadComment = {
+      id: LEAN_ID,
+      body: "## In plain Englishness\n\nNot the token.\n\n**Lean:** Prefer-A Bound.\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [leanPrefix, synthOk(SYNTHESIS_ID, LEAN_ID)],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "missing-plain-english" });
+
+    const leanFenced: ThreadComment = {
+      id: LEAN_ID,
+      body:
+        "```\n## In plain English\n\nFenced only.\n```\n\n**Lean:** Prefer-A Bound.\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [leanFenced, synthOk(SYNTHESIS_ID, LEAN_ID)],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "missing-plain-english" });
+  });
+
+  it("selects the newer synthesis and blocks when that newer one lacks the summary", () => {
+    const older = synthOk(SYNTHESIS_ID, LEAN_ID, true);
+    const newerMissing = synthOk(SYNTHESIS_ID + 10, LEAN_ID, false);
+    const verdict = evaluateCompletedArcRecord({
+      comments: [leanOk, older, newerMissing],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-plain-english" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(`synthesis ${String(SYNTHESIS_ID + 10)}`);
+      expect(verdict.detail).not.toContain(`synthesis ${String(SYNTHESIS_ID)} lacks`);
+    }
+  });
+
+  it("does not mask an earlier pain reason with missing-plain-english", () => {
+    const stop1: ThreadComment = {
+      id: 5600000001,
+      body:
+        "model: grok-4.6\nrole: parent\n\n" +
+        "design-critique: warranted, because order honesty.\n\npain: P1\n",
+    };
+    const leanUncited: ThreadComment = {
+      id: LEAN_ID,
+      body: `${summary}**Lean:** Prefer-A Bound.\n\nSpec-path: next-build.\n`,
+    };
+    const verdict = evaluateCompletedArcRecord({
+      issueNumber: 5415,
+      comments: [stop1, leanUncited, synthOk(SYNTHESIS_ID, LEAN_ID)],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "unrelieved-pain" });
+  });
+
+  it("pins the first operative heading when duplicates appear", () => {
+    const leanDup: ThreadComment = {
+      id: LEAN_ID,
+      body:
+        "## In plain English\n\nFirst summary wins.\n\n" +
+        "## In plain English\n\nSecond heading is after the slice end.\n\n" +
+        "**Lean:** Prefer-A Bound.\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [leanDup, synthOk(SYNTHESIS_ID, LEAN_ID)],
+      }),
+    ).toMatchObject({ status: "complete", citedLeanId: LEAN_ID });
   });
 });
