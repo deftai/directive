@@ -632,7 +632,7 @@ export function runTransition(
             const driftRecord = recordScopeCompleteDrift(
               projectRoot,
               data,
-              relative(projectRoot, destPath).replace(/\/g, "/"),
+              relative(projectRoot, destPath).replace(/\\/g, "/"),
             );
             if (driftRecord !== null) {
               // Finding may already be on the ledger — restore prior rows for THIS
