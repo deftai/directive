@@ -1,0 +1,524 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5413",
+    "updated": "2026-10-06T15:37:45Z"
+  },
+  "plan": {
+    "title": "feat(occupancy): 24h max lease + same-session primary residue reclaim (#5413)",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(occupancy): 12h absolute lease cap expires overnight sessions; the primary checkout cannot re-claim",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5413",
+      "Overview": "## Problem\n\nThe occupancy lease has a hard 12-hour absolute age cap that is not configurable. A session that is started in the evening and resumed the next afternoon (a normal workday gap of 16-20 hours) always hits it, and on the **primary checkout** the recovery the deny text prints is refused, so the operator has to intervene.\n\nObserved on `@deftai/directive` 0.119.13 (engine, content and pin aligned), macOS:\n\n```\nOccupancy lease for session host:claude:v1:<id> passed its 12h absolute age cap\n(claimed 69388s ago, claimed_at=2026-10-05T18:27:59Z heartbeat_at=2026-10-05T19:54:27Z\nlast_write_at=2026-10-05T19:21:52Z), so this worktree is no longer held and a peer may\nclaim it at any moment. Heartbeats cannot extend a capped lease — re-claim the worktree\nwith `deft session:start --session-id=host:claude:v1:<id>` before writing again.\nAlso ritual-not-ready: session ritual state is stale (older than 8h).\noccupancy refuses a mutation claim on the primary checkout. Spawned mutating work takes a\nlinked worktree. Primary occupancy is the exception (release-cut, policy-restore,\noperator-default-branch) from a trusted producer. ... Run `deft session:start\n--primary-claim-exception=operator-default-branch --session-id=...` from a trusted producer\n(CLI argv). Use another worktree and claim that tree with the same actor identity.\n```\n\nLast write was about 19.3 hours before the denial (evening before, next day mid-morning).\n\n## Where it comes from\n\n`packages/.../session/occupancy.js`: `export const OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 36;`. I found no configuration knob for it in 0.119.13 (the 8-hour ritual staleness, by contrast, is configurable via `plan.policy.sessionRitualStalenessHours`). The comment above it explains the intent: bound reclaim of a dead owner's lease (PID-reuse defense), \"twelve hours spans a 23:00 dispatch to a 09:00 handoff\", and \"reaching the cap costs the owner one re-claim, not its work\". The same comment also notes the real limitation: a pure time cap cannot tell a stalled-but-live owner from a dead one, and the answer is \"a liveness signal that needs no write ... not a larger number here\".\n\n## Why it bites in practice\n\n1. **The sizing example is shorter than the common case.** 23:00 to 09:00 is 10 hours. Evening to next afternoon is 16-20 hours. Anyone who stops working in the evening and comes back after lunch is over the cap.\n2. **\"One re-claim\" does not hold on the primary checkout.** `deft session:start` for the same session is refused there (\"occupancy refuses a mutation claim on the primary checkout\"). The only printed way out is `--primary-claim-exception=operator-default-branch`, which is rightly reserved for a trusted operator and not something an agent should self-authorize. So for an agent session whose working directory is the primary checkout (for example a session started before it created a linked worktree, or whose shell resets to the primary after each command), the cap is a hard stop until a human acts. Related: #4290 (compaction staleness on the primary checkout, closed), #4445 (solo-operator mode, closed).\n3. **The gate fired on a write to a path outside the project.** The denied write was to a user-level notes file (under the user's home, not in any git repo). The deny cited the project's lease and ritual state because the session's cwd was the primary checkout. #4290 mentions \"the gate denies paths outside the repo\"; I have not verified whether its fix covers this lease case in 0.119.13, since the message cited the lease and ritual, not the path.\n4. **Two clocks, one configurable.** The ritual staleness window can be raised in policy; the lease cap cannot, so a team that has decided \"overnight is fine\" can only half-configure it.\n\n## Options (maintainers to choose)\n\n- **A. Raise the default to 24 hours.** Simple; still bounds a dead owner's lease to a day. The cost is that a dead owner on a shared machine blocks reclaim for up to 24h instead of 12h, which matters little for the local, single-machine model the module documents (and for solo operators, #4445).\n- **B. Make it configurable**, e.g. `plan.policy.occupancyMaxLeaseHours` validated like `sessionRitualStalenessHours` (integer > 0), default 12 or 24.\n- **C. Build the liveness signal the code comment asks for** (an explicit parked state, or refresh on non-write activity such as `session:start --read-only`, `occupancy:heartbeat`, or read-only tool use), so the cap can stay short for genuinely dead owners without expiring a live-but-idle one.\n- **D. Make the capped lease recoverable on the primary checkout** for the same session id when no peer has claimed it in the meantime (the lease record still names this session), without the operator exception. That removes the \"hard stop until a human acts\" case regardless of the cap value.\n\nA + D is the smallest change that fixes the observed failure; C is the durable design.\n\n## Acceptance\n\n- A session idle for 20 hours can resume without operator intervention on a linked worktree, and, if D is chosen, on the primary checkout when no peer claimed it.\n- If B is chosen: the knob is documented next to `sessionRitualStalenessHours` and rejected when not an integer > 0.\n- `formatOccupancyAgeCapRemediation` (the deny text) states the actual remedy for the primary-checkout case instead of only printing a command that is refused there.\n- A test covers a lease older than the cap on a linked worktree (re-claim succeeds) and on the primary checkout (documented outcome).\n\nRelated: #3599 (introduced the cap and the age-cap remediation text), #4290, #4445, #4410.\n\n",
+      "Labels": "bug, agent-experience, process, harness, source-of-truth, urgent, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Raise OCCUPANCY_MAX_LEASE_MS to TTL*72 (24h); rewrite #3599 docblock; pin absolute grant-reach test",
+        "status": "pending"
+      },
+      {
+        "id": "2",
+        "title": "Same-session primary residue reclaim across age-capped and heartbeat-stale (Approach D)",
+        "status": "pending"
+      },
+      {
+        "id": "3",
+        "title": "Honest age-cap remediation wording for same-session vs stranger/blocked primary",
+        "status": "pending"
+      },
+      {
+        "id": "4",
+        "title": "Bound acceptance tests for overnight primary resume and grant-reach pin",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "harness",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "prefer-a-bound",
+      "occupancy",
+      "through-merge"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5413",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5413: feat(occupancy): 12h absolute lease cap expires overnight sessions; the primary checkout cannot re-claim"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "(claimed 69388s ago, claimed_at=2026-10-05T18:27:59Z heartbeat_at=2026-10-05T19:54:27Z",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L9"
+        },
+        {
+          "command": "last_write_at=2026-10-05T19:21:52Z), so this worktree is no longer held and a peer may",
+          "reason": "shell metacharacter \")\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L9"
+        },
+        {
+          "command": "claim it at any moment. Heartbeats cannot extend a capped lease — re-claim the worktree",
+          "reason": "first token \"claim\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L9"
+        },
+        {
+          "command": "with `deft session:start --session-id=host:claude:v1:<id>` before writing again",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L9"
+        },
+        {
+          "command": "occupancy refuses a mutation claim on the primary checkout. Spawned mutating work takes a",
+          "reason": "first token \"occupancy\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L9"
+        },
+        {
+          "command": "linked worktree. Primary occupancy is the exception (release-cut, policy-restore,",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L9"
+        },
+        {
+          "command": "operator-default-branch) from a trusted producer. ... Run `deft session:start",
+          "reason": "shell metacharacter \")\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L9"
+        },
+        {
+          "command": "--primary-claim-exception=operator-default-branch --session-id=...` from a trusted producer",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L9"
+        },
+        {
+          "command": "(CLI argv). Use another worktree and claim that tree with the same actor identity",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L9"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/core/src/hooks/owner-liveness.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/session/occupancy.ts"
+        ],
+        "conflict_group": "occupancy-max-lease-overnight-reclaim",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/occupancy.test.ts"
+        ],
+        "expected_outputs": [
+          "Tracking PR for #5413 Prefer-A Bound A+D occupancy overnight reclaim"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "Traces": [
+          "#5413",
+          "#3599",
+          "#3755",
+          "#4290"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft (pre-Stop-1 charter lean)\n\nLean: Approach A + D from the issue Options.\n\n**Approach A.** Raise OCCUPANCY_MAX_LEASE_MS default from 12h (TTL×36) to 24h (TTL×72). Keep the absolute age-cap keyed on claimedAt and independent of heartbeat refresh. Bound a dead owner's reclaim inside a day; cover the common evening→next-afternoon gap (16–20h) without requiring a re-claim for ordinary overnight idle.\n\n**Approach D.** Same-session reclaim after age-cap on the primary checkout when the stored residue still names this session and no peer has claimed the primary in the meantime — without --primary-claim-exception. Today ^[valuateOccupancyCeremonyEligibility hits \restricted-primary (sibling live-lease fence) before ^Gge-capped-residue, so the printed session:start --session-id=… remedy is refused on primary whenever linked worktrees hold live leases. Prefer-A admits that same-session age-capped residue path on primary when no peer claimed it.\n\n**Remediation honesty.** \formatOccupancyAgeCapRemediation must state the actual primary-checkout remedy (same-session reclaim that Prefer-A admits, or an honest \"use a linked worktree / operator exception\" branch) instead of only printing a command primary refuses.\n\n**Tests.** Lease older than the (new) cap: linked worktree same-session re-claim succeeds; primary same-session re-claim succeeds when residue names this session and no peer claimed; stranger / peer-claimed primary stays refused.\n\n**conflict_group:** occupancy-max-lease-overnight-reclaim\n\n### Reject\n- B-only (config knob) without raising the default or fixing primary reclaim — leaves the observed overnight fail until every consumer opts in.\n- C-only (liveness / parked state) as the sole load-bearing fix for this arc — durable and welcome as a later leftover or later-arc, but larger than the observed failure and not required to clear Acceptance bullets for overnight resume + primary same-session reclaim.\n- Raising the cap without D — still hard-stops primary agents that idle past the new cap.\n- D without A — still fails the 16–20h overnight gap on linked worktrees that simply need a longer default.\n- Softening the sibling fence for strangers or peer claims.\n- Agent self-authorization of --primary-claim-exception=operator-default-branch.\n\n### Deferred (not this Bound)\n- B: plan.policy.occupancyMaxLeaseHours (optional later leftover).\n- C: write-free liveness / parked state (durable design; later leftover or later-arc).\n\nspend-recommend: N≥3\nspend-why: Stop 2 panel permission — genuinely open solution space (A/B/C/D) with high blast on occupancy reclaim and primary fence; Prefer-A binds A+D and keeps B/C as deferred.\n\narc-mode: no-ingest\nTarget-digest: sha256:1fad898e2c73fd11d70df5f883add81b311da319a5dd462c53304301a034838e\ndispatch-sha: 84b71a993e9d3246db16faad395e35f31120c9d3\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5413",
+          "id": 6017896540,
+          "html_url": "https://github.com/deftai/directive/issues/5413#issuecomment-6017896540",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T13:59:38Z",
+          "updated_at": "2026-10-06T13:59:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: warranted, because the issue stamps a mechanism-shaped occupancy lease/reclaim failure with concrete land sites and an open A/B/C/D solution space that needs a Bound before implement.\n\nmechanism-shaped: true\ncharter: open critique\narc-mode: no-ingest\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: Stop 2 panel permission — open solution space A/B/C/D; bare arc resolved from recorded spend-recommend.\ndual-stop-reserved: first post-lean pain-audit of asserted coverage is in-cap via evaluateDualStopReservedSlot / evaluateDualStopParentPath; ask raise only after that reserved seat is spent.\nverification-path: pin-read git show 84b71a993e9d3246db16faad395e35f31120c9d3:\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5413\norigin-ref: origin/HEAD\ndispatch-sha: 84b71a993e9d3246db16faad395e35f31120c9d3\nTarget-digest: sha256:1fad898e2c73fd11d70df5f883add81b311da319a5dd462c53304301a034838e\n\npain:\n- P1\n- P2\n- P3\n\npain-prose:\n- P1: Absolute lease age cap is hard-coded at 12h (OCCUPANCY_TTL_MS×36); a normal evening→next-afternoon idle gap (16–20h) always expires the lease, so overnight resume fails even when the owner is still the legitimate session.\n- P2: After age-cap, same-session re-claim on the primary checkout is refused (restricted-primary / sibling live-lease fence wins before age-capped-residue) unless the operator supplies --primary-claim-exception; the deny text's printed session:start --session-id=… remedy therefore does not work on primary.\n- P3: formatOccupancyAgeCapRemediation always prints a bare session:start --session-id=… re-claim command and does not state the actual primary-checkout outcome or honest alternate remedy.\n\nCharter for round-1 critics: open critique of Prefer-A draft comment 6017896540 (Approach A+D: raise default to 24h; same-session primary reclaim after age-cap when residue still names this session and no peer claimed; remediation honesty; tests). Reject B-only, C-only-as-sole-fix, A-without-D, D-without-A, stranger/peer fence soften, agent self-auth of primary-claim-exception. B and C deferred.\n\nSeat families (N≥3): grok, claude, codex",
+          "id": 6017901887,
+          "html_url": "https://github.com/deftai/directive/issues/5413#issuecomment-6017901887",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T13:59:55Z",
+          "updated_at": "2026-10-06T14:12:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Panel-deposit\n\narc-mode: no-ingest\nspend: N≥3\nStop-1: 6017901887\nPrefer-A draft: 6017896540\nTarget-digest: sha256:1fad898e2c73fd11d70df5f883add81b311da319a5dd462c53304301a034838e\ndispatch-sha: 84b71a993e9d3246db16faad395e35f31120c9d3\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5413\norigin-ref: origin/HEAD\nverification-path: pin-read git show 84b71a993e9d3246db16faad395e35f31120c9d3:\nseat-families: grok, claude, codex\n\n### Launch-probe results (critic argv + benign pong)\n- grok: pong @ rc 0\n- claude: pong @ rc 0\n- codex: pong @ rc 0\n\ninput-ceiling: 6017916824\n\nRound-1 critics share this ceiling. May read only Stop 1 (6017901887) + this deposit. Sibling critic posts are out of envelope for other siblings. Process-only: no product code, no PR, no ingest.",
+          "id": 6017916824,
+          "html_url": "https://github.com/deftai/directive/issues/5413#issuecomment-6017916824",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T14:00:42Z",
+          "updated_at": "2026-10-06T14:00:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\n\nVerdict: support A+D with a harvest-changing amendment. Age-cap-only D does not cover the ordinary 20-hour primary resume after A raises the cap to 24h.\n\nVerified the issue body SHA-256 matches the envelope. Code inspection is pinned to 84b71a993e9d3246db16faad395e35f31120c9d3; read only the issue body and comments 6017896540, 6017901887, and 6017916824. No sibling inputs.\n\n**P1 - support+amends.** In `packages/core/src/session/occupancy.ts`, `OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 72` removes absolute-cap expiry for a claim aged 16-20h. It does not keep an idle lease live: `occupancyLiveness` still returns `heartbeat-stale` after 20 minutes. With a live linked sibling, `primaryCheckoutClaimBlocked` then refuses the primary claim, and `evaluateOccupancyCeremonyEligibility` returns `restricted-primary` before `heartbeat-expired-residue`. Thus A plus strictly age-capped D still fails the primary overnight acceptance case. Amend D to cover matching same-session, same-tree expired residue for BOTH heartbeat-stale and age-capped states. Otherwise explicitly narrow the claimed relief; do not harvest full overnight primary acceptance. Also describe 24h as claim age, not idle duration: a session already 10h old before a 20h pause exceeds even the new cap. Keep the 20-minute TTL unchanged; a dead quiet owner is not necessarily blocking peers for 24h.\n\n**P2 - support+amends.** The intended same-owner recovery is sound within the module's documented cooperative bearer-id model, but reordering ceremony cases alone cannot implement it. Land the narrow residue admission in `primaryCheckoutClaimBlocked` (or a shared predicate used by it), and apply it consistently in `evaluateOccupancyCeremonyEligibility`, the initial/preview path of `applyWorktreeOccupancy`, and its `withOccupancyLock` callback using `existingLocked`. Require an independently resolved incoming identity, exact stored owner equality, and `occupancyWorktreeMatches`; member or inherited-child identity is not owner equality. Do not merely move the existing `age-capped-residue` block earlier: that block currently does NOT require `stored.sessionId === incoming` and would admit strangers around the sibling fence. Re-read residue under the existing lock; a pre-lock same-owner snapshot cannot authorize reclaim after replacement. Preserve fresh-claim behavior (new `claimedAt`, no resurrected grants), live-foreign denial, and existing steal confirmation semantics. Because `stealOccupancy` also calls the shared primary predicate, inspect those callers rather than accidentally broadening steal.\n\nClarify \"no peer claimed\": the enforceable condition is that the current locked, tree-matching record still names the incoming owner. The current record is not a historical proof that nobody ever claimed and released. A live sibling is distinct from a peer occupying the primary: the proposed exception intentionally admits this same-owner primary residue despite the sibling, while preserving the sibling fence for other callers. With no live sibling, current primary claims are already admitted; do not introduce a blanket stranger-refusal policy under this fix.\n\n**P3 - support+amends.** `formatOccupancyAgeCapRemediation` currently takes record/time/cap only and promises a bare reclaim command. Make the text conditional: same-session reclaim is available while matching residue remains; a subsequent peer takeover may refuse it, with linked-worktree recovery or a trusted operator decision as the fallback. Do not infer guaranteed eligibility solely from a stored path or suggest agents self-authorize an exception. Keep `commandSessionId` shell-safety handling. Check both `heartbeatOccupancy` and `evaluateOccupancyWriteGate` call sites for consistent wording. Lease reclaim must not promise that the separate stale ritual is already satisfied.\n\n**Required acceptance sharpening before harvest:** test a 20h-old, 20h-idle primary lease with matching owner AND a live linked sibling; test the same setup beyond 24h. For each, assert ceremony eligibility, preview, and persisted reclaim agree. Add the linked equivalents, exact-cap and cap+1ms boundaries (`occupancyLiveness` uses `>`), mismatched-tree residue, different owner/member/inherited identity, and a peer replacement between initial read and locked persist. Verify reclaim resets claim age and clears expired-lease grants. A primary fixture without a live sibling would pass already and would not exercise this defect.\n\nB/configuration and C/write-free liveness can stay deferred. The issue body's outside-project-path denial is not discharged by this occupancy amendment; the Stop 1 P1/P2/P3 scope should not be reported as solving that separate symptom. This is static design verification, not a claim that runtime tests passed.",
+          "id": 6017962518,
+          "html_url": "https://github.com/deftai/directive/issues/5413#issuecomment-6017962518",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T14:03:04Z",
+          "updated_at": "2026-10-06T14:03:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nOpen critique of Prefer-A draft 6017896540 (Approach A+D) under Stop 1 warrant 6017901887; input-ceiling 6017916824. Pin-read at dispatch-sha 84b71a993e9d3246db16faad395e35f31120c9d3 via `git show …:packages/core/src/session/occupancy.ts`. Process-only; no sibling reads after ceiling.\n\n## Verdict map\n\n### P1 — hard-coded 12h absolute age cap (TTL×36)\n**support** (with non-harvest doc amend)\n\nApproach A lands on the load-bearing constant. At pin, `OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 36` (20m×36 = 12h) in `packages/core/src/session/occupancy.ts`, keyed on `claimedAt` via `occupancyLiveness` / `isOccupancyExpired` / `liveOccupancyOnTree`. Raising to TTL×72 (24h) covers the issue's 16–20h evening→next-afternoon gap without inventing a config knob. Reject of B-only and C-only-as-sole-fix is sound: B leaves the fleet on 12h until every consumer opts in; C is the durable write-free liveness the file comment already asks for, and is correctly deferred.\n\nNon-harvest PR residue: the block comment above `OCCUPANCY_MAX_LEASE_MS` still narrates \"Thirty-six TTLs is twelve hours\" and the 23:00→09:00 sizing story; A must rewrite that comment with the new multiple/hours so pin prose matches the constant.\n\n### P2 — primary same-session re-claim refused after age-cap (restricted-primary before age-capped-residue)\n**support+amends** — harvest-changing sharpening on the D carve\n\nStop 1 and Prefer-A's diagnosis agree on the pin order inside `evaluateOccupancyCeremonyEligibility`: after `live === null`, `if (restrictedPrimary)` returns `occupancyCase: \"restricted-primary\"` with `formatPrimaryClaimRefusalMessage` **before** the `stored` / `occupancyLiveness === \"age-capped\"` branch that would admit `age-capped-residue`. `restrictedPrimary` comes from `primaryCheckoutClaimBlocked` → `primaryCheckoutHasLiveSiblingLease` (any live linked-worktree lease). The same early `primaryBlocked` refuse exists in `applyWorktreeOccupancy` (pre-lock and under-lock), so eligibility alone is not enough.\n\nThe existing same-owner bypass in `primaryCheckoutClaimBlocked` (`live !== null && live.sessionId === incoming`) cannot help after age-cap: `liveOccupancyOnTree` returns null once `isOccupancyExpired` is true, so same-session identity never clears the sibling fence on residue.\n\n**Harvest-changing sharpening S1 (D carve text).** Prefer-A D says admit when \"no peer has claimed the primary\" / residue still names this session. After age-cap the primary record is already non-live residue, so a peer-on-primary claim is not the usual blocker. The observed hard stop is the **sibling live-lease fence**. If D only fires when that fence is already clear, it is nearly a no-op for the common agent-on-primary-with-linked-worktrees case that concatenates age-cap text with `formatPrimaryClaimRefusalMessage`. Bound D must state a same-session age-capped-residue carve that admits when `stored.sessionId === incoming` **even while siblings hold live leases**, without `--primary-claim-exception`, and must mirror that carve in:\n\n- `evaluateOccupancyCeremonyEligibility` (reorder or same-session exception ahead of the restricted-primary return)\n- `applyWorktreeOccupancy` (both `primaryBlocked` sites)\n- tests: primary + live sibling + same-session age-capped residue → admit; stranger on that primary → still refused; peer-replaced primary residue → still refused\n\nReject of stranger/peer fence soften and agent self-auth of `operator-default-branch` stays correct and must survive the carve (narrow same-session only).\n\nReject of A-without-D / D-without-A also stands: A alone still hard-stops primary past the new cap under sibling contention; D alone still fails the 16–20h linked-worktree overnight gap.\n\n### P3 — `formatOccupancyAgeCapRemediation` prints a refused bare re-claim\n**support+amends** — harvest-changing sharpening on remediation branches\n\nAt pin, `formatOccupancyAgeCapRemediation` always ends with `deft session:start --session-id=…` and never mentions primary / sibling / exception outcomes. Call sites (write-gate / heartbeat paths around the age-cap denials in the same file) therefore teach a command `applyWorktreeOccupancy` will refuse whenever `primaryCheckoutClaimBlocked` is true.\n\n**Harvest-changing sharpening S2.** Remediation honesty must branch on the post-D world:\n\n1. Same-session primary age-capped residue (D admits): print the admitted `session:start --session-id=<same>` reclaim (no exception flag).\n2. Stranger / non-matching residue / still-blocked primary: print honest alternate — use a linked worktree, or trusted-producer `--primary-claim-exception=operator-default-branch` — and do not present the bare primary re-claim as sufficient.\n3. Linked (non-primary) age-cap: keep today's re-claim wording.\n\nLand site remains `formatOccupancyAgeCapRemediation` (likely needs an explicit primary/eligibility hint or a thin companion used by ceremony-aware denial assembly). Prefer-A's acceptance bullet already requires this; the Bound should name the branch table so implement does not leave a single string that is only true on uncontended trees.\n\n## Prefer-A bind posture\n\nA+D is the right smallest Bound for the observed overnight failure. Reject / Deferred lists are coherent with Stop 1 and the pin. Do not widen into B or C on this arc.\n\nBind Prefer-A only after folding **S1** (same-session D pierces sibling fence; eligibility + persist mirror; load-bearing sibling fixture) and **S2** (remediation branch table). Without S1, P2 is not relieved for the sibling-contended primary case the issue paste shows. Without S2, P3 stays a lying deny string even if D lands.\n\nconflict_group suggestion from draft (`occupancy-max-lease-overnight-reclaim`) is fine.\n\npin-read cites: `OCCUPANCY_MAX_LEASE_MS`, `occupancyLiveness`, `liveOccupancyOnTree`, `primaryCheckoutHasLiveSiblingLease`, `primaryCheckoutClaimBlocked`, `evaluateOccupancyCeremonyEligibility`, `applyWorktreeOccupancy`, `formatOccupancyAgeCapRemediation`, `formatPrimaryClaimRefusalMessage` — all under `packages/core/src/session/occupancy.ts` at 84b71a993e9d3246db16faad395e35f31120c9d3.",
+          "id": 6017974731,
+          "html_url": "https://github.com/deftai/directive/issues/5413#issuecomment-6017974731",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T14:03:41Z",
+          "updated_at": "2026-10-06T14:03:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nOpen critique of Prefer-A draft 6017896540 under Stop 1 warrant 6017901887, panel-deposit ceiling 6017916824, dispatch SHA 84b71a9. Read: issue body (Target-digest matches), 6017901887, 6017916824, 6017896540, pin-read packages/core/src/session/occupancy.ts and packages/core/src/hooks/owner-liveness.ts. No sibling posts read. Process-only.\n\n**Verdict: adopt A+D, but the draft names the wrong land site for D, and three of its claims do not survive pin-read.**\n\n---\n\n## P1 - 12h cap hard-coded, overnight gap expires the lease\n\n**support + amends.**\n\nConfirmed at `occupancy.ts:135` (`OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 36`), no policy resolver, unlike `OCCUPANCY_PINNED_RITUAL_STALENESS_HOURS` (`occupancy.ts:153`) which mirrors `DEFAULT_SESSION_RITUAL_STALENESS_HOURS`.\n\nThe pain is real and A is load-bearing, but **not on the path P1 names.** P1 says \"overnight resume fails.\" It does not. `evaluateOccupancyCeremonyEligibility` returns `age-capped-residue` with `admitCeremony: true` (`occupancy.ts:1229-1238`) - on a linked worktree, `session:start` re-claim after the cap already succeeds today.\n\nWhat actually fails is the **gated write**, at `evaluateOccupancyWriteGate` (`occupancy.ts:2196`), branch `occupancy.ts:2208`:\n\n    if (record !== null && liveness === \"age-capped\" && admission !== \"stranger\") -> allow: false\n\nand immediately below it (`occupancy.ts:2232`), `liveness !== \"live\"` - i.e. plain `heartbeat-stale` - yields `allow: true`, the documented `OCCUPANCY_UNKNOWN_LEASE_POLICY = \"fail-open\"`. **Age-capped is strictly harsher on the owner than heartbeat-stale.** That asymmetry is the whole of P1's bite, and A relieves it exactly by moving the 12-24h window from the refuse branch to the fail-open branch.\n\nAmends the Bound must carry:\n\n- **A1. A must rewrite the docblock it lives under.** `occupancy.ts:115-134` (#3599) closes with: *\"If that ambiguity starts to bite, the answer is a liveness signal that needs no write - an explicit parked state, or refresh on non-write activity - not a larger number here.\"* A is literally the move that comment forbids. Landing `*72` without rewriting 115-134 leaves the module's own SoT narrative contradicting the constant directly above it. Also restate the \"twelve hours spans a 23:00 dispatch to a 09:00 handoff\" sizing example, which the issue correctly identifies as shorter than the common case.\n- **A2. A has an unnamed second blast site.** `grantOccupancyMembership` clamps grant expiry to `live.claimedAt + OCCUPANCY_MAX_LEASE_MS` (`occupancy.ts:1967`, the #3755 derived-authority clamp). Raising the cap silently doubles the maximum reachable grant lifetime for swarm workers from 12h to 24h. The `OCCUPANCY_GRANT_TTL_MS` (4h) default is unaffected, so this only reaches an explicit `--expires-at`. Either accept it on the record or clamp grants separately. Note `occupancy.test.ts:2329-2334` asserts the clamp *relative to the constant*, so it stays green and will not detect the widening - a Bound test must pin 12h-vs-24h grant reach in absolute terms.\n- **A3. P1 should be reworded to name `evaluateOccupancyWriteGate`**, not resume. As written it will aim the Bound's tests at the ceremony path, which already passes.\n\n## P2 - same-session primary reclaim refused after age-cap\n\n**support + amends - and the stated mechanism is wrong in a way that would misdirect implementation.**\n\nStop 1 P2 and the draft both say `evaluateOccupancyCeremonyEligibility` \"hits `restricted-primary` before `age-capped-residue`.\" That is the observable ordering (`occupancy.ts:1216-1238`) but it is the **symptom, not the mechanism**, and fixing it there would be wrong.\n\nReal mechanism, `primaryCheckoutClaimBlocked` (`occupancy.ts:1066-1076`):\n\n    if (isPrimaryClaimException(exception)) return false;\n    if (live !== null && live.sessionId === incoming) return false;   // <- same-owner escape\n    return primaryCheckoutHasLiveSiblingLease(projectRoot, now);\n\n`live` comes from `liveOccupancyOnTree` -> `isOccupancyExpired` -> `occupancyLiveness(...) !== \"live\"`, and `age-capped` is checked **first** (`occupancy.ts:489-494`). So at the instant the cap fires, `live` goes null and **the same-owner escape silently disappears.** The session's own identity is still sitting in `stored`, un-consulted. That is P2, precisely - and it is one predicate, not a branch order.\n\nWhy the ordering fix is the wrong one: `primaryCheckoutClaimBlocked`'s own docblock (`occupancy.ts:1060-1065`) states the #4290 invariant - *\"Preview (write: false) uses this same predicate so it cannot report success for an operation persist would refuse.\"* The predicate is called independently from `applyWorktreeOccupancy` (`occupancy.ts:1274`, and again under lock at `1334`) and `stealOccupancy` (`1480`, `1566`). Reordering branches inside `evaluateOccupancyCeremonyEligibility` alone would make preview say admit while persist still refuses - reintroducing the exact #4290 defect that predicate was factored to close.\n\n**Sharpening S1 (harvest-changing): land D in `primaryCheckoutClaimBlocked` by extending the existing same-owner escape across the age-cap boundary** - admit when the stored residue on this tree names `incoming` and `occupancyLiveness(stored) === \"age-capped\"`. One predicate, all four call sites, preview/persist parity preserved for free, and `evaluateOccupancyCeremonyEligibility` then reaches `age-capped-residue` without touching its branch order at all.\n\n**Sharpening S2 (harvest-changing): state D's warrant as parity, not as a new exemption.** The draft rejects \"softening the sibling fence\" while D does, on its face, open the primary while linked siblings hold live leases - `primaryCheckoutHasLiveSiblingLease` (`occupancy.ts:1052`) tests whether *linked worktrees are live*, not whether anyone claimed the primary. Left as drafted, D reads as the fence-soften the same comment rejects two bullets later. The honest defence, which the draft never makes: `primaryCheckoutClaimBlocked` **already** returns false for a live same-session owner regardless of live siblings. D extends an exemption that exists to a boundary where it was lost by accident; it opens no case a live owner could not already reach. Say that in the Bound, or the Bound contradicts itself.\n\nMinor, and it tightens the guard: the draft's precondition \"no peer has claimed the primary in the meantime\" is already fully discharged by `stored.sessionId === incoming`. If a peer had claimed, the residue would name the peer. No separate peer check is needed; do not add one.\n\n## P3 - formatOccupancyAgeCapRemediation dishonest on primary\n\n**support + amends, and the scope shrinks materially.**\n\nConfirmed: `occupancy.ts:608-621`, signature `(record, now, maxLeaseMs)` - a pure formatter with no `projectRoot`, so it structurally cannot tell primary from linked. It unconditionally prints `deft session:start --session-id=...`.\n\n**Sharpening S3 (harvest-changing): once D lands, P3 largely dissolves for the case that motivated the issue.** The printed command becomes *true* on primary for the same-session holder. The residual dishonesty is only the non-same-session primary case (stranger / peer-claimed residue), which the draft explicitly keeps refused. Scope P3 to that residual rather than to a general rewrite.\n\nTwo constraints on whatever remains:\n\n- **P3a.** Do not make the formatter re-derive primary-ness - that would give a pure formatter filesystem reads (`primaryCheckoutHasLiveSiblingLease` stats the worktree set). Thread the already-computed `restrictedPrimary` in as an optional parameter; `evaluateOccupancyCeremonyEligibility` and `applyWorktreeOccupancy` both have it in hand.\n- **P3b.** There are three call sites with three different subjects: `occupancy.ts:1935` (`occupancy:grant`), `occupancy.ts:2221` (write gate), `occupancy.ts:2515` (`occupancy:heartbeat`). A primary-specific *write* remedy must not leak into the grant or heartbeat paths, where the caller was not attempting a write. The draft's \"remediation honesty\" bullet is single-site language for a three-site symbol.\n\n---\n\n## Harvest-changing sharpening on the deferral of C\n\n**The draft's stated reason for deferring C is factually wrong, and the Bound is weaker for it.**\n\nDraft: *\"C-only (liveness / parked state) ... larger than the observed failure.\"* Pin-read says otherwise - **C's mechanism already ships.** `packages/core/src/hooks/owner-liveness.ts` (#3987) is exactly \"refresh on non-write activity\": it fires on every matched tool call, resolves a host-authoritative actor, and re-stamps the lease through `heartbeatOccupancy`. Its docblock cites the `OCCUPANCY_MAX_LEASE_MS` docblock as its own warrant.\n\nWhat it deliberately does *not* do (`owner-liveness.ts`, bounds list): *\"claimed_at is untouched, so OCCUPANCY_MAX_LEASE_MS - 12 hours - is unmoved. Liveness renewal cannot outlive the absolute cap.\"*\n\nSo the shape of this arc is sharper than the draft admits: **an owner using tools all evening is re-stamping `heartbeat_at` and is therefore provably, host-authoritatively alive at the moment the cap expires it.** The cap is not resolving an ambiguity here; it is expiring an owner the system has already proven live. That is the strongest available argument that a bigger number is a patch, and the draft gives it away by mis-describing C as unbuilt.\n\nThis does not change the Bound's selection - A+D remains right for this arc, because moving `claimed_at` on non-write liveness removes the unbounded-lease bound that is the cap's entire purpose (PID-reuse; `occupancy.ts:59`, `115-127`), and that is a posture change needing its own migration. But **record the real deferral reason**: C is deferred because extending the shipped liveness signal to `claimed_at` dissolves the unbounded-lease bound - not because C is unbuilt or oversized. A leftover written on the false premise gets re-scoped from scratch the moment someone opens `owner-liveness.ts`.\n\n## Acceptance bullet 1 cannot be cleared as written\n\n**Sharpening S4 (harvest-changing).** Issue Acceptance: *\"A session idle for 20 hours can resume without operator intervention.\"* The issue's own repro deny text carries a **second, independent gate**: `Also ritual-not-ready: session ritual state is stale (older than 8h)`. That is `OCCUPANCY_PINNED_RITUAL_STALENESS_HOURS = Number(\"8\")` (`occupancy.ts:153`), a different clock on a different axis, untouched by A and D.\n\nAt a 24h cap against 8h ritual staleness, the ritual clock binds first on **every** overnight gap - the lease cap stops being the thing you hit. A+D therefore converts \"hard stop until a human acts\" into \"one ritual re-arm\", which is the genuine and sufficient win, but it does **not** deliver \"resume without operator intervention\" on the plain reading. Amend the Acceptance bullet, or the Bound ships correct and is scored as failing its own acceptance.\n\n## Residual pain not carried by P1/P2/P3 and not relieved by A+D\n\nIssue section \"Why it bites\" item 3: the denied write targeted a **user-level path outside any git repo**, gated because cwd was the primary checkout. A+D does not relieve the scoping question - it only moves the threshold at which it recurs. Confirmed out of this Bound's reach: `evaluateOccupancyWriteGate` keys on `record` / `liveness` / `admission` only; path scoping is upstream (#4290). Flag as a separate leftover rather than letting it ride on this arc's acceptance, since the reporter explicitly marked it unverified in 0.119.13.\n\n---\n\n## Summary of positions\n\n| Item | Position |\n|---|---|\n| A (12h -> 24h) | **support + amends** - load-bearing at `occupancy.ts:2208`, not at the ceremony path |\n| D (same-session primary reclaim) | **support + amends** - land at `primaryCheckoutClaimBlocked`, not branch order |\n| Remediation honesty | **support + amends** - residual is non-same-session primary only |\n| Reject B-only | concur |\n| Reject C-as-sole-fix | concur on outcome, reject the stated reason |\n| Reject A-without-D / D-without-A | concur |\n| Reject fence soften for strangers/peers | concur - and re-frame D as parity so the Bound is self-consistent |\n| Reject agent self-auth of exception | concur, strongly - nothing in S1 touches `isPrimaryClaimException` |\n| Defer B | concur |\n| Defer C | concur, with the real reason recorded |\n\nHarvest-changing: S1 (D's land site is the predicate, not branch order), S2 (D is parity, not a new exemption), S3 (P3 scope shrinks after D), S4 (Acceptance bullet 1 unclearable as worded), A1 (docblock 115-134 must be rewritten), A2 (grant-clamp widening), A3 (P1 should name the write gate), plus the corrected deferral reason for C.\n\nMinor note for whoever lands A: `occupancy.test.ts:208` and `occupancy.test.ts:915` are loops bounded by `OCCUPANCY_MAX_LEASE_MS / OCCUPANCY_TTL_MS`; doubling the cap doubles those iteration counts (~72 -> ~144) and each step touches the lease file. Not a blocker, worth a glance at suite runtime.\n\narc-mode: no-ingest\ninput-ceiling: 6017916824\ndispatch-sha: 84b71a993e9d3246db16faad395e35f31120c9d3\n\n",
+          "id": 6018048510,
+          "html_url": "https://github.com/deftai/directive/issues/5413#issuecomment-6018048510",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T14:07:15Z",
+          "updated_at": "2026-10-06T14:07:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nTarget-digest: sha256:1fad898e2c73fd11d70df5f883add81b311da319a5dd462c53304301a034838e\ndispatch-sha: 84b71a993e9d3246db16faad395e35f31120c9d3\nconflict_group: occupancy-max-lease-overnight-reclaim\n\n\n## In plain English\n\nOvernight idle sessions hit a hard 12-hour occupancy lease age-cap, and on the primary checkout the printed re-claim command often fails when linked worktrees still hold live leases — so the operator has to unblock with a trusted exception.\n\nIf you confirm this Bound, we raise the default age-cap to 24 hours and let the same session reclaim the primary when the stored lease residue still names that session (including ordinary overnight heartbeat-stale residue), without the operator exception. Deny text will state the real remedy. Config knobs and write-free liveness that move claimed_at stay deferred. Ritual re-arm may still be needed; this Bound removes the human-only primary hard stop for the matching-residue holder.\n\nRound-1 critics: codex 6017962518, grok 6017974731, claude 6018048510. All support A+D with harvest-changing amends. This Bound folds those amends. Charter remains open critique of Prefer-A draft 6017896540 as superseded by this Bound.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n\n### 1. Approach A — raise absolute age-cap default to 24h\n- Change OCCUPANCY_MAX_LEASE_MS from OCCUPANCY_TTL_MS * 36 (12h) to OCCUPANCY_TTL_MS * 72 (24h) in packages/core/src/session/occupancy.ts.\n- Keep the cap keyed on claimedAt, independent of heartbeat refresh. Do not raise OCCUPANCY_TTL_MS (20m).\n- **Docblock rewrite (A1):** rewrite the #3599 comment above the constant (the \"Thirty-six TTLs / twelve hours / 23:00→09:00 / not a larger number here\" narrative) so pin prose matches TTL×72 / 24h and the overnight sizing story. Record that a larger default is accepted here for the common evening→next-afternoon gap; write-free liveness that moves claimed_at remains out of this Bound (see Deferred C).\n- **Grant-clamp honesty (A2):** raising the cap doubles the maximum reachable grant lifetime via grantOccupancyMembership's clamp to live.claimedAt + OCCUPANCY_MAX_LEASE_MS (#3755). Default OCCUPANCY_GRANT_TTL_MS (4h) is unchanged; only explicit long --expires-at reaches the new ceiling. Accept that widening on the record. Add a Bound test that pins absolute 24h grant reach (do not rely only on relative-to-constant asserts that stay green when the constant moves).\n- **P1 locus honesty (A3):** the overnight bite at today's 12h is primarily evaluateOccupancyWriteGate's age-capped refuse (harsher than heartbeat-stale fail-open), not linked-worktree ceremony reclaim (which already admits age-capped-residue when the sibling fence is clear). After A, a 16–20h idle claim is under the cap and falls to heartbeat-stale fail-open on the write gate; ceremony/ritual re-arm on primary with live siblings remains P2/D.\n\n### 2. Approach D — same-session primary residue reclaim (parity, not a new exemption)\n- **Land site (S1):** extend the existing same-owner escape inside primaryCheckoutClaimBlocked so it still admits when the tree-matching stored residue names incoming and liveness is age-capped **or** heartbeat-stale (Codex harvest: after A, ordinary overnight primary resume is heartbeat-stale, not age-capped). Do not reorder evaluateOccupancyCeremonyEligibility branches alone — that breaks #4290 preview/persist parity (Claude). One predicate → all call sites (evaluateOccupancyCeremonyEligibility, applyWorktreeOccupancy pre-lock and under-lock, stealOccupancy inspection) stay consistent.\n- **Parity framing (S2):** this is extending the live same-owner escape that already ignores live siblings, across the boundary where liveOccupancyOnTree goes null. It is not a stranger/peer fence soften. Reject still forbids stranger / peer-claimed residue / member / inherited-child as owner equality.\n- **Identity / lock rules:** require independently resolved incoming identity; exact stored.sessionId === incoming; occupancyWorktreeMatches. Re-read residue under the existing lock; a pre-lock same-owner snapshot cannot authorize reclaim after replacement. Fresh claim resets claimedAt and clears expired-lease grants. Inspect stealOccupancy callers so the shared predicate does not accidentally broaden steal.\n- **\"No peer claimed\" clarification:** enforceable condition is that the current locked tree-matching record still names the incoming owner. Do not invent a separate historical peer-check.\n\n### 3. Remediation honesty (P3 / S2-S3)\n- After D, same-session primary reclaim makes the bare session:start --session-id=… command true for the matching-residue holder. Residual dishonesty is non-matching / stranger / still-blocked cases.\n- Branch table for formatOccupancyAgeCapRemediation (and ceremony-aware denial assembly that uses it):\n  1. Same-session matching residue (D admits): print admitted reclaim without exception flag.\n  2. Stranger / non-matching / still-blocked primary: print honest alternate — use a linked worktree, or trusted-producer --primary-claim-exception=operator-default-branch — never agent self-auth.\n  3. Linked (non-primary) age-cap: keep today's reclaim wording.\n- Do not give the pure formatter filesystem reads to re-derive primary-ness; thread an already-computed eligibility/restricted hint when needed. Keep commandSessionId shell-safety. Do not promise ritual readiness from lease reclaim alone. Check write-gate / heartbeat / grant call sites so a write-specific primary remedy does not leak into grant/heartbeat subjects incorrectly.\n\n### 4. Acceptance / tests\n- Linked worktree: lease older than the new cap → same-session reclaim succeeds; writes under-cap after long idle follow heartbeat-stale fail-open.\n- Primary + live sibling + matching owner + age-capped residue → ceremony eligibility, preview, and persisted reclaim agree (admit).\n- Primary + live sibling + matching owner + heartbeat-stale residue (20h-idle under 24h cap) → same admit path (load-bearing overnight case after A).\n- Beyond 24h age-cap with matching owner + live sibling → still covered by D age-capped branch.\n- Exact-cap and cap+1ms boundaries (occupancyLiveness uses >).\n- Mismatched-tree residue, different owner / member / inherited identity, peer replacement between initial read and locked persist → refuse.\n- Reclaim resets claim age and clears expired-lease grants.\n- Absolute grant-reach pin for A2.\n- **Acceptance wording (S4):** A+D converts the observed hard stop into at most a ritual re-arm (sessionRitualStalenessHours, tip default 8h). Do not claim \"resume with zero ceremony\" while ritual can still be stale; claim \"no operator --primary-claim-exception / no human-only primary unblock for the matching-residue holder.\"\n\n### 5. Reject\n- B-only without raising the default or fixing primary reclaim.\n- C-only as the sole load-bearing fix for this arc.\n- A without D; D without A.\n- Softening the sibling fence for strangers or peer claims.\n- Agent self-authorization of --primary-claim-exception=operator-default-branch.\n- Ceremony-only branch reorder that breaks preview/persist parity (#4290).\n- Treating member/inherited-child presentation as owner equality.\n\n### 6. Deferred / leftovers (not this Bound)\n- **B:** plan.policy.occupancyMaxLeaseHours optional leftover.\n- **C:** write-free liveness that moves claimed_at / parked state. Correct deferral reason (Claude): packages/core/src/hooks/owner-liveness.ts (#3987) already refreshes heartbeat on non-write activity and deliberately leaves claimed_at / the absolute cap unmoved. Extending that signal to reset claimed_at would dissolve the unbounded-lease bound the cap exists for (PID-reuse defense) and needs its own migration posture — not because C is unbuilt.\n- **Outside-repo path scoping:** issue \"Why it bites\" item 3 (deny on user-level path outside the project because cwd was primary). Out of this Bound; optional leftover. A+D only moves the threshold.\n\narc-mode: no-ingest",
+          "id": 6018077066,
+          "html_url": "https://github.com/deftai/directive/issues/5413#issuecomment-6018077066",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T14:08:40Z",
+          "updated_at": "2026-10-06T14:51:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of Prefer-A Bound lean 6018077066 against Stop 1 pains in 6017901887. Round 4 Pass-4; fresh critic; id ceiling 6018077066; pin-read `git show 84b71a993e9d3246db16faad395e35f31120c9d3:packages/core/src/session/occupancy.ts`. Arc-mode: no-ingest. Process-only.\n\n## Verdict\n\nbindable-as-posted. Bound folds Round-1 harvest-changing amends (codex 6017962518, grok 6017974731, claude 6018048510). No Bound-limb change required.\n\n### pain-P1 — hard-coded 12h absolute age cap\n**support**\n\nStop 1: `OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 36` expires a normal 16–20h evening→next-afternoon gap.\n\nPin: constant at occupancy.ts ~135 is TTL×36; `occupancyLiveness` keys on `claimedAt` with `>` (age-capped before heartbeat-stale); `evaluateOccupancyWriteGate` refuses age-capped holders (~2208) while heartbeat-stale fail-opens (~2232). Bound §1 raises to TTL×72 (24h), keeps claimedAt independence, rewrites the #3599 docblock (A1), records grant-clamp widening via `grantOccupancyMembership` `claimedAt + OCCUPANCY_MAX_LEASE_MS` (A2, ~1967), and names write-gate locus honesty (A3). After A, a 16–20h idle claim is under the cap and falls to heartbeat-stale fail-open on the write gate. Relieves P1.\n\n### pain-P2 — same-session primary reclaim refused after age-cap\n**support**\n\nStop 1: restricted-primary / sibling fence wins before age-capped-residue; printed bare `session:start --session-id=…` fails on primary without `--primary-claim-exception`.\n\nPin: `primaryCheckoutClaimBlocked` (~1066) same-owner escape is only `live !== null && live.sessionId === incoming`; after age-cap or heartbeat-stale, `liveOccupancyOnTree` is null so the escape vanishes; `evaluateOccupancyCeremonyEligibility` returns restricted-primary (~1217) before age-capped-residue (~1229). Bound §2 lands D by extending that same-owner escape for matching tree residue when liveness is age-capped **or** heartbeat-stale (Codex harvest: ordinary overnight primary resume after A is heartbeat-stale). Shared predicate keeps preview/persist/#4290 parity; parity framing (not stranger/peer soften); exact `stored.sessionId === incoming` + `occupancyWorktreeMatches`; lock re-read; steal-caller inspect. Relieves P2 for the sibling-contended primary case the issue paste shows.\n\n### pain-P3 — `formatOccupancyAgeCapRemediation` dishonest on primary\n**support**\n\nStop 1: formatter always prints bare reclaim and never states primary outcome.\n\nPin: `formatOccupancyAgeCapRemediation` (~608) is `(record, now, maxLeaseMs)` only and always ends with bare `session:start --session-id=…`. Bound §3: after D, matching-residue primary reclaim makes that command true; residual branch table covers stranger / non-matching / still-blocked (honest linked-worktree or trusted-producer exception; never agent self-auth); linked non-primary keeps today's wording; thread eligibility hint rather than giving the pure formatter filesystem reads; check write-gate / heartbeat / grant call sites. Relieves P3.\n\n## Carriers / disposition\n\n- finding-classes: none\n- harvest-changed: false\n- disposition: bindable-as-posted (non-harvest residue only if implement chooses helper-signature / absolute grant-reach fixture shape already named in Bound §1 A2 / §2 S1 — no new bind lean)\n\nReject / Deferred lists on the Bound stand: B and C deferred with corrected C reason (`owner-liveness.ts` refreshes heartbeat, leaves claimed_at unmoved); outside-repo path scoping leftover stays out of Stop 1 denominator.\n\nconflict_group: occupancy-max-lease-overnight-reclaim\ndispatch-sha: 84b71a993e9d3246db16faad395e35f31120c9d3\nTarget lean: Prefer-A Bound 6018077066\nStop 1: 6017901887",
+          "id": 6018120075,
+          "html_url": "https://github.com/deftai/directive/issues/5413#issuecomment-6018120075",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T14:10:48Z",
+          "updated_at": "2026-10-06T14:10:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nrecorded takes for audit 6018120075\n\nTakes: pain-audit 6018120075 supports P1/P2/P3; finding-classes: none; harvest-changed: false; bindable-as-posted. Prefer-A Bound lean 6018077066 stands. No Recut. Non-harvest implement residue (helper-signature / absolute grant-reach fixture shape) carries into PR acceptance only.",
+          "id": 6018130147,
+          "html_url": "https://github.com/deftai/directive/issues/5413#issuecomment-6018130147",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T14:11:18Z",
+          "updated_at": "2026-10-06T14:11:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| OCCUPANCY_MAX_LEASE_MS is TTL×36 (12h) at pin; no policy knob | pin-read occupancy.ts constant + #3599 docblock; Stop 1 P1; critics 6017962518/6017974731/6018048510 | verified |\n| evaluateOccupancyWriteGate refuses age-capped holders; heartbeat-stale fail-opens | pin-read occupancy.ts ~2208 / ~2232; Claude 6018048510 | verified |\n| primaryCheckoutClaimBlocked same-owner escape requires live≠null; age-capped/heartbeat-stale drops escape; sibling fence then blocks primary | pin-read primaryCheckoutClaimBlocked / evaluateOccupancyCeremonyEligibility; Grok 6017974731; Claude 6018048510 | verified |\n| formatOccupancyAgeCapRemediation always prints bare session:start reclaim | pin-read ~608; Stop 1 P3; all three critics | verified |\n| Prefer-A Bound 6018077066 folds A (24h)+D (predicate parity for age-capped OR heartbeat-stale)+remediation branch table; pain-audit 6018120075 bindable-as-posted | lean 6018077066; PA 6018120075 carriers finding-classes:none harvest-changed:false | verified |\n| owner-liveness.ts already refreshes heartbeat without moving claimed_at; C deferred for that reason | Claude 6018048510 cite; Bound §6 | verified |\n\nsuccessor lean: 6018077066\npain-audit: 6018120075\ndispatch-sha: 84b71a993e9d3246db16faad395e35f31120c9d3\nTarget body digest (issue): sha256:1fad898e2c73fd11d70df5f883add81b311da319a5dd462c53304301a034838e",
+          "id": 6018130786,
+          "html_url": "https://github.com/deftai/directive/issues/5413#issuecomment-6018130786",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T14:11:20Z",
+          "updated_at": "2026-10-06T14:11:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe problem was overnight sessions dying on a 12-hour occupancy age-cap, with primary-checkout reclaim refused when sibling worktrees were live.\n\nThe accepted design raises the default cap to 24 hours and restores same-session primary reclaim for matching lease residue (age-capped or heartbeat-stale), with honest deny wording. The panel agreed; the pain-audit found no Bound change. Ingest stays a separate operator step.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set) on Prefer-A Bound after reserved-seat pain-audit bindable-as-posted.\n\nCited: successor lean 6018077066\nCited: verified-claims table 6018130786\nCited: pain-audit 6018120075 (support P1/P2/P3; finding-classes: none; harvest-changed: false)\nCited: recorded takes 6018130147\n\nRound-1 panel (codex 6017962518, grok 6017974731, claude 6018048510) supported A+D with harvest-changing amends; Bound folded S1 predicate land site, heartbeat-stale coverage, remediation branch table, docblock/grant-clamp honesty, acceptance ritual-rearm wording, and corrected C deferral. Pain-audit cleared without Recut.\n\narc-mode: no-ingest\nIngest remains a separate operator verb (\task issue:ingest).",
+          "id": 6018131312,
+          "html_url": "https://github.com/deftai/directive/issues/5413#issuecomment-6018131312",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T14:11:22Z",
+          "updated_at": "2026-10-06T14:51:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5729564159,
+        "origin": "deftai/directive#5413",
+        "id": "github.issue.5729564159"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "1fad898e2c73fd11d70df5f883add81b311da319a5dd462c53304301a034838e"
+      },
+      "preferABound": {
+        "leanCommentId": 6018077066,
+        "conflict_group": "occupancy-max-lease-overnight-reclaim",
+        "targetDigest": "sha256:1fad898e2c73fd11d70df5f883add81b311da319a5dd462c53304301a034838e",
+        "dispatchSha": "84b71a993e9d3246db16faad395e35f31120c9d3"
+      }
+    },
+    "acceptance": {
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Change OCCUPANCY_MAX_LEASE_MS from OCCUPANCY_TTL_MS * 36 (12h) to OCCUPANCY_TTL_MS * 72 (24h) in packages/core/src/session/occupancy.ts. Keep cap keyed on claimedAt. Rewrite the #3599 docblock for TTL*72 / 24h overnight sizing. Accept grant-clamp doubling (#3755); add Bound test that pins absolute 24h grant reach.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "Extend same-owner escape inside primaryCheckoutClaimBlocked so matching-residue reclaim admits when liveness is age-capped or heartbeat-stale. One shared predicate across evaluateOccupancyCeremonyEligibility, applyWorktreeOccupancy, and stealOccupancy inspection. Exact stored.sessionId === incoming; occupancyWorktreeMatches; re-read under lock. Reject stranger/peer/member/inherited.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "Branch formatOccupancyAgeCapRemediation (and ceremony-aware denial assembly): (1) same-session matching residue prints admitted reclaim without exception flag; (2) stranger/non-matching/still-blocked primary prints linked worktree or trusted-producer --primary-claim-exception=operator-default-branch; (3) linked non-primary age-cap keeps today reclaim wording. Do not promise ritual readiness from lease reclaim alone.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Tests: linked worktree reclaim under new cap; primary+live sibling+matching owner admits for age-capped and heartbeat-stale residue; exact-cap and cap+1ms boundaries; mismatched-tree/different-owner refuse; reclaim resets claim age and clears expired-lease grants; absolute 24h grant-reach pin. Acceptance claim: no operator --primary-claim-exception for matching-residue holder (ritual re-arm may still apply).",
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ],
+      "x-directive/admitted_source_sentences": [
+        "Change OCCUPANCY_MAX_LEASE_MS from OCCUPANCY_TTL_MS * 36 (12h) to OCCUPANCY_TTL_MS * 72 (24h) in packages/core/src/session/occupancy.ts. Keep cap keyed on claimedAt. Rewrite the #3599 docblock for TTL*72 / 24h overnight sizing. Accept grant-clamp doubling (#3755); add Bound test that pins absolute 24h grant reach.",
+        "Extend same-owner escape inside primaryCheckoutClaimBlocked so matching-residue reclaim admits when liveness is age-capped or heartbeat-stale. One shared predicate across evaluateOccupancyCeremonyEligibility, applyWorktreeOccupancy, and stealOccupancy inspection. Exact stored.sessionId === incoming; occupancyWorktreeMatches; re-read under lock. Reject stranger/peer/member/inherited.",
+        "Branch formatOccupancyAgeCapRemediation (and ceremony-aware denial assembly): (1) same-session matching residue prints admitted reclaim without exception flag; (2) stranger/non-matching/still-blocked primary prints linked worktree or trusted-producer --primary-claim-exception=operator-default-branch; (3) linked non-primary age-cap keeps today reclaim wording. Do not promise ritual readiness from lease reclaim alone.",
+        "Tests: linked worktree reclaim under new cap; primary+live sibling+matching owner admits for age-capped and heartbeat-stale residue; exact-cap and cap+1ms boundaries; mismatched-tree/different-owner refuse; reclaim resets claim age and clears expired-lease grants; absolute 24h grant-reach pin. Acceptance claim: no operator --primary-claim-exception for matching-residue holder (ritual re-arm may still apply)."
+      ]
+    },
+    "id": "github.issue.5729564159",
+    "updated": "2026-10-06T14:57:25Z"
+  }
+}
