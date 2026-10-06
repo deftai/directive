@@ -149,7 +149,11 @@
         "model_tier": "default"
       },
       "activationPullRequest": 5394,
-      "productPullRequest": 5395
+      "productPullRequest": 5395,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-06T02:16:41Z"
+      }
     },
     "references": [
       {
