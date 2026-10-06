@@ -325,7 +325,10 @@ export function parseNameStatus(text: string): NameStatusRow[] {
   return rows.filter((r) => r.path.length > 0);
 }
 
-function isRenameToDocumentWithoutProof(row: NameStatusRow, classify: typeof classifyChangedPath): boolean {
+function isRenameToDocumentWithoutProof(
+  row: NameStatusRow,
+  classify: typeof classifyChangedPath,
+): boolean {
   if (!(row.status.startsWith("R") || row.status.startsWith("C"))) return false;
   if (row.oldPath === null) return true;
   const oldClass = classify(row.oldPath, row.status, null);
@@ -374,8 +377,7 @@ export function evaluateCoverageApplicability(
         return {
           outcome: "refuse",
           code: "tree-mismatch",
-          reason:
-            "coverage-applicability: binding treeHash does not match the reviewed head tree",
+          reason: "coverage-applicability: binding treeHash does not match the reviewed head tree",
           changes: empty,
         };
       }
@@ -429,9 +431,7 @@ export function evaluateCoverageApplicability(
     }
 
     if (changes.some((c) => c.classification === "unknown")) {
-      const unknownPaths = changes
-        .filter((c) => c.classification === "unknown")
-        .map((c) => c.path);
+      const unknownPaths = changes.filter((c) => c.classification === "unknown").map((c) => c.path);
       return {
         outcome: "refuse",
         code: "unknown-path",
@@ -466,7 +466,11 @@ export function evaluateCoverageApplicability(
   } catch (err: unknown) {
     if (err instanceof GitCommandError) {
       const msg = err.message;
-      if (msg.includes("baseSha") || msg.includes(input.baseSha) || /unknown revision|bad revision|needed a single revision/i.test(msg)) {
+      if (
+        msg.includes("baseSha") ||
+        msg.includes(input.baseSha) ||
+        /unknown revision|bad revision|needed a single revision/i.test(msg)
+      ) {
         return {
           outcome: "refuse",
           code: "invalid-base",

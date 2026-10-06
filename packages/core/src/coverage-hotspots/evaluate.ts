@@ -274,8 +274,7 @@ function buildApplicabilityArtifact(
   return {
     schema: "deft.coverage-applicability.v1",
     outcome: result.outcome,
-    skipReason:
-      result.outcome === "not-applicable" ? COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP : null,
+    skipReason: result.outcome === "not-applicable" ? COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP : null,
     reason:
       result.outcome === "not-applicable"
         ? result.reason

@@ -341,9 +341,7 @@ describe("controller observations", () => {
       inputHash: rec.inputHash,
       skipReason: null,
     });
-    expect(
-      runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord).ok,
-    ).toBe(false);
+    expect(runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord).ok).toBe(false);
 
     const store2 = new InProcessPrePrStore();
     const rec2 = start(store2, "ppr_cov_forge");
@@ -355,9 +353,7 @@ describe("controller observations", () => {
       skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
     });
     // Exact token without matching re-derivation (default cwd is not an inert binding).
-    expect(
-      runObservablesComplete(store2.getById(rec2.id) as PrePrExecutionRecord).ok,
-    ).toBe(false);
+    expect(runObservablesComplete(store2.getById(rec2.id) as PrePrExecutionRecord).ok).toBe(false);
   });
 
   it("coverage_headroom accepts authorized skip when applicability re-derives not-applicable", () => {

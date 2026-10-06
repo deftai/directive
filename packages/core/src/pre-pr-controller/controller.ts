@@ -9,8 +9,8 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import {
-  evaluateCoverageApplicability,
   type CoverageApplicabilityDeps,
+  evaluateCoverageApplicability,
 } from "../coverage-applicability/index.js";
 import {
   isAllowedSkip,

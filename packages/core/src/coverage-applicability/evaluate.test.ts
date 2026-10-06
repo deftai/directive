@@ -4,11 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
-import {
-  classifyChangedPath,
-  evaluateCoverageApplicability,
-  parseNameStatus,
-} from "./evaluate.js";
+import { classifyChangedPath, evaluateCoverageApplicability, parseNameStatus } from "./evaluate.js";
 
 const temps: string[] = [];
 afterAll(() => {
@@ -33,7 +29,10 @@ function gitRepo(files: Record<string, string>): string {
   return root;
 }
 
-function bindingFor(root: string, baseSha: string): {
+function bindingFor(
+  root: string,
+  baseSha: string,
+): {
   projectRoot: string;
   baseSha: string;
   headSha: string;
@@ -59,9 +58,7 @@ describe("classifyChangedPath", () => {
 
   it("classifies planning/docs paths as inert under closed rules", () => {
     expect(classifyChangedPath("docs/design/overview.md", "A", null)).toBe("inert");
-    expect(
-      classifyChangedPath("xbrief/proposed/story.xbrief.json", "A", null),
-    ).toBe("inert");
+    expect(classifyChangedPath("xbrief/proposed/story.xbrief.json", "A", null)).toBe("inert");
     expect(classifyChangedPath("xbrief/decisions/d1.json", "A", null)).toBe("inert");
     expect(classifyChangedPath("CHANGELOG.md", "M", null)).toBe("inert");
   });
