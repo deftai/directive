@@ -92,6 +92,9 @@ describe("Plan.narratives source provenance (#479)", () => {
     expect(extractLeadingConfidenceToken("Highly uncertain")).toBeNull();
     expect(extractLeadingConfidenceToken("High uncertainty")).toBeNull();
     expect(extractLeadingConfidenceToken("Not assessed")).toBeNull();
+    expect(extractLeadingConfidenceToken("High or medium")).toBeNull();
+    expect(extractLeadingConfidenceToken("Medium-low")).toBeNull();
+    expect(extractLeadingConfidenceToken("high/medium")).toBeNull();
   });
 
   it("treats Evidence-only as a narrative section, not an atomic claim", () => {

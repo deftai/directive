@@ -15,6 +15,7 @@ import {
   containedWrite,
 } from "../fs/contained-write.js";
 import { d7Basename, isScopeLifecyclePath, validateFilename } from "../vbrief-validate/filename.js";
+import { requireCanonicalConfidence } from "../vbrief-validate/provenance.js";
 import { type JsonObject, validateVbriefSchema } from "../vbrief-validate/schema.js";
 import { resolveXbriefOutPaths, XbriefPathError } from "./paths.js";
 import { buildStyleDocument, renderMarkdown } from "./styles.js";
@@ -265,6 +266,16 @@ export function createXbrief(options: CreateOptions): XbriefCliResult {
       `xbrief:create schema invalid:\n${schemaErrors.map((e) => `  - ${e}`).join("\n")}\n`,
       1,
     );
+  }
+  // Writers MUST emit high|medium|low; lenient validate WARNs do not authorize create (#5385).
+  const narratives = (doc as { plan?: { narratives?: Record<string, unknown> } }).plan?.narratives;
+  if (narratives !== undefined && "Confidence" in narratives) {
+    try {
+      requireCanonicalConfidence(narratives.Confidence);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return fail(`xbrief:create refused: ${msg}\n`, 1);
+    }
   }
 
   const sizeCap = options.sizeCapBytes ?? DEFAULT_XBRIEF_SIZE_CAP_BYTES;

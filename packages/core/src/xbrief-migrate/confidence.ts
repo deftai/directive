@@ -89,23 +89,35 @@ function collectVbriefFiles(dir: string, acc: CorpusWalk = { files: [] }): Corpu
 function selectFallbackCorpusDir(projectRoot: string): string | null {
   const xbriefDir = join(projectRoot, "xbrief");
   const legacyDir = join(projectRoot, "vbrief");
-  if (existsSync(xbriefDir)) {
+  const xbriefExists = existsSync(xbriefDir);
+  // Prefer an inhabited xbrief/ so an empty stub does not hide legacy vbrief/ (#5385 Greptile P2).
+  if (xbriefExists && collectVbriefFiles(xbriefDir).files.length > 0) {
     return xbriefDir;
   }
   if (existsSync(legacyDir)) {
     return legacyDir;
   }
-  return null;
+  return xbriefExists ? xbriefDir : null;
 }
 
 function resolveCorpusDir(projectRoot: string): string | null {
+  let corpusDir: string;
   try {
-    const corpusDir = resolveLifecycleRoot(projectRoot);
-    assertDirectoryNotSymlink(projectRoot, corpusDir, "lifecycle root");
-    return corpusDir;
+    corpusDir = resolveLifecycleRoot(projectRoot);
   } catch {
-    return selectFallbackCorpusDir(projectRoot);
+    const fallback = selectFallbackCorpusDir(projectRoot);
+    if (fallback === null) {
+      return null;
+    }
+    corpusDir = fallback;
   }
+  try {
+    assertDirectoryNotSymlink(projectRoot, corpusDir, "lifecycle root");
+  } catch {
+    // Symlink escape must not fall through to reads/prints (Greptile P1).
+    return null;
+  }
+  return corpusDir;
 }
 
 function isHistoricalFolder(relPath: string): boolean {
@@ -257,6 +269,7 @@ export function parseArgs(argv: readonly string[]): ParsedMigrateConfidenceArgs 
   let projectRoot = ".";
   let apply = false;
   let includeHistorical = false;
+  let dryRunFlag = false;
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
     if (arg === "--project-root") {
@@ -277,9 +290,22 @@ export function parseArgs(argv: readonly string[]): ParsedMigrateConfidenceArgs 
       apply = true;
     } else if (arg === "--include-historical") {
       includeHistorical = true;
-    } else if (arg !== "--help" && arg !== "-h" && arg !== "--dry-run") {
+    } else if (arg === "--dry-run") {
+      dryRunFlag = true;
+    } else if (arg !== "--help" && arg !== "-h") {
       return { projectRoot, apply, includeHistorical, error: `unrecognized argument: ${arg}` };
     }
+  }
+  if (apply && dryRunFlag) {
+    return {
+      projectRoot,
+      apply: false,
+      includeHistorical,
+      error: "conflicting flags: --apply and --dry-run",
+    };
+  }
+  if (dryRunFlag) {
+    apply = false;
   }
   return { projectRoot, apply, includeHistorical };
 }

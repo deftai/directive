@@ -73,4 +73,15 @@ describe("migrate:confidence (#5385)", () => {
   it("help exits 0", () => {
     expect(run(["--help"])).toBe(0);
   });
+
+  it("rejects --apply with --dry-run and declines range Confidence", () => {
+    const root = mkdtempSync(join(tmpdir(), "migrate-confidence-flags-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeBrief(root, "xbrief/active/range.xbrief.json", "running", "High or medium");
+    expect(run(["--project-root", root, "--apply", "--dry-run"])).toBe(2);
+    const declined = migrateConfidenceCorpus(root, { apply: true });
+    expect(declined.mapped).toEqual([]);
+    expect(declined.declined.some((h) => h.path.includes("range"))).toBe(true);
+    expect(declined.changed).toEqual([]);
+  });
 });

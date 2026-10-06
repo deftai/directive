@@ -280,6 +280,38 @@ describe("CLI entry points (#3057)", () => {
     expect(capped.stderr).toContain("size cap");
   });
 
+  it("refuses --from-json prose Confidence (writers MUST emit enum) (#5385)", () => {
+    const root = freshRoot("xbrief-from-json-confidence-");
+    const src = join(root, "prose.xbrief.json");
+    writeFileSync(
+      src,
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8", description: "seed" },
+          plan: {
+            title: "Prose Confidence",
+            status: "draft",
+            narratives: { Confidence: "High. still drafting." },
+            items: [],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    const refused = createXbrief({
+      format: "json",
+      out: "from/prose",
+      style: "scope",
+      fromJson: src,
+      projectRoot: root,
+      force: true,
+    });
+    expect(refused.exitCode).toBe(1);
+    expect(refused.stderr).toMatch(/MUST emit|Confidence/i);
+  });
+
   it("refuses uppercase slug when --out is a lifecycle scope path (#4578)", () => {
     const root = freshRoot("xbrief-d7-create-");
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
