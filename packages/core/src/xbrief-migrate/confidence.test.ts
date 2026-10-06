@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -87,5 +87,22 @@ describe("migrate:confidence (#5385)", () => {
     expect(declined.declined.some((h) => h.path.includes("compound"))).toBe(true);
     expect(declined.declined.some((h) => h.path.includes("pair"))).toBe(true);
     expect(declined.changed).toEqual([]);
+  });
+
+  it("apply preserves existing brief permission bits", () => {
+    const root = mkdtempSync(join(tmpdir(), "migrate-confidence-mode-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    const rel = "xbrief/active/private.xbrief.json";
+    writeBrief(root, rel, "running", "High. private note");
+    const full = join(root, rel);
+    chmodSync(full, 0o600);
+    const before = statSync(full).mode & 0o777;
+    if (before !== 0o600) {
+      // Windows may not honor unix mode bits; skip assertion when chmod is a no-op.
+      return;
+    }
+    const applied = migrateConfidenceCorpus(root, { apply: true });
+    expect(applied.changed).toEqual([rel]);
+    expect(statSync(full).mode & 0o777).toBe(0o600);
   });
 });

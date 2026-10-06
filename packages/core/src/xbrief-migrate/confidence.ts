@@ -8,6 +8,7 @@
 import { type Dirent, existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import {
+  containedChmod,
   containedRemove,
   containedRename,
   containedWrite,
@@ -141,6 +142,12 @@ function migrateAtomicTempPath(targetPath: string): string {
 /** Contained temp+rename so a failed replace cannot truncate the live brief. */
 function containedReplaceAtomic(root: string, target: string, data: string): void {
   const temporary = migrateAtomicTempPath(target);
+  let preservedMode: number | undefined;
+  try {
+    preservedMode = lstatSync(target).mode & 0o777;
+  } catch {
+    preservedMode = undefined;
+  }
   try {
     containedWrite({
       root,
@@ -149,6 +156,10 @@ function containedReplaceAtomic(root: string, target: string, data: string): voi
       mode: "replace",
       mutation: { path: target },
     });
+    // Preserve private modes (e.g. 0600) — containedWrite defaults to 0644.
+    if (preservedMode !== undefined) {
+      containedChmod({ root, target: temporary, mode: preservedMode, mutation: false });
+    }
     containedRename({
       root,
       from: temporary,
