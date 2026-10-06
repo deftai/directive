@@ -431,7 +431,9 @@ describe("stale DEFT_ACTIVE_SCOPE pin-miss recovery (#5386)", () => {
     expect(result.ready).toBe(true);
     expect(result.warning).toBeDefined();
     expect(result.warning).not.toContain("\n");
-    expect(result.warning).toContain(fenceUntrustedAcceptanceText("xbrief/active/stale inject.xbrief.json"));
+    expect(result.warning).toContain(
+      fenceUntrustedAcceptanceText("xbrief/active/stale inject.xbrief.json"),
+    );
   });
 });
 

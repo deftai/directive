@@ -161,8 +161,7 @@ function formatZeroEligibleBlockedMessage(blocked: readonly string[]): string {
 function formatMissingEnvPinMessage(pin: string, eligibleCount: number): string {
   const fenced = fencePinValue(pin);
   const base =
-    `${ACTIVE_SCOPE_PIN_ENV} names a path absent from xbrief/active/ ` +
-    `(got ${fenced}).`;
+    `${ACTIVE_SCOPE_PIN_ENV} names a path absent from xbrief/active/ ` + `(got ${fenced}).`;
   if (eligibleCount === 0) {
     return (
       `${base} Clear or repoint ${ACTIVE_SCOPE_PIN_ENV} to an eligible running brief, ` +
@@ -198,9 +197,7 @@ function formatMatchedRejectedPinMessage(
     `${label} ${fencePinValue(pin)} names a present brief that is not ` +
     `implementation-eligible (${fenceActiveScopeName(matchedPath)}): ${rejected}`;
   if (isBlocked) {
-    return (
-      `${base} Recovery: run \`deft scope:unblock -- ${fenceActiveScopeName(matchedPath)}\`.`
-    );
+    return `${base} Recovery: run \`deft scope:unblock -- ${fenceActiveScopeName(matchedPath)}\`.`;
   }
   return base;
 }
@@ -286,13 +283,7 @@ export function inspectActiveScope(
         return {
           ready: false,
           path: null,
-          message: formatMatchedRejectedPinMessage(
-            pin,
-            pinSource,
-            rejected,
-            matched,
-            isBlocked,
-          ),
+          message: formatMatchedRejectedPinMessage(pin, pinSource, rejected, matched, isBlocked),
           denyKind: "pin-miss",
         };
       }
