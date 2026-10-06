@@ -2541,6 +2541,7 @@ describe("stampDeclaredMergeEvidence (#5105)", () => {
         completionProvenance: {
           mergeCommit: "abcdef1",
           deliveryBranch: "master",
+          disposition: "delivered",
           verifier: "scope:complete",
         },
       },
@@ -2570,6 +2571,7 @@ describe("stampDeclaredMergeEvidence (#5105)", () => {
         completionProvenance: {
           mergeCommit: "abcdef1",
           deliveryBranch: "master",
+          disposition: "delivered",
           verifier: "scope:complete",
         },
       },
@@ -2597,6 +2599,7 @@ describe("stampDeclaredMergeEvidence (#5105)", () => {
         completionProvenance: {
           mergeCommit: "abcdef1",
           deliveryBranch: "master",
+          disposition: "delivered",
           verifier: "scope:complete",
         },
       },
@@ -2626,6 +2629,7 @@ describe("stampDeclaredMergeEvidence (#5105)", () => {
           mergeCommit: "abcdef1",
           deliveryBranch: "master",
           deliveryCommit: "tipsha",
+          disposition: "delivered",
           verifier: "scope:complete",
         },
       },
@@ -2694,6 +2698,7 @@ describe("stampDeclaredMergeEvidence (#5105)", () => {
         completionProvenance: {
           mergeCommit: "abcdef1",
           deliveryBranch: "master",
+          disposition: "delivered",
           verifier: "scope:complete",
         },
       },
@@ -2727,7 +2732,7 @@ describe("historical ship-closeout (#5403)", () => {
     captureFromNarratives: false,
   } as const;
 
-  it("admits clause-less empty acceptance when merge provenance is present", () => {
+  it("admits clause-less empty acceptance when delivered provenance is present", () => {
     const walk = evaluateScopeCompleteAcceptanceWalk(
       {
         id: "5403-clause-less",
@@ -2738,6 +2743,7 @@ describe("historical ship-closeout (#5403)", () => {
           completionProvenance: {
             mergeCommit: "abcdef1",
             deliveryBranch: "master",
+            disposition: "delivered",
             prNumber: 99,
           },
         },
@@ -2756,6 +2762,50 @@ describe("historical ship-closeout (#5403)", () => {
         title: "empty acceptance",
         acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
         items: [],
+      },
+      walkOptions,
+    );
+    expect(walk.ok).toBe(false);
+    expect(walk.predicate).toBe("empty-acceptance");
+  });
+
+  it("refuses non-delivery disposition even when merge pointers are present", () => {
+    const walk = evaluateScopeCompleteAcceptanceWalk(
+      {
+        id: "5403-non-delivery",
+        title: "unshipped with merge pointers",
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+        items: [],
+        metadata: {
+          completionProvenance: {
+            mergeCommit: "abcdef1",
+            deliveryBranch: "master",
+            disposition: "accepted_not_delivered",
+            prNumber: 99,
+          },
+        },
+      },
+      walkOptions,
+    );
+    expect(walk.ok).toBe(false);
+    expect(walk.predicate).toBe("empty-acceptance");
+    expect(walk.message).not.toContain(HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE);
+  });
+
+  it("refuses merge pointers without delivered disposition", () => {
+    const walk = evaluateScopeCompleteAcceptanceWalk(
+      {
+        id: "5403-no-disposition",
+        title: "merge pointers only",
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+        items: [],
+        metadata: {
+          completionProvenance: {
+            mergeCommit: "abcdef1",
+            deliveryBranch: "master",
+            prNumber: 99,
+          },
+        },
       },
       walkOptions,
     );
@@ -2786,6 +2836,7 @@ describe("historical ship-closeout (#5403)", () => {
           completionProvenance: {
             mergeCommit: "abcdef1",
             deliveryBranch: "master",
+            disposition: "delivered",
             prNumber: 99,
           },
         },
@@ -2799,15 +2850,32 @@ describe("historical ship-closeout (#5403)", () => {
     );
   });
 
-  it("migrates none_stated only when merge provenance is present", () => {
+  it("migrates none_stated only when delivered provenance is present", () => {
     const withProv: Record<string, unknown> = {
       acceptance: { commands: [], none_stated: false },
       metadata: {
-        completionProvenance: { mergeCommit: "abcdef1", deliveryBranch: "master" },
+        completionProvenance: {
+          mergeCommit: "abcdef1",
+          deliveryBranch: "master",
+          disposition: "delivered",
+        },
       },
     };
     expect(migrateNoneStatedForHistoricalShip(withProv)).toBe(true);
     expect((withProv.acceptance as { none_stated: boolean }).none_stated).toBe(true);
+
+    const nonDelivery: Record<string, unknown> = {
+      acceptance: { commands: [], none_stated: false },
+      metadata: {
+        completionProvenance: {
+          mergeCommit: "abcdef1",
+          deliveryBranch: "master",
+          disposition: "accepted_not_delivered",
+        },
+      },
+    };
+    expect(migrateNoneStatedForHistoricalShip(nonDelivery)).toBe(false);
+    expect((nonDelivery.acceptance as { none_stated: boolean }).none_stated).toBe(false);
 
     const without: Record<string, unknown> = {
       acceptance: { commands: [], none_stated: false },
@@ -2832,6 +2900,7 @@ describe("historical ship-closeout (#5403)", () => {
           mergeCommit: "abcdef1",
           deliveryBranch: "master",
           deliveryCommit: "tipsha",
+          disposition: "delivered",
           verifier: "scope:complete",
         },
       },

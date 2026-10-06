@@ -65,7 +65,7 @@ Membership-land (Path B activation) PRs that only touch nonterminal `xbrief|vbri
 
 Already-shipped briefs can remain in `xbrief/active/` when `scope:complete` refuses empty `plan.acceptance.commands` without `none_stated` (#3284). That keeps the multi-active write fence red for unrelated work.
 
-**Closeout:** `deft scope:complete -- <stale-brief> --merge-commit <sha> --pr <n> [--delivery-branch <branch>]`. Admission is repository-qualified delivery ancestry + linked PR (existing completion-provenance / #5105 machinery). `verify:completed-tracked` (#3476) is post-land DONE proof only — not an entry gate.
+**Closeout:** `deft scope:complete -- <stale-brief> --merge-commit <sha> --pr <n> [--delivery-branch <branch>]`. Admission is repository-qualified delivery ancestry + linked PR (existing completion-provenance / #5105 machinery) that stamps `disposition: delivered`. Merge pointers alone, or `--non-delivery` with merge pointers, do not admit historical ship-closeout. `verify:completed-tracked` (#3476) is post-land DONE proof only — not an entry gate.
 
 **Stage ladder (historical class):**
 

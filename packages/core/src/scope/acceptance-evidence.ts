@@ -1048,8 +1048,9 @@ function passThroughProvenanceAncestry(
 
 /**
  * Complete-path persist writer for stampDeclaredMergeEvidence (#5105 / #5120).
- * Runs only when delivery completionProvenance already carries mergeCommit +
- * deliveryBranch. Does not run inside evaluateAcceptanceEvidenceGate.
+ * Runs only when delivery completionProvenance already carries verified
+ * delivered ship provenance (mergeCommit + deliveryBranch + disposition
+ * "delivered"). Does not run inside evaluateAcceptanceEvidenceGate.
  * Never falls back to process.cwd() (#5105 Greptile P1).
  */
 export function stampMergeFromCompletionProvenance(
@@ -1057,15 +1058,16 @@ export function stampMergeFromCompletionProvenance(
   options: StampMergeFromCompletionProvenanceOptions = {},
 ): StampDeclaredTestEvidenceResult {
   const empty: StampDeclaredTestEvidenceResult = { stampedIds: [], skipped: [] };
+  if (!isHistoricalShipCloseout(plan)) {
+    return empty;
+  }
   const prov = readCompletionProvenance(plan);
   if (prov === null) {
     return empty;
   }
-  const mergeCommit = typeof prov.mergeCommit === "string" ? prov.mergeCommit.trim() : "";
-  const deliveryBranch = typeof prov.deliveryBranch === "string" ? prov.deliveryBranch.trim() : "";
-  if (mergeCommit.length === 0 || deliveryBranch.length === 0) {
-    return empty;
-  }
+  // isHistoricalShipCloseout already required non-empty delivered pointers.
+  const mergeCommit = (prov.mergeCommit as string).trim();
+  const deliveryBranch = (prov.deliveryBranch as string).trim();
   const projectRoot =
     typeof options.projectRoot === "string" && options.projectRoot.trim().length > 0
       ? options.projectRoot.trim()
@@ -1550,7 +1552,11 @@ function walkItems(
  * happens at intake / promote via clause derivation (#3323).
  */
 
-/** True when plan.metadata.completionProvenance carries mergeCommit + deliveryBranch (#5403). */
+/**
+ * True when plan.metadata.completionProvenance is verified delivered ship
+ * provenance (#5403): mergeCommit + deliveryBranch + disposition "delivered".
+ * Non-delivery dispositions (even with merge pointers) must not admit.
+ */
 export function isHistoricalShipCloseout(plan: Record<string, unknown>): boolean {
   const prov = readCompletionProvenance(plan);
   if (prov === null) {
@@ -1558,7 +1564,8 @@ export function isHistoricalShipCloseout(plan: Record<string, unknown>): boolean
   }
   const mergeCommit = typeof prov.mergeCommit === "string" ? prov.mergeCommit.trim() : "";
   const deliveryBranch = typeof prov.deliveryBranch === "string" ? prov.deliveryBranch.trim() : "";
-  return mergeCommit.length > 0 && deliveryBranch.length > 0;
+  const disposition = typeof prov.disposition === "string" ? prov.disposition.trim() : "";
+  return mergeCommit.length > 0 && deliveryBranch.length > 0 && disposition === "delivered";
 }
 
 /** True when acceptance.clauses is absent or empty (Stage-2 clause-less hatch, #5403). */
