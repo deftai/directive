@@ -60,11 +60,20 @@ export function validateBriefForPersist(
   filePath: string,
   data: JsonObject,
   vbriefRoot: string,
+  options: { readonly warnings?: string[] } = {},
 ): string | null {
+  const callerOwnsWarnings = options.warnings !== undefined;
+  const warnings = options.warnings ?? [];
+  // Collect Prefer-A / Class B demotions so terminal warnings are not dropped (#5422).
   const errors = [
-    ...validateVbriefSchema(data, filePath),
+    ...validateVbriefSchema(data, filePath, warnings),
     ...validateFolderStatus(filePath, data, vbriefRoot),
   ];
+  if (!callerOwnsWarnings) {
+    for (const w of warnings) {
+      process.stderr.write(`WARN: ${w}\n`);
+    }
+  }
   if (errors.length === 0) {
     return null;
   }

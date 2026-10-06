@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Terminal Visage xBRIEF validate compat (#5422).** On completed/cancelled/failed plans, unknown `x-xbrief/*` reserved subtypes and leftover `clause:N` item ids warn instead of hard-fail (envelope stays 0.8; writers still mint `clause.N`). Clears Visage historical corpus class R/C blockers without growing CLASS_B. Tracking #5422. Refs #4698, #4746, #4846.
+- **Terminal Visage xBRIEF validate compat (#5422).** On completed/cancelled/failed plans, unknown `x-xbrief/*` reserved subtypes and leftover `clause:N` item ids warn instead of hard-fail (envelope stays 0.8; writers still mint `clause.N`). `xbrief:verify` and persist validation collect and surface those demotions so direct callers do not drop them. Clears Visage historical corpus class R/C blockers without growing CLASS_B. Tracking #5422. Refs #4698, #4746, #4846.
 
 - **Overnight occupancy reclaim on primary (#5413).** Raise `OCCUPANCY_MAX_LEASE_MS` to TTL×72 (24h); extend same-owner primary residue reclaim for age-capped or heartbeat-stale matching residue without `--primary-claim-exception`; branch age-cap remediation for blocked primary vs admitted reclaim. Tracking #5413. Refs #3599, #3755, #4290.
 

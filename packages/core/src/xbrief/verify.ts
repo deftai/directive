@@ -202,6 +202,7 @@ export function verifyXbrief(options: VerifyOptions): XbriefCliResult {
 
   const sizeCap = options.sizeCapBytes ?? DEFAULT_XBRIEF_SIZE_CAP_BYTES;
   const errors: string[] = [];
+  const warnings: string[] = [];
 
   let doc: XbriefDocument | null = null;
   let mdMeta: ReturnType<typeof parseMarkdownMeta> | null = null;
@@ -216,7 +217,12 @@ export function verifyXbrief(options: VerifyOptions): XbriefCliResult {
         errors.push(parsed.error.trimEnd());
       } else {
         doc = parsed.doc;
-        const schemaErrors = validateVbriefSchema(doc as unknown as JsonObject, paths.jsonAbs);
+        // Collect Prefer-A / Class B demotions so terminal warnings are not dropped (#5422).
+        const schemaErrors = validateVbriefSchema(
+          doc as unknown as JsonObject,
+          paths.jsonAbs,
+          warnings,
+        );
         for (const e of schemaErrors) errors.push(e);
       }
     }
@@ -276,12 +282,19 @@ export function verifyXbrief(options: VerifyOptions): XbriefCliResult {
   }
 
   if (errors.length > 0) {
-    return fail(`xbrief:verify failed:\n${errors.map((e) => `  - ${e}`).join("\n")}\n`, 1);
+    const warnBlock =
+      warnings.length > 0 ? `${warnings.map((w) => `WARN: ${w}`).join("\n")}\n` : "";
+    return fail(
+      `${warnBlock}xbrief:verify failed:\n${errors.map((e) => `  - ${e}`).join("\n")}\n`,
+      1,
+    );
   }
 
   const checked = [paths.jsonAbs, paths.mdAbs].filter((p): p is string => p !== null);
+  const warningNote = warnings.length > 0 ? ` (${warnings.length} warning(s))` : "";
   const lines = [
-    `OK xbrief:verify format=${options.format}`,
+    ...warnings.map((w) => `WARN: ${w}`),
+    `OK xbrief:verify format=${options.format}${warningNote}`,
     ...checked.map((p) => `  checked ${p}`),
     "  note: verify is not a lifecycle move (scope:* handles promote/activate/complete)",
   ];

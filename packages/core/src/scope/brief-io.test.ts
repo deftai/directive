@@ -98,6 +98,29 @@ describe("brief-io", () => {
     expect(errors).toMatch(/missing required top-level key/);
   });
 
+  it("validateBriefForPersist surfaces terminal Prefer-A warnings via collector (#5422)", () => {
+    root = mkdtempSync(join(tmpdir(), "brief-io-warn-"));
+    const vbriefRoot = join(root, "xbrief");
+    mkdirSync(join(vbriefRoot, "completed"), { recursive: true });
+    const path = join(vbriefRoot, "completed", "legacy.xbrief.json");
+    const warnings: string[] = [];
+    const result = validateBriefForPersist(
+      path,
+      {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "Terminal legacy",
+          status: "completed",
+          items: [{ id: "clause:1", title: "colon", status: "pending" }],
+        },
+      },
+      vbriefRoot,
+      { warnings },
+    );
+    expect(result).toBeNull();
+    expect(warnings.some((w) => w.includes("legacy clause-colon id"))).toBe(true);
+  });
+
   it("validateBriefForPersist rejects folder/status mismatches", () => {
     root = mkdtempSync(join(tmpdir(), "brief-io-folder-"));
     const vbriefRoot = join(root, "xbrief");

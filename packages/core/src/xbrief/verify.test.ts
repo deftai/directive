@@ -73,6 +73,38 @@ describe("verify failures (#3057)", () => {
     expect(r.stderr).toMatch(/schema|missing required|xBRIEFInfo|plan/i);
   });
 
+  it("surfaces terminal Prefer-A clause:N warnings without failing (#5422)", () => {
+    const root = freshRoot("xbrief-verify-warn-");
+    const dir = join(root, "term");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "legacy.xbrief.json"),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            title: "Terminal legacy",
+            status: "completed",
+            items: [{ id: "clause:1", title: "colon", status: "pending" }],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    const r = verifyXbrief({
+      format: "json",
+      out: "term/legacy",
+      projectRoot: root,
+    });
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout).toContain("WARN:");
+    expect(r.stdout).toMatch(/legacy clause-colon id/);
+    expect(r.stdout).toContain("OK xbrief:verify");
+    expect(r.stdout).toContain("1 warning(s)");
+  });
+
   it("fails when md is missing required sections", () => {
     const root = freshRoot("xbrief-verify-md-");
     const dir = join(root, "md");

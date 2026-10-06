@@ -352,17 +352,39 @@ describe("migrate:clause-ids CLI (#5011)", () => {
 });
 
 describe("vbrief:validate stays hard on clause:N (#5011)", () => {
-  it("still rejects leftover colon ids after the hop exists", () => {
+  it("still rejects leftover colon ids on non-terminal plans after the hop exists", () => {
     const errors = validateVbriefSchema(
       {
         ...MINIMAL_V08,
         plan: {
           ...MINIMAL_V08.plan,
+          // Prefer-A (#5422) demotes clause:N only on completed/cancelled/failed.
+          status: "draft",
           items: [{ id: "clause:1", title: "colon", status: "pending" }],
         },
       },
       "id-colon.json",
     );
     expect(errors.some((e) => e.includes("invalid id"))).toBe(true);
+  });
+
+  it("demotes leftover colon ids to warnings on terminal plans when a collector is passed", () => {
+    const warnings: string[] = [];
+    const errors = validateVbriefSchema(
+      {
+        ...MINIMAL_V08,
+        plan: {
+          ...MINIMAL_V08.plan,
+          status: "completed",
+          items: [{ id: "clause:1", title: "colon", status: "pending" }],
+        },
+      },
+      "id-colon-terminal.json",
+      warnings,
+    );
+    expect(errors.some((e) => e.includes("invalid id"))).toBe(false);
+    expect(warnings.some((w) => w.includes("legacy clause-colon id") && w.includes("clause:1"))).toBe(
+      true,
+    );
   });
 });
