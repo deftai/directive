@@ -38,28 +38,34 @@ export function isPainCoverageBlockReason(
   return PAIN_COVERAGE_REASON_SET.has(reason);
 }
 
+/** Returned-failure shape — empty summary is free (no throw/reject/abort; #5010 / #5415). */
+export type LeanCiteOnlyPath1BodyResult =
+  | { readonly ok: true; readonly body: string }
+  | { readonly ok: false; readonly reason: "empty-plain-english-summary" };
+
 /**
  * Unpublished path-1 body that cites only the successor lean. No table id.
  * Requires a parent-supplied non-empty plain-English summary (#5415).
+ * Empty summary returns `{ ok:false }` — callers refuse via evaluateAutoStampPath1Write.
  */
 export function leanCiteOnlyPath1Body(
   successorLeanId: number,
   plainEnglishSummary: string,
-): string {
+): LeanCiteOnlyPath1BodyResult {
   const summary = plainEnglishSummary.trim();
   if (summary.length === 0) {
-    throw new Error(
-      "leanCiteOnlyPath1Body requires a non-empty plainEnglishSummary; repair the path-1 candidate",
-    );
+    return { ok: false, reason: "empty-plain-english-summary" };
   }
-  return (
-    "model: grok-4.6\nrole: parent\n\n" +
-    "## In plain English\n\n" +
-    summary +
-    "\n\n" +
-    "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-    `Bound contract: successor lean ${String(successorLeanId)}.\n`
-  );
+  return {
+    ok: true,
+    body:
+      "model: grok-4.6\nrole: parent\n\n" +
+      "## In plain English\n\n" +
+      summary +
+      "\n\n" +
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      `Bound contract: successor lean ${String(successorLeanId)}.\n`,
+  };
 }
 
 /** Body without ## In plain English — used only to surface missing-plain-english on refuse. */
@@ -199,12 +205,10 @@ export function evaluateAutoStampPath1Write(
       ? input.unpublishedCommentId
       : fallbackId;
   const summary = input.plainEnglishSummary?.trim() ?? "";
+  const path1Body = leanCiteOnlyPath1Body(lean.id, summary);
   const unpublished: ThreadComment = {
     id: unpublishedId,
-    body:
-      summary.length > 0
-        ? leanCiteOnlyPath1Body(lean.id, summary)
-        : leanCiteOnlyPath1BodyMissingSummary(lean.id),
+    body: path1Body.ok ? path1Body.body : leanCiteOnlyPath1BodyMissingSummary(lean.id),
   };
   const candidate = evaluateCompletedArcRecord({
     comments: [...input.comments, unpublished],

@@ -89,12 +89,14 @@ describe("evaluateAutoStampPath1Write (#4592)", () => {
   });
 
   it("constructs unpublished path-1 that cites only the lean", () => {
-    const body = leanCiteOnlyPath1Body(LEAN_4589, PATH1_SUMMARY);
-    expect(body).toContain("## In plain English");
-    expect(body).toContain(PATH1_SUMMARY);
-    expect(body).toContain("design-critique: synthesis accepted, because");
-    expect(body).toContain(`successor lean ${String(LEAN_4589)}`);
-    expect(body).not.toMatch(/verified-claims table/i);
+    const built = leanCiteOnlyPath1Body(LEAN_4589, PATH1_SUMMARY);
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+    expect(built.body).toContain("## In plain English");
+    expect(built.body).toContain(PATH1_SUMMARY);
+    expect(built.body).toContain("design-critique: synthesis accepted, because");
+    expect(built.body).toContain(`successor lean ${String(LEAN_4589)}`);
+    expect(built.body).not.toMatch(/verified-claims table/i);
   });
 
   it("refuses #4589 uncited Spec-path as unrelieved-pain and skips remaining-set", () => {
@@ -109,7 +111,9 @@ describe("evaluateAutoStampPath1Write (#4592)", () => {
     });
     expect(verdict.writePath1).toBe(false);
     expect(verdict.writeIngestReadyRemainingSet).toBe(false);
-    expect(verdict.unpublished?.body).toBe(leanCiteOnlyPath1Body(LEAN_4589, PATH1_SUMMARY));
+    const expected = leanCiteOnlyPath1Body(LEAN_4589, PATH1_SUMMARY);
+    expect(expected.ok).toBe(true);
+    if (expected.ok) expect(verdict.unpublished?.body).toBe(expected.body);
     expect(verdict.unpublished?.body).not.toMatch(/verified-claims table/i);
     expect(verdict.candidate).toMatchObject({ status: "blocked", reason: "unrelieved-pain" });
     expect(
@@ -223,9 +227,12 @@ describe("evaluateAutoStampPath1Write (#4592)", () => {
       plainEnglishSummary: PATH1_SUMMARY,
     });
     expect(verdict.unpublished?.body ?? "").not.toMatch(/verified-claims table \d+/i);
+    const path1 = leanCiteOnlyPath1Body(LEAN_4589, PATH1_SUMMARY);
+    expect(path1.ok).toBe(true);
+    if (!path1.ok) return;
     const tableCiting: ThreadComment = {
       id: LEAN_4589 + 10,
-      body: `${leanCiteOnlyPath1Body(LEAN_4589, PATH1_SUMMARY)}verified-claims table 9999999999.\n`,
+      body: `${path1.body}verified-claims table 9999999999.\n`,
     };
     const skipped = evaluateCompletedArcRecord({
       comments: [...live, tableCiting],
@@ -432,7 +439,10 @@ describe("path-1 plain-English summary (#5415)", () => {
     expect(corrected.candidate).toMatchObject({ status: "complete" });
   });
 
-  it("throws when leanCiteOnlyPath1Body is called with an empty summary", () => {
-    expect(() => leanCiteOnlyPath1Body(LEAN_4589, "  ")).toThrow(/non-empty plainEnglishSummary/);
+  it("returns ok:false when leanCiteOnlyPath1Body is called with an empty summary", () => {
+    expect(leanCiteOnlyPath1Body(LEAN_4589, "  ")).toEqual({
+      ok: false,
+      reason: "empty-plain-english-summary",
+    });
   });
 });
