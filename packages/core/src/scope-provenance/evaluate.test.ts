@@ -1844,6 +1844,34 @@ describe("changed-lifecycle admission shared predicate (#5412)", () => {
     expect(result.findings).toEqual([]);
   });
 
+  it("injected changedFiles+baseRef without baseXbriefs does not live-ls-tree admit pending", () => {
+    const pendingRel = "xbrief/pending/plan.xbrief.json";
+    const pendingRaw = `${JSON.stringify(
+      {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          id: "story-plan",
+          status: "pending",
+          metadata: { swarm: { file_scope: ["packages/core/src/future.ts"] } },
+        },
+      },
+      null,
+      2,
+    )}\n`;
+    const result = evaluateScopeProvenance("/tmp/proj-5412-no-live-census", {
+      baseRef: "origin/master",
+      changedFiles: [pendingRel, "xbrief/PROJECT-DEFINITION.xbrief.json"],
+      activeXbriefs: new Map([[pendingRel, pendingRaw]]),
+      readAtBase: () => null,
+      sourceRoots: ["packages"],
+      testRoots: ["tests"],
+      fixtureRoots: ["fixtures"],
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings).toEqual([]);
+  });
+
   it("renamed active-on-base→pending keeps fence via plan.id census", () => {
     const narrow = ["packages/core/src/a.ts"];
     const baseActive = {
