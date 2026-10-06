@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.5730491425",
+  "xbriefRelPath": "xbrief/active/2026-10-06-5415-fixdesign-critique-presence-only-in-plain-english-gate-on-ci.xbrief.json",
+  "approvedAt": "2026-10-06T17:24:30Z",
+  "constraints": [
+    {
+      "value": "5",
+      "unit": "detail-ids",
+      "rejectionScope": "operation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-06T17:24:30Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "53e10a0ebc4348be685a9599346ab5f7bebb1fd948bc06c9a4b3c270d1cca537"
+}
