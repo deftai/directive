@@ -78,6 +78,13 @@
         }
       }
     ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5415",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5415: fix(design-critique): presence-only ## In plain English gate before ingest-ready"
+      }
+    ],
     "metadata": {
       "swarm": {
         "file_scope": [
