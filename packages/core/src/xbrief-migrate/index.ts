@@ -11,6 +11,11 @@ export {
   type StaleHeaderDetection,
 } from "./agents-header.js";
 export {
+  CONFIDENCE_MIGRATE_COMMAND,
+  mainEntry as migrateConfidenceMainEntry,
+  migrateConfidenceCorpus,
+} from "./confidence.js";
+export {
   OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME,
   VBRIEF_DEPRECATION_MARKER_BODY,
   VBRIEF_DEPRECATION_MARKER_FILENAME,
@@ -57,11 +62,6 @@ export {
   type XbriefMigrationOutcome,
 } from "./migrate-project.js";
 export { renderXbriefMigrationLine, xbriefMigrationGuidance } from "./signpost.js";
-export {
-  CONFIDENCE_MIGRATE_COMMAND,
-  migrateConfidenceCorpus,
-  mainEntry as migrateConfidenceMainEntry,
-} from "./confidence.js";
 export {
   assertFeatureEmissionAllowed,
   assertLayoutAwareWritePath,

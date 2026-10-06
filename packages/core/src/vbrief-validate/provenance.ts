@@ -32,8 +32,7 @@ export const ATOMIC_CLAIM_KEYS = ["Evidence", "Verifier", "VerifiedAt"] as const
 const SOURCE_TOKEN_PATTERN = /^(verified|observed|inferred|assumed|propagated)(?::\s*\S.*)?$/;
 const VERIFIED_AT_OFFSET = /(Z|[+-]\d{2}:\d{2})$/;
 /** Unambiguous leading High/Medium/Low for migrate only — not the validate accept gate. */
-const LEADING_CONFIDENCE_TOKEN =
-  /^(high|medium|low)(?=$|[.\s,:;—–-]|(\.\s)|(\s+[-–—]))/i;
+const LEADING_CONFIDENCE_TOKEN = /^(high|medium|low)(?=$|[.\s,:;—–-]|(\.\s)|(\s+[-–—]))/i;
 const AMBIGUOUS_LEADING_CONFIDENCE =
   /^(highly|higher|highest|medium-?high|low-?ish|lower|lowest)\b/i;
 /** Residual that binds to the leading token (High uncertainty ≠ high). */
@@ -74,7 +73,10 @@ export function extractLeadingConfidenceToken(
     return null;
   }
   const confidence = token.toLowerCase() as ConfidenceValue;
-  const residual = trimmed.slice(match[0].length).replace(/^[.\s,:;—–-]+/, "").trim();
+  const residual = trimmed
+    .slice(match[0].length)
+    .replace(/^[.\s,:;—–-]+/, "")
+    .trim();
   if (AMBIGUOUS_CONFIDENCE_RESIDUAL.test(residual)) {
     return null;
   }

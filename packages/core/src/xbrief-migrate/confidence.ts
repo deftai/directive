@@ -5,7 +5,7 @@
  * Default is dry-run. Apply requires --apply. Ambiguous prefixes decline.
  * Historical trees are never rewritten by validate.
  */
-import { existsSync, lstatSync, readdirSync, readFileSync, type Dirent } from "node:fs";
+import { type Dirent, existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { assertDirectoryNotSymlink } from "../fs/projection-containment.js";
@@ -16,6 +16,7 @@ import {
   extractLeadingConfidenceToken,
   isCanonicalConfidence,
 } from "../vbrief-validate/provenance.js";
+
 type JsonObject = Record<string, unknown>;
 
 export { CONFIDENCE_MIGRATE_COMMAND };
@@ -322,7 +323,9 @@ export function run(argv: readonly string[]): number {
     );
   }
   if (result.dryRun && result.mapped.length > 0) {
-    process.stdout.write("  Re-run with --apply to write. Add --include-historical for terminal folders.\n");
+    process.stdout.write(
+      "  Re-run with --apply to write. Add --include-historical for terminal folders.\n",
+    );
   }
   return result.declined.length > 0 && !result.dryRun ? 1 : 0;
 }

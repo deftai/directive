@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -26,7 +26,10 @@ describe("Confidence 0.8 compat fixtures (#5385)", () => {
     for (const rel of cases) {
       const warnings: string[] = [];
       const errors = validateVbriefSchema(loadFixture(rel), rel, warnings);
-      expect(errors.filter((e) => e.includes("Confidence invalid")), rel).toEqual([]);
+      expect(
+        errors.filter((e) => e.includes("Confidence invalid")),
+        rel,
+      ).toEqual([]);
       expect(
         warnings.some((w) => w.includes("Confidence-compat")),
         rel,

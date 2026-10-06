@@ -45,12 +45,7 @@ describe("migrate:confidence (#5385)", () => {
     );
     writeBrief(root, "xbrief/active/ambiguous.xbrief.json", "running", "Highly uncertain");
     writeBrief(root, "xbrief/active/exact.xbrief.json", "running", "medium");
-    writeBrief(
-      root,
-      "xbrief/completed/historical.xbrief.json",
-      "completed",
-      "Low. parked note",
-    );
+    writeBrief(root, "xbrief/completed/historical.xbrief.json", "completed", "Low. parked note");
 
     const dry = migrateConfidenceCorpus(root);
     expect(dry.dryRun).toBe(true);

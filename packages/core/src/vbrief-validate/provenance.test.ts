@@ -59,12 +59,7 @@ describe("Plan.narratives source provenance (#479)", () => {
   it("warns on legacy Confidence strings and hard-fails non-string (#5385)", () => {
     const errors: string[] = [];
     const warnings: string[] = [];
-    validatePlanNarrativesProvenance(
-      { Confidence: "pretty-sure" },
-      "n",
-      errors,
-      { warnings },
-    );
+    validatePlanNarrativesProvenance({ Confidence: "pretty-sure" }, "n", errors, { warnings });
     expect(errors.some((e) => e.includes("Confidence invalid"))).toBe(false);
     expect(warnings.some((w) => w.includes("Confidence-compat"))).toBe(true);
 

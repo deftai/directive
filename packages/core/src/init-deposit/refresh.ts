@@ -87,6 +87,11 @@ import { depositOpenClawSoftRebindSkill } from "../session/openclaw-soft-rebind-
 import { depositOpenClawL2ProductCommands } from "../slash/openclaw-deposit.js";
 import { gitPorcelain } from "../story-ready/git.js";
 import {
+  CONFIDENCE_SCHEMA_COMPAT_TIP,
+  confidenceSchemaShapeChanged,
+  readConfidenceSchemaShape,
+} from "../vbrief-validate/confidence-schema-tip.js";
+import {
   type AgentHookReadinessResult,
   agentHookReadinessJson,
   evaluateAgentHookReadiness,
@@ -115,11 +120,6 @@ import {
   LegacyLayoutRefusedError,
 } from "./legacy-detect.js";
 import { printMigrateNudgeIfNeeded } from "./migrate.js";
-import {
-  CONFIDENCE_SCHEMA_COMPAT_TIP,
-  confidenceSchemaShapeChanged,
-  readConfidenceSchemaShape,
-} from "../vbrief-validate/confidence-schema-tip.js";
 import { ensurePrettierIgnoreLines } from "./prettierignore.js";
 import {
   CANONICAL_INSTALL_ROOT,

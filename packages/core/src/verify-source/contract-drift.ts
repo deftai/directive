@@ -97,9 +97,7 @@ function xbriefVersionConst(schema: Record<string, unknown>): string {
 }
 
 /** Confidence node under $defs.Plan.properties.narratives.properties, when present. */
-function xbriefConfidenceNode(
-  schema: Record<string, unknown>,
-): Record<string, unknown> | null {
+function xbriefConfidenceNode(schema: Record<string, unknown>): Record<string, unknown> | null {
   const defs = schema.$defs;
   if (typeof defs !== "object" || defs === null || Array.isArray(defs)) {
     return null;
