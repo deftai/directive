@@ -383,8 +383,8 @@ describe("vbrief:validate stays hard on clause:N (#5011)", () => {
       warnings,
     );
     expect(errors.some((e) => e.includes("invalid id"))).toBe(false);
-    expect(warnings.some((w) => w.includes("legacy clause-colon id") && w.includes("clause:1"))).toBe(
-      true,
-    );
+    expect(
+      warnings.some((w) => w.includes("legacy clause-colon id") && w.includes("clause:1")),
+    ).toBe(true);
   });
 });
