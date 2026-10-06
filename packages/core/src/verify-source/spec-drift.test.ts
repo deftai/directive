@@ -1,16 +1,21 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { mintSpecDriftOverrideTemplateGrant } from "../authz/templates.js";
 import { SPEC_IMPACT_KEY } from "../policy/spec-guard.js";
 import {
+  AFFECTED_REQUIREMENT_REFS_KEY,
   evaluateCompletionCoverage,
   evaluateRewriteProof,
   evaluateSpecDrift,
+  extractAffectedRequirementRefs,
   findingFromScopeCompletion,
   gateScopeCompleteSpecDrift,
+  recordScopeCompleteDrift,
   recordScopeCompleteDriftAdvise,
+  resolveLiveRequirementsFingerprint,
+  rollbackScopeCompleteDrift,
   seedSpecDriftLedger,
   writeSpecDriftLedger,
 } from "./spec-drift.js";
@@ -572,5 +577,199 @@ describe("verify:spec-drift (#1589 C2 / #5350 C3)", () => {
     expect(seedSpecDriftLedger(root).ok).toBe(true);
     expect(seedSpecDriftLedger(root).ok).toBe(false);
     expect(seedSpecDriftLedger(root, { reseed: true }).ok).toBe(true);
+  });
+
+  it("reseed refuses while unresolved findings remain (locked check)", () => {
+    setup({
+      withSpec: true,
+      policy: {
+        specGuard: { enabled: true, driftGuard: { enforcement: "enforce", trigger: "both" } },
+      },
+    });
+    expect(seedSpecDriftLedger(root).ok).toBe(true);
+    writeSpecDriftLedger(
+      root,
+      {
+        baselineRevision: "b",
+        unresolved: [
+          {
+            scopeId: "s1",
+            reason: "drift",
+            specImpact: "delta",
+            completedAt: "2026-10-01T00:00:00Z",
+          },
+        ],
+        coverage: [],
+        shadowFindings: [],
+        lastRequirementsFingerprint: "fp",
+        cutoverBoundary: "2026-10-01T00:00:00Z",
+      },
+      { enforcement: "enforce" },
+    );
+    const reseed = seedSpecDriftLedger(root, { reseed: true });
+    expect(reseed.ok).toBe(false);
+    expect(reseed.message).toMatch(/unresolved/i);
+  });
+
+  it("extractAffectedRequirementRefs accepts declared refs when item id ≠ requirement id", () => {
+    setup({ withSpec: true });
+    writeFileSync(
+      join(root, "xbrief", "specification.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", updated: "2026-10-01T00:00:00Z" },
+        plan: {
+          title: "spec",
+          status: "proposed",
+          requirements: [
+            { id: "req-1", title: "R1" },
+            { id: "req-2", title: "R2" },
+          ],
+          items: [],
+        },
+      }),
+    );
+    const scope = {
+      plan: {
+        id: "scope-a",
+        items: [
+          {
+            id: "i1",
+            title: "rewrite req-1",
+            [SPEC_IMPACT_KEY]: "delta",
+            [AFFECTED_REQUIREMENT_REFS_KEY]: ["req-1"],
+          },
+        ],
+      },
+    };
+    const withoutDeclare = extractAffectedRequirementRefs(root, ["i1"]);
+    expect(withoutDeclare).toEqual([]);
+    const withDeclare = extractAffectedRequirementRefs(root, ["i1"], scope);
+    expect(withDeclare).toEqual(["req-1"]);
+    // Invented non-durable refs must not prove coverage.
+    const fake = extractAffectedRequirementRefs(root, ["i1"], {
+      plan: {
+        id: "scope-a",
+        items: [
+          {
+            id: "i1",
+            [SPEC_IMPACT_KEY]: "delta",
+            [AFFECTED_REQUIREMENT_REFS_KEY]: ["not-in-spec"],
+          },
+        ],
+      },
+    });
+    expect(fake).toEqual([]);
+  });
+
+  it("rollbackScopeCompleteDrift removes coverage rows for the failed scope", () => {
+    setup({
+      withSpec: true,
+      policy: {
+        specGuard: { enabled: true, driftGuard: { enforcement: "enforce", trigger: "both" } },
+      },
+    });
+    expect(seedSpecDriftLedger(root).ok).toBe(true);
+    writeSpecDriftLedger(
+      root,
+      {
+        baselineRevision: "b1",
+        unresolved: [
+          {
+            scopeId: "failed-move-scope",
+            reason: "partial",
+            specImpact: "delta",
+            completedAt: "2026-10-01T00:00:00Z",
+          },
+        ],
+        coverage: [
+          {
+            scopeId: "failed-move-scope",
+            coveredItemIds: ["i1"],
+            beforeRequirementsFingerprint: "a",
+            afterRequirementsFingerprint: "b",
+            affectedRequirementRefs: [],
+            recordedAt: "2026-10-01T00:00:00Z",
+            source: "override",
+            grantId: "grant-that-does-not-exist",
+          },
+        ],
+        shadowFindings: [],
+        lastRequirementsFingerprint: "b",
+        cutoverBoundary: "2026-10-01T00:00:00Z",
+      },
+      { enforcement: "enforce" },
+    );
+    const rolled = rollbackScopeCompleteDrift(root, "failed-move-scope");
+    expect(rolled.ok).toBe(true);
+    const ledgerPath = join(root, "xbrief", ".audit", "spec-drift-ledger.json");
+    const ledger = JSON.parse(readFileSync(ledgerPath, "utf8")) as {
+      coverage: Array<{ scopeId: string }>;
+      unresolved: Array<{ scopeId: string }>;
+    };
+    expect(ledger.coverage.every((c) => c.scopeId !== "failed-move-scope")).toBe(true);
+    expect(ledger.unresolved.every((f) => f.scopeId !== "failed-move-scope")).toBe(true);
+  });
+
+  it("second enforce record with unchanged fingerprint surfaces rewrite failure (sync must skip)", () => {
+    setup({
+      withSpec: true,
+      policy: {
+        specGuard: { enabled: true, driftGuard: { enforcement: "enforce", trigger: "both" } },
+      },
+    });
+    writeFileSync(
+      join(root, "xbrief", "specification.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", updated: "2026-10-01T00:00:00Z" },
+        plan: {
+          title: "spec",
+          status: "proposed",
+          requirements: [{ id: "req-1", title: "R1" }],
+          items: [],
+        },
+      }),
+    );
+    expect(seedSpecDriftLedger(root).ok).toBe(true);
+    writeSpecDriftLedger(
+      root,
+      {
+        baselineRevision: "b",
+        unresolved: [],
+        coverage: [
+          {
+            scopeId: "double-record-scope",
+            coveredItemIds: ["i1"],
+            beforeRequirementsFingerprint: "old",
+            afterRequirementsFingerprint: "new",
+            affectedRequirementRefs: ["req-1"],
+            recordedAt: "2026-10-01T00:00:00Z",
+            source: "rewrite",
+          },
+        ],
+        shadowFindings: [],
+        // Fingerprint already advanced — a second record sees before===after.
+        lastRequirementsFingerprint: resolveLiveRequirementsFingerprint(root),
+        cutoverBoundary: "2026-10-01T00:00:00Z",
+      },
+      { enforcement: "enforce" },
+    );
+    const scope = {
+      plan: {
+        id: "double-record-scope",
+        title: "RFC: rewrite",
+        tags: ["rfc"],
+        items: [
+          {
+            id: "i1",
+            title: "t",
+            [SPEC_IMPACT_KEY]: "delta",
+            [AFFECTED_REQUIREMENT_REFS_KEY]: ["req-1"],
+          },
+        ],
+      },
+    };
+    const second = recordScopeCompleteDrift(root, scope, "xbrief/completed/double.xbrief.json");
+    expect(second).not.toBeNull();
+    expect(String(second?.reason ?? "")).toMatch(/unchanged|rewrite proof/i);
   });
 });

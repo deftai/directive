@@ -11,7 +11,12 @@
 import { createHash } from "node:crypto";
 import { closeSync, existsSync, openSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import { listActiveHumanGrants, loadAuthzState, markGrantUsed } from "../authz/store.js";
+import {
+  clearGrantUsedAt,
+  listActiveHumanGrants,
+  loadAuthzState,
+  markGrantUsed,
+} from "../authz/store.js";
 import type { HumanOriginGrant } from "../authz/types.js";
 import { containedWrite } from "../fs/contained-write.js";
 import {
@@ -33,6 +38,8 @@ export const SPEC_DRIFT_OVERRIDE_TEMPLATE = "spec-drift-override";
 export const SPEC_DRIFT_OVERRIDE_BASELINE_PREFIX = "spec-drift-override:baseline:";
 export const SPEC_DRIFT_OVERRIDE_SCOPE_PREFIX = "spec-drift-override:scope:";
 export const SPEC_DRIFT_OVERRIDE_ITEM_PREFIX = "spec-drift-override:item:";
+/** Declared requirement refs rewritten by a completing item (may differ from item id). */
+export const AFFECTED_REQUIREMENT_REFS_KEY = "x-directive/affectedRequirementRefs";
 
 function ledgerAbsPath(projectRoot: string): string {
   return resolveAuditPath(projectRoot, SPEC_DRIFT_LEDGER_NAME);
@@ -261,16 +268,71 @@ export function durableSpecHasRequirementRefs(projectRoot: string): boolean {
   return listDurableRequirementRefs(projectRoot).length > 0;
 }
 
-/** Intersect completing item ids with durable SPEC requirement refs when present. */
+/**
+ * Collect affected requirement refs for rewrite proof (#5350 limb 4).
+ * Union of: (1) covered item ids that equal durable requirement refs, and
+ * (2) declared `x-directive/affectedRequirementRefs` on those items (must be
+ * durable refs — inventing non-SPEC ids does not prove coverage). Item id `i1`
+ * rewriting separately-identified `req-1` is valid when the item declares it.
+ */
 export function extractAffectedRequirementRefs(
   projectRoot: string,
   coveredItemIds: readonly string[],
+  scopeData?: Record<string, unknown>,
 ): string[] {
   const refs = listDurableRequirementRefs(projectRoot);
   if (refs.length === 0) return [];
-  const idSet = new Set(coveredItemIds.map(String));
-  const hit = refs.filter((r) => idSet.has(r));
-  return hit.length > 0 ? hit : [];
+  const durable = new Set(refs);
+  const out = new Set<string>();
+  const covered = new Set(coveredItemIds.map(String));
+  for (const id of covered) {
+    if (durable.has(id)) out.add(id);
+  }
+  if (scopeData !== undefined && isRecord(scopeData.plan)) {
+    for (const declared of collectDeclaredAffectedRequirementRefs(scopeData.plan, covered)) {
+      if (durable.has(declared)) out.add(declared);
+    }
+  }
+  return [...out];
+}
+
+function readDeclaredAffectedRefs(node: Record<string, unknown>): string[] {
+  const raw = node[AFFECTED_REQUIREMENT_REFS_KEY] ?? node.affectedRequirementRefs;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map(String)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+function collectDeclaredAffectedRequirementRefs(
+  plan: Record<string, unknown>,
+  coveredItemIds: ReadonlySet<string>,
+): string[] {
+  const out: string[] = [];
+  const walk = (node: unknown): void => {
+    if (!isRecord(node)) return;
+    const id = typeof node.id === "string" ? node.id : null;
+    if (id !== null && coveredItemIds.has(id)) {
+      out.push(...readDeclaredAffectedRefs(node));
+    }
+    if (Array.isArray(node.items)) {
+      for (const child of node.items) walk(child);
+    }
+    if (Array.isArray(node.subItems)) {
+      for (const child of node.subItems) walk(child);
+    }
+  };
+  if (typeof plan.id === "string" && coveredItemIds.has(plan.id)) {
+    out.push(...readDeclaredAffectedRefs(plan));
+  }
+  if (Array.isArray(plan.items)) {
+    for (const child of plan.items) walk(child);
+  }
+  if (Array.isArray(plan.subItems)) {
+    for (const child of plan.subItems) walk(child);
+  }
+  return out;
 }
 
 /** Stable baseline revision: metadata when present, requirements-content-bound. */
@@ -784,33 +846,98 @@ export function seedSpecDriftLedger(
       baselineRevision,
     };
   }
-  if (existing && options.reseed === true) {
-    const prior = readLedger(root);
-    if (prior.unresolved.length > 0) {
-      return {
-        ok: false,
-        message:
-          `spec-drift reseed refused: ${prior.unresolved.length} unresolved completion(s) remain — ` +
-          "resolve coverage before reseeding (reseed must not erase known drift)",
-        baselineRevision,
-      };
+
+  // Reseed check+write under the same enforce lock so a concurrent completion
+  // cannot land unresolved findings between the check and the empty replace.
+  const apply = (): {
+    readonly ok: boolean;
+    readonly message: string;
+    readonly baselineRevision: string | null;
+  } => {
+    const stillExists = hasLedgerFile(root);
+    if (stillExists && options.reseed === true) {
+      const prior = readLedger(root);
+      if (prior.unresolved.length > 0) {
+        return {
+          ok: false,
+          message:
+            `spec-drift reseed refused: ${prior.unresolved.length} unresolved completion(s) remain — ` +
+            "resolve coverage before reseeding (reseed must not erase known drift)",
+          baselineRevision,
+        };
+      }
     }
+    const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+    const ledger: SpecDriftLedger = {
+      baselineRevision,
+      unresolved: [],
+      coverage: [],
+      shadowFindings: [],
+      lastRequirementsFingerprint: fingerprint,
+      cutoverBoundary: options.reseed === true || !stillExists ? now : null,
+    };
+    writeSpecDriftLedger(root, ledger, {
+      enforcement: "enforce",
+      alreadyLocked: true,
+    });
+    return {
+      ok: true,
+      message: `spec-drift ledger ${options.reseed === true ? "reseeded" : "seeded"} at baseline ${baselineRevision}`,
+      baselineRevision,
+    };
+  };
+
+  try {
+    return withLedgerLock(root, "enforce", apply);
+  } catch (err: unknown) {
+    return {
+      ok: false,
+      message: `spec-drift seed/reseed failed: ${String(err)}`,
+      baselineRevision,
+    };
   }
-  const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-  const ledger: SpecDriftLedger = {
-    baselineRevision,
-    unresolved: [],
-    coverage: [],
-    shadowFindings: [],
-    lastRequirementsFingerprint: fingerprint,
-    cutoverBoundary: options.reseed === true || !existing ? now : null,
-  };
-  writeSpecDriftLedger(root, ledger, { enforcement: "enforce" });
-  return {
-    ok: true,
-    message: `spec-drift ledger ${options.reseed === true ? "reseeded" : "seeded"} at baseline ${baselineRevision}`,
-    baselineRevision,
-  };
+}
+
+/**
+ * Roll back a scope's enforce ledger mutation after a failed active→completed move.
+ * Removes coverage / unresolved / shadow rows for scopeId and restores any spent
+ * single-use override grant recorded on that coverage (#5350 Greptile P1).
+ */
+export function rollbackScopeCompleteDrift(
+  projectRoot: string,
+  scopeId: string,
+): { readonly ok: boolean; readonly message: string } {
+  const root = resolve(projectRoot);
+  if (!hasLedgerFile(root)) {
+    return { ok: true, message: "no ledger to roll back" };
+  }
+  try {
+    return withLedgerLock(root, "enforce", () => {
+      const ledger = readLedger(root);
+      const removedCoverage = ledger.coverage.filter((c) => c.scopeId === scopeId);
+      const next: SpecDriftLedger = {
+        ...ledger,
+        unresolved: ledger.unresolved.filter((f) => f.scopeId !== scopeId),
+        shadowFindings: ledger.shadowFindings.filter((f) => f.scopeId !== scopeId),
+        coverage: ledger.coverage.filter((c) => c.scopeId !== scopeId),
+      };
+      writeSpecDriftLedger(root, next, { enforcement: "enforce", alreadyLocked: true });
+      for (const row of removedCoverage) {
+        if (typeof row.grantId === "string" && row.grantId.length > 0) {
+          clearGrantUsedAt(root, row.grantId);
+        }
+      }
+      return {
+        ok: true,
+        message: `rolled back spec-drift ledger rows for scope ${scopeId}`,
+      };
+    });
+  } catch (err: unknown) {
+    return {
+      ok: false,
+      message: `spec-drift rollback failed for scope ${scopeId}: ${String(err)}`,
+    };
+  }
 }
 
 /** Evaluate semantic drift for audit / advise / shadow / enforce surfaces. */
@@ -1092,7 +1219,7 @@ export function gateScopeCompleteSpecDrift(
   }
 
   if (finding === null && coverage.needsRewriteProof) {
-    const affected = extractAffectedRequirementRefs(root, coverage.deltaOrNewItemIds);
+    const affected = extractAffectedRequirementRefs(root, coverage.deltaOrNewItemIds, scopeData);
     const proof = evaluateRewriteProof({
       scopeId,
       coveredItemIds: coverage.deltaOrNewItemIds,
@@ -1226,7 +1353,7 @@ export function recordScopeCompleteDrift(
     }
 
     if (finding === null && coverage.needsRewriteProof) {
-      const affected = extractAffectedRequirementRefs(root, coverage.deltaOrNewItemIds);
+      const affected = extractAffectedRequirementRefs(root, coverage.deltaOrNewItemIds, scopeData);
       const proof = evaluateRewriteProof({
         scopeId,
         coveredItemIds: coverage.deltaOrNewItemIds,

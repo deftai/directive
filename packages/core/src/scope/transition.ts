@@ -37,6 +37,7 @@ import { readAcceptanceClauses } from "../verify-ac/clauses.js";
 import {
   gateScopeCompleteSpecDrift,
   recordScopeCompleteDrift,
+  rollbackScopeCompleteDrift,
 } from "../verify-source/spec-drift.js";
 import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
 import {
@@ -575,6 +576,7 @@ export function runTransition(
         };
       }
       crud.recordTrustedUpdate(destPath, formatted);
+      let enforceDriftRecorded = false;
       if (act === "complete") {
         const sessionId = resolveCompletionSessionId(projectRoot);
         if (sessionId !== null) {
@@ -595,6 +597,7 @@ export function runTransition(
         }
         // #5350: under enforce, record drift BEFORE unlinking active so a ledger
         // write failure cannot leave a completed brief without its required record.
+        // Sync skips a second enforce record (double-record / spent-override P1).
         const enforceGuard = resolveSpecGuard(projectRoot, { hasSpecification: true });
         if (enforceGuard.enabled && enforceGuard.driftGuard.enforcement === "enforce") {
           try {
@@ -603,6 +606,7 @@ export function runTransition(
               data,
               relative(projectRoot, destPath).replace(/\\/g, "/"),
             );
+            enforceDriftRecorded = true;
           } catch (err: unknown) {
             try {
               unlinkSync(destPath);
@@ -621,6 +625,18 @@ export function runTransition(
       try {
         unlinkSync(resolvedPath);
       } catch (err: unknown) {
+        // Enforce already recorded above — roll back ledger/grant so a retry is not stranded.
+        if (enforceDriftRecorded) {
+          const scopeIdForRollback =
+            typeof planObj.id === "string"
+              ? planObj.id
+              : relative(projectRoot, destPath).replace(/\\/g, "/");
+          try {
+            rollbackScopeCompleteDrift(projectRoot, scopeIdForRollback);
+          } catch {
+            /* best-effort ledger rollback */
+          }
+        }
         try {
           unlinkSync(destPath);
         } catch {

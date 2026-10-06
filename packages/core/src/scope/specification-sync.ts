@@ -35,6 +35,8 @@ export function syncSpecificationAfterScopeMove(
 
   // #1589 / #5350: extend this sync hook for drift — do not add a second
   // independent scope:complete writer. Registry sync alone never clears drift.
+  // Under enforce, transition.ts already records BEFORE unlinking active; a
+  // second pass here would double-record (spent override / unchanged fingerprint).
   if (targetStatus === "completed") {
     const scopeRel = relative(projectRoot, newPath).replace(/\\/g, "/");
     let hasSpec = false;
@@ -46,17 +48,14 @@ export function syncSpecificationAfterScopeMove(
     }
     const guard = resolveSpecGuard(projectRoot, { hasSpecification: hasSpec });
     const enforcement = guard.driftGuard.enforcement;
+    if (enforcement === "enforce") {
+      return { ok: true, message: "" };
+    }
     try {
       recordScopeCompleteDrift(projectRoot, scopeData, scopeRel);
     } catch (err) {
-      if (enforcement === "enforce") {
-        // Limb 7: under enforce, ledger write failure fails closed (no swallow).
-        return {
-          ok: false,
-          message: `spec-drift ledger write failed under enforce: ${String(err)}`,
-        };
-      }
       // advise/shadow: must not refuse the lifecycle move solely for record errors
+      void err;
     }
   }
   return { ok: true, message: "" };
