@@ -94,9 +94,14 @@ export function requiredPhases(): readonly PrePrPhaseSpec[] {
   return PRE_PR_PHASES.filter((p) => p.required);
 }
 
-export const ALLOWED_SKIP_REASONS: Readonly<Record<string, string>> = {
+/** Exact closed skip token for authorized coverage N/A (#5421 Prefer-A Bound). */
+export const COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP =
+  "reviewed diff has no coverable paths" as const;
+
+export const ALLOWED_SKIP_REASONS: Partial<Record<PrePrPhaseId, string>> = {
   plan_sequence: "no active ordered-plan sequence",
   render_export: "no existing export files to refresh",
+  coverage_headroom: COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
 };
 
 /** Command-observable skip is legal only for the closed skip reason of that phase. */

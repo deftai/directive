@@ -542,6 +542,85 @@ describe("evaluateCoverageHotspots", () => {
     expect(text).toContain("...");
     expect(text).toContain("more");
   });
+
+  it("emits authorized N/A before requiring Istanbul when the reviewed diff is inert (#5421)", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/design.md"), "# design\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "docs"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+    });
+    expect(result.exitCode).toBe(3);
+    expect(result.applicability?.outcome).toBe("not-applicable");
+    expect(result.message).toContain("reviewed diff has no coverable paths");
+  });
+
+  it("keeps Istanbul floor when inert diff still has a coverage report (#5421)", () => {
+    const root = gitRepo({
+      "README.md": "# base\n",
+      "coverage/coverage-final.json": JSON.stringify({
+        "src/a.ts": { s: { "0": 1 }, f: { "0": 1 }, b: { "0": [1, 0] } },
+      }),
+      "vitest.config.ts":
+        "export default { test: { coverage: { thresholds: { branches: 85 } } } };",
+    });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/more.md"), "more\n");
+    childProcess.execFileSync("git", ["add", "docs/more.md"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "docs-only"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+      useDiffPaths: false,
+    });
+    // Report exists → measured path; uncovered branch fails floor.
+    expect(result.exitCode).toBe(1);
+    expect(result.report).not.toBeNull();
+  });
+
+  it("keeps exit 2 when applicable work is missing a coverage report", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src/app.ts"), "export const x = 1;\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "code"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("coverage report missing");
+  });
 });
 
 describe("summarizeCoverageFinal export", () => {

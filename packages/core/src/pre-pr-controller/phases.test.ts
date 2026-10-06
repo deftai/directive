@@ -43,6 +43,10 @@ describe("pre-pr-controller phases (Limb 2)", () => {
     expect(isAllowedSkip("merge_chokepoint", "busy")).toBe(false);
     expect(isAllowedSkip("plan_sequence", "")).toBe(false);
     expect(isAllowedSkip("plan_sequence", null)).toBe(false);
+    expect(isAllowedSkip("coverage_headroom", ALLOWED_SKIP_REASONS.coverage_headroom ?? "")).toBe(
+      true,
+    );
+    expect(isAllowedSkip("coverage_headroom", "changed-file audit")).toBe(false);
     expect(requiredPhases().every((p) => p.required)).toBe(true);
   });
 });

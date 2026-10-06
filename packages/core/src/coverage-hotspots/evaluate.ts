@@ -2,6 +2,11 @@ import * as childProcess from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import {
+  type CoverageApplicabilityResult,
+  evaluateCoverageApplicability,
+} from "../coverage-applicability/index.js";
+import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
+import {
   type CoverageMetric,
   type CoverageTotals,
   summarizeCoverageFinal,
@@ -57,10 +62,24 @@ export interface CoverageHotspotsReport {
   readonly coverageReportPath: string;
 }
 
+export interface CoverageApplicabilityArtifact {
+  readonly schema: "deft.coverage-applicability.v1";
+  readonly outcome: CoverageApplicabilityResult["outcome"];
+  readonly skipReason: typeof COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP | null;
+  readonly reason: string;
+  readonly binding: {
+    readonly baseSha: string;
+    readonly headSha: string;
+    readonly treeHash: string;
+  };
+}
+
 export interface CoverageHotspotsResult {
-  readonly exitCode: 0 | 1 | 2;
+  /** 0 = measured pass; 1 = floor/headroom fail; 2 = config; 3 = authorized N/A. */
+  readonly exitCode: 0 | 1 | 2 | 3;
   readonly report: CoverageHotspotsReport | null;
   readonly message: string;
+  readonly applicability?: CoverageApplicabilityArtifact | null;
 }
 
 export interface CoverageHotspotsOptions {
@@ -71,6 +90,18 @@ export interface CoverageHotspotsOptions {
   readonly pathFilter?: readonly string[] | null;
   readonly useDiffPaths?: boolean;
   readonly lowestModuleLimit?: number;
+  /**
+   * When set, run the shared applicability classifier before requiring
+   * coverage-final.json (#5421 Prefer-A Bound). Caller pathFilter never
+   * authorizes classification / N/A.
+   */
+  readonly inputBinding?: {
+    readonly baseSha: string;
+    readonly headSha: string;
+    readonly treeHash: string;
+  } | null;
+  /** Default true when inputBinding is set; false skips classifier pre-check. */
+  readonly checkApplicability?: boolean;
 }
 
 class GitCommandError extends Error {}
@@ -236,15 +267,102 @@ function configError(message: string): CoverageHotspotsResult {
   return { exitCode: 2, report: null, message };
 }
 
+function buildApplicabilityArtifact(
+  result: CoverageApplicabilityResult,
+  binding: { readonly baseSha: string; readonly headSha: string; readonly treeHash: string },
+): CoverageApplicabilityArtifact {
+  return {
+    schema: "deft.coverage-applicability.v1",
+    outcome: result.outcome,
+    skipReason:
+      result.outcome === "not-applicable" ? COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP : null,
+    reason:
+      result.outcome === "not-applicable"
+        ? result.reason
+        : result.outcome === "applicable"
+          ? `coverable paths: ${result.coverablePaths.join(", ")}`
+          : result.reason,
+    binding: {
+      baseSha: binding.baseSha,
+      headSha: binding.headSha,
+      treeHash: binding.treeHash,
+    },
+  };
+}
+
+function resolveApplicabilityBinding(
+  projectRoot: string,
+  options: CoverageHotspotsOptions,
+): { readonly baseSha: string; readonly headSha: string; readonly treeHash: string } | null {
+  if (options.inputBinding) return options.inputBinding;
+  // Explicit pathFilter-only invocations are diagnostic samples — not applicability authority.
+  if (options.pathFilter && options.pathFilter.length > 0 && options.useDiffPaths === false) {
+    return null;
+  }
+  try {
+    const baseRef = resolveBaseRef(projectRoot, options.baseRef);
+    const baseSha = runGit(["rev-parse", baseRef], projectRoot).trim();
+    const headSha = runGit(["rev-parse", "HEAD"], projectRoot).trim();
+    const treeHash = runGit(["rev-parse", "HEAD^{tree}"], projectRoot).trim();
+    return { baseSha, headSha, treeHash };
+  } catch {
+    return null;
+  }
+}
+
 export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): CoverageHotspotsResult {
   const projectRoot = options.projectRoot;
   const coverageDir = options.coverageDir ?? join(projectRoot, "coverage");
   const minHeadroomPp = options.minHeadroomPp ?? DEFAULT_MIN_HEADROOM_PP;
   const lowestModuleLimit = options.lowestModuleLimit ?? DEFAULT_LOWEST_MODULE_LIMIT;
   const useDiffPaths = options.useDiffPaths ?? true;
+  const checkApplicability =
+    options.checkApplicability ?? (options.inputBinding != null || useDiffPaths);
+  const binding = checkApplicability ? resolveApplicabilityBinding(projectRoot, options) : null;
 
   const reportPath = join(coverageDir, "coverage-final.json");
-  if (!existsSync(reportPath)) {
+  const reportExists = existsSync(reportPath);
+
+  // Prefer-A Bound limb 4: classify before requiring Istanbul when applicability is in scope.
+  // Caller pathFilter never authorizes N/A. Diff-level inert alone does not delete the
+  // global floor when a report exists (Istanbul dogfood).
+  if (checkApplicability && binding !== null) {
+    const applicability = evaluateCoverageApplicability({
+      projectRoot,
+      baseSha: binding.baseSha,
+      headSha: binding.headSha,
+      treeHash: binding.treeHash,
+    });
+    const artifact = buildApplicabilityArtifact(applicability, binding);
+
+    if (applicability.outcome === "not-applicable" && !reportExists) {
+      const payload = `${JSON.stringify(artifact, null, 2)}\n`;
+      return {
+        exitCode: 3,
+        report: null,
+        message:
+          `coverage-hotspots: not-applicable (${COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP})\n` +
+          `  Record coverage_headroom via non-zero exit + skip reason ` +
+          `"${COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP}".\n` +
+          payload,
+        applicability: artifact,
+      };
+    }
+
+    if (applicability.outcome === "refuse" && !reportExists) {
+      return {
+        exitCode: 2,
+        report: null,
+        message: `${applicability.reason}\n`,
+        applicability: artifact,
+      };
+    }
+
+    // applicable, or not-applicable with an available report → continue to measured path.
+    // Report-missing for applicable work keeps today's exit 2 below.
+  }
+
+  if (!reportExists) {
     return configError(
       `coverage-hotspots: coverage report missing at ${reportPath}\n` +
         "  Run tests with coverage first (e.g. vitest run --coverage or task test:coverage).",

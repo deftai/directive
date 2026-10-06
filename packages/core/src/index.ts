@@ -20,6 +20,7 @@ export * as check from "./check/index.js";
 export * as classChecks from "./class-checks/index.js";
 export * as codebase from "./codebase/index.js";
 export * as consumerCheckContract from "./consumer-check-contract/index.js";
+export * from "./coverage-applicability/index.js";
 export * from "./coverage-hotspots/index.js";
 export * as deliveryAttempt from "./delivery-attempt/index.js";
 export * as dispatchPostcondition from "./dispatch-postcondition/index.js";

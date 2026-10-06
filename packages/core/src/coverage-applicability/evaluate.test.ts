@@ -1,0 +1,205 @@
+import * as childProcess from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, describe, expect, it } from "vitest";
+import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
+import {
+  classifyChangedPath,
+  evaluateCoverageApplicability,
+  parseNameStatus,
+} from "./evaluate.js";
+
+const temps: string[] = [];
+afterAll(() => {
+  for (const dir of temps) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+function gitRepo(files: Record<string, string>): string {
+  const root = mkdtempSync(join(tmpdir(), "deft-cov-app-"));
+  temps.push(root);
+  for (const [rel, content] of Object.entries(files)) {
+    const full = join(root, rel);
+    mkdirSync(join(full, ".."), { recursive: true });
+    writeFileSync(full, content, "utf8");
+  }
+  childProcess.execFileSync("git", ["init", "-q"], { cwd: root });
+  childProcess.execFileSync("git", ["config", "user.email", "t@t.dev"], { cwd: root });
+  childProcess.execFileSync("git", ["config", "user.name", "t"], { cwd: root });
+  childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+  childProcess.execFileSync("git", ["commit", "-q", "-m", "base"], { cwd: root });
+  return root;
+}
+
+function bindingFor(root: string, baseSha: string): {
+  projectRoot: string;
+  baseSha: string;
+  headSha: string;
+  treeHash: string;
+} {
+  const headSha = childProcess
+    .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+    .trim();
+  const treeHash = childProcess
+    .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+    .trim();
+  return { projectRoot: root, baseSha, headSha, treeHash };
+}
+
+describe("classifyChangedPath", () => {
+  it("classifies executable and config paths as coverable", () => {
+    expect(classifyChangedPath("packages/core/src/foo.ts", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("src/Program.cs", "A", null)).toBe("coverable");
+    expect(classifyChangedPath("package.json", "M", null)).toBe("coverable");
+    expect(classifyChangedPath(".github/workflows/ci.yml", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("vitest.config.ts", "M", null)).toBe("coverable");
+  });
+
+  it("classifies planning/docs paths as inert under closed rules", () => {
+    expect(classifyChangedPath("docs/design/overview.md", "A", null)).toBe("inert");
+    expect(
+      classifyChangedPath("xbrief/proposed/story.xbrief.json", "A", null),
+    ).toBe("inert");
+    expect(classifyChangedPath("xbrief/decisions/d1.json", "A", null)).toBe("inert");
+    expect(classifyChangedPath("CHANGELOG.md", "M", null)).toBe("inert");
+  });
+
+  it("does not treat arbitrary json as inherently inert", () => {
+    expect(classifyChangedPath("mystery/data.bin", "A", null)).toBe("unknown");
+    expect(classifyChangedPath("config/unknown.dat", "M", null)).toBe("unknown");
+  });
+});
+
+describe("parseNameStatus", () => {
+  it("keeps rename old and new paths", () => {
+    expect(parseNameStatus("R100\told.ts\tnew.md\nA\tdocs/a.md\n")).toEqual([
+      { status: "R100", oldPath: "old.ts", path: "new.md" },
+      { status: "A", oldPath: null, path: "docs/a.md" },
+    ]);
+  });
+});
+
+describe("evaluateCoverageApplicability", () => {
+  it("returns not-applicable for an inert refinement-only diff", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/design.md"), "# design\n");
+    mkdirSync(join(root, "xbrief/decisions"), { recursive: true });
+    mkdirSync(join(root, "xbrief/proposed"), { recursive: true });
+    writeFileSync(join(root, "xbrief/decisions/d1.json"), "{}\n");
+    writeFileSync(join(root, "xbrief/proposed/story.xbrief.json"), "{}\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "refinement"], { cwd: root });
+    const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(result.outcome).toBe("not-applicable");
+    if (result.outcome === "not-applicable") {
+      expect(result.reason).toBe(COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP);
+    }
+  });
+
+  it("returns applicable when any path is coverable", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, "src"), { recursive: true });
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "src/app.ts"), "export const n = 1;\n");
+    writeFileSync(join(root, "docs/note.md"), "note\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "mixed"], { cwd: root });
+    const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(result.outcome).toBe("applicable");
+    if (result.outcome === "applicable") {
+      expect(result.coverablePaths).toContain("src/app.ts");
+    }
+  });
+
+  it("refuses unknown paths, empty selection, invalid base, and rename-to-document", () => {
+    const root = gitRepo({ "README.md": "# base\n", "src/a.ts": "export const a = 1;\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+
+    writeFileSync(join(root, "mystery.bin"), "x");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "unknown"], { cwd: root });
+    expect(evaluateCoverageApplicability(bindingFor(root, baseSha)).outcome).toBe("refuse");
+
+    const empty = evaluateCoverageApplicability({
+      ...bindingFor(root, baseSha),
+      baseSha,
+      headSha: baseSha,
+      treeHash: childProcess
+        .execFileSync("git", ["rev-parse", `${baseSha}^{tree}`], {
+          cwd: root,
+          encoding: "utf8",
+        })
+        .trim(),
+    });
+    expect(empty.outcome).toBe("refuse");
+    if (empty.outcome === "refuse") expect(empty.code).toBe("empty-selection");
+
+    expect(
+      evaluateCoverageApplicability({
+        ...bindingFor(root, baseSha),
+        baseSha: "not-a-real-sha",
+      }).outcome,
+    ).toBe("refuse");
+
+    const renameRoot = gitRepo({ "src/code.ts": "export const c = 1;\n" });
+    const renameHead = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: renameRoot, encoding: "utf8" })
+      .trim();
+    const renameBind = bindingFor(renameRoot, renameHead);
+    const renamed = evaluateCoverageApplicability(renameBind, {
+      runGit: (args) => {
+        const joined = args.join(" ");
+        if (joined.includes("^{tree}")) return renameBind.treeHash;
+        if (joined.includes("rev-parse")) return renameBind.headSha;
+        if (joined.includes("name-status")) return "R100\tsrc/code.ts\tdocs/code.md\n";
+        return "";
+      },
+    });
+    expect(renamed.outcome).toBe("refuse");
+    if (renamed.outcome === "refuse") expect(renamed.code).toBe("rename-to-document");
+  });
+
+  it("refuses a treeHash that does not match the reviewed head", () => {
+    const root = gitRepo({ "docs/a.md": "a\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, "docs/b.md"), "b\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "b"], { cwd: root });
+    const head = bindingFor(root, baseSha);
+    const stale = evaluateCoverageApplicability({
+      ...head,
+      treeHash: "0".repeat(40),
+    });
+    expect(stale.outcome).toBe("refuse");
+    if (stale.outcome === "refuse") expect(stale.code).toBe("tree-mismatch");
+  });
+
+  it("ignores caller-style path filters (not an input) and uses status-aware enumeration", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, "src"), { recursive: true });
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "src/secret.ts"), "export const s = 1;\n");
+    writeFileSync(join(root, "docs/only.md"), "docs\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "filtered-mixed"], { cwd: root });
+    // No pathFilter input exists on the evaluator — mixed coverable still applicable.
+    const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(result.outcome).toBe("applicable");
+  });
+});

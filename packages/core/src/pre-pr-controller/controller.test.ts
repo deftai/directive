@@ -207,9 +207,10 @@ describe("controller observations", () => {
       "render_export",
       "merge_chokepoint",
     ] as const) {
+      const spec = PRE_PR_PHASES.find((p) => p.id === phase);
       observeCommandPhase(store, rec.id, {
         phaseId: phase,
-        command: "cmd",
+        command: spec?.command ?? "cmd",
         exitCode: 0,
         inputHash: rec.inputHash,
         skipReason: null,
@@ -229,7 +230,7 @@ describe("controller observations", () => {
     expect(
       observeCommandPhase(store, rec.id, {
         phaseId: "branch_policy",
-        command: "cmd",
+        command: "deft verify:branch",
         exitCode: 0,
         inputHash: rec.inputHash,
         skipReason: null,
@@ -328,5 +329,108 @@ describe("controller observations", () => {
       currentGeneration: 1,
     });
     expect(d.code).toBe("deny-failed");
+  });
+
+  it("coverage_headroom rejects arbitrary exit-0 audits and forged skip without re-derivation (#5421)", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_cov_audit");
+    observeCommandPhase(store, rec.id, {
+      phaseId: "coverage_headroom",
+      command: "changed-file audit",
+      exitCode: 0,
+      inputHash: rec.inputHash,
+      skipReason: null,
+    });
+    expect(
+      runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord).ok,
+    ).toBe(false);
+
+    const store2 = new InProcessPrePrStore();
+    const rec2 = start(store2, "ppr_cov_forge");
+    observeCommandPhase(store2, rec2.id, {
+      phaseId: "coverage_headroom",
+      command: "deft coverage:hotspots",
+      exitCode: 2,
+      inputHash: rec2.inputHash,
+      skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
+    });
+    // Exact token without matching re-derivation (default cwd is not an inert binding).
+    expect(
+      runObservablesComplete(store2.getById(rec2.id) as PrePrExecutionRecord).ok,
+    ).toBe(false);
+  });
+
+  it("coverage_headroom accepts authorized skip when applicability re-derives not-applicable", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_cov_na");
+    for (const spec of PRE_PR_PHASES) {
+      if (spec.kind !== "command-observable") continue;
+      if (spec.id === "coverage_headroom") {
+        observeCommandPhase(store, rec.id, {
+          phaseId: spec.id,
+          command: spec.command ?? "",
+          exitCode: 3,
+          inputHash: rec.inputHash,
+          skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
+        });
+      } else {
+        observeCommandPhase(store, rec.id, {
+          phaseId: spec.id,
+          command: spec.command ?? "",
+          exitCode: 0,
+          inputHash: rec.inputHash,
+          skipReason: null,
+        });
+      }
+    }
+    for (const phase of ["read", "write", "diff", "loop"] as const) {
+      submitReviewerReport(store, rec.id, {
+        phaseId: phase,
+        reviewedFileManifest: ["docs/design.md"],
+        suppliedContentsHash: "h",
+        criteriaDigest: approved.digest,
+        reviewerReportRef: "r",
+        controllerObservedHash: "h",
+      });
+    }
+    const decided = runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+      applicabilityDeps: {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("rev-parse") && joined.includes("^{tree}")) return "tree";
+          if (joined.includes("rev-parse")) return args.includes("base") ? "base" : "head";
+          if (joined.includes("name-status")) return "A\tdocs/design.md\n";
+          return "";
+        },
+        classifyPath: () => "inert",
+      },
+    });
+    expect(decided.ok).toBe(true);
+  });
+
+  it("coverage_headroom measured pass requires the authorized hotspots command", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_cov_measured");
+    for (const spec of PRE_PR_PHASES) {
+      if (spec.kind !== "command-observable") continue;
+      observeCommandPhase(store, rec.id, {
+        phaseId: spec.id,
+        command: spec.command ?? "",
+        exitCode: 0,
+        inputHash: rec.inputHash,
+        skipReason: null,
+      });
+    }
+    for (const phase of ["read", "write", "diff", "loop"] as const) {
+      submitReviewerReport(store, rec.id, {
+        phaseId: phase,
+        reviewedFileManifest: ["a.ts"],
+        suppliedContentsHash: "h",
+        criteriaDigest: approved.digest,
+        reviewerReportRef: "r",
+        controllerObservedHash: "h",
+      });
+    }
+    expect(runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord).ok).toBe(true);
   });
 });

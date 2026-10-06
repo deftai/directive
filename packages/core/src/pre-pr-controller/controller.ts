@@ -9,6 +9,10 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import {
+  evaluateCoverageApplicability,
+  type CoverageApplicabilityDeps,
+} from "../coverage-applicability/index.js";
+import {
   isAllowedSkip,
   PRE_PR_CONTROLLER_VERSION,
   PRE_PR_PHASES,
@@ -294,10 +298,42 @@ export function noteSkillFileOpen(): PrePrDecision {
   return deny("deny-skill-file-open", SKILL_FILE_OPEN_NOT_COMPLETION);
 }
 
-function commandSatisfied(record: PrePrExecutionRecord, phaseId: PrePrPhaseId): boolean {
+/**
+ * Coverage-scoped satisfaction (#5421 Prefer-A Bound):
+ * - measured pass: exit 0 only when command matches the phase spec (hotspots)
+ * - authorized N/A: non-zero + closed skip reason + controller re-derives inert
+ * Arbitrary exit-0 audits and forged skip tokens without re-derivation fail.
+ */
+function commandSatisfied(
+  record: PrePrExecutionRecord,
+  phaseId: PrePrPhaseId,
+  options?: {
+    readonly projectRoot?: string;
+    readonly applicabilityDeps?: CoverageApplicabilityDeps;
+  },
+): boolean {
   const row = record.phaseEvidence.commands.find((c) => c.phaseId === phaseId);
   if (row === undefined) return false;
   if (row.inputHash !== record.inputHash) return false;
+
+  if (phaseId === "coverage_headroom") {
+    const spec = phaseSpec(phaseId);
+    if (row.exitCode === 0) {
+      return spec.command !== null && row.command === spec.command;
+    }
+    if (!isAllowedSkip(phaseId, row.skipReason)) return false;
+    const derived = evaluateCoverageApplicability(
+      {
+        projectRoot: options?.projectRoot ?? process.cwd(),
+        baseSha: record.baseSha,
+        headSha: record.headSha,
+        treeHash: record.treeHash,
+      },
+      options?.applicabilityDeps,
+    );
+    return derived.outcome === "not-applicable";
+  }
+
   if (row.exitCode === 0) return true;
   return isAllowedSkip(phaseId, row.skipReason);
 }
@@ -321,7 +357,13 @@ function phaseObservedAt(record: PrePrExecutionRecord, spec: PrePrPhaseSpec): st
   return record.phaseEvidence.semantic.find((s) => s.phaseId === spec.id)?.recordedAt ?? null;
 }
 
-export function runObservablesComplete(record: PrePrExecutionRecord): PrePrDecision {
+export function runObservablesComplete(
+  record: PrePrExecutionRecord,
+  options?: {
+    readonly projectRoot?: string;
+    readonly applicabilityDeps?: CoverageApplicabilityDeps;
+  },
+): PrePrDecision {
   if (record.state === "failed" || record.failedAt !== null) {
     return deny("deny-failed", "failed pre-PR run mints no pass");
   }
@@ -334,7 +376,7 @@ export function runObservablesComplete(record: PrePrExecutionRecord): PrePrDecis
     if (!spec.required) continue;
     const ok =
       spec.kind === "command-observable"
-        ? commandSatisfied(record, spec.id)
+        ? commandSatisfied(record, spec.id, options)
         : semanticSatisfied(record, spec.id);
     if (!ok) {
       return deny(
@@ -373,6 +415,10 @@ export function completeRun(
   publisher: unknown,
   runId: string,
   now?: Date,
+  options?: {
+    readonly projectRoot?: string;
+    readonly applicabilityDeps?: CoverageApplicabilityDeps;
+  },
 ): PrePrDecision {
   const creds = requirePublisher(publisher);
   if (!creds.ok) {
@@ -382,7 +428,7 @@ export function completeRun(
   if (current === null) {
     return deny("deny-missing-record", `pre-PR run ${runId} is not in the private store`);
   }
-  const observables = runObservablesComplete(current);
+  const observables = runObservablesComplete(current, options);
   if (!observables.ok) return observables;
   const published: PrePrExecutionRecord = {
     ...current,

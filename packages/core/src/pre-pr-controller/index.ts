@@ -30,6 +30,7 @@ export {
 } from "./evaluate.js";
 export {
   ALLOWED_SKIP_REASONS,
+  COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP,
   isAllowedSkip,
   PRE_PR_CONTROLLER_VERSION,
   PRE_PR_PHASE_IDS,

@@ -137,6 +137,16 @@ export function run(argv: string[]): number {
     useDiffPaths: args.useDiffPaths,
   });
 
+  // Exit 3 = authorized coverage N/A (#5421); keep machine-readable artifact on stdout for --json.
+  if (result.exitCode === 3) {
+    if (args.json && result.applicability) {
+      process.stdout.write(`${JSON.stringify(result.applicability, null, 2)}\n`);
+    } else if (!args.quiet) {
+      process.stderr.write(`${result.message}\n`);
+    }
+    return result.exitCode;
+  }
+
   if (result.exitCode === 2 || result.report === null) {
     process.stderr.write(`${result.message}\n`);
     return result.exitCode;

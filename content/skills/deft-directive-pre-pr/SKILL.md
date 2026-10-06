@@ -129,14 +129,18 @@ Each iteration proceeds through all phases in order. Do NOT skip phases or reord
 
 ~ **Windows + Grok Build (#1353):** Avoid `|`, `>`, or `2>&1` in `run_terminal_command` strings -- use Python `pathlib`/`subprocess` or plain task commands instead.
 
-### Phase 3c -- Coverage headroom (#2683)
+### Phase 3c -- Coverage headroom (#2683 / #5421)
 
-! Before the full `task check` coverage gate, run targeted coverage on changed modules and verify headroom above the project floor.
+! Before the full `task check` coverage gate, decide coverage applicability for the complete reviewed diff, then either measure headroom or record authorized not-applicable.
 
-- ! Run targeted coverage first: `vitest run --coverage <changed-paths>` (or language equivalent) — not only full `task check`.
-- ! Exercise both sides of new branches (ternary / early-return / catch / default switch / `||` / `??`).
-- ! Treat barely ≥ floor as insufficient — aim for ≥ floor + 0.3–0.5pp headroom on the branch metric relative to **your project's** vitest/coverage floor (may differ from 85%).
-- ! Run `task coverage:hotspots` / `deft coverage:hotspots` to locate uncovered branches before opening a PR; complements `deft verify:forward-coverage` (#1310) and `--allow-coverage-debt=#N` (#2573).
+- ! Run the shared applicability path (`deft coverage:hotspots` classifies before requiring Istanbul when the reviewed base/head/tree binding is available): **applicable** → measured path; **not-applicable** → skip channel; **refuse** → fail closed.
+- ! When applicable: run targeted coverage first: `vitest run --coverage <changed-paths>` (or language equivalent) — not only full `task check`. Then run `task coverage:hotspots` / `deft coverage:hotspots` for uncovered branches / headroom. Exercise both sides of new branches (ternary / early-return / catch / default switch / `||` / `??`). Treat barely ≥ floor as insufficient — aim for ≥ floor + 0.3–0.5pp headroom on the branch metric relative to **your project's** vitest/coverage floor (may differ from 85%). Complements `deft verify:forward-coverage` (#1310) and `--allow-coverage-debt=#N` (#2573).
+- ! When not-applicable (every changed path proven inert): record `coverage_headroom` via **non-zero exit + exact skip reason** `reviewed diff has no coverable paths` (`ALLOWED_SKIP_REASONS.coverage_headroom`). The controller re-derives applicability from the run's PrePrInputBinding before honoring that skip. Hotspots exit 3 emits the machine-readable N/A artifact for this channel.
+- ! When coverage is N/A: do **not** invent `vitest --coverage`; keep applicable static / `verify:*` gates in Phase 3. Do not treat "no coverable code" as "no lint obligations." A closed `lint_iteration` skip remains deferred.
+- ⊗ Satisfy `coverage_headroom` with an unbound exit-0 changed-file audit or any free-form exit-0 command that is not the authorized `deft coverage:hotspots` measured pass.
+- ⊗ Invent an Istanbul report, ask the operator to waive an irrelevant metric, or treat report-missing alone as not-applicable.
+- ⊗ Soften `coverage_headroom` to optional, lower the coverage floor, or claim a general docs-only CI bypass.
+- ! Toolchain-only N/A for executable changes on non-Istanbul projects (Coverlet adapters) remains open — do not paper over executable .NET with inert-classifier N/A.
 
 ### Phase 3b -- Auto-Render Exports
 
