@@ -13,10 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
-### Changed
-
-- Keep-active: Prefer-A Bound brief for #5393 (Path B activation).
-
 
 ### Added
 
@@ -24,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Keep-active: Prefer-A Bound brief for #5393 (Path B activation).
 - **Leftover-complete #5387 after product #5388.** Record completion of the Path B activation versus productPullRequest catch-22 Prefer-A Bound brief after the product land. Tracking #5387.
 - xBRIEF: Path B activation land for hard-stop hatch Prefer-A Bound (#5373)
 
