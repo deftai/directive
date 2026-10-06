@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [Unreleased]
+### Changed
+
 - Complete the #5375 scope brief after product #5400; move the cold ceremony honesty brief into xbrief/completed.
 
 - **Complete the worktree VERSION reconstitution brief after product #5395.** Move the #5390 scope brief into xbrief/completed so orphan tracking clears. Tracking #5390.
