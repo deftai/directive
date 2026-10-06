@@ -635,33 +635,44 @@ export function runTransition(
               relative(projectRoot, destPath).replace(/\\/g, "/"),
             );
             if (driftRecord !== null) {
-              // Finding may already be on the ledger — restore prior rows for THIS
-              // scope only. Skip ledger rollback when this scope was not mutated
-              // (lock refuse) so concurrent other-scope coverage is untouched.
-              const afterSnap = snapshotSpecDriftLedger(projectRoot);
-              // Compare this-scope row content (not only counts) so a replace of equal
-              // cardinality still rolls back refused completions (Greptile P1).
-              const thisScopeSlice = (ledger: SpecDriftLedger) =>
-                JSON.stringify({
-                  coverage: ledger.coverage.filter((c) => c.scopeId === scopeIdForEnforce),
-                  unresolved: ledger.unresolved.filter((f) => f.scopeId === scopeIdForEnforce),
-                  shadowFindings: ledger.shadowFindings.filter(
-                    (f) => f.scopeId === scopeIdForEnforce,
-                  ),
-                });
-              const thisScopeTouched = thisScopeSlice(priorDriftLedger) !== thisScopeSlice(afterSnap);
-              if (thisScopeTouched) {
-                const spentIds = spentGrantIdsSinceSnapshot(
-                  priorDriftLedger,
-                  afterSnap,
-                  scopeIdForEnforce,
-                );
-                rollbackEnforceAttempt(spentIds);
-              } else {
+              // Lock refuse returns completedAt=null with no ledger write — never
+              // roll back (a concurrent same-scope writer may have landed coverage).
+              const lockRefuseNoWrite = driftRecord.completedAt === null;
+              if (lockRefuseNoWrite) {
                 try {
                   unlinkSync(destPath);
                 } catch {
                   /* dest rollback after lock-refuse finding */
+                }
+              } else {
+                // Finding may already be on the ledger — restore prior rows for THIS
+                // scope only when this attempt mutated them.
+                const afterSnap = snapshotSpecDriftLedger(projectRoot);
+                // Compare this-scope row content (not only counts) so a replace of equal
+                // cardinality still rolls back refused completions (Greptile P1).
+                const thisScopeSlice = (ledger: SpecDriftLedger) =>
+                  JSON.stringify({
+                    coverage: ledger.coverage.filter((c) => c.scopeId === scopeIdForEnforce),
+                    unresolved: ledger.unresolved.filter((f) => f.scopeId === scopeIdForEnforce),
+                    shadowFindings: ledger.shadowFindings.filter(
+                      (f) => f.scopeId === scopeIdForEnforce,
+                    ),
+                  });
+                const thisScopeTouched =
+                  thisScopeSlice(priorDriftLedger) !== thisScopeSlice(afterSnap);
+                if (thisScopeTouched) {
+                  const spentIds = spentGrantIdsSinceSnapshot(
+                    priorDriftLedger,
+                    afterSnap,
+                    scopeIdForEnforce,
+                  );
+                  rollbackEnforceAttempt(spentIds);
+                } else {
+                  try {
+                    unlinkSync(destPath);
+                  } catch {
+                    /* dest rollback after untouched finding */
+                  }
                 }
               }
               return {
