@@ -765,8 +765,7 @@
           "xbrief/evaluator-surface-disposition.json",
           "xbrief/active/2026-10-06-5350-featspec-c3-enforce-specguard-verifyspec-drift-proof-of-rewr.xbrief.json"
         ]
-      },
-      "productPullRequest": 5408
+      }
     },
     "id": "github.issue.5704263582",
     "updated": "2026-10-06T02:45:13Z"
