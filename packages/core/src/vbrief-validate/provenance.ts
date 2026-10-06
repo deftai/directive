@@ -34,12 +34,15 @@ const VERIFIED_AT_OFFSET = /(Z|[+-]\d{2}:\d{2})$/;
 /** Unambiguous leading High/Medium/Low for migrate only — not the validate accept gate. */
 const LEADING_CONFIDENCE_TOKEN = /^(high|medium|low)(?=$|[.\s,:;—–-]|(\.\s)|(\s+[-–—]))/i;
 const AMBIGUOUS_LEADING_CONFIDENCE =
-  /^(highly|higher|highest|medium-?high|medium-?low|high-?medium|low-?medium|low-?ish|lower|lowest)\b/i;
+  /^(highly|higher|highest|medium-?high|medium-?low|high-?medium|high-?low|low-?medium|low-?high|low-?ish|lower|lowest)\b/i;
+/** Whole-string ranges / compounds ("High or medium", "Medium-low", "high/medium"). */
+const RANGE_OR_COMPOUND_CONFIDENCE =
+  /^(high|medium|low)\s*(or|\/|to|through|thru|vs|versus|[-–—~,;])\s*(high|medium|low)\b|^(high|medium|low)[-–—](high|medium|low)\b/i;
 /** Residual that binds to the leading token (High uncertainty ≠ high). */
 const AMBIGUOUS_CONFIDENCE_RESIDUAL = /^(uncertainty|uncertain|confidence|likelihood)\b/i;
 /** Ranges / alternatives after a leading token ("High or medium", "Medium-low"). */
 const RANGE_OR_ALT_CONFIDENCE_RESIDUAL =
-  /^(or|\/)\s*(high|medium|low)\b|^[-–—]\s*(high|medium|low)\b/i;
+  /^(or|\/|to|through|thru|vs|versus)\s*(high|medium|low)\b|^[-–—~,;]\s*(high|medium|low)\b/i;
 
 const SOURCE_CLASS_SET = new Set<string>(SOURCE_CLASSES);
 const CONFIDENCE_SET = new Set<string>(CONFIDENCE_VALUES);
@@ -67,7 +70,11 @@ export function extractLeadingConfidenceToken(
   value: string,
 ): { confidence: ConfidenceValue; residual: string } | null {
   const trimmed = value.trim();
-  if (trimmed.length === 0 || AMBIGUOUS_LEADING_CONFIDENCE.test(trimmed)) {
+  if (
+    trimmed.length === 0 ||
+    AMBIGUOUS_LEADING_CONFIDENCE.test(trimmed) ||
+    RANGE_OR_COMPOUND_CONFIDENCE.test(trimmed)
+  ) {
     return null;
   }
   const match = LEADING_CONFIDENCE_TOKEN.exec(trimmed);
@@ -83,6 +90,10 @@ export function extractLeadingConfidenceToken(
   }
   const residual = rawResidual.replace(/^[.\s,:;—–-]+/, "").trim();
   if (AMBIGUOUS_CONFIDENCE_RESIDUAL.test(residual)) {
+    return null;
+  }
+  // "High, medium" / "High medium" — residual is only the other enum (not prose).
+  if (/^(high|medium|low)$/i.test(residual)) {
     return null;
   }
   return { confidence, residual };

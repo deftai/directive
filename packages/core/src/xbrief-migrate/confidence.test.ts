@@ -78,10 +78,14 @@ describe("migrate:confidence (#5385)", () => {
     const root = mkdtempSync(join(tmpdir(), "migrate-confidence-flags-"));
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     writeBrief(root, "xbrief/active/range.xbrief.json", "running", "High or medium");
+    writeBrief(root, "xbrief/active/compound.xbrief.json", "running", "Medium-low");
+    writeBrief(root, "xbrief/active/pair.xbrief.json", "running", "High, medium");
     expect(run(["--project-root", root, "--apply", "--dry-run"])).toBe(2);
     const declined = migrateConfidenceCorpus(root, { apply: true });
     expect(declined.mapped).toEqual([]);
     expect(declined.declined.some((h) => h.path.includes("range"))).toBe(true);
+    expect(declined.declined.some((h) => h.path.includes("compound"))).toBe(true);
+    expect(declined.declined.some((h) => h.path.includes("pair"))).toBe(true);
     expect(declined.changed).toEqual([]);
   });
 });

@@ -6,8 +6,13 @@
  * Historical trees are never rewritten by validate.
  */
 import { type Dirent, existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import { basename, dirname, join, relative, resolve } from "node:path";
+import {
+  containedRemove,
+  containedRename,
+  containedWrite,
+  fsyncContainedDirectory,
+} from "../fs/contained-write.js";
 import { assertDirectoryNotSymlink } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import {
@@ -129,6 +134,38 @@ function isHistoricalFolder(relPath: string): boolean {
   );
 }
 
+function migrateAtomicTempPath(targetPath: string): string {
+  return join(dirname(targetPath), `${basename(targetPath)}.deft-${process.pid}.tmp`);
+}
+
+/** Contained temp+rename so a failed replace cannot truncate the live brief. */
+function containedReplaceAtomic(root: string, target: string, data: string): void {
+  const temporary = migrateAtomicTempPath(target);
+  try {
+    containedWrite({
+      root,
+      target: temporary,
+      data,
+      mode: "replace",
+      mutation: { path: target },
+    });
+    containedRename({
+      root,
+      from: temporary,
+      to: target,
+      mutation: false,
+    });
+    fsyncContainedDirectory(dirname(target));
+  } catch (err) {
+    try {
+      containedRemove({ root, target: temporary, mutation: false });
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
+}
+
 function mapConfidenceNarratives(
   narratives: JsonObject,
 ):
@@ -243,12 +280,7 @@ export function migrateConfidenceCorpus(
       narratives.ConfidenceNote = decision.residual;
     }
     try {
-      containedWrite({
-        root,
-        target: file,
-        data: `${JSON.stringify(parsed, null, 2)}\n`,
-        mode: "replace",
-      });
+      containedReplaceAtomic(root, file, `${JSON.stringify(parsed, null, 2)}\n`);
       changed.push(relPath);
     } catch {
       declined.push({
