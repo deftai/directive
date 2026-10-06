@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **pnpm-based Directive upgrades no longer reject unchanged dependencies with empty lockfile entries (#5384).** Existing unrelated dependencies must still remain unchanged, while new lockfile entries may accompany a Directive upgrade. Tracking #5384. Refs #5245, #3193.
+- **Consumer debug skill ships deposited investigation ledger + outcome templates (#5195).** Prefer-A Bound: native `content/skills/deft-directive-debug/templates/investigation.xbrief.json` (0.8 `xBRIEFInfo`, `forensic-research-v1`) and `references/outcome-template.md`; authored pack retarget + `packs:render`; drop parallel MUST `orchestrator-protocol` pointer; extend C1 `deposit-required-paths` + stageContentPack closure; rewrite debugging skill path assertions and validate a filled 0.8 fixture via schema + `loadLedger`. Leave vendored `docs/reference/forensic-research/` untouched. Tracking #5195. Refs #1621.
 
 - **Stale `DEFT_ACTIVE_SCOPE` recovery (#5386).** When the pin names a missing brief, recovery says clear/repoint and restart; if exactly one eligible brief remains, Write/Edit warn and continue with that brief instead of freezing. Tracking #5386.
 

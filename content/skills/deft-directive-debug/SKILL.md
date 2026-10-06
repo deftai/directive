@@ -27,10 +27,10 @@ deterministic close gate.
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 The concrete reference design is vendored read-only under
-`docs/reference/forensic-research/` -- read it for extended detail (orchestrator
-protocol, sub-agent prompts, question framing, domain packs). This skill is the
-directive-native, freshly-authored workflow; do not repurpose the vendored copy
-as the live skill.
+`docs/reference/forensic-research/` -- maintainer-only extended detail
+(orchestrator protocol, sub-agent prompts, question framing, domain packs).
+This skill is the directive-native, freshly-authored workflow; do not
+repurpose the vendored copy as the live skill.
 
 ## When to Use
 
@@ -68,8 +68,10 @@ The investigation is a sustained posture across turns, not a one-shot answer.
 
 - ! On entry, create an investigation directory `.tmp/investigations/<id>/`
   (gitignored, ephemeral) and write the ledger `investigation.xbrief.json` from
-  `docs/reference/forensic-research/templates/investigation.xbrief.json`. Stamp
-  `plan.status = "running"`.
+  `skills/deft-directive-debug/templates/investigation.xbrief.json` (deposit path
+  `.deft/core/skills/deft-directive-debug/templates/investigation.xbrief.json`).
+  Fill `plan.id` and `plan.title` on MODE entry (scaffold leaves them empty).
+  Stamp `plan.status = "running"`.
 - ! While MODE is active, every turn appends evidence to the ledger before any
   narrative. The ledger is the source of truth; chat is a view of it.
 - ! On exit, the ledger MUST pass `task verify:investigation -- --ledger <path>`
@@ -80,8 +82,10 @@ The investigation is a sustained posture across turns, not a one-shot answer.
 
 ## The Claim Ledger
 
-The ledger is a thin xBRIEF 0.6 profile (`forensic-research-v1`):
+The ledger is a thin xBRIEF 0.8 profile (`forensic-research-v1`):
 
+- ! New writes use `"xBRIEFInfo": { "version": "0.8" }`. Ledgers stay under
+  `.tmp/investigations/`, not `./xbrief/`.
 - ! Top-level `plan.items[]` are **branches** (competing theories). Each branch's
   child `items[]` are **claims** (testable assertions).
 - ! Each claim carries `metadata.x-claim` with `evidenceRefs[]` (ids into
@@ -93,8 +97,9 @@ The ledger is a thin xBRIEF 0.6 profile (`forensic-research-v1`):
 
 ## Investigation Waves
 
-Run the waves in order. Each works solo (one agent) or parallel (sub-agents per
-`docs/reference/forensic-research/references/orchestrator-protocol.md`).
+Run the waves in order (solo agent). Parallel multi-agent waves are out of
+scope for this deposited skill; maintainer-only vendor protocol lives under
+`docs/reference/forensic-research/` and is not a consumer MUST.
 
 1. ! **Frame** -- parse the operator question; split dual questions ("why slow AND
    why errored") into separate branches. Reproduce the failure. Seed branches.
@@ -120,7 +125,8 @@ Run the waves in order. Each works solo (one agent) or parallel (sub-agents per
 ## Outcome
 
 When the close gate passes, write the Outcome from
-`docs/reference/forensic-research/references/outcome-template.md`. It MUST include:
+`skills/deft-directive-debug/references/outcome-template.md` (deposit path
+`.deft/core/skills/deft-directive-debug/references/outcome-template.md`). It MUST include:
 
 - ! The root-cause **mechanism** (not a tautology -- "slow because phase X took N
   minutes" is not a mechanism; name *why* phase X took N minutes).

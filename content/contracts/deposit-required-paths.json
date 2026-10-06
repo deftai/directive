@@ -22,6 +22,8 @@
     ".deft/core/.agents/skills/deft-directive-pre-pr/SKILL.md",
     ".deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md",
     ".deft/core/.agents/skills/deft-directive-swarm/SKILL.md",
-    ".deft/core/.agents/skills/deft-directive-feedback/SKILL.md"
+    ".deft/core/.agents/skills/deft-directive-feedback/SKILL.md",
+    ".deft/core/skills/deft-directive-debug/templates/investigation.xbrief.json",
+    ".deft/core/skills/deft-directive-debug/references/outcome-template.md"
   ]
 }

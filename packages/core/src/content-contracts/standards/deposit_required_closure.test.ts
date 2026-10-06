@@ -48,10 +48,26 @@ describe("declared deposit closure against staged pack (#3601 C1)", () => {
       const declaration = loadDepositRequiredDeclaration(resolveDeclarationFile(root) as string);
       expect(declaration.paths.length).toBeGreaterThan(0);
       expect(declaration.paths).toContain(".deft/core/docs/subagent-heartbeat.md");
+      expect(declaration.paths).toContain(
+        ".deft/core/skills/deft-directive-debug/templates/investigation.xbrief.json",
+      );
+      expect(declaration.paths).toContain(
+        ".deft/core/skills/deft-directive-debug/references/outcome-template.md",
+      );
       const pack = stageDeclaredPack(root);
       const result = evaluateDepositClosure({ packRoot: pack, paths: declaration.paths });
       expect(result.ok, result.missing.join(", ")).toBe(true);
       expect(existsSync(join(pack, "docs", "subagent-heartbeat.md"))).toBe(true);
+      expect(
+        existsSync(
+          join(pack, "skills", "deft-directive-debug", "templates", "investigation.xbrief.json"),
+        ),
+      ).toBe(true);
+      expect(
+        existsSync(
+          join(pack, "skills", "deft-directive-debug", "references", "outcome-template.md"),
+        ),
+      ).toBe(true);
       const packedHeartbeat = readFileSync(join(pack, "docs", "subagent-heartbeat.md"), "utf8");
       expect(packedHeartbeat).not.toContain("scripts/subagent_monitor.py");
       expect(packedHeartbeat).not.toContain("tests/cli/test_subagent_monitor.py");
