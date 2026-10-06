@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Confidence enum 0.8 compatibility can proceed for #5385.** Records the approved file list for the product fix so scope checks can pass on PR #5432. Tracking #5385. Refs #5441.
+- **Path B activation for #5403.** Land the Prefer-A Bound active brief so the stacked product PR can pass scope membership. Tracking #5403.
 - **Keep active #5195 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5195.
 - **Approved-scope mint for #5195 includes `docs/RULE-MAP.md`.** Operator TTY mint lands `.deft/approved-scope/github.issue.5652287218` so product PR #5436 can regenerate the rule map without membership failure. Tracking #5195.
 - **Expanded Path B activation for #5421.** Widens the active brief so product PR #5431 can pass scope membership checks. Tracking #5421.
@@ -68,6 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Record human approval for the #5415 Path B intent limit.** Lands the mint-only intent-constraint record on the delivery merge base so the follow-on product PR can pass the intent gate. Tracking #5415.
 - **Keep active #5413 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so product PR #5416 can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5413.
 - **Mint approved-scope for #5373 (RULE-MAP membership).** Operator TTY remint of `.deft/approved-scope/github.issue.5713952089{,.intent}.json` so product PR #5410 membership includes `docs/RULE-MAP.md`. Mint-only — no product code. Tracking #5373.
@@ -103,6 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Interview phase-boundary checks (#5355).** Detects unexpected proposals after an interview phase is complete, completion before required decisions are accepted, and lost deferrals or phase changes on resume. Tracking #5355.
 
 ### Fixed
@@ -119,6 +124,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(xbrief): widen #1164 file_scope to include docs/RULE-MAP.md (Path B precommitment for product land).
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 - **Keep active #5353 brief for Path B membership.** Lands the continuity-resolved active xBRIEF with concrete `file_scope` on master so product PR #5357 can pass verify:scope-provenance membership (#5192 / #4774). Leaves `metadata.productPullRequest` unset on this activation land; product delivery #5357 binds it. Tracking #5353.
 - **Interview phase/approval durable carrier (#5352 Prefer-A Bound).** Names `plan["x-directive/interviewContinuation"]` on `./xbrief/plan.xbrief.json` as the sole durable continuation record (closed phase enum; confirmation scope tags with required revisionId for artifact/phase; operator-enumerated delta; handoff read-side refuse; first-delta initialize when carrier absent). Excludes ephemeral continue-here as carrier. Maps answer/artifact/phase approvals onto Rule 6 / Post-Interview / Full Path gates with planning-only precedence. Dual pack+rendered content-contract carrier-assert pins (no new CLI verify verb in this land). Tracking #5352.
 - **Doctor deposit advisory + chip docs (#5326 split).** Lands `checkDesignCritiqueDeposit` on the doctor path and the contract/skill ensure-or-doctor pointers for catalog chip recovery. Tracking #5326.
@@ -195,6 +202,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Controller-issued pre-PR completion records (#4912).** `deft pre-pr:run` starts a repository-controlled workflow whose private-store record is merge authority for the prescribed pre-PR loop. Opening the skill file or a generic mark-complete cannot mint a pass. Head-side xbrief/active weakening cannot produce a mergeable pass. Checkbox parsers, gitignored markers, author-supplied run ids, and one-PR-unit verdicts stay non-authority. App/ruleset enrollment stays #4976. Renews evaluator-surface disclosure for the vitest subpath alias. Tracking #4912.
 - **Named Source/Confidence vocabulary and a verified TrustLevel (#479).** Plan narratives use named source-class and confidence terms plus claim provenance; confidence cannot replace evidence. TrustLevel gains verified without changing existing promotion rules. Failed plan items need an invalidates edge (or complete ruled-out proof); whole-story fail/cancel does not. Tracking #479.
 - **Wire `verify:changelog-unreleased` into `check:framework-source` (#633).** Reuses `changelog-check` (no second Unreleased language). Records operator-owned repo-scoped ruleset enrollment for required context `Merge gate (task check)` with admin-enforcement and artifact-only skip-path validation before flipping. Shrinks the PR template checklist to items with named detectors and moves Post-Merge out of `- [ ]` syntax. Does not implement Tiers 1-3. Does not claim to close P1 (parked on #4912). Tracking #633.
@@ -240,6 +249,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Residual re-ingest (#5177), first-ship PD/AGENTS gates (#5176/#4544), Windows Step 5 cheapen (#5140), and Fresh-clone completed-land (#4714).
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 - **WSL root-runtime ownership guard (#1617).** session:start soft-warns with the resolved filesystem project-owner (uid:gid + account); mutating check/update/preflight fail closed on harm-capable WSL root mismatch unless DEFT_ALLOW_ROOT_WSL_RUNTIME=1. Mount-pinned DrvFs/9p without metadata and native Windows/macOS are exempt. Ships ownership:doctor / ownership:fix / verify:ownership (CLI + task / deft: aliases). Tracking #1617.
 - **Residual re-ingest for reopened shipped issues (#5177).** Reopened shipped issues can be ingested again as a residual brief with lineage to the prior ship; Stage A clears sticky `needs-re-scope` when that residual is live. Tracking #5177.
 
@@ -304,6 +315,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Batched finalize-owed tip inventory (#5171), named zero-reviewer terminal (#3630), sticky tip-rot greptile-sha-stall (#5162), finalize-owed FP refuse (#5143), and clearer check-gate remedies (#1883).
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 - **Named zero-reviewer terminal for review-cycle / pr:watch (#3630).** Presence probe plus optional `plan.policy.review.reviewers` (`[]` = explicit none) exits `NO_REVIEWER_INSTALLED` (exit 2) before the poll loop; `pr:merge-ready` inherits it. Empty observation never CLEAN. Young/incomplete check-run inventory and green non-bot CI fail-close to poll (late bot). Soft GitHub CLEAN reconcile does not drop the no-reviewer failure. Slow reviewers still poll. Handback `review_cycle: skipped:no-reviewer-installed` routes to pre-pr self-review. Doctor reports local presence. #769 stays substitution. Closes #3630.
 
 - **README Getting Started links the Directive training course (#5154).** Points at [`deftai/directive-training`](https://github.com/deftai/directive-training). Tracking #5154.
@@ -354,6 +367,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(class-checks): allow CI harness workflows (not release/npm-publish) to reference test/fixture roots (#5097).** Class 2 still fails closed for non-workflow deploy/pipeline paths.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 - **swarm:launch reachable for freshly-accepted N=1 stories via scaffold + solo-headless readiness (#3718).** `swarm:readiness --scaffold` writes `plan.metadata.swarm` from operator-named `--file-scope` / explicit draft fields only (refuses inventing fence authority from issue text; #4988). Documented N=1 / solo headless launch (`swarm:launch` cohort size 1, or `swarm:readiness --solo-headless`) relaxes ceremony fields `expected_outputs`, `conflict_group`, and `model_tier` while keeping load-bearing `file_scope` / `verify_commands` / `depends_on` / `size` / `file_scope_confidence`. Readiness and launch failures name the scaffold path and keep `xbrief:preflight` as lifecycle-ready only. Interactive solo discoverability stays on #3669. Tracking #3718.
 - **Merge-gate enforcement readiness at strategy start (#1517).** Named forge required-status-check axis distinct from local `allowDirectCommitsToMaster` / Phase 2 "branch-protection ON" (agent-commit only). Detect via existing `fetchRequiredStatusContexts` (protected/absent/unknown); durable `.deft/merge-gate-enforcement/` record (`configured`|`explicit-opt-out`|`cannot-configure`|`deferred-not-applicable`); optional configure refuses empty PUT and auto-promoted harvest; preserves human-review / `requireHumanMerge`. Tracking #1517.
 - **Under a recorded presentation ceiling, cannot-evaluate is refuse or escalate (#5079).** `verify:presentation-ceiling` arms from any add-only or tightening head restriction on the #5056 `.deft/presentation-ceilings/` artifact (this dest owns that compare until #5056 lands), covers each changed path, and fails closed on intent-constraint N/A and observable-scope warn-exit-0. Off-ceiling N/A stays 0. Do not add the artifact to class-checks `DEFAULT_PROTECTED_GLOBS`. Rapid/pressure still run the compositor. Refs #5056, #4541, #5078.
@@ -396,6 +411,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Dirty-deposit update partition (#5096), Step 5 hang detector 45 to 60 minutes (#5091), win32 gh.cmd SCM spawn (#5081), finalize-owed backstop (#4919), Tracking origin-close after leftover (#4864), coverage-of-record Step 5 (#5026), Target-digest ingest-ready (#4995), operator scope-limit (#4545), and suite-load testTimeout (#5107). Step 5 skipped with --allow-skip-ci=5107 after nearly-green 44m suite (1 timeout flake) per operator approval.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 - **In-class durable-effect acquisition gate under a presentation ceiling (#5080).** `verify:durable-effect-acquisition` consumes the #5056 ceiling artifact and refuses storage, cookies, non-GET or non-sentinel network, and markup submission in changed `.tsx` / `.jsx` / `.html`. Submitter `formmethod`, non-sentinel `<base href>`, and any-namespace `on*` handlers refuse. skipped/N/A is not an exit under an armed ceiling. Composed on consumer and framework `task check`. Closes #5080.
 - **Operator scope-limit ceiling + warn-first untraceable-surface check (#4545).** Closed-lexicon phrases (`do not add`, `nothing beyond`, `initial version only`, …) seed a hard ceiling on the proposed brief (or durable artifact) even when rapid/greenfield has no `xbrief/active/` brief; `deft verify:operator-scope-limit` lists exported actions/routes/pages not traceable to a requirement line (warn-first; remediation: remove, or add to the brief and get operator approval). Distinct from slash-verb intent-ceiling (#1193). Refs #4545.
 - **perf(vitest): committed durations + DurationSequencer arm slowest-first on cold release worktrees (Tracking #5028).** Fresh trees no longer depend on host-global vitest cache.dir. Fixture packages/core/fixtures/vitest-file-durations.json (interim until #5027). Refs #5028, #5027, #5024.
@@ -472,6 +489,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Cursor records a planning choice before the first submitted Plan request (#4973).** Local Cursor 3.21.16 `beforeSubmitPrompt` blocks Plan until `DEFT-PLAN-CHOICE` selects Directive (`/deft:directive:run:interview`) or host-only planning. Global-rule attachments do not veto an exact answer. State is host-owned under the platform config dir. `failClosed` is not claimed for this event. Tracking #4973.
 - **`verify:class-checks` fails closed on the #3145 class set (#4980).** Diff-scoped vs merge base: test artifact under a non-test root, production reference to a test root, test identity/role/principal/credential in infra, and protected-glob touch mixed into a story change set. Independent of brief/`file_scope`, of `verify:test-boundary` warn mode, and of author role. Allow lists and enforcementMode come from the merge-base policy copy; same-PR allow or warn flips that would clear a hit fail with the policy edit named. Exempt: configured test roots and `CHANGELOG.md`. Remediation is move or remove — no approve/skip/phrase. Wired into framework and consumer `task check`. Consumer agents-entry pin; `agentsMdBudget.absoluteMaxBytes` 20336→20364. Tracking #4980.
 - **Cursor session.start additional_context names Directive planning via `/deft:directive:run:interview` (#1708).** A native host plan does not approve a Directive scope. The line is Cursor-only on `session-start` and `session-start-degraded`. Soft re-bind checklist, session.compact, and OpenClaw skill text stay unchanged. Tracking #1708.
@@ -529,6 +548,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -555,6 +576,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > matchAny stamp (#4840), Class B warn (#4846), clause ids (#4707), Windows Step 5 fixtures (#4907), and leftover-active restamp (#4906)
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Evidence-only `scope:stamp-evidence` records kind:test on glob file_scope skip rows (#4840).** Writes a non-glob file that `matchAny(file_scope)` accepts through `stampNamespacedEvidence`. Refuses glob-shaped pointers and directory stand-ins. No disposition argv; `--pr` / `--merge-commit` stay off this field. Null-path persist-default rows stay unstamped. Tracking #4840.
 
@@ -596,6 +619,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 - **Records #4765 complete after Class B residual bares landed.** Completes the tracked brief for merged PR 4828. Tracking #4765.
@@ -634,6 +659,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 - **Records #4784 complete after completed-write pairing recut landed.** Completes the tracked brief for merged PR 4799. Refs #4784.
@@ -650,6 +677,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Leftover-complete harvest after merged product PRs (#4744, #4746, #4722, #4716, #4706, #4723, #4708, #4628) and xbrief:preflight lifecycle-ready vs authorization (#4690).
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 ### Changed
 
@@ -695,6 +724,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 - **Leftover-complete #4317.** Completes the Wave 2 brief after #4727. Refs #4164.
@@ -738,6 +769,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 - **Maintainer .gitignore un-ignores provenance under .deft/approved-scope and .deft/intent-constraint.** Local scratch and reconstituted .deft/core stay ignored. Not consumer CANONICAL_GITIGNORE_BASELINE. Mint records show in git status without -f.
@@ -773,6 +806,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Design-critique leftover-pain and later-arc ingest, file_scope remint, observable-scope mint-when, Windows coverage wall, and leftover complete-tracking.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 ### Changed
 
@@ -827,6 +862,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Intent-constraint snapshot (#4541).** `verify:intent-constraint` compares throw/reject/abort sites and new numeric consts in changed production .ts/.js to a merge-base pin. Numeric-const peel is a while-unwrap until NumericLiteral. Human mint for value/unit/rejectionScope; same-PR rewrite fails. Tests and in-scope paths are not authority. Do not name the verb semantic-*. Closes #4541.
 - **Requirements session posture for tracked docs (#4444).** `session:start --posture=requirements` claims occupancy, skips gated ritual and story xBRIEF, and allows docs/specs/proposed xBRIEF writes after occupancy (`write-requirements-ready`). Token is `requirements`; `docs` stays assist. Unknown posture tokens refuse. Instruction-surface paths stay denied. Occupancy engine stays on #4445. Closes #4444.
 - **Observable UI scope contract (#4495).** `verify:observable-scope` compares a human-minted `plan["x-directive/observableChange"]` record to a versioned parse5 (`.html`, scripting disabled) plus project-resolved TypeScript parse-only (`.jsx`/`.tsx`) oracle. Runtime deps add parse5 and entities only. Merge-base baseline; same-PR rewrite fails; opt-in surfaces; unset policy plus matching UI files is inferred-defaults-warn (exit 0 with findings). Runtime default-tab is #4503. Closes #4495.
@@ -876,6 +913,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -896,6 +935,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dest-of-write grammar leftover on UAT Shell (#3764).** Under active UAT, more Shell forms that write a protected path (grant store, kill-switch, approved-scope) now deny as grant-immune `unknown`: quoted paths inside interpreter `-c`/`-e`, dest-flag values such as `--print-to-pdf=` / `--target-dir`, a protected last dest followed by trailing junk (`--quiet 1`), and `task`/`cargo`/`npm --out-dir`. `git -C` / `make -C` stay cwd, not dest. Bare output filenames (`out.wav`) stay outputs. Concatenated payload paths stay residual. Finding 4 CHANGELOG containment stays split. Refs #4188.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Launcher-family CLI argv is classified ahead of the shell branch as process-only skip, dest-absent fail-closed (#4219).** grok/claude/codex worker argv on Shell tools is no longer shell-op-unclassifiable fail-open. Dest-present linked dest allows spawn-process-only-ready. Dest-absent fails closed (#4066). Read-only-deny when dest is not skip-ready. Compound commands and unquoted or double-quoted `$()` / backtick / process substitution fail closed. Single-quoted and escaped literals are not substitution. Not implement spawn-class. Not shellDestForms or SPAWN_TOOL_NAMES. Native first; CLI last-resort after recorded native miss. Closes #4219. Refs #4066, #4296, #4315, #4391.
 
@@ -970,6 +1011,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **`plan.acceptance` fields `verify:ac` requires, in one place (#4380).** `content/docs/plan-acceptance.md` names `none_stated`, `source_rung`, `ambiguity_attestation`, and operator-collected `file_scope` for derived-stamp bind. Derivation owns the stamp; setup stays silent. Missing attestation is skipped `#3323` / `#3360`, not a second `none_found` default. Closes #4380.
 
 ### Changed
@@ -1006,6 +1049,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Brownfield process-only adoption exit (#4337).** Setup Phase 2 option 2 is Process-only (keep Phase 2 identity). Interview chaining adds a labeled leave-strategy. Then-path skips bridge, export, acceptance, and build. GitHub issues stay cache/queue inputs. Docs stay described content. Closes #4337.
 - **Policy-anchored review-response (#3452).** Classify invariant-shaped findings against a written HEAD policy before patching; one push per round; more than 3 rounds on one file escalate to a #3434 design pass. Consumer agents-entry pointer (#1309). plan.policy.agentsMdBudget.absoluteMaxBytes 17725→17850. Composes with #3448; does not land ADR-004. Closes #3452.
 
@@ -1034,6 +1079,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Cursor dest-placing local implement, session:start HEAD orientation, doctor layout split, dest-missing / docs-impact / yolo-confirm fixes, and Windows symlink EPERM skip.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Cursor local implement is dest-placing, not Task dest (#4295).** Local Cursor workers start in a reserved linked worktree instead of unsupported Task destination keys. Consumer agents-entry pins dest-placing Cursor. agentsMdBudget.absoluteMaxBytes 17300→17600. Closes #4295.
 
@@ -1069,6 +1116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Design-critique arcs are GitHub-only dest worktrees, not ingest and not dest-path skip (#4296).** `github-only` means no-ingest. Parent fetches and pins one dest at origin/<default> (or fetched PR head). Skip class is Grok stdin `process_only` or `plan`, not cwd. Children share dest cwd-without-occupy. Closes #4296. Refs #4072, #4241, #4066, #4297.
 - **Parent-steer inbox for grok-build leaves (#4286).** Parent writes a closed-schema inbox at `.deft-scratch/subagent-steer/<agent-id>.json`; the child reads it on each pollable slice and acks apply-once. Heartbeat sweep skips steer schema and only reads top-level `<agent-id>.json`. `verify:subagent-steer` exit 1 is `STEER_PENDING`, not `REDISPATCH_OK`. Does not replace split-dispatch. Closes #4286.
 
@@ -1090,6 +1139,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -1106,6 +1157,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -1119,6 +1172,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > One suite at release Step 5 with a 20-minute hang supervisor, plus dest-lock leftover-release, ingest Target-digest, and critic-spawn occupancy fixes.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 ### Changed
 
@@ -1141,6 +1196,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Grok Bot as a first-class host, design-critique arc triggers, work-claim tags, and a docs/capability-map plus getting-started refresh.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Land leftover completed-tracked artifact for #4215 (#3264 / #1358).** The #4215 xBRIEF stayed in `active/` after squash of PR 4226 (`4a049ae1`). Moved to `xbrief/completed/` via `scope:complete`. Does not recut that issue. Refs #2321, #3476.
 - **Design-critique arc triggers plus Grok Bot widget/direct default (#4202 / #3845).** Thin router and Skills Index recognize `arc`, `run an arc`, `arc #N`, and `run an arc on #N`. Bare `review` still routes to review-cycle. On grok-bot detect, missing-token defaults to `arc-mode:direct` via `parseOperatorRunPosture`; checkout tokens still win. Widget apply-set prints only the verbs that apply and ends with numbered Discuss and Back. Slice A has no grok-bot dependency. Closes #3845. Closes #4202.
@@ -1189,6 +1246,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Stable ingest plan.id, spawned worktrees, design-critique front door, spec/PRD freshness, and session/authz/lifecycle fixes.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 - **Fail-closed SPECIFICATION.md / PRD.md render freshness (`task verify:spec-prd-fresh`) (#4086).** Re-renders to a buffer and fails on banner or projection diff, wired into `check:framework-source`. Banner canon and full projection freshness are separate assertions. Closes #4086.
 - **Design-critique front door is a run-posture field, not a second ingest switch (#4072).** Stop 1 records `arc-mode: direct` or `arc-mode: checkout`. Direct is `session:start --read-only` (or release), GitHub comments via `gh issue comment --body-file -`, SHA-pinned reads, and family CLIs without worktrees. Missing token, including yolo, asks. Ingest stays a later verb after the completed-arc record. Closes #4072. Refs #4020, #4066, #4067.
 
@@ -1247,6 +1306,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Withdraws classify-mirror, adds the Grok Build subscription playbook, and fail-closes occupancy, write-fence, coverage, and design-critique gates.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 - **Grok Build subscription-only setup playbook for maintainer agents (#4035).** `content/docs/grok-build-subscription-setup.md` is the in-repo host-auth playbook: SuperGrok parent (`grok login` / grok.com), Claude Code via `claude.ai` team CLI, Codex via ChatGPT CLI. User-scope console keys may remain; Grok must not inherit them (`[shell_environment_policy]` exclude). No BYOK `[model.*]` Console blocks. Five verification probes and hard stops (do not unset User/Machine keys, do not logout, do not print secrets). Pointer from `CONTRIBUTING.md`. Closes #4035.
 
 ### Changed
@@ -1285,6 +1346,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 - **Closed 23 of 25 stale-issue audit candidates from #3915.** Evidence comments cite this tree, not pass-1 cites. Full verification for #973, #1283, #1422, and #2518. #513 closed as descoped (stub scanner is not a required master check and does not scan `.ts`). #602 and #630 stay open: no latent-vs-deterministic principle in `content/`, and `migrate:xbrief` still does not auto-render. #630's proposed brief is re-targeted; #760's proposed brief is cancelled as delivered. #2769 pass-4 retracts "product not yet shipped". Refs #3915.
 
@@ -1306,6 +1369,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > On Grok, the worktree lease no longer denies the session holding it, and two write-gate bypasses close: patch-declared paths and a fenced release census.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 - **Recorded a routing decision against `gpt-5.3-codex` for subagent dispatch (#3979).** Two dispatches reported success while naming GitHub comment ids that did not exist, one of them after making zero tool calls, while sibling agents given the identical instructions did the work and posted real results. A decision record now captures the evidence, the alternatives weighed, and the conditions under which the choice should be reopened. Refs #3961, #3974.
 - **Pack-versus-guidance checks are fail-closed verifiers, not a skill (#3900).** Check 1 (`task verify:deposit-closure`) resolves the C1 declared required-path set against a staged pack root and reuses `evaluateDepositClosure`; a mutated staged tree fails. Check 3 is C2 `task verify:semantic-single-source` (already on master). Check 2 is C3 live-procedure targets (PR #3957 / #3602) -- composed, not rebuilt. Check 4 (`task verify:consumer-hard-stops`) enumerates open consumer hard-stops by BLOCKER title classification and the adoption-blocker label only and never reads issue bodies (#3713). Checks 5 and 6 print new-refusal and net-posture disclosure at the release decision point and do not auto-block a tag. Wired into `task check` (check 1 + C2) and release pre-flight. Closes #3900. Refs #3899, #3601, #3713, #3156.
 - **C2 semantic single-source conformance for the xBRIEF write version (#3600 / #3899).** Shipped authoring surfaces must name exactly one current write version, and it must be the version setup writes. Pointer resolution cannot see this class: the 0.6-versus-0.8 defect lived in files that already resolved. `task verify:semantic-single-source` evaluates a staged pack root (or the source tree), and a mutation fixture reverts a shipped file to stale 0.6 to prove the gate is not vacuous. Mixed MUST lines still fail when the envelope or a bare quoted write mandate is mutated to 0.6 beside a legacy qualifier, and an unreadable resolved surface is config-fail rather than a silent pass. The consumer agents-entry template names 0.8 as the new-write default. Does not close #3899.
@@ -1360,6 +1425,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: local Cursor sessions no longer misread as cloud, so SCM-dependent gates stop silently skipping when a healthy gh login is available. Cursor-managed VMs are now denied host credentials by a positive agent/runtime=managed metadata read that still lands if an earlier probe failed, an ambiguous Cursor runtime requires an explicit DEFT_GITHUB_AUTH_MODE=host-gh opt-in, and skipped gates now report why (#3859).
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 - **Legible recovery when the hook runtime is missing (#3785).** A fresh clone, CI runner, or cloud-agent image that receives `.cursor/hooks.json` without a Node install of the CLI fail-closes every mutation on an opaque exit 127, because the registration travels via git and the runtime it names does not. `deft init` / `deft update` now warn when a hook registration travels with the repository -- already committed, or untracked and not ignored so the next `git add` carries it -- while no `package.json` dependency on `@deftai/directive` travels with it to let a clone obtain `deft-hook`. New `docs/hook-runtime-unavailable.md` and an always-on AGENTS.md card name the durable workaround for an already-locked-out environment: `deft policy:disable-host-hooks --host cursor --confirm`. Do NOT hand-edit `failClosed` in the deposited hook file -- the next `deft update` rewrites it and silently re-arms the lockout. This does not clear an existing lockout: an environment whose runtime is still missing keeps exiting 127 on every mutation until that opt-out is applied, and #3785 stays open. Fail-closed itself is unchanged: absent, crashed, and timed-out stay one non-decision class. Refs #3736, #3571, #3156.
 - **A dispatched child can be admitted to a worktree lease by name, instead of by holding the owner's session string (#3755).** The occupant runs `deft occupancy:grant --child-session-id=<child> --role <worker-role>` (`--revoke` withdraws it), which records owner id, child id, worktree, role and expiry on the lease, so a write resolves to a session rather than to whoever had the string. Writes are admitted for the owner or a valid unexpired member; release, steal, heartbeat and cohort close-out stay owner-only, so a grant never escalates into the lease itself. An expired grant is refused on read, expiry can never outlast the lease's 12-hour age cap, and a steal or fresh claim starts with no members. A member's write renews the lease on the same floor as the owner's, so a quiet owner does not cost an actively-writing child its worktree, and the composite write gate now measures the verified ritual owner against the occupant that issued the grant instead of the writer. The docs now name the boundary honestly: cooperative bearer-id, not lineage. Closes #3755. Refs #3613, #3599, #3872.
 - **The design-critique contract now defines its own unit of work.** `## Framing` defines an arc as one recorded motion over one target revision — the Stop 1 write-back through accepted synthesis or the halt line — holding one or more rounds. Its boundaries are read off the ceiling and auto-stamp machinery that already exists rather than asserted. Stop 2 adds `### Target shape`: set-level and against-implementation are what is being critiqued, an axis independent of charter, so neither becomes a variant-table row. Bind path 2 now refuses stubs and footnote-only censuses just as path 1 does, so a hollow arc can no longer reach `design-critique:triage-ready` through the operator verb. Closes #3797. Refs #3434, #3610, #3781, #3796, #3798, #3799, #3803, #3850.
@@ -1426,6 +1493,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.107.0] - 2026-08-26
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 - **Ordinary occupancy release (#3604).** A holder can drop a live lease with `occupancy:release` or `session:end`. A non-owner cannot clear a live lease. Expired leftover files are residue, not a blocked entry path; the same release path clears them. Steal stays confirm-gated for live occupants and prints existing `claimed_at` / `heartbeat_at`. Swarm close-out stays `releaseSwarmOccupancy` on complete-cohort. No `reap` verb. Closes #3604.
 - **Land leftover completed-tracked artifact for #3604 (#3264 / #1358).** The #3604 xBRIEF stayed untracked after squash of PR 3748. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 
@@ -1523,6 +1592,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Land leftover completed-tracked artifact for #3434 Story 3 (#3264 / #1358).** The Story 3 xBRIEF stayed untracked after squash of PR 3617. Moved to `xbrief/completed/` via `scope:complete`. Umbrella #3434 stays open. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3596 (#3264 / #1358).** The #3596 xBRIEF stayed untracked after squash of PR 3605. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Thin design-critique router skill.** Pack-rendered `deft-directive-design-critique`: triggers plus five pointer stops into the contract. On-demand Skills Index. Content-contract tests lock existence, line cap, path resolution, and no-normative-content. Refs #3434.
@@ -1582,6 +1653,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **UAT Shell residual after #3421: extra dest writers plant authz, kill-switch, and approved-scope (#3459).** Under active UAT, write-shaped Shell dests that #3421 missed classify as settings deny when they target `.deft/authz/**`, kill-switch basenames, or `.deft/approved-scope/**`. GNU coreutils `g*` prefixes and unknown dest flags targeting those paths fail closed. Ordinary dests such as `/tmp` stay unclassifiable. Already-denied `install` / `cp` / `git clone` / `Set-Content` stay denied. Closes #3459. Refs #3421, #3410, #3039.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Drive-to DONE requires completed-tracked on the delivery tip (#3476).** `task verify:completed-tracked -- --issue N` checks one origin against `origin/<deliveryBranch>`, not feature-worktree HEAD. Exit 1 plus missing tracked land is not DONE; remediate with `task swarm:finalize-cohort` or a lifecycle PR. Parent last-leaf close without that land is a failed close. `scope:complete` stays filesystem-only. Verb stays off `task check`. `agentsMdBudget.absoluteMaxBytes` 15400→15700 for the managed pointer. Closes #3476. Refs #3264, #1358, #3429.
 - **Lifecycle-only land skips `task check` (#3476).** Completed/cancelled xBRIEF residue lands with `task swarm:finalize-cohort` or a lifecycle PR gated by `verify:completed-tracked --tip HEAD`. Not the drive-to story envelope and not the TypeScript suite. Refs #3264 / #1358.
@@ -1678,6 +1751,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Always-on writing bar: clarity, simplicity, brevity (#3368).** Standing outcome bar for documents and user communications, including sub-agent status and handbacks. Agents-entry and the worker preamble name the three words. The depth page keeps the four STE mechanics plus ceremony-vs-fields, product-content voice, and no-reasoning-scope carve-outs. Not an [AXIOM], skill pin, or red CI style gate. Version blurb and GitHub/Slack Key Changes must name this bar. Closes #3368. Refs #2927, #3313.
 - **verify:telemetry-coverage dead-surface detector (#3362).** Framework `task check` warns when a run-summary event kind has no production caller or no field-shaped fixture. A shared fake-trial harness enrolls kinds (do not rebuild per kind); a silent first step is empty emit, not ENOENT; a thrown trial still removes the temp root; the remediation names the missing half. Warn-only this release; `--enforce` fail-closes later. Companion MUST/⊗ in the agent preamble and CONTRIBUTING. Closes #3362. Refs #3355, #3356, #3350, #3282.
 - **Ceremony-dial evaluation reads a consumer evidence source (#3358).** Session:start maps stamped #3323 clause count (and optional host-tier / failing-gate env) into `taskSize`/`modelTier` so evaluation is not permanently `insufficient evidence (size=- modelTier=-)`. Rapid default and decline threshold stay unchanged when no evidence exists. Closes #3358. Refs #3319, #3274, #3214, #3323.
@@ -1707,6 +1782,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Code Mode pattern (#2593).** `content/patterns/code-mode.md`: compact `search`/`describe` + sandboxed `execute` over large static tool catalogs; progressive discovery; job split (ephemeral compose vs named durable ops #2087 vs host explore); anti-patterns and non-goals; public citations. Pointers from `tool-design.md` complementarity and `llm-app.md` tool-call section. Wave 5 under #3179.
 
 - **Context partitioning + handles (#487).** Names human-curated context partitioning on Select strategy; prefer handles (paths, pack slices, xbrief ids, cache keys) over paste; RLM as optional qualified citation only (not identity rewrite). Short partition→recurse→combine in `long-horizon.md`. Cross-link Code Mode twin. Wave 5 under #3179.
@@ -1731,6 +1808,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Rung-2 derived AC, product-oracle integrity, Blacksmith unclaimed failover, and the #3313-#3340 growing-cohort land since v0.101.0.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Rung-2 derived AC: clause decompose at intake, walk at done (#3323).** When no shell commands are stated, intake derives numbered independently testable clauses from the task statement onto `plan.acceptance.clauses[]` (`none_stated: true`, `source_rung: derived`) before the first product edit. Ambiguous clauses record both readings and the chosen one. `verify:ac` walks every clause against the shipped artifact at its stated path (verified / unverifiable / failed); unverifiable is reported, never dropped; done reports lead with failed/unverifiable. Run-summary adds `acceptance_stamp` (rung, none_stated, command/clause count) and carries rung + per-clause outcomes on the verify:ac `acceptance` sibling. `schema_version` stays 1. Does not change rung 1 or rung 3. Closes #3323. Refs #3284, #3267, #3334, #3322, #3320, #3282.
 
@@ -1776,6 +1855,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Optional deterministic session coda on interactive doctor success (#2712).** After the final human success footer (`System check passed!` / warnings footer), interactive TTY doctor (exit 0, not CI, not `--json`) may print one extra operator line controlled by env-only `DEFT_SESSION_CODA`: **unset** → fixed discoverability `Session coda: off (set DEFT_SESSION_CODA=1 to enable)`; **`=1`** → exactly one `✦ <coda>` from content pack `content/doctor/session-coda.json` (deterministic FNV-1a of UTC date + project root); **`=0`** → silent. Never on hard fail; never mid-run `Next command:`; never JSON/AGENTS/skills; pack load fail omits star without failing doctor. Documented in `doctor --help`. Operator UX / agent-experience only — no new CLI verb, no USER.md key, no exit-code or Next-command changes. Closes #2712.
 - **Consumer issue-label kit: optional `security` project routing label (#3299).** Documents optional portable `security` for advisory security review routing when a project uses that path — create on forge only if used; catalog in consumer `.github/ISSUE_LABELS.md`; not Core always-recommend; not a merge gate or maintainer AppSec taxonomy import. Source: `content/docs/consumer-issue-label-kit.md` (deposit on release). Closes #3299. Refs #2611, #2609.
 - **Operator discovery for SCM label mirror (#3124).** Cold `session:start` / `triage:welcome` surfaces a throttled tip (until first successful `--mirror` dry-run or `triage:classify -- --ack-discovery` — not every re-arm) that teaches existence **and** get-the-most: dry-run first, defaults only stamp `triaged` on matches (control stamp), board usability needs full five-chip `actionLabels`, match rate needs `triageAutoClassify`, never auto-accept, policy:show + PROJECT-DEFINITION location, GitHub labels must exist, re-enrich warning, pointer to consumer kit #2611. Dry-run digests hint when `actionLabels` is empty or open `no_match` dominates. Agent anti-swallow rule requires user-visible restatement when the tip fires. Core: `packages/core/src/triage/classify/mirror-discovery-tip.ts`; welcome + classify digest + CLI dry-run throttle and ack entry. Also fixes vitest-3 coverage-debt soft-pass forwarding via `DEFT_TS_LANE_COVERAGE_DEBT` (CAC rejects unknown CLI debt tokens). Closes #3124. Refs #1423, #2611, #3125, #3197, #2573, #2618.
@@ -1803,6 +1884,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Literal acceptance verification, parent-lineage/decompose gates, effort budget, dual-stop follow-up, and lifecycle consistency since v0.99.0.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Literal acceptance-command verification (#3267).** At intake, capture exact stated shell acceptance commands into `plan.metadata.literal_acceptance_commands` (source=`task_statement`, no paraphrase). Agent-authored `swarm.verify_commands` / plan-item `command` run **verbatim** before done via `task verify:literal-ac` and `scope:complete` — fail closed on non-zero or unpromoted task_statement-only commands. Shell meta + first-token allowlist refuse closed; **wrapper verbs** (`task`/`deft`/`directive`) limited to `check|doctor|verify:*|help|--version` and package-manager `exec` to `vitest` only (no ambient scope/policy/scm). Safety-rejected shell-shaped lines persist on a **rejected ledger** (`literal_acceptance_rejected`) surfaced by verify/complete. Dedup preserves distinct `cwd`/`expectedExitCode`; reload keeps execution context; trailing path token `.` is not stripped as punctuation. `task_statement` is never auto-promoted into `swarm.verify_commands`. Self-chosen verification is supplementary only. Survives ceremony dial rapid/minimal (`literalAcceptanceRequired: true`; #3214 / #3156). Extends #973. Core: `packages/core/src/literal-acceptance/`; skills: build + pre-pr; strategy: rapid. Relates #3266. Closes #3267.
 - **Operator follow-up after dual-stop / hard stop (#3273).** Named low-token section on `deft-directive-swarm` (thin SKILL + `references/core-phase-4.md` / `core-ops.md`) and `deft-directive-review-cycle`: one residual pass under operator consent, authorized conf floor this-PR-only, anti thrash (⊗ unlimited auto-retry). Mandatory halt-report resume line (residual class + pursue residual / follow-up hard-stop / same as conf-hold / continue dual-stopped PR + skill pointer) so agents discover resume without chat memory. When to Use triggers; content-contract markers; optional `commands.md` pointer. Portable consumer + maintainer. Does not lower `minGreptileConfidence` or allow parent self-implement (#2843). Closes #3273. Refs #2442, #3095, #3225, #2843.
@@ -1853,6 +1936,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Retained addressable sub-agents — message-later / steer-mid-flight (#3158).** Names retained-child mode beside dispatch-and-collect in swarm canon (`swarm/swarm.md`), swarm skill + Phase 3 classify, and per-host continue-by-id notes (Warp/OpenClaw retain when live; Cursor/Claude/Grok/generic default one-shot unless host documents resume). Capability-tiered mid-scope gate (#954): retain-capable hosts may single-dispatch with re-message; others keep split-dispatch. Always-on agents-entry pin + preamble §10; #3164 stance (orchestration not constitution self-edit); couples to landed #3155 nuclear-family topology (retain does not license open mesh). Closes #3158. Refs #2510, #673, #954, #3155, #3164, #3179, #1309.
 
 - **Swarm pre-dispatch deny when unit already has an active implement leaf (#3228).** Wires #3143 `DENY_DUPLICATE_ACTIVE` (`maxActiveAttempts: 1`) onto the swarm re-dispatch path via `task swarm:pre-dispatch` (exit 0 allow / 1 active deny or gate block / 2 config). Default unit key: `scopeId` + `targetId` + `workflowId=drive-to:merge-ready`. Actions: `begin` (default, begins attempt on allow), `complete`, `cancel` (takeover = cancel then begin — not concurrent dual active). Skill/preamble pointer only; CLI is authoritative. Core: `packages/core/src/swarm/pre-dispatch.ts`. Closes #3228. Refs #3143, #261, #263.
@@ -1898,6 +1983,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **`task scope:record-approved-scope` first-adoption / renewal surface (#3205).** Operator CLI deposits human-origin `.deft/approved-scope/<plan-id>.json` digests (`--actor` required; agent stamps refused; pending→active path binding). Taskfile + dispatch alias; docs in `content/docs/scope-provenance.md` cover first-adoption and multi-PR expansion. Closes #3205.
 
 ### Changed
@@ -1915,6 +2002,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Release Step 5 auto-hatch + suite stamp, UAT shell fail-closed, portfolio-priority skill, coverage restore, and related harness fixes since v0.97.0.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Portfolio-priority agent skill for pre-promotion RFC clustering (#3201).** New deft-directive-portfolio-priority skill (pack-rendered): cache freshness, 	riage:classify --mirror as filter only, theme slice, conflict matrix + shortlist + park, epistemic citation/body gates (no title-only supersession), pilot-shaped priority brief, dispose checklist to #1396 / plan-sequence. Explicit non-goals: no SCM label writes, no 	riage:accept, no scope lifecycle. Discoverability via Skills Index, commands.md triage see-also, and consumer CONSUMER_SKILL_DISCOVERY_INVENTORY multi-host deposit. Worked example: #3200 / docs/analysis/2026-08-07-portfolio-priority-brief-patterns-pilot.md. Parent process #3198. Closes #3201. Refs #3198, #3200, #1396, #3179, #1423.
 
@@ -1942,6 +2031,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > CI weather resilience, dual-stop and delivery circuit breaker, scope/test gates, post-compact rebind, and operator-log hygiene.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Operator-log hygiene pattern + build/probe checklist (#1940).** New `content/patterns/operator-log-hygiene.md` documents six case-study failure modes, anti-patterns, positive rules, and thin non-goals (no core `plan.observability`, no default-on `deft check` hard-fail, not Product Insights #2603 / LLM telemetry #481). Copy-paste checklist in `content/docs/operator-log-hygiene-checklist.md`; optional consumer Taskfile/validator stub in `content/docs/operator-log-hygiene-consumer-pack-stub.md`. Discovery via `REFERENCES.md` keywords and a lazy-load pointer on the build skill. SLizard cited as external reference only. Closes #1940.
 - **Platform status probe + outage attribution for CI weather handoffs (#3180).** Docs (`scm/github.md` + review-cycle) MUST-probe GitHub Status and Blacksmith Status when weather codes fire; attribution table (`platform` / `capacity` / `repo_config` / `unknown`); anti-thrash during platform outage; extended `BLOCKED: ci_weather` fields (`platform_status_github`, `platform_status_blacksmith`, optional incident URL, attribution). `pr:watch` / `pr:merge-ready` surface static status URLs on weather-class `ci_ready_state` (JSON + human; no network fetch in v1). Cross-links #3167, #3168, #2672, #2688. Closes #3180.
@@ -1978,6 +2069,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **`scope:promote --from-issue` reciprocity + `triage:accept --auto-promote` (#1136 / D18).** `task scope:promote -- --from-issue=N [--repo owner/name]` locates the proposed scope for issue N via provenance, gates on `xbrief/.triage-cache/candidates.jsonl` `latestDecision` (`accept` proceeds; non-accept refuses unless `--force-no-cache`; missing decision soft-warns, `--strict` fails), promotes proposed→pending with scope-audit fields `from_issue` + `cache_decision_id` / `cache_state_at_promote`, and disambiguates multiples via `--path`. Path/`--batch` promote without `--from-issue` stays ungated. Opt-in `task triage:accept -- --issue N --auto-promote` chains accept+ingest+promote (shared `promotePath`; WIP cap still enforced). Closes #1136. Refs #1119, #845, #3011.
 - **Reversible archive for closed github-issue cache entries (#1137).** Operator-only `task triage:cache-archive` (alias `cache:archive-closed`) moves closed-and-aged live entries under `.deft-cache/archived/github-issue/<owner>/<repo>/<N>/` with `archive-meta.json` + quarantine-audit line — not TTL hard-delete. Eligibility: `raw.state == closed`, age from `closed_at` / `fetched_at` / mtime vs `--older-than-days` (default 30), skip when issue N is referenced in `xbrief/{proposed,pending,active}`. Companion `task triage:archive-list` / `task triage:restore-from-archive` (idempotent restore; `--force` on live conflict). Flags: `--dry-run`, `--repo`, `--json`, optional `--terminal-decision-only`. **Never** wired into `task check`, session-start, or sync. Distinct from `task cache:prune` (TTL / `expires_at` destroy). Closes #1137. Refs #883, #1119.
 - **`--author` filter on `triage:queue` and `triage:classify` (#3129 / #1318 Layer 1).** Ranked work selection and mass-classify accept `--author LOGIN` (exact match on cache `author.login`; `@me` / `--author-mine` resolve via authenticated `gh`; optional comma allow-list). Filter composes with classify open-only (AND); missing author on legacy cache rows is unknown (excluded, disclosed). Queue header and classify digest surface the active author filter. Closes #3129; implements #1318 Layer 1 (Layer 2 vBRIEF author propagation remains follow-up). Refs #1033, #1055, #845, #1423, #3125.
@@ -2007,6 +2100,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Bound proof for remote artifact claims in handoff evidence / invented-done fail class (#3120).** Handoff evidence must set `proof_status` (`bound` | `unbound` | `n/a-no-remote-claim`) and separate work / ship / gate axes. `status: pass` with PR URL, SHA, CI green, or review score is illegal unless same-turn probe snippets bind each claim (probe-then-fill). Invented-done ranks stricter than empty-done. Library: `packages/core/src/handoff-evidence/` (`validateHandoffEvidence`). Preamble §11 + build / pre-pr / review-cycle skill final checklists. Closes #3120. Refs #1598, #3090.
 - **Freshness contract: bound vs live generation for long-lived sessions (#3117).** Successful deposit apply/refresh stamps a monotonic live generation (`.deft/GENERATION.json`); mutation `session:start` binds it (`.deft/session-bind.json`). `deft freshness:report` / `freshness:bind` (and `session:freshness`) compare bound vs live with `current` | `stale_soft` | `stale_hard` | `unbound`, surface diffs, rebind-without-host-restart guidance, and mid-mission park/handoff. Core module `@deftai/directive-core/freshness`; docs `content/docs/freshness-contract.md`. Disk-only version probes are insufficient for session readiness. Closes #3117.
 - **Tier-1 deterministic SCM label mirror from classify (#1423 Wave 1).** `task triage:classify -- --mirror` classifies the github-issue cache with the existing #1129 engine and mirrors outcomes as SCM labels (`triaged` idempotency marker + optional `plan.policy.triageLabelMirror` action map). Dry-run by default; `--apply` writes through the SCM label client and cross-repo mutation boundary (compose #1288, do not reimplement). Re-run is a no-op for already-triaged issues. Never calls `triage:accept` / never writes `proposed/` xBRIEFs. Waves 2–3 (bootstrap mass-triage, agent Tier-2 comments) remain open on #1423. Refs #1129, #1288, #1420, #886.
@@ -2028,6 +2123,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Greptile 5/5 dogfood bar, owner-continuity and completion latch, assist/ephemeral postures without active xBRIEF, and umbrella current-shape sync in cache/ingest.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Greptile min-confidence policy + dogfood 5/5 CLEAN bar (#3095).** Typed `plan.policy.review.minGreptileConfidence` (1–5) is the single SoT for CLEAN / merge-ready confidence. Resolution: project policy > framework dogfood detect (framework source → **5**) > consumer default (**4**, legacy confidence > 3). Wired through `evaluateCleanGate`, `pr:watch`, `pr:merge-ready` / `evaluateGates`, `task policy:show --field=minGreptileConfidence`, review-cycle Step 6, greptile.md, and swarm greptile poller template. Consumer installs stay on 4/5+ unless they raise the floor; directive dogfood requires 5/5 + existing no-P0/P1 + SHA + terminal + CI rules. Closes #3095. Refs #1259, #1056.
 - **Owner Continuity Gate + `review_cycle` evidence enum (#3090).** `deft-directive-review-cycle` requires same-turn A/B/C after drive-to:merge-ready / babysit / shepherd claims (monitor+lease, parent-retained dual-source next action, or explicit BLOCKED finish) — bans silent hold, check-run SUCCESS alone as CLEAN, and freeform `review_cycle: started|pending|initiated`. Portable enum: `done` | `in_progress:<pr>#<ref>` | `skipped:<reason>` | `n/a`. Optional machine gate `deft verify:l4-owner` / `task verify:l4-owner` (lease or `--review-cycle done`). Preamble §11 + content-contracts pin the FAIL case (open P1s + SUCCESS check + no lease). Closes #3090. Refs #2876, #2878, #2797.
@@ -2062,6 +2159,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Documentation-with-code guidance for agents (#447).** Lazy-loaded `content/coding/docs.md` (not always-on AGENTS) requires user-facing doc surfaces in the same PR when behavior changes (CHANGELOG, CLI/commands, install/first-run pointers, skill triggers). `coding/coding.md` links the rule; `deft-directive-pre-pr` Phase 1 checklist applies it. Closes #447.
 - **Blacksmith CI runner migration guide with tiered vCPU sizing (#448).** Optional `content/ci-cd/` layer (parallel to `deployments/`): `ci-cd/README.md` purpose/structure; `ci-cd/blacksmith/` with overview, runner-tiers (4/8/32 rules), agent migration-prompt, and lint-vs-test before/after example. Cross-links from `deployments/README.md` and `REFERENCES.md` Task-Based Loading. Content-manifest entry + content-contract pins. Lazy-load only — no always-on AGENTS bulk; does not change this repo's workflows or make Blacksmith default CI. Closes #448.
 - **Review-cycle principles in `coding/review.md` (#1471).** Promote tool-agnostic RFC2119 review process (read-all findings, P0/P1/P2 severity, single batch commit, cross-file grep, local structured-data validation, no mid-review push, exit on no P0/P1, post-merge closing-keyword check) into always-loadable Directive content. Quality chain link from `coding/coding.md`; discoverability in `REFERENCES.md` / `main.md`. `deft-directive-review-cycle` becomes the Greptile + GitHub adapter with a Principle Authority cross-ref (no inline restatement of the universal list). Closes #1471. Closes #212. Refs #212.
@@ -2086,6 +2185,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Setup re-entry: Revisit experimental rules (#46).** Post-bootstrap path on `deft-directive-setup` so returning users can enable/disable USER.md Experimental Rules for `meta/SOUL.md`, `meta/morals.md`, and `meta/code-field.md` without hand-editing schema or inventing a `deft config` verb family. Returning-user menu offers **Revisit experimental rules**; guided toggle shows current on/off state and reuses Phase 1 5a–5c explainers; safe UTF-8 section-only write with non-clobber of Personal/Defaults. Pure helper `applyExperimentalRulesState` / `setExperimentalRule` in `packages/core/src/user-config/experimental-rules.ts` (+ unit + content-contract tests). Closes #46.
 - **Delivery-branch completion evidence (#3041).** Code-bearing `scope:complete` / `swarm:complete-cohort` / `swarm:finalize-cohort` no longer treat merge-to-any-base as delivered. Typed `plan.policy.deliveryBranch` (distinct from swarm/PR `baseBranch`; defaults to the repo default branch when unset) gates completion: require a merge commit that is an ancestor of the **refreshed** remote delivery ref, or an explicit auditable non-delivery disposition (`accepted_not_delivered` / `superseded` / `experiment_archived` / `cancelled`). `finalize-cohort` validates `merged_at`, `base.ref`, `merge_commit_sha`, and delivery ancestry; intermediate/integration bases fail closed. Completion stamps provenance (`repository`, commits, PR, PR base, delivery branch, verifier, timestamp); handoff states distinguish implemented / PR-open / merged-to-integration / delivered; deploy and UAT are never inferred from Git. Legacy completed records without provenance surface as `unknown`/`unverified`. CLI: `scope:complete --non-delivery=…`, `--merge-commit`, `--pr-base`, `--delivery-branch`; `swarm:finalize-cohort --delivery-branch`. Closes #3041. Refs #1598, #86.
 - **Temporary test kill-switch `.deft-directive-disable` (#3039).** Root-only **local (untracked)** flag disables Directive **enforcement** (host SessionStart / PreToolUse / compact hooks, `session:start` ritual write, doctor short-circuit) while allowing the deposit to remain — distinct from permanent `.no-deft-directive` (#2926). A **tracked/committed** flag is misconfig: doctor warns and enforcement stays on (repo content cannot disable hooks for clones). Shared detector in `packages/core/src/policy/deft-directive-disable.ts`; recovery requires **delete the file** and a **new agent session**. Doctor reports `disabled-test-kill-switch` when active. AGENTS always-on contract via agents-entry; deposit gitignore baseline includes the flag path. Docs: `content/docs/deft-directive-disable.md`. Consumer note: A/B and DevHammer “without DD enforcement” arm. Closes #3039.
@@ -2109,6 +2210,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Cohort cut: OpenClaw pin copies, SCM readiness, closing-keyword intent mode, forward ROADMAP + compact SPECIFICATION, wipCap decision-provenance.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Coding standard: no in-band signaling / absence is not a decision (#1695).** Always-loaded `coding/coding.md` Design Principles block (`State & Data Modeling`) plus long-form `patterns/in-band-signaling.md` (orthogonality test, three-kinds-of-provenance, wipCap worked example). Content test pins both surfaces. Ships with the #1694 wipCap fix. Closes #1695. Refs #1694, #1186.
 - **Compact default `task spec:render` (#1566).** Lifecycle Scope outlook and `LegacyArtifacts` are off by default so `SPECIFICATION.md` stays a usable product spec instead of a completed-archive dump. Opt in: `--include-scopes=current` (pending+active), `--include-scopes=all` (legacy full aggregation), `--include-legacy-artifacts=on`. Rendered markdown strips trailing whitespace. Same compact defaults apply to `project:export-spec` / `exportSpec`. Closes #1566. Refs #1589.
@@ -2141,6 +2244,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Process-cost ceremony events on local events.jsonl (#2994).** Registers behavioral `session:start` and `session:ritual-blocked` (registry colon style). Mutation `session:start` (cold + re-arm) emits timing payload (`ceremony_tier`, `duration_ms`, `exit_code`, optional `steps[]` from #2991). PreToolUse `ritual-not-ready` denials emit a cheap local block event. Always-on best-effort; not gated on valueFeedback; no remote Insights (#2603). Helper: `packages/core/src/session/process-cost.ts`. Docs map WWYSYDH ceremony labels → event names in `content/commands.md` § Process-cost events. Closes #2994. Parent epic #2990.
 - **Doctor OpenClaw always-pin detect + `--fix` wire (#3001).** When OpenClaw signals are present (`OPENCLAW` / `DEFT_PROBE_OPENCLAW` / `DEFT_AGENT_RUNTIME=openclaw`, or `~/.openclaw` / `OPENCLAW_STATE_DIR`), `deft doctor` checks the main workspace skills root for the four always-pins (`deft-directive-build`, `pre-pr`, `review-cycle`, `swarm`). Miss → warning + remediation `deft doctor --fix`. Fix mode symlinks (preferred) or copies pins from the content package into `$OPENCLAW_STATE_DIR/workspace/skills` without deleting user skills; multi-seat only with `--openclaw-all-agents`; divergent dirs need `--force` or TTY confirm. Module: `packages/core/src/doctor/openclaw-skills.ts`. Docs: `content/docs/openclaw-agent-host.md` wire step + host-lifecycle pointer. Closes #3001. Refs #2508, #2874, #2968.
 - **`deft session:ready` one-shot mutation recovery (#2993).** Composes `session:start` (when quick-tier is not green) + `verify:session-ritual --tier=gated` + `cache fetch-all --force` when `cache_fresh` blocks, so PreToolUse gated inspect goes green in one verb. Idempotent fast path when already fresh (no unnecessary fetch-all). Hook denial copy points at `session:ready`. Core: `packages/core/src/session/session-ready.ts`; CLI: `packages/cli/src/session-ready.ts`; `task session:ready`. Docs: `content/commands.md` § Mutable ritual. Closes #2993. Parent epic #2990.
@@ -2166,6 +2271,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Contained-write residual + fail-closed inventory (#2980), hooks matrix Phase B, authz/finish-loop waves, OpenClaw host lifecycle, install-trust pattern, and xBRIEF 0.8 write defaults.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Contained-write residual wave C — eval/doctor/xbrief project IO sinks (#2980 wave C).** Migrates eval ledgers (`run` golden history, `crud-telemetry` metrics + instrumented CRUD create/update, `health` history, `readback` history), `doctor-state` persistence, residual cache self-heal stamp (`cache/fetch`), `xbrief-migrate/migrate-project` product writes, and `vbrief-build/project-definition-io` atomic PROJECT-DEFINITION write onto `containedWrite`. Part of residual epic #2980 / #2951 (waves A/B/D and fail-closed check wiring remain open). Docs: `docs/reference/contained-write.md`.
 - **Contained-write residual wave B — intake/authz/escalation/scope ledgers (#2980 wave B).** Migrates intake issue-emit (pending ledger, vbrief stamp, recovery sidecar, temp body), candidates-log append+lock, github-body out-file write, uthz/store atomic grant/state + audit append, scalation/store atomic JSON, and scope/audit-log append onto containedWrite. Inventory no longer flags those product modules for raw writeFileSync/openSync sinks. Implements residual wave B of #2980 (epic #2951 remains open for init-deposit, eval I/O, leftovers, and enforce wiring).
@@ -2206,6 +2313,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Graduation (Now+Later) dual-path locks for intentional under-builds — Wave A docs/strategy contract (#2899).** Discuss and probe require `now` + `later` + `graduationRef` + `trigger` + `status` when a lock chooses a temporary path; strategy prose distinguishes Graduation from `DeferredDecisions`, triage defer, and rapid graduate (glossary naming owned by #2907). `scope:complete` on Now must not close linked graduation work (soft warn Wave A; hard gates Wave B). Fail Loud (#1006) requires naming open `graduationRef`s (or explicit skip) before production-ready / feature-complete claims. Content contracts cover the narrative requirements. Closes #2899.
 - **Standalone public docs site on GitHub Pages (#2906).** Static minimum IA under `docs-site/` (What, Install, Concepts A/B/C, Gates, Upgrade, License) with evidence-bound copy and links to `docs/CATEGORY.md`. Hosting ADR at `docs/decisions/ADR-docs-site-hosting.md`. Workflow `.github/workflows/docs-site.yml` publishes to `https://deftai.github.io/directive/`. README docs entry and `packages/cli` `homepage` point at that URL. Pointing product domain `deft.md` at the live site remains an operator DNS / Pages custom-domain step (documented in the ADR). Closes #2906.
 - **Category decision aid — hosts vs skill packs vs practice layer vs orchestrators (#2905).** Canonical short page `docs/CATEGORY.md` with the four-way fit table, what Directive is / is not, skill-pack stacking, host-as-runtime boundary, swarm-skills ≠ app orchestrators, and star-count misuse warning (category demand ≠ substitute size). README TL;DR and Getting Started link it above install; glossary defines the four terms with cross-links. No invented traction. Refs #1597, #878, #392. Closes #2905.
@@ -2244,6 +2353,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Triage Phase 3 operator brief contract + `triage:show --format=operator` (#2890).** Skill requires a same-turn candidate brief (id/title/link, labels, summary, AC or thin-body note, lean+why) before every Phase 3 decision menu; forbids menu-only/chip-only turns; documents host `ask_user`/chips adapter (OpenClaw named); clarifies Phase 2.3 queue non-annotation does not forbid Phase 3 briefs. `task triage:show --format=operator` emits a pasteable cache-backed brief backbone (agent still owns lean). Closes #2890.
 - **OpenClaw is a first-class Tier-1 dispatch provider in the swarm capability matrix and routing (#2875).** Phase 3 probes OpenClaw `sessions_spawn` (descriptor `openclaw`) before Grok Build `spawn_subagent`, adds Step 2f launch / monitor / Phase 6 paths with parent-announce completion (not Grok poll output), accepts `openclaw` as a routing-gated `dispatch_provider`, and ships `task verify:openclaw-tier1` so the OpenClaw → Tier-1 mapping cannot silently regress to grok-build or generic-terminal. Closes #2875. Refs #2874, #1877, #1342, #1531.
 - **OpenClaw agent-host operator docs (#2877).** Discoverable `content/docs/openclaw-agent-host.md` covers Control UI / Telegram / TUI roles, bot vs human GitHub identity, executable babysit path (always follow installed review-cycle skill), and the epic **babysit → `sessions_spawn` Approach 1** expectation as design north star — no invented gate or register-primitive contracts; skill/engine wiring remains #2875/#2876. Cross-linked from `content/QUICK-START.md` and `content/docs/getting-started.md`. Closes #2877.
@@ -2275,6 +2386,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Doctor `--full` live-probes deposited agent hooks (#2852).** After structural registration checks pass, doctor spawns the configured `deft-hook` command with Cursor `tool.before` allow and deny fixtures and warns when stdout is empty, unparseable, or missing an expected deny — surfacing #2846-class packaging failures that structurally valid deposits hide. Closes #2852.
 
 ### Changed
@@ -2303,6 +2416,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > PR-anchored review leases, Cursor worker liveness, empty-cache freshness, update --help safety, trusted-org value/product-signal force-on, and deposit/doctor upgrade fixes.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **PR-anchored review-owner lease (#2814).** `review-monitor:register`, new `review-monitor:release`, and `verify:review-monitor` now use a sticky GitHub PR comment (`<!-- deft:review-owner -->`) as the sole lease source of truth. Cross-machine double-babysit is blocked via REST claim/conflict semantics; legacy `.deft/review-monitor.json` is no longer written or honored.
 - **Cursor Task worker liveness gate (#2824).** New `task verify:subagent-alive` fail-closed gate (exit 1 prints `REDISPATCH_OK`) and `task agent:monitor` Taskfile surface wrapping `subagent-monitor`. Swarm Phase 4/5 and agent preamble §10.5 require the gate for in-flight `drive-to: merge*` leaves; Cursor false-alive (host running + missing/STALE heartbeat) authorizes takeover re-dispatch.
@@ -2336,6 +2451,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **In-engine content-hash task cache (#1713).** `deft check` replays prior exit-0 results for unchanged cacheable gates from `.deft/cache/task/`; `--no-cache` and `deft cache:clear` escape hatches; `codeVersion` invalidates on upgrade; volatile gates opt out; runner auto-detect documents vitest/jest/go/pytest fast-lane conventions (full suite remains the merge gate per #1704). Public `@deft/types` contract deferred to #2784.
 - **Gate throughput process levers (#1704).** Iteration fast lane (affected/static gates during commits; full `task check` at PR/merge only) in build, swarm, and pre-pr skills; `task check:merge` alias; CI merge-gate job runs `task check:merge` as merge SoT (cached `deft check` cannot invoke internal Taskfile shims — `#1713` follow-up). Escape-rate consumption points at `#1703` Tier-1 telemetry. In-engine cache remains `#1713`. Merge queue deferred pending `#1713` + stable escape-rate signal.
 
@@ -2358,6 +2475,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Persistent hostHooks opt-out, Cursor failClosed/ApplyPatch write fixes, AppSec hardening (corepack, product-signal, lifecycle events), and branch-coverage restore.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Persistent agent-host hook opt-out (#2752).** `plan.policy.hostHooks` lets consumers disable Directive hook deposit per host (`claude`, `cursor`, `grok`, `codex`). Opted-out hosts are skipped on `deft update` / `directive init`, managed entries are stripped without deleting unrelated settings, and doctor / `verify:hooks-installed` no longer recommend repair. Inspect with `deft policy:show --field=hostHooks`.
 
@@ -2383,6 +2502,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Agent-skill and untrusted-fetch security gates, merge-cascade semantic-green, orphan-active lifecycle guard, and Windows issue-body RMW.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **TOCTOU coding standard for mutable external resources (#1938).** `content/coding/security.md` forbids scan-once trust of mutable externals; requires coupled validate+use or pin-by-content-hash with re-validation on change. Cites #1714 stale-body replay and the AIR fake-skill experiment. Closes #1938.
 
@@ -2416,6 +2537,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **TypeScript 7 side-by-side guidance for Deft TypeScript projects (#2591).** `languages/typescript.md` documents the Cartograph alias pattern (`@typescript/native` → TS 7, `typescript` → `@typescript/typescript6`), Dependabot major-ignore for the alias, and links to the TS 7 announcement + typescript-eslint#12518. `UPGRADING.md` carries a short applies-when pointer. Advisory `deft doctor` install-integrity check warns when bare `typescript@7` coexists with typescript-eslint without the alias (exit-exempt). Scaffold bake remains deferred. Closes #2591.
 - **Consented product check-in to an internal partner sink (#2693).** Opt-in typed policy `plan.policy.productSignal` (default off) with `task product-signal:enable -- --confirm`, install-level consent file, CLI `task product-signal:status|consent|submit`, skill `deft-directive-product-signal`, versioned payload with minimized `localSignalSummary` (value/health/helped) and optional `skillsSummary` hook. Submits pulse/portrait standing threads to internal `deftai/product-signal` via `GitHubPrivateSinkAdapter`; fail-open on headless and sink unreachable. Refs #2603.
 
@@ -2436,6 +2559,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Session runtime authority path policy in PreToolUse (#1394).** Opt-in typed policy under `plan.policy.runtimeAuthority` (`enabled` defaults false) with path allow/deny globs and graduated scopes (`edits`, `push`, `merge`). `deft hook:dispatch` evaluates direct-write targets after ritual/scope/read-only gates; inspect via `deft policy:show --field=runtimeAuthority`. Shell/MCP push/merge enforcement deferred — scopes are schema-ready for a future Shell matcher. Closes #1394. Refs #2437.
 - **Spawn/Task deny and read-only explore enforcement (#1185).** PreToolUse now classifies spawn tools (`Task`, `SubagentStart`, `spawn_subagent`, `start_agent`, `CreateAgent`) and denies implementation sub-agent spawns until the gated session ritual and active/running xBRIEF preflight pass (same predicates as direct writes). Explore spawns (`subagent_type: explore`) bypass implementation gates. Read-only explore agents deny direct writes when Grok `default_capability_mode = read-only`, `DEFT_HOOK_READ_ONLY=1`, or equivalent host payload markers are present. `directive init` / `deft update` deposit spawn matchers alongside direct-write hooks. Closes #1185. Refs #2437.
 - **Compact/resume re-arms the session ritual after host context compaction (#2113).** `deft hook:dispatch --event session.compact` marks `.deft/ritual-state.json` stale using existing gated-verifier semantics; `directive init` / `deft update` deposit Cursor `preCompact` and Claude/Grok `PreCompact`/`PostCompact` hooks so summary-based resume cannot silently bypass PreToolUse gates. Codex skips compact deposit (no native hook surface). Closes #2113. Refs #2437.
@@ -2455,6 +2580,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Consumer reliability patch: triage bootstrap cache for npm installs, packaged CLI path fixes, Cursor hook inference, pre-PR story-kind gate, review-cycle CI holdout action, and coverage headroom before the 85% floor.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Consumer `deft coverage:hotspots` / `task coverage:hotspots` surfaces branch headroom before the global gate (#2683).** Reads `coverage/coverage-final.json`, compares global metrics to project vitest thresholds (default 85%), fails closed below the branch floor or below configured headroom (default 0.3pp), lists lowest modules and git-diff uncovered branch samples, and supports `--json`. Pre-PR skill guidance now steers targeted `--coverage` runs and headroom above the project floor; complements `verify:forward-coverage` (#1310) and `--allow-coverage-debt=#N` (#2573). Closes #2683.
 
@@ -2483,6 +2610,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **`task verify:review-monitor` fail-closed gate when Tier 1 is available (#2655).** Requires a recorded active review-monitor (`.deft/review-monitor.json` or live subagent heartbeat) before a parent may yield, Approach-3 sleep-poll, or claim review ownership; companion `task review-monitor:register`. Three-state exit 0/1/2. Review-cycle + swarm skills name the gate. Closes #2655, #380, #1386.
 
 ### Changed
@@ -2503,6 +2632,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Bug-fix patch: Greptile merge-ready gating, Windows coverage/CI hardening, symlink write-sink containment, PowerShell multi-line git/gh guidance, and agent skill/scaffold fixes.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **`lifecycle:event` approval recorder on the consumer Taskfile/CLI surface (#2631).** Review-cycle merge-gate approval now records `plan:approved` via `task lifecycle:event` / `deft lifecycle:event`, with idempotent dedupe for repeated approvals on the same PR and HEAD SHA. Closes #2631.
 
@@ -2533,6 +2664,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 - **Release closeout commits `policy:enforce-branches` with a scoped push (#2623).** The release skill now requires committing the typed-flag restore in the same closeout (scoped `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` on those git commands only) so origin does not stay opted-in or leave a dirty enforce under protection ON.
@@ -2556,6 +2689,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Windows swarm guidance no longer prefers cloud or concurrency=1 (#2563 follow-up).** Preamble §3.8 and the swarm skill now treat local parallel Cursor Task cohorts as first-class on Windows; they document the shipped `windowsHide` + warm-dist mitigations and forbid regressing them, instead of steering agents to cloud or a single worker.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Origin-linked xBRIEF edits can sync back to GitHub issues (#2540).** `task issue:sync-from-xbrief -- <path>` resolves the linked `x-xbrief/github-issue` reference and posts a REST issue comment summarizing material AC/status changes; `--dry-run` previews without posting. Refinement and build skills require the step after material origin-linked edits (or a documented skip). Closes #2540.
 - **Work-selection fork is documented for consumers (#2542).** AGENTS.md, `commands.md` § Backlog Triage → Two paths, the triage skill, and the consumer header now teach ordered plan (`plan-sequence:*`) vs ranked queue (`triage:queue`) — default queue; lock a short plan for bounded delivery. Closes #2542.
@@ -2595,6 +2730,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Trigger routing evals for AGENTS.md skill discovery (#1586).** `evals/trigger-cases.jsonl` holds skill-pi-trigger-eval compatible should-fire / should-not-fire rows for every Skills Index rule in `REFERENCES.md` (including review-cycle babysit/shepherd and sub-agent paraphrases from #2261). `task eval:triggers` runs deterministic offline routing; `verify:eval-triggers-relocation` and CI run it when AGENTS.md or routing artifacts change. Closes #1586. Refs #1862, #1703.
 
 - **Agent-host hooks enforce Directive's mutation boundary for direct writes.** `directive init` / `deft update` now merge project `SessionStart` and `PreToolUse` registrations for Claude Code, Grok Build, and Cursor into their native hook files. The shared `deft hook:dispatch` bridge denies direct edit/write tools until the existing gated session ritual is fresh and an active/running xBRIEF passes canonical preflight; `deft verify:hooks-installed --scope=agent` and `doctor --full` report registration health. Shell/MCP policy, compact re-arm, and plugin packaging remain in their separate follow-ups. Closes #2438. Refs #2437, #2113, #1394, #2369.
@@ -2624,6 +2761,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Helped and health metrics persist outside the project tree.** `crud-metrics.jsonl` and `health-history.jsonl` now append under the resolved user-data metrics home (`helped/` and `health/` subdirs) via `DEFT_METRICS_HOME` / platform AppData or XDG defaults; no fallback to `xbrief/.eval/results/`. Closes #2545. Refs #2544.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Network-enabled doctor detects newer stable framework releases.** `deft doctor --network` now compares release-tag installs with the npm `latest` version even when the immutable pinned tag SHA still matches, preserves moved-ref priority, and does not nudge stable installs toward prereleases. Default doctor and session-ritual flows remain offline. Refs #1692, #2488. Partial — remaining ritual/session-start surface still tracked on #1692.
 - **Ordered-plan continuation stops "next" from escaping an approved sequence.** Agents bind bare "what's next?" / "proceed" to the narrowest operator-approved plan via `plan-sequence:*` and `verify:plan-sequence`; exhausted plans fail closed instead of pulling the triage queue. AGENTS keeps a pointer-thin #1149 precedence line; full rules live in the preamble and skills. Closes #2402.
@@ -2655,6 +2794,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Phase-2 always-on shrink: managed AGENTS.md under 8 KB, daily-core install default, and read-only session posture so hello stays light until you mutate.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **OpenPackage consumer installs default to daily-core skills.** The tier manifest and sync script now select the six session-bootstrap skills unless you pass `--tier all`, `--tier standard`, or `--tier advanced`; README and UPGRADING document how to expand tiers. Closes #2494. Refs #2491, #2462, #2463, #2370.
 - **Read-only Directive session posture defers ceremony until you start changing things.** Questions, Plan Mode, and ticket-shaping now default to alignment-only context loads without writing `.deft/ritual-state.json`, triage welcome, branch-policy dumps, or install side effects; the full mutable ritual still runs at mutation boundaries. Use `deft session:start -- --read-only` for explicit alignment-only mode. Closes #2176. Refs #2491.
@@ -2698,6 +2839,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **OpenPackage tiered skill package for cross-harness install.** Ships a tiered OpenPackage skill manifest (daily-core / standard / advanced) for Cursor, Codex CLI, and OpenCode via `opkg install`, documented alongside the npm engine — distribution-layer only, no runtime skill router. Closes #2462. Refs #2369.
 
 - **Agents-md budget gate now counts harness skill frontmatter (DD-3).** `verify:agents-md-budget` itemizes managed AGENTS.md bytes, Cursor-injected skill frontmatter, and bootstrap hooks (0 until #2438), supports daily-core vs all skill tiers, and documents remediation when the combined always-on surface exceeds the 8192 B north-star. Managed `absoluteMaxBytes` ratchet stays fail-closed; DD-3 caps are advisory unless `skillFrontmatterMaxBytes` is seeded. Closes #2463. Refs #2370, #2369.
@@ -2733,6 +2876,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Responsible disclosure policy for security reports.** A root `SECURITY.md` directs reporters away from public GitHub issues and documents private reporting via GitHub Private Vulnerability Reporting (preferred) and `security@deftai.dev`, plus supported versions, scope, response expectations, and safe-harbor language. Closes #2405.
 
 ### Changed
@@ -2765,6 +2910,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -2787,6 +2934,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Completes the xBRIEF cutover: the legacy vbrief/ read path is removed (run deft migrate:xbrief), alongside project:render xbrief-awareness, directive update .gitignore/deposit hygiene, and greenfield onboarding fixes.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - `directive doctor` now checks that the consumer `.gitignore` carries the canonical Deft entries (`.deft-cache/`, `.deft/.cli/`, triage-cache, backup patterns, and xBRIEF-era eval paths). Missing coverage is flagged as an advisory finding with `directive update` as the one-step fix. Closes #2206.
 
@@ -2814,6 +2963,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Company-owned repos auto-enable local value feedback.** Repositories whose GitHub origin belongs to a trusted org (built-in `deftai`, extendable via `DEFT_VALUE_AUTOENABLE_ORGS`) now switch on local, no-egress value-feedback collection automatically -- org membership is the consent, while network/upstream escalation stays opt-in. Every attribution event is now stamped with its repo, the directive version, a stable per-checkout install id, and a schema version so the local ledgers can be aggregated later without re-deriving provenance. Refs #1709, #2376.
 
 ### Changed
@@ -2827,6 +2978,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Every structured agent question now offers a Discuss/Back escape, alongside triage-cache path cleanups and a batch of reconcile, ingest, and changelog-check correctness fixes.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - Every structured or numbered agent question now carries an always-loaded Discuss/Back escape: AGENTS.md and the consumer template state the runtime obligation, the orchestrator preamble adds a pre-prompt self-check, and contract tests verify propagation. Closes #1470. Refs #767.
 
@@ -2852,6 +3005,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Eval framework discoverability (#1703).** Agents now learn the tiered eval surface from AGENTS.md: Tier 0 `task eval:health`, automatic Tier 1 CRUD telemetry, and Tier 2 `eval:run` / `eval:report`. Session start emits a budgeted `[eval]` advisory when health degrades or a contradictory gate fires, and `task triage:help` documents all three eval verbs. Closes #2336.
 
 ### Fixed
@@ -2860,6 +3015,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stopped versioning operator-private cache stragglers in the reclaimed `.eval/` namespace: removed accidentally committed scratch dumps and taught `.gitignore` to ignore the loose legacy triage-cache basenames (`candidates.jsonl`, `summary-history.jsonl`, `doctor-state.json`, etc.) and `_tmp_*` files under `xbrief/.eval/` / `vbrief/.eval/`, while keeping the tracked `.eval/results/` ledger. Refs #2344.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - Budgeted value-awareness readbacks: when value feedback is enabled, session start can show one attributed line from the local ledger (silent when empty), and `task value:show` reports attribution trends on demand — also available as `task triage:metrics`. Refs #1709.
 - Capability adoption registry: directive can now detect when relevant capabilities (planning, cost, decompose, swarm, pre-PR, and others) were applicable but unused, using conservative heuristics that suppress nudges for small or non-parallelizable work. Signals are gated on the value-feedback opt-in policy. Refs #1709.
@@ -2886,6 +3043,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Adoption polish + app-sec hardening: smoother triage onboarding, one-command subscription presets, higher default WIP cap, and four Medium security findings closed.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **`triage:welcome`'s onboarding flags are now discoverable in `--help` (#2302).** Running `deft triage:welcome --help` (or `task triage:welcome -- --help`) now lists `--onboard`, `--preset small|mid|mega`, and `--wip-cap N` with descriptions and an onboarding example, so the non-interactive onboarding surface shipped for #2295 is visible from the CLI instead of only in source. Refs #2302, #2295.
 - **`triage:scope --set-preset small|mid|mega` sets your whole triage subscription in one command (#2301).** Instead of adding labels and milestones one at a time, you can now apply a named subscription preset — the same `small` / `mid` / `mega` presets the onboarding flow offers — directly from `triage:scope`. It writes through the shared preset writer (so the namespaced `x-directive/policy` key, audit trail, and lock all behave identically to onboarding) and is mutually exclusive with the other mutation flags. Closes #2301. Refs #2295.
@@ -2916,6 +3075,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **USER.md now resolves automatically in headless and mismatched sandboxes — no manual `DEFT_USER_PATH` (#2271).** Session-start, the CLI bootstrap, and `doctor` now share one first-hit-wins resolver that looks for your preferences in `DEFT_USER_PATH` (still highest precedence), then a workspace-local `.deft/USER.md`, then the platform config dir (`%APPDATA%\deft` / `~/.config/deft`), and finally falls back to sensible defaults with a clear `no USER.md found; using defaults` message instead of failing. `doctor` reports the resolved path and which location matched so the boundary is visible. This fixes agentic sandboxes where `$HOME` is not persistent (the #2124 gap). Refs #2271, #2203, #2124.
 - **`directive migrate --untrack-core` cleanly un-commits a vendored `.deft/core` deposit once you go npm-managed (#2269).** Migrated projects that still tracked `.deft/core` can now run one idempotent command to remove it from git tracking (working-tree files are never deleted) and reconcile `.gitignore` so the payload stays ignored like `node_modules`. It refuses to run unless a committed `package.json` pin exists, so the content can always be reconstituted from the pinned engine — nothing is lost. Re-running is a safe no-op. Refs #2269, #2203.
 - **Shared resolution spine so Directive can always tell you the one right next step (#2264).** A single classifier gathers the orthogonal facts about your project and engine, and one `plan()` function collapses them into exactly one recommended action (proceed / init / migrate / update / install / blocked) behind a versioned, public JSON contract. It adds a global-first engine ladder that self-heals a missing or stale engine (including sandbox installs into `.deft/.cli/`), a three-band engine-vs-pin skew policy with an `--accept-engine-jump` escape hatch, and reads the committed `package.json` pin so init/update/doctor/headless all derive from the same source of truth. This is the library keystone; the user-facing rewiring lands in follow-ups. Refs #2264, #2203.
@@ -2943,6 +3104,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -2956,6 +3119,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Reliability & workflow-automation cycle: repairs the xbrief-migration triage regressions, hardens the swarm merge cascade, and adds pr:watch + forward-coverage safety gates.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **New `task pr:watch -- <N>` blocks until a PR review reaches a terminal verdict, so an agent that promises to poll a review cannot silently forget (#1056).** The command polls a PR's Greptile/SLizard review to one of three exit states — `0` CLEAN, `1` NEW_P0_P1 (new blocking findings), or `2` for any ERRORED / STALL / TIMEOUT / config fault — with `--one-shot` for a single probe and `--json`, `--max-wait-minutes`, `--poll-seconds`, `--repo`, and `--project-root` flags. It reuses the existing verdict detector and gates the verdict to the current PR HEAD, so a stale review posted before your latest push is never mistaken for the current one. Closes #1056. Refs #954, #1039, #1369.
 - **New `task verify:forward-coverage` gate fails a commit or PR that adds a source file without a test in the same diff (#1310).** The long-standing "new source files MUST ship with tests" rule was prose-only; it is now enforced deterministically, mirroring `verify:encoding` and `verify:branch`. Any newly added `*.py`/`*.go`/`*.ts`/`*.tsx` source file (tests and `*.d.ts` excluded) must land with a matching test file in the same change, or the gate fails. It runs in the `task check` aggregate and the pre-commit hook, with an `--allow-list <path>` escape hatch for generated code and shims. Closes #1310. Refs #798, #747.
@@ -3010,6 +3175,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Directive now teaches the empirically-grounded AGENTS.md structure — and surfaces doc sprawl before it degrades agents (#646, #647).** A new `content/docs/agent-docs.md` reference encodes the measured structure pattern for a project's AGENTS.md (100–150 line main file + focused reference docs, numbered workflows, decision tables, real snippets, paired don't/do rules, module-level over root files) and the measured overexploration failure modes, so projects directive creates get the "model-upgrade" version of agent docs instead of the "worse than nothing" version. The `deft-directive-sync` skill gains an advisory (never-blocking) doc-sprawl awareness step that flags orphan docs and large reachable doc volumes, and `deft-directive-pre-pr` reminds you to keep newly added docs in the reference chain. Refs #646, #647, #1882, #644.
 
 - **Cursor is a first-class Tier-1 dispatch provider in routing and monitoring matrices (#1877).** `task verify:routing` now resolves the active provider as `cursor` when running under Cursor (instead of falling through to `cloud-headless`), the swarm and review-cycle tier matrices enumerate Cursor as Tier 1 → Approach 1, `task verify:story-ready` chains the routing gate for single Task dispatches, and a deterministic `verify:cursor-tier1` content gate guards the matrices. Closes #1877. Refs #935, #1880.
@@ -3052,6 +3219,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -3065,6 +3234,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Patch release fixing task deft:* on git-vendored deposits and making issue ingest comment-aware by default.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - Issue ingest now fetches GitHub issue comments by default and folds the thread into the ingested overview, so corrective maintainer comments reach workers instead of a body-only snapshot. Closes #2143.
 
@@ -3100,6 +3271,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Canonical `xbrief/` layout is now the real tree (#2109, part 2b of 2).** The lifecycle tree moved from `vbrief/` to `xbrief/` (history preserved), every `*.vbrief.json` artifact was renamed to `*.xbrief.json`, and corpus reference tokens were rewritten from `x-vbrief/` to `x-xbrief/`. The layout-aware engine (parts 1 and 2a) picks up the migrated tree automatically, so `vbrief:validate`, `triage:queue`, `scope:*`, and `verify:cache-fresh` all operate on `xbrief/` with no behavior change. `x-vbrief/` reference types remain read-accepted for consumer back-compat, and a new `verify:xbrief-drift` gate (wired into `task check` and the pre-commit hook) fails if a legacy `vbrief/` path, `.vbrief.json` suffix, or `x-vbrief/` corpus token is reintroduced. Closes #2109.
 
 - **Engine call sites wired to the layout resolver (#2109, part 2a of 2).** Every runtime path that read or wrote the lifecycle tree -- triage, scope, swarm, capacity, policy, release, render, doctor, intake, and the `.eval` cache / `.audit` logs / `PROJECT-DEFINITION` -- now resolves its layout through the shared resolver instead of hardcoding `vbrief/` or the `.vbrief.json` suffix. `task vbrief:validate` was a false-green that hardcoded the directory; it now validates the real corpus. This is purely additive: on today's `vbrief/` tree behavior is identical, and the engine prefers `xbrief/` once a migrated tree exists. The mechanical move lands as part 2b. Refs #2109.
@@ -3127,6 +3300,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Publishes the v0.6 contract layer on npm plus triage, reconcile, hooks, and cache-fresh fixes across CLI and CI.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Public contract layer on npm (#1799).** `@deftai/directive-types` now exports the v0.6 vBRIEF document model, policy types, reference shapes, gate exit codes, and a published `vbrief-core-0.6.schema.json` subpath so downstream TS and non-TS consumers stop hand-mirroring the canonical contract. Adds `verify:contract-drift` to keep the npm schema copy and TS constants aligned with `content/vbrief/schemas/vbrief-core.schema.json`. Closes #1799.
 
@@ -3163,6 +3338,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.64.0] - 2026-06-29
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - Cursor is now a first-class Tier-1 runtime in the swarm and review-cycle monitoring matrices: an agent running in Cursor is detected via its `Task` tool and dispatches a backgrounded sub-agent poller (keeping the chat pane interactive) instead of silently degrading to a blocking poll loop. A new framework-source gate (`task verify:cursor-tier1`) keeps the Cursor → Tier-1 mapping from regressing in the skill docs. Closes #1877.
 
 ### Changed
@@ -3178,6 +3355,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Full Python-runtime removal complete — deft is now TypeScript-native end to end, parity harnesses retired, and the 85% coverage bar restored.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 ### Changed
 
@@ -3198,6 +3377,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Umbrella current-shape verb, migrate freeze carve-out, TS framework updates probe, and hooks fix — checkpoint before #1860 Bucket B purge.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **`task umbrella:current-shape <N>` yields live umbrella state without reading the issue body** — the native deft-ts verb fetches the canonical `## Current shape (as of pass-N)` comment via REST, supports `--json` section validation and `--strict`, and exits non-zero when no current-shape comment exists (no body fallback). Closes #2066.
 
@@ -3222,6 +3403,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -3239,6 +3422,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Greenfield specs export from PROJECT-DEFINITION via project:export-spec (with a migration-fidelity guard), and consumer git hooks now run Python-free on the deft CLI.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Greenfield projects can export SPECIFICATION.md from PROJECT-DEFINITION** — `task project:export-spec` renders stakeholder-facing spec exports without creating `specification.vbrief.json`, filters config narratives, and includes proposed scopes only for `--audience=internal`. A migration-fidelity gate blocks silent spec deletion when premigrate snapshots still hold unmigrated product narratives. Refs #2013, #1502, #2005.
 
@@ -3258,6 +3443,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > npm installs run without Python: bootstrap launcher, Python-free deposit, native consumer tasks, and pre-push/session fixes (#2022 Phases 1–4).
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Terminal operators get a canonical setup launcher** — `directive bootstrap` deposits `.deft/core/` when absent, carries phase intent and a deliberate re-entry signal, and hands off to the deft-directive-setup skill; operator docs now point here instead of legacy `run bootstrap` / `run project` / `run spec`. Refs #2022 Phase 4.
 - **Supported ghx install verb** — `directive setup:ghx` (and `task setup:ghx`) is now a native TypeScript command with consent-gated install (default deny); `task setup` nudges when `gh` is present but ghx is missing. Refs #2022.
@@ -3282,6 +3469,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **`deft doctor` now shows a pre-cutover status line** — running the doctor tells operators whether a project still needs the pre-v0.20 document-model migration or is already on the current vBRIEF model. Refs #2022.
 
 ### Changed
@@ -3304,6 +3493,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **The frozen installer binary can now self-check an install without Node** — `deft-install gate` is a new read-only health probe that prints a one-line state vector (`OK v<version>`, or `NEEDS-UPGRADE` with the recorded/current version, pre-cutover files, and AGENTS.md freshness) and exits 0 (healthy) or 1 (needs upgrade). Because it ships in the frozen Go binary it runs even when the Node engine is missing or broken — the node-independent replacement for the old Python gate. Refs #2001, #1933.
 - **Maintainers now have a runbook for rebuilding the frozen Go installer at release time** — `docs/RELEASING.md` gains a "Frozen Go-installer bridge" section that names where the freeze line lives (the `LAST_GO_INSTALLER` constant in `sot.ts`), explains how the CI freeze gate decides whether to build the Go binaries, and gives the exact before/after-release steps to roll the freeze forward and re-pin. The release skill's pre-flight now points operators to it. Refs #2001, #1912.
 
@@ -3320,6 +3511,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Post-freeze npm alignment: doctor, docs, and the release flow now treat npm as the canonical upgrade path, plus a new doc-to-CLI parity gate that blocks documented-verb drift.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Doc and release rehearsals now catch npm CLI drift before publish** — a new check compares every `directive` / `deft` command cited in UPGRADING.md and the AGENTS.md managed section against the live CLI router so documented verbs cannot outpace registration, and the release end-to-end rehearsal packs all four npm packages, installs them into a clean layout, and runs `directive doctor` to fail on module-not-found import bugs like the #1993 regression. Closes #1996.
 
@@ -3341,6 +3534,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -3354,6 +3549,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > First post-freeze release: future Deft upgrades ship via npm (the Go installer is frozen at v0.56.0), plus a freeze-gate green-skip fix and an esbuild security bump.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 ### Changed
 - **The Go installer is now frozen at v0.56.0 — future Deft upgrades come from npm** — the legacy stage-1 bridge is pinned to its final published Go-installer release (`v0.56.0`). From here, the release pipeline's freeze gate enforces the line: tags at or below v0.56.0 still build Go binaries, anything above skips the Go build cleanly (per #1987) and ships via npm only. Existing legacy on-disk layouts are still migrated by the frozen v0.56.0 installer, which then hands off to `npx @deftai/directive` for all subsequent updates. Closes #1912. Refs #1972.
@@ -3372,6 +3569,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > npm-native distribution: directive init/update/migrate now deposit and stamp installs from the npm content package without the Go binary, plus freeze-prep gates for the legacy Go installer bridge.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Pure-npm installs now get working branch-policy git hooks and a usable framework Taskfile** — the published `@deftai/directive-content` package now bundles the `.githooks/` pre-commit/pre-push hooks, the framework `Taskfile.yml`, and the task fragments and helper scripts those depend on. A `directive init` with no Go installer now wires the hooks (instead of silently logging "absent — skipping") and the `./.deft/core/Taskfile.yml` include resolves cleanly, closing the npm-vs-Go deposit gap that previously left npm-only projects without branch-policy enforcement. Closes #1967.
 - **The frozen Go installer now hands you off to npm on success** — after a completed install or upgrade, the installer prints a short line on stderr telling you that future Deft upgrades come from the npm package and to run `npx @deftai/directive init`. The line is shown only on a successful run; an errored install stays quiet so the guidance never masks a failure. Refs #1972.
@@ -3411,6 +3610,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 - **Install and upgrade docs now lead with npm (#761)** — README Getting Started, UPGRADING, RELEASING, QUICK-START, and AGENTS.md now treat `npm i -g @deftai/directive` as the canonical install/upgrade path; the frozen Go installer is documented only as a legacy no-Node bootstrap bridge. Removes pip, webinstaller, and stale "not yet published" hedging. Closes #761.
 
@@ -3433,6 +3634,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 - **npm publishing now uses OIDC trusted publishing instead of a stored token (#1919, #1909)** — The publish workflow authenticates to npm via GitHub's short-lived OIDC identity rather than a long-lived `NPM_TOKEN` secret, so there is no standing credential to leak or rotate. Requires a one-time per-package trusted-publisher configuration on npmjs.com. Refs #1919 #1909.
 
@@ -3450,6 +3653,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Leaner, cleaner npm packages ahead of first publish (#11, #1669)** — The published `@deftai/directive*` packages now ship only runtime JavaScript and type declarations: TypeScript build-cache files and source maps are excluded (cutting `@deftai/directive-core` roughly in half), and the framework's own internal migration records (legacy report, reconciliation report, safety manifest) no longer ship inside `@deftai/directive-content` — they are repo-only maintainer artifacts and now live at the maintainer root. Consumers get smaller installs with no behavior change. Refs #11 #1669.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Release rehearsal now dry-runs the npm publish before you cut a tag (#1910, #1669)** — `task release:e2e` now rehearses `npm publish --dry-run` for all four `@deftai/directive*` packages against a throwaway clone (in dependency order, after install + build + version alignment), so a broken file allowlist, version drift, or dependency-order mistake is caught before a real `v*` tag fires the publish workflow — never touching the live registry. Pass `--skip-npm` (or run on a Node-less machine, which soft-skips) to keep the fast path. The release skill also gains an npm credential pre-flight check, a post-publish registry-verification step, and explicit docs that a `v*` tag publishes to both GitHub and npm at the same version. Refs #1910 #1669.
 - **Tag-triggered npm publish with provenance for @deftai/directive* (#11, #1670)** — Pushing a `v*` release tag now runs a GitHub Actions workflow that builds the workspace and publishes `@deftai/directive-types`, `@deftai/directive-core`, `@deftai/directive-content`, and `@deftai/directive` to npm with public access and supply-chain provenance attestations. PyPI/pip distribution remains deferred (#1084). Refs #11 #1670.
@@ -3473,6 +3678,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Codebase MAP guidance now propagates to agent-facing surfaces (#1595 PR6)** -- Agents now use the generated codebase MAP as orientation before broad codebase scanning while durable codebase-structure metadata remains authoritative. Refs #1498 #1595 #1839.
 
 ### Changed
@@ -3490,6 +3697,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - New `task verify:content-manifest` gate classifies every git-tracked top-level repository entry into one of four buckets (content, engine, harness, repo-dev) via `conventions/content-manifest.json`, and fails CI when a top-level entry is unclassified, a classified path goes stale, a bucket is invalid, or a path is duplicated. This is the Wave-1 shippability audit that turns the brittle installer denylist into an allowlist-by-classification, giving the engine/content split an authoritative source of truth. Refs #1821, #1669.
 
 ### Changed
@@ -3506,6 +3715,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -3518,6 +3729,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Directive's gate stack and release pipeline now run entirely on the TypeScript engine, plus operators can pin the coding model per swarm role and have it honored at dispatch.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Operators can pin the coding model per swarm role, and it's now actually honored at dispatch (#1739)** -- A new gitignored, per-machine `.deft/routing.local.json` lets you choose the model for each swarm worker role (e.g. pin `leaf-implementation` to a fast coder) with `task swarm:routing-set -- --role <role> (--model <slug> | --harness-default)`. `task swarm:launch` resolves the choice and stamps `resolved_model`/`model_source` into the launch manifest, and the orchestrator preamble now requires passing that model into the real dispatch call -- closing the gap where the old `swarmSubagentBackend` enum recorded intent but never reached the spawn. A `task verify:routing` gate blocks dispatch when a role is undecided (`--advise` for a non-blocking session-start disclosure). Supersedes the backend-enum approach of #1531/#1735. Refs #1739.
 - **Directive lifecycle conceptual diagram** -- Added `docs/directive-lifecycle.md`, a single-picture overview of the two-phase Directive workflow (inception strategy analysis vs. the recurring per-session resume loop) with a stage-to-real-command mapping table so the plain-language labels are not mistaken for canonical commands. Documentation only.
@@ -3552,6 +3765,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hardened a ReDoS-prone regex in the TypeScript swarm launcher (#1822)** -- The swarm cohort branch-name sanitizer no longer uses a backtracking regex to strip leading/trailing separators, so pathological story IDs (long runs of `-`/`.`) can't cause slow processing. Branch names are unchanged for all normal inputs; this clears the `js/polynomial-redos` CodeQL alert introduced by the #1788 swarm-verbs port. Refs #1822 #1788 #1530.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Unified `deft-ts` CLI dispatcher exposing all ported verbs (#1828 s0)** -- The `deft-ts` binary now routes `<verb> [args]` to every ported command module in `@deftai/cli` and `@deftai/core` instead of printing a banner stub, with `--help` listing all registered verbs and per-command bins kept for back-compat. Wave 8 live-gate flip stories can repoint Taskfiles to one stable TypeScript entrypoint. Refs #1828 #1530.
 - **Node and pnpm are now required consumer runtimes (#1828 s1)** -- `task toolchain:check` probes for Node.js and pnpm alongside the existing Python and git tooling; when either is missing it exits non-zero with an actionable remediation line pointing at Corepack setup and UPGRADING.md instead of failing later with an opaque stack trace. README and UPGRADING document the new requirement for TS-backed gates. Refs #1828 #1530.
@@ -3608,6 +3823,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **scope-decompose, scope-undo, scope-demote, changelog-resolve-unreleased, and architecture-preflight-sor wired into the TypeScript engine (#1854 Wave 8.6 s4)** -- Five Python scripts are now dispatched from the `deft-ts` unified CLI entry point: `scope_decompose.py` and `preflight_architecture_sor.py` are ported as new `@deftai/core` modules with full Vitest unit suites (including edge-case fixtures mirrored from the Python tests); `scope_undo.py`, `scope_demote.py`, and `resolve_changelog_unreleased.py` are wire-flipped to existing TS modules. The corresponding Taskfiles (`tasks/scope.yml`, `scope-undo.yml`, `changelog.yml`, `architecture.yml`) now invoke `node packages/cli/dist/bin.js` instead of `uv run python`. Refs #1854 #1530.
 
 ## [0.52.0] - 2026-06-18
@@ -3615,6 +3832,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Deft commands now run without go-task via a package-first deft <verb> surface, plus a provider-ready codebase-map contract and refreshed architecture docs.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Codebase structure now has a provider-ready contract layer (#1595)** -- Directive can emit a dependency-free `codebase-map.v1` artifact, validate an external `codebase-provider.v1` response, and fall back to the default extractor when no conformant provider is configured. The codeStructure validator now dogfoods PR3 discipline checks that keep authored metadata free of derived facts while the projection registry keeps canonical entries command-agnostic. Refs #1498 #1530 #1659.
 
@@ -3631,6 +3850,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Onboarding hardening and a bug-pass sweep: the installer now verifies a compatible Python up front, triage ingestion gains label/author filters, review-cycle exit gates fail closed against partial bot reviews, and swarms now commit their own lifecycle close-out.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Triage ingestion can now be scoped by label and author (#1033, #1055)** -- `task scm:issue:list --rest`, `task cache:fetch-all`, and `task triage:bootstrap` accept `--label NAME[,NAME...]` (repeatable) and `--author LOGIN` so operators can pull just the issues that matter instead of the whole open backlog. The two filters compose with AND semantics (e.g. issues carrying a label AND created by a given person), and `--author` maps to the GitHub REST `creator` field so the reads stay off the GraphQL bucket. Closes #1033. Closes #1055.
 - **Installer now checks for a compatible Python up front (#1668)** -- `deft-install` validates that a Python 3.11+ interpreter is available before finishing, resolving it across `DEFT_PYTHON`, `python`, `python3`, and the Windows `py` launcher instead of assuming `python3` is on PATH. If only an older or missing interpreter is found, you get a clear, actionable message naming the 3.11+ requirement and the `DEFT_PYTHON` override, and the post-install doctor step now degrades gracefully instead of dumping a raw Python traceback. The installed git hooks use the same resolution order and skip the Windows App-Execution-Alias `python3` stub. Closes #1668.
@@ -3661,6 +3882,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Codebase structure now has a concrete authored metadata profile and validator (#1595)** -- `task codebase:validate-structure` validates the first `codeStructure` profile for stable module ids, safe globs/paths, module references, ownership conflicts, and invocation-agnostic projection manifest entries. Directive dogfoods the canonical record at `PROJECT-DEFINITION.plan.architecture.codeStructure`, keeping generated MAPs and future headers as projections rather than source-of-truth stores. Refs #1498, #1492, #1659.
 
 ### Changed
@@ -3676,6 +3899,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Content-pack slices go deeper -- agents pull any skill, strategy, and the AGENTS.md/main.md rule corpus by name -- plus README docs for feature slicing and content packs.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Agents can now pull any skill's full text from the skills pack, not just the cost proof skill (#1637)** -- `task packs:slice skills` now carries the complete body of every skill, so an agent can retrieve any skill's guidance straight from canonical JSON instead of opening the rendered markdown. Every `skills/*/SKILL.md` is now a banner-marked, drift-checked projection regenerated from the pack source, and the renderer round-trips hand-authored frontmatter (`triggers:`, `metadata:`) losslessly so nothing is dropped when files are regenerated. Refs #1637 #1283.
 - **Two new content packs plus deeper slices across the existing four (#1637)** -- `task packs:slice` now ships a `patterns` pack (architectural patterns from `patterns/`) and a `swarm-spec` pack (the swarm specification), each self-describing via `task packs:slice --list-packs`. The four pilot packs gain deeper named slices: lessons add `by-issue` and an argument-less `anti-patterns`; rules add argument-less `must` and `prohibitions`; skills and strategies add `by-id`. Agents can now pull a precise subset (e.g. only prohibition rules, or lessons for one issue) without reading a whole pack into context. Refs #1637 #1283.
@@ -3697,6 +3922,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Content-pack slices go live in pilot form -- agents pull rules, strategies, skills, and lessons by name as the first projections of the vBRIEF-as-source-of-truth model, plus automatic vBRIEF dependency, label, and umbrella reconciliation.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Agents can now pull framework rules and strategies by name instead of loading whole docs, completing the four-pack content-pack rollout (#1296)** -- two more content packs join `lessons` and `skills`. `task packs:slice rules by-tier --tier MUST` (or `by-domain --domain testing`) returns the RFC2119-tiered directives parsed from the coding standards, and `task packs:slice strategies list` (or `by-trigger`) returns each development strategy with its title and description; `task packs:slice --list-packs` now lists all four. As 0.1 pilots each pack ships full metadata coverage of its corpus plus one banner-marked, drift-checked projection proof, and the renderer/slice machinery was extended through the shared data-driven registry (not copy-pasted) so the lessons and skills projections stay byte-identical. Full migration of every standards doc is a v0.2 follow-up. Closes #1296. Refs #1284 #748.
 - **Agents can now resolve which skill handles a keyword from structured metadata, and the pack machinery is proven to generalize (#1295)** -- a second content pack, `skills`, captures every skill's routing metadata (name, description, triggers, path, version). `task packs:slice skills by-trigger --trigger <kw>` returns the skill a routing keyword maps to, and `list` returns every skill with its description; `task packs:slice --list-packs` now shows both `lessons` and `skills`. The renderer and slice resolver were generalized (not copy-pasted) to be pack-agnostic, and one small proof skill (`deft-directive-cost`) is now a banner-marked, drift-checked projection of the structured source, with the drift gate in `task check` covering both packs while the lessons projection stays byte-identical. Closes #1295. Refs #1284.
@@ -3724,6 +3951,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Directive now has a systematic, evidence-based debugging capability (#1621)** -- a new `coding/debugging.md` standard (the Iron Law "no fixes without root-cause investigation first", a four-phase loop, a 3-fix architecture gate, and evidence discipline) plus a `deft-directive-debug` skill that turns "why did X break / slow down?" into a sustained investigation MODE with a claim ledger, mandatory falsification, and an answer-embargo until the evidence closes. A `task verify:investigation` gate deterministically validates the investigation ledger before any conclusion. Reachable via the new "debug" / "root cause" / "investigate" routing keywords. Consolidates and supersedes the two previously-stale debug issues (#659, #1173). Closes #1621.
 - **A one-time `task capacity:backfill` now activates capacity accounting from your completed history, and `capacity:show` / session start tell you when to run it (#1606)** -- a new offline-first command classifies past completed work into capacity buckets (inferred from each item's origin-issue labels) and stamps the completion date from git, so the engine crosses its minimum-sample threshold and leaves advisory-only mode. It is dry-run by default, idempotent, and never touches cost. When buckets are configured but history is unclassified, `task capacity:show` and the session-start nudge now point you at the backfill. Closes #1606.
 - **A single decision record now explains why the vBRIEF is canonical, so the question stops getting re-litigated (#1291)** -- directive now has an accepted ADR for treating vBRIEF as the source of truth for agent-consumed framework content, with rendered docs and code-adjacent orientation treated as projections. The record leads with the user-visible end state, preserves the token-economics rationale from the earlier alignment work, and names the trigger-based path from clarity to future enforcement. Closes #1291.
@@ -3741,6 +3970,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Smarter startup: missing-tool prompts, stale-branch and stale-installer warnings, a verifiable session-start ritual, and safer issue ingestion.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Session-start ritual completion is now machine-verifiable before implementation dispatch (#1348)** -- `task session:start` records quick-tier ritual state in `.deft/ritual-state.json`, while `task verify:session-ritual -- --tier=gated` fails closed when that state is missing, stale, from another worktree, or tied to an older HEAD. The gated verifier lazily records `task doctor` and `task verify:cache-fresh`, honors explicit deferrals, and supports `DEFT_SESSION_RITUAL_SKIP=1` for CI and dispatched headless workers with an audit warning when the bypass hides a failure. Closes #1348.
 - **Downloaded installer binaries now warn before using stale releases (#689)** -- `deft-install` checks the latest published release before changing a project, confirms when it is current, and defaults to abort when the local binary is older or cannot verify currency. Offline and CI runs can opt out with `--no-update-check` or `DEFT_NO_UPDATE_CHECK=1`. Closes #689.
@@ -3764,6 +3995,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -3776,6 +4009,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Cleaner swarm setup and consumer checks, plus lifecycle and triage reliability fixes.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 ### Changed
 - **Interactive swarm setup asks for the intended sub-agent backend before launch (#1568)** -- swarm operators now see a numbered Composer/local, Cursor cloud, or Grok Build choice before headless launch planning when no backend policy is set. The prompt separates operator preference from probe availability, so a probe-available cloud backend is not treated as the default. Closes #1568.
@@ -3796,6 +4031,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **`deft-install --maintainer` now bootstraps framework checkouts without consumer projections (#1554)** -- maintainers can run the published installer against a `deftai/directive` clone to check core and maintainer tooling while leaving maintainer-owned files like `AGENTS.md`, `.gitignore`, `.gitattributes`, guard workflows, and consumer vBRIEF scaffolding untouched. JSON output now identifies maintainer mode, skipped consumer projections, and maintainer-only tool status for Go, Node, and optional `ghx`; consumer installs still only require `gh`. Closes #1554.
 
 ### Changed
@@ -3810,6 +4047,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Linux installer bootstrap and provider-neutral swarm dispatch, with stronger review-cycle diagnostics.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Content tests pin provider-neutral swarm guidance (#1531d)** -- content tests now fail if the swarm skill or agent preamble regresses to Grok Build-only sub-agent routing or drops backend and role metadata for dispatched workers. Refs #1531.
 - **Swarm operators can persist a coding sub-agent backend in project policy (#1531a)** -- `task policy:subagent-backend` sets the preferred coding sub-agent provider for swarm leaf workers; `task policy:subagent-backends` lists available providers and their role capabilities without spawning a harness; `task policy:show` surfaces the resolved value. Refs #1531.
@@ -3834,6 +4073,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -3848,6 +4089,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Agentic prioritization & coordination model (#1419): capacity buckets, risk-tiered judgment gates, rank-ordered selection, and advisory lifecycle nudges.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Story-start Gate 0 and `task swarm:launch` now understand judgment-gate clearances, so sensitive work cannot launch without recorded human sign-off (#1419)** -- `task verify:story-ready` and `task swarm:launch` evaluate a story's declared file scope against the risk-tiered judgment gates and read gate clearances from the dispatch envelope's `## Allocation context` (a new `gate_clearances` entry). Both stay advisory by default -- an uncleared active block gate is surfaced but the launch still proceeds; an opt-in enforce posture (`--enforce` / `--enforce-gates`) fails closed when a block gate is uncleared, and block-gated stories ship solo in this release. Allocation approvals and consumed clearances are appended to the durable, committed audit log under `vbrief/.audit/`. A dispatch envelope with no clearances behaves exactly as before. Enforcement + launch-integration delivery slice of the agentic prioritization RFC. Refs #1419.
 - **`task capacity:show` and `task triage:welcome` now surface the human-clearance backlog and an advisory earned-autonomy recommendation (#1419)** -- a pending-human-decisions backlog (derived from a durable audit log) is shown with a Tier-1 nudge when it exceeds the threshold, so `wipCap` can be tuned to real review throughput. A new advisory autonomy dial reads the clearance-override rate (primary) and rework rate (guardrail) over the capacity window and recommends one of three levels (Observe / Escalate / Execute) -- advancing only on a clean, large-enough sample and retreating immediately on a P0 reversal or a high override rate, but never auto-reducing required clearances (a human confirms any flip). Multi-LLM reviewer splits on P0/P1 findings escalate to a human and increment the backlog. Fifth delivery slice of the agentic prioritization RFC. Refs #1419.
@@ -3868,6 +4111,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Swarm-cut release: auto cohort vBRIEF completion sweep, decomposed-parent linkage fix, refinement routing wired, and the 1000-line file cap relaxed to a recommendation.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **A finished swarm now cleanly closes out its cohort's vBRIEFs (#1487)** -- when a swarm cohort's PRs merged, the cohort's story vBRIEFs were left stranded in `vbrief/active/` and their decompose-created epic parents lingered in `vbrief/pending/` because nothing swept them on close. A new `task swarm:complete-cohort` sweep (now a REQUIRED Phase 6 step of the swarm skill, covering both the interactive and headless/multi-worker paths) moves each cohort story to `completed/` and completes the epic parents once all their children are done, keeping `task vbrief:validate` green automatically. Closes #1487.
 - **System-of-record architecture preflight is now available as opt-in task targets (#1481)** -- `task architecture:sor-preflight -- --story-path <path>` validates a story's `architecture.systemOfRecord` design record before stateful work begins, and `task verify:architecture-sor -- --base-ref <ref>` scans a diff for storage that contradicts the declared system of record. Both are advisory and opt-in in this release; promoting the gate into the mandatory agent flow and the consumer-facing instructions is deferred to a follow-up RFC. See `docs/system-of-record-gate.md`. Refs #1481.
@@ -3895,6 +4140,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **New `task triage:reconcile` self-heals the triage audit log when it desyncs from your vBRIEFs (#1468)** -- if `vbrief/.eval/candidates.jsonl` is reset or lost (it is operator-private and gitignored, so branch churn can silently wipe it), already-accepted issues started showing up as `untriaged` in `task triage:summary` with no repair path short of a full `task triage:bootstrap` re-fetch. The new idempotent verb derives the missing `accept` decisions directly from the `proposed/`/`pending/`/`active/` vBRIEFs that carry a GitHub-issue reference -- no cache re-fetch, no manual JSONL editing -- and never overrides an existing decision. `task triage:summary` now also emits a `[triage:reconcile] N` hint when it detects the divergence, pointing you at the repair verb. Closes #1468.
 
 ### Changed
@@ -3915,6 +4162,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **`deft-install --upgrade` now warns about a dirty working tree up front and stages only the framework deposit for you (#1453)** -- the deposited `deft-core-guard` CI check (#1430/#1440) was the only thing stopping a consumer from committing a `.deft/core/**` framework bump mixed with their own files, and it is a late, PR-time, GitHub-only, deletable backstop. The installer now gives proactive, local guidance. Before an `--upgrade` payload swap it checks `git status --porcelain` and, if the tree is dirty, prints an actionable advisory (commit/stash your own work first; land the framework deposit on its own branch; a mixed PR is rejected by the guard); the default is warn-and-proceed so the initial install and the `--yes` non-interactive agent/CI path are never blocked. A new opt-in `--require-clean` turns the advisory into a hard refusal (escapable via `--force` / `--allow-dirty`), surfaced as a machine-readable `dirty_tree_require_clean` error under `--json` with no interactive hang. After the swap the installer prints the exact scoped `git add <framework + installer-managed paths>` command (explicitly warning against `git add -A`) and best-effort stages ONLY those framework-owned paths -- never consumer app files -- reusing the same installer-managed allowlist the guard exempts. `--json` output gains `dirty_tree`, `dirty_files`, and `staged_paths`. Closes #1453.
 
 ### Changed
@@ -3930,6 +4179,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Vendored installs resolve the real framework version, upstream, and sha instead of the consumer's (#1323/#1320/#1332/#1325); task project:render and vendored --upgrade stop leaking .lock/.bak files into the working tree (#1311/#1445).
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 ### Changed
 
@@ -3949,6 +4200,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -3964,6 +4217,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -3977,6 +4232,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Fix vendored deft-install --upgrade aborting on the GitHub tarball PAX header (#1433); README documents vendored vs clone install layouts; release notes now lead with upgrade guidance (#1413).
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Directive release notes now lead with an upgrade-guidance banner (#1413)** -- every maintainer-mode GitHub release for deftai/directive is now prefixed with a standard "Upgrading from an older version?" section pointing at the canonical `deft-install --yes --upgrade --repo-root . --json` command and #1411, sourced from an editable `.github/release-notes/upgrade-banner.md` template. Consumer-mode releases are unaffected. Closes #1413.
 
@@ -3993,6 +4250,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Vendored-done-right: git-free vendored installs, clone-to-vendored upgrades, auto-deposited payload neutralization, and canonical-first manifest reads (#1428).
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Installer deposits the framework-payload neutralization on every install (#1430)** -- the Go installer now writes (idempotently, create-if-absent, preserving existing entries) `.gitattributes` linguist `generated`/`vendored` markers for `.deft/core/**`, a Greptile `ignorePatterns` entry in `greptile.json`, a CodeQL `paths-ignore` entry in `.github/codeql/codeql-config.yml`, and an optional `.github/workflows/deft-core-guard.yml` CI guard that fails a PR mixing `.deft/core/**` with non-framework paths. Consumers' language stats, bot reviewers, and CI now treat the vendored framework payload as packaged, machine-managed assets rather than consumer source. Closes #1430. Refs #1428.
 
@@ -4012,6 +4271,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 ### Fixed
@@ -4024,6 +4285,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Headless swarm launch for pre-approved cohorts via task swarm:launch, plus the canonical deft-install --yes --upgrade headless upgrader for consumers.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Dispatch envelopes now carry a structured `## Allocation context` section (#1378, Story A)** -- swarm-cohort dispatches declare operator approval through five canonical fields instead of free-form prose, so downstream skills and the Story Start Gate can recognise the #1371 batching consent token mechanically rather than by pattern-matching. An absent section falls back to the existing #1371 prose carve-out. Refs #1378, #1371.
 - **Story starts now have a machine-checkable Gate 0 (#1378)** -- a new `task verify:story-ready` deterministically checks the three story-start preconditions before an implementation sub-agent is dispatched: a clean working tree (or an explicit `--allow-dirty`), the target vBRIEF in `vbrief/active/` with a running plan, and the dispatch envelope's `## Allocation context` consent token. A `swarm-cohort` dispatch is ready only when its allocation-plan id and batching rationale are both present; an absent section is the solo path. Three-state exit (0 ready / 1 not ready / 2 config error) makes the prior prose-only swarm carve-out enforceable instead of trust-based. Refs #1378, #1371.
@@ -4045,6 +4308,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **feat(install): --yes/--non-interactive, --upgrade, --repo-root, --json for agent/CI use (Epic-3 #1337); auto Taskfile wiring + core tool (uv/task/python/gh) bootstrap with fallbacks in --yes mode (Epic-4 #1338)** -- non-interactive fast-path bypasses all wizard prompts; --repo-root (or CWD) + --yes produces machine-readable JSON result; Taskfile created or extended with canonical deft include; tools probed with clear manual-install guidance (UAC/privs documented via fallbacks to setup scripts). Go tests + CLI integration coverage added. Closes #1337, #1338.
 
 - Installer (`cmd/deft-install`) now calls `scripts/doctor.py --session --json` at the very end of every successful install/update (deterministic handoff for agents and humans). Doctor reads the `<install>/VERSION` manifest and, when the recorded sha lags the remote ref, surfaces a clear recommendation: "Framework payload is stale ... re-run the installer to pull the latest payload." Closes #1339 (Epic-5 of #1334).
@@ -4064,6 +4329,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Grok Build harness hardening cohort -- safe subprocess capture, layered pr_merge_readiness fallbacks, sub-agent heartbeat visibility, cohort-level CLEAN gate before merge cascade, and one-command cascade automation.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Swarm monitors can now drive merge cascades end-to-end with one command (#1369)** -- a new `task pr:wait-mergeable-and-merge` waits until a PR is mergeable via the resilient #1368 monitor, chains the Layer-3 protected-issue check (#701) AHEAD of any merge call, then runs `gh pr merge --squash --delete-branch --admin` only when the readiness gate exits CLEAN. Three-state exit (0 merged / 1 timeout-or-escalation / 2 config error). The swarm SKILL Phase 6 Step 1 + Step 5 now cite the new task as the canonical cascade automation surface, and a new AGENTS.md rule mandates it for Grok Build hybrid-path cascades while preserving the per-PR atomic gate as the manual fall-through. Closes #1369; depends on #1366, #1368; cross-refs #701, #1166, #1353, #1364, #1365.
 - **Swarm monitors can now tell whether a long-running sub-agent is alive or stalled (#1365)** -- long-running sub-agents write a heartbeat record per a new on-disk contract, and a new monitor command walks them with a three-state exit. Closes the visibility gap from the #1166 swarm session where two of three review-cycle pollers went dark with no observable signals. Closes #1365; cross-refs #1166, #1366.
@@ -4089,6 +4356,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **docs: add canonical v0.20 strategy output contract (Refs #1166)** -- Strategy authors and users now have one unambiguous source of truth for v0.20-conformant output (lifecycle folders, project definition, dated proposed scope vBRIEFs, deprecation redirects only for spec docs). Closes the inconsistency where most generated projects were immediately rejected by the build pre-cutover guard. Refs #1166.
 
 - **feat(check,build): add deterministic validation gate for strategy output shape (#1166)** -- `task check` and the build skill now hard-fail early when a strategy has emitted non-v0.20-conformant artifacts (e.g. undated scope vBRIEFs or missing project definition). Users of yolo, interview, speckit and similar strategies receive an immediate actionable error instead of a confusing downstream build rejection. The gate is exercised on every pre-commit and in CI. Refs #1166.
@@ -4106,6 +4375,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Swarm skill now runs natively in Grok Build / non-Warp environments; agents on Windows + Grok Build get explicit shell capture guidance.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(skills): swarm skill natively supports Grok Build / non-Warp environments via Phase 3 Step 2d (#1331)** -- The deft-directive-swarm skill now includes a concrete launch adapter (Step 2d) for Grok Build and other non-Warp agent runtimes: when spawn_subagent is detected (no start_agent, no WARP_*), the monitor dispatches workers via spawn_subagent with the canonical preamble and standard STEP 1-6 prompt. Phase 3 Step 1 detection order is updated so spawn_subagent is probed before the decision tree, and grok-build routes to Step 2d explicitly rather than falling through to the manual-terminal fallback. Phase 4 pre-spawn verification language is now platform-agnostic (worktree state + sub-agent lifecycle signals instead of Warp-tab observations), with a grok-build parenthetical for get_command_or_subagent_output polling. A quick-start section documents the minimal runtime contract for non-Warp swarms. Refs #1331, #1342.
 
@@ -4125,6 +4396,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Phase 6 swarm/review-cycle dispatch unifies behind the platform adapter (Grok Build / non-Warp first-class via spawn_subagent), plus first-class VBA + Office.js language modules and CI action SHA refreshes.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(languages): add VBA and Office.js language modules (#1333)** -- agents working on Excel automation now have first-class standards for both VBA and Office.js (Excel JavaScript API). Coverage includes error handling, type safety, range operations, application state guards, sync batching, platform awareness, custom functions, and testing patterns for each environment. PR #1333.
 
@@ -4149,6 +4422,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **feat(doctor): consolidated `run doctor` with install-integrity, AGENTS.md freshness, and 24h/4h throttle (#1308)** -- `run doctor` (and the `task doctor` shim) is now the single canonical health-check surface. It folds in the four install-integrity checks from `scripts/framework_doctor.py` (quick-start resolves, skill paths resolve, manifest agreement, install-path consistency) and adds an AGENTS.md managed-section freshness probe alongside the existing toolchain / directory / Taskfile diagnostics. A persistent throttle in `vbrief/.eval/doctor-state.json` short-circuits repeat runs within 24h of a clean result or 4h of a dirty result; `--full` bypasses the gate, a dirty-within-window run still exits non-zero so the session-start ritual stays blocked, and `--json` reports a distinct `status: throttle-skipped` envelope vs the completed-run schema. `task framework:doctor` is now a deprecated alias that prints a redirection notice. Closes #1308.
 - **chore(vbrief): decompose #742 into three homes (#1283, #1284, #1285)** -- split the ADR-001 alignment vehicle into a pack-slicing RFC (#1283), a vBRIEF-as-canonical epic (#1284), and a CRUD-harness epic (#1285); filed 14 new children, adopted #1274, and cancelled the empirical-validation vBRIEF. Closes #742; refs #1273, #1167, #1119.
 - **feat(doctor): canonical `run doctor` health-check surface + `task doctor` shim (#1272)** -- operators now diagnose framework drift from a single entry point. `run doctor` surfaces install-path, Taskfile-include, and skill-resolution health with `--session` (read-only, session-safe), `--fix` (opt-in interactive repair), `--json` (machine-readable), and `--quiet` (suppress per-check success lines) flags; `task doctor` is the thin shim that delegates here. The framework-side Taskfile redaction keeps the diagnostic surface stable whether or not the consumer has wired up the deft include. Closes #1272.
@@ -4170,6 +4445,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > v0.32.1 ships seven cache-aware triage dogfood bug fixes (#1244-#1248, #1250, #1251), unblocking the v0.32.0 first-session experience.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **docs: add canonical v0.20 strategy output contract (Refs #1166)** -- Strategy authors and users now have one unambiguous source of truth for v0.20-conformant output (lifecycle folders, project definition, dated proposed scope vBRIEFs, deprecation redirects only for spec docs). Closes the inconsistency where most generated projects were immediately rejected by the build pre-cutover guard. Refs #1166.
 
@@ -4195,6 +4472,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(slice): atomic idempotency + Greptile P2 cleanup on `slice_record_existing` (#1230, #1231)** -- closes the deferred P1 TOCTOU race on `task slice:record-existing` so two concurrent invocations without `--force` cannot both observe "no duplicate" and double-write a cohort record; also corrects the `--wave-1` double-count in the summary line, replaces an assert-based safety check that disappeared under `python -O`, and documents the Windows `{{.CLI_ARGS}}` quoting limitation in `CONTRIBUTING.md`. Refs #1119, #1147, #1229.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **tests(triage_help): scope-namespace `intercept_help` coverage + `triage_subscribe __default__` fallback docs (#1228 / #1150 follow-up)** -- closes the two P2 gaps Greptile flagged on the N10 landing PR by exercising the `scope:demote` / `scope:promote` / `scope_undo` / `scope_decompose` / `scope_lifecycle` `--help` lanes and pinning the `triage_subscribe` `__default__` fallback as the documented contract. Coverage + docs only; no runtime change. Closes #1228. Refs #1119, #1150, #1227.
 - **feat(slice): `task slice:record-existing` backfill verb for hand-filed cohorts (#1147 / N7)** -- gives operators a canonical retrofit path for umbrella cohorts that were filed by hand and so never produced a `vbrief/.eval/slices.jsonl` record, so D11's `task triage:audit --orphans` / `--slice-stalled` / `--slice-coverage` surfaces work on them too. Companion `task slice:list` prints recorded slices with provenance and JSON output. Closes #1147. Refs #1119, #1132, #1145.
@@ -4238,6 +4517,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - `deft-directive-gh-arch` skill -- explore codebase for shallow modules, design competing interfaces in parallel, file refactor RFC as GitHub Issue (re-land of #442; original author @visionik).
 - **feat(directive): add story decomposition and swarm-readiness gates** -- introduces Phase 4.5 Story Decomposition / Swarm Readiness between Speckit phase/epic scope emission and swarm implementation. Adds deterministic `task scope:decompose` and `task swarm:readiness` commands, a canonical `plan.metadata.kind` / `plan.metadata.swarm` story contract, a new `deft-directive-decompose` skill, swarm Phase 0 readiness gating, acceptance-preserving spec rendering, and regression coverage for decomposition, readiness, Speckit translation, and stale vBRIEF template guidance.
 
@@ -4252,6 +4533,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Security cohort waves 1+2: patterns/ directory (llm-app, role-as-overlay, prompt-assembly, executor-layer-credentials), coding/security.md baseline + rule extensions, agent-trap defenses, incidents library.
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(patterns): add `patterns/executor-layer-credentials.md` -- bind secrets at the invocation layer, never in agent context (#806, Wave 2 cohort sibling of #480/#587/#686/#708/#816/#836)** -- new `patterns/executor-layer-credentials.md` carries the affirmative-complement pattern to #587 (no-read-secret) and #686 (tool-call safety): credentials for privileged operations MUST be bound at the **invocation layer** (the orchestrator, the command definition, the trusted shim that wraps the capability) -- never inside the agent's context window, prompt, filesystem, or globally-inherited environment. The agent receives access to the **capability**, not the **credential**. RFC2119-strength sections: `## The principle` (enumerates the three canonical wrong placements -- prompt-tier bytes, agent-readable file, globally-inherited env var -- all of which collapse to the same failure mode: credential enters the agent's reachable state), `## Implementation-agnostic examples` (four canonical surfaces: `### CLI tools` with the Flue SDK `defineCommand` worked example from withastro/flue cited verbatim per the issue body; `### HTTP APIs` with trusted-sidecar pattern adding the auth header at request time; `### SDKs` with client-object-handed-to-agent pattern rather than passing the API key as a string parameter; `### MCP servers` with connect-in-trusted-code pattern that hands the agent the resolved tool list, not the connection string; plus a `### Shells and arbitrary subprocesses` block pairing this pattern with the #1019 destructive-verb preflight gate so a leaked credential cannot still be used to delete the repo), `## Operator runbook` (where the credential lives -- secret manager / gitignored `secrets/*.env` / OS keychain; wiring the invocation layer in five sequential steps; rotation and revocation cadence including the regression-to-prompt-binding-anti-pattern incident response), `## Anti-patterns` (eight named footguns: do-not-reveal system-prompt instruction, agent-readable file, process-level env var inheritance, round-tripping the credential through tool output, credential-in-URL query parameter, leaky SDK client mutable attribute, "local / sandboxed / trusted" relaxation excuse, logging the credential at any layer), `## Cross-references` (bi-directional links to #587, #686, #677 agent sandbox, #678 agent network egress, #983 multi-agent identity separation, #481 LLM application standards, #661 baseline security standards, plus the Flue SDK source citation). The file cross-references `coding/security.md` (`## Secrets Management` + `## Agent-Specific Threats`) for the universal-rules baseline this pattern operationalises for agent surfaces, and cross-references `patterns/llm-app.md` (Trust tiers, Tool / function calling) and `patterns/multi-agent.md` (GitHub-credential-specific instance of the same pattern -- workers consume `GH_TOKEN` injected by the dispatcher, not the maintainer's `gh auth` state). Tier 1 deterministic enforcement: new `tests/content/test_patterns_executor_layer_credentials.py` pins file existence + RFC2119 legend + the nine required section headings + the three-anti-patterns enumeration tokens + the load-bearing `invocation layer` phrase + the capability/credential distinction + the four canonical example surfaces + the `defineCommand` Flue SDK citation + MUST/MUST NOT rule density + bi-directional cross-references to `coding/security.md` / `patterns/llm-app.md` / `patterns/multi-agent.md` so any future rename or token removal fails CI immediately. Refs #587 (no-read-secret -- the prohibition this pattern complements), #686 (tool-call safety -- the failure mode this pattern prevents), #677 (agent sandbox -- the broader containment surface this credential-binding pattern fits inside), #678 (agent network egress -- the destination-side complement), #983 (multi-agent identity separation -- the GitHub-credential-specific instance). Closes #806.
 - **feat(patterns): add prompt-assembly-layer-ordering standard (#836)** -- new `patterns/prompt-assembly-layer-ordering.md` codifies the cached-prefix vs ephemeral-injection contract for any directive-built agent that issues multi-turn LLM API calls. The file pins the invariant ("if it changes per-turn, it is ephemeral; if it is stable for the session, it is cached"), enumerates the canonical cached-prefix fragments (Agent identity, Tool-aware behaviour guidance, Frozen memory snapshot (#832), Skills index, Context files, Session timestamp) with their most-stable-first ordering and the byte-prefix-cache rationale, lists the ephemeral-layer canonical content (current-turn context overlays, gateway-derived session context, later-turn memory recall, prefill messages, current user input, tool results), and adds cache-tier observability fields (prefix hash logged at session start, per-turn cache hit rate, per-fragment layer classification) that extend the `patterns/llm-app.md` `## LLM-specific observability` surface (#481). Companion `REFERENCES.md` lazy-load entry under `### When Building LLM Applications` advertises the load trigger (multi-fragment system prompts, provider-side prompt caching, multi-turn agent sessions) and cross-references `patterns/llm-app.md` as the parent standard. New `tests/content/test_patterns_prompt_assembly.py` (deterministic content gates) pins file existence, the RFC2119 legend, the canonical section headings, all six cached-prefix fragments, the most-stable-first ordering rule, the #832 / #816 / patterns/llm-app.md cross-references, and the bi-directional REFERENCES.md lazy-load entry. Source material: NousResearch Hermes agent architecture (`prompt-assembly.md`); the same separation is documented by every major provider's prompt-caching guidance. Related to #832 (frozen-memory-snapshot -- the load-bearing consequence), #816 (role-as-overlay -- roles are ephemeral), #788 (token cost as design constraint). Closes #836.
@@ -4289,6 +4572,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **docs(security): record 2026-05-12 audit baseline in `docs/security.md` (#1073, parent #1069 -- final slice in the 2026-05-12 supply-chain hygiene cohort)** -- new `docs/security.md` records the inaugural audit baseline for `deftai/directive`: audit date (2026-05-12), the scanners run (`osv-scanner scan source --recursive .` + `gitleaks detect --redact`; future cadence adds `trivy fs --severity CRITICAL,HIGH --ignore-unfixed`), the five findings resolved (gitleaks PEM fixture remediated via PR #1077 / #1070; `curl | bash` removed from CI via PR #1077 / #1070; 22 OSV stdlib advisories resolved via PR #1076 / #1071 -- live count diverged from the 40 cited in #1069 because intervening dependabot bumps auto-cleared the rest; `.github/dependabot.yml` deposited via PR #1077 / #1070; Actions SHA-pinning + least-privilege `permissions:` blocks via the #1072 PR landing alongside this slice, cited prospectively per the vBRIEF escape hatch), and the residual-risk verdict (`osv-scanner scan source --recursive .` reports `No issues found` on master at tag `v0.29.1`; zero gitleaks `private-key` hits after PR #1077). New `## Audit cadence` section names the quarterly + event-driven cadence (dependabot security PR failure, scanner-CI escalation, newly-disclosed advisory at the pinned toolchain version). New `## Reporting a vulnerability` section points contributors at the canonical GitHub Security Advisories flow at <https://github.com/deftai/directive/security/advisories/new>. New `## Out of scope / follow-ups` section names **#1084** (PyPI OIDC trusted-publishing workflow, deferred -- blocked-by #11 because trusted-publishing is meaningless until Deft is published to PyPI, and the PyPI proposal is still OPEN). Companion `README.md` Security cross-reference section and `## Learn More` entry point consumers at the canonical body. Closes #1073, closes #1069 (umbrella close-out for the 2026-05-12 supply-chain cohort). Refs #1072 (Actions SHA-pinning + permissions hardening, landing alongside this slice), #1084 (deferred PyPI OIDC follow-up).
 
 ### Changed
@@ -4307,6 +4592,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **docs: add canonical v0.20 strategy output contract (Refs #1166)** -- Strategy authors and users now have one unambiguous source of truth for v0.20-conformant output (lifecycle folders, project definition, dated proposed scope vBRIEFs, deprecation redirects only for spec docs). Closes the inconsistency where most generated projects were immediately rejected by the build pre-cutover guard. Refs #1166.
 
 ### Changed
@@ -4323,6 +4610,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.29.0] - 2026-05-12
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(tasks,docs): `task upgrade` wrapper + `UPGRADING.md` drift-repair section (#1061)** -- new top-level `task upgrade` alias (root `Taskfile.yml`) plus the `install:upgrade` wrapper in `tasks/install.yml` that delegates to `run upgrade` (which writes the bare `.deft-version` marker, the canonical `<install>/VERSION` manifest including the #1062 `install_root` field, and refreshes the AGENTS.md managed section to the v3 marker via `cmd_agents_refresh`). The wrapper exists so the `framework:doctor` failure prose and `docs/install-manifest.md` can cite a real Taskfile target rather than a raw `run` invocation -- before this PR the same prose cited `task upgrade` as a Taskfile target that did not exist, sending operators on a research detour. New `UPGRADING.md` section `## From drifted AGENTS.md -> current managed-section (\`task upgrade\` repair path)` carries the canonical four-field header (Applies when / Safe to auto-run / Restart required / Commands) and three explanatory subsections: (1) AGENTS.md drift symptoms and detection -- documents both axes (marker-version mismatch from the #1060 canonical-reinstall-over-pre-v0.27 case, and install-path mismatch detected via the #1062 manifest `install_root` field); (2) what to do if the doctor's failure prose looks wrong (escalation note pointing at the GitHub issues path with the structured `--json` reproducer); (3) references back to #1060 / #1061 / #1062 plus the source files. Companion `docs/install-manifest.md` already cites `task upgrade` correctly (no schema-row edits -- that section is owned by #1062 / PR #1063). Refs #1060 (recurrence pattern motivating the repair path), #1062 (`install_root` manifest field this section describes).
 
@@ -4349,6 +4638,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Safety + self-healing release: pre-flight gates for destructive gh verbs and default-branch force-push (#1019), canonical install-contract enforcement with framework:doctor probe (#1046), and adoption-blocker installer fix (#1020).
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(scripts,tasks,hooks,docs): preflight gate for destructive `gh` verbs (#1019)** -- new `scripts/preflight_gh.py` mirrors the #747 `scripts/preflight_branch.py` shape (pure stdlib, three-state exit 0 clean / 1 destructive refused / 2 config error, UTF-8 self-reconfigure at `main()` entry per #814) and refuses three destructive categories before execution: `delete_repo` (`gh repo delete <owner/repo>` and `gh api -X DELETE repos/...` including the `-XDELETE` / `--method=DELETE` / `-X=DELETE` argv shapes), `force_push_default` (`git push --force` / `-f` / `--force-with-lease` / `+refspec` targeting `master` or `main`, including `HEAD:master` / `refs/heads/master` refspecs), and `admin_merge` (`gh pr merge --admin`). The classifier is a pure function (`classify_command`) consumed by three call surfaces wired in this PR: (1) `.githooks/pre-push` invokes `preflight_gh.py --pre-push-stdin` after the existing #747 branch gate, parsing the standard git pre-push stdin format (`<local_ref> <local_oid> <remote_ref> <remote_oid>` per ref) and refusing any push targeting the default branch (create / update / delete) so a force-push from a feature branch can no longer overwrite shared history. (2) `task verify:destructive-gh-verbs` wires into the `task check` aggregate (alongside `verify:branch` / `verify:encoding` / `verify:rule-ownership`) and runs `preflight_gh.py --self-test`, which drives a built-in 20-fixture table through the classifier; any disagreement exits 2 so a future edit to the detector logic fails CI immediately rather than silently dropping a destructive category. (3) Agent pre-execution callers can invoke `python scripts/preflight_gh.py --command "<full command>"` to classify a candidate verb before invoking `gh` / `git push`. Emergency-bypass env var `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` (mirrors `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT` from #747) downgrades a destructive verdict to exit 0 with a `policy bypassed for this session` line so the bypass is auditable; per-shell only, never persisted. `--default-branch trunk` (and equivalents) lets projects whose default branch is not master/main extend coverage without code edits. New `tests/cli/test_preflight_gh.py` ships 74 regression tests across seven sections: classifier positives + negatives per destructive category (delete_repo via `gh repo delete` AND `gh api -X DELETE` argv-shape matrix; admin_merge across flag orderings + `ghx` ladder; force_push_default across `--force` / `-f` / `--force-with-lease` / `+refspec` / `HEAD:branch` / `refs/heads/...` shapes; negatives covering benign feature-branch pushes, `gh repo view`, `gh api -X PATCH`, `gh api -X DELETE` on non-repo endpoints, and `git fetch --force`), evaluate_command three-state contract + env-var bypass truthy/falsy matrix, evaluate_pre_push (feature-branch pass, default-branch update / create / mixed-refs blocks, env-var bypass, empty stdin), run_self_test fixture-contract integrity + drift detection via monkeypatched classifier, end-to-end main() CLI (`--self-test` / `--command` / `--pre-push-stdin` / `--default-branch <name>` paths), and module surface pinning (frozen `Verdict` dataclass + exported `__all__` set). New `## Destructive gh verbs (#1019)` section in `scm/github.md` documents the three categories, the three enforcement surfaces, the override paths (env-var bypass, archive-vs-delete recovery for repos, normal-review recovery for admin merge), and the v1 out-of-scope note for a PATH-shim layer that intercepts `gh` at the command layer (deferred as a consent-gated install path mirroring `setup_ghx.py` from #884). Closes #1019.
 
@@ -4411,6 +4702,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 ### Changed
 
 
@@ -4436,6 +4729,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(cmd_gate,upgrading): install-layout state detector + auto-prompt + UPGRADING.md "## From deft/ -> .deft/core/" section (#992 PR3)** -- closes acceptance criterion `992-ac-3-pr3-gate-prompt-upgrading-md` on the active scope vBRIEF `vbrief/active/2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an.vbrief.json`. PR3 of 4 in the v0.27 release-line cohort: builds on PR1 (#1010, marker v1 -> v2 + contract-string flip), PR2 (#1013, wipe-and-reinstall relocator + state A-G test matrix + `--force` gate), and PR4 (#1012, CLI / Taskfile / events.json contract-string flip). Adds gate-side install-layout state detector + one-line auto-prompt to `run::_check_upgrade_gate` (additive, NOT a refactor of the existing markers / contract strings PR1 + PR4 own). The detector inspects three filesystem facts at the consumer project root -- presence of `deft/`, presence of `.deft/core/`, and presence of managed-section markers in `AGENTS.md` -- and classifies the install layout into one of four states: **A** pure `deft/` (legacy install; AGENTS.md + framework agree -- working today, no prompt fires), **B** pure `.deft/core/` (current installer / webinstaller / sync skill / oz output -- broken because AGENTS.md may say `deft/`), **C** hybrid (both dirs present -- agents follow whichever they read first), **D** AGENTS.md only (managed-section markers present but no framework directory -- partial install). On detection of a non-A state the gate prints a single informational line `[deft] install layout state: <X> (<description>). Run .deft/core/run relocate to upgrade. (Y/n)` and continues exit-0 -- the prompt is purely informational and does NOT set `needs_prompt` so the existing `Continue anyway?` blocking prompt path is not triggered solely because the install layout has drifted. **AUTO-PROMPT ONLY -- never auto-wipe**: the detector NEVER mutates filesystem state, NEVER invokes `task relocate` automatically, and NEVER calls the interactive `read_yn` / `ask_confirm` helpers. The `(Y/n)` suffix is purely a visual consent affordance; the operator runs `task relocate` on consent (mirrors the **#884 ghx-install consent gate** convention -- `task setup` prompts before invoking the upstream installer, and the only non-interactive paths are explicit `--yes` or env-var opt-out). The cmd_gate logic lives in `run` (not `scripts/cmd_gate.py` -- the vBRIEF `files_owned` reference to that path is an artifact of the original triage; the existing `run::_check_upgrade_gate` was extended additively). Helpers added: `_classify_install_layout(project_root) -> Optional[str]` returns `A` / `B` / `C` / `D` / `None`; `_agents_md_has_managed_markers(project_root) -> bool` (mirrors `_classify_agents_md` semantics but skips the template-render comparison so the layout detector only needs to know whether the file declares itself as deft-managed); `_format_install_layout_prompt(state) -> str` (pure render, no I/O); `_maybe_emit_install_layout_prompt(project_root) -> Optional[str]` (the gate-side hook). Constants: `_INSTALL_LAYOUT_DESCRIPTIONS` maps each state to its one-line description, and `_INSTALL_LAYOUT_RELOCATE_TARGET = ".deft/core"` pins the canonical target string regardless of source state (single-namespace contract for v0.27 per the active vBRIEF DesignChoice). The PR1 marker constants (`_AGENTS_MANAGED_OPEN`, `_AGENTS_MANAGED_CLOSE`) and PR4 contract-string surfaces are intentionally untouched. New `## From deft/ -> .deft/core/` section in `UPGRADING.md` (additive; does not modify existing v0.20.x / v0.25.x / v0.26.0 / pre-#768 sections) carries the canonical four-field micro-format header per `tests/content/test_upgrading_sections.py` (Applies when / Safe to auto-run / Restart required / Commands), the state classification table (A/B/C/D), the seven-phase relocator walkthrough (pre-flight gates -> snapshot -> wipe -> reinstall -> AGENTS.md re-render -> `.gitignore` update -> advisory grep), the snapshot-rollback path, and the explicit `⊗ NEVER auto-wipe / NEVER auto-execute / NEVER block / NEVER call read_yn` non-goals for the cmd_gate auto-prompt. New `tests/cmd_gate/test_state_detection.py` (28 tests) ships state A/B/C/D classification + `None`-on-not-a-deft-project, prompt format + per-state description / canonical target / `(Y/n)` consent affordance pinning, prompt emission on non-A states + silence on state A and undetectable directories, the read-only filesystem contract (snapshot before / after for every state), and the operator-consent contract (poisoned `subprocess.run` / `subprocess.Popen` / `read_yn` / `ask_confirm` MUST NOT be invoked from any code path under the detector). New `tests/cmd_gate/__init__.py` is the empty package marker mirroring `tests/contract/__init__.py` and `tests/relocate/__init__.py`. The 28-test suite passes clean (`28 passed in 0.20s` -- well under the #975 `~1s` slow-test threshold). Refs #992 (parent issue stays OPEN until v0.27.0 GA per the cohort plan); refs #11 (`.deft/core/` layout origin); refs #768 (managed-section marker contract); refs #794 (`_wrap_legacy_in_markers` reuse by relocator); refs #884 (consent-gate convention); refs #801 (informational-only gate prompt precedent).
 
@@ -4468,6 +4763,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(docs,meta): per-identity credential separation pattern + canonical preamble §8 (#983)** -- closes the credential-isolation track that was carved out of #976. Today swarm workers and the maintainer share a single GitHub PAT, coupling the human review/merge flow and N concurrent workers onto one 5,000-req/hr GraphQL bucket per identity. The 2026-05-07 multi-agent session (and the 2026-05-08 recurrence that prompted this issue) showed the operational consequence: bucket depletion by workers blocks the maintainer's interactive review workflow, audit logs conflate human and machine actions under one `actor.login`, and a leaked worker prompt acts with the full scope of the maintainer's PAT instead of the narrow scope a worker actually needs. New `patterns/multi-agent.md` codifies the v1 docs-only fix: workers MUST authenticate as a distinct GitHub identity (preferably a GitHub App installation token; a bot account PAT is the lower-cost alternative). The pattern covers the bucket partitioning model (maintainer PAT keeps GraphQL + REST core for human review/merge/release; bot/App owns the worker GraphQL + REST core buckets), the dispatch-envelope credential rule (workers consume the credential injected by the dispatcher in `GH_TOKEN`; never fall back to the host's `gh auth status` token; missing credential fails loud), permission scoping (`issues:write` / `pulls:write` / `contents:read` / `metadata:read`; explicit `⊗ contents:write`, `⊗ admin:*`), and an operator runbook covering provisioning (GitHub App + private key flow OR bot account + fine-grained PAT in `secrets/swarm-bot.env`), routine rotation (App tokens auto-rotate ~1 hour; bot PATs quarterly), and compromise recovery (revoke -> audit `gh api /users/<bot-login>/events/public` -> reprovision -> file incident vBRIEF). Cross-references #976, #588 (agent identity pattern), #806 (executor-layer credentials), #585 (cloud-agent credential hygiene), #519 (rate-limiting as architectural constraint), #520 (multi-provider routing), #954 / #966 (canonical preamble surface). New canonical-preamble § 8 in `templates/agent-prompt-preamble.md` carries the dispatch-envelope credential rule verbatim alongside the existing REST-default (§ 5), max-1-Draft-toggle (§ 6), and rate-limit-throttle (§ 7) rules: workers MUST verify `GH_TOKEN` is set after AGENTS.md read, MUST confirm `gh api user --jq .login` returns the bot/App login (not the maintainer login -- mismatch is `BLOCKED: identity mismatch` to the parent), and MUST NOT inherit the host's `gh auth status` token implicitly. § 9 (Sub-agent spawn rules per #727) gains a row pinning that sub-agents inherit the parent worker's `GH_TOKEN` -- identity separation cascades through the spawn tree -- and §§ 10-11 are renumbered. v1 deliberately ships docs-only per #983 non-goals: the env-var injection contract is operator-implemented today; per-worker token rotation infrastructure is deferred to a follow-up; cross-provider identity is owned by #520. Closes #983.
 
@@ -4540,6 +4837,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **feat(cache): size cap + LRU eviction + disk quota (#947)** -- the v1 cache layer (#883) shipped without any size or entry caps; bulk-triage workflows against an active backlog grew `.deft-cache/` unboundedly until an operator noticed a several-GB folder. Real-scale evidence from `docs/smoke-2026-05-07-v0.26.0-rerun.md`: 320 entries = 3.03 MB on disk (~10 KB/entry average); a 50,000-issue mono-repo would consume ~500 MB at that ratio. New defaults (configurable via `DEFT_CACHE_MAX_BYTES`, `DEFT_CACHE_MAX_ENTRIES`; 0 disables either): 100 MB total bytes, 10,000 total entries. Either threshold trips eviction. LRU is tracked via `meta.json` mtime touched on `cache:get` -- zero schema change, zero migration burden for v0.26.0-era cache trees, no edit to the FROZEN `vbrief/schemas/cache-meta.schema.json`. `cache:put` projects the new total pre-write, evicts oldest-first by (mtime, path) until the put fits, and refuses with a structured `CacheCapBreachedError` (CLI exit-3) when caps cannot be honored even after eviction. New `task cache:prune -- --to-cap` mode drains LRU on demand and is idempotent (`--dry-run` previews via `predict_eviction_set`). Every eviction appends one `cache:evict` record to the existing `quarantine-audit.jsonl` (with `{source, key, timestamp, reason, trigger, freed_bytes, last_accessed_at}`) so operators can trace why an entry vanished. Implementation extracted to `scripts/_cache_quota.py` to keep `scripts/cache.py` under the deft 1000-line MUST limit (mirrors the existing `_cache_fetch` / `_cache_validate` split). Audit-log retention/rotation tracked separately under #948 and is explicitly out of scope for this change.
 
 - **chore(adoption,scm,ci): adopt ghx (brunoborges/ghx) as the standard `gh` proxy across three surfaces (#884)** -- formalises the v0.26.0 `scm:*` runtime ladder's preference for `ghx` over `gh` (already wired into `scripts/scm.py::resolve_binary`) by extending the recommendation to the maintainer onboarding surface and to CI. Three deliverables ship in one PR: (1) AGENTS.md gains a new `## SCM tooling -- prefer ghx (#884)` section under the existing PowerShell / tooling block -- one `!` MUST rule (prefer `ghx` when on PATH), one `!` MUST rule (transparent fall-back to `gh` when missing), one `~` SHOULD rule (run `task setup` to install), one `⊗` MUST NOT rule (auto-install without consent), one `?` MAY rule (manual install via upstream `install.ps1` / `install.sh`); cross-references `scripts/scm.py::resolve_binary` and the existing `_BINARY_PREFERENCE` ladder; (2) new `scripts/setup_ghx.py` is a consent-gated installer wired into the root `task setup` (via a `--check` detection-only step that never prompts on re-run) and an explicit interactive entry `task setup:ghx` (taking `{{.CLI_ARGS}}` so `task setup:ghx -- --yes` is the non-interactive consent path for CI / dotfile bootstraps); host-aware dispatch (Windows -> `pwsh -Command "irm install.ps1 | iex"`; macOS / Linux -> `curl -fsSL install.sh | bash`); three-state exit (0 success/decline/skip; 1 install failure; 2 config error e.g. `--yes` + `--check` combined); `DEFT_SETUP_GHX_SKIP=1` env-var opt-out for non-interactive shells; default-deny consent so EOF / piped non-tty stdin never installs by accident; (3) `.github/workflows/ci.yml` gains an idempotent ghx pre-install step on the Python (Linux) job and the windows-task-dispatch (Windows) job, pinned to `v1.5.1` via a workflow-level `env.GHX_VERSION` (bump in lockstep with `scripts/setup_ghx.py::GHX_VERSION`); `command -v ghx` / `Get-Command ghx` short-circuits the install when the binary is already on PATH; install failures emit a `::warning::` group annotation but do not fail the job, so the `gh` fallback path remains green when upstream is transiently unavailable. New `tests/cli/test_setup_ghx.py` (35 tests) covers the four behaviour-matrix branches (already-present / decline / consent / `--yes`), the env-var opt-out, the `--yes` + `--check` config-error case, host detection (Darwin / Linux / Windows / unknown), the install-command argv shape (URL pin + shell trampoline), and end-to-end exit-code propagation. The recommendation surface is additive: consumers without `ghx` keep the unchanged `gh` fallback path through `scripts/scm.py`. Refs #884; refs #883 (v0.26.0 stub that introduced the runtime ladder).
@@ -4580,6 +4879,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **feat(cache,quarantine): unified content cache + scanner v2 baseline (#883 Story 2)** -- ships the v1 cache infrastructure that triage v1 (Story 3) rebinds onto and that downstream consumers (#610 wiki-llm, future URL/email/file ingestion) reuse without reimplementing. New `scripts/cache.py` exposes the canonical 5-command surface (`cache:put` / `cache:get` / `cache:invalidate` / `cache:fetch-all` / `cache:prune`); the github-issue source ships in v1, with five additional source types (github-pr, github-review, url, email, file) explicitly deferred to v2 per the epic deferred_to_v2 list. New `scripts/cache_scanner.py` is the scanner v2 baseline with three baseline-on categories: `injection-heading` (severity fence-and-pass; reuses the 14-token list from `quarantine_ext.SUSPICIOUS_TOKENS`), `credentials` (severity hard-fail; curated regex set covering `gh[pousr]_`, `sk-` / `sk-ant-`, `xox[bp]-`, `AKIA*`, PEM private-key headers, Bearer tokens, and JWTs), and `invisible-unicode` (severity strip-and-pass; codepoint membership test against U+200B-200F, U+202A-202E, U+2060, U+2066-2069, U+FEFF, U+E0000-U+E007F). Per-category severity is a documented departure from the design doc's uniform hard-fail (rationale: hard-fail-on-injection-headings would break legitimate `## STEP` template headings). Storage layout: `.deft-cache/<source>/<key>/{raw.json, content.md, meta.json}` with a global `.deft-cache/quarantine-audit.jsonl` append-only audit log (one record per `cache:put` / `cache:invalidate` / `cache:prune-entry` regardless of scan outcome). New `vbrief/schemas/cache-meta.schema.json` is the FROZEN JSON Schema 2020-12 contract (source, key, fetched_at, ttl_seconds, expires_at, scan_result {passed, scanned_at, scanner_version, flags[{category, severity, detail, match_count}]}, size_bytes, stale; etag reserved) validated on read AND write so a corrupt or version-incompatible meta.json fails closed (epic v1_must_include M4). `cache:put` runs the scanner before the `content.md` write: hard-fail (credentials) writes only `raw.json` + `meta.json` and exits 2; injection-heading wraps suspicious sections in ```quarantined fences; invisible-unicode strips matched codepoints. Atomic writes via `tempfile.mkstemp` + `os.replace` so a torn writer never leaks half-written bytes into a parallel reader. `cache:get` reads + schema-validates `meta.json`, returns the `content.md` path, computes `stale=true` when current time > `expires_at`, never auto-refreshes; `--allow-stale` (default) returns stale-with-flag, `--no-stale` raises a miss. `cache:fetch-all` orchestrates `task scm:issue:list` (Story 1 stub) + per-issue `task scm:issue:view` with `--batch-size N` (default 10), `--delay-ms N` (default 500), 429 detection on stderr (`HTTP 429` / `API rate limit exceeded`) with Retry-After header parsing + one retry (epic v1_must_include M1), idempotency via skip-fresh-per-TTL meta.json check (M2), and structured `{succeeded, failed, skipped, failures[]}` partial-failure exit on stdout (exit code 1 when any issue fails; persisted entries survive). `cache:invalidate` deletes the entry directory + appends an audit record (idempotent: returns `existed=False` on repeat invocations without raising). `cache:prune` walks `.deft-cache/<source>/**/meta.json`, drops entries with `expires_at` older than the threshold (default 30d), supports `--dry-run`, `--source` filter, and `--older-than-days N` override; corrupt meta.json entries are pruned (cannot be served by `cache:get` anyway). Scanner version constant `SCANNER_VERSION = "2.0.0"` at module top with documented bump rule (patch=patterns, minor=categories, major=semantic rewrites); persisted into every `meta.json.scan_result.scanner_version`. Implementation split: `scripts/cache.py` is the public surface + CLI dispatcher; `scripts/_cache_validate.py` is the in-module mirror of the JSON schema (no third-party `jsonschema` dep -- the deft project has zero non-stdlib runtime deps); `scripts/_cache_fetch.py` is the rate-limit-aware fetch orchestrator with module-level test seams (`_run_subprocess`, `_sleep`). The split keeps every module under the deft 1000-line MUST limit. New `tasks/cache.yml` Taskfile fragment exposes the 5 commands under the canonical `cache:` namespace via the include key in `Taskfile.yml`; per `conventions/task-caching.md` no `sources:` / `generates:` declarations because every task forwards `{{.CLI_ARGS}}` to a Python script. New `tests/test_cache_scanner.py` (91 tests) covers SCANNER_VERSION SemVer pin, per-category severity contract, ~15 positive + ~10 negative cases per category, cross-pattern interaction (invisible-unicode + credentials, invisible-unicode + injection-heading, all-three combination), credentials-detail redaction (the audit log MUST NOT contain the matched secret), strip-then-scan ordering catches U+200B-smuggled credentials, and the CLI smoke surface. New `tests/test_cache.py` (72 tests) covers schema validation positive + 13 negative cases, all five `cache_*` primitives end-to-end (atomic write + audit append + idempotent invalidate + skip-fresh idempotency + 429-with-Retry-After retry + 429-no-header fallback + partial-failure exit shape + dry-run prune + source-filter prune), CLI exit-code contract (0/1/2 per command), and a TestSchemaAlignment regression guard that reads the JSON schema file and asserts `_META_REQUIRED` / `_SCAN_RESULT_REQUIRED` / `_SCAN_FLAG_REQUIRED` / category enum / severity enum / source enum stay in sync (schema-file vs in-module-validator drift fails CI). New `tests/integration/test_cache_quarantine.py` (3 tests) exercises fetch-all rate-limit recovery (429 + Retry-After honored, entry persisted), partial-failure recovery (mid-batch error never aborts; surviving entries persist; failure list includes the bad key), and cache:put scan-failure semantics end-to-end against a real credentials regex (raw.json + meta.json land, content.md absent, audit record carries scan_passed=false, no secret bytes leak into any flag detail). Wave 2 of 4 in the #883 R-C chain; Story 3 (triage rebind onto cache:get) is the next consumer. Refs #883, #583, #788, #845, #915.
 
 - **feat(scm): minimal stub for #883 v1 (4 commands; ghx-or-gh fallback; #883 Story 1)** -- 
@@ -4619,6 +4920,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **triage: vbrief/.eval/ added to .gitignore; bootstrap ensures the line idempotently for upgrading projects (#915).**
 
@@ -4666,6 +4969,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **feat(triage): add --limit/--state/--label flags + --repo inference to triage cache populate (#900)** -- closes the adoption blocker where `task triage:bootstrap` and `task triage:cache populate` had no way to scope or filter the upstream issue cache. On a real-sized backlog the Phase 0 first-run was unbounded -- effectively unusable for new maintainers. `scripts/triage_cache.py::populate` now accepts `--limit <int>`, `--state {open,closed,all}` (default `open`), and `--label <name>` (repeatable). `--repo` is now optional with three-tier resolution: (1) explicit flag wins, (2) `git remote get-url origin` inference resolves owner/repo from the current worktree, (3) friendly `InvalidRepoError` when neither path produces a value. `scripts/triage_bootstrap.py::_build_parser` and `run_bootstrap` pass the same flags through to the populate step; `step_ensure_gitcrawl` is reserved for the parallel #901 fix and is intentionally untouched here. `skills/deft-directive-refinement/SKILL.md` Phase 0 Step 1 wording updated to mention the new flag surface. Validation exception types tightened: invalid `state`/`limit` values now raise `TriageCacheError` (was `InvalidRepoError`); the broad `except Exception` in the `repo=None` branch is narrowed to `except InvalidRepoError` so successful-inference errors no longer surface as misleading "could not infer" messages. New tests in `tests/test_triage_cache.py` and `tests/test_triage_bootstrap.py` cover parser flag acceptance under `TestParserFilterFlags900` / `TestParser900`, `--repo` inference fallback under `TestRepoInference900`, gh pass-through under `TestPopulatePassThroughGh900`, and the exception-type invariants. Tests are namespaced under `test_parser_*` / `test_run_bootstrap_*` / `test_populate_*` (avoiding `test_step_ensure_gitcrawl_*` per the #901 reservation). Closes #900.
 
 - **feat(setup): scripted Windows toolchain bootstrap + registry PATH-refresh helper + CONTRIBUTING quickstart (#902)** -- closes the 30+ minute friction tax for fresh Windows maintainers cloning the deft repo. New `scripts/setup_windows.ps1` is an idempotent winget bootstrap that probes each of `go` / `python` / `uv` / `task` / `gh` via `Get-Command` first and only invokes `winget install --id <ID> -e --silent --accept-source-agreements --accept-package-agreements` when a tool is missing. After installs, the script dot-sources its companion `scripts/refresh-path.ps1` so the running session sees the newly-installed binaries without launching a new shell; re-running on a fully-provisioned machine prints an `Already present: ...` summary and exits 0. New `scripts/refresh-path.ps1` reads the system PATH from `HKLM:\System\CurrentControlSet\Control\Session Manager\Environment\Path` and the user PATH from `HKCU:\Environment\Path`, concatenates system+user (system first), de-duplicates case-insensitively while preserving order, and assigns `$env:PATH`. Safe to dot-source AND safe to run as a script (no `exit` calls that would kill the parent shell when dot-sourced); compatible with Windows PowerShell 5.1 and PowerShell 7+. **Shared registry-key contract with #899:** the Go-side `refreshPathFromRegistry()` helper landing under #899 reads from the exact same two registry keys -- the contract is documented in the header comment of `refresh-path.ps1` and any change requires coordinating with `cmd/deft-install/`. New `tasks/setup.yml` exposes `task setup:toolchain` which dispatches the bootstrap on Windows (via `pwsh -NoProfile -ExecutionPolicy Bypass -File ...`) and prints a friendly `setup:toolchain currently supports Windows only` message on macOS / Linux; wired into the parent `Taskfile.yml` `includes:` block under namespace key `setup`. The fragment coexists with the root-level `setup` task (git-hooks bootstrap from #747) because go-task treats `setup` and `setup:toolchain` as distinct task names. New `## Windows quickstart (#902)` section in `CONTRIBUTING.md` documents the one-line bootstrap (`task setup:toolchain` or `pwsh -ExecutionPolicy Bypass -File scripts\setup_windows.ps1`), the dot-source PATH-refresh helper for sessions launched before installs, and a manual fallback list with official-install URLs for hosts where winget is unavailable. New `tests/scripts/test_setup_windows.ps1` is a Pester-style suite (manual invocation `Invoke-Pester tests/scripts/test_setup_windows.ps1` documented at the top of the file) covering refresh-path.ps1 dedup behaviour with synthetic registry-like input, system+user precedence ordering (including collision precedence), setup_windows.ps1 idempotence across consecutive runs, the probe-before-install Get-Command guard, install-failure isolation (one failed install does not abort the loop), and `-WhatIfOnly` dry-run safety (no winget invocation under any branch). All `.ps1` source files are ASCII-only per the AGENTS.md PowerShell rule. Closes #902.
@@ -4693,6 +4998,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(triage): local issue cache + #583 quarantine (#845 Story 1)** -- introduces a sidecar issue cache at `.deft-cache/issues/<owner>-<repo>/<N>.{json,md}` so the refinement / triage pipeline stops paying O(N) `gh issue view` calls per evaluation pass (the #788 token-cost adoption blocker). Wave-1 deliverable for the #845 epic, owned by Agent A1; non-overlapping with the parallel A2 candidates-audit-log story. New `scripts/triage_cache.py` exposes the canonical public surface (`populate(repo, force=False) -> int`, `show(issue_number, repo) -> str`, `is_stale(path, ttl_seconds) -> bool`); populate uses `gh issue list --state open --json number,title,body,...` (or the optional `gitcrawl` backend when `--use-gitcrawl` is passed and the binary is on PATH), atomic-replace per-issue writes via `os.replace` so torn files cannot leak into a parallel reader, and an mtime-based 24h freshness gate (`DEFAULT_TTL_SECONDS`) so re-runs are idempotent and skip fresh entries (mtime preserved on no-change, `--force` opts back into a full re-write). New `scripts/quarantine_ext.py` exposes `quarantine_body(raw_md: str) -> str` per the #583 prompt-injection-quarantine spec: markdown headings or plain-prose lines containing imperative tokens (`STEP`, `TASK:`, `IMPORTANT:`, `MUST`, `SYSTEM:`, `IGNORE PREVIOUS`, ...) are wrapped in ```quarantined fenced code blocks so a downstream agent splicing the cached body into a turn payload sees a syntactic marker, not executable instructions; idempotent on re-run; respects existing fenced code blocks so heading-shaped prose inside ``` is left alone; word-boundary scoped so `stepladder` does not match `STEP`. New standalone `tasks/triage-cache.yml` Taskfile fragment exposes `triage:cache` and `triage:show` targets (no `sources:` / `generates:` per `conventions/task-caching.md` since both surface user-facing flags via `{{.CLI_ARGS}}`); the parent `Taskfile.yml` `includes:` wiring is intentionally NOT performed here -- that surface is owned by Story 6 (Agent A6). New `tests/test_triage_cache.py` (28+ tests across 6 sections) covers the five Test-narrative cases: (1) populate from gh fixture writes both `<N>.json` and `<N>.md` per issue; (2) re-populate is idempotent (mtime preserved); (3) quarantine wraps suspicious content per #583 (heading + inline directive variants, code-block guard, word-boundary guard); (4) gitcrawl absent -> graceful fallback to gh (default `use_gitcrawl=None` always picks gh; explicit `use_gitcrawl=True` against missing gitcrawl raises `TriageCacheError`); (5) malformed `--repo` -> friendly `InvalidRepoError` with parametrized coverage of empty / single-segment / trailing-slash / triple-segment / whitespace forms; CLI surface returns 2 on arg error mirroring argparse convention. `.gitignore` appended with `.deft-cache/` so the local mirror is never versioned. Refs #845 (epic remains OPEN until all 6 stories ship); refs #583 (quarantine spec consumer); refs #788 (token-cost root cause).
 
@@ -4731,6 +5038,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **docs(upgrading): document AGENTS.md managed-section legacy migration contract (#794)** -- closes the adoption-blocker docs gap surfaced by issue #794. New `## From pre-#768 AGENTS.md → managed-section AGENTS.md` section in `UPGRADING.md` carries the canonical four-field micro-format header (`Applies when` / `Safe to auto-run` / `Restart required` / `Commands`) and documents (a) the detection rule -- `./AGENTS.md` exists but lacks the `<!-- deft:managed-section v1 -->` / `<!-- /deft:managed-section -->` sentinel markers (gate output `agents-md=missing`); (b) the **one-time legacy migration**: `deft/run agents:refresh` preserves existing AGENTS.md content verbatim ABOVE the rendered managed section (one-blank-line separator), so consumer notes survive the migration intact; (c) the four-state taxonomy classified by `_classify_agents_md` (`current` / `stale` / `missing` / `absent`) with the action taken on each; (d) the long-term **sentinel-only-rewrite contract**: every subsequent `deft/run agents:refresh` reads only the bytes between the markers and replaces them in place when the rendered template drifts, never touching content above or below the bracketed region; (e) cross-references to `templates/agents-entry.md` (the rendered managed-section template -- the bytes the framework writes between the markers) and `QUICK-START.md` Case G (agent-prescriptive coverage of the same scenario for agents reading QUICK-START.md instead of running `agents:refresh` directly). New `tests/content/test_upgrading_sections.py::test_managed_section_legacy_migration_section_present` regression-pins the contract surface area: section presence, detection-rule tokens (`<!-- deft:managed-section v1 -->`, `agents-md=missing`), command (`deft/run agents:refresh`), behavior tokens (`one-time`, `sentinel-only`), and both cross-references. The pre-existing `test_every_section_has_four_field_header` assertion automatically covers the new section's four-field header. Pure-docs PR -- no changes to `run`, `templates/agents-entry.md`, or `QUICK-START.md`. Closes #794.
 
@@ -4797,6 +5106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(skills,build,cost): pre-build cost & budget transparency phase (#739, refs #151 umbrella)** -- closes the adoption-blocker surfaced by issue #151 (issues #7 and #14 -- the only critical hard blocker in the playtest) where users completed install -> bootstrap -> interview -> PRD -> SPECIFICATION approval and stopped at build because deft offered no cost signal. Three coordinated artifacts plus a build-skill gate plus an AGENTS.md routing entry: (1) **NEW `skills/deft-directive-cost/SKILL.md`** -- dedicated skill (separation of concerns) sitting between SPECIFICATION approval and build kickoff. Plain-English voice for non-technical users (no spreadsheets, no scientific notation, no industry jargon -- explicit ⊗ MUST-NOT rules against `TCO` / `burn rate` / `p50` / `OPEX vs CAPEX` / `amortised` / `blended rate` / `unit economics` / `FTE` in the artifact body and skill prose). Four phases: read the spec & detect categories; draft the artifact; read it back to the user; decision point. The Phase 4 build-kickoff confirmation menu lists six numbered options with `Discuss` and `Back` as the FINAL two per the #767 framework rule (1. Build, 2. Rescope, 3. No-build, 4. Skip, 5. Discuss, 6. Back). Skill carries the canonical RFC2119 legend, a Platform Detection block (Windows `%APPDATA%\deft\USER.md` / Unix `~/.config/deft/USER.md` / `$DEFT_USER_PATH` override) mirroring `skills/deft-directive-build/SKILL.md`, an Inputs block, an Output Targets block, an Anti-Patterns block, and an `## EXIT` block per the AGENTS.md Skill Completion Gate. Plus a `.agents/skills/deft-directive-cost/SKILL.md` thin pointer matching the existing per-skill pattern. (2) **NEW `templates/COST-ESTIMATE.md`** -- canonical body for the per-project artifact produced by the skill: TL;DR, pre-flight account/sign-up summary, hosting/infrastructure rows, API/third-party fee rows, monthly **low / typical / high** band rolled up from the rows above, scale considerations callout when the high band is much bigger than the typical band, build & maintenance time, and an explicit four-way **Decision recorded** block (build / rescope / no-build / skip(+reason)). USD-only first pass; vendor pricing snapshots cited as snapshots, never guarantees; loose ranges only (no single-point estimates). (3) **NEW `references/cost-models.md`** -- captures the cost-model methodology (loose ranges, no hard numbers, USD-only first pass; documented as such). Audience is dual: agents producing the estimate AND non-technical end users reading the artifact. Out-of-scope explicitly enumerated (hard cost numbers tied to 2026 vendor pricing; real-time pricing API integration; currency/region localisation; FinOps for already-running projects). (4) **`skills/deft-directive-build/SKILL.md` Cost Phase Gate (#739)** -- new gate added between the USER.md Gate and File Reading. Refuses kickoff until `COST-ESTIMATE.md` exists AND the **Decision recorded** block carries one of build / rescope / no-build / skip, AND the **Reason** field is populated for skip / rescope / no-build (a skip with no reason is treated the same as no decision). On `build` or `skip`, continues to File Reading; on `rescope`, redirects back to spec edits then re-runs the cost skill; on `no-build`, exits without proceeding to File Reading. Anti-pattern entry added against proceeding without `COST-ESTIMATE.md` and a recorded decision. (5) **`AGENTS.md` Skill Routing entry** -- added a routing line mapping `cost`, `budget`, `pre-build cost`, and `how much will this cost` to `skills/deft-directive-cost/SKILL.md` (only the routing-table section was edited; AGENTS.md Branching / Development Process / PR conventions / session-start disclosure are owned by Agent 1 and were not touched). (6) **Tests** -- new `tests/content/test_cost_phase.py` (34 tests across 7 sections) covers artifact creation (cost skill / template / methodology files exist at expected paths), build-gate behavior (cost-phase gate section present, refuses without `COST-ESTIMATE.md`, decision-state coverage for all four states, skip-requires-reason rule, anti-pattern entry), rescope loop (rescope option present, redirects back to spec edits, re-runs the cost phase), the #767 framework rule (Discuss + Back as the final two consecutive numbered options; Back is the highest-numbered option), template structure (required sections, low/typical/high bands, all four decision options, USD declaration, no jargon in the user artifact), methodology coverage (cost-models.md sections, USD-only documented, loose-ranges promise), and plain-English voice (parametrized check that the listed jargon terms are absent from user-facing skill prose outside the Anti-Patterns and Audience & Voice blocks where they are listed as forbidden). `task check` matches pre-change baseline (3134 passed, 1 xfailed; the 4 broken-link warnings from `task verify:links` are pre-existing -- CHANGELOG.md examples + `scm/changelog.md` template + `templates/swarm-greptile-poller-prompt.md` -- and not introduced by this PR). Closes #739; refs #151 umbrella.
 
@@ -4878,6 +5189,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **feat(cli): enforce USER.md gate in `cmd_spec` and `cmd_project` (#163)** -- mirror the agentic-path USER.md gate documented in `skills/deft-directive-build/SKILL.md` ("USER.md Gate" section) at the two CLI entry points that consume user-scoped defaults. Two new helpers in `run`: `_resolve_user_md_path()` resolves USER.md per platform (Windows: `%APPDATA%\deft\USER.md`; Unix: `~/.config/deft/USER.md`) with `$DEFT_USER_PATH` always taking precedence on any platform; `_check_user_md_gate()` returns `1` and emits a `print_error` redirect ("USER.md not found at <path>", "Run 'run bootstrap' to create your user preferences before continuing.", "Set $DEFT_USER_PATH to override the default location.") when USER.md is missing, or `None` to let the caller continue. `cmd_spec` and `cmd_project` invoke the gate before any prompts or work so a missing USER.md exits non-zero with an actionable message instead of silently generating a scope vBRIEF / PROJECT-DEFINITION that lacks the user defaults (languages, coverage, strategy) downstream tooling depends on. The gate intentionally lives at the function entry (not in `main()`'s dispatcher) so `cmd_install` and `cmd_bootstrap`'s post-success chain into `cmd_project` / `cmd_spec` go through the same check. New `tests/cli/test_usermd_gate.py` (9 tests) covers all three plan.items from `vbrief/active/2026-04-23-163-...vbrief.json`: resolver honors `$DEFT_USER_PATH` override; `_check_user_md_gate()` returns `None` when present and `1` when missing (with redirect message asserted via `capsys`); `cmd_spec` and `cmd_project` both block at the gate when USER.md is missing (asserts non-zero exit, no output file written, message names the resolved path AND `run bootstrap`); both commands proceed normally when USER.md is present at the resolved path; both commands honor the `$DEFT_USER_PATH` override against a custom tmp_path location -- bypassing the standard `isolated_env*` fixtures so the developer's real USER.md is never touched. New `tests/cli/conftest.py` overrides the parent `isolated_env` fixture (defined in `tests/conftest.py`) to additionally pre-create a minimal USER.md at `$DEFT_USER_PATH` so existing CLI tests (cmd_spec / cmd_project happy paths in `test_cmd_spec.py`, `test_project.py`, `test_spec_sizing.py`, `test_loop_bugs.py::test_project_*`, `test_project_user_defaults.py`) keep passing without per-test edits; sibling `isolated_env_no_user` fixture exposes the absence path for the new gate tests, the gate-flip in `test_project_user_defaults.py::test_project_blocks_when_user_md_missing` (replaces the prior `test_project_still_works_without_user_md` whose semantics inverted with this change), the `test_read_user_defaults_returns_none_when_missing` unit test, and the `cmd_bootstrap` tests in `test_bootstrap.py` / `test_resume.py` / `test_loop_bugs.py::test_bootstrap_*` (which write USER.md as their primary behavior under test). `task check` green (2983 passed, 1 xfailed). Scope vBRIEF: `vbrief/active/2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic.vbrief.json`. Closes #163.
 
 - **feat(scripts,skills): vBRIEF-lifecycle reconciliation gate (#734)** -- new `--apply-lifecycle-fixes` flag on `scripts/reconcile_issues.py` moves Section (c) (closed-issue) vBRIEFs from `proposed/` / `pending/` / `active/` into `completed/`, sets `plan.status = "completed"`, and stamps `vBRIEFInfo.updated`; idempotent on re-run; tolerant of both legacy bare `github-issue` and canonical `x-vbrief/github-issue` reference shapes; reverse mismatches (vBRIEFs in `completed/` whose origin issue reopened) are reported via the existing reconcile output but never auto-reverse-moved (operator decision per the vBRIEF). New `scripts/release.py::check_vbrief_lifecycle_sync(project_root, repo)` helper wraps the same `reconcile_issues` surface and is wired into the release pipeline as a brand-new Step 3 between branch guard (Step 2) and CI (Step 4); the helper returns a three-state result (clean / mismatch-fail / config-error) and the pipeline emits `[3/12] Pre-flight vBRIEF lifecycle sync... OK|FAIL|SKIP|DRYRUN` lines so operators can tail the run. The pipeline-step constant `_TOTAL_STEPS` bumps 11 -> 12 (every subsequent label / dry-run preview shifts by one); existing test_release.py / test_release_summary.py pipeline-step assertions are renumbered accordingly. New `--allow-vbrief-drift` escape-hatch flag (default False; analogous to `--allow-dirty`) lets the operator override after explicit acknowledgment, e.g. for emergency hot-fix releases where the lifecycle reconcile is intentionally deferred to the next refinement pass. The clean recovery path is `task reconcile:issues -- --apply-lifecycle-fixes`. `skills/deft-directive-release/SKILL.md` Phase 1 gains a `!` MUST rule citing the v0.21.0 cut as the recurrence record (13 stranded vBRIEFs surfaced post-publish: 8 cycle-relevant + 5 historical residue) plus a corresponding `⊗` MUST NOT anti-pattern. `meta/lessons.md` carries a short cross-reference entry (`## vBRIEF Lifecycle Drift on Release (2026-04)`) per the Rule Authority [AXIOM] strongest-applicable-layer rule -- the rule body lives in the deterministic gate, not in prose. Tests: 14 new tests across `tests/cli/test_reconcile_issues_apply.py` (apply-mode happy path / idempotent re-run / mixed reference shapes / reverse-mismatch / no-issue-ref skip / report-only default / conflict handling) and `tests/cli/test_release_vbrief_lifecycle.py` (`check_vbrief_lifecycle_sync` clean / mismatch / completed-folder excluded / vbrief-dir-missing / gh-failure; pipeline Step 3 wiring; `--allow-vbrief-drift` escape hatch; `_TOTAL_STEPS == 12` constant; argparse round-trip).
@@ -4923,6 +5236,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(scripts,skills): release CHANGELOG promotion accepts `--summary` blockquote** (release-narrative-gap, refs #74 release pipeline parent, refs #716 Phase 8 Slack template surface, refs #727 orchestrator role-separation): Closes the gap surfaced during v0.21.0 re-cut prep where the post-publish narrative was hand-authored three times (CHANGELOG `[<version>]` section, GitHub release body, Slack `*Summary*:` slot) and drifted across audiences. New optional `--summary TEXT` flag on `scripts/release.py` (and `task release -- <version> --summary "<text>"`) injects a one-line Markdown blockquote (`> <summary>`) directly after the promoted `## [<version>] - <date>` heading, sandwiched by blank lines for proper Keep-a-Changelog rendering. Backward-compatible: `summary=None` (or empty / omitted) preserves pre-existing behaviour byte-for-byte. The blockquote is inline Markdown (operators may include `**bold**`, `[link](url)`, etc. -- preserved verbatim, no escaping); embedded newlines raise `ValueError` (single-line slot). The same blockquote naturally flows into the GitHub release body via the existing `_section_for_version` pickup AND is the canonical source for the Phase 8 Slack `*Summary*:` slot per `skills/deft-directive-release/SKILL.md`. (Tier 1 primary) `scripts/release.py::promote_changelog(text, version, repo, today, summary=None)` extends the existing pure function; `ReleaseConfig` gains `summary: str | None = None`; `_build_parser` adds `--summary TEXT` (helptext cites 80-160 char recommendation + the three-surface flow); `run_pipeline` Step 4 threads `summary=config.summary` through and the dry-run preview reflects whether a summary was supplied (truncated to ~60 chars) so operators can validate the wording during Phase 2 before any file is written; `main` wires `args.summary` to `ReleaseConfig.summary`. (Tier 4 secondary) `skills/deft-directive-release/SKILL.md` Phase 1 gains a `~` step asking the operator for the optional one-line summary (recommended 80-160 chars; can be skipped) and a ⊗ anti-pattern against per-audience hand-writing; Phase 2 dry-run command demonstrates `--summary` pass-through; Phase 4 production draft passes `--summary`; Phase 8 Slack `*Summary*:` populate rule documents verbatim copy from the CHANGELOG blockquote with a fallback for skipped Phase 1; new ⊗ anti-pattern in the Anti-Patterns block prohibits manually rewriting the Slack summary to deviate from CHANGELOG (creates documentation drift). (Tier 5 tertiary) `scm/changelog.md` gains an `## Optional Release Summary Blockquote` section documenting the structural shape and the `--summary` provenance, with a ⊗ anti-pattern mirroring the SKILL one. New tests in `tests/cli/test_release_summary.py` (split from `test_release.py` to keep that file under the 1000-line MUST limit per AGENTS.md, mirroring the `test_release_skip_flags.py` pattern from #720) cover: `test_promote_changelog_with_summary` (`\n\n> Test summary\n` between heading and `### Added`); `test_promote_changelog_without_summary` (backward-compat regression guard); `test_promote_changelog_summary_with_markdown` (inline Markdown preserved verbatim); `test_promote_changelog_summary_empty_string` (`summary=""` byte-identical to `summary=None`); `test_promote_changelog_summary_with_newline` (`\n` and `\r` raise `ValueError`); `test_main_summary_argparse` (`--summary` lands in `ReleaseConfig.summary`); `test_pipeline_summary_threaded` (Step 4 dry-run preview surfaces the wording for operator validation). Scope vBRIEF: `vbrief/proposed/2026-04-29-release-summary-blockquote.vbrief.json`.
 
@@ -5006,6 +5321,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **feat(strategy): standalone map/brownfield analysis without requiring interview** (#103): `/deft:run:map` can now be invoked as a standalone first-class command without an active interview context. `strategies/map.md` gains an Invocation Modes section distinguishing Standalone vs Chained modes, a Completion section that splits artifact registration (shared) from mode-specific handoff (Chained returns to interview.md chaining gate; Standalone presents a narrative summary and offers next-step options: interview / discuss / research / done). The `⊗ End the session after mapping without returning to the chaining gate` rule is scoped to Chained mode only. `strategies/interview.md` and `strategies/README.md` gain a standalone invocation note for preparatory strategies. `strategies/discuss.md` and `strategies/research.md` gain a `!` standalone-context rule and update their Workflow chaining step so invocations from a standalone strategy return to the invoking strategy's next-step menu instead of the interview chaining gate. `tests/content/test_strategy_chaining.py` accepts both the original `## Then: Chaining Gate` heading and the new `### Chained Mode` pattern for preparatory strategies. Closes #103.
 
 
@@ -5035,6 +5352,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(taskfile): add `task scope:fail` for failed terminal transitions** (#614): Added a seventh terminal lifecycle transition to `tasks/scope.yml` and `scripts/scope_lifecycle.py`. `task scope:fail <file>` moves a vBRIEF from `vbrief/active/` to `vbrief/completed/` and stamps `plan.status = "failed"` (mirroring `scope:complete` on folder movement but differing on terminal status). Semantically distinct from `scope:cancel`: `scope:cancel` records a decision (scope no longer wanted, superseded, obsolete -> moves to `cancelled/`), `scope:fail` records an attempt that could not be completed (external blocker, infeasibility discovered mid-flight, deadline hit, agent exhausted retries). The `failed` terminal status is already in the canonical v0.6 Status enum (`vbrief/schemas/vbrief-core.schema.json:367`) and `vbrief_validate.py` already maps `completed/` to `{completed, failed}`; this PR wires the missing Taskfile entry the v0.20 refinement skill Phase 4 and four other docs already assumed exists (`skills/deft-directive-refinement/SKILL.md:166,177`, `swarm/swarm.md:100`, `resilience/context-pruning.md:66`, `verification/plan-checking.md:82`, `meta/lessons.md:58,158`). Implementation adds a `"fail": (("active",), "completed", "failed")` entry to the `TRANSITIONS` table so the existing `run_transition` helper handles it without new branches; the only per-action addition is a `"fail": "Failed"` label in `_move_labels`. New tests in `tests/cli/test_scope_lifecycle.py::TestFail` cover the happy path (file moves active/ -> completed/ with `plan.status == "failed"`, NOT `"completed"` or `"cancelled"`), updated-timestamp stamping, blocked-source acceptance (an unrecoverable blocked scope does not require an unblock round-trip before failure), rejection from every non-active source folder (parameterized over proposed/pending/completed/cancelled mirroring the other transitions' source-gate contract), and schema validity of the resulting document against `scripts/vbrief_validate.py`'s v0.6 `validate_vbrief_schema` (confirming `"failed"` is in `VALID_STATUSES` and `FOLDER_ALLOWED_STATUSES["completed"]`). Closes #614.
 
@@ -5066,6 +5385,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **docs(meta/lessons): codify 5 RC3 validation lessons from v0.20.0-rc.3 session** (#576): Appended a new `## RC3 Validation on Windows (2026-04)` section at the end of `meta/lessons.md` containing the byte-for-byte drop-in markdown block from issue #576. The section cites the v0.20.0-rc.3 validation run on `MScottAdams/slizard-rc3-test` and captures five lessons surfaced alongside the blocks-merge RC3 fixes (#567 / #571 / #572 / #574): (1) frameworks that vendor-require a task runner MUST have explicit platform-matrix CI on that runner -- language-level tests do not catch runner-specific defects; (2) go-task `vars:` templates re-evaluate at use site in included subfiles, so path vars MUST be defined per-subfile with eager `{{joinPath .TASKFILE_DIR ".."}}`, and pytest content guard-rails MUST be paired with a live `task --dry-run`-style dispatch test; (3) a task that accepts user recovery flags in `CLI_ARGS` MUST NOT declare `sources:`/`generates:` incremental-build keys -- cached `cmds:` skip silently discards the recovery flag; (4) error messages that prescribe a recovery command are a contract and MUST be regression-tested (following the recovery command literally MUST actually recover); (5) substring-based "machine-generated" detection heuristics MUST be part of a canonical banner marker contract shared by every writer and detector, co-located with a regression test asserting writer/detector symmetry. Pure documentation append -- no whitespace churn on existing sections, trailing-newline convention preserved. Closes #576.
 
 
@@ -5085,6 +5406,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(templates): canonical PR template + `deft-directive-setup` Phase 2 scaffolding prompt** (#531): Added `templates/PULL_REQUEST_TEMPLATE.md` shipped with deft (Summary / Changes / vBRIEF References / Checklist / Related Issues / Testing sections). Updated `skills/deft-directive-setup/SKILL.md` Phase 2 with a new **GitHub PR Template Scaffolding** step that asks the user "Create a default GitHub PR template at `.github/PULL_REQUEST_TEMPLATE.md`? (Y/n)" and, on yes, copies the canonical template into the consumer project (non-destructive). Updated `skills/deft-directive-refinement/SKILL.md` Pre-Flight step to reference `templates/PULL_REQUEST_TEMPLATE.md` and instruct the agent to copy the canonical template in place instead of blocking when `.github/PULL_REQUEST_TEMPLATE.md` is missing. Closes #531.
 
@@ -5107,6 +5430,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(migrate): LegacyArtifacts capture mechanism for non-canonical pre-cutover content** (#505, #506 D5): Added `scripts/_vbrief_legacy.py` with the hard-coded v0.20 known-mappings list (shared with #495's canonical extraction) and four-rule normalization (case-insensitive + whitespace-collapsed + punctuation-stripped + word-separator-tolerant including CamelCase). Non-canonical `##` sections from `SPECIFICATION.md` / `PROJECT.md` route to a `LegacyArtifacts` narrative on the matching vBRIEF file (single string, schema-compatible). Sections >6 KB overflow to `vbrief/legacy/{stem}-{slug}.md` sidecars with an inline pointer header. PRD.md hand-edited sections (whose normalized title does not match a canonical specification narrative key) are captured with the RFC-defined warning prefix. Migrator emits `vbrief/migration/LEGACY-REPORT.md` with suggested dispositions + action options and a per-run stdout summary whenever captures occur. Added Phase 6c Legacy Artifact Review to `skills/deft-directive-sync/SKILL.md` with Keep / Fold / Drop affordances and MUST-NOT anti-patterns (no delete, no auto-dispose). Anchor comment `# --- legacy-artifacts (Agent A, #505) ---` marks the wiring in `scripts/migrate_vbrief.py`. 45 synthetic-fixture tests in `tests/cli/test_vbrief_fidelity_legacy.py` cover normalization rules, top-level section parsing, small-inline / >6 KB sidecar / PRD hand-edit warning paths, `LEGACY-REPORT.md` format, stdout summary, and end-to-end migration.
 
@@ -5163,6 +5488,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **feat(migrate): role-based SPEC/ROADMAP reconciliation + RECONCILIATION.md + --strict + overrides** (#496, #506): Extracted reconciliation into `scripts/_vbrief_reconciliation.py`. Policy mirrors #506 D3 -- SPEC owns identity (body / acceptance / traces / IDs pass through unchanged); ROADMAP wins status when it carries an explicit completion signal; SPEC `[done]` / `status == "completed"` is tiebreaker otherwise; orphan ROADMAP items (no matching SPEC task) route to `vbrief/proposed/` with `narrative.SourceConflict = "missing-from-spec"`; grouping preserves both `narrative.Phase` (ROADMAP) and `narrative.SpecPhase` (SPEC); ROADMAP one-liner preserved in `narrative.RoadmapSummary` only on title drift. Every reconciled scope vBRIEF carries sibling `*_source` provenance narratives (`Description_source`, `Status_source`, `Title_source`). Emits `vbrief/migration/RECONCILIATION.md` on any disagreement. Overrides loaded from `vbrief/migration-overrides.yaml` BEFORE defaults apply via a purpose-built conservative parser (no PyYAML dependency) -- supports `{status, body_source: spec|roadmap, drop: true}` per task id. Added `task migrate:vbrief -- --strict` -- exits non-zero on any conflict so CI can gate cutover until RECONCILIATION.md is reviewed; scope vBRIEFs and report are still written. Reuses Agent D's `scripts/_vbrief_validation.py::slugify_id()` / `slug_fallback_id()` for ID emission so the reconciled scope vBRIEFs continue to pass Agent D's terminal-gate validator (#498). Anchor comment `# --- reconciliation (Agent B, #496) ---` marks the wiring in `scripts/migrate_vbrief.py`. New unit tests in `tests/cli/test_vbrief_reconciliation.py` and fixture-driven scenarios under `tests/fixtures/migration/` (clean, spec-stale, roadmap-stale, orphan, registry-mirror, active-routing, cancelled-routing) verified by `tests/cli/test_migrate_vbrief_fixtures.py`.
 
@@ -5242,6 +5569,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **chore(vbrief): add issue reconciliation script and close obsoleted issues** (#322, Part of #309): Created `scripts/reconcile_issues.py` with vBRIEF-to-GitHub-issue reconciliation -- scans all lifecycle folders (proposed/, pending/, active/, completed/, cancelled/) for `github-issue` references in vBRIEF files, fetches open issues via `gh` CLI, produces structured report with three sections: (a) open issues with matching vBRIEF provenance, (b) unlinked issues (no vBRIEF), (c) vBRIEFs referencing closed/missing issues; supports JSON and Markdown output formats with auto-detection of repo from git remote; registered as `task reconcile:issues` via `tasks/reconcile.yml`; closed obsoleted issue #115 (spec validation gate + SPECIFICATION.md freshness -- entire scope superseded by vbrief_validate.py and SPECIFICATION.md deprecation redirect); 25 tests in `tests/cli/test_reconcile_issues.py` covering reference extraction, issue number parsing, directory scanning, reconciliation logic, output formatting, and CLI integration
 
 - **feat(vbrief): add pre-cutover detection and backward compatibility guard** (#334, Part of #309): Added Pre-Cutover Detection Guard section to 3 skills (deft-directive-setup, deft-directive-build, deft-directive-sync) -- detects old-model artifacts (SPECIFICATION.md/PROJECT.md without `<!-- deft:deprecated-redirect -->` sentinel, vbrief/ without lifecycle folders) and redirects to `task migrate:vbrief` with actionable messages; added model state reporting to deft-directive-sync Phase 7 summary (pre-v0.20 legacy / v0.20+ OK / v0.20+ with warnings); added post-migration placeholder integrity check to `scripts/vbrief_validate.py` -- warns when SPECIFICATION.md or PROJECT.md exist but lack the deprecation redirect sentinel; added greenfield path verification documenting lifecycle folder creation in deft-directive-setup; all error messages include specific fix commands (`task migrate:vbrief`, `task project:render`, `task scope:activate`); 39 tests in `tests/cli/test_precutover_guard.py` covering placeholder integrity, skill guard content, actionable messages, anti-patterns, model state reporting, and greenfield path documentation
@@ -5270,6 +5599,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **test(vbrief): content and structural test coverage for vBRIEF-centric model** (#321, Part of #309): Created `tests/content/test_vbrief_model.py` with 28 tests covering repo structure validation (skills/ directory naming convention, AGENTS.md routing table integrity, no stale SPECIFICATION.md/PROJECT.md output target references, vbrief.md lifecycle folder documentation), lifecycle validation (vBRIEF filename convention YYYY-MM-DD-slug pattern, status/folder consistency mapping, origin provenance structure), and schema consistency cross-checks; added 2 skill rename verification tests to `tests/content/test_skills.py` (no bare deft-* directories, all AGENTS.md routing paths use deft-directive-* prefix)
 
 - **vBRIEF-centric document model in vbrief.md** (#310, Part of #309): Rewrote File Taxonomy section with lifecycle folder structure (proposed/, pending/, active/, completed/, cancelled/), status-to-folder mapping, PROJECT-DEFINITION.vbrief.json type, scope vBRIEF filename convention (YYYY-MM-DD-descriptive-slug.vbrief.json), status-driven moves (plan.status as source of truth), origin provenance requirement, bidirectional epic-story linking, plan.vbrief.json and continue.vbrief.json coexistence with scope vBRIEFs (planRef), scope splitting pattern; added PROJECT-DEFINITION.vbrief.json section; updated plan.vbrief.json and continue.vbrief.json sections with scope vBRIEF references; added 4 new anti-patterns
@@ -5291,6 +5622,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Regression tests for deft-setup Phase 1/2 deft-interview references** (#304, t1.29.1): Added `test_deft_setup_phase1_references_deft_interview` and `test_deft_setup_phase2_references_deft_interview` to `tests/content/test_skills.py` verifying both phases reference deft-interview
 
@@ -5330,6 +5663,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill** (#296, t2.11.1): Created `skills/deft-interview/SKILL.md` with RFC2119 legend and YAML frontmatter encoding a deterministic interview loop any skill can invoke -- 7 rules: one-question-per-turn, numbered options with stated default (`[default: N]`), explicit other/IDK escape option, depth gate, default-acceptance, confirmation gate, and structured handoff contract (answers map); created `.agents/skills/deft-interview/SKILL.md` thin pointer; added AGENTS.md Skill Routing entry; updated deft-setup Phase 1 and Phase 2 to reference deft-interview; added 12 tests
 
 - **deft-swarm Phase 6 Slack release announcement** (#292, t1.22.1): Added Step 6 to `skills/deft-swarm/SKILL.md` Phase 6 -- generates standard Slack announcement block with version, release title, summary, key changes, swarm agent count, duration, PR numbers, and GitHub release URL
@@ -5358,6 +5693,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Taskfile modular restructure** (#233, t3.3.1): Restructured monolithic `Taskfile.yml` into modular includes under `tasks/` -- created `tasks/core.yml` (validate, fmt, lint, test, test:coverage, build, clean, stats), `tasks/spec.yml` (validate, render, pipeline), `tasks/install.yml` (install, uninstall), `tasks/deployments.yml` (moved from `taskfiles/`); root `Taskfile.yml` is now version + vars + includes + default task + backward-compatible aliases; fixed stale VERSION var (0.14.0 -> 0.17.0); deleted `taskfiles/` directory
 
 - **Toolchain verification task** (#233, #235, t3.3.2): Created `tasks/toolchain.yml` with `toolchain:check` task and `scripts/toolchain-check.py` -- verifies go, uv, task, git, gh are installed; wired as dep of enhanced `check` task
@@ -5375,6 +5712,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **deft-setup USER.md/PROJECT.md versioning** (#270, t3.2.1): Added `deft_version` field to USER.md and PROJECT.md templates in `skills/deft-setup/SKILL.md`; added USER.md Freshness Detection subsection -- detects stale USER.md via missing or outdated `deft_version`, queries missing fields individually without re-running full interview, writes current version after migration; added `!` rule requiring `deft_version` on every generate/update and anti-pattern against omitting it; added 4 tests to `tests/content/test_skills.py`
 
@@ -5428,6 +5767,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Strategy stubs: rapid.md and enterprise.md** (#51, t2.8.5): Created `strategies/rapid.md` (quick prototyping workflow -- SPECIFICATION-only output, minimal gates, forced-Light path) and `strategies/enterprise.md` (compliance-heavy workflow -- PRD -> ADR -> SPECIFICATION with explicit approval gates); both have RFC2119 legend, See also banner, and full workflow structure; updated `strategies/README.md` to remove "(future)" annotations and add links; added `test_rapid_strategy_exists` and `test_enterprise_strategy_exists` to `tests/content/test_structure.py`; flipped xfail entries in `known_failures.json`
 
 - **docs/getting-started.md stub** (#112, t2.8.6): Created `docs/getting-started.md` with title, purpose statement, deferred-content note, and placeholder section outline (Prerequisites, Installation, First Project, Using Strategies, Agent Configuration); added `test_getting_started_exists` to `tests/content/test_structure.py`; posted confirmation comment on GitHub issue #112
@@ -5462,6 +5803,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Semantic contradiction check for !/⊗ rules** (#251, t1.12.3): Added 2 `!` rules to `skills/deft-build/SKILL.md` pre-commit checklist and `skills/deft-pre-pr/SKILL.md` Read phase (formerly `deft-rwldl`, renamed in [Unreleased]) -- when adding a `!` or `⊗` rule, search the same file for conflicting `~`/`≉` rules referencing the same term; when strengthening a rule, verify no weaker-strength duplicate remains; added `⊗` anti-pattern to both skills prohibiting adding a prohibition without scanning for softer-strength conflicts
 
 
@@ -5486,6 +5829,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Skill completion gates and pre-commit file review** (#238, #239, #243; t1.11.3, t1.11.4, t1.11.5): Added batch CHANGELOG convention to `skills/deft-roadmap-refresh/SKILL.md` -- one entry at session end, not per-issue; added mandatory pre-commit file review step (encoding, duplication, structural checks) to roadmap-refresh Phase 4 pre-flight and `skills/deft-build/SKILL.md`; added Skill Completion Gate rule to `AGENTS.md` requiring explicit exit confirmation and chaining instructions; added EXIT block to roadmap-refresh Phase 4; added chaining annotations to AGENTS.md Skill Routing table (swarm chains to review-cycle, roadmap-refresh chains to review-cycle)
 
 - **PS 5.1 Get-Content -Raw footgun and BOM-safe round-trip rules** (#236, t1.11.1): Added two `!` rules to `scm/github.md` PS 5.1 section -- use `Get-Content -Raw` to read files as a single string (avoids line-by-line BOM injection and Unicode mangling), and use `[System.IO.File]::WriteAllText` with the BOM-free UTF8 constructor for safe writes (PS 5.1 `Set-Content` and `Out-File` both inject a BOM even with `-Encoding UTF8`; `Out-File -Encoding utf8NoBOM` requires PS 7+); rationale paragraph documenting PS 5.1's UTF-16LE/UTF-8-with-BOM defaults
@@ -5505,6 +5850,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **meta/philosophy.md -- deterministic > probabilistic design principle** (#159, t2.7.7): Created `meta/philosophy.md` documenting the "prefer deterministic components for repeatable actions" design principle -- definition, rationale, examples (Taskfile tasks, spec_validate.py, CI workflows), and scope note deferring broad application to Phase 5; referenced from `contracts/hierarchy.md` See also banner
 
@@ -5539,6 +5886,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **scm/github.md rewrite -- gh CLI rules, PR conventions, Windows encoding guidance** (#197, absorbs #201, t2.6.6): Rewrote `scm/github.md` with standing `gh` CLI rules (`--body-file` for multi-line bodies, immediate post-create verification), PR workflow conventions (squash-merge default, single-purpose branches, branch lifecycle, closing keywords), Windows/PowerShell 5.x encoding guidance (UTF-8 without BOM, avoid piping through PS 5.x redirection), and post-merge issue verification section
 
@@ -5578,6 +5927,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **State WHY rule for interview strategy** (#84, t2.2.3): Added `!` rule to `strategies/interview.md` Interview Rules requiring agents to state the underlying principle (1 sentence) when making an opinionated recommendation — part of "Deft as teacher" so users understand the contract hierarchy reasoning behind recommendations
 
 - **CONTRIBUTING.md contributor bootstrap guide** (#67, t2.3.1): Created `CONTRIBUTING.md` at repo root with full contributor onboarding — prerequisites (Go 1.22+, Python 3.11+, uv, task), dev environment setup, running tests (`task test`, `task check`), running CLI locally (`uv run python run`), building the Go installer (`go build ./cmd/deft-install/`); documents `task check` as the authoritative pre-commit gate and defines a passing `task check` as the definition of ready-to-commit
@@ -5597,6 +5948,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Swarm close-out orchestration rules** (#206, t2.6.3): Added monitor-centric close-out rules to skills/deft-swarm/SKILL.md Phase 6 -- merge authority (monitor proposes, user approves), rebase cascade ownership (monitor owns), GIT_EDITOR=true for non-interactive rebase, post-merge issue verification step; added push autonomy carve-out for swarm agents; added MCP fallback note to skills/deft-review-cycle/SKILL.md (gh-only when MCP unavailable)
 
@@ -5684,6 +6037,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Branching preference in project setup**: `cmd_project` and `deft-setup` Phase 2 Track 1 now ask branching preference (branch-based — default/recommended, or trunk-based); emits `Allow direct commits to master: true` under `## Branching` in PROJECT.md if trunk-based is chosen (#171)
 
 
@@ -5709,6 +6064,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Greptile integration guide**: Added tools/greptile.md — recommended Greptile dashboard and per-repo settings for teams using deft, covering triggerOnUpdates/statusCheck configuration, check runs vs. commit statuses distinction, troubleshooting, and anti-patterns (#166, t1.7.1)
 
@@ -5780,6 +6137,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Review Cycle Skill**: Added `skills/deft-review-cycle/SKILL.md` — Greptile bot reviewer response workflow covering Phase 1 deft process audit, Phase 2 review/fix loop (batch fixes, wait-for-bot, exit condition), GitHub review submission rules, and anti-patterns; enables cloud agents to run autonomous PR review cycles; thin pointer added at `.agents/skills/deft-review-cycle/SKILL.md` (#135)
 
 - **Roadmap Refresh Skill**: Added `skills/deft-roadmap-refresh/SKILL.md` — structured contributor workflow for triaging open issues into the phased roadmap (discovery, one-at-a-time analysis with human review, cleanup)
@@ -5838,6 +6197,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Minimal CI Workflow**: Added .github/workflows/ci.yml — runs 	ask check (ruff, mypy, pytest) on all PRs and master pushes; gates merges until lint + tests pass (#57 partial)
 
 - **Toolchain Validation Directive**: Added `coding/toolchain.md` with RFC2119 pre-implementation gate — MUST verify task runner, language compiler/runtime, and platform SDK (if applicable) before beginning implementation, stop and report if any are missing; pointer added to `coding/coding.md`; toolchain check added to `strategies/interview.md` Acceptance Gate and `skills/deft-build/SKILL.md` Step 2; iOS/Swift incident codified in `meta/lessons.md` (#106)
@@ -5878,6 +6239,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Agent Skill Auto-Discovery**: Added `.agents/skills/deft/`, `deft-setup/`, `deft-build/` thin pointer files to the repo — Warp and other agents now auto-discover deft skills on startup without user prompting (#94)
 
 - **WriteAgentsSkills**: Installer now creates `.agents/skills/` in user project root during install so agents auto-discover deft skills immediately (#94)
@@ -5917,6 +6280,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Go Installer**: Cross-platform self-contained installer in `cmd/deft-install/` with 5 platform binaries, interactive setup wizard, and platform-aware git installation paths (#34, #35)
 
@@ -6001,6 +6366,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **Slash Commands**: `/deft:run:<name>` dispatches to `strategies/<name>.md` (#16)
 
@@ -6094,6 +6461,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Phase 1 Testbed**: Implementation plan for intrinsic regression testing
 
 - **SPECIFICATION.md**: Generated specification via deft beta workflow
@@ -6107,6 +6476,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **`run` CLI/TUI Tool**: Cross-platform Python wizard (2,500+ lines) replacing `warping.sh`
 
@@ -6185,6 +6556,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **README Mermaid Diagrams**: Added 5 visual diagrams to improve documentation clarity
 
@@ -6321,6 +6694,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **TUI Wizard Mode**: Full Textual-based interactive wizard interface
 
@@ -6542,6 +6917,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **`run reset` command**: Reset configuration files to default/empty state
 
   - Interactive mode: prompts for each file individually
@@ -6634,6 +7011,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **AgentSkills Integration**: Added `SKILL.md` for Claude Code and clawd.bot compatibility
 
   - Follows AgentSkills specification for universal AI assistant compatibility
@@ -6694,6 +7073,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **Project Type Selection**: Added "Other" option (option 6) to project type selection in `deft.sh project`
 
   - Prompts for custom project type when selected
@@ -6722,6 +7103,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Added
 
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
+
 - **LICENSE.md**: Added license file with temporary usage terms through 2026
 
   - Permission to use (but not distribute) for repository collaborators
@@ -6737,6 +7120,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 - **SCM Directory**: Created `scm/` directory for source control management standards
 
@@ -6789,6 +7174,8 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Added
+
+- **Keep active #5403 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5403.
 
 #### Core Features
 
