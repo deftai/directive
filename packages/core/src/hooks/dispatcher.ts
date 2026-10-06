@@ -173,10 +173,10 @@ import {
 } from "./readonly.js";
 import {
   type ActiveScopeInspection,
-  type InspectActiveScopeOptions,
-  inspectActiveScope,
   BLOCK_SCOPE_VERB,
   HISTORICAL_SHIP_CLOSEOUT_HINT,
+  type InspectActiveScopeOptions,
+  inspectActiveScope,
 } from "./scope.js";
 import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 import {

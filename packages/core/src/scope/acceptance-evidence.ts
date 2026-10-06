@@ -1550,8 +1550,7 @@ export function isHistoricalShipCloseout(plan: Record<string, unknown>): boolean
     return false;
   }
   const mergeCommit = typeof prov.mergeCommit === "string" ? prov.mergeCommit.trim() : "";
-  const deliveryBranch =
-    typeof prov.deliveryBranch === "string" ? prov.deliveryBranch.trim() : "";
+  const deliveryBranch = typeof prov.deliveryBranch === "string" ? prov.deliveryBranch.trim() : "";
   return mergeCommit.length > 0 && deliveryBranch.length > 0;
 }
 
@@ -1676,9 +1675,7 @@ export function evaluateScopeCompleteAcceptanceWalk(
           : SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION;
       return {
         ok: false,
-        message:
-          `${SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE}` +
-          `${remediation}\n${walk.message}`,
+        message: `${SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE}` + `${remediation}\n${walk.message}`,
         reports: [],
         servedFrom,
         predicate: verdict.predicate,

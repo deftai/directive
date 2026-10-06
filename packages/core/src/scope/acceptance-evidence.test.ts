@@ -28,15 +28,15 @@ import {
   fenceUntrustedAcceptanceText,
   formatAcceptanceCompletionListing,
   formatScopeStatus,
+  HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION,
+  HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE,
   inferRequiredStrictAxes,
   isEvidenceKindSuitable,
   itemDeclaresMergeRequirement,
   MERGE_POINTER_SHAPE_REMEDIATION,
+  migrateNoneStatedForHistoricalShip,
   persistClauseKeyedPendingItems,
   readNamespacedAcceptanceFields,
-  HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION,
-  HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE,
-  migrateNoneStatedForHistoricalShip,
   SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION,
   stampDeclaredMergeEvidence,
   stampDeclaredTestEvidence,
@@ -2720,7 +2720,6 @@ describe("clauseKeyedItemId write-path mint (#5422)", () => {
   });
 });
 
-
 describe("historical ship-closeout (#5403)", () => {
   const walkOptions = {
     projectRoot: process.cwd(),
@@ -2795,7 +2794,9 @@ describe("historical ship-closeout (#5403)", () => {
     );
     expect(walk.ok).toBe(false);
     expect(walk.message).toContain(HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION);
-    expect(walk.message).not.toMatch(/stamp an allowlisted executable on plan\.acceptance\.commands/);
+    expect(walk.message).not.toMatch(
+      /stamp an allowlisted executable on plan\.acceptance\.commands/,
+    );
   });
 
   it("migrates none_stated only when merge provenance is present", () => {
