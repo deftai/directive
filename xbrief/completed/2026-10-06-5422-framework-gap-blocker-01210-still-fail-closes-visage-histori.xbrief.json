@@ -1,0 +1,820 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5422",
+    "updated": "2026-10-06T18:48:13.391Z"
+  },
+  "plan": {
+    "title": "[framework-gap] BLOCKER 0.121.0 still fail-closes Visage historical x-xbrief/* types and clause:N ids; consumer pinned at 0.119.2 since 0.119.3",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] BLOCKER 0.121.0 still fail-closes Visage historical x-xbrief/* types and clause:N ids; consumer pinned at 0.119.2 since 0.119.3",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5422",
+      "Overview": "\n1. Keep envelope version `0.8`. Do not bump the envelope solely for reserved-prefix or clause:N compatibility.\n2. Thread plan status into reserved-prefix severity. Change `validatePlanReferenceTypes` so it can take plan status (optional arg or options object). When status is omitted, keep today's CLASS_B-only severity so existing unit tests stay honest. When status is terminal (`completed` | `cancelled` | `failed`), unknown reserved-prefix subtypes MUST land in `warnings[]`, not `errors[]`. Call site in `validateVbriefSchema` already has `planObj.status` in scope and MUST pass it.\n3. Do not treat `CLASS_B_COMPATIBILITY_BARES` membership as the durable compatibility product for this class. Reject shipping Visage by only appending its subtypes to CLASS_B as the primary fix. CLASS_B may remain as warning taxonomy for known corpora.\n4. Leftover `clause:N` PlanItem ids on terminal plans: read-accept verbatim ids matching closed predicate `/^clause:[0-9]+$/` only (warn allowed; do not normalize in memory — edge resolution is exact-string). Thread the same terminal context through `validatePlanItem` recursively for `items` and `subItems`. Keep hard FAIL for other illegal ids on terminal, and for `clause:N` on non-terminal. Partial-migration edge mismatch (`clause.N` item + `clause:N` edge) is out of Prefer-A primary scope (leftover if observed).\n5. Write-path co-acceptance: current leftover-complete / writers that mint PlanItem clause ids MUST emit `clause.N` only. Add an acceptance/test that current mint shape is dotted, so P2 does not recur on newly completed briefs after the read carve lands.\n6. Warnings must not silently disappear. For the consumer validate CLI / `validate-all` path, warnings for these demoted classes MUST be collected and printed. Fixture acceptance MUST assert warning **presence** (and approximate count) for the demoted class, not only error absence. Document that `--warnings-as-errors` remains fail-closed (Visage default is non-strict). Optional aging/grandfather of permanent warn noise is a leftover, not a bind blocker for Visage's non-strict gate.\n7. Normative fixture: a terminal (`completed`) brief carrying a **never-registered** reserved subtype (e.g. `x-xbrief/zz-never-registered-subtype`) plus `plan.items` id `clause:1` MUST produce 0 hard FAILs of class R (unknown reserved-prefix) and class C (clause-colon), AND must produce a warning for the unknown subtype. Visage vocabulary (`source-file` / `scope` / `artifact` / …) may land as a separate non-normative regression case. Include non-terminal control that still hard-FAILs unknown reserved-prefix outside CLASS_B, and malformed-id controls.\n8. Acceptance wording: Prefer-A clears **0 errors of class R and class C** on terminal records / the normative fixture. Do not equate that with whole-corpus CLI exit 0. Before claiming a consumable npm cut for Visage, measure remaining validate errors by actual `plan.status` (not folder counts alone). Non-terminal class-R residue, if present and still blocking Visage's required gate, is either (a) folded by a Prefer-A Recut that extends warn demotion, or (b) a Tracking leftover with issue number — do not silently assert Visage can leave 0.119.2 from terminal-only clearance.\n9. Explicit leftover (not Prefer-A primary): the one `failed` item missing `invalidates` edge on a completed plan; #1999 upgrade-rehearsal harness as release gate; #4749 Class A `pull-request` alias beyond terminal warn; #5385 Confidence enum; Claude C7 typo-distance option E + confusion matrix; C5 provenance-primary redesign; C6 aging channel.\n10. Standing guard (C8 lite): under envelope 0.8, a regression test MUST fail closed if a future change reintroduces hard FAIL (`errors[]`) for an unknown reserved-prefix subtype on a terminal plan without an envelope-version bump. This is the machine form of acceptance bullet 4 for Prefer-A scope.\n\nReject B as primary: per-consumer CLASS_B growth is Stop 1 P3.\nReject C as primary: completed briefs are the record of what is (#3383).\nReject D as primary: envelope bump alone does not repair deposited 0.8 trees.\n\nconflict_group: visage-reserved-prefix-clause-0.8-compat\nRelated: #4746 #4846 #5011 #5385 #4749 #1999 #4698\ncritics: 6021318482 6021322023 6021421399\nStop-1: 6021249862\nPrefer-A-draft: 6021249518",
+      "Labels": "bug, agent-experience, process, Upgrade Blocker, source-of-truth, urgent, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities, promise:records, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Keep envelope version `0.8`. Do not bump the envelope solely for reserved-prefix or clause:N compatibility.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5427",
+          "recorded_at": "2026-10-06T18:48:13.391Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5427",
+            "mintedAt": "2026-10-06T18:48:13.391Z"
+          }
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Thread plan status into reserved-prefix severity. Change `validatePlanReferenceTypes` so it can take plan status (optional arg or options object). When status is omitted, keep today's CLASS_B-only sev",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5427",
+          "recorded_at": "2026-10-06T18:48:13.391Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5427",
+            "mintedAt": "2026-10-06T18:48:13.391Z"
+          }
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Do not treat `CLASS_B_COMPATIBILITY_BARES` membership as the durable compatibility product for this class. Reject shipping Visage by only appending its subtypes to CLASS_B as the primary fix. CLASS_B ",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5427",
+          "recorded_at": "2026-10-06T18:48:13.391Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5427",
+            "mintedAt": "2026-10-06T18:48:13.391Z"
+          }
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Leftover `clause:N` PlanItem ids on terminal plans: read-accept verbatim ids matching closed predicate `/^clause:[0-9]+$/` only (warn allowed; do not normalize in memory — edge resolution is exact-str",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5427",
+          "recorded_at": "2026-10-06T18:48:13.391Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5427",
+            "mintedAt": "2026-10-06T18:48:13.391Z"
+          }
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Write-path co-acceptance: current leftover-complete / writers that mint PlanItem clause ids MUST emit `clause.N` only. Add an acceptance/test that current mint shape is dotted, so P2 does not recur on",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5427",
+          "recorded_at": "2026-10-06T18:48:13.391Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5427",
+            "mintedAt": "2026-10-06T18:48:13.391Z"
+          }
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Warnings must not silently disappear. For the consumer validate CLI / `validate-all` path, warnings for these demoted classes MUST be collected and printed. Fixture acceptance MUST assert warning **pr",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5427",
+          "recorded_at": "2026-10-06T18:48:13.391Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5427",
+            "mintedAt": "2026-10-06T18:48:13.391Z"
+          }
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Normative fixture: a terminal (`completed`) brief carrying a **never-registered** reserved subtype (e.g. `x-xbrief/zz-never-registered-subtype`) plus `plan.items` id `clause:1` MUST produce 0 hard FAI",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5427",
+          "recorded_at": "2026-10-06T18:48:13.391Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5427",
+            "mintedAt": "2026-10-06T18:48:13.391Z"
+          }
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Acceptance wording: Prefer-A clears **0 errors of class R and class C** on terminal records / the normative fixture. Do not equate that with whole-corpus CLI exit 0. Before claiming a consumable npm c",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5427",
+          "recorded_at": "2026-10-06T18:48:13.391Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5427",
+            "mintedAt": "2026-10-06T18:48:13.391Z"
+          }
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Explicit leftover (not Prefer-A primary): the one `failed` item missing `invalidates` edge on a completed plan; #1999 upgrade-rehearsal harness as release gate; #4749 Class A `pull-request` alias beyo",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5427",
+          "recorded_at": "2026-10-06T18:48:13.391Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5427",
+            "mintedAt": "2026-10-06T18:48:13.391Z"
+          }
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Standing guard (C8 lite): under envelope 0.8, a regression test MUST fail closed if a future change reintroduces hard FAIL (`errors[]`) for an unknown reserved-prefix subtype on a terminal plan withou",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5427",
+          "recorded_at": "2026-10-06T18:48:13.391Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5427",
+            "mintedAt": "2026-10-06T18:48:13.391Z"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "Upgrade Blocker",
+      "source-of-truth",
+      "urgent",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:records",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5422",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5422: [framework-gap] BLOCKER 0.121.0 still fail-closes Visage historical x-xbrief/* types and clause:N ids; consumer pinned at 0.119.2 since 0.119.3"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 10 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Keep envelope version `0.8`. Do not bump the envelope solely for reserved-prefix or clause:N compatibility.",
+        "Thread plan status into reserved-prefix severity. Change `validatePlanReferenceTypes` so it can take plan status (optional arg or options object). When status is omitted, keep today's CLASS_B-only severity so existing unit tests stay honest. When status is terminal (`completed` | `cancelled` | `failed`), unknown reserved-prefix subtypes MUST land in `warnings[]`, not `errors[]`. Call site in `validateVbriefSchema` already has `planObj.status` in scope and MUST pass it. Must contain \"isTerminalPlanStatus\".",
+        "Do not treat `CLASS_B_COMPATIBILITY_BARES` membership as the durable compatibility product for this class. Reject shipping Visage by only appending its subtypes to CLASS_B as the primary fix. CLASS_B may remain as warning taxonomy for known corpora.",
+        "Leftover `clause:N` PlanItem ids on terminal plans: read-accept verbatim ids matching closed predicate `/^clause:[0-9]+$/` only (warn allowed; do not normalize in memory — edge resolution is exact-string). Thread the same terminal context through `validatePlanItem` recursively for `items` and `subItems`. Keep hard FAIL for other illegal ids on terminal, and for `clause:N` on non-terminal. Partial-migration edge mismatch (`clause.N` item + `clause:N` edge) is out of Prefer-A primary scope (leftover if observed). Must contain \"LEGACY_CLAUSE_COLON_ID_RE\".",
+        "Write-path co-acceptance: current leftover-complete / writers that mint PlanItem clause ids MUST emit `clause.N` only. Add an acceptance/test that current mint shape is dotted, so P2 does not recur on newly completed briefs after the read carve lands. Must contain \"CLAUSE_KEYED_ITEM_ID_PREFIX\".",
+        "Warnings must not silently disappear. For the consumer validate CLI / `validate-all` path, warnings for these demoted classes MUST be collected and printed. Fixture acceptance MUST assert warning presence (and approximate count) for the demoted class, not only error absence. Document that `--warnings-as-errors` remains fail-closed (Visage default is non-strict). Optional aging/grandfather of permanent warn noise is a leftover, not a bind blocker for Visage's non-strict gate. Must contain \"warnings-as-errors remains fail-closed\".",
+        "Normative fixture: a terminal (`completed`) brief carrying a never-registered reserved subtype (e.g. `x-xbrief/zz-never-registered-subtype`) plus `plan.items` id `clause:1` MUST produce 0 hard FAILs of class R (unknown reserved-prefix) and class C (clause-colon), AND must produce a warning for the unknown subtype. Visage vocabulary (`source-file` / `scope` / `artifact` / …) may land as a separate non-normative regression case. Include non-terminal control that still hard-FAILs unknown reserved-prefix outside CLASS_B, and malformed-id controls. Must contain \"zz-never-registered-subtype\".",
+        "Acceptance wording: Prefer-A clears 0 errors of class R and class C on terminal records / the normative fixture. Do not equate that with whole-corpus CLI exit 0. Before claiming a consumable npm cut for Visage, measure remaining validate errors by actual `plan.status` (not folder counts alone). Non-terminal class-R residue, if present and still blocking Visage's required gate, is either (a) folded by a Prefer-A Recut that extends warn demotion, or (b) a Tracking leftover with issue number — do not silently assert Visage can leave 0.119.2 from terminal-only clearance.",
+        "Explicit leftover (not Prefer-A primary): the one `failed` item missing `invalidates` edge on a completed plan; #1999 upgrade-rehearsal harness as release gate; #4749 Class A `pull-request` alias beyond terminal warn; #5385 Confidence enum; Claude C7 typo-distance option E + confusion matrix; C5 provenance-primary redesign; C6 aging channel.",
+        "Standing guard (C8 lite): under envelope 0.8, a regression test MUST fail closed if a future change reintroduces hard FAIL (`errors[]`) for an unknown reserved-prefix subtype on a terminal plan without an envelope-version bump. This is the machine form of acceptance bullet 4 for Prefer-A scope. Must contain \"C8 lite\"."
+      ],
+      "admitted_source_sentences": [
+        "Keep envelope version `0.8`. Do not bump the envelope solely for reserved-prefix or clause:N compatibility.",
+        "Thread plan status into reserved-prefix severity. Change `validatePlanReferenceTypes` so it can take plan status (optional arg or options object). When status is omitted, keep today's CLASS_B-only severity so existing unit tests stay honest. When status is terminal (`completed` | `cancelled` | `failed`), unknown reserved-prefix subtypes MUST land in `warnings[]`, not `errors[]`. Call site in `validateVbriefSchema` already has `planObj.status` in scope and MUST pass it. Must contain \"isTerminalPlanStatus\".",
+        "Do not treat `CLASS_B_COMPATIBILITY_BARES` membership as the durable compatibility product for this class. Reject shipping Visage by only appending its subtypes to CLASS_B as the primary fix. CLASS_B may remain as warning taxonomy for known corpora.",
+        "Leftover `clause:N` PlanItem ids on terminal plans: read-accept verbatim ids matching closed predicate `/^clause:[0-9]+$/` only (warn allowed; do not normalize in memory — edge resolution is exact-string). Thread the same terminal context through `validatePlanItem` recursively for `items` and `subItems`. Keep hard FAIL for other illegal ids on terminal, and for `clause:N` on non-terminal. Partial-migration edge mismatch (`clause.N` item + `clause:N` edge) is out of Prefer-A primary scope (leftover if observed). Must contain \"LEGACY_CLAUSE_COLON_ID_RE\".",
+        "Write-path co-acceptance: current leftover-complete / writers that mint PlanItem clause ids MUST emit `clause.N` only. Add an acceptance/test that current mint shape is dotted, so P2 does not recur on newly completed briefs after the read carve lands. Must contain \"CLAUSE_KEYED_ITEM_ID_PREFIX\".",
+        "Warnings must not silently disappear. For the consumer validate CLI / `validate-all` path, warnings for these demoted classes MUST be collected and printed. Fixture acceptance MUST assert warning presence (and approximate count) for the demoted class, not only error absence. Document that `--warnings-as-errors` remains fail-closed (Visage default is non-strict). Optional aging/grandfather of permanent warn noise is a leftover, not a bind blocker for Visage's non-strict gate. Must contain \"warnings-as-errors remains fail-closed\".",
+        "Normative fixture: a terminal (`completed`) brief carrying a never-registered reserved subtype (e.g. `x-xbrief/zz-never-registered-subtype`) plus `plan.items` id `clause:1` MUST produce 0 hard FAILs of class R (unknown reserved-prefix) and class C (clause-colon), AND must produce a warning for the unknown subtype. Visage vocabulary (`source-file` / `scope` / `artifact` / …) may land as a separate non-normative regression case. Include non-terminal control that still hard-FAILs unknown reserved-prefix outside CLASS_B, and malformed-id controls. Must contain \"zz-never-registered-subtype\".",
+        "Acceptance wording: Prefer-A clears 0 errors of class R and class C on terminal records / the normative fixture. Do not equate that with whole-corpus CLI exit 0. Before claiming a consumable npm cut for Visage, measure remaining validate errors by actual `plan.status` (not folder counts alone). Non-terminal class-R residue, if present and still blocking Visage's required gate, is either (a) folded by a Prefer-A Recut that extends warn demotion, or (b) a Tracking leftover with issue number — do not silently assert Visage can leave 0.119.2 from terminal-only clearance.",
+        "Explicit leftover (not Prefer-A primary): the one `failed` item missing `invalidates` edge on a completed plan; #1999 upgrade-rehearsal harness as release gate; #4749 Class A `pull-request` alias beyond terminal warn; #5385 Confidence enum; Claude C7 typo-distance option E + confusion matrix; C5 provenance-primary redesign; C6 aging channel.",
+        "Standing guard (C8 lite): under envelope 0.8, a regression test MUST fail closed if a future change reintroduces hard FAIL (`errors[]`) for an unknown reserved-prefix subtype on a terminal plan without an envelope-version bump. This is the machine form of acceptance bullet 4 for Prefer-A scope. Must contain \"C8 lite\"."
+      ],
+      "admitted_source_digest": "1712b3e22fc08a6a1bb916435db0ae1b326daf14e8e5fc75640f31d5beac197e",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep envelope version `0.8`. Do not bump the envelope solely for reserved-prefix or clause:N compatibility.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5427",
+            "recorded_at": "2026-10-06T18:48:13.391Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5427",
+              "mintedAt": "2026-10-06T18:48:13.391Z"
+            }
+          }
+        },
+        {
+          "id": 2,
+          "text": "Thread plan status into reserved-prefix severity. Change `validatePlanReferenceTypes` so it can take plan status (optional arg or options object). When status is omitted, keep today's CLASS_B-only severity so existing unit tests stay honest. When status is terminal (`completed` | `cancelled` | `failed`), unknown reserved-prefix subtypes MUST land in `warnings[]`, not `errors[]`. Call site in `validateVbriefSchema` already has `planObj.status` in scope and MUST pass it. Must contain \"isTerminalPlanStatus\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5427",
+            "recorded_at": "2026-10-06T18:48:13.391Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5427",
+              "mintedAt": "2026-10-06T18:48:13.391Z"
+            }
+          }
+        },
+        {
+          "id": 3,
+          "text": "Do not treat `CLASS_B_COMPATIBILITY_BARES` membership as the durable compatibility product for this class. Reject shipping Visage by only appending its subtypes to CLASS_B as the primary fix. CLASS_B may remain as warning taxonomy for known corpora.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5427",
+            "recorded_at": "2026-10-06T18:48:13.391Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5427",
+              "mintedAt": "2026-10-06T18:48:13.391Z"
+            }
+          }
+        },
+        {
+          "id": 4,
+          "text": "Leftover `clause:N` PlanItem ids on terminal plans: read-accept verbatim ids matching closed predicate `/^clause:[0-9]+$/` only (warn allowed; do not normalize in memory — edge resolution is exact-string). Thread the same terminal context through `validatePlanItem` recursively for `items` and `subItems`. Keep hard FAIL for other illegal ids on terminal, and for `clause:N` on non-terminal. Partial-migration edge mismatch (`clause.N` item + `clause:N` edge) is out of Prefer-A primary scope (leftover if observed). Must contain \"LEGACY_CLAUSE_COLON_ID_RE\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5427",
+            "recorded_at": "2026-10-06T18:48:13.391Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5427",
+              "mintedAt": "2026-10-06T18:48:13.391Z"
+            }
+          }
+        },
+        {
+          "id": 5,
+          "text": "Write-path co-acceptance: current leftover-complete / writers that mint PlanItem clause ids MUST emit `clause.N` only. Add an acceptance/test that current mint shape is dotted, so P2 does not recur on newly completed briefs after the read carve lands. Must contain \"CLAUSE_KEYED_ITEM_ID_PREFIX\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5427",
+            "recorded_at": "2026-10-06T18:48:13.391Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5427",
+              "mintedAt": "2026-10-06T18:48:13.391Z"
+            }
+          }
+        },
+        {
+          "id": 6,
+          "text": "Warnings must not silently disappear. For the consumer validate CLI / `validate-all` path, warnings for these demoted classes MUST be collected and printed. Fixture acceptance MUST assert warning presence (and approximate count) for the demoted class, not only error absence. Document that `--warnings-as-errors` remains fail-closed (Visage default is non-strict). Optional aging/grandfather of permanent warn noise is a leftover, not a bind blocker for Visage's non-strict gate. Must contain \"warnings-as-errors remains fail-closed\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5427",
+            "recorded_at": "2026-10-06T18:48:13.391Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5427",
+              "mintedAt": "2026-10-06T18:48:13.391Z"
+            }
+          }
+        },
+        {
+          "id": 7,
+          "text": "Normative fixture: a terminal (`completed`) brief carrying a never-registered reserved subtype (e.g. `x-xbrief/zz-never-registered-subtype`) plus `plan.items` id `clause:1` MUST produce 0 hard FAILs of class R (unknown reserved-prefix) and class C (clause-colon), AND must produce a warning for the unknown subtype. Visage vocabulary (`source-file` / `scope` / `artifact` / …) may land as a separate non-normative regression case. Include non-terminal control that still hard-FAILs unknown reserved-prefix outside CLASS_B, and malformed-id controls. Must contain \"zz-never-registered-subtype\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5427",
+            "recorded_at": "2026-10-06T18:48:13.391Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5427",
+              "mintedAt": "2026-10-06T18:48:13.391Z"
+            }
+          }
+        },
+        {
+          "id": 8,
+          "text": "Acceptance wording: Prefer-A clears 0 errors of class R and class C on terminal records / the normative fixture. Do not equate that with whole-corpus CLI exit 0. Before claiming a consumable npm cut for Visage, measure remaining validate errors by actual `plan.status` (not folder counts alone). Non-terminal class-R residue, if present and still blocking Visage's required gate, is either (a) folded by a Prefer-A Recut that extends warn demotion, or (b) a Tracking leftover with issue number — do not silently assert Visage can leave 0.119.2 from terminal-only clearance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5427",
+            "recorded_at": "2026-10-06T18:48:13.391Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5427",
+              "mintedAt": "2026-10-06T18:48:13.391Z"
+            }
+          }
+        },
+        {
+          "id": 9,
+          "text": "Explicit leftover (not Prefer-A primary): the one `failed` item missing `invalidates` edge on a completed plan; #1999 upgrade-rehearsal harness as release gate; #4749 Class A `pull-request` alias beyond terminal warn; #5385 Confidence enum; Claude C7 typo-distance option E + confusion matrix; C5 provenance-primary redesign; C6 aging channel.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5427",
+            "recorded_at": "2026-10-06T18:48:13.391Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5427",
+              "mintedAt": "2026-10-06T18:48:13.391Z"
+            }
+          }
+        },
+        {
+          "id": 10,
+          "text": "Standing guard (C8 lite): under envelope 0.8, a regression test MUST fail closed if a future change reintroduces hard FAIL (`errors[]`) for an unknown reserved-prefix subtype on a terminal plan without an envelope-version bump. This is the machine form of acceptance bullet 4 for Prefer-A scope. Must contain \"C8 lite\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5427",
+            "recorded_at": "2026-10-06T18:48:13.391Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5427",
+              "mintedAt": "2026-10-06T18:48:13.391Z"
+            }
+          }
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[framework-gap] BLOCKER 0.121.0 still fail-closes Visage historical x-xbrief/* types and clause:N ids; consumer pinned at 0.119.2 since 0.119.3",
+        "Reject B as primary: per-consumer CLASS_B growth is Stop 1 P3.",
+        "Reject C as primary: completed briefs are the record of what is (#3383).",
+        "Reject D as primary: envelope bump alone does not repair deposited 0.8 trees.",
+        "conflict_group: visage-reserved-prefix-clause-0.8-compat Related: #4746 #4846 #5011 #5385 #4749 #1999 #4698 critics: 6021318482 6021322023 6021421399 Stop-1: 6021249862 Prefer-A-draft: 6021249518"
+      ],
+      "x-directive/admitted_source_sentences": [
+        "Keep envelope version `0.8`. Do not bump the envelope solely for reserved-prefix or clause:N compatibility.",
+        "Thread plan status into reserved-prefix severity. Change `validatePlanReferenceTypes` so it can take plan status (optional arg or options object). When status is omitted, keep today's CLASS_B-only severity so existing unit tests stay honest. When status is terminal (`completed` | `cancelled` | `failed`), unknown reserved-prefix subtypes MUST land in `warnings[]`, not `errors[]`. Call site in `validateVbriefSchema` already has `planObj.status` in scope and MUST pass it. Must contain \"isTerminalPlanStatus\".",
+        "Do not treat `CLASS_B_COMPATIBILITY_BARES` membership as the durable compatibility product for this class. Reject shipping Visage by only appending its subtypes to CLASS_B as the primary fix. CLASS_B may remain as warning taxonomy for known corpora.",
+        "Leftover `clause:N` PlanItem ids on terminal plans: read-accept verbatim ids matching closed predicate `/^clause:[0-9]+$/` only (warn allowed; do not normalize in memory — edge resolution is exact-string). Thread the same terminal context through `validatePlanItem` recursively for `items` and `subItems`. Keep hard FAIL for other illegal ids on terminal, and for `clause:N` on non-terminal. Partial-migration edge mismatch (`clause.N` item + `clause:N` edge) is out of Prefer-A primary scope (leftover if observed). Must contain \"LEGACY_CLAUSE_COLON_ID_RE\".",
+        "Write-path co-acceptance: current leftover-complete / writers that mint PlanItem clause ids MUST emit `clause.N` only. Add an acceptance/test that current mint shape is dotted, so P2 does not recur on newly completed briefs after the read carve lands. Must contain \"CLAUSE_KEYED_ITEM_ID_PREFIX\".",
+        "Warnings must not silently disappear. For the consumer validate CLI / `validate-all` path, warnings for these demoted classes MUST be collected and printed. Fixture acceptance MUST assert warning presence (and approximate count) for the demoted class, not only error absence. Document that `--warnings-as-errors` remains fail-closed (Visage default is non-strict). Optional aging/grandfather of permanent warn noise is a leftover, not a bind blocker for Visage's non-strict gate. Must contain \"warnings-as-errors remains fail-closed\".",
+        "Normative fixture: a terminal (`completed`) brief carrying a never-registered reserved subtype (e.g. `x-xbrief/zz-never-registered-subtype`) plus `plan.items` id `clause:1` MUST produce 0 hard FAILs of class R (unknown reserved-prefix) and class C (clause-colon), AND must produce a warning for the unknown subtype. Visage vocabulary (`source-file` / `scope` / `artifact` / …) may land as a separate non-normative regression case. Include non-terminal control that still hard-FAILs unknown reserved-prefix outside CLASS_B, and malformed-id controls. Must contain \"zz-never-registered-subtype\".",
+        "Acceptance wording: Prefer-A clears 0 errors of class R and class C on terminal records / the normative fixture. Do not equate that with whole-corpus CLI exit 0. Before claiming a consumable npm cut for Visage, measure remaining validate errors by actual `plan.status` (not folder counts alone). Non-terminal class-R residue, if present and still blocking Visage's required gate, is either (a) folded by a Prefer-A Recut that extends warn demotion, or (b) a Tracking leftover with issue number — do not silently assert Visage can leave 0.119.2 from terminal-only clearance.",
+        "Explicit leftover (not Prefer-A primary): the one `failed` item missing `invalidates` edge on a completed plan; #1999 upgrade-rehearsal harness as release gate; #4749 Class A `pull-request` alias beyond terminal warn; #5385 Confidence enum; Claude C7 typo-distance option E + confusion matrix; C5 provenance-primary redesign; C6 aging channel.",
+        "Standing guard (C8 lite): under envelope 0.8, a regression test MUST fail closed if a future change reintroduces hard FAIL (`errors[]`) for an unknown reserved-prefix subtype on a terminal plan without an envelope-version bump. This is the machine form of acceptance bullet 4 for Prefer-A scope. Must contain \"C8 lite\"."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft (pre-Stop-1)\n\n## In plain English\nVisage (and any consumer with older completed xBRIEFs) cannot leave the 0.119.2 pin: every newer Directive cut hard-fails `vbrief:validate` on historical `x-xbrief/*` reference types Visage wrote under 0.119.2, plus leftover `clause:N` PlanItem ids, even though those files were never edited. Prefer-A keeps the 0.8 envelope, turns unknown reserved-prefix subtypes and leftover `clause:N` into warnings (not hard FAILs) on terminal briefs, keeps new writers on the canonical set / `clause.N`, ships a Visage-shaped fixture that must stay green of those two classes, and leaves per-consumer CLASS_B allowlist growth as a dead end for this compatibility class.\n\nOpen space (Stop 2 panel permission):\n- A (Prefer-A): terminal-status warn/read-accept for unknown reserved-prefix + leftover clause:N; new writes stay canonical; Visage-shaped fixture; no envelope bump\n- B: grow CLASS_B with every Visage subtype (repeats BlueLinx/BestiMax per-consumer cycle; next corpus fails again)\n- C: require migrate/rewrite of completed history as the upgrade path (rejects completed-record freeze #3383)\n- D: bump envelope to 0.9 for this class (larger blast; still leaves deposited 0.8 trees unreadable without migrate)\n\nspend-recommend: N≥3\nspend-why: genuinely open solution space (A/B/C/D) and high blast (required consumer validate gate + published npm cuts for every historical corpus)\n\n## Bound remedy (draft limbs)\n1. Keep envelope version `0.8`. Do not bump the envelope solely for reserved-prefix or clause:N compatibility.\n2. In `validatePlanReferenceTypes` / `severityForUnknownReserved` (`packages/core/src/vbrief-validate/schema.ts`): when plan status is terminal (`completed` | `cancelled` | `failed`), unknown reserved-prefix subtypes (`x-xbrief/*` / `x-xbrief/*` outside STRICT/ENGINE/canonical) MUST land in `warnings[]`, not `errors[]`. Non-terminal statuses may keep today's hard FAIL for unknown subtypes outside CLASS_B. Thread plan status into the reference-type check (today `validatePlanReferenceTypes(references, filepath)` has no status discriminator).\n3. Do not treat `CLASS_B_COMPATIBILITY_BARES` membership as the durable compatibility product for this class. CLASS_B may remain for warning taxonomy / known corpora; Prefer-A limb 2 is the upgrade-read path for terminal records. Do not ship Visage by only appending its subtypes to CLASS_B as the primary fix.\n4. Leftover `clause:N` PlanItem ids: on the same terminal plan statuses, read-accept ids that fail `PLAN_ITEM_ID_PATTERN` solely because of a colon in the `clause:N` shape (warn allowed); keep hard FAIL for other illegal ids. New writers / leftover-complete on current engines MUST continue to mint `clause.N` only.\n5. Checked-in fixture (Visage-shaped): a `completed/` (or equivalent test fixture) brief carrying at least `x-xbrief/source-file`, `scope`, `artifact`, and `plan.items` id `clause:1` MUST produce **0 hard FAILs** of the reserved-prefix-unknown and clause-colon classes under the shipped validator. Mirror any schema docs that would contradict that pass/fail.\n6. Acceptance: public `@deftai/directive@` cut after this lands validates the Visage 0.119.2-valid corpus (or the checked-in fixture) with exit 0 for those two classes (warnings allowed); completed/cancelled briefs stay readable without rewrite; future reserved-prefix tightenings under the same 0.8 envelope cannot reintroduce hard FAILs on terminal records for unknown subtypes without an explicit migration/envelope change.\n7. Out of Prefer-A primary scope (may leftover): wiring #1999 consumer upgrade-rehearsal harness as a release gate; expanding CLASS_B for non-terminal warn taxonomy; #4749 Class A `pull-request` alias remainder beyond terminal warn; #5385 Confidence enum (sibling landmine, separate corpus).\n\nReject B as primary: per-consumer CLASS_B growth is the failure mode that pinned Visage since 0.119.3.\nReject C as primary: completed briefs are the record of what is (#3383); rewrite is not a supported upgrade path.\nReject D as primary: envelope bump alone does not make already-deposited 0.8 trees readable and widens blast.\n\nconflict_group: visage-reserved-prefix-clause-0.8-compat\nRelated: #4746 #4846 #5011 #5385 #4749 #1999 #4698\nTarget-digest: sha256:180ef367f7f06f37acef41a372ab8954a45fe4d0b3a9e2c95eac8c54528178ac",
+          "id": 6021249518,
+          "html_url": "https://github.com/deftai/directive/issues/5422#issuecomment-6021249518",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:58:42Z",
+          "updated_at": "2026-10-06T16:58:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because 0.121.0 (and every cut since 0.119.3) still hard-fails vbrief:validate on unchanged Visage historical x-xbrief/* reserved-prefix types and leftover clause:N ids under the same 0.8 envelope, so the consumer remains pinned at exact 0.119.2 on a required CI gate with no rewrite-free upgrade path.\n\ncharter: open critique\nspend: N≥3\nspend-ask: resolved\nspend-recommend: N≥3\nspend-why: panel permission — open A/B/C/D solution space and high blast on consumer validate + npm upgrade path\narc-mode: no-ingest\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5422\norigin-ref: origin/HEAD\ndispatch-sha: 1c696dbb2b39d65236fd38c56de99e7df3e4ece3\nverification-path: provisioned undefined\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\n\npain:\n- P1\n- P2\n- P3\n\npain-prose:\n- P1: Unknown reserved-prefix subtypes on terminal 0.8 briefs (completed/cancelled/failed) hard-fail validate after npm update, so historical files nobody edited block the upgrade.\n- P2: Leftover clause:N PlanItem ids on those same terminal briefs hard-fail PLAN_ITEM_ID_PATTERN; migrate exists but rewrite of completed history is not a supported upgrade path.\n- P3: Growing CLASS_B_COMPATIBILITY_BARES per filing consumer is treated as the compatibility product, so the next corpus (Visage after BlueLinx/BestiMax) repeats the pin loop.\n\nTarget-digest: sha256:180ef367f7f06f37acef41a372ab8954a45fe4d0b3a9e2c95eac8c54528178ac",
+          "id": 6021249862,
+          "html_url": "https://github.com/deftai/directive/issues/5422#issuecomment-6021249862",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:58:43Z",
+          "updated_at": "2026-10-06T16:58:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit: round-1 N≥3\nround: 1\nsiblings: 3\nseat-families: grok, claude, codex\nlaunch-probe: claude=pass(rc0,pong) codex=pass(rc0,pong) grok=pass(rc0,pong)\ndispatch-sha: 1c696dbb2b39d65236fd38c56de99e7df3e4ece3\nverification-path: pin-read git show 1c696dbb2b39d65236fd38c56de99e7df3e4ece3:\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5422\nStop-1: 6021249862\nTarget-digest: sha256:180ef367f7f06f37acef41a372ab8954a45fe4d0b3a9e2c95eac8c54528178ac\ninput-ceiling: 6021269539\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\n\nCeiling rule: round-1 critics may read Stop 1 + this panel-deposit only. Sibling critic posts are out of envelope for other siblings.",
+          "id": 6021269539,
+          "html_url": "https://github.com/deftai/directive/issues/5422#issuecomment-6021269539",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:59:54Z",
+          "updated_at": "2026-10-06T16:59:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\nseat-family: codex\n\nVerdict: AMEND Prefer-A. Accept its terminal-history compatibility direction for P1/P2/P3; narrow the upgrade claim and make the read/write boundary testable before treating it as sufficient.\n\nVerification: pin-read only at `1c696dbb2b39d65236fd38c56de99e7df3e4ece3`; issue body and the three envelope-named comments only. No sibling critiques read, no product edits, no runtime/corpus validation performed.\n\n1. **A passing fixture is not evidence that Visage can upgrade.** Stop 1 deliberately bounds P1/P2 to terminal plans. The issue body reports 274 total errors, 222 in completed/, and one unrelated failed-item/invalidates error; it does not establish that every remaining reserved-prefix/id error is on a terminal plan. At the pin, `validateVbriefSchema` independently runs `collectFailedPlanItemInvalidatesErrors` unless the plan is failed or cancelled. Therefore even complete removal of both compatibility classes can leave a nonzero command exit. Amend limb 6 to distinguish (a) zero diagnostics of these two classes on terminal fixtures, (b) default CLI exit 0 for an otherwise-valid fixture, and (c) a measured real-corpus upgrade result with residual errors reported. Do not claim (c) from (a), or silently broaden terminal acceptance to clear unrelated failures. Before promising a consumable cut, classify remaining failures by actual plan.status, not folder counts. Evidence: [schema.ts @ dispatch SHA](https://github.com/deftai/directive/blob/1c696dbb2b39d65236fd38c56de99e7df3e4ece3/packages/core/src/vbrief-validate/schema.ts), `validateVbriefSchema` final invalidates check.\n\n2. **Terminal status is a compatibility selector, not proof of an old write.** Passing status into the validator is a reasonable small remedy, but a newly authored completed plan receives the same leniency. The existing tests explicitly exercise compatibility through `validateBriefForPersist`, `atomicWriteBrief`, and `reEmitVbriefArtifact`, so read acceptance and persistence cannot be assumed independent. Keep A, but make “new writers stay canonical” a separate producer assertion: current leftover-complete output must contain clause.N, and canonical reference producers must emit recognized types. Preserve historical identifiers/types on read and roundtrip; do not normalize them as a side effect. A new strict write-mode architecture is not a prerequisite unless the intended contract also requires rejecting every manually authored terminal typo. Evidence: [schema-v08.test.ts @ dispatch SHA](https://github.com/deftai/directive/blob/1c696dbb2b39d65236fd38c56de99e7df3e4ece3/packages/core/src/vbrief-validate/schema-v08.test.ts), “accepts and preserves Class B on persist and roundtrip”; schema.ts `validateVbriefSchema` has no read/write discriminator.\n\n3. **P2 requires recursive plan context, not only the proposed reference signature change.** `validatePlanItem` checks ids independently and recurses through both `items` and `subItems`; it currently receives neither parent-plan status nor envelope version. Thread the same terminal compatibility context through both recursive paths. Match only the explicitly supported historical decimal clause:N shape, not arbitrary colons; preserve hard failures for clause:abc, other:1, and other malformed ids. Do not use each item's status to decide: terminal plans can contain unfinished items. Also declare whether this exception is 0.8-only or intentionally extends to 0.6; the current entry point accepts both. Evidence: schema.ts `validatePlanItem`, both recursive calls, and `resolveInfoBlock`; [constants.ts @ dispatch SHA](https://github.com/deftai/directive/blob/1c696dbb2b39d65236fd38c56de99e7df3e4ece3/packages/core/src/vbrief-validate/constants.ts), `PLAN_ITEM_ID_PATTERN` and `VALID_VBRIEF_VERSIONS`.\n\n4. **The fixture must prove the general rule, not become the next allowlist.** In addition to source-file/scope/artifact, test an invented unknown subtype absent from all registries, both reserved prefixes, and all three terminal statuses. Include a terminal alias such as pull-request: today's tests require that alias to error, and nearest-canonical advice must not accidentally bypass the new terminal warning rule. Pair these with nonterminal rejection controls, malformed-id controls, nested items/subItems, warning assertions, and a default CLI exit check. Keep explicit `--warnings-as-errors` behavior: existing CLI tests require warnings to fail under that option, so “upgrade exits 0” must identify the default invocation. Evidence: schema.ts `severityForUnknownReserved` and `formatUnknownReserved`; schema-v08.test.ts reserved-subtype, nested-id, alias, and CLI warning tests, all at the dispatch SHA above.\n\nAlternatives: B cannot solve P3 because membership remains corpus-specific. C contradicts P2's rewrite-free requirement. D alone does not repair the existing 0.8 reader; a future version could separate stricter authoring semantics, but still needs the old-envelope compatibility fix. Prefer A with these amendments; do not widen this slice into a general exemption from terminal structural validation.",
+          "id": 6021318482,
+          "html_url": "https://github.com/deftai/directive/issues/5422#issuecomment-6021318482",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T17:02:46Z",
+          "updated_at": "2026-10-06T17:02:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nseat-family: grok\n\n## Round-1 critic (fresh) — Prefer-A draft 6021249518 vs Stop 1 P1/P2/P3\n\ndispatch-sha: 1c696dbb2b39d65236fd38c56de99e7df3e4ece3\nverification-path: pin-read git show 1c696dbb2b39d65236fd38c56de99e7df3e4ece3:\nStop-1: 6021249862\nPrefer-A-draft: 6021249518\ninput-ceiling: 6021269539\n\n### Verdict\n**Amend Prefer-A** (accept the terminal warn / read-accept direction; reject B/C/D as primary; sharpen Bound limbs before bind so P2 and the write-path cannot land half-fixed).\n\n### Pin-read claims (mechanism)\n\n1. **P1 is live in code.** `severityForUnknownReserved` is CLASS_B-membership only — no plan-status arm:\n   - `packages/core/src/vbrief-validate/schema.ts` @ `1c696dbb2b39d65236fd38c56de99e7df3e4ece3` lines 260–262: `return CLASS_B_COMPATIBILITY_BARES.has(unknown.subtype) ? \"warning\" : \"error\"`.\n   - Same file lines 221–226 docblock: \"Membership is a permanent warning: severityForUnknownReserved has no read-only discriminator.\"\n   - `validatePlanReferenceTypes(references, filepath)` @ lines 277–280 takes no status; call site in `validateVbriefSchema` @ line 409 passes only `planObj.references` + `filepath` even though `planObj.status` is already in scope (validated @ 373–381).\n\n2. **P2 is live in code.** PlanItem id check hard-fails any `PLAN_ITEM_ID_PATTERN` miss with no terminal carve:\n   - `schema.ts` @ lines 174–176: `if (typeof item.id === \"string\" && !PLAN_ITEM_ID_PATTERN.test(item.id)) { errors.push(...) }`.\n   - `packages/core/src/vbrief-validate/constants.ts` @ dispatch SHA: `PLAN_ITEM_ID_PATTERN = /^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$/` — colon illegal.\n   - `schema-v08.test.ts` @ dispatch SHA (~372–380): `id: \"clause:1\"` expects `invalid id` error. Nested `clause:2` under subItems is the same path.\n\n3. **P3 is the only warn product today.** CLASS_B @ `schema.ts` 228–253 is the sole severity escape; Visage dominant bares (`source-file`, `scope`, `artifact`, `doc`, `sibling`, `pr`, …) are absent. Tests in `schema-v08.test.ts` (\"Class B reserved-prefix compatibility\") lock forty-eight CLASS_B spellings as warn-only and keep Class A aliases as errors — exactly the per-corpus growth Prefer-A rejects.\n\n### Against Prefer-A limbs\n\n**Accept limb 1 (keep 0.8).** Envelope bump (D) does not make already-deposited 0.8 trees readable; pin-read shows the fail is runtime severity under the same `VALID_VBRIEF_VERSIONS` `{0.6,0.8}`, not an info-block version gate.\n\n**Accept limb 2 direction; sharpen API.** Threading plan status into `validatePlanReferenceTypes` is the correct fix for P1 and matches the call site where status is already known. Bound must name the signature change and the default when status is omitted (exported helper is unit-tested without status today). Recommended: optional `planStatus?: string` (or `terminal?: boolean`); omitted ⇒ today's CLASS_B-only severity so existing tests stay honest; terminal (`completed`|`cancelled`|`failed`) ⇒ unknown reserved-prefix → `warnings[]`.\n\n**Accept limb 3 (CLASS_B not the compatibility product).** Docblock + tests prove CLASS_B *is* the product. Appending Visage's ~15 bares would green this corpus and re-fire P3 on the next one — reject B as primary stands.\n\n**Amend limb 4 (clause:N) — harvest-relevant.** Prefer-A correctly scopes read-accept to terminal + `clause:N` shape, but the pin-read id gate lives in `validatePlanItem`, which Prefer-A limb 2 never names. If implement only changes `severityForUnknownReserved` / `validatePlanReferenceTypes`, **P2 stays red**. Bound must co-amend:\n- pass terminal/status into `validatePlanItem` (or extract a shared id-severity helper used there), including recursive `subItems`;\n- pin the carve predicate (recommend `/^clause:[0-9]+$/` or an explicit closed `clause:N` matcher — not \"any colon\");\n- keep hard FAIL for other illegal ids on terminal and for `clause:N` on non-terminal.\n\n**Amend limb 4/6 write-path co-acceptance.** Prefer-A says new writers / leftover-complete MUST mint `clause.N` only. Issue body shows leftover-complete on the 0.119.2 family still minted `clause:1` into completed briefs. Read-accept alone greens history; without a write-path assertion on current leftover-complete / scope:complete, P2 recurs on every new terminal brief. Fold a mint-shape acceptance (or leftover issue with a Tracking cite) into Bound so P2 is closed end-to-end.\n\n**Accept limb 5 (Visage-shaped fixture, 0 hard FAIL of those two classes).** Pin one concrete landing (in-memory `schema-v08.test.ts` case *or* checked-in fixture file) and assert both classes under `plan.status: \"completed\"`. Update the existing colon-id tests so non-terminal still FAILs and terminal warns/read-accepts.\n\n**Accept limb 6/7 out-of-scope carve.** #1999 rehearsal, #4749 Class A beyond terminal warn, #5385 Confidence enum stay leftovers — they do not relieve P1–P3.\n\n### Pressure on open alternatives\n\n- **B grow CLASS_B:** Mechanically sufficient for Visage's listed bares, and exactly the failure mode Stop 1 P3 names. Reject as primary. CLASS_B may remain warning taxonomy for known corpora (Prefer-A limb 3 already allows that).\n- **C migrate/rewrite history:** #5011 migrator exists; requiring it for completed trees rejects #3383 \"record of what is.\" Reject as primary.\n- **D envelope bump:** Does not repair deposited 0.8 corpora under pin-read validate path; widens blast. Reject as primary.\n\n### Non-blocking footnotes (not Prefer-A reject)\n\n- Visage CI appears to treat warnings as non-fatal (0.119.2 exit 0 with pre-existing warnings). Prefer-A's \"warnings allowed\" matches that. If any consumer runs `--warnings-as-errors`, terminal warn is not an upgrade; document assumption, do not widen Bound into killing that flag.\n- Folder vs status: Prefer-A correctly keys off plan status (`completed`|`cancelled`|`failed`), which aligns with `FOLDER_ALLOWED_STATUSES` in constants.ts (`completed` folder admits `completed`|`failed`; `cancelled` admits `cancelled`). Do not substitute filepath folder alone.\n\n### Relieves map (asserted coverage for later pain-audit)\n\n- P1 → Prefer-A limbs 1–3 + fixture (after status-threaded severity).\n- P2 → Prefer-A limb 4 **as amended** (validatePlanItem + carve predicate + write-path mint) + fixture.\n- P3 → Prefer-A limb 3 + reject B as primary.\n\n### Bottom line for parent lean\nBind Prefer-A with the limb-4 co-amend (status into PlanItem id path + closed `clause:N` predicate + write-path mint acceptance) and an explicit optional-status default on `validatePlanReferenceTypes`. Do not bind B/C/D. Do not ship Visage by CLASS_B append alone.\r\n\n",
+          "id": 6021322023,
+          "html_url": "https://github.com/deftai/directive/issues/5422#issuecomment-6021322023",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T17:02:58Z",
+          "updated_at": "2026-10-06T17:02:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nseat-family: claude\nround: 1\ncharter: open critique\ndispatch-sha: 1c696dbb2b39d65236fd38c56de99e7df3e4ece3\ninput-ceiling: 6021269539\nverdict: **amend** Prefer-A (6021249518)\n\nAll citations are pin-reads at `1c696dbb2b39d65236fd38c56de99e7df3e4ece3`.\n\n## Verdict in one line\n\nPrefer-A's three rejections (B/C/D) hold and its envelope limb is right. Its **discriminator** (`plan.status` in terminal) is the wrong axis, its **acceptance limb 6** is not established by the evidence in the issue body, and limbs 2/4/5 carry three fail-open defects that the drafted fixture is structurally unable to catch. Amend, do not accept as drafted.\n\n---\n\n## C1 - Acceptance limb 6 is unreachable as worded, and the terminal residue is unquantified\n\nPrefer-A limb 6 asks for \"exit 0 for those two classes\". Three problems, all checkable from the issue body plus pin-read.\n\n**(a) Terminal is exactly `completed/` + `cancelled/`.** `FOLDER_ALLOWED_STATUSES` (`packages/core/src/vbrief-validate/constants.ts`) maps `completed -> {completed, failed}`, `cancelled -> {cancelled}`, `active -> {running, blocked}`, `pending -> {approved, pending}`, `proposed -> {draft, proposed}`. Under D13 enforcement, limb 2's `completed|cancelled|failed` discriminator is exactly \"FAILs living in `completed/` or `cancelled/`\" - nothing more.\n\n**(b) The issue reports 222 of 274 in `completed/`.** That leaves **52 FAILs outside `completed/`**, split across `cancelled/` (terminal, covered - the sample FAIL `2026-05-11-feat-consolidate-popup-project-chat.xbrief.json` proves at least one) and `proposed/` / `pending/` / `active/` (non-terminal, **not** covered). The issue gives a folder count for `completed/` only. So the uncovered residue is somewhere in **[0, 51]**, and Prefer-A's central claim - that the corpus clears - is unverified by its own evidence.\n\nThis is not hypothetical. A consumer upgrading has in-flight work: the brief that is `running` on upgrade day was written by the 0.119.2 writer and carries the same `x-xbrief/source-file`. Prefer-A converts \"274 FAILs, exit 1\" into \"N FAILs, exit 1\" and the pin loop survives.\n\n**Demand before Stop 2:** the per-folder (equivalently per-status) breakdown of the 274, not just the `completed/` count. If non-terminal FAILs exist, limb 2's discriminator is refuted on evidence, not merely sharpened.\n\n**(c) A third terminal-record hard-FAIL class is unnamed.** The issue's remaining error is \"1 `failed` item missing `invalidates` edge\". Pin-read `schema.ts:412-420`: `collectFailedPlanItemInvalidatesErrors` is skipped only when the *plan* status is `failed` or `cancelled`, so it fires on a `completed` plan containing a `failed` item. That is a hard FAIL on a terminal record - exactly what limb 6's principle forbids - and no limb disposes of it (limb 7's leftover list omits it). As drafted, a post-fix cut still exits 1 on this corpus.\n\nAmendment: restate limb 6 as \"**0 errors of class R (unknown reserved-prefix) and class C (clause-colon id)**\", drop \"exit 0\" for the corpus (exit code is whole-run, not per-class), and give the invalidates error an explicit in-scope/leftover disposition.\n\n---\n\n## C2 - Demotion is silent loss on 8 of 10 call sites, and limb 5's fixture cannot detect it\n\n`validateVbriefSchema(data, filepath, warnings?: string[])` takes the warnings sink as **optional** (`schema.ts:318`), and the reference-type path is guarded: `if (warnings !== undefined) { warnings.push(...refIssues.warnings) }` (`schema.ts:409-412`).\n\nNon-test call sites at the dispatch SHA:\n\n| passes `warnings` | call site |\n|---|---|\n| **yes** | `vbrief-validate/validate-all.ts:133`, `:165` |\n| no | `scope/brief-io.ts:65` / `xbrief/create.ts:262` / `xbrief/verify.ts:219` / `vbrief-validate/roundtrip.ts:94`, `:177` / `xbrief-migrate/migrate-project.ts:317` / `render/roadmap-render.ts:732` / `eval/crud-telemetry.ts:122` |\n\nSo **8 of 10** surfaces drop warnings on the floor today. Demoting class R and class C to `warnings[]` does not make them warnings on those eight - it makes them **disappear**. `scope/brief-io.ts` (scope lifecycle read) and `xbrief/verify.ts` go from hard error to *no diagnostic at all*.\n\nThe defect that matters: **limb 5's fixture (\"0 hard FAILs of these two classes\") is just as green in the silently-lossy state as in the correct one.** It is specified as an absence assertion, so it cannot distinguish \"demoted to warning\" from \"demoted to nothing\" - which is the precise fail-open #4698 was written against (\"Silent skip of a reserved unknown is fail-open\", `packages/types/src/reference.ts`).\n\nAmendment: (i) make the warnings sink non-optional, or return `{errors, warnings}` from `validateVbriefSchema` so no caller can omit it; (ii) limb 5 must assert warning **presence and count**, not just error absence; (iii) name which of the eight surfaces must surface the warning and which may legitimately ignore it.\n\n---\n\n## C3 - Limb 4 understates its plumbing and under-specifies the accepted shape\n\nLimb 2 says \"thread plan status into `validatePlanReferenceTypes`\" - a two-arg function at `schema.ts:277`, a genuinely small change. Limb 4 then asks for the same treatment of `clause:N` ids as if it were symmetric. It is not. The id check lives at `schema.ts:174` inside `validatePlanItem(item, path, errors)`, which:\n\n- has **neither** a status parameter **nor** a warnings sink, and\n- is **recursive** over `items` and `subItems` (`schema.ts:189-218`), so plan status must be threaded through every level.\n\nThe existing test corpus already exercises the nested case: `schema-v08.test.ts:390-396` asserts a `subItems` id `clause:2` errors. Limb 4 must state whether nested leftovers are read-accepted too.\n\nThree holes to close:\n\n1. **Exact accepted shape.** `^clause:\\d+$`? Any single-colon segment? `clause:1.2`? \"solely because of a colon in the `clause:N` shape\" is not a rule an implementer can write. `PLAN_ITEM_ID_PATTERN` is `/^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$/` (`constants.ts`).\n2. **Verbatim read-accept, no normalization.** Edge resolution is exact-string: ids are collected with `ids.add(item.id)` and matched `if (!targets.has(id))` (`packages/core/src/orchestration/verify-investigation.ts:102-103, 174-175`), and `collectInvalidatesTargets` (`:109-110`) joins on the same literal. If limb 4 is implemented as in-memory normalization `clause:1 -> clause.1`, edges still carrying `clause:1` stop resolving and you trade one FAIL class for another. Limb 4 must say **accept the id verbatim**.\n3. **Partially-migrated corpora.** A consumer who ran #5011's migrator over some files has items on `clause.N` and may have edges on `clause:N`. Limb 4 should state that this is out of scope rather than leave it to discovery.\n\n---\n\n## C4 - Limb 5's Visage-shaped fixture reproduces P3 at the test layer\n\nLimb 3 correctly rejects per-consumer CLASS_B growth as the compatibility product. Limb 5 then specifies the normative fixture as *Visage's vocabulary*: \"`x-xbrief/source-file`, `scope`, `artifact`, and `clause:1`\".\n\nThat is CLASS_B by another name, one layer down. A vocabulary-shaped fixture tells you Visage's fifteen types pass; it tells you nothing about the **rule**, so the next corpus's novel subtype is as untested as Visage's was after #4846. The precedent is already in the tree: `schema-v08.test.ts:563-601` enumerates `CLASS_B_BARES` and `BESTIMAX_CLASS_B_BARES` as literal name lists, and `:755` loops \"the twenty-four names\". Appending a sixteenth list is the P3 loop with a `.test.ts` extension.\n\nAmendment: the **normative** fixture must use a subtype guaranteed never to be registered - e.g. `x-xbrief/zz-never-registered-subtype` on a terminal brief - asserting the *class* rule. Visage's fifteen belong in a separate, explicitly non-normative regression case. If the rule is right, the Visage names are redundant; if the Visage names are load-bearing, the rule is wrong.\n\n---\n\n## C5 - `plan.status` is mutable state, not provenance; the discriminator is on the wrong axis\n\nPrefer-A keys severity on a field the engine rewrites during normal operation. Two consequences:\n\n- **Severity flips on transition.** A brief that validates clean as `completed` hard-FAILs the moment it is reopened to `running`. Nothing about the file's historical content changed.\n- **`scope:complete` becomes an error-suppression mechanism.** The fastest way to clear a reserved-prefix FAIL becomes \"mark it done\". That is a bad incentive to build into a required gate.\n\nThe property Prefer-A actually wants is *\"this document was written by an engine older than the tightening\"* - provenance, not lifecycle state. The tree already carries provenance signals (`recorded_by: leftover-complete` per the issue body; writer version; the lifecycle deposit itself).\n\nIn fairness: status-keyed grandfathering has in-tree precedent - `validatePlanNarrativesProvenance(..., { grandfatherUnkeyed: planObj.status === \"completed\" })` (`schema.ts:385-391`). But that precedent uses **`completed` alone**. Prefer-A widens to `completed|cancelled|failed` with no stated reason. Either adopt the narrower precedent or argue the widening; `failed` in particular is a plan status the engine can set on live work.\n\n---\n\n## C6 - Demotion without aging converts a hard stop into permanent noise\n\nVisage under 0.121.0: 300 warnings today. Prefer-A moves ~195 class-R and ~78 class-C errors into that channel: **~570+ warnings across 653 briefs**, roughly one per file, forever. The checked-in doctrine makes \"forever\" explicit - `schema.ts:224-227` states CLASS_B membership \"is a permanent warning: `severityForUnknownReserved` has no read-only discriminator\", and `schema-v08.test.ts:664-677` asserts that exact language plus \"Append-on-discovery is not the steady state\" against `conventions/references.md`.\n\nA validate run whose steady state is ~570 warnings has no usable warning channel. The next genuine problem lands invisibly. Prefer-A unblocks the npm pin and destroys the diagnostic surface in the same move, and limb 6's \"warnings allowed\" is silent on it.\n\nAmendment: pair demotion with an **aging/acknowledgment channel** - a grandfather marker or per-corpus baseline such that already-deposited historical diagnostics are *silent* while genuinely new occurrences still warn. `grandfatherUnkeyed` (C5) is the in-tree vocabulary for exactly this; reuse it rather than inventing \"warn forever\".\n\nScope note: the pinned contract at `schema-v08.test.ts:742` and `:755` (\"CLI exits 0 on Class B warnings and 1 with `--warnings-as-errors`\", asserted in `references.md` as \"`--warnings-as-errors` still fails\") means demotion delivers **zero** relief to any consumer running strict mode. Visage is not strict (0.119.2 exits 0 carrying 16 warnings), so this is a boundary rather than a blocker - but limb 6 should say so out loud, since acceptance bullet 3 (\"a published cut Visage can take\") would not generalize.\n\n---\n\n## C7 - The option the A/B/C/D frame omits: key severity on typo-distance, not lifecycle status\n\nP3 says the compatibility product is wrong. Prefer-A answers P3 by *forbidding* the wrong product (limb 3) without supplying a right one - terminal-status demotion is a lifecycle carve-out, so non-terminal briefs still require per-consumer CLASS_B growth and P3's loop continues on a smaller surface. The A/B/C/D frame has no option that closes P3 structurally.\n\n**E: an unknown reserved-prefix subtype is an `error` only when there is positive typo evidence; otherwise a `warning`, at every lifecycle status.**\n\nWhy this is the honest reading of #4698: the stated purpose is catching near-misses, not policing vocabulary. Pin-read `packages/types/src/reference.ts` - `VBriefReference.type` is typed `` `${XBRIEF_REFERENCE_PREFIX}${string}` ``, i.e. the **published type contract declares the namespace open**. `describeUnknownReservedReferenceType` already computes `nearestCanonical`, which is precisely a typo-evidence field.\n\nWhat E buys, verifiable from pin-read:\n\n- `RESERVED_REFERENCE_TYPE_ALIASES` has exactly two entries (`pull-request`, `github-pull-request` -> `github-pr`). **None of the 24 `CLASS_B_COMPATIBILITY_BARES` appear in it**, so all 24 warn automatically under E. `CLASS_B_COMPATIBILITY_BARES` becomes **deletable**, not growable - the strongest available answer to P3.\n- Covers class R at *every* status, closing the C1 residue without threading status anywhere.\n- No signature change to `validatePlanReferenceTypes`.\n\n**E is currently foreclosed by an explicit, deliberately-pinned invariant, and I will not pretend otherwise.** `schema.ts:226` states \"nearestCanonical == null is not the classifier\", and `schema-v08.test.ts:679-687` asserts it by name. The justifying case is visible in that same test: `x-xbrief/github_pr` is a real typo whose `nearestCanonical` is `null`, because the alias map is a two-entry literal and cannot see an underscore substitution.\n\nThat foreclosure is sound **against using the alias map as the classifier**. It is not an argument against *near-miss distance* as a classifier. A string-distance test against `KNOWN_REFERENCE_TYPES` union `ENGINE_WRITTEN_BARE_TYPES` catches `github_pr` (distance 1 from `github-pr`) while clearing `source-file` / `scope` / `artifact` / `sibling` / `probe`. The #4846 invariant rejected a weak detector; it did not establish that lifecycle status is the alternative.\n\n**Two costs I own.** (i) E changes `describeUnknownReservedReferenceType` itself, whose second consumer is `packages/core/src/orphan-active/refs.ts:172` - a wider blast radius than Prefer-A's schema-local `severityForUnknownReserved` change (`schema.ts:260`), and the issue body asks for no `verify:orphan-active` changes. (ii) Visage's single `x-xbrief/pull-request` stays an error under E - correctly, it is a literal alias hit - so E needs #4749 or a terminal-only carve-out for the alias case as a companion. That composite is why my verdict is *amend*, not *reject*: Prefer-A's terminal rule survives as a **narrow residue for alias near-misses on historical records**, not as the primary discriminator.\n\n**Demand before Stop 2:** compute the confusion matrix - the 15 Visage subtypes, the 24 CLASS_B bares, and the known typo cases (`github_pr`, `pull-request`, `github-pull-request`) against a candidate distance threshold - rather than asserting a threshold works. If no threshold separates them, E is refuted on evidence and limb 2 stands by elimination. That is a cheap, decisive experiment and it should run before a severity rule is frozen into a published cut.\n\n---\n\n## C8 - No limb touches the defect generator\n\nAcceptance bullet 4 asks that \"future reserved-prefix tightenings cannot ship as hard FAILs under the same 0.8 envelope\". Prefer-A limbs 1-6 are a one-shot severity change plus one fixture. **Nothing in them constrains a future tightening.** The next closed-set addition can reintroduce exactly this class, and the Visage-shaped fixture (C4) will not catch it.\n\nThe generator is the contradiction between the published type and the runtime: `VBriefReference.type` admits any `x-xbrief/<anything>` (`packages/types/src/reference.ts`), while `validatePlanReferenceTypes` closes the set at runtime (`schema.ts:277-313`). Every consumer that reads the type is told their vocabulary is legal; every consumer that runs validate learns it is not. Until that is reconciled in one direction - narrow the type, or declare the registry advisory-by-construction - P3 regenerates under any severity scheme.\n\nAmendment: add a limb that is a **standing invariant**, not a fixture. Candidate shape: a test asserting no validator rule may emit into `errors[]` for a reserved-prefix subtype absent either (a) positive typo evidence or (b) an envelope-version bump. That is the only form of acceptance bullet 4 a future PR can actually fail.\n\n---\n\n## Summary of requested amendments\n\n| # | Limb | Amendment |\n|---|---|---|\n| C1 | 6 | Per-folder/status breakdown of the 274 before Stop 2; restate as \"0 errors of class R and class C\", not \"exit 0\"; dispose of the `invalidates` error |\n| C2 | 2,4,5 | Non-optional warnings sink (8/10 call sites drop it today); fixture asserts warning **presence**, not error absence |\n| C3 | 4 | Name the exact accepted id shape; mandate verbatim read-accept (edge resolution is exact-string); state nested `subItems` and partial-migration dispositions |\n| C4 | 5 | Normative fixture uses a never-registered subtype; Visage vocabulary demoted to non-normative regression |\n| C5 | 2,4 | Justify `completed/cancelled/failed` against the in-tree `completed`-only precedent; prefer provenance over mutable status |\n| C6 | 6 | Pair demotion with an aging/grandfather channel or accept ~570+ permanent warnings; state the `--warnings-as-errors` boundary |\n| C7 | frame | Add option E (typo-distance severity) and run the confusion matrix; retain Prefer-A's terminal rule as the alias-case residue |\n| C8 | 6 | Acceptance bullet 4 needs a standing invariant, not a fixture |\n\n**Sustained from Prefer-A:** envelope stays 0.8 (limb 1); reject B (limb 3) - C7 strengthens this, CLASS_B is deletable rather than growable; reject C - completed records are the record of what is; reject D - a bump leaves deposited 0.8 trees unreadable.\n\nconflict_group: visage-reserved-prefix-clause-0.8-compat\nTarget-digest: sha256:180ef367f7f06f37acef41a372ab8954a45fe4d0b3a9e2c95eac8c54528178ac\n\n",
+          "id": 6021421399,
+          "html_url": "https://github.com/deftai/directive/issues/5422#issuecomment-6021421399",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T17:08:24Z",
+          "updated_at": "2026-10-06T17:08:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\nVisage cannot leave the 0.119.2 pin because every newer Directive cut hard-fails validate on historical `x-xbrief/*` types and leftover `clause:N` ids in finished briefs. We keep the 0.8 envelope. On terminal briefs, those two classes become warnings (still visible), not hard FAILs, and new writers keep emitting the canonical set / `clause.N`. We do not grow CLASS_B per consumer as the fix. A never-registered-subtype fixture must prove the rule, and the validate path consumers actually run must surface the warnings (not drop them).\n\nLean: Prefer-A Bound\nSpec-path: bind Prefer-A\ncharter: open critique\narc-mode: no-ingest\ndispatch-sha: 1c696dbb2b39d65236fd38c56de99e7df3e4ece3\nTarget-digest: sha256:180ef367f7f06f37acef41a372ab8954a45fe4d0b3a9e2c95eac8c54528178ac\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\ntake map:\n- codex 6021318482: amend — accept; narrow corpus claim; recursive clause:N; fixture proves general rule\n- grok 6021322023: amend — accept; co-amend validatePlanItem + closed clause:N predicate + write-path mint\n- claude 6021421399: amend — accept envelope/rejects; fold C1–C4/C6/C8; C5/C7 typo-distance E held as leftover (not primary bind)\n\ndisagree: (empty)\ndefer: C7 option E typo-distance severity + confusion matrix; C5 provenance-vs-status redesign as primary discriminator; C6 aging/grandfather channel beyond documenting warn permanence + --warnings-as-errors boundary\n\n## Bound remedy\n1. Keep envelope version `0.8`. Do not bump the envelope solely for reserved-prefix or clause:N compatibility.\n2. Thread plan status into reserved-prefix severity. Change `validatePlanReferenceTypes` so it can take plan status (optional arg or options object). When status is omitted, keep today's CLASS_B-only severity so existing unit tests stay honest. When status is terminal (`completed` | `cancelled` | `failed`), unknown reserved-prefix subtypes MUST land in `warnings[]`, not `errors[]`. Call site in `validateVbriefSchema` already has `planObj.status` in scope and MUST pass it.\n3. Do not treat `CLASS_B_COMPATIBILITY_BARES` membership as the durable compatibility product for this class. Reject shipping Visage by only appending its subtypes to CLASS_B as the primary fix. CLASS_B may remain as warning taxonomy for known corpora.\n4. Leftover `clause:N` PlanItem ids on terminal plans: read-accept verbatim ids matching closed predicate `/^clause:[0-9]+$/` only (warn allowed; do not normalize in memory — edge resolution is exact-string). Thread the same terminal context through `validatePlanItem` recursively for `items` and `subItems`. Keep hard FAIL for other illegal ids on terminal, and for `clause:N` on non-terminal. Partial-migration edge mismatch (`clause.N` item + `clause:N` edge) is out of Prefer-A primary scope (leftover if observed).\n5. Write-path co-acceptance: current leftover-complete / writers that mint PlanItem clause ids MUST emit `clause.N` only. Add an acceptance/test that current mint shape is dotted, so P2 does not recur on newly completed briefs after the read carve lands.\n6. Warnings must not silently disappear. For the consumer validate CLI / `validate-all` path, warnings for these demoted classes MUST be collected and printed. Fixture acceptance MUST assert warning **presence** (and approximate count) for the demoted class, not only error absence. Document that `--warnings-as-errors` remains fail-closed (Visage default is non-strict). Optional aging/grandfather of permanent warn noise is a leftover, not a bind blocker for Visage's non-strict gate.\n7. Normative fixture: a terminal (`completed`) brief carrying a **never-registered** reserved subtype (e.g. `x-xbrief/zz-never-registered-subtype`) plus `plan.items` id `clause:1` MUST produce 0 hard FAILs of class R (unknown reserved-prefix) and class C (clause-colon), AND must produce a warning for the unknown subtype. Visage vocabulary (`source-file` / `scope` / `artifact` / …) may land as a separate non-normative regression case. Include non-terminal control that still hard-FAILs unknown reserved-prefix outside CLASS_B, and malformed-id controls.\n8. Acceptance wording: Prefer-A clears **0 errors of class R and class C** on terminal records / the normative fixture. Do not equate that with whole-corpus CLI exit 0. Before claiming a consumable npm cut for Visage, measure remaining validate errors by actual `plan.status` (not folder counts alone). Non-terminal class-R residue, if present and still blocking Visage's required gate, is either (a) folded by a Prefer-A Recut that extends warn demotion, or (b) a Tracking leftover with issue number — do not silently assert Visage can leave 0.119.2 from terminal-only clearance.\n9. Explicit leftover (not Prefer-A primary): the one `failed` item missing `invalidates` edge on a completed plan; #1999 upgrade-rehearsal harness as release gate; #4749 Class A `pull-request` alias beyond terminal warn; #5385 Confidence enum; Claude C7 typo-distance option E + confusion matrix; C5 provenance-primary redesign; C6 aging channel.\n10. Standing guard (C8 lite): under envelope 0.8, a regression test MUST fail closed if a future change reintroduces hard FAIL (`errors[]`) for an unknown reserved-prefix subtype on a terminal plan without an envelope-version bump. This is the machine form of acceptance bullet 4 for Prefer-A scope.\n\nReject B as primary: per-consumer CLASS_B growth is Stop 1 P3.\nReject C as primary: completed briefs are the record of what is (#3383).\nReject D as primary: envelope bump alone does not repair deposited 0.8 trees.\n\nconflict_group: visage-reserved-prefix-clause-0.8-compat\nRelated: #4746 #4846 #5011 #5385 #4749 #1999 #4698\ncritics: 6021318482 6021322023 6021421399\nStop-1: 6021249862\nPrefer-A-draft: 6021249518",
+          "id": 6021448269,
+          "html_url": "https://github.com/deftai/directive/issues/5422#issuecomment-6021448269",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T17:10:01Z",
+          "updated_at": "2026-10-06T17:10:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: sharpening\nharvest-changed: false\n\n## Pain-audit of Prefer-A Bound lean 6021448269 vs Stop 1 6021249862\n\ndispatch-sha: 1c696dbb2b39d65236fd38c56de99e7df3e4ece3\nverification-path: pin-read git show 1c696dbb2b39d65236fd38c56de99e7df3e4ece3:\nStop-1: 6021249862\nPrefer-A Bound: 6021448269\nRound-1 (allowed after bind): 6021318482 6021322023 6021421399\ncharter: open critique (pain-audit of asserted coverage)\narc-mode: no-ingest\n\n### Verdict\n**Support P1 / P2 / P3.** Prefer-A Bound 6021448269 honestly relieves the Stop 1 pains as written. Round-1 harvest amends are already folded into Bound limbs. Residue is non-harvest sharpening for PR / release acceptance. **bindable-as-posted.** No Recut required from this audit.\n\n### Pin-read mechanism (still live at dispatch SHA)\n- `severityForUnknownReserved` is CLASS_B-membership only (`schema.ts` ~260–262); `validatePlanReferenceTypes(references, filepath)` takes no status (~277–280); `validateVbriefSchema` call site (~409) passes references+filepath while `planObj.status` is already in scope.\n- PlanItem id hard-FAIL is inside `validatePlanItem` (~174–176) with recursive `items` / `subItems`; `PLAN_ITEM_ID_PATTERN` in `constants.ts` forbids colon.\n- Consumer validate path `validate-all.ts` (~133, ~165) does pass a `warnings` sink into `validateVbriefSchema` — the surface Visage's required gate runs.\n\n### P1 — relieved\nStop 1: unknown reserved-prefix subtypes on terminal (`completed`|`cancelled`|`failed`) hard-fail after npm update.\n\nBound limbs 2 + 6 + 7 + 8 + 10: status-threaded severity demotes class R to `warnings[]` on terminal; validate-all / consumer CLI must collect and print; normative fixture uses a never-registered subtype and asserts warning **presence**; acceptance is **0 errors of class R** (not whole-corpus exit 0); standing guard fails closed if a future 0.8 change reintroduces terminal hard FAIL without envelope bump.\n\nHonest vs Round-1: Codex corpus-claim narrow and Claude C1 acceptance rewrite are in limbs 7–8. Claude C5 provenance-primary and C7 typo-distance E remain deferred leftovers (Bound defer line) — they do not undo relief of P1 as Stop 1 scoped it (terminal).\n\n### P2 — relieved\nStop 1: leftover `clause:N` on those same terminal briefs hard-fail `PLAN_ITEM_ID_PATTERN`.\n\nBound limbs 4 + 5 + 7: closed predicate `/^clause:[0-9]+$/`, verbatim read-accept (no in-memory normalize), terminal context threaded through recursive `validatePlanItem`, hard FAIL retained for other illegal ids and for `clause:N` on non-terminal; write-path mint must emit `clause.N` only with acceptance/test; fixture carries `clause:1` under terminal with 0 class-C errors.\n\nHonest vs Round-1: Grok's co-amend (validatePlanItem + closed predicate + write-path mint) and Codex nested/`subItems` demand are in limb 4–5. Partial-migration edge mismatch stays explicit leftover.\n\n### P3 — relieved\nStop 1: growing `CLASS_B_COMPATIBILITY_BARES` per filing consumer as the compatibility product.\n\nBound limbs 3 + 7 + 10 + Reject B: CLASS_B append is rejected as primary; normative fixture proves the **class rule** via never-registered subtype (Visage vocabulary is non-normative regression only); standing guard is the machine form of \"future tightenings cannot ship as hard FAILs under the same 0.8 envelope.\"\n\nHonest vs Round-1: Claude C4 fixture-as-CLASS_B concern is folded. C7 option E (delete CLASS_B via typo-distance) is deferred leftover — stronger structural answer, not required to relieve P3 as stated (stop treating CLASS_B growth as the product).\n\n### Non-harvest sharpenings (carry into PR acceptance; do not change Bound limbs)\n- **S1 — Warning surface AC:** Prove demotion on the `validate-all` / consumer `vbrief:validate` path that already threads `warnings` (pin-read `validate-all.ts` ~133). Do not silently widen Prefer-A into making `validateVbriefSchema`'s warnings sink non-optional on every call site (Claude C2 eight-of-ten) without a Recut; limb 6 already names the consumer path.\n- **S2 — Unpin claim gate:** Before claiming Visage can leave 0.119.2, run the limb-8 status census on remaining errors. Terminal-only class R/C clearance is not whole-corpus exit 0; non-terminal class-R residue gets Recut or a numbered Tracking leftover.\n- **S3 — Clause warn vs silent accept:** Limb 7 requires warning presence for the unknown reserved subtype (class R). Class C may be silent read-accept under limb 4 (\"warn allowed\"). Implement must not invent a mandatory class-C warning channel unless a later Recut asks for it.\n- **S4 — `--warnings-as-errors` boundary:** Limb 6 documents fail-closed under that flag. Visage's non-strict default is the upgrade path Prefer-A clears; do not treat strict-mode consumers as cleared by this Bound.\n\n### Relieves map (audit result)\n- P1 → support (Bound limbs 2, 6, 7, 8, 10)\n- P2 → support (Bound limbs 4, 5, 7)\n- P3 → support (Bound limbs 3, 7, 10 + Reject B)\n\n### Follow-through\nevaluatePainAuditFollowThrough posture: **bindable-as-posted** (`finding-classes: sharpening`, `harvest-changed: false`). Parent records takes citing this audit id; then verified-claims table + synthesis path-1. No Dual-stop raise from this audit.",
+          "id": 6021482508,
+          "html_url": "https://github.com/deftai/directive/issues/5422#issuecomment-6021482508",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T17:12:00Z",
+          "updated_at": "2026-10-06T17:12:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nrecorded takes for audit 6021482508\n\nNon-harvest sharpenings from pain-audit 6021482508 carry into PR acceptance:\n- Validate-all / consumer CLI must surface demoted class R/C warnings (Bound limb 6).\n- Before unpin claim for Visage, measure remaining errors by plan.status (Bound limb 8).\n- Class-C silent-ok on terminal is intentional read-accept; keep write-path mint dotted (limbs 4–5).\n- `--warnings-as-errors` boundary stays documented; Visage default is non-strict.\n\nNo Bound limb change. harvest-changed: false stands.",
+          "id": 6021492461,
+          "html_url": "https://github.com/deftai/directive/issues/5422#issuecomment-6021492461",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T17:12:35Z",
+          "updated_at": "2026-10-06T17:12:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| P1 live: unknown reserved-prefix hard-fails outside CLASS_B with no status arm | pin-read schema.ts severityForUnknownReserved + validatePlanReferenceTypes @ 1c696dbb2b39d65236fd38c56de99e7df3e4ece3; critics 6021318482/6021322023/6021421399 | verified |\n| P2 live: clause:N hard-fails PLAN_ITEM_ID_PATTERN in validatePlanItem (incl. subItems) | pin-read schema.ts / constants.ts @ 1c696dbb2b39d65236fd38c56de99e7df3e4ece3; grok/codex critics | verified |\n| P3 live: CLASS_B is the only warn product today | schema.ts CLASS_B set + schema-v08 Class B tests @ 1c696dbb2b39d65236fd38c56de99e7df3e4ece3 | verified |\n| Prefer-A Bound 6021448269 relieves P1/P2/P3 with Round-1 amends folded | Bound limbs 1–10; pain-audit 6021482508 finding-classes sharpening harvest-changed false | verified |\n| B/C/D rejected as primary | Stop 1 + Bound reject lines; all three Round-1 critics | verified |\n| Non-harvest residue only (warnings surface, status census, --warnings-as-errors) | pain-audit 6021482508; recorded takes 6021492461 | verified |\n\nStop-1: 6021249862\nPrefer-A Bound: 6021448269\npain-audit: 6021482508",
+          "id": 6021492957,
+          "html_url": "https://github.com/deftai/directive/issues/5422#issuecomment-6021492957",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T17:12:37Z",
+          "updated_at": "2026-10-06T17:12:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\nThe panel agreed Prefer-A is the right fix: keep 0.8, warn (do not hard-fail) unknown reserved-prefix types and leftover clause:N ids on finished briefs, keep new writers canonical, prove the rule with a never-registered-subtype fixture, and make sure warnings actually show up on the validate path consumers run. Growing CLASS_B per consumer, rewriting history, or bumping the envelope are rejected as the primary path. Leftovers (typo-distance severity, aging channel, invalidates edge, #1999/#4749/#5385) stay out of this Bound.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 6021448269\nverified-claims table 6021492957\npain-audit 6021482508\n\narc-mode: no-ingest\n\n",
+          "id": 6021493354,
+          "html_url": "https://github.com/deftai/directive/issues/5422#issuecomment-6021493354",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T17:12:38Z",
+          "updated_at": "2026-10-06T17:13:01Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nConsumer **deftai/deftvisage** has been stuck on an exact `@deftai/directive@0.119.2` family since `validatePlanReferenceTypes` landed in 0.119.3. Every later public npm cut we have tried — 0.119.6 through 0.119.13, 0.120.0, and **0.121.0 today** — fails `vbrief:validate` on unchanged historical xBRIEFs. Visage 4.9.170 (2026-10-06) still pins `tools/deft-cli` at `^0.119.2` and CI installs that exact family from registry.npmjs.org.\n\nThis is a consumer hard-stop: the DEFT/vBRIEF CI job is a required gate. There is no reasonable workaround that preserves completed/cancelled history.\n\nTitle token: `BLOCKER`. That token does not apply the `adoption-blocker` ranking label.\n\n## Why this keeps happening on every npm update\n\nThe failure is not a Visage product regression and it is not the 0.121.0 `narratives.Confidence` enum change (#5385). Visage's corpus has **no** `plan.narratives.Confidence` fields.\n\nWhat repeats:\n\n1. **0.119.3 introduced a closed reserved-prefix registry** (`validatePlanReferenceTypes` in `@deftai/directive-core`, for #4698 / #4746). Schema still accepts namespaced `x-xbrief/*` strings. Runtime then fail-closes any reserved subtype that is missing from three lists:\n   - `STRICT_ORIGIN_ALLOWLIST` / `KNOWN_REFERENCE_TYPES`\n   - `ENGINE_WRITTEN_BARE_TYPES`\n   - `CLASS_B_COMPATIBILITY_BARES` (warning-only membership)\n2. **Compatibility has been grown per filing consumer**, not by accepting historical `x-xbrief/*` as readable 0.8 data:\n   - #4746 / #4765 added BlueLinx bares (`depends-on`, `supersedes`, `source-document`, …).\n   - #4846 added nine BestiMax bares (`prerequisite`, `related-pr`, `source`, `origin`, …).\n   - Visage's vocabulary was never added. `x-xbrief/source` is now a **warning** (BestiMax overlap). `x-xbrief/source-file`, `scope`, `artifact`, `doc`, `sibling`, `pr`, … remain **errors**.\n3. **Completed xBRIEFs are the record of what is** (#3383). They still carry the types the 0.119.2 writer emitted. Each `npm i @deftai/directive@latest` re-validates that frozen history against the latest closed set and exits 1. The Visage pin is rolled back, the changelog notes the failure, and the next release tries again.\n4. **A second fail-closed class is leftover `clause:N` PlanItem ids.** `PLAN_ITEM_ID_PATTERN` is `^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$`, so a colon is illegal. #5011 shipped a `clause:N` → `clause.N` migrator; Visage cannot run a rewrite of completed history as the upgrade path. `leftover-complete` on the 0.119.2 family still mints `clause:1` into completed briefs (example: `xbrief/completed/2026-10-05-fix-2011-consult-tile-still.xbrief.json`, `recorded_by: leftover-complete`).\n\nSo an npm update of Directive looks like: install latest → `task vbrief:validate` / `deft vbrief:validate` → 274 hard FAILs on files nobody edited → revert to 0.119.2. That loop has been running on Visage for dozens of patch cuts.\n\n## Expected behavior\n\nA supported consumer upgrade from an exact 0.119.2 family to 0.121.0 preserves validation of previously accepted 0.8 xBRIEFs, including completed and cancelled records, without hand-rewriting historical reference types or `clause:N` ids.\n\n## Actual behavior\n\nSame Visage tree, isolated public-npm installs, Node v24.14.0, 2026-10-06:\n\n| Engine | `vbrief:validate --project-root <visage>` |\n|---|---|\n| exact 0.119.2 family (`directive` + `directive-core` + `content` + `types`) | **exit 0** — 653 scope vBRIEFs, 16 pre-existing warnings (D11 / timestamp) |\n| 0.121.0 (`@deftai/directive@0.121.0` → core/content 0.121.0) | **exit 1** — **274 errors**, 300 warnings |\n\n### Error classes under 0.121.0 (274)\n\n**195 unknown reserved-prefix subtype errors** (15 types), 222 of 274 FAILs sit in `xbrief/completed/`:\n\n| Count | Type | Notes |\n|---:|---|---|\n| 103 | `x-xbrief/source-file` | Dominant Visage type; not in CLASS_B |\n| 30 | `x-xbrief/scope` | |\n| 29 | `x-xbrief/artifact` | |\n| 6 | `x-xbrief/sibling` | |\n| 5 | `x-xbrief/doc` | |\n| 5 | `x-xbrief/dependency` | |\n| 4 | `x-xbrief/design-reference` | |\n| 3 | `x-xbrief/probe` | |\n| 3 | `x-xbrief/pr` | Alias map only has `pull-request` / `github-pull-request` → `github-pr` |\n| 2 | `x-xbrief/split-child` | |\n| 1 each | `x-xbrief/design-doc`, `related-vbrief`, `code`, `pull-request`, `strategy` | `pull-request` is the #4749 Class A remainder |\n\n**78 `plan.items[clause:N] invalid id` errors** (colon vs `PLAN_ITEM_ID_PATTERN`).\n\n**1** unrelated `failed` item missing `invalidates` edge.\n\nWarnings that are **not** the blocker: 281× `x-xbrief/source` (CLASS_B), 2× `x-xbrief/depends-on`, 1× `x-xbrief/origin`, plus the same timestamp/D11 warnings 0.119.2 already printed.\n\nSample reserved-prefix FAIL:\n\n```\nFAIL: xbrief/cancelled/2026-05-11-feat-consolidate-popup-project-chat.xbrief.json: plan.references[0].type 'x-xbrief/source-file' is an unknown reserved-prefix subtype\n```\n\nSample clause FAIL (completed, minted by leftover-complete):\n\n```\nFAIL: xbrief/completed/2026-10-05-fix-2011-consult-tile-still.xbrief.json: plan.items[clause:1] invalid id: 'clause:1'\n```\n\n## Steps to reproduce\n\nFrom a deftai/deftvisage checkout (no repo edits):\n\n```sh\nnpm install --prefix /tmp/deft-cli-0.119.2 --ignore-scripts --no-audit --no-fund \\\n  --registry https://registry.npmjs.org \\\n  @deftai/directive@0.119.2 @deftai/directive-core@0.119.2 \\\n  @deftai/directive-content@0.119.2 @deftai/directive-types@0.119.2\n\nnpm install --prefix /tmp/deft-cli-0.121.0 --ignore-scripts --no-audit --no-fund \\\n  --registry https://registry.npmjs.org \\\n  @deftai/directive@0.121.0\n\nnode /tmp/deft-cli-0.119.2/node_modules/@deftai/directive/dist/bin.js \\\n  vbrief:validate --project-root \"$PWD\"\n# exit 0\n\nnode /tmp/deft-cli-0.121.0/node_modules/@deftai/directive/dist/bin.js \\\n  vbrief:validate --project-root \"$PWD\"\n# exit 1, 274 errors\n```\n\nMinimal structural fixture for the reserved-prefix class (same shape as #4846):\n\n```json\n{\n  \"xBRIEFInfo\": { \"version\": \"0.8\" },\n  \"plan\": {\n    \"title\": \"Visage reserved-prefix compatibility\",\n    \"status\": \"completed\",\n    \"items\": [],\n    \"references\": [\n      { \"uri\": \"src/preview/web-app-preview-pipeline.ts\", \"type\": \"x-xbrief/source-file\" }\n    ]\n  }\n}\n```\n\nThis is valid under core 0.119.2 and one unknown-reserved-prefix **error** under core 0.121.0. Substitute `x-xbrief/scope`, `artifact`, `doc`, `sibling`, `pr`.\n\n## Consumer impact\n\n- **Repo:** https://github.com/deftai/deftvisage\n- **Pin:** `tools/deft-cli/package.json` → `\"@deftai/directive\": \"^0.119.2\"` with lockfile resolved to 0.119.2 for directive, core, content, and types (public npm tarballs).\n- **CI:** required job `DEFT/vBRIEF validation` installs `@deftai/directive@${DEFT_VER}` **and** `@deftai/directive-core@${DEFT_VER}` from registry.npmjs.org. Comment in `.github/workflows/ci.yml`: *Pin to tools/deft-cli, not @latest … 0.119.3 reserved-prefix fails historical xBRIEFs.* A caret install of 0.119.2 alone can float a newer core (#4846 / #4766).\n- **Release habit:** each Visage patch (through 4.9.170) tries public latest, records the same validate failure in CHANGELOG, keeps the pin.\n- Rewriting 125 historical files (222 completed FAILs) is not a supported upgrade path.\n\n## Proposed next steps\n\nThe CLASS_B allowlist-per-corpus strategy will keep failing the next consumer. A durable 0.8 read path:\n\n- Unknown reserved-prefix subtypes on existing 0.8 documents (at least terminal `completed` / `cancelled` / `failed`) go to **warnings**, not `errors[]`. New writers can keep emitting the canonical set.\n- Read-accept leftover `clause:N` PlanItem ids on those same records; keep new writes on `clause.N`. Validate must not require `migrate:xbrief` to keep history readable.\n- Stop treating `CLASS_B_COMPATIBILITY_BARES` membership as the compatibility product. A checked-in Visage-shaped fixture (`source-file` / `scope` / `artifact` / `clause:1` under `completed/`) should stay 0 hard FAILs of these two classes on the next publish.\n- Run the existing consumer upgrade-rehearsal idea (#1999) against a real historical corpus before cutting npm.\n\nDo not recut #4698 into pattern-only silent acceptance of typos. Do not require `verify:orphan-active` changes. Do not treat this as #5385 (Confidence enum); link it as a sibling 0.121.0 upgrade landmine.\n\n## Related\n\n- #4746 (closed) — 0.119.3 BlueLinx reserved-prefix BLOCKER\n- #4749 (open) — Class A `pull-request` alias remainder; Visage has one `x-xbrief/pull-request`\n- #4765 (closed) — BlueLinx unenumerated 20\n- #4846 (closed) — BestiMax nine types; same mechanism, different vocabulary\n- #5011 (closed) — `clause:N` id pattern + migrator; leftover ids still fail-close\n- #5385 (open) — 0.121.0 Confidence enum; **not** this corpus\n- #4698 (closed) — pattern vs closed-set consumption\n- #1999 (open) — consumer-side upgrade rehearsal harness\n- Visage pin / 4.9.170: https://github.com/deftai/deftvisage (CHANGELOG 4.9.170 “Deft CLI”)\n\n## Environment\n\n- Consumer: deftai/deftvisage @ 4.9.170 / origin/main\n- Host: macOS, Node v24.14.0\n- Public npm `@deftai/directive@0.119.2` (exact family) vs `@deftai/directive@0.121.0`\n- Gate: `deft vbrief:validate` / Visage `task vbrief:validate` (required CI)\n\n## Acceptance\n\n- [ ] Exact 0.119.2-valid Visage corpus (or the checked-in fixture) exits 0 on 0.121.x+ for the reserved-prefix and `clause:N` classes above, with warnings allowed.\n- [ ] Completed/cancelled briefs stay readable without rewrite.\n- [ ] A published npm cut exists that Visage can take without remaining on 0.119.2.\n- [ ] Future reserved-prefix tightenings cannot ship as hard FAILs under the same 0.8 envelope with no migration / no warning channel.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5732043499,
+        "origin": "deftai/directive#5422",
+        "id": "github.issue.5732043499"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "180ef367f7f06f37acef41a372ab8954a45fe4d0b3a9e2c95eac8c54528178ac"
+      },
+      "preferABound": {
+        "leanCommentId": 6021448269,
+        "synthesisCommentId": 6021493354,
+        "painAuditCommentId": 6021482508,
+        "verifiedClaimsCommentId": 6021492957
+      },
+      "swarm": {
+        "conflict_group": "visage-terminal-validate-compat",
+        "allocation_plan_id": "through-merge-cohort-5415-5422-2026-10-06",
+        "file_scope": [
+          "packages/core/src/vbrief-validate/schema.ts",
+          "packages/core/src/vbrief-validate/constants.ts",
+          "packages/core/src/vbrief-validate/index.ts",
+          "packages/core/src/vbrief-validate/schema-v08.test.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "productPullRequest": 5427,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-06T18:48:13.391Z"
+      }
+    },
+    "id": "github.issue.5732043499",
+    "updated": "2026-10-06T17:28:31Z"
+  }
+}
