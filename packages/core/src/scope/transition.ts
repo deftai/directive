@@ -639,14 +639,17 @@ export function runTransition(
               // scope only. Skip ledger rollback when this scope was not mutated
               // (lock refuse) so concurrent other-scope coverage is untouched.
               const afterSnap = snapshotSpecDriftLedger(projectRoot);
-              const thisScopeTouched =
-                priorDriftLedger.coverage.filter((c) => c.scopeId === scopeIdForEnforce).length !==
-                  afterSnap.coverage.filter((c) => c.scopeId === scopeIdForEnforce).length ||
-                priorDriftLedger.unresolved.filter((f) => f.scopeId === scopeIdForEnforce).length !==
-                  afterSnap.unresolved.filter((f) => f.scopeId === scopeIdForEnforce).length ||
-                priorDriftLedger.shadowFindings.filter((f) => f.scopeId === scopeIdForEnforce)
-                  .length !==
-                  afterSnap.shadowFindings.filter((f) => f.scopeId === scopeIdForEnforce).length;
+              // Compare this-scope row content (not only counts) so a replace of equal
+              // cardinality still rolls back refused completions (Greptile P1).
+              const thisScopeSlice = (ledger: SpecDriftLedger) =>
+                JSON.stringify({
+                  coverage: ledger.coverage.filter((c) => c.scopeId === scopeIdForEnforce),
+                  unresolved: ledger.unresolved.filter((f) => f.scopeId === scopeIdForEnforce),
+                  shadowFindings: ledger.shadowFindings.filter(
+                    (f) => f.scopeId === scopeIdForEnforce,
+                  ),
+                });
+              const thisScopeTouched = thisScopeSlice(priorDriftLedger) !== thisScopeSlice(afterSnap);
               if (thisScopeTouched) {
                 const spentIds = spentGrantIdsSinceSnapshot(
                   priorDriftLedger,
