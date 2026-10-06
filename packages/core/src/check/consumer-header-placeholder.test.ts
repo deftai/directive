@@ -172,7 +172,7 @@ describe("evaluateConsumerHeaderPlaceholderAtRoot (#4544 Prefer-A)", () => {
 });
 
 describe("readConfirmedOverviewAtRoot (#4544 residual)", () => {
-  it("falls back to vbrief Overview when xbrief exists without Overview", () => {
+  it("refuses when selected xbrief has no Overview even if vbrief has one", () => {
     const root = tempRoot();
     mkdirSync(join(root, "xbrief"), { recursive: true });
     mkdirSync(join(root, "vbrief"), { recursive: true });
@@ -181,7 +181,13 @@ describe("readConfirmedOverviewAtRoot (#4544 residual)", () => {
       `${JSON.stringify(
         {
           xBRIEFInfo: { version: "0.8", description: "empty narratives" },
-          plan: { title: "PROJECT-DEFINITION", status: "running", items: [], policy: {}, narratives: {} },
+          plan: {
+            title: "PROJECT-DEFINITION",
+            status: "running",
+            items: [],
+            policy: {},
+            narratives: {},
+          },
         },
         null,
         2,
@@ -206,7 +212,31 @@ describe("readConfirmedOverviewAtRoot (#4544 residual)", () => {
       )}\n`,
       "utf8",
     );
-    expect(readConfirmedOverviewAtRoot(root)).toBe("Greenfield smoke fixture (#2022 Phase 3).");
+    expect(readConfirmedOverviewAtRoot(root)).toBeNull();
+  });
+
+  it("reads Overview from vbrief only when it is the selected artifact", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "vbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      `${JSON.stringify(
+        {
+          vBRIEFInfo: { version: "0.6", description: "legacy seed" },
+          plan: {
+            title: "PROJECT-DEFINITION",
+            status: "running",
+            items: [],
+            policy: {},
+            narratives: { Overview: "Legacy-only Overview." },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    expect(readConfirmedOverviewAtRoot(root)).toBe("Legacy-only Overview.");
   });
 });
 

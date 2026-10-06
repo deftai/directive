@@ -265,15 +265,21 @@ function normalizeNarrativeKey(key: string): string {
   return key.toLowerCase().replace(/[\s_-]+/g, "");
 }
 
-function resolveProjectDefinitionPath(projectRoot: string): string | null {
+/**
+ * Selected PROJECT-DEFINITION only — no cross-artifact Overview fallthrough.
+ * DEFT_PROJECT_PATH (when set) wins; else xbrief; else vbrief. Empty Overview
+ * on the selected file refuses (null); never read a sibling layout (#4544 P1).
+ */
+function selectedProjectDefinitionPath(projectRoot: string): string | null {
+  const root = resolve(projectRoot);
   const override = process.env.DEFT_PROJECT_PATH?.trim();
   if (override) {
     const configured = resolve(projectRoot, override);
     return existsSync(configured) ? configured : null;
   }
-  const migrated = join(resolve(projectRoot), "xbrief", "PROJECT-DEFINITION.xbrief.json");
+  const migrated = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
   if (existsSync(migrated)) return migrated;
-  const legacy = join(resolve(projectRoot), "vbrief", "PROJECT-DEFINITION.vbrief.json");
+  const legacy = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
   if (existsSync(legacy)) return legacy;
   return null;
 }
@@ -298,34 +304,14 @@ function overviewFromProjectDefinitionFile(path: string): string | null {
 }
 
 /**
- * Confirmed Overview from PROJECT-DEFINITION narratives (setup Phase 3 CAS input).
- * Prefers xbrief (or DEFT_PROJECT_PATH), then falls back to vbrief when the
- * preferred file has no Overview — greenfield init may create xbrief while
- * smoke/legacy still seed Overview only under vbrief (#4544 residual).
- * Empty / missing Overview returns null — refuse path, not soft-missing pass.
+ * Confirmed Overview from the selected PROJECT-DEFINITION only (setup Phase 3).
+ * Empty / missing Overview on that artifact returns null — refuse path, not a
+ * soft pass via another layout's narratives (#4544 residual / Greptile P1).
  */
 export function readConfirmedOverviewAtRoot(projectRoot: string): string | null {
-  const root = resolve(projectRoot);
-  const candidates: string[] = [];
-  const override = process.env.DEFT_PROJECT_PATH?.trim();
-  if (override) {
-    const configured = resolve(projectRoot, override);
-    if (existsSync(configured)) candidates.push(configured);
-  }
-  const migrated = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
-  if (existsSync(migrated)) candidates.push(migrated);
-  const legacy = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
-  if (existsSync(legacy)) candidates.push(legacy);
-
-  const seen = new Set<string>();
-  for (const path of candidates) {
-    const key = path.replace(/\\/g, "/").toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const overview = overviewFromProjectDefinitionFile(path);
-    if (overview !== null) return overview;
-  }
-  return null;
+  const selected = selectedProjectDefinitionPath(projectRoot);
+  if (selected === null) return null;
+  return overviewFromProjectDefinitionFile(selected);
 }
 
 /** Evaluate the Prefer-A first-ship placeholder gate at a project root. */
