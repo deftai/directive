@@ -43,8 +43,10 @@ describe("core-guard pin-content SoT (#3193 / #3427)", () => {
     const importerIdx = CORE_GUARD_PIN_CONTENT_PYTHON.indexOf("def pnpm_importer_deps");
     const inlineEmpty = String.raw`^ {2}(\S.*?):\s*\{\}\s*$`;
     const inlineIdx = CORE_GUARD_PIN_CONTENT_PYTHON.indexOf(inlineEmpty);
+    const sectionEndIdx = CORE_GUARD_PIN_CONTENT_PYTHON.indexOf("\ndef ", sectionIdx + 1);
     expect(sectionIdx).toBeGreaterThan(importerIdx);
     expect(inlineIdx).toBeGreaterThan(sectionIdx);
+    expect(sectionEndIdx).toBeGreaterThan(inlineIdx);
     // Exactly one site: importer bare-colon copy alone cannot satisfy this.
     expect(CORE_GUARD_PIN_CONTENT_PYTHON.indexOf(inlineEmpty, inlineIdx + 1)).toBe(-1);
   });
