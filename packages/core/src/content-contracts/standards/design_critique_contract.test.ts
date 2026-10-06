@@ -1764,10 +1764,13 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       "observes presence only on the completed-arc cited artifacts (`citedLeanId` and `synthesisCommentId`)",
     );
     expect(summary).toContain(
-      "non-empty body slice after stripping comment-lead `model:` / `role:` lines",
+      "non-empty body slice after stripping comment-lead `model: <slug>` / `role: triage|critic|parent` lines",
     );
     expect(summary).toContain(
-      "Comment-lead `model:` / `role:` lines under the heading do not count as summary",
+      "Comment-lead `model: <slug>` / `role: triage|critic|parent` lines under the heading do not count as summary",
+    );
+    expect(summary).toContain(
+      "ordinary-language lines that merely begin with `Role:` or `Model:` still count",
     );
     expect(summary).toContain("What this observer does and does not see");
     expect(summary).toContain("do not add a prose-quality or NLP parser");

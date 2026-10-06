@@ -607,8 +607,12 @@ function slicePlainEnglishBody(text: string, sectionStart: number): string {
   return after.slice(0, offset);
 }
 
-/** Comment-lead fields are not plain-English summary (#5415). */
-const PLAIN_ENGLISH_METADATA_LINE_RE = /^(?:model|role):\s*\S/i;
+/**
+ * Comment-lead lines only (`model: <slug>`, `role: triage|critic|parent`).
+ * Case-sensitive keys; closed role set — prose like `Role: the operator…`
+ * must remain summary (#5415).
+ */
+const PLAIN_ENGLISH_METADATA_LINE_RE = /^(?:model:\s*\S+|role:\s*(?:triage|critic|parent)\b)/;
 
 function stripPlainEnglishMetadataLines(slice: string): string {
   return slice

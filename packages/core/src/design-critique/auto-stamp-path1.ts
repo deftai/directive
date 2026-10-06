@@ -139,6 +139,27 @@ function refuse(
   };
 }
 
+function path1MissingSummaryDetail(evaluatorDetail: string): string {
+  const withoutRecovery = evaluatorDetail.replace(/; recovery:.*$/s, "").trim();
+  const leanParts = withoutRecovery
+    .split("; ")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0 && part.startsWith("cited lean"));
+  if (leanParts.length > 0) {
+    return (
+      leanParts.join("; ") +
+      "; path-1 unpublished candidate also lacks a non-empty plainEnglishSummary; " +
+      "recovery: patch named published lean id(s) and repair the candidate summary " +
+      "(not a GitHub patch of the synthetic id), then re-evaluate"
+    );
+  }
+  return (
+    "path-1 unpublished candidate lacks a non-empty plainEnglishSummary; " +
+    "recovery: repair the candidate summary (not a GitHub patch of the synthetic id), " +
+    "then re-evaluate"
+  );
+}
+
 /**
  * Production caller for #3640 auto-stamp path-1.
  *
@@ -191,15 +212,13 @@ export function evaluateAutoStampPath1Write(
   });
   if (summary.length === 0) {
     // Synthetic unpublished id is not on GitHub — recovery is candidate repair (#5415).
+    // Keep any published lean failure text so operators still see which live id to patch.
     const path1Candidate: CompletedArcVerdict =
       candidate.status === "blocked" && candidate.reason === "missing-plain-english"
         ? {
             status: "blocked",
             reason: "missing-plain-english",
-            detail:
-              "path-1 unpublished candidate lacks a non-empty plainEnglishSummary; " +
-              "recovery: repair the candidate summary (not a GitHub patch of the synthetic id), " +
-              "then re-evaluate",
+            detail: path1MissingSummaryDetail(candidate.detail),
           }
         : candidate;
     return refuse(unpublished, path1Candidate, panelDelivery);

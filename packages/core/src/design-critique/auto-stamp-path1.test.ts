@@ -363,7 +363,32 @@ describe("path-1 plain-English summary (#5415)", () => {
     const detail = String(verdict.candidate.status === "blocked" ? verdict.candidate.detail : "");
     expect(detail).toContain("path-1 unpublished candidate");
     expect(detail).toContain("repair the candidate summary");
-    expect(detail).not.toMatch(/patch named comment id/);
+    expect(detail).not.toMatch(/patch named comment id\(s\), then re-evaluate \/ re-chip/);
+  });
+
+  it("keeps published lean failure text when path-1 summary is missing", () => {
+    const leanNoSummary: ThreadComment = {
+      id: LEAN_4590,
+      body: "**Lean:** Prefer-A Bound without summary.\n\nrelieves: P1\n",
+    };
+    const live: ThreadComment[] = [
+      stop1("pain: P1\n"),
+      leanNoSummary,
+      criticAfter(LEAN_4590 + 1, "pain-P1"),
+    ];
+    const verdict = evaluateAutoStampPath1Write({
+      comments: live,
+      issueNumber: 4590,
+    });
+    expect(verdict.writePath1).toBe(false);
+    expect(verdict.candidate).toMatchObject({
+      status: "blocked",
+      reason: "missing-plain-english",
+    });
+    const detail = String(verdict.candidate.status === "blocked" ? verdict.candidate.detail : "");
+    expect(detail).toContain(`cited lean ${String(LEAN_4590)}`);
+    expect(detail).toContain("repair the candidate summary");
+    expect(detail).toContain("patch named published lean id");
   });
 
   it("refuses both writes when the summary is whitespace-only", () => {

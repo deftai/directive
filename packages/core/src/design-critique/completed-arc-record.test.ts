@@ -1929,6 +1929,27 @@ describe("plain-English presence on cited lean + synthesis (#5415)", () => {
     }
   });
 
+  it("keeps ordinary-language Role:/Model: prose as a non-empty summary", () => {
+    const synthProseRole: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body:
+        "## In plain English\n\n" +
+        "Role: the operator confirms the accepted design.\n\n" +
+        "design-critique: synthesis accepted, because agents agreed\n\n" +
+        `Bound contract: successor lean ${String(LEAN_ID)}.\n`,
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [leanOk, synthProseRole],
+      }),
+    ).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: null,
+    });
+  });
+
   it("rejects prefix near-miss and fenced headings as non-operative", () => {
     const leanPrefix: ThreadComment = {
       id: LEAN_ID,
