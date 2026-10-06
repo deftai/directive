@@ -16,9 +16,9 @@ import {
   recordScopeCompleteDriftAdvise,
   resolveLiveRequirementsFingerprint,
   rollbackScopeCompleteDrift,
-  spentGrantIdsSinceSnapshot,
   seedSpecDriftLedger,
   snapshotSpecDriftLedger,
+  spentGrantIdsSinceSnapshot,
   writeSpecDriftLedger,
 } from "./spec-drift.js";
 
