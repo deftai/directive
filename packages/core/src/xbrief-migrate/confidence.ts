@@ -148,15 +148,21 @@ function containedReplaceAtomic(root: string, target: string, data: string): voi
   } catch {
     preservedMode = undefined;
   }
+  // containedWrite opens with 0o644; tighten umask so a 0600 brief is never
+  // briefly world-readable between create and chmod (Greptile P1).
+  const previousUmask = process.umask(0o077);
   try {
-    containedWrite({
-      root,
-      target: temporary,
-      data,
-      mode: "replace",
-      mutation: { path: target },
-    });
-    // Preserve private modes (e.g. 0600) — containedWrite defaults to 0644.
+    try {
+      containedWrite({
+        root,
+        target: temporary,
+        data,
+        mode: "replace",
+        mutation: { path: target },
+      });
+    } finally {
+      process.umask(previousUmask);
+    }
     if (preservedMode !== undefined) {
       containedChmod({ root, target: temporary, mode: preservedMode, mutation: false });
     }
@@ -166,6 +172,9 @@ function containedReplaceAtomic(root: string, target: string, data: string): voi
       to: target,
       mutation: false,
     });
+    if (preservedMode !== undefined) {
+      containedChmod({ root, target, mode: preservedMode, mutation: false });
+    }
     fsyncContainedDirectory(dirname(target));
   } catch (err) {
     try {
