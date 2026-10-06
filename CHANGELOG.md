@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Complete the #5412 scope brief after product #5417.** Move the live-discovery pending-planning scope brief into xbrief/completed so orphan tracking clears. Tracking #5412. Refs #5417.
+- Complete the #5412 live-discovery pending-planning scope brief after product #5417; move the brief into xbrief/completed.
 - Complete the #5350 scope brief after product #5376; move the spec-guard enforce Prefer-A Bound brief into xbrief/completed.
 - Complete the #5391 scope brief after product #5401; move the CLI DX Prefer-A Bound brief into xbrief/completed.
 
@@ -7204,6 +7204,7 @@ If you have custom scripts or references to deft files, update these paths:
 [0.2.0]: https://github.com/visionik/warping/releases/tag/v0.2.0
 
 [0.1.0]: https://github.com/visionik/warping/releases/tag/v0.1.0
+
 
 
 
