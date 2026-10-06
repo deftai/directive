@@ -235,7 +235,7 @@
         "Explicit leftover (not Prefer-A primary): the one `failed` item missing `invalidates` edge on a completed plan; #1999 upgrade-rehearsal harness as release gate; #4749 Class A `pull-request` alias beyond terminal warn; #5385 Confidence enum; Claude C7 typo-distance option E + confusion matrix; C5 provenance-primary redesign; C6 aging channel.",
         "Standing guard (C8 lite): under envelope 0.8, a regression test MUST fail closed if a future change reintroduces hard FAIL (`errors[]`) for an unknown reserved-prefix subtype on a terminal plan without an envelope-version bump. This is the machine form of acceptance bullet 4 for Prefer-A scope. Must contain \"C8 lite\"."
       ],
-      "admitted_source_digest": "1712b3e22fc08a6a1bb916435db0ae1b326daf14e8e5fc75640f31d5beac197e",
+      "admitted_source_digest": "b17f2cd0ce57720a3fba322fc0d987885779b607a296aaa90708156c82185882",
       "clauses": [
         {
           "id": 1,
