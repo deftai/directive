@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 - Recorded the completed work for the pnpm upgrade fix (#5384) delivered in PR #5429.
+- Recorded the completed work for the stale active-scope pin recovery (#5386) delivered in PR #5433.
 ### Added
 
 - **Keep active #5195 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5195.

@@ -1,0 +1,669 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5386",
+    "updated": "2026-10-06T20:39:33Z"
+  },
+  "plan": {
+    "title": "Write fence: stale DEFT_ACTIVE_SCOPE naming an absent brief denies every write, with misleading recovery",
+    "status": "completed",
+    "narratives": {
+      "Description": "Write fence: stale DEFT_ACTIVE_SCOPE naming an absent brief denies every write, with misleading recovery",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5386",
+      "Overview": "## Bound remedy\n\n1. **Split pin-miss diagnosis in inspectActiveScope / recovery.** Keep denyKind pin-miss, but make recovery source-aware:\n   - **Env pin, no scanned match** (formatMissingPinMessage path): say the named path is absent from active/; recovery is clear or repoint DEFT_ACTIVE_SCOPE to an eligible brief, then restart the host so the hook sees the change. Do not use SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE as primary recovery.\n   - **Pin matched a scanned artifact but preflight rejected it** (rejections.get path): keep the evaluator reason; always name the pin/binding that was in play; do not tell the operator the pin is \"absent\" or that clearing the pin is the fix when the pin is correct. When the rejection is blocked-status, keep scope:unblock reachable (do not let the pin branch erase the zero-eligible-blocked recovery).\n   - **Explicit boundPath miss**: deny with binding-aware copy; do not imply changing DEFT_ACTIVE_SCOPE repairs a boundPath that wins over env.\n\n2. **Dispatcher pin-miss recovery branch.** In packages/core/src/hooks/dispatcher.ts, special-case denyKind pin-miss (alongside zero-eligible-blocked / multiple-eligible) so Write/Edit does not fall through to promote/activate. Source-aware text per limb 1. Spawn-tool multi-path recovery may remain broader; this Bound's honesty obligation is on direct Write/Edit pin-miss.\n\n3. **Narrow single-eligible warn+fallback (P3).** Only when all hold: nonempty environment DEFT_ACTIVE_SCOPE, no nonempty explicit boundPath, pin has no scanned match, exactly one eligible brief. Then bind that sole eligible path. Preserve hard deny for: matched-but-rejected pins (including blocked), explicit boundPath misses, zero eligible, multiple eligible. Do not authorize a different story's file_scope when the operator/dispatch explicitly pinned or bound a present-but-rejected brief.\n\n4. **Observable warn on allow path.** Add a distinct warning carrier on ActiveScopeInspection (or reuse the existing withOccupancyWarning / occupancyWarning shape) that the dispatcher merges into allowMessage when ready:true after limb-3 fallback. The warn must name the stale env pin and the selected brief. Inspector-only message fields that the allow path discards do not satisfy this limb. Dispatcher-level test must assert the emitted allow message contains both paths.\n\n5. **Tests.** Env miss + 0/1/many eligible; matched-rejected pin + one eligible alternative (still deny with evaluator reason); explicit boundPath miss + one eligible alternative (still deny); valid boundPath overriding stale env; valid pin unchanged; Write/Edit pin-miss recovery asserts clear/repoint+restart and does not lead with scope:promote/scope:activate; one-eligible env-miss asserts selected scopePath and allow-message warning naming both paths.",
+      "Labels": "bug, agent-experience, process, harness, source-of-truth, urgent, area:cli, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:gates"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Split pin-miss diagnosis in inspectActiveScope (matched-rejected vs no scanned match)",
+        "status": "completed"
+      },
+      {
+        "id": "2",
+        "title": "Dispatcher pin-miss recovery: Write/Edit do not fall through to promote/activate",
+        "status": "completed"
+      },
+      {
+        "id": "3",
+        "title": "Narrow single-eligible warn+fallback only for env pin miss + exactly one eligible",
+        "status": "completed"
+      },
+      {
+        "id": "4",
+        "title": "Observable warn on allow path naming stale env pin and selected brief",
+        "status": "completed"
+      },
+      {
+        "id": "5",
+        "title": "Tests: env miss 0/1/many; matched-rejected still deny; explicit boundPath miss still deny",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "harness",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:gates",
+      "prefer-a-bound",
+      "through-merge",
+      "stale-active-scope-pin-recovery"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5386",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5386: Write fence: stale DEFT_ACTIVE_SCOPE naming an absent brief denies every write, with misleading recovery"
+      }
+    ],
+    "acceptance": {
+      "ambiguity_attestation": "none_found",
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound lean 6020440876; pain-audit 6020518539 bindable-as-posted",
+      "commands": [
+        "pnpm exec vitest run packages/core/src/hooks/dispatcher.test.ts packages/core/src/hooks/scope.test.ts"
+      ],
+      "sentences": [
+        "Bound remedy 1.",
+        "Split pin-miss diagnosis in inspectActiveScope / recovery. Keep denyKind pin-miss, but make recovery source-aware: - Env pin, no scanned match (formatMissingPinMessage path): say the named path is absent from active/; recovery is clear or repoint DEFT_ACTIVE_SCOPE to an eligible brief, then restart the host so the hook sees the change.",
+        "Do not use SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE as primary recovery.",
+        "Pin matched a scanned artifact but preflight rejected it (rejections.get path): keep the evaluator reason; always name the pin/binding that was in play; do not tell the operator the pin is \"absent\" or that clearing the pin is the fix when the pin is correct.",
+        "When the rejection is blocked-status, keep scope:unblock reachable (do not let the pin branch erase the zero-eligible-blocked recovery).",
+        "Explicit boundPath miss: deny with binding-aware copy; do not imply changing DEFT_ACTIVE_SCOPE repairs a boundPath that wins over env.",
+        "Dispatcher pin-miss recovery branch. In packages/core/src/hooks/dispatcher.ts, special-case denyKind pin-miss (alongside zero-eligible-blocked / multiple-eligible) so Write/Edit does not fall through to promote/activate.",
+        "Source-aware text per limb 1.",
+        "Spawn-tool multi-path recovery may remain broader; this Bound's honesty obligation is on direct Write/Edit pin-miss.",
+        "Narrow single-eligible warn+fallback (P3). Only when all hold: nonempty environment DEFT_ACTIVE_SCOPE, no nonempty explicit boundPath, pin has no scanned match, exactly one eligible brief.",
+        "Then bind that sole eligible path.",
+        "Preserve hard deny for: matched-but-rejected pins (including blocked), explicit boundPath misses, zero eligible, multiple eligible.",
+        "Do not authorize a different story's file_scope when the operator/dispatch explicitly pinned or bound a present-but-rejected brief.",
+        "Observable warn on allow path. Add a distinct warning carrier on ActiveScopeInspection (or reuse the existing withOccupancyWarning / occupancyWarning shape) that the dispatcher merges into allowMessage when ready:true after limb-3 fallback.",
+        "The warn must name the stale env pin and the selected brief.",
+        "Inspector-only message fields that the allow path discards do not satisfy this limb.",
+        "Dispatcher-level test must assert the emitted allow message contains both paths.",
+        "Tests. Env miss + 0/1/many eligible; matched-rejected pin + one eligible alternative (still deny with evaluator reason); explicit boundPath miss + one eligible alternative (still deny); valid boundPath overriding stale env; valid pin unchanged; Write/Edit pin-miss recovery asserts clear/repoint+restart and does not lead with scope:promote/scope:activate; one-eligible env-miss asserts selected scopePath and allow-message warning naming both paths."
+      ],
+      "admitted_source_sentences": [
+        "Bound remedy 1.",
+        "Split pin-miss diagnosis in inspectActiveScope / recovery. Keep denyKind pin-miss, but make recovery source-aware: - Env pin, no scanned match (formatMissingPinMessage path): say the named path is absent from active/; recovery is clear or repoint DEFT_ACTIVE_SCOPE to an eligible brief, then restart the host so the hook sees the change.",
+        "Do not use SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE as primary recovery.",
+        "Pin matched a scanned artifact but preflight rejected it (rejections.get path): keep the evaluator reason; always name the pin/binding that was in play; do not tell the operator the pin is \"absent\" or that clearing the pin is the fix when the pin is correct.",
+        "When the rejection is blocked-status, keep scope:unblock reachable (do not let the pin branch erase the zero-eligible-blocked recovery).",
+        "Explicit boundPath miss: deny with binding-aware copy; do not imply changing DEFT_ACTIVE_SCOPE repairs a boundPath that wins over env.",
+        "Dispatcher pin-miss recovery branch. In packages/core/src/hooks/dispatcher.ts, special-case denyKind pin-miss (alongside zero-eligible-blocked / multiple-eligible) so Write/Edit does not fall through to promote/activate.",
+        "Source-aware text per limb 1.",
+        "Spawn-tool multi-path recovery may remain broader; this Bound's honesty obligation is on direct Write/Edit pin-miss.",
+        "Narrow single-eligible warn+fallback (P3). Only when all hold: nonempty environment DEFT_ACTIVE_SCOPE, no nonempty explicit boundPath, pin has no scanned match, exactly one eligible brief.",
+        "Then bind that sole eligible path.",
+        "Preserve hard deny for: matched-but-rejected pins (including blocked), explicit boundPath misses, zero eligible, multiple eligible.",
+        "Do not authorize a different story's file_scope when the operator/dispatch explicitly pinned or bound a present-but-rejected brief.",
+        "Observable warn on allow path. Add a distinct warning carrier on ActiveScopeInspection (or reuse the existing withOccupancyWarning / occupancyWarning shape) that the dispatcher merges into allowMessage when ready:true after limb-3 fallback.",
+        "The warn must name the stale env pin and the selected brief.",
+        "Inspector-only message fields that the allow path discards do not satisfy this limb.",
+        "Dispatcher-level test must assert the emitted allow message contains both paths.",
+        "Tests. Env miss + 0/1/many eligible; matched-rejected pin + one eligible alternative (still deny with evaluator reason); explicit boundPath miss + one eligible alternative (still deny); valid boundPath overriding stale env; valid pin unchanged; Write/Edit pin-miss recovery asserts clear/repoint+restart and does not lead with scope:promote/scope:activate; one-eligible env-miss asserts selected scopePath and allow-message warning naming both paths."
+      ],
+      "admitted_source_digest": "ce53d18b44ad50896c62560c4b83c29022e826585525e3efe6e49d99045bb118",
+      "confessions": [
+        "Promote/activate as primary Write/Edit recovery for env pin-miss is out of contract.",
+        "Silent ready:true fallback with no dispatcher-visible warn is out of contract.",
+        "Fallback from matched-but-rejected or boundPath miss to another eligible story is out of contract.",
+        "Softening multiple-eligible (#4007) is out of contract.",
+        "Closing #4880 or auto-clearing User-level env from scope:complete inside this Bound is out of contract.",
+        "Doctor detect of stale User/system DEFT_ACTIVE_SCOPE is deferred.",
+        "Auto-clear DEFT_ACTIVE_SCOPE on scope:complete is deferred.",
+        "Host end-to-end rendering verification beyond dispatcher allowMessage assertion is deferred."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Bound remedy 1.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "Split pin-miss diagnosis in inspectActiveScope / recovery. Keep denyKind pin-miss, but make recovery source-aware: - Env pin, no scanned match (formatMissingPinMessage path): say the named path is absent from active/; recovery is clear or repoint DEFT_ACTIVE_SCOPE to an eligible brief, then restart the host so the hook sees the change.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "Do not use SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE as primary recovery.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Pin matched a scanned artifact but preflight rejected it (rejections.get path): keep the evaluator reason; always name the pin/binding that was in play; do not tell the operator the pin is \"absent\" or that clearing the pin is the fix when the pin is correct.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 5,
+          "text": "When the rejection is blocked-status, keep scope:unblock reachable (do not let the pin branch erase the zero-eligible-blocked recovery).",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 6,
+          "text": "Explicit boundPath miss: deny with binding-aware copy; do not imply changing DEFT_ACTIVE_SCOPE repairs a boundPath that wins over env.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 7,
+          "text": "Dispatcher pin-miss recovery branch. In packages/core/src/hooks/dispatcher.ts, special-case denyKind pin-miss (alongside zero-eligible-blocked / multiple-eligible) so Write/Edit does not fall through to promote/activate.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 8,
+          "text": "Source-aware text per limb 1.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 9,
+          "text": "Spawn-tool multi-path recovery may remain broader; this Bound's honesty obligation is on direct Write/Edit pin-miss.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 10,
+          "text": "Narrow single-eligible warn+fallback (P3). Only when all hold: nonempty environment DEFT_ACTIVE_SCOPE, no nonempty explicit boundPath, pin has no scanned match, exactly one eligible brief.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 11,
+          "text": "Then bind that sole eligible path.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 12,
+          "text": "Preserve hard deny for: matched-but-rejected pins (including blocked), explicit boundPath misses, zero eligible, multiple eligible.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 13,
+          "text": "Do not authorize a different story's file_scope when the operator/dispatch explicitly pinned or bound a present-but-rejected brief.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 14,
+          "text": "Observable warn on allow path. Add a distinct warning carrier on ActiveScopeInspection (or reuse the existing withOccupancyWarning / occupancyWarning shape) that the dispatcher merges into allowMessage when ready:true after limb-3 fallback.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 15,
+          "text": "The warn must name the stale env pin and the selected brief.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 16,
+          "text": "Inspector-only message fields that the allow path discards do not satisfy this limb.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 17,
+          "text": "Dispatcher-level test must assert the emitted allow message contains both paths.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.test.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 18,
+          "text": "Tests. Env miss + 0/1/many eligible; matched-rejected pin + one eligible alternative (still deny with evaluator reason); explicit boundPath miss + one eligible alternative (still deny); valid boundPath overriding stale env; valid pin unchanged; Write/Edit pin-miss recovery asserts clear/repoint+restart and does not lead with scope:promote/scope:activate; one-eligible env-miss asserts selected scopePath and allow-message warning naming both paths.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.test.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Cross-link: inverse sibling is #4880 (fence tells a dispatched worker to *set* host-only DEFT_ACTIVE_SCOPE). This issue is the stale-value / absent-path recovery-text side.",
+          "id": 6020291798,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020291798",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:03:39Z",
+          "updated_at": "2026-10-06T16:03:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft (pre-Stop-1 charter lean)\n\nLean: Approach A + B for stale DEFT_ACTIVE_SCOPE pin-miss.\n\n**Approach A — honest pin-miss recovery.** When denyKind is pin-miss (DEFT_ACTIVE_SCOPE set but does not name an eligible running brief under xbrief/active/), the Write/Edit recovery hint must NOT fall through to SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE. It must say the named path is absent or ineligible, and name the fix a dispatched worker can surface to the operator: clear or repoint DEFT_ACTIVE_SCOPE to an existing eligible brief, then restart the host so the hook process sees the new value. Land in packages/core/src/hooks/dispatcher.ts beside the existing denyKind branches (zero-eligible-blocked / multiple-eligible already special-case; pin-miss currently hits the else promote/activate path). Keep formatMissingPinMessage stating the got pin; extend recovery so agents are not sent down a promote/activate path they cannot complete (#4880 host-env constraint).\n\n**Approach B — single-eligible warn+fallback.** When the pin is set, the named path is absent from eligible, and exactly one other brief is eligible, Prefer-A warns (pin stale/absent) and falls back to that sole eligible brief instead of hard-denying every write. Land in inspectActiveScope (packages/core/src/hooks/scope.ts) pin branch: after pin-miss match failure, if eligible.length===1 bind that path with a warn-shaped message that still names the stale pin. Multiple-eligible and zero-eligible stay fail-closed. Do not silently fall back with no warn.\n\n**Tests.** pin-miss with zero eligible: recovery names clear/repoint + host restart, does not contain scope:promote/scope:activate as the primary recovery. pin-miss with one eligible: warn+fallback binds that brief; message still names the stale pin. pin-miss with multiple eligible: still deny (no first-wins). Fixture coverage in dispatcher-active-scope / scope tests.\n\n**conflict_group:** stale-active-scope-pin-recovery\n\n### Reject\n- Promote/activate as the primary recovery for pin-miss (current else branch) — workers cannot clear User-level host env (#4880).\n- Silent single-eligible fallback with no warn naming the stale pin.\n- Softening multiple-eligible (#4007) or inventing worker-settable host env.\n- Closing #4880 inside this Bound (sibling; keep cross-link; separate arc).\n\n### Deferred (not this Bound)\n- Auto-clearing User-level DEFT_ACTIVE_SCOPE from scope:complete (OS/host permission; later leftover).\n- Doctor detect of stale User/system DEFT_ACTIVE_SCOPE (nice-to-have leftover).\n\nspend-recommend: N≥3\nspend-why: Stop 2 panel permission — open A/B (honest text vs warn+fallback) solution space with high agent blast on every write deny; Prefer-A binds A+B.\n\narc-mode: no-ingest\nTarget-digest: sha256:81592aa78012d22da21f9bf58409cea87e7ca55df6865b3ed1a3519b8492181f\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5386\r\n\n",
+          "id": 6020318306,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020318306",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:05:03Z",
+          "updated_at": "2026-10-06T16:05:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: warranted, because the issue stamps a mechanism-shaped write-fence pin-miss failure with concrete land sites (dispatcher.ts denyKind branch + inspectActiveScope pin path) and an open A/B solution space that needs a Bound before implement.\n\nmechanism-shaped: true\ncharter: open critique\narc-mode: no-ingest\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: asked\nspend-why: Stop 2 panel permission — open A/B solution space (honest pin-miss recovery vs single-eligible warn+fallback); operator chose use recommended N≥3.\ndual-stop-reserved: first post-lean pain-audit of asserted coverage is in-cap via evaluateDualStopReservedSlot / evaluateDualStopParentPath; ask raise only after that reserved seat is spent.\nverification-path: pin-read git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5386\norigin-ref: origin/HEAD\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\nTarget-digest: sha256:81592aa78012d22da21f9bf58409cea87e7ca55df6865b3ed1a3519b8492181f\n\npain:\n- P1\n- P2\n- P3\n\npain-prose:\n- P1: When denyKind is pin-miss, Write/Edit recovery falls through to SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE; a dispatched worker cannot clear or repoint host User-level DEFT_ACTIVE_SCOPE and is sent down an unreachable promote/activate path (#4880 constraint).\n- P2: The pin-miss deny does not clearly state that the named path is absent from xbrief/active/ (or otherwise ineligible), so operators and agents misdiagnose a stale env pin as a missing lifecycle story.\n- P3: When the pin is stale/absent and exactly one eligible brief remains, the fence hard-denies every write instead of warn+fallback to that sole eligible brief while still naming the stale pin.\n\nCharter for round-1 critics: open critique of Prefer-A draft comment 6020318306 (Approach A+B: honest pin-miss recovery in dispatcher.ts; single-eligible warn+fallback in inspectActiveScope; tests). Reject promote/activate-as-primary for pin-miss, silent fallback, multiple-eligible soften, folding #4880 into this Bound.\n\nSeat families (N≥3): grok, claude, codex\r\n\n",
+          "id": 6020324229,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020324229",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:05:21Z",
+          "updated_at": "2026-10-06T16:05:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Panel-deposit (N≥3 round-1)\n\narc-mode: no-ingest\nspend: N≥3\nStop-1: 6020324229\nPrefer-A draft: 6020318306\nTarget-digest: sha256:81592aa78012d22da21f9bf58409cea87e7ca55df6865b3ed1a3519b8492181f\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5386\nverification-path: pin-read git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:\norigin-ref: origin/HEAD\n\nSeat families (claimed): grok, claude, codex\nlaunch-probe:\n- claude: pass (pong rc 0)\n- codex: pass (pong rc 0)\n- grok: pass (pong rc 0)\n\ninput-ceiling: 6020344188\n\nRound-1 critics share this ceiling. May read Stop 1 (6020324229) + this deposit only. Sibling critic posts are out of envelope for other siblings. Charter: open critique of Prefer-A draft 6020318306 (A+B honest pin-miss recovery + single-eligible warn+fallback).\r\n\n",
+          "id": 6020344188,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020344188",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:06:24Z",
+          "updated_at": "2026-10-06T16:06:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nVerdict: amend Prefer-A before binding. Approach A addresses P1; Approach B needs an observable warning and a narrower fallback condition to address P3 without selecting a different explicitly assigned story.\n\nEvidence boundary: Stop 1 (6020324229), panel deposit (6020344188), Prefer-A draft (6020318306), and the two allowed land-site files at b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6. No sibling posts or later thread comments read.\n\n1. P3: a warning in inspectActiveScope.message is currently silent on successful Write/Edit. In dispatcher.ts, allowMessage is built from the generic gate-passed text plus occupancyWarning; the final allow decision uses that message, not scope.message. Returning ready:true with a warn-shaped inspection message therefore does not satisfy the draft's explicit no-silent-fallback requirement. Amend the contract to carry a distinct fallback warning into the dispatcher allow decision, naming both the stale pin and selected brief. Do not claim host-visible delivery from an inspector-only test: require a dispatcher-level assertion on the emitted allow message, with host rendering verification before claiming end-to-end visibility. Other write gates must still run against the selected scope.path.\n\n2. P3: distinguish a missing environment pin from a rejected existing pin and an explicit boundPath. scope.ts pinFrom gives boundPath precedence over DEFT_ACTIVE_SCOPE. matchPinnedActiveScope searches scanned candidates as well as eligible candidates; inspectActiveScope then returns a pin-miss with the evaluator rejection when the matched brief is ineligible. These are materially different cases that the draft's phrase \"named path is absent from eligible\" conflates. Concrete counterexample: pinned A is blocked, B alone passes preflight. A broad eligible.length===1 fallback authorizes B instead of preserving A's rejection. Another: an explicit boundPath misses, while an unrelated local brief is sole eligible; the shared pin branch can substitute that unrelated story. dispatcher.ts supplies boundPath for spawn from the destination binding, so this is an existing caller, not a hypothetical API extension.\n\nProposed narrower Bound: fallback only when a nonempty environment pin has no scanned match, there is no nonempty explicit boundPath, and exactly one candidate passes the existing evaluator. Preserve matched-but-rejected pin denials, including their rejection reason; preserve explicit boundPath miss denials. Keep zero/multiple eligible fail-closed and leave matching/path-normalization rules intact. This covers stale/absent-pin P3 as stated by Stop 1. If fallback from a present but rejected assignment is desired too, bind that as an explicit broader behavior rather than calling it stale-pin recovery.\n\n3. P1/P2: add the pin-miss recovery branch, but make its diagnosis source-aware. formatMissingPinMessage already says \"does not name an eligible running xBRIEF\" and echoes the pin; it does not distinguish missing from rejected. The matched-rejection early return bypasses that formatter entirely and can omit the pin. Always identify the failed pin/binding, distinguish no scanned match from a matched preflight rejection, and retain the evaluator's reason. For an environment miss, direct the worker to report the stale value to the operator for clearing/repointing and host restart. Do not imply changing DEFT_ACTIVE_SCOPE repairs an explicit boundPath, which wins over that environment value. With zero eligible briefs, state that repointing requires an eligible target and clearing the pin alone cannot make the fence ready. Promote/activate must not return as primary pin-miss recovery.\n\nBinding tests: env miss with 0/1/many eligible; existing rejected pin plus one eligible alternative; explicit boundPath miss plus one eligible alternative; valid boundPath overriding stale env; valid pin unchanged. For the one-eligible env-miss case, assert the selected scopePath and warning naming both paths on the dispatcher result, not merely the inspector result. For rejected pins, assert the original preflight reason remains. Keep #4880 host-environment automation outside this Bound.\n\nAccept A+B with these amendments. As written, Prefer-A leaves warning delivery unimplemented and fallback authority ambiguous.",
+          "id": 6020382101,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020382101",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:08:24Z",
+          "updated_at": "2026-10-06T16:08:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\n## Open critique — Prefer-A draft 6020318306 (A+B pin-miss)\n\nCharter: open critique. Inputs: Stop 1 6020324229, panel-deposit 6020344188, Prefer-A draft 6020318306. Verification: pin-read `git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:` on dispatcher.ts denyKind recovery and scope.ts `inspectActiveScope` / `formatMissingPinMessage`. Audit targets: none.\n\n### Verdict\n**Prefer-A A+B is not bindable as posted.** Approach A is land-site confirmed and should stay. Approach B's intent matches P3, but as written it collides with Prefer-A's own Reject of silent fallback: on this SHA the allow path never prints `scope.message`. Bind needs a Prefer-A amendment that names an allow-path warn surface and scopes B away from explicit `boundPath` misses. With that amendment, A+B relieves P1–P3.\n\n### Findings\n\n**F1 — blocks-the-design: Approach B warn is silent on current allow path**\n- Evidence: `dispatcher.ts` gates deny text on `if (!scope.ready)` and concatenates `` `Directive denied ${toolName}: ${scope.message}${proposedPathHint}` `` (~2091 / ~2166). When `ready: true`, `scope.message` is unused on that surface. `ActiveScopeInspection` has only `ready` / `path` / `message` / `denyKind` — no warn channel. Prefer-A B says return ready with a \"warn-shaped message\" that names the stale pin, and Prefer-A Rejects \"Silent single-eligible fallback with no warn naming the stale pin.\"\n- Failure mode: implement B by stuffing warn text into `message` + `ready: true` → writes proceed under the sole eligible brief with **no** operator/agent-visible stale-pin warn → Prefer-A's own Reject fires.\n- Disposition: Prefer-A amendment before bind — name a concrete allow-path warn surface. Minimal land: add optional `warn?: string` (or equivalent) on `ActiveScopeInspection`; when present and ready, dispatcher must emit it on the allow path (stderr / decision text that the host surfaces). Tests must assert the warn string is emitted on the single-eligible fallback allow, not only present on the inspection object.\n\n**F2 — sharpens-framing: restrict B to env-pin miss; keep hard deny for boundPath miss**\n- Evidence: `pinFrom` prefers `boundPath` over `DEFT_ACTIVE_SCOPE` (scope.ts ~76–80). Spawn/dispatch already passes `boundPath` from dest basename (dispatcher ~2080–2087). Prefer-A B triggers on \"the pin is set\" after match failure when `eligible.length===1`, with no boundPath vs env split. #4007 / Prefer-A Reject already keep multiple-eligible fail-closed to avoid wrong-story `file_scope`.\n- Failure mode: implement-class worker with explicit `boundPath` to story-X; X gone; sole eligible is story-Y → B binds Y and over-permits writes under Y's fence — same wrong-story class as first-wins, for a pin the dispatcher intentionally set.\n- Disposition: Prefer-A amendment — B applies only when the miss is from `ACTIVE_SCOPE_PIN_ENV` and `boundPath` is unset/empty. When `boundPath` is set and misses, keep hard `pin-miss` and Approach A recovery. That keeps P3 relief for the Stop 1 User-level stale-env case without weakening dispatch pins.\n\n**F3 — sharpens-framing: Approach A land cite confirmed; special-case `denyKind === \"pin-miss\"` before the else**\n- Evidence: Write/Edit recovery special-cases `zero-eligible-blocked` and `multiple-eligible` only (~2133–2139). `pin-miss` falls into the `else` that appends `SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE` (~2140–2150). Matches Stop 1 P1 and Prefer-A A.\n- Failure mode (status quo): agent follows promote/activate; cannot clear User-level host env (#4880); loops on unreachable recovery.\n- Disposition: Accept Prefer-A A as written. Land an explicit `else if (scope.denyKind === \"pin-miss\")` branch: recovery names absent/ineligible pin, clear or repoint `DEFT_ACTIVE_SCOPE` to an eligible brief, restart host so the hook process sees the new value. Do not name `scope:promote` / `scope:activate` as primary recovery. Tests: pin-miss + zero eligible → recovery lacks promote/activate as primary; still names clear/repoint + host restart.\n\n**F4 — sharpens-framing: matched-but-rejected pin-miss must carry pin identity (P2 completeness)**\n- Evidence: `formatMissingPinMessage` already states absent/ineligible and `got ${pin}` (~149–153). The other pin-miss arm (~216–218) returns `message: rejected` (raw preflight failure) with `denyKind: \"pin-miss\"` and **no** pin string. Prefer-A says keep `formatMissingPinMessage` and extend dispatcher recovery; it does not say the rejected-arm message must name the pin.\n- Failure mode: pin points at a scanned-but-ineligible brief → operator sees only preflight prose and still misreads as \"lifecycle story broken\" rather than \"stale/wrong pin.\"\n- Disposition: Prefer-A amendment — every `denyKind: \"pin-miss\"` message (both no-match and matched-rejected) must name the pin value. Wrap or prefix the rejected preflight text with the same pin identity `formatMissingPinMessage` already uses. Approach A recovery then attaches to a consistently diagnosed pin-miss.\n\n**F5 — footnote: spawn recovery stays out of Write/Edit P1**\n- Evidence: spawn branch (~2109–2123) always leads with product-implementation promote/activate among multi-path options; Stop 1 P1 and Prefer-A A scope Write/Edit.\n- Failure mode: none for this Bound's denominator if spawn is left alone.\n- Disposition: footnote. Do not expand this Bound to rewrite spawn recovery. Cross-link #4880 only.\n\n### Pain map (Stop 1 P1–P3)\n| Pain | Prefer-A limb | Critic take |\n|---|---|---|\n| P1 promote/activate on pin-miss | A | Relieved by F3 as written |\n| P2 unclear absent/ineligible diagnosis | A + formatMissingPinMessage keep | Partially true today for no-match message; full relief needs F4 on matched-rejected + A recovery |\n| P3 single-eligible hard deny | B | Intent right; bind blocked until F1 warn surface + F2 boundPath carve |\n\n### Injection / swarm lens\nTarget touches write-fence authority, untrusted/host env pin, and multi-brief concurrency. F2 is the swarm-shaped residue: env-stale single-eligible fallback is the P3 remedy; boundPath-miss fallback reopens #4007 wrong-story over-permit. Multiple-eligible stays fail-closed (Prefer-A Reject) — keep.\n\n### Road-not-taken\n**A-only (honest recovery, keep hard deny when pin set).** Relieves P1/P2; leaves P3. Rejected because Stop 1 owns P3 and a sole eligible brief is already the unpinned bind (~229–231); the stale env pin is the only thing blocking that bind.\n\n### Steelmans (rejected A-only)\nStrongest case against B: any single-eligible fallback can bind the wrong remaining story under a stale pin, and a hard deny forces an explicit clear. Flip: if operator evidence shows boundPath/env conflation causing wrong-story writes in cohort, drop B or keep F2 carve and require the allow-path warn (F1) before bind. With F1+F2, that steelman no longer blocks A+B.\n\n### Amended Prefer-A (bindable shape)\n1. **A** — dispatcher `denyKind === \"pin-miss\"` recovery: absent/ineligible + clear/repoint `DEFT_ACTIVE_SCOPE` + host restart; no promote/activate primary (F3).\n2. **B** — after pin match failure, if `eligible.length===1` **and** pin source is env (`boundPath` unset), bind that path with **allow-path-visible** warn naming the stale pin (F1+F2). Multiple-eligible and zero-eligible stay fail-closed. boundPath miss stays hard pin-miss + A.\n3. **P2 message** — all pin-miss messages name the pin, including matched-rejected (F4).\n4. **Tests** — as Prefer-A draft, plus: allow-path warn emission; boundPath miss does not fallback; matched-rejected message contains pin.\n5. Keep Prefer-A Reject / Deferred lists.\n\n### Classification census\n- blocks-the-design: F1\n- sharpens-framing: F2, F3, F4\n- footnote: F5",
+          "id": 6020407003,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020407003",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:09:41Z",
+          "updated_at": "2026-10-06T16:09:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\n## Verdict\n\nPrefer-A is **not bindable as drafted**. Approach A is directionally right but under-specified in a way that reproduces the very dishonesty P2 names; Approach B is refuted as drafted by the land sites — its warn has no carrier and its trigger is wider than its prose admits. Below is a sharper Prefer-A amendment, every claim pin-read at `b6a5f5b`.\n\n## The load-bearing fact Prefer-A missed: `pin-miss` is two failures, not one\n\n`scope.ts` returns `denyKind: \"pin-miss\"` from **two structurally different** branches:\n\n- **`scope.ts:216-218` — pin HIT, brief INELIGIBLE.** `matchPinnedActiveScope` resolved the pin to a real scanned artifact, but preflight rejected it. The returned `message` is `rejections.get(matched)` — the **evaluator's** message (e.g. `plan.status is 'blocked'`).\n- **`scope.ts:220-226` — pin MISS, nothing matched.** Returns `formatMissingPinMessage(pin)`, which does name the got pin.\n\nPrefer-A treats these as one case. That single conflation is what breaks A, B, and the test plan.\n\n### C1 (P1/P2, blocking) — A's recovery is dishonest on the `:218` branch\n\nA prescribes: *\"say the named path is absent or ineligible … clear or repoint `DEFT_ACTIVE_SCOPE` … then restart the host.\"*\n\nOn `:218` the pin is **correct**. The operator pinned the brief they meant. Nothing is stale; nothing needs repointing; a host restart fixes nothing. Telling the operator to clear the pin is as unreachable-and-wrong as the `SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE` fallthrough P1 complains about — A would swap one false recovery for another on the exact axis P2 names. And the hedge *\"absent **or** ineligible\"* **is** the misdiagnosis P2 describes: an either/or sentence is not a diagnosis.\n\n**Amendment:** split the kind at the source — `\"pin-miss\"` (`:224`, no match) and `\"pin-ineligible\"` (`:218`, matched-but-rejected) — and give each its own dispatcher branch. Honesty is a discrimination, not a longer sentence.\n\n### C2 (P2, blocking) — pinning a blocked brief silently destroys the `scope:unblock` recovery\n\n`dispatcher.ts:2133` names `deft scope:unblock -- <blocked-brief>` only for `denyKind === \"zero-eligible-blocked\"`. But `inspectActiveScope` computes `blocked` **after** the pin branch returns (`scope.ts:203-227` precedes `scope.ts:243`). So whenever `DEFT_ACTIVE_SCOPE` is set and names a blocked brief, the kind is `pin-miss`, the `zero-eligible-blocked` branch is unreachable, and the operator falls to the `else` promote/activate path (`dispatcher.ts:2141`).\n\nConcretely: **setting a pin strictly degrades the deny for a blocked brief.** Unpinned you get the one-line fix; pinned you get an unreachable one. Prefer-A's A does not fix this — it replaces promote/activate with *clear-or-repoint*, which is still wrong, because the real recovery is `deft scope:unblock`. This is the cleanest single win available in this Bound and Prefer-A does not claim it.\n\n### C3 (P2, blocking) — \"keep `formatMissingPinMessage` stating the got pin\" covers only half of pin-miss\n\nA says to keep `formatMissingPinMessage` naming the pin. It already does — on `:224`. On `:218` it is **never called**; `scope.message` is the raw evaluator rejection, which never mentions that a pin was in play at all. The dispatcher composes `` `Directive denied ${toolName}: ${scope.message}${proposedPathHint}` `` (`dispatcher.ts:2149+`), so the operator sees a bare preflight failure with no hint that `DEFT_ACTIVE_SCOPE` selected the brief being complained about. That is the single most misdiagnosis-prone shape in the fence, it is squarely P2, and Prefer-A's P2 coverage is **asserted but not landed** for it.\n\n**Amendment:** the `:218` return must prefix the evaluator message with the pin attribution (`DEFT_ACTIVE_SCOPE named <pin>; that brief is present but not implementation-eligible: <evaluator message>`).\n\n## Approach B — refuted as drafted\n\n### C4 (P3, blocking) — B's warn has no carrier; B *is* the silent fallback it rejects\n\nB says: *\"bind that path with a warn-shaped message that still names the stale pin.\"* The only place to put that message on a `ready: true` return is `ActiveScopeInspection.message`. Pin-read the allow path:\n\n```ts\n// dispatcher.ts:2206\nconst allowMessage = withOccupancyWarning(\n  `Directive ${isSpawnTool(toolName) ? \"spawn\" : \"write\"} gate passed for ${toolName}.`,\n);\n```\n\n`scope.message` is **discarded on the allow path.** It is read only inside `if (!scope.ready)`. So B-as-drafted lands a warn string into a field the dispatcher never surfaces, and the operator sees `Directive write gate passed for Write.` — nothing else. That is precisely *\"silent single-eligible fallback with no warn naming the stale pin,\"* which Prefer-A's own Reject list forbids. **B as written violates its own Reject clause at the land site.**\n\n**Amendment (reuses existing shape):** add `readonly warning?: string` to `ActiveScopeInspection` and thread it into `allowMessage` the way `withOccupancyWarning` already composes an advisory onto an allow. That is a two-site change — `scope.ts` producer and `dispatcher.ts:2206` consumer — and the Bound must name both or B cannot be verified.\n\n### C5 (P3, blocking) — B's trigger is wider than its prose and re-opens the #4007 hazard\n\nB's prose: *\"the named path is absent from eligible, and exactly one other brief is eligible.\"* Read literally, that is **true on the `:218` branch too** — a pinned blocked brief is \"absent from eligible.\" So a worker who pinned brief X (present, blocked) with one other eligible brief Y would be bound to **Y**, writing under Y's `file_scope` and stamping evidence against the wrong story. The operator stated their intent explicitly and the fence overrode it.\n\n**Amendment:** B fires **only** on the no-match branch (`:224`). On `:218` — pin resolved, brief ineligible — stay fail-closed; the operator named a brief and deserves the reason it failed, not a different brief.\n\nAlso worth stating plainly: the common cause of a stale pin is that the pinned brief just **completed** and moved out of `active/`. The \"sole eligible brief\" is then usually an *unrelated* story. B trades a hard deny for a silent mis-attribution. #4007 fail-closed exists because binding the wrong story over-permits; B re-admits that failure in a one-eligible shape. It is bindable only with C4's surfaced warn plus C5's narrowed trigger — not on the warn's good intentions alone.\n\n### C6 (P3, design tension) — the same file already decided the opposite, in a doc comment\n\n`scope.ts:308-317`, on `resolveSoftMissingAcTargets` (#4285):\n\n> *\"Do not reuse `inspectActiveScope` readiness: **one preflight-eligible leftover must not win without a pin**, and a pinned blocked / preflight-ineligible story must still run acceptance.\"*\n\nThat is the in-repo articulation of exactly B's hazard, and it independently corroborates C5. Note too that `resolveSoftMissingAcTargets` is a **second** pin resolver (`scope.ts:337-352`) that Prefer-A does not touch: after B, the write fence falls back to the sole eligible brief while check/verify-AC soft-missing composition still returns `need-pin` and fails closed. Two pin resolvers, two answers for the same stale pin.\n\n**Amendment:** the Bound must either (a) explicitly overturn the #4285 principle for the write fence and say why the contexts differ — AC composition is read-shaped, the write fence is authority-shaped, so arguably the *fence* deserves the stricter rule, not the looser one — or (b) scope-fence B and record the divergence. Silently diverging two resolvers in one file is the worst of the three.\n\n## Non-blocking leftover\n\n**C7** — `dispatcher.ts:2135-2139` (`multiple-eligible`) carries the same defect A is fixing: it tells the agent to *\"set `DEFT_ACTIVE_SCOPE` to the dispatched story path,\"* which a dispatched worker cannot do for host-level env under the #4880 constraint. A's honesty standard should apply symmetrically or this stays a known-dishonest branch. Flagging as a leftover, **not** proposing Bound expansion.\n\n## Test plan — Prefer-A's three cases under-cover its own change\n\nPrefer-A's cases miss every branch this critique found. Required additions:\n\n1. **pin names a blocked brief, zero other eligible** → recovery names `deft scope:unblock -- <brief>`, not promote/activate and not clear-or-repoint (C2).\n2. **pin names a present-but-ineligible brief** → message names the pin *and* the evaluator reason; no fallback fires even with one other eligible (C3, C5).\n3. **warn surfacing asserted at the dispatcher allow site**, not only as a `scope.ts` unit return — assert the string reaches `allowMessage`. A `scope.ts`-only test passes while the operator sees nothing (C4).\n4. **pin-miss, exactly one eligible** → bound path is the eligible brief **and** the surfaced allow text names the stale pin.\n5. **pin-miss, multiple eligible** → still deny (Prefer-A has this; keep).\n\n## Bindable form\n\nAccept A with C1 (split `pin-miss` / `pin-ineligible`), C2 (route pinned-blocked to `scope:unblock`), C3 (attribute the pin on the ineligible branch). Accept B **only** with C4 (`warning` field threaded to `allowMessage`) and C5 (fires on `:224` only), and with C6 resolved explicitly in the Bound text. Without C4 and C5, B should be dropped from this Bound rather than landed — A alone already retires P1 and P2, and A+C2 is a strictly larger honesty win than B.\n\nKeep Prefer-A's Reject list and Deferred list unchanged; nothing here asks to soften multiple-eligible, fold in #4880, or add silent fallback.\n\nconflict_group: stale-active-scope-pin-recovery\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\nTarget-digest: sha256:81592aa78012d22da21f9bf58409cea87e7ca55df6865b3ed1a3519b8492181f\narc-mode: no-ingest\n\n",
+          "id": 6020423230,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020423230",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:10:34Z",
+          "updated_at": "2026-10-06T16:10:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: when DEFT_ACTIVE_SCOPE points at a finished or missing story, every agent edit is blocked, and the error tells the agent to promote/activate a new story — a path the worker cannot take because it cannot change the host's environment variable. Expected: say the pin is stale or the pinned brief failed preflight, tell the operator how to clear/repoint and restart, and when the env pin simply names nothing and exactly one live story remains, warn and use that story instead of freezing the run.\n\nAccepted solution: Prefer-A Bound after round-1 critics (codex 6020382101, grok 6020407003, claude 6020423230). Keep honest pin-miss recovery, but split missing-pin from matched-but-rejected. Narrow warn+fallback to env-pin-with-no-scanned-match + no boundPath + exactly one eligible, and surface the warn on the dispatcher allow path (not a silent inspector-only message).\n\nLean: Prefer-A Bound\nSpec-path: Prefer-A\nAccept-into-contract: true\narc-mode: no-ingest\nconflict_group: stale-active-scope-pin-recovery\nTarget-digest: sha256:81592aa78012d22da21f9bf58409cea87e7ca55df6865b3ed1a3519b8492181f\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5386\nRound-1 critics: 6020382101 (codex), 6020407003 (grok), 6020423230 (claude)\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n\n1. **Split pin-miss diagnosis in inspectActiveScope / recovery.** Keep denyKind pin-miss, but make recovery source-aware:\n   - **Env pin, no scanned match** (formatMissingPinMessage path): say the named path is absent from active/; recovery is clear or repoint DEFT_ACTIVE_SCOPE to an eligible brief, then restart the host so the hook sees the change. Do not use SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE as primary recovery.\n   - **Pin matched a scanned artifact but preflight rejected it** (rejections.get path): keep the evaluator reason; always name the pin/binding that was in play; do not tell the operator the pin is \"absent\" or that clearing the pin is the fix when the pin is correct. When the rejection is blocked-status, keep scope:unblock reachable (do not let the pin branch erase the zero-eligible-blocked recovery).\n   - **Explicit boundPath miss**: deny with binding-aware copy; do not imply changing DEFT_ACTIVE_SCOPE repairs a boundPath that wins over env.\n\n2. **Dispatcher pin-miss recovery branch.** In packages/core/src/hooks/dispatcher.ts, special-case denyKind pin-miss (alongside zero-eligible-blocked / multiple-eligible) so Write/Edit does not fall through to promote/activate. Source-aware text per limb 1. Spawn-tool multi-path recovery may remain broader; this Bound's honesty obligation is on direct Write/Edit pin-miss.\n\n3. **Narrow single-eligible warn+fallback (P3).** Only when all hold: nonempty environment DEFT_ACTIVE_SCOPE, no nonempty explicit boundPath, pin has no scanned match, exactly one eligible brief. Then bind that sole eligible path. Preserve hard deny for: matched-but-rejected pins (including blocked), explicit boundPath misses, zero eligible, multiple eligible. Do not authorize a different story's file_scope when the operator/dispatch explicitly pinned or bound a present-but-rejected brief.\n\n4. **Observable warn on allow path.** Add a distinct warning carrier on ActiveScopeInspection (or reuse the existing withOccupancyWarning / occupancyWarning shape) that the dispatcher merges into allowMessage when ready:true after limb-3 fallback. The warn must name the stale env pin and the selected brief. Inspector-only message fields that the allow path discards do not satisfy this limb. Dispatcher-level test must assert the emitted allow message contains both paths.\n\n5. **Tests.** Env miss + 0/1/many eligible; matched-rejected pin + one eligible alternative (still deny with evaluator reason); explicit boundPath miss + one eligible alternative (still deny); valid boundPath overriding stale env; valid pin unchanged; Write/Edit pin-miss recovery asserts clear/repoint+restart and does not lead with scope:promote/scope:activate; one-eligible env-miss asserts selected scopePath and allow-message warning naming both paths.\n\n### Reject / out of contract\n\n- Promote/activate as primary Write/Edit recovery for env pin-miss.\n- Silent ready:true fallback with no dispatcher-visible warn.\n- Fallback from matched-but-rejected or boundPath miss to another eligible story.\n- Softening multiple-eligible (#4007).\n- Closing #4880 or auto-clearing User-level env from scope:complete inside this Bound.\n\n### Deferred\n\n- Doctor detect of stale User/system DEFT_ACTIVE_SCOPE.\n- Auto-clear DEFT_ACTIVE_SCOPE on scope:complete (host permission).\n- Host end-to-end rendering verification beyond dispatcher allowMessage assertion (call out as follow-up if needed).\r\n\n",
+          "id": 6020440876,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020440876",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:11:34Z",
+          "updated_at": "2026-10-06T16:11:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: sharpening\nharvest-changed: false\n\n## Verdict\n\nPrefer-A Bound 6020440876 **relieves P1, P2 and P3** and is bindable as posted. Every limb is landable at `b6a5f5b` without rewriting a limb. Residue is three implementation-obligation sharpenings (S1-S3) plus two footnotes; none of them require a Bound limb to change.\n\nInputs: Stop 1 6020324229, Bound 6020440876, round-1 critics 6020382101 / 6020407003 / 6020423230 as named by the lean. Verification: `git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:` on `packages/core/src/hooks/scope.ts` and `packages/core/src/hooks/dispatcher.ts`. No sibling posts, no later thread comments, no head-revision reads.\n\n## P1 - relieved\n\n**Pain:** pin-miss falls through to `SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE`, which a dispatched worker cannot execute (#4880).\n\n**Land-site evidence.** `dispatcher.ts:2126-2150` is an if/else chain over `scope.denyKind`: proposed-lifecycle arm (2126), `zero-eligible-blocked` (2133), `multiple-eligible` (2135), then a terminal `else` (2140-2150) whose **both** arms name `SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE` (2144 exempt, 2149 non-exempt). `pin-miss` has no branch, so it lands in that else. Confirmed at the pin.\n\n**Why the Bound relieves it.** Limb 2 inserts the missing branch \"alongside zero-eligible-blocked / multiple-eligible\" - i.e. inside that same chain, which is the only correct insertion point: before the terminal else, after the `xbrief/proposed/` arm at 2126 so a stale pin does not cost a proposal write its #2625 hint. Limb 5 binds the negative assertion (recovery does not lead with `scope:promote` / `scope:activate`) and the positive one (clear/repoint + restart). Limb 2's explicit carve of spawn multi-path recovery (2109-2123) keeps the obligation on the Write/Edit denominator Stop 1 actually names.\n\nUnchanged and correct: the `outsideRoot` carve-out at 2102-2108 means out-of-root Write/Edit never reaches the pin-miss branch at all.\n\n## P2 - relieved\n\n**Pain:** the pin-miss deny does not clearly say the named path is absent or otherwise ineligible, so a stale env pin reads as a broken lifecycle story.\n\n**Land-site evidence.** `pin-miss` is emitted from two structurally different returns:\n\n- `scope.ts:216-218` - pin **matched** a scanned artifact, preflight rejected it. `message` is the bare `rejections.get(matched)` evaluator string. It never mentions that a pin was in play. This is the misdiagnosis-prone shape and `formatMissingPinMessage` is never called on it.\n- `scope.ts:220-226` - no match. `formatMissingPinMessage` (149-154) does echo the pin, but its phrase \"does not name an eligible running xBRIEF\" conflates absent-from-`active/` with present-but-rejected - the exact either/or that P2 calls a non-diagnosis.\n\n**Why the Bound relieves it.** Limb 1 splits the diagnosis at the source into the three cases the land site actually produces (env-no-match / matched-but-rejected / explicit `boundPath` miss), requires the pin or binding be named on **every** arm (fixing 216-218), and forbids telling the operator to clear a pin that is correct. Limb 1 bullet 3 also recovers the one branch where **setting a pin strictly degrades the deny**: `blocked` is computed at `scope.ts:243` *after* the pin branch returns at 203-227, so a pinned blocked brief today yields `pin-miss` and the `deft scope:unblock` recovery at `dispatcher.ts:2133-2134` is unreachable. Keeping `scope:unblock` reachable is the largest single honesty win in this Bound and it is in-contract.\n\n## P3 - relieved\n\n**Pain:** stale/absent pin plus exactly one eligible brief hard-denies instead of warn+fallback.\n\n**Land-site evidence.** `pinFrom` (76-80) gives `boundPath` strict precedence over `DEFT_ACTIVE_SCOPE`, so the pin branch cannot tell source apart without re-reading `options.boundPath`. The fallback site is the final `return` of the pin branch (220-226), reached only when `matched === null`. The unpinned sole-eligible bind already exists at 229-232.\n\n**Why the Bound relieves it.** Limb 3's four conditions map one-to-one onto that structure: `matched === null` is exactly \"no scanned match\", which structurally excludes the matched-but-rejected arm at 216-218 (and therefore the pinned-blocked case), and \"no nonempty explicit boundPath\" is implementable by reading `options.boundPath` directly rather than through `pinFrom`. Limb 4 supplies the carrier the warn previously lacked - `scope.message` is read only inside `if (!scope.ready)`; `allowMessage` at 2206 is built from generic text plus `occupancyWarning` and discards the inspection message entirely.\n\n**Affirmative defense the Bound earns but does not state.** In the narrowed form, limb 3 does not reopen #4007. The fallback binds the *same* path an unpinned worker in the same tree already gets at 229-232, so the authority ceiling is identical to the no-pin case; the only delta is the operator's discarded intent signal, and limb 4 surfaces precisely that. The #4285 doc-comment principle at 308-317 (\"one preflight-eligible leftover must not win without a pin\") is not violated either: there, *zero* pin would silently pick a leftover among many scanned; here, exactly one brief clears the evaluator and the pin's loss is announced.\n\n## Sharpenings (non-harvest; implementation obligations under existing limbs)\n\n### S1 - \"source-aware text\" in the dispatcher has no discriminator; name the composition site\n\nLimb 1 keeps a single `denyKind: \"pin-miss\"` (declining the C1 split). Limb 2 then asks the dispatcher branch for \"source-aware text per limb 1\". At the pin, `ActiveScopeInspection` (scope.ts:18-23) carries only `ready` / `path` / `message` / `denyKind`, and `dispatcher.ts:2133-2139` branches on `denyKind` alone - so a single token cannot drive three different recoveries from the dispatcher side.\n\nThis is bindable, because one reading is coherent: **all** pin-miss recovery copy (including the limb-1-bullet-3 `deft scope:unblock -- <brief>` string, which today exists only at `dispatcher.ts:2134`) is composed in `scope.ts` and the dispatcher's new branch merely suppresses the promote/activate hint - `proposedPathHint = \"\"`. Nothing in any limb forbids that, and limb 5's assertions pass under it.\n\nThe hazard is the other reading. An implementer who branches in the dispatcher has no field and will reach for string-sniffing `scope.message` - a pattern this very file already demonstrates at `scope.ts:195` (`result.message.includes(\"plan.status is 'blocked'\")`) and which couples hook recovery copy to evaluator prose. Limb 4 is already adding a field to `ActiveScopeInspection`, so a discriminator is near-free if that is the preferred shape.\n\n**Obligation:** the implementer picks one and states it in the commit - either copy is composed in `scope.ts` and the dispatcher branch only suppresses, or a discriminator field lands alongside limb 4's warn carrier. Do not string-match evaluator prose in `dispatcher.ts`.\n\n### S2 - the pin value is untrusted and currently unfenced; limb 4 moves it onto the allow path\n\n`formatMissingPinMessage` (149-154) interpolates the raw `DEFT_ACTIVE_SCOPE` value with no fencing, while every filesystem-derived name in the same file goes through `fenceActiveScopeName` (125-127) under a doc comment (121-124) that is explicit about why: *\"deny copy is operator-visible hook text ... names are fenced and CR/LF-collapsed so they cannot break markdown or inject copy.\"* The pin is host/user environment - further outside the repo trust boundary than the basenames that *are* fenced.\n\nThe Bound expands that surface twice. Limb 1 requires the pin/binding be named on every pin-miss arm, including 216-218 where it is not named today. Limb 4 requires the warn to name the stale env pin **on the allow path** - the first time this value reaches text an agent reads after a write succeeded. A pin value containing CR/LF plus imperative prose would then be appended to `Directive write gate passed for Write.` and read as gate output.\n\n**Obligation:** route the pin through `fenceUntrustedAcceptanceText` (or `fenceActiveScopeName`'s collapse) at every new naming site, allow path included. This is the file's existing in-contract invariant, not a new limb. Add one test asserting a CR/LF-bearing pin cannot inject lines into the limb-4 allow message.\n\n### S3 - limb 3's spawn applicability is unspecified, and limb 4's suggested carrier is write-path-coupled\n\nTwo land-site details limb 3 and limb 4 do not resolve.\n\n**Spawn.** `dispatcher.ts:2078-2087` synthesizes `boundPath` for spawn tools from `uniqueActiveBasenameFromDestPath(spawnConsult?.destPath ?? null)` - which can return `null`. When it does and the env pin is stale, limb 3's four conditions all hold for a **spawn**, so the fallback fires and the cohort binds the sole eligible brief. Limb 2 explicitly carves spawn out of the *deny* honesty obligation; limb 3 and limb 5 are silent on spawn entirely. I read the behavior as correct (it equals the unpinned spawn bind at 229-232, and limb 4's warn then rides to the spawn allow via `${allowMessage} ${spawnReservation.message}` at 2283) - but it is unstated and untested.\n\n**Carrier.** Limb 4 offers \"reuse the existing `withOccupancyWarning` / `occupancyWarning` shape\". `occupancyWarning` (1946) is assigned **only** inside `recheckOccupancyBeforeWriteAllow`, which is called only under `if (!isSpawnTool(toolName))` (2199-2204) and from the two proposed-lifecycle exempt allows (2049). Those exempt allows return at 2043-2060, *before* `inspectActiveScope` runs at 2084 - so they can never carry a scope warn. Reusing the variable itself would silently drop the warn on the spawn path; reusing only the *compose* idiom (a separate carrier merged into `allowMessage` at 2206) keeps both paths honest.\n\n**Obligation:** state in the implementation whether limb-3 fallback applies to spawn (I recommend yes, unchanged from unpinned), merge the warn via a carrier independent of `occupancyWarning`, and add the spawn case to limb 5's test list.\n\n## Footnotes\n\n- **F1 - second pin resolver still diverges, and the Bound does not record it.** Round-1 critic 6020423230 (C6) asked the Bound to either overturn the #4285 principle for the write fence or record the divergence. The Bound does neither: `resolveSoftMissingAcTargets` (337-362) is an independent pin resolver with its own `pin-miss` and its own unfenced pin interpolation at 346-350, and after limb 3 the same stale env value will fall back at the fence while still returning `need-pin` for AC composition. I agree this is out of contract for P1-P3 relief - the divergence is defensible (AC selection is read-shaped, the fence is authority-shaped) - but it costs one Deferred bullet to say so, and S2's fencing obligation applies to 346-350 on the same grounds if that line is ever touched. Note `denyKind` on `SoftMissingAcTargetResolution` has no consumer at this SHA, so there is no cross-contamination with limb 2's new branch.\n- **F2 - `multiple-eligible` stays knowingly dishonest.** `dispatcher.ts:2136-2139` and `formatMultipleActiveMessage` (129-139) both tell the agent to \"set `DEFT_ACTIVE_SCOPE`\", which is the same unreachable instruction under #4880 that limb 2 is removing from the pin-miss path. Raised as C7 in 6020423230 as a leftover, not an expansion; it survives this Bound. Agreed as leftover - it is a different denyKind and a different pain. Worth a follow-up issue rather than a limb.\n\n## Bottom line\n\nThe Bound's three `relieves:` claims are all land-site supported. Limb 3's narrowing correctly absorbs the round-1 convergence (6020382101 section 2, 6020407003 F2, 6020423230 C5) and limb 4 closes the no-carrier defect all three critics independently found. Limb 1 bullet 3 is the quietly best limb - it repairs a branch where pinning made the deny *worse*, which no pain statement asked for.\n\nNo limb needs to change. Bind as posted, with S1-S3 carried into the implementation commit and S3's spawn case added to the limb-5 test list.\n\n",
+          "id": 6020518539,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020518539",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:15:59Z",
+          "updated_at": "2026-10-06T16:15:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nrecorded takes for audit 6020518539\n\ntake: bindable-as-posted\nfinding-classes: sharpening\nharvest-changed: false\n\nPer-heading takes:\n- P1 relieved — carry S1 as implement acceptance (pin-miss source discriminator / composition site for source-aware dispatcher text; do not string-sniff evaluator prose).\n- P2 relieved — carry S2 as implement acceptance (fence the pin value on formatMissingPinMessage / allow-path warn; pin enters allow path for the first time under limb 4).\n- P3 relieved — carry S3 as implement acceptance (limb 3 spawn applicability when boundPath null; limb 4 warn carrier must not be write-path-coupled in a way that drops spawn cases Prefer-A already carved).\n\nResidue is non-harvest sharpening only; no Recut; Dual-stop reserved seat consumed by 6020518539.\r\n\n",
+          "id": 6020528679,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020528679",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:16:32Z",
+          "updated_at": "2026-10-06T16:16:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| pin-miss Write/Edit currently falls through to SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE | verified | dispatcher.ts denyKind chain terminal else; critic/PA land-site cites |\n| pin-miss is two failures (matched-rejected vs no scanned match) | verified | scope.ts:216-218 vs :220-226; Claude critic 6020423230; PA 6020518539 |\n| ready:true drops scope.message on allow path today | verified | dispatcher allowMessage construction; grok 6020407003; codex 6020382101 |\n| Prefer-A Bound 6020440876 relieves P1–P3 with harvest-changed false | verified | pain-audit 6020518539 |\n| Non-harvest sharpenings S1–S3 carry into implement acceptance | recorded | parent takes for 6020518539 |\n| #4880 remains out of Bound (sibling cross-link) | verified | Prefer-A Bound Reject / Deferred; #4880 Related |\r\n\n",
+          "id": 6020529054,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020529054",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:16:34Z",
+          "updated_at": "2026-10-06T16:16:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: a stale DEFT_ACTIVE_SCOPE that names a finished or missing story blocks every agent write, and the error tells the worker to promote/activate — which it cannot do because it cannot change the host environment. Operators also cannot tell a missing pin from a pinned brief that failed preflight.\n\nAccepted solution: Prefer-A Bound 6020440876. Split pin-miss into missing vs matched-but-rejected with honest recovery; for env-pin-with-no-scanned-match and exactly one eligible story (and no boundPath), warn on the dispatcher allow path and fall back to that story; keep #4880 and auto-clear as siblings/deferred. Pain-audit 6020518539 supports P1–P3 with non-harvest sharpenings S1–S3 carried into implement acceptance.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set) on Prefer-A Bound after reserved-seat pain-audit bindable-as-posted.\n\nCited: successor lean 6020440876\nCited: verified-claims table 6020529054\nCited: pain-audit 6020518539 (support P1/P2/P3; finding-classes: sharpening; harvest-changed: false)\nCited: recorded takes 6020528679\n\nRound-1 panel (codex 6020382101, grok 6020407003, claude 6020423230) required A+B amendments (source-aware pin-miss, observable allow-path warn, env-pin-only fallback carve). Prefer-A Bound folded those. Pain-audit cleared without Recut.\n\narc-mode: no-ingest\nconflict_group: stale-active-scope-pin-recovery\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\nIngest remains a separate operator verb (ask issue:ingest).\r\n\n",
+          "id": 6020532212,
+          "html_url": "https://github.com/deftai/directive/issues/5386#issuecomment-6020532212",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:16:45Z",
+          "updated_at": "2026-10-06T16:17:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "**Environment:** Directive 0.121.0 (engine + package), Windows 11 Pro 26200, Claude Code host, PowerShell, linked worktree off `main`.\n\n**Ownership:** mixed. The trigger is ours: `DEFT_ACTIVE_SCOPE` was left set at Windows User level, pinning a story that later completed. The Directive part is the diagnosis and the recovery text.\n\n## Repro\n\n1. Set `DEFT_ACTIVE_SCOPE=xbrief/active/<story-A>.xbrief.json` (User env), then complete story A (`scope:complete`) so the brief leaves `active/`.\n2. Activate story B; it is now the only brief in `xbrief/active/`.\n3. From a dispatched worker in a fresh worktree, Edit any in-scope file of story B.\n\n## Actual\n\nEvery direct write is denied with:\n\n```\nDEFT_ACTIVE_SCOPE does not name an eligible running xBRIEF under xbrief/active/ (got xbrief/active/2026-10-05-deft-feedback-skill.xbrief.json)\n```\n\nThe recovery text says to promote or activate a proposal. It doesn't say the named file is absent, or that the fix is to clear or repoint the variable.\n\n## Expected\n\nWhen the pinned path doesn't exist, the deny says so and names the fix: clear `DEFT_ACTIVE_SCOPE` or repoint it to an existing brief, then restart the host so the hook sees the change. Better still, if the pin is absent and exactly one brief is eligible, warn and fall back to that brief.\n\n## Why the wording matters for agents\n\nA dispatched worker can't change the host process env (same constraint as #4880). The current text sends it down a path it can't act on.\n\n## Cost\n\nEstimates from the worker transcript, unmeasured: ~3 failed edits, ~10 min before diagnosis; the worker run halted and needed an operator env change plus a host restart.\n\n## Related\n\n- #4880: fence asks a worker to *set* a host-only var; this is the stale-value inverse.\n- #4771 / #4818: active-scope propagation.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5716603685,
+        "origin": "deftai/directive#5386",
+        "id": "github.issue.5716603685"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "81592aa78012d22da21f9bf58409cea87e7ca55df6865b3ed1a3519b8492181f"
+      },
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/scope.test.ts"
+        ],
+        "conflict_group": "stale-active-scope-pin-recovery",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/hooks/dispatcher.test.ts packages/core/src/hooks/scope.test.ts"
+        ],
+        "expected_outputs": [
+          "Tracking PR for #5386 Prefer-A Bound stale DEFT_ACTIVE_SCOPE pin-miss recovery"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "Traces": [
+          "#5386",
+          "lean:6020440876"
+        ]
+      },
+      "productPullRequest": 5433,
+      "productMergeCommit": "b46f8c4d15382cfd2da77f10958fe4629848b759",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-06T22:20:50.804Z"
+      },
+      "completedAt": "2026-10-06T22:20:50.804Z",
+      "completionProvenance": {
+        "productMerge": "b46f8c4d1",
+        "productPr": 5433,
+        "disposition": "delivered",
+        "verifier": "approach1-leftover-stamp-residual",
+        "recorded_at": "2026-10-06T22:20:50.804Z"
+      }
+    },
+    "id": "github.issue.5716603685",
+    "updated": "2026-10-06T20:39:33Z"
+  }
+}
