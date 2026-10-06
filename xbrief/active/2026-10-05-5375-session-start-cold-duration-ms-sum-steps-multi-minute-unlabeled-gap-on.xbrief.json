@@ -1,0 +1,133 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "session:start cold: duration_ms ≫ sum(steps[]) — multi-minute unlabeled gap on Windows",
+    "updated": "2026-10-05T22:40:00Z"
+  },
+  "plan": {
+    "id": "github.issue.5714501280",
+    "title": "session:start cold: duration_ms ≫ sum(steps[]) — multi-minute unlabeled gap on Windows",
+    "status": "running",
+    "items": [
+      {
+        "id": "1",
+        "title": "Exclusive cold instrumentation into steps[]",
+        "status": "completed"
+      },
+      {
+        "id": "2",
+        "title": "Close measurement interval before process-cost emit",
+        "status": "completed"
+      },
+      {
+        "id": "3",
+        "title": "Operator-visible honesty line with residual",
+        "status": "completed"
+      },
+      {
+        "id": "4",
+        "title": "Instrument rearm + named finalize_owed step",
+        "status": "completed"
+      },
+      {
+        "id": "5",
+        "title": "Two-sided honesty regression + one cold row before cut",
+        "status": "completed"
+      }
+    ],
+    "acceptance": {
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound lean 6002843106; cohort-add hand-stamp",
+      "commands": [
+        "pnpm exec vitest run packages/core/src/session/process-cost.test.ts packages/core/src/session/session-start.test.ts packages/core/src/session/session-start-rearm.test.ts"
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Record exclusive phase timings for Bound-1 enum; fix orientation double-count so sum(exclusive leaves) is honest.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "Move totalMs capture to last statement before emitSessionStartProcessCost on cold and rearm.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "Print labeled exclusive phases plus unaccounted residual; compact mode must not hide large residual.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Replace rearm hardcoded zero stepTimings with real measurements; add finalize_owed named step; keep #5145 defer-owed short-circuit.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 5,
+          "text": "Fixture fails when |duration_ms - sum(exclusive leaves)| exceeds tolerance; capture one real cold row before cut/skip-when-warm.",
+          "artifact_path": "packages/core/src/session/session-start.test.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5714501280,
+        "origin": "deftai/directive#5375",
+        "id": "github.issue.5714501280"
+      },
+      "preferABound": {
+        "lean": 6002843106,
+        "conflict_group": "session-start-cold-duration-gap"
+      },
+      "swarm": {
+        "conflict_group": "session-start-cold-duration-gap",
+        "size": "M",
+        "file_scope": [
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start.test.ts",
+          "packages/core/src/session/session-start-rearm.test.ts",
+          "packages/core/src/session/session-start-read-only.test.ts",
+          "packages/core/src/session/process-cost.ts",
+          "packages/core/src/session/process-cost.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "Prefer-A Bound land"
+        ],
+        "depends_on": [],
+        "file_scope_confidence": "high",
+        "model_tier": "default"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5375",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5375: session:start cold: duration_ms ≫ sum(steps[]) — multi-minute unlabeled gap on Windows"
+      }
+    ],
+    "tags": [
+      "prefer-a",
+      "cohort"
+    ],
+    "narratives": {
+      "overview": "session:start cold: duration_ms ≫ sum(steps[]) — multi-minute unlabeled gap on Windows"
+    },
+    "updated": "2026-10-05T22:40:00Z"
+  }
+}
