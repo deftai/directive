@@ -66,7 +66,9 @@ function normalizeLabel(raw: string): string {
 }
 
 export function isHatchAliasText(text: string): boolean {
-  return QUESTION_HATCH_ALIASES.has(normalizeLabel(text));
+  // Free-text hatch input is exact display match (trim + casefold only).
+  // Do not strip numbered-option prefixes — "1. Discuss" is not a hatch alias (#5373).
+  return QUESTION_HATCH_ALIASES.has(text.trim().toLowerCase());
 }
 
 export function isBackLabelText(text: string): boolean {

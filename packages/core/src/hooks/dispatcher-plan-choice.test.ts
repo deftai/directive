@@ -150,6 +150,8 @@ describe("question hatch gate (#5373)", () => {
     expect(evaluateHatchPresence(missing[0]?.labels ?? []).ok).toBe(false);
     expect(isHatchAliasText("I have questions")).toBe(true);
     expect(isHatchAliasText("Other")).toBe(false);
+    expect(isHatchAliasText("1. Discuss")).toBe(false);
+    expect(isHatchAliasText("1. I have questions")).toBe(false);
   });
 
   it("denies ask_user_question missing Discuss then Back (Grok reason-only render)", () => {
