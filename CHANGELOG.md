@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Widen #5390 Path B brief for worktrees.test.ts membership.** Lands `packages/core/src/swarm/worktrees.test.ts` on the merge-base file_scope so the product PR can restore the versioned payload fixture without failing verify:scope-provenance (#5192). Leaves metadata.productPullRequest unset. Tracking #5390.
+
 - **Keep active #5390 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5390.
 
 ### Changed
