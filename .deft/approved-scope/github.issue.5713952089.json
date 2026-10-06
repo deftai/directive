@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-05-5373-bugdeterministic-questions-multi-choice-must-always-show-har.xbrief.json",
+  "planId": "github.issue.5713952089",
+  "approvedAt": "2026-10-06T13:16:35Z",
+  "fileScope": [
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "content/contracts/deterministic-questions.md",
+    "content/templates/agent-prompt-preamble.md",
+    "content/templates/agents-entry.md",
+    "docs/RULE-MAP.md",
+    "packages/core/src/content-contracts/skills/deterministic_questions.test.ts",
+    "packages/core/src/hooks/dispatcher-plan-choice.test.ts",
+    "packages/core/src/hooks/dispatcher-plan-choice.ts",
+    "packages/core/src/hooks/dispatcher.ts",
+    "packages/core/src/hooks/tools.test.ts",
+    "packages/core/src/hooks/tools.ts",
+    "packages/core/src/tool-events/classify.ts",
+    "packages/core/src/tool-events/index.ts"
+  ],
+  "fileScopeDigest": "a4a47cea1de274f13b840af3225e2742cac82886b00d021aa0cc8489cea65777",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-06T13:16:34Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "3d8fb04e04df1f57759eebb5b49173317f10a7ca9b185ffba80af5eba239cbaf",
+  "digestAlgo": "intent-extract-v1"
+}
