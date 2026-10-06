@@ -1,0 +1,759 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "[framework-gap] bug(content): consumer debug skill names an absent investigation template",
+    "narratives": {
+      "Description": "[framework-gap] bug(content): consumer debug skill names an absent investigation template",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5195",
+      "Overview": "\n\n1. Recut P1 pack-root the MUST resources: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `stageContentPack` copies `content/`, engine entries, and harness files; repo-root `docs/reference/forensic-research/` is outside that set. Place native copies under `content/skills/deft-directive-debug/` (`templates/investigation.xbrief.json` and `references/outcome-template.md`), derived from the vendored files, not moved. Leave `docs/reference/forensic-research/` untouched. Do not extend `stageContentPack` to copy repo-root `docs/`. Do not deposit the whole vendored bundle.\n2. Recut P1 skill path: edit `content/packs/skills/skills-pack-0.1.json` then `task packs:render`. Skill MUST paths name the pack-relative objects that flatten (`skills/deft-directive-debug/...`). `file_scope` includes the pack JSON. Do not edit only generated `content/skills/deft-directive-debug/SKILL.md`.\n3. Recut P1 ledger identity: output filename `investigation.xbrief.json`; new writes use `\"xBRIEFInfo\": { \"version\": \"0.8\" }`; keep `plan.metadata.x-investigation.profile === \"forensic-research-v1\"` and the claim/branch/wave fields `verify:investigation` already checks. Ledgers stay under `.tmp/investigations/`, not `./xbrief/`. Fix \"thin xBRIEF 0.6 profile\" wording and the verify.yml desc example in the same change. Reject keeping the unchanged `vBRIEFInfo` 0.6 scaffold as written. The shipped scaffold omits `created` / `updated` (optional) and documents that `id` / `title` must be filled on MODE entry.\n4. Recut P1 parallel pointer: drop the parallel-wave MUST pointer this ship. Narrow any remaining mention to a non-MUST maintainer read. Do not ship `orchestrator-protocol.md` or its vendor MUST-reads (`forensic-mode.md`, `domains/`, `question-framing.md`, `subagent-prompts.md`, `investigation-profile.md`, `follow-ups.md`, `investigation.vbrief.json`). The leftover skill lines 28–32 read-only pointer to `docs/reference/forensic-research/` stays maintainer-only.\n5. Recut P1 regression: extend `content/contracts/deposit-required-paths.json` with `.deft/core/skills/deft-directive-debug/templates/investigation.xbrief.json` and `.deft/core/skills/deft-directive-debug/references/outcome-template.md`, and evaluate `evaluateDepositClosure` against a fresh `stageContentPack` result so those paths exist in the staged pack. Rewrite `debugging.test.ts` `test_skill_references_vendored_design` so it no longer locks the unreachable prefix. Validate a filled fixture (non-empty `id` and `title`, `forensic-research-v1`, waves/claims as the close gate requires) against `content/vbrief/schemas/xbrief-core-0.8.schema.json` and against `verify:investigation` `loadLedger`. Do not add a new global prose-path scanner. Do not treat a blank derived scaffold as the 0.8 subject.\n6. Preserve: close-gate profile check; `VENDORED.md` verbatim vendor tree.\n7. Exclude: filename-only add or retarget under repo-root `docs/`; deposit-time rewrite of skill text as a second authoring surface; treating other root-only `docs/` cites as this P1; shipping the vendored orchestrator protocol this ship.\n\nTarget-digest: sha256:4c1d1b0cfc25f19351385eae329a944483a59494679d942f88ed570fbe694930\n\n",
+      "Labels": "bug, agent-experience, process, source-of-truth, urgent, vendored-deposit, area:installer, area:skills, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Place native investigation.xbrief.json + outcome-template.md under content/skills/deft-directive-debug/"
+      },
+      {
+        "id": "2",
+        "title": "Edit authored skills-pack then packs:render; skill MUST paths name pack-relative flatten objects"
+      },
+      {
+        "id": "3",
+        "title": "Ship 0.8 xBRIEFInfo ledger scaffold with forensic-research-v1 profile; omit created/updated"
+      },
+      {
+        "id": "4",
+        "title": "Drop parallel-wave MUST pointer to orchestrator-protocol this ship"
+      },
+      {
+        "id": "5",
+        "title": "Extend deposit-required-paths + evaluateDepositClosure against stageContentPack; rewrite debugging test"
+      },
+      {
+        "id": "6",
+        "title": "Preserve close-gate profile check and VENDORED.md verbatim vendor tree"
+      },
+      {
+        "id": "7",
+        "title": "Exclude repo-root docs/ deposit extension and vendored protocol ship"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5195",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5195: [framework-gap] bug(content): consumer debug skill names an absent investigation template"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1621",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1621"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "\"xBRIEFInfo\": { \"version\": \"0.8\" }",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "plan.metadata.x-investigation.profile === \"forensic-research-v1\"",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "content/skills/deft-directive-debug/SKILL.md",
+          "content/skills/deft-directive-debug/templates/investigation.xbrief.json",
+          "content/skills/deft-directive-debug/references/outcome-template.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/contracts/deposit-required-paths.json",
+          "packages/core/src/content-contracts/standards/deposit_required_closure.test.ts",
+          "packages/core/src/content-contracts/standards/debugging.test.ts",
+          "tasks/verify.yml",
+          "docs/RULE-MAP.md"
+        ],
+        "Traces": [
+          "#5195",
+          "lean:5919652788"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the consumer debug skill requires docs/reference/forensic-research/templates/investigation.xbrief.json, and that file is absent from maintainer source and from the consumer deposit.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5195-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\ndest-wo: leftover-complete\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption with a refutation target\nspend: N≥3\nspend-ask: asked\nspend-why: operator \"use appropriate n\" (missing-token). Stop 2 panel permission: named xBRIEF template vs deposited vBRIEF ledger; competing remedies (ship investigation.xbrief.json vs retarget the skill to investigation.vbrief.json vs copy during packs:render/deposit); blast radius is every consumer following the deposited debug skill.\nDual-stop cap: 3 posts\n\npain: P1\n\ntarget: #5195\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: the deposited debug skill may name docs/reference/forensic-research/templates/investigation.xbrief.json as a consumer-reachable ledger template.\n\n## Gate stamp\n\nRound-1 ceiling is this write-back plus panel-deposit (spend N≥3). Families: grok, claude (opus), codex.\n\nP1 is an absent named template. The 0.119.12 consumer debug skill MUST write `investigation.xbrief.json` from `docs/reference/forensic-research/templates/investigation.xbrief.json`. At this SHA that path is missing. Maintainer source ships `templates/investigation.vbrief.json` (vBRIEF 0.6 profile) and `references/outcome-template.md`. The skill also points Outcome at that outcome template. A consumer following the deposited skill cannot read the stated ledger path. Expected recut: ship the required consumer-facing resources, or point the skill at a supported deposited template, with filenames/profile guidance consistent with the current xBRIEF authoring contract. A consumer should not need a separate maintainer checkout to enter the workflow.\n\nWhat this is not:\n\n- #1621 introducing the forensic-research vendor copy. Residual is the live skill naming a file the vendor copy does not ship under that name.\n- Unrelated hunter work.\n- Requiring consumers to author 0.8 xBRIEF by hand without a template.\n- Weakening the close gate `verify:investigation`.\n\nOpen forks the critic may take: add `investigation.xbrief.json` (0.8) next to the vBRIEF scaffold and keep the skill path; retarget the skill to `investigation.vbrief.json` and keep the 0.6 profile; copy the template into the consumer deposit during install/update; packs:render rewrite the skill onto the file that actually ships. Naming a path that still does not deposit does not relieve P1.\n\nRe-measured at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819` by pin-read.\n\nPin-read:\n\n- `content/skills/deft-directive-debug/SKILL.md` blob `3c9e24f0a2bac703fb0ac25fdd0c7247fff59e63`. Lines 69-72 name `docs/reference/forensic-research/templates/investigation.xbrief.json`. Lines 122-123 name `docs/reference/forensic-research/references/outcome-template.md`.\n- `docs/reference/forensic-research/templates/investigation.vbrief.json` blob `43efef5b5caba711887c75f0517983b0a44b38cb` present. `investigation.xbrief.json` absent at this SHA (`git show` missing).\n- `docs/reference/forensic-research/references/outcome-template.md` blob `118d936ea56b843c922b415c9e0743189f1655fc` present in maintainer source.\n\nCatalog chip design-critique:mechanism-shaped applied via task scm:issue:design-critique-chip as its own write.\n\n",
+          "id": 5919146146,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919146146",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:27:36Z",
+          "updated_at": "2026-09-30T20:27:36Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5919227359\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\n\n",
+          "id": 5919227359,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919227359",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:32:04Z",
+          "updated_at": "2026-09-30T20:32:05Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nCharter: refutation. Round 1, fresh critic. Input ceiling 5919227359 (matches the panel-deposit `input-ceiling:`; no mismatch). All reads pinned to `5a311bf5cb976ccaacdcfe939e630878135ab819`.\n\n## Refutation target\n\nRecorded target: the deposited debug skill may name `docs/reference/forensic-research/templates/investigation.xbrief.json` as a consumer-reachable ledger template.\n\nVerdict: **refuted.** The triage premise holds, and it is stronger than stated. The named file is missing. Its vBRIEF sibling is also unreachable for consumers, because the consumer deposit does not ship repo-root `docs/` at all (see F1).\n\nAnchors re-verified: the SKILL.md blob is `3c9e24f0`, lines 69-72 and 122-123 are as cited, and `git show` confirms the `.xbrief.json` template is absent. Classifying each debug-skill `docs/` cite against the tree at this SHA:\n\n- `docs/reference/forensic-research/templates/investigation.xbrief.json`: MISSING\n- `docs/reference/forensic-research/references/outcome-template.md`: ROOT-ONLY (not under `content/`)\n- `docs/reference/forensic-research/references/orchestrator-protocol.md`: ROOT-ONLY\n\n## Findings\n\n**F1 — blocks-the-design.** Repo-root `docs/` is not deposited, so fork 1 and fork 2 do not relieve P1.\n- Evidence: `packages/core/src/deposit/stage-content-pack.ts` `stageContentPack` copies only `content/*`, `ENGINE_ENTRIES` (`.githooks`, `Taskfile.yml`, `tasks`), and `HARNESS_ENTRIES` (`main.md`, `SKILL.md`). `packages/content/package.json` prepack runs only that stager. `content/docs/reference/` does not exist.\n- Failure mode: fork 1 (add `investigation.xbrief.json` next to the vBRIEF scaffold in `docs/reference/...`) and fork 2 (retarget the skill to `investigation.vbrief.json`) both point a consumer at a path outside `.deft/core/`. The consumer still cannot read the template, and P1 is unchanged.\n- Disposition: a lean that picks fork 1 or fork 2 cannot bind. The remedy must place the required resources under `content/`. Fork 4 fails the same way: a rendered rewrite to a path that is not staged changes nothing.\n\n**F2 — sharpens-framing.** Place directive-native copies next to the skill. Do not deposit the vendored bundle. The injection / swarm lens applies here.\n- Evidence: there is already precedent for skill-local assets that deposit: `content/skills/deft-directive-swarm/references/*.md` and `content/skills/deft-directive-design-critique/references/motion-shape.md`, both cited from their SKILL.md by a relative `references/...` path. `docs/reference/forensic-research/VENDORED.md` says the bundle is read-only, vendored verbatim, and \"do not repurpose this vendored copy as the live skill.\"\n- Failure mode: fork 3 as a whole-tree copy would deposit a second `SKILL.md` (upstream `forensic-research`) plus `examples/slizard/` into `.deft/core/`. That upstream skill's own artifact gate requires `investigation.vbrief.json` (`docs/reference/forensic-research/SKILL.md` lines 31, 38). Any agent that discovers skills by scanning for SKILL.md files would then see two conflicting live procedures for one workflow. Fork 1 also edits a tree that is supposed to stay verbatim.\n- Disposition: scope the remedy to `content/skills/deft-directive-debug/templates/investigation.xbrief.json` and `content/skills/deft-directive-debug/references/outcome-template.md` (derived from the vendored files, not moved). Leave `docs/reference/forensic-research/` untouched.\n\n**F3 — sharpens-framing.** The skill file is generated.\n- Evidence: SKILL.md lines 13-16 say `AUTO-GENERATED by task packs:render`, with the source of truth at `packs/skills/skills-pack-0.1.json`. At this SHA the real source is `content/packs/skills/skills-pack-0.1.json`, and its line 63 body carries both `forensic-research/templates/investigation.xbrief.json` and `outcome-template.md`.\n- Failure mode: if the fix edits only SKILL.md, the next `task packs:render` reverts it. The fix also fails `verify:scope-provenance` if the pack JSON is not in `file_scope`.\n- Disposition: `file_scope` must name the pack JSON. The fix edits the pack body, then re-renders.\n\n**F4 — sharpens-framing.** Version and name drift sits in three places. The close gate does not care which envelope is used.\n- Evidence: SKILL.md line 83 says \"thin xBRIEF 0.6 profile\", which is not a real combination (0.6 is `vBRIEFInfo`). The vendored template is `vBRIEFInfo` 0.6. The `tasks/verify.yml` `investigation` desc example uses `.../investigation.vbrief.json`. `packages/core/src/orchestration/verify-investigation.ts` checks only `plan`, `plan.items[]`, and `plan.metadata.x-investigation.profile == \"forensic-research-v1\"`. It never reads `vBRIEFInfo` / `xBRIEFInfo` or the version. `--ledger` takes any path.\n- Failure mode: if the fix ships a 0.8 template but leaves \"0.6 profile\" in the skill, an agent writes a mixed envelope. The gate still passes, so nothing catches the drift.\n- Disposition: 0.8 and 0.6 are gate-neutral. Pick 0.8 per the xBRIEF layout rule for new writes, and fix line 83 and the verify.yml desc example in the same change so only one name remains.\n\n**F5 — sharpens-framing.** Regression coverage should extend the existing walker, and its scope must be bounded.\n- Evidence: `packages/core/src/deposit/live-procedure-targets.ts` (#3602 / #3899) already walks staged-deposit markdown for targets the deposit lacks. It only flags `.py` helpers (`PY_HELPER_TOKEN`, `normalizePythonHelperTarget`, `extractBacktickPythonHelpers`), so backticked `.json` and `.md` paths get through. `packages/core/src/content-contracts/standards/debugging.test.ts` `test_skill_references_vendored_design` asserts that the skill contains `docs/reference/forensic-research/`. That test locks in the unreachable pointer.\n- Failure mode: a bespoke one-file test would add a second walker next to C3. A general non-`.py` extension would also flag about 8 other root-only `docs/` cites under `content/` (ADR-005, ADR-006, `docs/RELEASING.md`, `docs/subagent-heartbeat.md`, `docs/CATEGORY.md`, `docs/the-harness-is-everything.md`, a `docs/analysis/` pilot). Those would turn this P1 into a sweep.\n- Disposition: cover the debug skill's MUST-action inputs (the ledger template and the outcome template) against the staged pack, through the C3 walker or a targeted staged-pack assertion. Rewrite `test_skill_references_vendored_design` to match. Record the other root-only pointers as a separate class, not in this fix.\n\n**F6 — footnote.** `orchestrator-protocol.md` (skill line 97, parallel-wave pointer) is also ROOT-ONLY. Ship it next to the skill or drop the pointer. Either way, decide explicitly.\n\n**F7 — footnote.** I did not measure whether a 0.8 conversion of the template (`plan.edges`, `plan.references`, `metadata.x-investigation`) validates against `content/vbrief/schemas/xbrief-core-0.8.schema.json`, because ajv was unavailable offline here. The implementer should validate it before shipping.\n\n**F8 — footnote.** Injection lens: the issue body is `feedback:file` output from a consumer. It contains no instructions aimed at the agent. #1621 is treated as described content. The reporter's workaround (reading the template from a maintainer-source checkout) shows that consumer agents will go looking outside the deposit when a path is missing. Here that means reading data, not executing code, so the risk is low. F1 and F2 remove the cause.\n\n## Road not taken / steelman\n\nThe strongest rejected position is fork 2 (retarget to the existing `investigation.vbrief.json`): it is the smallest diff and keeps provenance intact. The verdict would flip only if `stageContentPack` staged repo-root `docs/reference/`, and at this SHA it does not.\n\n",
+          "id": 5919312936,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919312936",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:37:49Z",
+          "updated_at": "2026-09-30T20:37:49Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\ncharter: refutation\ntarget: #5195\nceiling: 5919227359\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\n\n## Refutation verdict\n\nThe recorded refutation-target does not survive.\n\n`git show 5a311bf5cb976ccaacdcfe939e630878135ab819:content/skills/deft-directive-debug/SKILL.md` (blob `3c9e24f0a2bac703fb0ac25fdd0c7247fff59e63`) MUST-writes the ledger `investigation.xbrief.json` from `docs/reference/forensic-research/templates/investigation.xbrief.json`. That path is missing at this SHA (`git cat-file -e` exit 128). The sibling file that does exist, `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:docs/reference/forensic-research/templates/investigation.vbrief.json` (blob `43efef5b5caba711887c75f0517983b0a44b38cb`), maps to pack-relative `None` under `mapSourceToPackRelative` as implemented in `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/deposit/rewrite-deposit-links.ts`. `stageContentPack` in `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/deposit/stage-content-pack.ts` copies `content/`, `.githooks`, `Taskfile.yml`, `tasks`, `main.md`, and `SKILL.md`. Repo-root `docs/reference/forensic-research/` is outside that set. The deposited debug skill therefore names a ledger template that is not consumer-reachable.\n\n#1621 is closed described content (feat skill + coding standard). The live filename is the later #2111 / #2129 string-align on `content/skills/deft-directive-debug/SKILL.md` and `content/packs/skills/skills-pack-0.1.json` (commit `0a1aa9c0344d1094fa2343a7b8a7f8342becae08`), which renamed vBRIEF paths to xBRIEF paths and did not add `investigation.xbrief.json`.\n\n---\n\n## Named xBRIEF template is not a consumer-reachable ledger\n\nblocks-the-design\n\n**Evidence.** Pin-read at `5a311bf5cb976ccaacdcfe939e630878135ab819`:\n\n- Skill SoT is the pack body (skill file header: `AUTO-GENERATED by task packs:render`, source `packs/skills/skills-pack-0.1.json`). Forensic MODE Contract MUST-copies from `docs/reference/forensic-research/templates/investigation.xbrief.json`.\n- `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:docs/reference/forensic-research/templates/investigation.xbrief.json` is missing.\n- Replicated `mapSourceToPackRelative`: `docs/reference/forensic-research/templates/investigation.xbrief.json` → `None`; `content/skills/deft-directive-debug/SKILL.md` → `skills/deft-directive-debug/SKILL.md`; `content/coding/debugging.md` → `coding/debugging.md`.\n- `git ls-tree -r --name-only 5a311bf5cb976ccaacdcfe939e630878135ab819 -- content/` has zero `forensic-research` or `investigation.(x|v)brief` paths. `content/docs/` is 44 files, none in that tree.\n- `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:content/contracts/deposit-required-paths.json` declares 20 C1 paths and lists none of the debug template, outcome template, or `skills/deft-directive-debug/SKILL.md`.\n\n**Failure mode.** A consumer following the deposited skill cannot read the stated ledger path. MODE entry either stalls or the agent authors a ledger from memory. The issue session notes already record the second path: recovery used a maintainer-source checkout.\n\n**Disposition.** A successor map cannot treat the current skill path as consumer-reachable. P1 stays open until the MUST path resolves inside the packed deposit (`@deftai/directive-content` / `.deft/core`) and a staged-pack existence check covers it.\n\n---\n\n## Maintainer-source filename forks leave the flatten hole\n\nblocks-the-design\n\n**Evidence.** Stop 1 lists add-`investigation.xbrief.json` next to the vBRIEF scaffold, and retarget-the-skill-to-`investigation.vbrief.json`, as open forks. Both operate on `docs/reference/forensic-research/templates/`. That directory is present in maintainer source (`git ls-tree 5a311bf5cb976ccaacdcfe939e630878135ab819 -- docs/reference/forensic-research/templates/` shows `investigation.vbrief.json` only) and is outside `stageContentPack`. The vBRIEF path also maps to `None`. `packages/content` `prepack` runs `stageContentPack` into the pack root; `files: [\"**/*\", \".githooks/\"]` publishes whatever landed there.\n\nStop 1 already records that naming a path that still does not deposit does not relieve P1. The first two forks as written are filename operations on an undeposited tree.\n\n**Failure mode.** A bound map that only adds or retargets under repo-root `docs/reference/forensic-research/templates/` makes `git show` succeed in this checkout and leaves 0.119.x consumers on the same missing-file MODE entry. That is the original consumer report.\n\n**Disposition.** Bind only a pair: a pack-root object (`content/…` so flatten emits a `.deft/core/…` path) plus a skill MUST path that names that pack-relative object. `packs:render` against `content/packs/skills/skills-pack-0.1.json` is the existing edit path for the skill text. Copy-during-install is already `stageContentPack`; a new copier is not required if the template lives under `content/`.\n\n---\n\n## Ledger identity is filename plus profile plus Info envelope\n\nsharpens-framing\n\n**Evidence.** Three identities coexist at this SHA:\n\n1. Live skill output name `investigation.xbrief.json`, prose \"thin xBRIEF 0.6 profile (`forensic-research-v1`)\" (`git show 5a311bf5cb976ccaacdcfe939e630878135ab819:content/skills/deft-directive-debug/SKILL.md`).\n2. Vendored scaffold `investigation.vbrief.json` with `\"vBRIEFInfo\": { \"version\": \"0.6\" }` and `plan.metadata.x-investigation.profile: \"forensic-research-v1\"` (`git show 5a311bf5cb976ccaacdcfe939e630878135ab819:docs/reference/forensic-research/templates/investigation.vbrief.json`). Vendored SKILL and `orchestrator-protocol.md` still copy `templates/investigation.vbrief.json` → `investigation.vbrief.json`.\n3. Close gate `loadLedger` in `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/orchestration/verify-investigation.ts` requires `plan.metadata.x-investigation.profile === \"forensic-research-v1\"` and does not read `vBRIEFInfo` / `xBRIEFInfo`, `version`, or filename.\n\nThe 0.8 authoring contract in `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:content/templates/agents-entry.md` (`xBRIEF layout (#2034 / #2110)`) governs writes under `./xbrief/` (`PROJECT-DEFINITION.xbrief.json`, `plan.xbrief.json`, `specification.xbrief.json`) as `\"xBRIEFInfo\"` `\"version\": \"0.8\"`. Forensic ledgers live under `.tmp/investigations/<id>/`. #2111 renamed the debug skill as if those ledgers were `./xbrief/` artifacts.\n\n**Failure mode.** A map that ships an 0.8 `xBRIEFInfo` template without `forensic-research-v1` fails `task verify:investigation` at close (`LedgerConfigError`). A map that keeps the `.xbrief.json` name over a `vBRIEFInfo` 0.6 body teaches two envelopes for one file. A map that \"aligns\" the ledger to the `./xbrief/` 0.8 contract moves an ephemeral gitignored profile into the scope-xBRIEF identity.\n\n**Disposition.** The successor map states one closed identity: output filename, Info envelope, `forensic-research-v1` fields the close gate already checks, and whether investigation ledgers stay outside `./xbrief/`. Filename choice and profile choice are one remedy.\n\n---\n\n## Injection / swarm: MUST-copy from a missing path; close gate authenticates a profile string\n\nsharpens-framing\n\n**Evidence.** The deposited skill is the consumer prompt. It MUST copy a template that is absent, then MUST pass `verify:investigation`. `loadLedger` accepts any JSON object with `plan.items` and profile `forensic-research-v1`. Template origin is unauthenticated. Parallel waves cite `docs/reference/forensic-research/references/orchestrator-protocol.md` (same undeposited tree; vendored copy instruction still names `investigation.vbrief.json`). `extractLinkTargets` in `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/validate-content/link-parser.ts` parses only markdown `[](url)` links. The skill names the template in backticks, so `collectBrokenLinks` / `NAMED_PACK_RESIDUALS` never see it. `debugging.test.ts` (`git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/content-contracts/standards/debugging.test.ts`) asserts the skill contains the prefix `docs/reference/forensic-research/` and does not assert the named file exists.\n\nSkill-local extra files already ship under `content/skills/` (swarm `references/`, design-critique `references/motion-shape.md`). Those flatten. A `docs/reference/…` MUST path, once copied under `content/docs/reference/…`, shares the consumer project `docs/` prefix.\n\n**Failure mode.** Agents improvise a ledger, stamp `forensic-research-v1`, and the close gate goes green without the scaffold (trap branches, claim metadata shape). Parallel sub-agent prompts are equally unreachable. After a naive copy into `content/docs/reference/`, a consumer `docs/reference/` tree can be read first and supply untrusted JSON as the ledger template (prompt/envelope identity).\n\n**Disposition.** The issue's regression coverage (\"consumer deposit/package resource reachability test for every required debug template and outcome reference\") is the existing C1 vehicle: extend `evaluateDepositClosure` / `deposit-required-paths.json` against a staged pack root, covering every skill-MUST path (ledger template, `outcome-template.md`, and `orchestrator-protocol.md` if parallel waves remain MUST). Prefer a skill-local pack path under `content/skills/deft-directive-debug/` so the MUST path matches an already-flattening prefix (`skills/…`), matching swarm/design-critique local references.\n\n---\n\n## Outcome template is present in maintainer source and outside the pack\n\nfootnote\n\n`git show 5a311bf5cb976ccaacdcfe939e630878135ab819:docs/reference/forensic-research/references/outcome-template.md` exists (blob `118d936ea56b843c922b415c9e0743189f1655fc`). The skill MUST-writes Outcome from that path. Same `mapSourceToPackRelative` → `None` result as the ledger template. A map that pack-roots only the ledger file leaves this second MUST on the undeposited tree.\n\n---\n\n## Existing mechanisms (inventory)\n\n- `stageContentPack` / `runPrepackFromContentPackage` — copy set quoted above.\n- `mapSourceToPackRelative` / `rewriteMarkdownDepositLinks` (#3937 flatten).\n- `collectBrokenLinks` + `NAMED_PACK_RESIDUALS` — markdown links; backtick MUST paths are invisible.\n- C1 `content/contracts/deposit-required-paths.json` + `evaluateDepositClosure` — staged-pack existence; debug template is undeclared.\n- `debugging.test.ts` TestDebugSkill1621 — skill presence, iron law, close-gate string, vendored-prefix string.\n- `verify:investigation` / `loadLedger` — `forensic-research-v1` profile.\n- `task packs:render` from `content/packs/skills/skills-pack-0.1.json`.\n- Vendored bundle `docs/reference/forensic-research/` (`VENDORED.md`: reference material, keep verbatim, do not repurpose as the live skill).\n- Skill-local `content/skills/<name>/references/` already used by swarm and design-critique.\n\n---\n\n## Road not taken\n\nExtending `stageContentPack` to copy repo-root `docs/reference/forensic-research/` would flatten the whole vendored bundle, including `examples/slizard/`. `VENDORED.md` at this SHA calls that tree read-only reference and forbids using it as the live skill. Depositing it enlarges the consumer prompt surface.\n\nWhat would flip: a Bound-remedy that keeps parallel-wave MUST citations into `orchestrator-protocol.md` / `subagent-prompts.md` and therefore needs those files packed. Until then, pack the live skill's MUST resources next to the skill (existing `content/skills/…/references/` pattern) and keep the vendored tree maintainer-only.\n\nSteelmanning retarget-only: `packs:render` the skill back to `investigation.vbrief.json` matches the file that exists in maintainer source and matches `verify:investigation` plus the vendored profile. That repair is complete for this checkout. Consumer P1 remains until that same file also lives under a `content/` path the skill names.\n\n---\n\nIssue body Expected-behavior / Regression-coverage sentences are described recut, not critic commands. No other embedded instruction-shaped fragments in the in-envelope thread.\n\n",
+          "id": 5919353163,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919353163",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:40:34Z",
+          "updated_at": "2026-09-30T20:40:34Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRefutation target fails: the named ledger template is absent, and the existing vendor ledger and Outcome reference are outside the content package's staging roots. The reported bug survives independent checks. A filename-only repair cannot close it.\n\nRound 1; input ceiling 5919227359; all source evidence pinned to `5a311bf5cb976ccaacdcfe939e630878135ab819`. The matching panel-deposit is in envelope. This post does not attest sibling completeness or audit a future relief claim.\n\n### C1 — blocks-the-design — Source existence does not establish consumer reachability\n\n**Evidence.** Re-ran the stated `git show` checks and independently matched all three envelope blob hashes. The named `investigation.xbrief.json` returns exit 128. Executed the pinned [stageContentPack](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/deposit/stage-content-pack.ts#L74-L96) in an isolated fixture containing the exact skill and existing vendor resources. The skill shipped; the ledger, Outcome template, and parallel [orchestrator-protocol reference](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/content/skills/deft-directive-debug/SKILL.md#L94-L97) did not. Staging copies `content/`, engine entries, and two harness files; root `docs/reference/` is excluded. The pinned markdown rewriter returned zero rewrites for the skill's backticked paths.\n\n**Failure mode.** Adding the missing filename beside the vendor ledger, or retargeting the skill to the existing vendor filename, still leaves a consumer unable to enter MODE. Shipping only the ledger strands Outcome creation and the advertised parallel path.\n\n**Disposition consequence.** Reject either source-only remedy. The remedy needs explicit supported package/deposit locations for the mandatory ledger and Outcome resources, plus a reachable parallel protocol or a deliberate removal of that unsupported dependency. Native resources under `content/` use the existing staging path without a new installer fallback.\n\n### C2 — blocks-the-design — Retargeting to the unchanged 0.6 ledger violates current authoring\n\n**Evidence.** The vendor scaffold has `vBRIEFInfo.version = \"0.6\"`; the [skill still describes a 0.6 profile](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/content/skills/deft-directive-debug/SKILL.md#L81-L92). Pinned `main.md`, under “Schema version: v0.8 (canonical write),” requires new `xBRIEFInfo.version = \"0.8\"` writes. The existing [investigation loader](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/orchestration/verify-investigation.ts#L101-L124) checks the forensic profile, not a required 0.6 header. Executing its pinned functions on isolated fixtures gave identical `HF-WAVES` and `HF-STATUS` failures for fresh 0.6 and 0.8 envelopes. A synthetic completed 0.8 ledger with waves and evidence passed; removing evidence produced `HF-COMPLETED-CLAIM`.\n\n**Failure mode.** Renaming or copying the legacy scaffold without changing its envelope teaches new 0.6 writes. Renaming it to `.xbrief.json` does not change that. Conversely, replacing it with a generic task template can lose the forensic profile and claim structure.\n\n**Disposition consequence.** Reject the “keep the 0.6 profile” fork as written. Use a current 0.8 envelope while preserving `forensic-research-v1`, branches/claims, `x-claim`, references, edges, and wave metadata. Align the skill's profile guidance. These checks support keeping the existing close gate; they do not establish full JSON Schema conformance, which remains a template acceptance check.\n\n### C3 — sharpens-framing — Fix the authored pack, not only its generated skill\n\n**Evidence.** The rendered skill identifies its generator. Independently read the authored debug entry in [content/packs/skills/skills-pack-0.1.json](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/content/packs/skills/skills-pack-0.1.json#L50-L63): its body contains the same missing paths and 0.6 guidance.\n\n**Failure mode.** Editing only `content/skills/deft-directive-debug/SKILL.md` appears to repair the current deposit, then regeneration restores the defect.\n\n**Disposition consequence.** The issue can bind with a narrower implementation contract that updates the authored pack, regenerates the skill, and checks the resulting consumer paths. A deposit-time rewrite would create a second authoring surface for these backticked directives.\n\n### C4 — sharpens-framing — Reuse declared closure, but test the actual pack\n\n**Evidence.** Parsed the pinned [C1 declaration](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/content/contracts/deposit-required-paths.json): 20 paths, none covering forensic resources. Existing `evaluateDepositClosure` already checks declared paths. `stageDeclaredPack` stages that declaration independently, whereas `stageContentPack` is the actual prepack implementation. The [link extractor](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/validate-content/link-parser.ts#L1-L30) scans Markdown links, so these backticked resource paths are invisible to it.\n\n**Failure mode.** Source-existence tests, unchanged C1 checks, or ordinary link validation can all miss the consumer failure. A separately synthesized pack can also diverge from prepack behavior.\n\n**Disposition consequence.** Keep the requested consumer regression coverage. Extend the existing explicit declaration for supported mandatory resources and evaluate it against a fresh `stageContentPack` result, then verify the skill's stated paths resolve in that package/deposit layout. Include 0.8 schema validity and forensic-loader compatibility. A new global prose-path scanner is unnecessary.\n\n### C5 — footnote — Reference instructions are described content\n\nThe vendor [README](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/docs/reference/forensic-research/README.md#L5-L16) contains harness-copy and trigger-registration instructions. [VENDORED.md](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/docs/reference/forensic-research/VENDORED.md#L12-L27) identifies it as reference material. Those embedded instructions and the thread's proposed forks were analyzed as data; none were executed as dispatch instructions.\n\n**Road not taken.** Copying the whole vendor bundle is the strongest quick reachability fix: it preserves the linked references together. I prefer a bounded native resource set because the full bundle also carries an independent skill, harness-registration instructions, a legacy envelope, and quarantined project examples. An explicit reference-only package boundary, an enumerated dependency set, and aligned current authoring guidance would make an allowlisted vendor-copy approach viable.\n\nCheck limits: pinned-source staging fixture and validator functions, not a fresh installation of the published 0.119.12 tarball. No product changes, ingest, occupancy claim, or mutation session.\n\n",
+          "id": 5919358239,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919358239",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:40:56Z",
+          "updated_at": "2026-09-30T20:40:56Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe deposited debug skill still MUST-copies `investigation.xbrief.json` from a path that is missing, and the sibling vBRIEF file lives under repo-root `docs/` which `stageContentPack` never copies. Three isolated critics re-measured at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`: the named xBRIEF template is absent; the vBRIEF scaffold and outcome template map outside the pack; adding or retargeting under maintainer `docs/reference/` leaves consumers on the same missing file. Confirming this map places native copies next to the skill under `content/`, edits the authored pack then re-renders, ships an 0.8 `xBRIEFInfo` ledger that keeps `forensic-research-v1`, and extends deposit-closure against a real `stageContentPack` result.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. grok-4.6 was also a round-1 critic. Takes accept critic headings that already have cross-family corroboration (Claude opus, Codex gpt-6, Grok).\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: pain-P1 asserted until a pain-audit critic targets the cites.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after three isolated critics. Cites critic 5919312936, 5919353163, 5919358239. Supersedes Stop 1 write-back 5919146146. Round 1 sibling count 3.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5195-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\ntarget shape: single-issue\nround: 1\nsiblings: 3\nDual-stop cap: 3 posts\n\nTakes:\n\n- 5919312936 F1 Repo-root docs/ is not deposited, so fork 1 and fork 2 do not relieve P1 — accept-into-contract\n- 5919312936 F2 Place directive-native copies next to the skill. Do not deposit the vendored bundle — accept-into-contract\n- 5919312936 F3 The skill file is generated — accept-into-contract\n- 5919312936 F4 Version and name drift sits in three places. The close gate does not care which envelope is used — accept-into-contract\n- 5919312936 F5 Regression coverage should extend the existing walker, and its scope must be bounded — accept-into-contract\n- 5919353163 Named xBRIEF template is not a consumer-reachable ledger — accept-into-contract\n- 5919353163 Maintainer-source filename forks leave the flatten hole — accept-into-contract\n- 5919353163 Ledger identity is filename plus profile plus Info envelope — accept-into-contract\n- 5919353163 Injection / swarm: MUST-copy from a missing path; close gate authenticates a profile string — accept-into-contract\n- 5919358239 C1 Source existence does not establish consumer reachability — accept-into-contract\n- 5919358239 C2 Retargeting to the unchanged 0.6 ledger violates current authoring — accept-into-contract\n- 5919358239 C3 Fix the authored pack, not only its generated skill — accept-into-contract\n- 5919358239 C4 Reuse declared closure, but test the actual pack — accept-into-contract\n\nFootnotes stay footnotes.\n\nrelieves: P1\n\n## Bound remedy\n\n1. Recut P1 pack-root the MUST resources: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `stageContentPack` copies `content/`, engine entries, and harness files; repo-root `docs/reference/forensic-research/` is outside that set. Place native copies under `content/skills/deft-directive-debug/` (`templates/investigation.xbrief.json` and `references/outcome-template.md`), derived from the vendored files, not moved. Leave `docs/reference/forensic-research/` untouched. Do not extend `stageContentPack` to copy repo-root `docs/`. Do not deposit the whole vendored bundle.\n2. Recut P1 skill path: edit `content/packs/skills/skills-pack-0.1.json` then `task packs:render`. Skill MUST paths name the pack-relative objects that flatten (`skills/deft-directive-debug/...`). `file_scope` includes the pack JSON. Do not edit only generated `content/skills/deft-directive-debug/SKILL.md`.\n3. Recut P1 ledger identity: output filename `investigation.xbrief.json`; new writes use `\"xBRIEFInfo\": { \"version\": \"0.8\" }`; keep `plan.metadata.x-investigation.profile === \"forensic-research-v1\"` and the claim/branch/wave fields `verify:investigation` already checks. Ledgers stay under `.tmp/investigations/`, not `./xbrief/`. Fix \"thin xBRIEF 0.6 profile\" wording and the verify.yml desc example in the same change. Reject keeping the unchanged `vBRIEFInfo` 0.6 scaffold as written.\n4. Recut P1 parallel pointer: ship `orchestrator-protocol.md` next to the skill, or drop that MUST pointer in the same change.\n5. Recut P1 regression: extend `content/contracts/deposit-required-paths.json` / `evaluateDepositClosure` against a fresh `stageContentPack` result so the skill's stated paths exist in the staged pack. Rewrite `debugging.test.ts` `test_skill_references_vendored_design` so it no longer locks the unreachable prefix. Include 0.8 schema validity and `verify:investigation` loader compatibility. Do not add a new global prose-path scanner.\n6. Preserve: close-gate profile check; `VENDORED.md` verbatim vendor tree.\n7. Exclude: filename-only add or retarget under repo-root `docs/`; deposit-time rewrite of skill text as a second authoring surface; treating other root-only `docs/` cites as this P1.\n\nTarget-digest: sha256:4c1d1b0cfc25f19351385eae329a944483a59494679d942f88ed570fbe694930\n\n",
+          "id": 5919515737,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919515737",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:51:43Z",
+          "updated_at": "2026-09-30T20:51:43Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nCharter: refutation. Round: pain-audit (reserved Dual-stop slot). Fresh critic. Id ceiling 5919515737. All tree reads pinned to `5a311bf5cb976ccaacdcfe939e630878135ab819`. I am auditing the bind lean's `relieves: P1` (5919515737) against its Bound remedy items 1–7.\n\n## Verdict\n\nP1 relief is **not established as written**. Items 1, 2, 3, and 5 relieve P1 on the solo path. Item 4 allows a \"ship `orchestrator-protocol.md`\" branch. That branch puts P1 back on the parallel path, and the bound regression in item 5 cannot detect it.\n\n## Findings\n\n### A1 — blocks-the-design — Item 4's \"ship\" branch re-creates P1 on the parallel path\n\n**Evidence.** `git show \"5a311bf5cb976ccaacdcfe939e630878135ab819:docs/reference/forensic-research/references/orchestrator-protocol.md\"`:\n- Step 4 (line 22) says: copy `templates/investigation.vbrief.json` → `investigation.vbrief.json`. This is a ledger-template MUST that names the 0.6 vBRIEF identity.\n- Line 7: read `forensic-mode.md` every Wave 0.\n- Line 14: `references/domains/<domain>.md`.\n- Line 23: `references/question-framing.md`.\n- Line 68: `references/subagent-prompts.md`.\n- Line 146: `investigation-profile.md` § Validator.\n- `follow-ups.md`.\n\nItem 1 ships only `templates/investigation.xbrief.json` and `references/outcome-template.md`. Item 4 lets the implementer ship `orchestrator-protocol.md` \"next to the skill\" without its dependencies. Item 5 checks only \"the skill's stated paths\". The skill enters parallel mode through `!` wave items: \"parallel (sub-agents per `…/orchestrator-protocol.md`)\".\n\n**Failure mode.** The implementer picks the ship branch and copies the protocol verbatim. A consumer running parallel waves then hits step 4. `templates/investigation.vbrief.json` is absent next to the skill, so this is the original missing-ledger-template failure. It also creates a second ledger filename and envelope, which contradicts item 3. Wave 0 then MUST-reads `forensic-mode.md`, which is also absent. The C1 check stays green because none of those paths are in the skill.\n\n**Disposition consequence.** The Bound remedy allows a branch that brings P1 back, and the bound regression cannot see that branch. So the lean does not cover P1 as written. Per the contract, post a retraction map, then Handoff. For the recut, bind item 4 to **drop**: remove the parallel pointer, or narrow it to a non-MUST maintainer read. Shipping the protocol means a directive-native derivation: step 4 retargeted to `templates/investigation.xbrief.json`, and every MUST-read it names shipped and declared in C1. That is roughly six more files and widens the fix toward the vendored-bundle copy that item 1 already rejects.\n\n### S1 — sharpens-framing — \"0.8 schema validity\" in item 5 has no named subject, and a derived blank scaffold fails it\n\n**Evidence.** I checked `content/vbrief/schemas/xbrief-core-0.8.schema.json` at the pin against the vendored scaffold. ajv could not be installed because npm was offline, so I inspected the schema directly.\n- `Plan.title` has `minLength: 1`; the scaffold has `\"\"`.\n- `Plan.id` has pattern `^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$`; the scaffold has `\"\"`.\n- `xBRIEFInfo.created` / `updated` are `dateTime` (pattern `(Z|[+-]\\d{2}:\\d{2})$`); the scaffold has `\"\"`.\n- These all pass: `metadata` (free object; `x-investigation` / `x-claim` are fine), statuses `running` / `pending` (in enum), and empty `edges` / `references`.\n\n**Failure mode.** Item 3 says \"derived from the vendored files\". Item 5 says \"include 0.8 schema validity\". A straight envelope swap fails the schema in four places. The implementer then either (a) adds placeholder values (`\"investigation\"`, a fixed timestamp), which consumers copy and never update, or (b) quietly validates only a filled fixture. Either way the choice is made at build time, not in the contract.\n\n**Disposition consequence.** In the recut, item 5 names the subject. Validate a filled fixture against 0.8 and against the `verify:investigation` loader. The shipped scaffold omits `created` / `updated` (they are optional) and documents that `id` / `title` must be filled on entry. This changes the harvested item 5 text, so it goes into the same recut as A1.\n\n### Footnotes\n\n- **footnote — Items 1 and 2 hold mechanically (verified, not asserted).**\n  - `stageContentPack` copies every `content/*` entry. Its only filter is `.py` / `.pyc` / `__pycache__`, so `.json` under `content/skills/deft-directive-debug/templates/` is staged.\n  - `packages/content/package.json` publishes `**/*`.\n  - `deposit/copy-tree.ts` skips only symlinks.\n  - `pack-render.ts` skills `path_pattern` is `^skills\\/.+\\/SKILL\\.md$`, so `packs:render` writes only SKILL.md and does not overwrite skill-local `templates/` or `references/`. This matches the precedent of swarm `references/` and design-critique `references/motion-shape.md`. I did not run a staged build; this comes from reading the pinned source.\n- **footnote — C1 path form.** `parseDepositRequiredDeclaration` rejects entries that do not start with `.deft/core/`. So the item 5 entries are `.deft/core/skills/deft-directive-debug/templates/investigation.xbrief.json` and `.deft/core/skills/deft-directive-debug/references/outcome-template.md`. The skill-text form `skills/deft-directive-debug/…` is deposit-root-relative. That matches the house convention (`content/.agents/skills/deft-directive-debug/SKILL.md`: \"Read and follow: skills/deft-directive-debug/SKILL.md\"). Note that a literal `cp` from project cwd needs the `.deft/core/` prefix. Worth one clarifying phrase in the skill; not a blocker.\n- **footnote — `stageContentPack` vs the existing C1 test.** `deposit_required_closure.test.ts` runs `evaluateDepositClosure` against `stageDeclaredPack`, which copies declared paths only. It does not use `stageContentPack`. \"Against a fresh `stageContentPack` result\" is therefore small new test wiring, not an existing path. Both map `content/` the same way (`sourcePathForPackRelative`).\n- **footnote — Leftover read-only pointer.** Skill lines 28–32 still send readers to `docs/reference/forensic-research/` \"for extended detail\". Item 5 rewrites `test_skill_references_vendored_design` so it stops locking that prefix. The recut should state whether that non-MUST pointer stays (maintainer-only) or goes.\n- **footnote — Injection / swarm lens.** The vendored `orchestrator-protocol.md` is orchestrator instruction text from a read-only vendor tree. Shipping it adds live consumer prompt surface, which is one more reason for A1's drop recommendation. The thread and retrieved files contain no embedded instructions aimed at this critic. I treated the lean's Bound remedy and the vendored README / VENDORED.md as described content.\n\n## Road not taken / steelman\n\nI considered classifying A1 as sharpens-framing, because the \"drop\" branch relieves P1 and a careful implementer might choose it. I rejected that: the failing branch is explicitly allowed, and the bound regression cannot tell the two branches apart. Two changes would each flip A1 to sharpening: bind item 4 to drop, or extend item 5 so every shipped reference's own MUST cites are declared in C1.\n\nCheck limits: pinned source reads plus schema inspection. No ajv run, no staged build, no fresh 0.119.12 install. No product changes, ingest, occupancy claim, or mutation session.\n\n",
+          "id": 5919604388,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919604388",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:57:55Z",
+          "updated_at": "2026-09-30T20:57:55Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit 5919604388 found that bind lean 5919515737 still over-asserts P1 relief. Item 4 allows a ship-`orchestrator-protocol.md` branch that re-creates the missing-ledger failure on the parallel path (step 4 copies `investigation.vbrief.json` and MUST-reads undeposited vendor files). Item 5 cannot detect that branch. This map retracts relieves of P1 until item 4 is bound to drop.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted lean, and these takes. Takes accept critic headings from Claude opus pain-audit 5919604388.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: Stop 1 P1 unmet for the parallel-path ship branch.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of successor lean 5919515737. Cites critic 5919604388. This map is not the bind harvest. This map amends and replaces bind map 5919515737 only as a retraction; the recut restates every Bound-remedy item.\n\nTarget-digest: sha256:4c1d1b0cfc25f19351385eae329a944483a59494679d942f88ed570fbe694930\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5195-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\nDual-stop cap: 3 posts\ndest-wo: leftover-complete\n\n## Takes\n\n- 5919604388 A1 Item 4's \"ship\" branch re-creates P1 on the parallel path — accept-into-contract\n- 5919604388 S1 \"0.8 schema validity\" in item 5 has no named subject, and a derived blank scaffold fails it — accept-into-contract\n\nFootnotes stay footnotes.\n\ndoes-not-relieve: P1\n\n## Bound remedy\n\n1. Keep pack-root skill-local copies, authored-pack render, and 0.8 `xBRIEFInfo` plus `forensic-research-v1` as agreed remainder, not as P1 relief.\n2. Recut P1 item 4 to drop the parallel MUST pointer this ship, and name the 0.8 schema subject as a filled fixture.\n\n",
+          "id": 5919652293,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919652293",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T21:01:16Z",
+          "updated_at": "2026-09-30T21:01:16Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nDual-stop raise: numbered cap 4 posts (was 3). Leftover-pain raise after reserved-slot pain-audit 5919604388 blocked the first bind. One numbered post remains for a pain-audit of the recut lean. Reserved pain-audit slot stays spent on 5919604388 and is not refilled.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5195-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\ndest-wo: leftover-complete\n\n",
+          "id": 5919652530,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919652530",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T21:01:17Z",
+          "updated_at": "2026-09-30T21:01:17Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe deposited debug skill still MUST-copies a ledger template that is missing and outside `stageContentPack`. Pain-audit 5919604388 blocked bind lean 5919515737 because the ship-`orchestrator-protocol.md` branch re-creates that missing-file failure on the parallel path, and because \"0.8 schema validity\" had no named subject. This Dual-stop raise recut keeps skill-local native copies and the authored-pack render, drops the parallel MUST pointer this ship, and validates a filled 0.8 fixture plus the close-gate loader.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted lean, and these takes. Takes accept critic headings that already have cross-family corroboration (Claude opus, Codex gpt-6, Grok) plus Claude opus pain-audit 5919604388.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: pain-P1 asserted until a pain-audit critic targets the cites.\nSpec-path: next-build contract is not this body.\n\n**Lean:** Dual-stop raise recut after retraction of 5919515737. Cites critic 5919312936, 5919353163, 5919358239, 5919604388. Predecessor retraction does not carry relieves of P1. This map amends and replaces bind map 5919515737.\n\nTarget-digest: sha256:4c1d1b0cfc25f19351385eae329a944483a59494679d942f88ed570fbe694930\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5195-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\ntarget shape: single-issue\nDual-stop cap: 4 posts\noperator Dual-stop raise: 3→4\ndest-wo: leftover-complete\n\nTakes:\n\n- 5919312936 F1 Repo-root docs/ is not deposited, so fork 1 and fork 2 do not relieve P1 — accept-into-contract\n- 5919312936 F2 Place directive-native copies next to the skill. Do not deposit the vendored bundle — accept-into-contract\n- 5919312936 F3 The skill file is generated — accept-into-contract\n- 5919312936 F4 Version and name drift sits in three places. The close gate does not care which envelope is used — accept-into-contract\n- 5919312936 F5 Regression coverage should extend the existing walker, and its scope must be bounded — accept-into-contract\n- 5919353163 Named xBRIEF template is not a consumer-reachable ledger — accept-into-contract\n- 5919353163 Maintainer-source filename forks leave the flatten hole — accept-into-contract\n- 5919353163 Ledger identity is filename plus profile plus Info envelope — accept-into-contract\n- 5919353163 Injection / swarm: MUST-copy from a missing path; close gate authenticates a profile string — accept-into-contract\n- 5919358239 C1 Source existence does not establish consumer reachability — accept-into-contract\n- 5919358239 C2 Retargeting to the unchanged 0.6 ledger violates current authoring — accept-into-contract\n- 5919358239 C3 Fix the authored pack, not only its generated skill — accept-into-contract\n- 5919358239 C4 Reuse declared closure, but test the actual pack — accept-into-contract\n- 5919604388 A1 Item 4's \"ship\" branch re-creates P1 on the parallel path — accept-into-contract\n- 5919604388 S1 \"0.8 schema validity\" in item 5 has no named subject, and a derived blank scaffold fails it — accept-into-contract\n\nFootnotes stay footnotes.\n\nrelieves: P1\n\n## Bound remedy\n\n1. Recut P1 pack-root the MUST resources: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `stageContentPack` copies `content/`, engine entries, and harness files; repo-root `docs/reference/forensic-research/` is outside that set. Place native copies under `content/skills/deft-directive-debug/` (`templates/investigation.xbrief.json` and `references/outcome-template.md`), derived from the vendored files, not moved. Leave `docs/reference/forensic-research/` untouched. Do not extend `stageContentPack` to copy repo-root `docs/`. Do not deposit the whole vendored bundle.\n2. Recut P1 skill path: edit `content/packs/skills/skills-pack-0.1.json` then `task packs:render`. Skill MUST paths name the pack-relative objects that flatten (`skills/deft-directive-debug/...`). `file_scope` includes the pack JSON. Do not edit only generated `content/skills/deft-directive-debug/SKILL.md`.\n3. Recut P1 ledger identity: output filename `investigation.xbrief.json`; new writes use `\"xBRIEFInfo\": { \"version\": \"0.8\" }`; keep `plan.metadata.x-investigation.profile === \"forensic-research-v1\"` and the claim/branch/wave fields `verify:investigation` already checks. Ledgers stay under `.tmp/investigations/`, not `./xbrief/`. Fix \"thin xBRIEF 0.6 profile\" wording and the verify.yml desc example in the same change. Reject keeping the unchanged `vBRIEFInfo` 0.6 scaffold as written. The shipped scaffold omits `created` / `updated` (optional) and documents that `id` / `title` must be filled on MODE entry.\n4. Recut P1 parallel pointer: drop the parallel-wave MUST pointer this ship. Narrow any remaining mention to a non-MUST maintainer read. Do not ship `orchestrator-protocol.md` or its vendor MUST-reads (`forensic-mode.md`, `domains/`, `question-framing.md`, `subagent-prompts.md`, `investigation-profile.md`, `follow-ups.md`, `investigation.vbrief.json`). The leftover skill lines 28–32 read-only pointer to `docs/reference/forensic-research/` stays maintainer-only.\n5. Recut P1 regression: extend `content/contracts/deposit-required-paths.json` with `.deft/core/skills/deft-directive-debug/templates/investigation.xbrief.json` and `.deft/core/skills/deft-directive-debug/references/outcome-template.md`, and evaluate `evaluateDepositClosure` against a fresh `stageContentPack` result so those paths exist in the staged pack. Rewrite `debugging.test.ts` `test_skill_references_vendored_design` so it no longer locks the unreachable prefix. Validate a filled fixture (non-empty `id` and `title`, `forensic-research-v1`, waves/claims as the close gate requires) against `content/vbrief/schemas/xbrief-core-0.8.schema.json` and against `verify:investigation` `loadLedger`. Do not add a new global prose-path scanner. Do not treat a blank derived scaffold as the 0.8 subject.\n6. Preserve: close-gate profile check; `VENDORED.md` verbatim vendor tree.\n7. Exclude: filename-only add or retarget under repo-root `docs/`; deposit-time rewrite of skill text as a second authoring surface; treating other root-only `docs/` cites as this P1; shipping the vendored orchestrator protocol this ship.\n\nTarget-digest: sha256:4c1d1b0cfc25f19351385eae329a944483a59494679d942f88ed570fbe694930\n\n",
+          "id": 5919652788,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919652788",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T21:01:18Z",
+          "updated_at": "2026-09-30T21:01:18Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\r\n```quarantined\nrole: critic\r\n```\n\r\naudit-targets: pain-P1\r\n\nfinding-classes: none\nharvest-changed: false\n\r\nThe relief claim in [recut lean 5919652788](https://github.com/deftai/directive/issues/5195#issuecomment-5919652788) survives this audit. Its required native resources sit inside the existing staging boundary; the unsupported parallel protocol is explicitly dropped; and the filled 0.8 ledger is compatible with the schema and forensic close gate. **No blocks-the-design or sharpens-framing findings. Footnotes only; the bind map stays unchanged.** This assesses the remedy as written, not a shipped implementation.\r\n\r\nFresh pain-audit; numbered post 4 under the recorded cap raise. Input ceiling 5919652788. Source evidence is pinned to `5a311bf5cb976ccaacdcfe939e630878135ab819`.\r\n\r\n### F1 — footnote — The two native resources survive actual staging\r\n\r\nRe-ran the original missing-template check: `git show '5a311bf5cb976ccaacdcfe939e630878135ab819:docs/reference/forensic-research/templates/investigation.xbrief.json'` exits 128. Then executed the pinned [stageContentPack](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/deposit/stage-content-pack.ts) and [evaluateDepositClosure](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/validate-content/deposit-required.ts) in isolated temporary fixtures, without mocking their implementations:\r\n\r\n- Baseline containing the pinned skill and repo-root vendor resources: both proposed C1 paths are missing after staging; repo-root vendor resources do not ship.\r\n- Candidate fixture adding the two resources under `content/skills/deft-directive-debug/`: both stage byte-for-byte at the recut's declared `.deft/core/skills/deft-directive-debug/...` locations (with `.deft/core/` removed for the package-root check).\r\n- Delete either staged resource: C1 fails and names that exact missing path.\r\n\r\nThe declaration parser accepts both recut paths. The authored pack contains the current broken directives; [pack-render](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/packs/pack-render.ts) restricts skill projections to `skills/.../SKILL.md`. This supports item 2's existing author-and-render mechanism without a second installer rewrite or new path scanner.\r\n\r\n### F2 — footnote — A filled 0.8 fixture passes both validation layers\r\n\r\nDerived an isolated scaffold from the pinned vendor JSON by replacing `vBRIEFInfo` with `xBRIEFInfo.version = \"0.8\"` and omitting `created` / `updated`, as item 3 specifies. Preserved the forensic metadata and branch/claim structure.\r\n\r\nExecuted Ajv's draft-2020-12 validator with formats against the pinned [0.8 schema](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/content/vbrief/schemas/xbrief-core-0.8.schema.json). The blank scaffold fails on empty `plan.id` and `plan.title`, as expected. A filled fixture with a supported claim, falsified claims, an `invalidates` edge, a typed evidence reference, and all four required waves passes. The same fixture passes the pinned [loadLedger and validateLedger](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/orchestration/verify-investigation.ts) with zero hard failures or soft warnings.\r\n\r\nNegative controls still refuse a missing forensic profile, missing completed-claim evidence, and missing wave 4. Thus the named filled subject resolves prior S1 without weakening the close gate or requiring a validator change.\r\n\r\n### F3 — footnote — Correction: C1 already uses the real stager\r\n\r\nThe earlier characterization of `stageDeclaredPack` as independently copying only declared files is incorrect at this SHA. Reproducing the source-read method shows that [deposit_required_closure.test.ts](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/content-contracts/standards/deposit_required_closure.test.ts) imports `stageContentPack` and calls it inside `stageDeclaredPack`; its tests then run `evaluateDepositClosure` on that output. The helper's name is misleading evidence if read alone.\r\n\r\nItem 5 already requires the correct surface. Extending its declaration uses existing staging wiring; this correction changes no harvested remedy item.\r\n\r\n### F4 — footnote — Dropping the protocol closes A1's dependency path\r\n\r\nIndependently re-read the pinned vendor protocol: Wave 0 copies the legacy `investigation.vbrief.json` and reads additional vendor references. Item 4 now forbids shipping that protocol and drops its parallel-wave MUST pointer, so the formerly permitted failing branch is no longer part of this remedy. The remaining vendor pointer is explicitly maintainer-only.\r\n\r\nInjection / swarm lens: the vendor README embeds whole-folder installation and trigger-registration instructions; the protocol embeds sub-agent dispatch instructions. I treated them, the debug skill, and the issue thread as described material, not commands for this critic. The recut avoids promoting that independent vendor workflow into the consumer prompt surface. C1 checks reachability; the forensic profile check is structural validation, not template provenance authentication. Neither needs a broader security claim to establish this P1 remedy.\r\n\r\n**Road not taken.** Shipping the protocol preserves upstream parallel behavior, but also imports its transitive reads and legacy ledger identity. The explicit drop is a coherent narrower repair. Restoring that mandatory dependency without its reachable, aligned resources would change this verdict; it is excluded by the current recut.\r\n\r\nCheck limits: executed pinned modules against temporary staging and ledger fixtures, not a full content-package build or fresh published consumer install. The candidate fixture tests resource placement, not a regenerated fixed skill. No product changes, ingest, occupancy claim, or mutation session. Critic exits after this post; synthesis remains with the parent.\r\n\r\n\n",
+          "id": 5919743993,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919743993",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T21:07:39Z",
+          "updated_at": "2026-10-06T20:36:56Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Method |\n|---|---|---|\n| At `5a311bf5cb976ccaacdcfe939e630878135ab819`, `investigation.xbrief.json` is absent and repo-root vendor resources do not stage | verified | pin-read `git show` exit 128; pain-audit 5919743993 baseline `stageContentPack` |\n| Adding the two native resources under `content/skills/deft-directive-debug/` stages them at `.deft/core/skills/deft-directive-debug/...`; deleting either fails C1 | verified | pain-audit 5919743993 candidate/delete fixtures |\n| A filled 0.8 fixture with `forensic-research-v1` passes Ajv 0.8 schema and `loadLedger`/`validateLedger`; a blank scaffold fails empty `id`/`title` | verified | pain-audit 5919743993 F2 |\n| Dropping the parallel MUST pointer closes the vendor protocol's `investigation.vbrief.json` dependency path | verified | pain-audit 5919743993 F4 pin-read of vendor protocol |\n| Bound-remedy harvest is seven items on recut lean 5919652788 | verified | live `## Bound remedy` numbered list on lean 5919652788 |\n\nNon-self-arbitration: grok-4.6 parent authored Stop 1, retraction 5919652293, and recut lean 5919652788. Rows rest on pin-read at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819` and Codex gpt-6 pain-audit 5919743993 (launched gpt-6-astra), not on parent agreement with round-1 grok-4.6.\n\n",
+          "id": 5919800358,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919800358",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T21:11:11Z",
+          "updated_at": "2026-09-30T21:11:11Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe deposited debug skill currently MUST-copies a ledger template that is missing and outside `stageContentPack`. Confirming this recut places native copies next to the skill, edits the authored pack then re-renders, ships an 0.8 `xBRIEFInfo` ledger that keeps `forensic-research-v1`, drops the parallel MUST pointer this ship, and extends deposit-closure against a real `stageContentPack` result.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites successor lean 5919652788 and verified-claims table 5919800358.\npain-audit 5919743993 is footnote-only; leftover-pain of relieves: P1 is satisfied.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5195-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\nDual-stop cap: 4 posts\ndest-wo: leftover-complete\n\n",
+          "id": 5919806740,
+          "html_url": "https://github.com/deftai/directive/issues/5195#issuecomment-5919806740",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T21:11:33Z",
+          "updated_at": "2026-09-30T21:11:33Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Summary\n\nbug(content): consumer debug skill names an absent investigation template\n\n## Context\n\nThe 0.119.12 consumer debug skill requires docs/reference/forensic-research/templates/investigation.xbrief.json and the reference outcome template. Those reference resources are absent from the consumer deposit and installed directive-content package. In the maintainer source checkout, the ledger template is instead named investigation.vbrief.json.\n\n## Expected behavior\n\nShip the required consumer-facing resources or point the skill at a supported deposited template, with filenames/profile guidance consistent with the current xBRIEF authoring contract. A consumer should not need a separate maintainer checkout to enter the workflow.\n\n## Actual behavior / gap\n\n### Reproduction\n\nInstall/update a normal consumer to 0.119.12 and follow the deposited deft-directive-debug skill. The named investigation.xbrief.json is absent. The same filename is absent in maintainer source; investigation.vbrief.json exists there. The skill asks the consumer to create its ledger from a resource the consumer cannot read through the stated path.\n\n### Impact\n\nThis was discovered during the follow-up audit. It did not cause the original UI shipping delay. Recovery for this audit used the readable maintainer-source template and authored the ledger as xBRIEF 0.8 under the project instruction.\n\nRefs #1621. Targeted searches found the closed introduction issue and unrelated open hunter work, not an exact open duplicate.\n\n## Session notes\n\n### Regression coverage\n\nA fresh consumer deposit/package resource reachability test for every required debug template and outcome reference.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5652287218,
+        "origin": "deftai/directive#5195",
+        "id": "github.issue.5652287218"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4c1d1b0cfc25f19351385eae329a944483a59494679d942f88ed570fbe694930"
+      },
+      "productPullRequest": 5436
+    },
+    "acceptance": {
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut P1 pack-root the MUST resources: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `stageContentPack` copies `content/`, engine entries, and harness files; repo-root `docs/reference/forensic-research/` is outside that set.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "Place native copies under `content/skills/deft-directive-debug/` (`templates/investigation.xbrief.json` and `references/outcome-template.md`), derived from the vendored files, not moved.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "Leave `docs/reference/forensic-research/` untouched.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Do not extend `stageContentPack` to copy repo-root `docs/`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 5,
+          "text": "Do not deposit the whole vendored bundle.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 6,
+          "text": "Recut P1 skill path: edit `content/packs/skills/skills-pack-0.1.json` then `task packs:render`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 7,
+          "text": "Skill MUST paths name the pack-relative objects that flatten (`skills/deft-directive-debug/...`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 8,
+          "text": "`file_scope` includes the pack JSON.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 9,
+          "text": "Do not edit only generated `content/skills/deft-directive-debug/SKILL.md`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 10,
+          "text": "Recut P1 ledger identity: output filename `investigation.xbrief.json`; new writes use `\"xBRIEFInfo\": { \"version\": \"0.8\" }`; keep `plan.metadata.x-investigation.profile === \"forensic-research-v1\"` and the claim/branch/wave fields `verify:investigation` already checks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 11,
+          "text": "Ledgers stay under `.tmp/investigations/`, not `./xbrief/`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 12,
+          "text": "Fix \"thin xBRIEF 0.6 profile\" wording and the verify.yml desc example in the same change.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 13,
+          "text": "Reject keeping the unchanged `vBRIEFInfo` 0.6 scaffold as written.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 14,
+          "text": "The shipped scaffold omits `created` / `updated` (optional) and documents that `id` / `title` must be filled on MODE entry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 15,
+          "text": "Recut P1 parallel pointer: drop the parallel-wave MUST pointer this ship.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 16,
+          "text": "Narrow any remaining mention to a non-MUST maintainer read.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 17,
+          "text": "Do not ship `orchestrator-protocol.md` or its vendor MUST-reads (`forensic-mode.md`, `domains/`, `question-framing.md`, `subagent-prompts.md`, `investigation-profile.md`, `follow-ups.md`, `investigation.vbrief.json`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 18,
+          "text": "The leftover skill lines 28–32 read-only pointer to `docs/reference/forensic-research/` stays maintainer-only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 19,
+          "text": "Recut P1 regression: extend `content/contracts/deposit-required-paths.json` with `.deft/core/skills/deft-directive-debug/templates/investigation.xbrief.json` and `.deft/core/skills/deft-directive-debug/references/outcome-template.md`, and evaluate `evaluateDepositClosure` against a fresh `stageContentPack` result so those paths exist in the staged pack.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 20,
+          "text": "Rewrite `debugging.test.ts` `test_skill_references_vendored_design` so it no longer locks the unreachable prefix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 21,
+          "text": "Validate a filled fixture (non-empty `id` and `title`, `forensic-research-v1`, waves/claims as the close gate requires) against `content/vbrief/schemas/xbrief-core-0.8.schema.json` and against `verify:investigation` `loadLedger`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 22,
+          "text": "Do not add a new global prose-path scanner.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 23,
+          "text": "Do not treat a blank derived scaffold as the 0.8 subject.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 24,
+          "text": "Preserve: close-gate profile check; `VENDORED.md` verbatim vendor tree.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 25,
+          "text": "Exclude: filename-only add or retarget under repo-root `docs/`; deposit-time rewrite of skill text as a second authoring surface; treating other root-only `docs/` cites as this P1; shipping the vendored orchestrator protocol this ship.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 26,
+          "text": "Target-digest: sha256:4c1d1b0cfc25f19351385eae329a944483a59494679d942f88ed570fbe694930",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ],
+      "none_stated": true,
+      "commands": [],
+      "admitted_source_sentences": [
+        "Recut P1 pack-root the MUST resources: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `stageContentPack` copies `content/`, engine entries, and harness files; repo-root `docs/reference/forensic-research/` is outside that set.",
+        "Place native copies under `content/skills/deft-directive-debug/` (`templates/investigation.xbrief.json` and `references/outcome-template.md`), derived from the vendored files, not moved.",
+        "Leave `docs/reference/forensic-research/` untouched.",
+        "Do not extend `stageContentPack` to copy repo-root `docs/`.",
+        "Do not deposit the whole vendored bundle.",
+        "Recut P1 skill path: edit `content/packs/skills/skills-pack-0.1.json` then `task packs:render`.",
+        "Skill MUST paths name the pack-relative objects that flatten (`skills/deft-directive-debug/...`).",
+        "`file_scope` includes the pack JSON.",
+        "Do not edit only generated `content/skills/deft-directive-debug/SKILL.md`.",
+        "Recut P1 ledger identity: output filename `investigation.xbrief.json`; new writes use `\"xBRIEFInfo\": { \"version\": \"0.8\" }`; keep `plan.metadata.x-investigation.profile === \"forensic-research-v1\"` and the claim/branch/wave fields `verify:investigation` already checks.",
+        "Ledgers stay under `.tmp/investigations/`, not `./xbrief/`.",
+        "Fix \"thin xBRIEF 0.6 profile\" wording and the verify.yml desc example in the same change.",
+        "Reject keeping the unchanged `vBRIEFInfo` 0.6 scaffold as written.",
+        "The shipped scaffold omits `created` / `updated` (optional) and documents that `id` / `title` must be filled on MODE entry.",
+        "Recut P1 parallel pointer: drop the parallel-wave MUST pointer this ship.",
+        "Narrow any remaining mention to a non-MUST maintainer read.",
+        "Do not ship `orchestrator-protocol.md` or its vendor MUST-reads (`forensic-mode.md`, `domains/`, `question-framing.md`, `subagent-prompts.md`, `investigation-profile.md`, `follow-ups.md`, `investigation.vbrief.json`).",
+        "The leftover skill lines 28–32 read-only pointer to `docs/reference/forensic-research/` stays maintainer-only.",
+        "Recut P1 regression: extend `content/contracts/deposit-required-paths.json` with `.deft/core/skills/deft-directive-debug/templates/investigation.xbrief.json` and `.deft/core/skills/deft-directive-debug/references/outcome-template.md`, and evaluate `evaluateDepositClosure` against a fresh `stageContentPack` result so those paths exist in the staged pack.",
+        "Rewrite `debugging.test.ts` `test_skill_references_vendored_design` so it no longer locks the unreachable prefix.",
+        "Validate a filled fixture (non-empty `id` and `title`, `forensic-research-v1`, waves/claims as the close gate requires) against `content/vbrief/schemas/xbrief-core-0.8.schema.json` and against `verify:investigation` `loadLedger`.",
+        "Do not add a new global prose-path scanner.",
+        "Do not treat a blank derived scaffold as the 0.8 subject.",
+        "Preserve: close-gate profile check; `VENDORED.md` verbatim vendor tree.",
+        "Exclude: filename-only add or retarget under repo-root `docs/`; deposit-time rewrite of skill text as a second authoring surface; treating other root-only `docs/` cites as this P1; shipping the vendored orchestrator protocol this ship.",
+        "Target-digest: sha256:4c1d1b0cfc25f19351385eae329a944483a59494679d942f88ed570fbe694930"
+      ],
+      "admitted_source_digest": "400259b56cb443619cd3eb3329c9a822361e3e3fc006223fd3242aedb11ac7a7",
+      "sentences": [
+        "Recut P1 pack-root the MUST resources: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `stageContentPack` copies `content/`, engine entries, and harness files; repo-root `docs/reference/forensic-research/` is outside that set.",
+        "Place native copies under `content/skills/deft-directive-debug/` (`templates/investigation.xbrief.json` and `references/outcome-template.md`), derived from the vendored files, not moved.",
+        "Leave `docs/reference/forensic-research/` untouched.",
+        "Do not extend `stageContentPack` to copy repo-root `docs/`.",
+        "Do not deposit the whole vendored bundle.",
+        "Recut P1 skill path: edit `content/packs/skills/skills-pack-0.1.json` then `task packs:render`.",
+        "Skill MUST paths name the pack-relative objects that flatten (`skills/deft-directive-debug/...`).",
+        "`file_scope` includes the pack JSON.",
+        "Do not edit only generated `content/skills/deft-directive-debug/SKILL.md`.",
+        "Recut P1 ledger identity: output filename `investigation.xbrief.json`; new writes use `\"xBRIEFInfo\": { \"version\": \"0.8\" }`; keep `plan.metadata.x-investigation.profile === \"forensic-research-v1\"` and the claim/branch/wave fields `verify:investigation` already checks.",
+        "Ledgers stay under `.tmp/investigations/`, not `./xbrief/`.",
+        "Fix \"thin xBRIEF 0.6 profile\" wording and the verify.yml desc example in the same change.",
+        "Reject keeping the unchanged `vBRIEFInfo` 0.6 scaffold as written.",
+        "The shipped scaffold omits `created` / `updated` (optional) and documents that `id` / `title` must be filled on MODE entry.",
+        "Recut P1 parallel pointer: drop the parallel-wave MUST pointer this ship.",
+        "Narrow any remaining mention to a non-MUST maintainer read.",
+        "Do not ship `orchestrator-protocol.md` or its vendor MUST-reads (`forensic-mode.md`, `domains/`, `question-framing.md`, `subagent-prompts.md`, `investigation-profile.md`, `follow-ups.md`, `investigation.vbrief.json`).",
+        "The leftover skill lines 28–32 read-only pointer to `docs/reference/forensic-research/` stays maintainer-only.",
+        "Recut P1 regression: extend `content/contracts/deposit-required-paths.json` with `.deft/core/skills/deft-directive-debug/templates/investigation.xbrief.json` and `.deft/core/skills/deft-directive-debug/references/outcome-template.md`, and evaluate `evaluateDepositClosure` against a fresh `stageContentPack` result so those paths exist in the staged pack.",
+        "Rewrite `debugging.test.ts` `test_skill_references_vendored_design` so it no longer locks the unreachable prefix.",
+        "Validate a filled fixture (non-empty `id` and `title`, `forensic-research-v1`, waves/claims as the close gate requires) against `content/vbrief/schemas/xbrief-core-0.8.schema.json` and against `verify:investigation` `loadLedger`.",
+        "Do not add a new global prose-path scanner.",
+        "Do not treat a blank derived scaffold as the 0.8 subject.",
+        "Preserve: close-gate profile check; `VENDORED.md` verbatim vendor tree.",
+        "Exclude: filename-only add or retarget under repo-root `docs/`; deposit-time rewrite of skill text as a second authoring surface; treating other root-only `docs/` cites as this P1; shipping the vendored orchestrator protocol this ship.",
+        "Target-digest: sha256:4c1d1b0cfc25f19351385eae329a944483a59494679d942f88ed570fbe694930"
+      ],
+      "confessions": [],
+      "x-directive/admitted_source_sentences": [
+        "Place native copies under content/skills/deft-directive-debug/ (templates/investigation.xbrief.json and references/outcome-template.md); leave repo-root docs/reference/forensic-research untouched.",
+        "Edit content/packs/skills/skills-pack-0.1.json then packs:render so skill MUST paths name pack-relative flatten objects.",
+        "Shipped scaffold uses xBRIEFInfo version 0.8 with forensic-research-v1; id/title filled on MODE entry; drop parallel MUST orchestrator-protocol pointer.",
+        "Extend deposit-required-paths.json and evaluateDepositClosure against fresh stageContentPack; rewrite debugging.test.ts away from unreachable prefix."
+      ]
+    },
+    "id": "github.issue.5652287218"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.intended_placement",
+    "metadata.issueBody",
+    "metadata.issueCommentThread",
+    "metadata.literal_acceptance_commands",
+    "metadata.literal_acceptance_rejected",
+    "metadata.productPullRequest",
+    "metadata.swarm.Traces",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-06-5195-framework-gap-bugcontent-consumer-debug-skill-names-an-absen.xbrief.json",
+  "planId": "github.issue.5652287218",
+  "approvedAt": "2026-10-06T22:40:55Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/contracts/deposit-required-paths.json",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/skills/deft-directive-debug/references/outcome-template.md",
+    "content/skills/deft-directive-debug/SKILL.md",
+    "content/skills/deft-directive-debug/templates/investigation.xbrief.json",
+    "docs/RULE-MAP.md",
+    "packages/core/src/content-contracts/standards/debugging.test.ts",
+    "packages/core/src/content-contracts/standards/deposit_required_closure.test.ts",
+    "tasks/verify.yml"
+  ],
+  "fileScopeDigest": "0ed78327f5664dade9a271fc0fc54d6569d67f56c8e11111c460b37bb5a4111b",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-06T22:40:55Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "04d3928b807a2a9b4d7f3320532e7e9c6c4ade722be89a07900a251b739371b0",
+  "digestAlgo": "intent-extract-v1"
+}
