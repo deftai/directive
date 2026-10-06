@@ -13,11 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
-- Complete the #5393 verify-ac defect-description brief after product #5396; move the scope brief into xbrief/completed.
 - Complete the #5391 scope brief after product #5401; move the CLI DX Prefer-A Bound brief into xbrief/completed.
 
 ### Changed
 
+- Complete the #5393 verify-ac defect-description brief after product #5396; move the scope brief into xbrief/completed.
 - Complete the #5375 scope brief after product #5400; move the cold ceremony honesty brief into xbrief/completed.
 
 - **Complete the worktree VERSION reconstitution brief after product #5395.** Move the #5390 scope brief into xbrief/completed so orphan tracking clears. Tracking #5390.

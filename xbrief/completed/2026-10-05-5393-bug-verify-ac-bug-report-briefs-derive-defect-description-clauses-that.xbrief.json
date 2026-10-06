@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "bug(verify-ac): bug-report briefs derive defect-description clauses that cannot verify after the fix, so scope:complete has no exit for shipped work",
-    "updated": "2026-10-06T05:14:46Z"
+    "updated": "2026-10-06T05:25:48Z"
   },
   "plan": {
     "id": "github.issue.5717884039",
@@ -13,72 +13,44 @@
         "id": "1",
         "title": "Round-trip source_kind defect-description; token-present must not credit verified for defect claims; polarity miss adjudicable:false.",
         "status": "completed",
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5396",
-          "recorded_at": "2026-10-06T05:00:00.000Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedVia": "leftover-complete-after-5396",
-            "mintedAt": "2026-10-06T05:00:00.000Z",
-            "eventRef": "leftover-complete-after-5396"
-          }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "866eae9232b2953f1bdc8e1d8e48c2434890ac2b",
+          "recorded_at": "2026-10-06T05:25:48Z",
+          "recorded_by": "Scott"
         }
       },
       {
         "id": "2",
         "title": "Acceptance-shaped Done-when preference in #4867 ladder; no auto-confession of defect text as happy-path relief (#5055).",
         "status": "completed",
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5396",
-          "recorded_at": "2026-10-06T05:00:00.000Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedVia": "leftover-complete-after-5396",
-            "mintedAt": "2026-10-06T05:00:00.000Z",
-            "eventRef": "leftover-complete-after-5396"
-          }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "866eae9232b2953f1bdc8e1d8e48c2434890ac2b",
+          "recorded_at": "2026-10-06T05:25:48Z",
+          "recorded_by": "Scott"
         }
       },
       {
         "id": "3",
         "title": "When --merge-commit + --pr and fails are defect-polarity, name stampable npm run check / npm test; do not claim disposition clears walk; keep #5120/#5106 write-before-refuse.",
         "status": "completed",
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5396",
-          "recorded_at": "2026-10-06T05:00:00.000Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedVia": "leftover-complete-after-5396",
-            "mintedAt": "2026-10-06T05:00:00.000Z",
-            "eventRef": "leftover-complete-after-5396"
-          }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "866eae9232b2953f1bdc8e1d8e48c2434890ac2b",
+          "recorded_at": "2026-10-06T05:25:48Z",
+          "recorded_by": "Scott"
         }
       },
       {
         "id": "4",
         "title": "Intake->Done-when + defect source_kind fixtures; remedy string fixtures; CHANGELOG Unreleased; conflict_group bug-report-clause-complete-exit.",
         "status": "completed",
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "disposition": "not_applicable",
-          "reason": "Prefer-A leftover-complete after product PR #5396",
-          "recorded_at": "2026-10-06T05:00:00.000Z",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedVia": "leftover-complete-after-5396",
-            "mintedAt": "2026-10-06T05:00:00.000Z",
-            "eventRef": "leftover-complete-after-5396"
-          }
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "866eae9232b2953f1bdc8e1d8e48c2434890ac2b",
+          "recorded_at": "2026-10-06T05:25:48Z",
+          "recorded_by": "Scott"
         }
       }
     ],
@@ -96,18 +68,11 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5396",
-            "recorded_at": "2026-10-06T05:00:00.000Z",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "mintedVia": "leftover-complete-after-5396",
-              "mintedAt": "2026-10-06T05:00:00.000Z",
-              "eventRef": "leftover-complete-after-5396"
-            }
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "866eae9232b2953f1bdc8e1d8e48c2434890ac2b",
+            "recorded_at": "2026-10-06T05:25:48Z",
+            "recorded_by": "Scott"
           }
         },
         {
@@ -116,18 +81,11 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5396",
-            "recorded_at": "2026-10-06T05:00:00.000Z",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "mintedVia": "leftover-complete-after-5396",
-              "mintedAt": "2026-10-06T05:00:00.000Z",
-              "eventRef": "leftover-complete-after-5396"
-            }
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "866eae9232b2953f1bdc8e1d8e48c2434890ac2b",
+            "recorded_at": "2026-10-06T05:25:48Z",
+            "recorded_by": "Scott"
           }
         },
         {
@@ -136,18 +94,11 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5396",
-            "recorded_at": "2026-10-06T05:00:00.000Z",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "mintedVia": "leftover-complete-after-5396",
-              "mintedAt": "2026-10-06T05:00:00.000Z",
-              "eventRef": "leftover-complete-after-5396"
-            }
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "866eae9232b2953f1bdc8e1d8e48c2434890ac2b",
+            "recorded_at": "2026-10-06T05:25:48Z",
+            "recorded_by": "Scott"
           }
         },
         {
@@ -156,18 +107,11 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "disposition": "not_applicable",
-            "reason": "Prefer-A leftover-complete after product PR #5396",
-            "recorded_at": "2026-10-06T05:00:00.000Z",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "mintedVia": "leftover-complete-after-5396",
-              "mintedAt": "2026-10-06T05:00:00.000Z",
-              "eventRef": "leftover-complete-after-5396"
-            }
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "866eae9232b2953f1bdc8e1d8e48c2434890ac2b",
+            "recorded_at": "2026-10-06T05:25:48Z",
+            "recorded_by": "Scott"
           }
         }
       ],
@@ -216,6 +160,13 @@
       "lifecycleWrite": {
         "action": "complete",
         "writtenAt": "2026-10-06T05:14:46Z"
+      },
+      "completionProvenance": {
+        "productMerge": "866eae923",
+        "productPr": 5396,
+        "disposition": "delivered",
+        "verifier": "leftover-complete-after-5396",
+        "recorded_at": "2026-10-06T05:25:48Z"
       }
     },
     "references": [
@@ -232,6 +183,6 @@
     "narratives": {
       "overview": "bug(verify-ac): bug-report briefs derive defect-description clauses that cannot verify after the fix, so scope:complete has no exit for shipped work"
     },
-    "updated": "2026-10-06T05:14:46Z"
+    "updated": "2026-10-06T05:25:48Z"
   }
 }
