@@ -279,6 +279,14 @@ export function looksLikeDefectDescription(text: string): boolean {
   if (normalized.length === 0 || DONE_WHEN_INLINE.test(normalized)) {
     return false;
   }
+  // Mixed acceptance obligation (must contain/include) wins over incidental
+  // diagnostic mention so token checks still run (#5393 Greptile P1).
+  if (
+    /\bmust\b/i.test(normalized) &&
+    /\bcontain(?:s|ing)?\b|\binclude(?:s|ing)?\b/i.test(normalized)
+  ) {
+    return false;
+  }
   // Keep analysis prose with file:line + "failure" out of this set (#3826 fixtures).
   if (DEFECT_ERROR_CODE.test(normalized) || DEFECT_DIAGNOSTIC.test(normalized)) {
     return true;
@@ -512,13 +520,26 @@ export interface ClauseDerivationSources {
   readonly declaredNarrative?: DeclaredAcceptanceNarrativeSurface;
 }
 
+/** Dedupe acceptance lines while preserving first-seen order. */
+function uniqueAcceptanceLines(lines: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const line of lines) {
+    const key = line.toLowerCase();
+    if (line.length === 0 || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(line);
+  }
+  return out;
+}
+
 /** Acceptance lines the statement itself declares, in extractor precedence order. */
 function collectStatementSurface(text: string): string[] {
-  // #5393: prefer Done-when (inline + heading) before AC scrape / path-bearing Failures.
+  // #5393: prefer Done-when / AC / must / checklist over path-bearing Failures paste.
+  // Keep explicit AC/Test/checklist alongside Done-when (do not drop criteria).
   const doneWhen = collectDoneWhenLines(text);
-  if (doneWhen.length > 0) {
-    return doneWhen;
-  }
   const raw: string[] = [];
   const acHeading = findAcHeading(text);
   if (acHeading !== null) {
@@ -530,16 +551,23 @@ function collectStatementSurface(text: string): string[] {
   }
   raw.push(...collectSectionItems(text, SECTION_HEADING));
   raw.push(...collectLabeledLines(text));
+  if (doneWhen.length > 0) {
+    return uniqueAcceptanceLines([...doneWhen, ...raw]);
+  }
   if (raw.length === 0) {
     const mustShaped = collectMustAcceptanceLines(text);
-    if (mustShaped.length > 0) {
-      return mustShaped;
-    }
     // Skip Failures / error-code path-bearing paste — yields 0 clauses when the
     // bug report has no Done-when / must / checklist (Claude N2 / #5393).
-    raw.push(...collectPathBearingLines(text).filter((line) => !looksLikeDefectDescription(line)));
+    // Keep non-defect path-bearing checklist items with must (do not drop Add …).
+    const pathBearing = collectPathBearingLines(text).filter(
+      (line) => !looksLikeDefectDescription(line),
+    );
+    const merged = uniqueAcceptanceLines([...mustShaped, ...pathBearing]);
+    if (merged.length > 0) {
+      return merged;
+    }
   }
-  return raw;
+  return uniqueAcceptanceLines(raw);
 }
 
 /** Numbered independently testable clauses from the task statement (#3323). */
@@ -1244,6 +1272,20 @@ function walkOne(
     return bound("failed", "artifact path escaped the project root");
   }
   if (!existsSync(abs)) {
+    // #5393: defect-description rows are not an existence oracle either — missing
+    // and present both stay non-adjudicable unverifiable (Greptile P1 parity).
+    if (resolveClauseSourceKind(clause) === "defect-description") {
+      return {
+        id: clause.id,
+        text: clause.text,
+        artifact_path: artifactPath,
+        outcome: "unverifiable",
+        detail:
+          `defect-description missing-artifact check is not an acceptance oracle for ` +
+          `${artifactPath} (#5393)`,
+        adjudicable: false,
+      };
+    }
     if (NEGATED_EXISTENCE.test(clause.text)) {
       // #3826: absence is not evidence. The negation phrase is matched against the
       // whole clause text, so on a derived clause it routinely refers to something

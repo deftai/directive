@@ -1681,6 +1681,49 @@ Done when npm run check exits 0 on main.
     expect(clauses[0]?.source_kind).toBeUndefined();
   });
 
+  it("keeps Acceptance Criteria alongside Done-when (does not drop explicit criteria)", () => {
+    const clauses = deriveAcceptanceClauses(`
+## Acceptance Criteria
+- packages/core/src/verify-ac/clauses.ts must export looksLikeDefectDescription
+
+Done when npm run check exits 0 on main.
+`);
+    expect(clauses.map((c) => c.text)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/done when/i),
+        expect.stringMatching(/looksLikeDefectDescription/),
+      ]),
+    );
+    expect(clauses.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("keeps imperative checklist items with must items (does not drop Add …)", () => {
+    const clauses = deriveAcceptanceClauses(`
+- packages/core/src/verify-ac/clauses.ts must export resolveClauseSourceKind
+- Add packages/core/src/verify-ac/clauses.test.ts coverage for defect polarity
+`);
+    expect(clauses.map((c) => c.text)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/must export resolveClauseSourceKind/),
+        expect.stringMatching(/^Add packages\/core\/src\/verify-ac\/clauses\.test\.ts/),
+      ]),
+    );
+  });
+
+  it("does not classify mixed diagnostic + must-contain as defect-description", () => {
+    const text =
+      "After fixing TS2304, `src/output.ts` must contain 'resolved'";
+    expect(looksLikeDefectDescription(text)).toBe(false);
+    expect(
+      resolveClauseSourceKind({
+        id: 1,
+        text,
+        artifact_path: "src/output.ts",
+        ambiguous: false,
+      }),
+    ).toBe("acceptance");
+  });
+
   it("yields 0 clauses for Failures-only bug report without Done-when", () => {
     const clauses = deriveAcceptanceClauses(`
 ## Failures
@@ -1792,5 +1835,25 @@ Done when npm run check exits 0 on main.
     );
     expect(report.clauses[0]?.outcome).toBe("unverifiable");
     expect(report.clauses[0]?.adjudicable).toBe(false);
+  });
+
+  it("marks missing defect-description artifacts unverifiable and non-adjudicable", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-5393-missing-"));
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: 'fails with "possibly undefined"',
+          artifact_path: "missing.ts",
+          ambiguous: false,
+          source_kind: "defect-description",
+        },
+      ],
+      root,
+      { declaredScope: ["missing.ts"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("unverifiable");
+    expect(report.clauses[0]?.adjudicable).toBe(false);
+    expect(report.clauses[0]?.outcome).not.toBe("failed");
   });
 });

@@ -144,27 +144,39 @@ function hasMergeAndPr(reading: AcceptanceReading): boolean {
   return merge.length > 0 && pr !== null;
 }
 
-/** True when remaining fails look like defect quoted-token polarity (#5393). */
+function rowLooksDefectPolarity(row: {
+  readonly outcome: string;
+  readonly detail?: string;
+  readonly text?: string;
+}): boolean {
+  const detail = typeof row.detail === "string" ? row.detail : "";
+  const text = typeof row.text === "string" ? row.text : "";
+  if (/defect-description/i.test(detail) || /expected token\(s\) missing/i.test(detail)) {
+    return true;
+  }
+  if (/\b(?:TS|ES)\d{3,5}\b|\bpossibly undefined\b/i.test(text)) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * True when every remaining fail/unverifiable row looks like defect polarity (#5393).
+ * Mixed walks (artifact fail + defect row) keep the default ship/bind remedy.
+ */
 export function clauseOutcomesLookDefectPolarity(
   outcomes: AcceptanceReading["clauseOutcomes"],
 ): boolean {
   if (outcomes === undefined || outcomes.length === 0) {
     return false;
   }
-  return outcomes.some((row) => {
-    if (row.outcome !== "failed" && row.outcome !== "unverifiable") {
-      return false;
-    }
-    const detail = typeof row.detail === "string" ? row.detail : "";
-    const text = typeof row.text === "string" ? row.text : "";
-    if (/defect-description/i.test(detail) || /expected token\(s\) missing/i.test(detail)) {
-      return true;
-    }
-    if (/\b(?:TS|ES)\d{3,5}\b|\bpossibly undefined\b/i.test(text)) {
-      return true;
-    }
+  const remaining = outcomes.filter(
+    (row) => row.outcome === "failed" || row.outcome === "unverifiable",
+  );
+  if (remaining.length === 0) {
     return false;
-  });
+  }
+  return remaining.every((row) => rowLooksDefectPolarity(row));
 }
 
 export function resolveClauseWalkFailedRemedy(reading: AcceptanceReading): string {
