@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+### Changed
+
+- Keep-active: Prefer-A Bound brief for #5393 (Path B activation).
+
 
 ### Added
 
