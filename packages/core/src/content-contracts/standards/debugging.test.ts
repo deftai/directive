@@ -18,99 +18,118 @@ afterEach(() => {
   }
 });
 
-/** Filled forensic ledger subject for 0.8 schema + close-gate loader (#5195). */
-function filledInvestigationFixture(): Record<string, unknown> {
-  return {
-    xBRIEFInfo: {
-      version: "0.8",
-      description: "Filled forensic investigation fixture (#5195)",
-    },
+const DEPOSITED_INVESTIGATION_TEMPLATE =
+  "skills/deft-directive-debug/templates/investigation.xbrief.json";
+
+/** Load the deposited scaffold (empty id/title) for schema + fill-from-template tests. */
+function depositedInvestigationScaffold(): Record<string, unknown> {
+  return JSON.parse(readText(DEPOSITED_INVESTIGATION_TEMPLATE)) as Record<string, unknown>;
+}
+
+/**
+ * Fill a clone of the deposited investigation template so schema/close-gate
+ * coverage tracks the shipped scaffold shape (#5195 Greptile).
+ */
+function filledInvestigationFixtureFromTemplate(): Record<string, unknown> {
+  const fixture = structuredClone(depositedInvestigationScaffold()) as {
+    xBRIEFInfo: Record<string, unknown>;
     plan: {
-      id: "fixture.investigation.5195",
-      title: "Filled forensic ledger for deposit close-gate",
-      status: "completed",
-      narratives: {
-        Problem: "symptom",
-        Hypothesis: "leading theory",
-        Observation: "evidence",
-        Outcome: "mechanism",
-      },
-      items: [
-        {
-          id: "branch.traps",
-          title: "Popularity traps",
-          status: "failed",
-          items: [
-            {
-              id: "claim.trap.concurrency.B1",
-              title: "Resource saturation during anchor window",
-              status: "failed",
-              metadata: {
-                "x-claim": {
-                  evidenceRefs: ["EV-1"],
-                  ruledOutReason: "no saturation in window",
-                  requiredEvidence: "metrics",
-                  prediction: "saturation if concurrency",
-                },
-              },
-            },
-          ],
-        },
-        {
-          id: "branch.slowness",
-          title: "Why wall clock was high",
-          status: "completed",
-          items: [
-            {
-              id: "claim.slow.embed",
-              title: "Embed fleet saturated",
-              status: "completed",
-              metadata: {
-                "x-claim": {
-                  evidenceRefs: ["EV-1"],
-                  requiredEvidence: "embed wait telemetry",
-                  prediction: "queue wait explains wall clock",
-                },
-              },
-            },
-          ],
-        },
-        {
-          id: "branch.terminal",
-          title: "How the session ended",
-          status: "completed",
-          items: [],
-        },
-      ],
-      edges: [
-        {
-          from: "claim.trap.concurrency.B1",
-          to: "branch.traps",
-          type: "invalidates",
-        },
-      ],
-      references: [
-        {
-          id: "EV-1",
-          type: "x-xbrief/evidence",
-          title: "embed wait log line",
-          uri: "file://logs/embed.txt",
-        },
-      ],
-      metadata: {
-        "x-investigation": {
-          profile: "forensic-research-v1",
-          domain: "code-debug",
-          wave: 4,
-          anchor: {},
-          agents: {},
-          wavesCompleted: { "1": true, "2": true, "3": true, "4": true },
-          chatEmbargo: false,
-          validatorPassedAt: "2026-10-06T00:00:00Z",
-        },
-      },
+      id: string;
+      title: string;
+      status: string;
+      narratives: Record<string, string>;
+      items: Array<{
+        id: string;
+        title: string;
+        status: string;
+        items: Array<{
+          id: string;
+          title: string;
+          status: string;
+          metadata?: { "x-claim"?: Record<string, unknown> };
+        }>;
+      }>;
+      edges: Array<Record<string, string>>;
+      references: Array<Record<string, string>>;
+      metadata: { "x-investigation": Record<string, unknown> };
+    };
+  };
+
+  fixture.xBRIEFInfo.description = "Filled forensic investigation fixture (#5195)";
+  fixture.plan.id = "fixture.investigation.5195";
+  fixture.plan.title = "Filled forensic ledger for deposit close-gate";
+  fixture.plan.status = "completed";
+  fixture.plan.narratives = {
+    Problem: "symptom",
+    Hypothesis: "leading theory",
+    Observation: "evidence",
+    Outcome: "mechanism",
+  };
+
+  const traps = fixture.plan.items.find((b) => b.id === "branch.traps");
+  if (!traps) throw new Error("deposited template missing branch.traps");
+  traps.status = "failed";
+  const concurrency = traps.items.find((c) => c.id === "claim.trap.concurrency.B1");
+  if (!concurrency) throw new Error("deposited template missing claim.trap.concurrency.B1");
+  concurrency.status = "failed";
+  concurrency.metadata = {
+    "x-claim": {
+      ...(concurrency.metadata?.["x-claim"] ?? {}),
+      evidenceRefs: ["EV-1"],
+      ruledOutReason: "no saturation in window",
     },
   };
+  // Drop unused scaffold sibling so the filled ledger stays minimal.
+  traps.items = [concurrency];
+
+  const slowness = fixture.plan.items.find((b) => b.id === "branch.slowness");
+  if (!slowness) throw new Error("deposited template missing branch.slowness");
+  slowness.status = "completed";
+  slowness.items = [
+    {
+      id: "claim.slow.resource",
+      title: "Resource pool saturated",
+      status: "completed",
+      metadata: {
+        "x-claim": {
+          evidenceRefs: ["EV-1"],
+          requiredEvidence: "queue / wait telemetry",
+          prediction: "queue wait explains wall clock",
+        },
+      },
+    },
+  ];
+
+  const terminal = fixture.plan.items.find((b) => b.id === "branch.terminal");
+  if (!terminal) throw new Error("deposited template missing branch.terminal");
+  terminal.status = "completed";
+  terminal.items = [];
+
+  fixture.plan.edges = [
+    {
+      from: "claim.trap.concurrency.B1",
+      to: "branch.traps",
+      type: "invalidates",
+    },
+  ];
+  fixture.plan.references = [
+    {
+      id: "EV-1",
+      type: "x-xbrief/evidence",
+      title: "resource wait log line",
+      uri: "file://logs/resource.txt",
+    },
+  ];
+  fixture.plan.metadata["x-investigation"] = {
+    ...fixture.plan.metadata["x-investigation"],
+    domain: "code-debug",
+    wave: 4,
+    wavesCompleted: { "1": true, "2": true, "3": true, "4": true },
+    chatEmbargo: false,
+    validatorPassedAt: "2026-10-06T00:00:00Z",
+  };
+
+  return fixture;
 }
 
 describe("test_debugging.py", () => {
@@ -215,9 +234,17 @@ describe("test_debugging.py", () => {
       expect(text).not.toContain("sub-agents per");
       expect(isFile("skills/deft-directive-debug/templates/investigation.xbrief.json")).toBe(true);
       expect(isFile("skills/deft-directive-debug/references/outcome-template.md")).toBe(true);
+      const outcome = readText("skills/deft-directive-debug/references/outcome-template.md");
+      expect(outcome).toContain("subject id");
+      expect(outcome).toContain("Optional example (SLizard");
     });
     it("test_filled_investigation_fixture_passes_0_8_and_close_gate", () => {
-      const fixture = filledInvestigationFixture();
+      const scaffold = depositedInvestigationScaffold();
+      expect(validateVbriefSchema(scaffold, "investigation.xbrief.json").length).toBeGreaterThan(0);
+      expect(JSON.stringify(scaffold)).toContain("optional domain pack: trap.concurrency");
+      expect(resolveContentPath(DEPOSITED_INVESTIGATION_TEMPLATE)).toContain("content");
+
+      const fixture = filledInvestigationFixtureFromTemplate();
       expect(validateVbriefSchema(fixture, "filled-investigation.xbrief.json")).toEqual([]);
       const dir = mkdtempSync(join(tmpdir(), "deft-inv-5195-"));
       scratch.push(dir);
@@ -225,13 +252,6 @@ describe("test_debugging.py", () => {
       writeFileSync(ledgerPath, `${JSON.stringify(fixture, null, 2)}\n`, "utf8");
       const loaded = loadLedger(ledgerPath);
       expect(validationOk(validateLedger(loaded))).toBe(true);
-      const scaffold = JSON.parse(
-        readText("skills/deft-directive-debug/templates/investigation.xbrief.json"),
-      ) as Record<string, unknown>;
-      expect(validateVbriefSchema(scaffold, "investigation.xbrief.json").length).toBeGreaterThan(0);
-      expect(
-        resolveContentPath("skills/deft-directive-debug/templates/investigation.xbrief.json"),
-      ).toContain("content");
     });
     it("test_skill_falsification_waves", () => {
       const text = readText("skills/deft-directive-debug/SKILL.md").toLowerCase();

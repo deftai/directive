@@ -25,7 +25,7 @@
             "status": "pending",
             "metadata": {
               "x-claim": {
-                "requiredEvidence": "Metrics or logs per domain pack trap.concurrency",
+                "requiredEvidence": "Metrics or logs showing resource saturation in the anchor window (optional domain pack: trap.concurrency)",
                 "prediction": "If concurrency caused delay, saturation evidence exists"
               }
             }
