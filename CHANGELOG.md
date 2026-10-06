@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Mint intent-constraint for #5415 (Path B).** Operator TTY mint of `.deft/intent-constraint/github.issue.5730491425.json` so product PR #5419 can pass `verify:intent-constraint`. Mint-only — no product code. Tracking #5415.
 - **Keep active #5413 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so product PR #5416 can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5413.
 - **Mint approved-scope for #5373 (RULE-MAP membership).** Operator TTY remint of `.deft/approved-scope/github.issue.5713952089{,.intent}.json` so product PR #5410 membership includes `docs/RULE-MAP.md`. Mint-only — no product code. Tracking #5373.
 - **Keep active #5350 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so product PR #5376 can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5350.
