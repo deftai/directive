@@ -493,8 +493,8 @@ function wasActiveOnMergeBase(input: {
   readonly readAtBase: (rel: string) => BaseBriefReadLocal;
   readonly census: readonly CensusBrief[] | null;
   readonly censusReadFailed?: boolean;
-  /** Injected changedFiles/activeXbriefs seam — no fail-closed admit on missing census. */
-  readonly injectedSeam?: boolean;
+  /** changedFiles-injected snapshot seam — no fail-closed admit on missing census. */
+  readonly changedFilesInjected?: boolean;
 }): boolean {
   const headN = normalizeRepoRelPath(input.headRel);
   for (const candidate of preMoveSameBasenameLifecyclePaths(headN)) {
@@ -506,10 +506,10 @@ function wasActiveOnMergeBase(input: {
   }
   if (input.headPlanId === null) return false;
   if (input.census === null) {
-    // Live discovery: admit on census read failure so renamed moves cannot
-    // drop the fence. Injected seams must supply baseXbriefs for plan.id
-    // rename matching — do not treat a failed live ls-tree as active-on-base.
-    return input.censusReadFailed === true && input.injectedSeam !== true;
+    // Live / activeXbriefs-only: admit on census read failure so renamed moves
+    // and membership identity checks cannot drop the fence. changedFiles-
+    // injected snapshots must supply baseXbriefs for plan.id rename matching.
+    return input.censusReadFailed === true && input.changedFilesInjected !== true;
   }
   const activeHits = input.census.filter(
     (b) =>
@@ -802,10 +802,11 @@ export function evaluateScopeProvenance(
 
   // Admission census: injected base map, else live listLifecycleBriefsAtRef.
   // Lazy until a moved-lifecycle candidate needs plan.id matching; shared with
-  // the per-story membership loop below (#5412 Greptile P1/P2). Injected
-  // changedFiles/activeXbriefs seams without baseXbriefs must not live-ls-tree
-  // (isolated roots / snapshot callers) — rename via plan.id needs baseXbriefs.
-  const injectedSeam = options.activeXbriefs !== undefined || options.changedFiles !== undefined;
+  // the per-story membership loop below (#5412 Greptile P1/P2). Only
+  // changedFiles-injected seams without baseXbriefs skip live ls-tree
+  // (isolated snapshot callers). activeXbriefs-only on a real checkout still
+  // runs the census so membership fail-closed identity checks remain.
+  const changedFilesInjected = options.changedFiles !== undefined;
   let admissionCensus: readonly CensusBrief[] | null = null;
   let admissionCensusReadFailed = false;
   let admissionCensusResolved = false;
@@ -816,7 +817,7 @@ export function evaluateScopeProvenance(
       admissionCensus = censusFromBaseMap(options.baseXbriefs);
       return;
     }
-    if (injectedSeam) return;
+    if (changedFilesInjected) return;
     if (discoveryBaseRef === null || discoveryBaseRef === "") return;
     try {
       const listed = listLifecycleBriefsAtRef(root, discoveryBaseRef, readAtBase);
@@ -868,7 +869,7 @@ export function evaluateScopeProvenance(
         readAtBase,
         census: admissionCensus,
         censusReadFailed: admissionCensusReadFailed,
-        injectedSeam,
+        changedFilesInjected,
       })
     ) {
       continue;

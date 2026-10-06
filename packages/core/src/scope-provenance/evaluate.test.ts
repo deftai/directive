@@ -1872,6 +1872,45 @@ describe("changed-lifecycle admission shared predicate (#5412)", () => {
     expect(result.findings).toEqual([]);
   });
 
+  it("activeXbriefs-only without baseXbriefs still fail-closed on live census read failure", () => {
+    root = initRepo();
+    const planId = "story-census";
+    const scope = ["packages/core/src/a.ts"];
+    const activeRel = "xbrief/active/story.xbrief.json";
+    writeTracked(root, activeRel, planningBrief(planId, "running", scope));
+    writeTracked(root, "xbrief/pending/peer.xbrief.json", planningBrief("peer", "pending", scope));
+    writeTracked(root, "packages/core/src/a.ts", "export const a = 1;\n");
+    commit(root, "base with peer");
+    git(root, ["branch", "base"]);
+
+    git(root, ["checkout", "-q", "-b", "edit"]);
+    const head = planningBrief(planId, "running", [...scope, "packages/core/src/b.ts"]);
+    writeTracked(root, activeRel, head);
+    commit(root, "edit active scope");
+
+    // No changedFiles / no baseXbriefs: must still live-ls-tree. Forced read
+    // failure must surface as membership refuse (Greptile P1 sticky fingerprint).
+    const result = evaluateScopeProvenance(root, {
+      baseRef: "base",
+      enforce: true,
+      activeXbriefs: new Map([[activeRel, head]]),
+      readAtBase: () => {
+        throw new Error("forced census read failure");
+      },
+      sourceRoots: ["packages"],
+      testRoots: ["tests"],
+      fixtureRoots: ["fixtures"],
+    });
+    expect(result.exitCode).toBe(1);
+    expect(
+      result.findings.some(
+        (f) =>
+          f.kind === "active-xbrief-modified-without-digest" &&
+          /merge-base lifecycle census/i.test(f.detail),
+      ),
+    ).toBe(true);
+  });
+
   it("renamed active-on-base→pending keeps fence via plan.id census", () => {
     const narrow = ["packages/core/src/a.ts"];
     const baseActive = {
