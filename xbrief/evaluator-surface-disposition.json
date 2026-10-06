@@ -1,10 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5350,
+  "issue": 5195,
   "surfaces": [
     "tasks/verify.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5350 / PR #5376: tasks/verify.yml advise|shadow|enforce mode×exit passthrough for verify:spec-drift. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5195 / PR #5436: tasks/verify.yml investigation ledger path desc vbrief→xbrief. Disclosure only; not #3164 authorization."
 }
