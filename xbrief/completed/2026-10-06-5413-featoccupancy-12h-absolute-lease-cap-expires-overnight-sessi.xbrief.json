@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "feat(occupancy): 24h max lease + same-session primary residue reclaim (#5413)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(occupancy): 12h absolute lease cap expires overnight sessions; the primary checkout cannot re-claim",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5413",
@@ -17,22 +17,70 @@
       {
         "id": "1",
         "title": "Raise OCCUPANCY_MAX_LEASE_MS to TTL*72 (24h); rewrite #3599 docblock; pin absolute grant-reach test",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5416",
+          "recorded_at": "2026-10-06T16:22:03.455Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5416",
+            "mintedAt": "2026-10-06T16:22:03.455Z"
+          }
+        }
       },
       {
         "id": "2",
         "title": "Same-session primary residue reclaim across age-capped and heartbeat-stale (Approach D)",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5416",
+          "recorded_at": "2026-10-06T16:22:03.455Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5416",
+            "mintedAt": "2026-10-06T16:22:03.455Z"
+          }
+        }
       },
       {
         "id": "3",
         "title": "Honest age-cap remediation wording for same-session vs stranger/blocked primary",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5416",
+          "recorded_at": "2026-10-06T16:22:03.455Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5416",
+            "mintedAt": "2026-10-06T16:22:03.455Z"
+          }
+        }
       },
       {
         "id": "4",
         "title": "Bound acceptance tests for overnight primary resume and grant-reach pin",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5416",
+          "recorded_at": "2026-10-06T16:22:03.455Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5416",
+            "mintedAt": "2026-10-06T16:22:03.455Z"
+          }
+        }
       }
     ],
     "tags": [
@@ -478,7 +526,11 @@
         "targetDigest": "sha256:1fad898e2c73fd11d70df5f883add81b311da319a5dd462c53304301a034838e",
         "dispatchSha": "84b71a993e9d3246db16faad395e35f31120c9d3"
       },
-      "productPullRequest": 5416
+      "productPullRequest": 5416,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-06T16:22:03.455Z"
+      }
     },
     "acceptance": {
       "ambiguity_attestation": "none_found",
@@ -486,30 +538,78 @@
         {
           "id": 1,
           "text": "Change OCCUPANCY_MAX_LEASE_MS from OCCUPANCY_TTL_MS * 36 (12h) to OCCUPANCY_TTL_MS * 72 (24h) in packages/core/src/session/occupancy.ts. Keep cap keyed on claimedAt. Rewrite the #3599 docblock for TTL*72 / 24h overnight sizing. Accept grant-clamp doubling (#3755); add Bound test that pins absolute 24h grant reach.",
-          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5416",
+            "recorded_at": "2026-10-06T16:22:03.455Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5416",
+              "mintedAt": "2026-10-06T16:22:03.455Z"
+            }
+          }
         },
         {
           "id": 2,
           "text": "Extend same-owner escape inside primaryCheckoutClaimBlocked so matching-residue reclaim admits when liveness is age-capped or heartbeat-stale. One shared predicate across evaluateOccupancyCeremonyEligibility, applyWorktreeOccupancy, and stealOccupancy inspection. Exact stored.sessionId === incoming; occupancyWorktreeMatches; re-read under lock. Reject stranger/peer/member/inherited.",
-          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5416",
+            "recorded_at": "2026-10-06T16:22:03.455Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5416",
+              "mintedAt": "2026-10-06T16:22:03.455Z"
+            }
+          }
         },
         {
           "id": 3,
           "text": "Branch formatOccupancyAgeCapRemediation (and ceremony-aware denial assembly): (1) same-session matching residue prints admitted reclaim without exception flag; (2) stranger/non-matching/still-blocked primary prints linked worktree or trusted-producer --primary-claim-exception=operator-default-branch; (3) linked non-primary age-cap keeps today reclaim wording. Do not promise ritual readiness from lease reclaim alone.",
-          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5416",
+            "recorded_at": "2026-10-06T16:22:03.455Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5416",
+              "mintedAt": "2026-10-06T16:22:03.455Z"
+            }
+          }
         },
         {
           "id": 4,
           "text": "Tests: linked worktree reclaim under new cap; primary+live sibling+matching owner admits for age-capped and heartbeat-stale residue; exact-cap and cap+1ms boundaries; mismatched-tree/different-owner refuse; reclaim resets claim age and clears expired-lease grants; absolute 24h grant-reach pin. Acceptance claim: no operator --primary-claim-exception for matching-residue holder (ritual re-arm may still apply).",
-          "artifact_path": "packages/core/src/session/occupancy.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5416",
+            "recorded_at": "2026-10-06T16:22:03.455Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5416",
+              "mintedAt": "2026-10-06T16:22:03.455Z"
+            }
+          }
         }
       ],
       "x-directive/admitted_source_sentences": [
@@ -520,6 +620,6 @@
       ]
     },
     "id": "github.issue.5729564159",
-    "updated": "2026-10-06T16:04:03.856Z"
+    "updated": "2026-10-06T16:22:03.455Z"
   }
 }
