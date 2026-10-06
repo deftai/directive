@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "bug(worktree): payload reconstitution omits .deft/core/VERSION; doctor fails manifest-agreement and gates writes, remediation is deft update",
-    "updated": "2026-10-06T02:03:56Z"
+    "updated": "2026-10-06T02:17:33.186Z"
   },
   "plan": {
     "id": "github.issue.5717551052",
@@ -16,7 +16,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
-          "recorded_at": "2026-10-06T02:03:56.316Z",
+          "recorded_at": "2026-10-06T02:17:33.186Z",
           "recorded_by": "Scott"
         }
       },
@@ -27,7 +27,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
-          "recorded_at": "2026-10-06T02:03:56.316Z",
+          "recorded_at": "2026-10-06T02:17:33.186Z",
           "recorded_by": "Scott"
         }
       },
@@ -38,7 +38,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
-          "recorded_at": "2026-10-06T02:03:56.316Z",
+          "recorded_at": "2026-10-06T02:17:33.186Z",
           "recorded_by": "Scott"
         }
       },
@@ -49,7 +49,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
-          "recorded_at": "2026-10-06T02:03:56.316Z",
+          "recorded_at": "2026-10-06T02:17:33.186Z",
           "recorded_by": "Scott"
         }
       }
@@ -63,52 +63,52 @@
         {
           "id": 1,
           "text": "After successful payload copy, unconditionally ensure .deft/core/VERSION via buildInstallManifestText; source-version authority; disagree gate refuses bare-only synthesize; already-present repair behind containment/symlink guards; ensure-failure returns refused.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/init-deposit/gitignore.ts",
           "ambiguous": false,
           "provenance": "bound-prefer-a",
           "x-directive/evidence": {
             "kind": "merge",
             "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
-            "recorded_at": "2026-10-06T02:03:56.316Z",
+            "recorded_at": "2026-10-06T02:17:33.186Z",
             "recorded_by": "Scott"
           }
         },
         {
           "id": 2,
           "text": "When linked worktree + payload + missing VERSION + agreeing bare, emit narrow detail + suggested_fix to session:start reconstitution; keep deft update for true skew branches.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/doctor/checks.ts",
           "ambiguous": false,
           "provenance": "bound-prefer-a",
           "x-directive/evidence": {
             "kind": "merge",
             "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
-            "recorded_at": "2026-10-06T02:03:56.316Z",
+            "recorded_at": "2026-10-06T02:17:33.186Z",
             "recorded_by": "Scott"
           }
         },
         {
           "id": 3,
           "text": "Do not make session:ready run doctor as repair; write-gate/hook recovery names session:start --rearm for this class.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/session/verify-session-ritual.ts",
           "ambiguous": false,
           "provenance": "bound-prefer-a",
           "x-directive/evidence": {
             "kind": "merge",
             "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
-            "recorded_at": "2026-10-06T02:03:56.316Z",
+            "recorded_at": "2026-10-06T02:17:33.186Z",
             "recorded_by": "Scott"
           }
         },
         {
           "id": 4,
           "text": "Fixtures for VERSION-less reconstitute, already-present repair, disagree refuse, doctor narrow route; CHANGELOG Unreleased; conflict_group worktree-reconstitute-version-manifest.",
-          "artifact_path": null,
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "bound-prefer-a",
           "x-directive/evidence": {
             "kind": "merge",
             "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
-            "recorded_at": "2026-10-06T02:03:56.316Z",
+            "recorded_at": "2026-10-06T02:17:33.186Z",
             "recorded_by": "Scott"
           }
         }
@@ -152,7 +152,15 @@
       "productPullRequest": 5395,
       "lifecycleWrite": {
         "action": "complete",
-        "writtenAt": "2026-10-06T02:16:41Z"
+        "writtenAt": "2026-10-06T02:17:33.186Z"
+      },
+      "completedAt": "2026-10-06T02:17:33.186Z",
+      "completionProvenance": {
+        "productMerge": "a00ea92b3",
+        "productPr": 5395,
+        "disposition": "delivered",
+        "verifier": "approach1-leftover-stamp-residual",
+        "recorded_at": "2026-10-06T02:17:33.186Z"
       }
     },
     "references": [
@@ -169,6 +177,6 @@
     "narratives": {
       "overview": "bug(worktree): payload reconstitution omits .deft/core/VERSION; doctor fails manifest-agreement and gates writes, remediation is deft update"
     },
-    "updated": "2026-10-05T22:06:26Z"
+    "updated": "2026-10-06T02:17:33.186Z"
   }
 }
