@@ -1,0 +1,527 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5421",
+    "updated": "2026-10-06T20:39:25Z"
+  },
+  "plan": {
+    "title": "bug(pre-pr): coverage applicability is undefined for non-executable consumer refinements",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(pre-pr): coverage applicability is undefined for non-executable consumer refinements",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5421",
+      "Overview": "\n\n### 1. Shared applicability evaluator (Approach A core)\nAdd one closed shared evaluator (new module under `packages/core/src/` or an explicit named reuse entrypoint — do not leave \"reuse where appropriate\" unspecified). Inputs: complete reviewed change set bound to the same `PrePrInputBinding` fields the controller already stores (`repo` / `baseSha` / `headSha` / `treeHash`). Enumerate status-aware old/new paths (not `git diff --name-only` alone; not caller `pathFilter` substrings). Classify each path coverable | inert | unknown. Outcomes:\n- **not-applicable** only when every path is inert (and binding represents the reviewed tree).\n- **applicable** when any path is coverable.\n- **refuse** (fail closed) on unknown, mixed+coverable, classifier failure, invalid base, rename-to-document without content/type proof, dirty tree that is not the bound reviewed tree, or empty/failed selection used as \"proof of inert\".\n\nDo not treat every Markdown/JSON/xbrief path as inherently inert without the classifier rules.\n\n### 2. N/A travels on the skip channel (A/B reconcile — Codex F1/F2, Grok F1, Claude F1)\n- Add exact closed `ALLOWED_SKIP_REASONS.coverage_headroom` token.\n- Authorized N/A is **non-zero exit + that closed skip reason**. Bare `exitCode === 0` free-form observations must **not** satisfy `coverage_headroom`.\n- Align CLI: skip already requires non-zero exit (`pre-pr-run.ts`); Prefer-A Bound uses that channel, not exit-0 N/A.\n- Distinguish measured pass (exit 0 from authorized hotspots/measured path) from evidenced N/A (skip channel) in skill + controller docs.\n\n### 3. Controller re-derives applicability before honoring skip (closes P2 — Claude F2 / Codex F1 / Grok F1)\nHonor `coverage_headroom` skip only when the controller independently re-derives the same not-applicable outcome from the run's `PrePrInputBinding` (same pattern as `computeControllerObservedHash` for semantic phases). Exact token with no matching re-derivation fails. Stale evidence after base/head/tree change fails. Tests: forged exact tokens; arbitrary exit-0 audits; stale binding; positive inert refinement.\n\nOptional same-Bound cheapen: bind `row.command` to `spec.command` for `coverage_headroom` observations. Broader bind across all command phases may be deferred explicitly if not landed here — but then record that deferral in acceptance (P2 coverage-scoped close).\n\n### 4. Hotspots behavior (Approach B amended — not exit-0 short-circuit)\n- Run classifier **before** requiring `coverage/coverage-final.json` when evaluating pre-PR applicability.\n- When N/A-eligible: emit machine-readable N/A artifact/reason; exit non-zero consistent with skip-channel recording; **do not invent percentages**.\n- When applicable and report missing: keep today's exit 2.\n- When toolchain can produce Istanbul and a report exists (or is cheaply produced): do **not** delete the global floor/headroom verdict for docs-only Istanbul dogfood (Claude F3). Diff-level inert alone is not a license to skip a meaningful global floor when measurement is available.\n- Caller path filters may narrow displayed hotspot samples; they never authorize classification / N/A.\n\n### 5. Toolchain vs diff causes (Claude F4 — stated scope)\nThis Bound's authorized N/A is the **diff-level inert** outcome (issue acceptance: verified non-executable refinement). State plainly:\n- Toolchain-only N/A for executable changes on non-Istanbul projects remains open (Coverlet/language-pack adapters stay Deferred). Do not use inert-classifier N/A to paper over executable .NET without measurement.\n- Skill Phase 3c must repair the asymmetry: measurement already allows \"or language equivalent\"; hotspots step must name the authorized N/A / skip path instead of hard-requiring Istanbul-only success (Claude F5).\n\n### 6. lint_iteration (Approach A hedge resolved — Claude F6 / Grok F2 / Codex F3)\n**Defer** bundling a full `lint_iteration` skip into this Bound. Skill Phase 3 must still say: when coverage is N/A, do not invent vitest `--coverage`; keep applicable static/`verify:*` gates; do not treat \"no coverable code\" as \"no lint obligations.\" A separate closed lint disposition (if needed for non-vitest consumers) is a leftover, not silent optional language.\n\n### 7. Skill Phase 3c (Approach C)\nDocument the discoverable path: run applicability → measured path OR authorized skip-channel N/A. Forbid unbound exit-0 audits as coverage satisfaction. Name the exact skip token and that the controller re-derives. Preserve full `deft check`, required CI, self-review, scope/intent, human review. No general docs-only CI bypass; no lower floor.\n\n### 8. Tests\nPositive installed-consumer refinement-only path completes `coverage_headroom` via authorized skip + controller re-derivation without inventing Istanbul. Negatives: executable, mixed, unknown, invalid base, rename-to-document, forged skip token, arbitrary exit-0, stale binding, filtered-mixed, Istanbul docs-only with available report still gets floor behavior per limb 4. Type `ALLOWED_SKIP_REASONS` as `Partial<Record<PrePrPhaseId, string>>` while the file is open (Claude F7 footnote).\n\n### Reject\n- Softening `coverage_headroom` to optional for every PR.\n- Operator waiver as the happy path.\n- All-md/json/xbrief inherently inert without classifier.\n- Exit-0 free-form / unbound audit as authorized N/A.\n- Hotspots exit-0 short-circuit that is indistinguishable from measured pass in the record.\n- Deleting Istanbul global floor verdict when measurement is available.\n- General docs-only CI bypass / lower coverage floor.\n- Closing #4976 or Coverlet adapters inside this Bound.\n\n### Deferred\n- Language-pack Coverlet/non-Istanbul measured-coverage adapters (executable non-Istanbul remains open).\n- Full `lint_iteration` closed skip / split static-vs-coverage phase redesign.\n- Binding `row.command` to `spec.command` for every command phase (coverage-scoped bind is in Bound; repo-wide may leftover).\n- Broader #4976 required-check authority.\n- Explicit `CommandObservation` applicability discriminant beyond skip-channel convention (readers keep using `isAllowedSkip` as plan_sequence/render_export do — decide documented).\r\n\n",
+      "Labels": "bug, agent-experience, process, source-of-truth, urgent, area:cli, area:skills, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Shared fail-closed coverage applicability evaluator on reviewed PrePrInputBinding diff",
+        "status": "pending"
+      },
+      {
+        "id": "2",
+        "title": "Authorized N/A on coverage_headroom skip channel (non-zero exit + closed skip reason)",
+        "status": "pending"
+      },
+      {
+        "id": "3",
+        "title": "Controller re-derives applicability before honoring coverage_headroom skip",
+        "status": "pending"
+      },
+      {
+        "id": "4",
+        "title": "Hotspots: classify before Istanbul require; N/A emits skip-channel artifact; keep floor when measured",
+        "status": "pending"
+      },
+      {
+        "id": "5",
+        "title": "State toolchain-only N/A deferred; skill Phase 3c names authorized N/A path",
+        "status": "pending"
+      },
+      {
+        "id": "6",
+        "title": "Defer full lint_iteration skip; skill still forbids inventing vitest --coverage when coverage N/A",
+        "status": "pending"
+      },
+      {
+        "id": "7",
+        "title": "Skill Phase 3c discoverable path: applicability → measured OR authorized skip-channel N/A",
+        "status": "pending"
+      },
+      {
+        "id": "8",
+        "title": "Tests: inert refinement skip+rederive; negatives forged/stale/mixed/executable; type ALLOWED_SKIP_REASONS",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "area:skills",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates",
+      "prefer-a-bound",
+      "through-merge",
+      "pre-pr-coverage-applicability"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5421",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5421: bug(pre-pr): coverage applicability is undefined for non-executable consumer refinements"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L40"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "docs/RULE-MAP.md",
+          "packages/cli/src/coverage-hotspots.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/index.test.ts",
+          "packages/core/src/coverage-applicability/index.ts",
+          "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "packages/core/src/coverage-hotspots/evaluate.ts",
+          "packages/core/src/index.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/index.ts",
+          "packages/core/src/pre-pr-controller/phases.test.ts",
+          "packages/core/src/pre-pr-controller/phases.ts"
+        ],
+        "conflict_group": "pre-pr-coverage-applicability",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/pre-pr-controller packages/core/src/coverage-hotspots"
+        ],
+        "expected_outputs": [
+          "Tracking PR for #5421 Prefer-A Bound pre-pr coverage applicability"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "Traces": [
+          "#5421",
+          "lean:6024183465"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft (pre-Stop-1 charter lean)\n\n## In plain English\n\nProblem: pre-PR always demands coverage headroom via `deft coverage:hotspots`, which needs an Istanbul `coverage-final.json`. On a design/refinement-only consumer change with no executable modules, that report is missing for a good reason — yet the skill and controller have no shared \"coverage does not apply\" outcome. One agent blocks and asks for an exception; another records a changed-file audit as an exit-0 coverage step and passes. Same work, inconsistent treatment.\n\nAccepted direction: define one discoverable coverage-applicability decision shared by the skill, the controller skip grammar, and the hotspots verb. Measured pass and evidenced not-applicable stay distinct. Executable and mixed diffs keep today's coverage floors.\n\nLean: Approach A + B + C for pre-PR coverage applicability (#5421).\n\n**Approach A — shared applicability evaluator + closed controller skip.** Add a deterministic applicability decision bound to the complete reviewed diff and declared base/head/tree (reuse existing project/source classification where it already exists; do not treat every Markdown/JSON path or everything under xbrief as inherently inert). When the classifier returns not-applicable, authorize a closed `ALLOWED_SKIP_REASONS.coverage_headroom` string (exact token) so `commandSatisfied` can pass without a fabricated hotspots exit-0. Unknown paths, classifier failure, rename-to-document edge cases, and any executable/mixed hit must refuse not-applicable (fail closed). Apply the same applicability gate to `lint_iteration` when that phase's vitest/coverage command is equally inapplicable, with its own closed skip reason or shared reason only if the contract keeps them distinct on purpose.\n\n**Approach B — hotspots short-circuit with explicit not-applicable.** Before requiring `coverage/coverage-final.json`, `evaluateCoverageHotspots` (or a thin pre-check the verb calls) may exit 0 with a machine-readable not-applicable outcome when Approach A's classifier proves no coverable changed paths for the same base/head/tree. Missing report for applicable work stays exit 2. Do not invent percentages. Do not treat report-missing alone as not-applicable.\n\n**Approach C — skill Phase 3c documents the disposition.** Update `content/skills/deft-directive-pre-pr/SKILL.md` Phase 3c so agents discover: (1) run applicability; (2) if applicable → targeted coverage + hotspots as today; (3) if not-applicable → record the closed skip / hotspots N/A evidence, never invent Istanbul output, never ask the operator to waive an irrelevant metric. Explicitly forbid unbound exit-0 command observations that are not the authorized applicability path. Preserve full `deft check`, required CI, self-review, scope/intent, and human review. This Bound does not authorize a general docs-only CI bypass or a lower coverage floor.\n\n**Tests (installed-consumer path).** Positive: refinement-only diff (design/decision/proposed story; no source/test/workflow/runtime config) completes pre-PR coverage phase via authorized N/A without inventing a report. Negative: executable module change, mixed design+code, unknown/unclassified path, invalid base, rename-to-document, classifier failure — all refuse N/A and still require coverage evidence or hard-fail. Controller: only the closed skip reason satisfies `coverage_headroom`; a free-form audit string does not. Skill text names the same tokens the controller and hotspots emit.\n\n**conflict_group:** pre-pr-coverage-applicability\n\n### Reject\n- Softening `coverage_headroom` to optional for every PR.\n- Documenting operator exception / waiver as the happy path for refinement-only work.\n- Treating all Markdown/JSON/xbrief paths as inherently inert without a classifier.\n- Accepting any exit-0 command observation as authorized N/A without the closed skip / hotspots outcome.\n- General docs-only CI bypass or lowering the coverage floor (#4012 stays separate).\n\n### Deferred (not this Bound)\n- Broader #4976 controller-observed required-check authority beyond coverage applicability.\n- Language-pack Coverlet/non-Istanbul report adapters (out of scope; N/A path must not depend on inventing Istanbul for .NET).\n- Auto-classifying every planning artifact type beyond the shared classifier's closed rules.\n\nspend-recommend: N≥3\nspend-why: Stop 2 panel permission — open A/B/C solution space (controller skip vs hotspots short-circuit vs skill-only) with high blast on every consumer pre-PR; Prefer-A binds A+B+C.\n\narc-mode: no-ingest\nTarget-digest: sha256:12596c6bda305cea27d17a90ad533333a1d6a012d33e2fb5dbd020c8e8651427\ndispatch-sha: 43a039efb3d5efdab655cf587a4362f5107192bf\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5421\r\n\n",
+          "id": 6024017135,
+          "html_url": "https://github.com/deftai/directive/issues/5421#issuecomment-6024017135",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T19:36:41Z",
+          "updated_at": "2026-10-06T19:36:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because pre-PR Phase 3c / coverage_headroom always requires measured hotspots against Istanbul coverage-final.json with no shared applicability disposition, so non-executable consumer refinements either block on a missing report or pass via an unbound exit-0 audit — inconsistent treatment of equivalent work.\n\ncharter: refutation\nrefutation-target: coverage_headroom / Phase 3c always requires a measured Istanbul hotspots pass (or an unbound exit-0 stand-in) with no discoverable evidenced not-applicable outcome shared by skill and controller\nspend: N≥3\nspend-ask: resolved\nspend-recommend: N≥3\nspend-why: panel permission — open A/B/C solution space and high blast on every consumer pre-PR coverage phase\narc-mode: no-ingest\nyolo-standing: on\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5421\norigin-ref: origin/HEAD\ndispatch-sha: 43a039efb3d5efdab655cf587a4362f5107192bf\nverification-path: pin-read git show 43a039efb3d5efdab655cf587a4362f5107192bf:; dest cwd-without-occupy\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\n\npain:\n- P1\n- P2\n- P3\n\npain-prose:\n- P1: Skill Phase 3c and the controller disagree — no discoverable shared coverage-applicability outcome for verified non-executable refinements.\n- P2: Controller accepts any input-bound exit-0 command observation for coverage_headroom; that does not authorize a changed-file audit as not-applicable.\n- P3: Missing Istanbul report correctly fails hotspots today, but with no fail-closed classifier the only documented paths are invent a report, ask for a waiver, or improvise an unbound exit-0.\n\nTarget-digest: sha256:12596c6bda305cea27d17a90ad533333a1d6a012d33e2fb5dbd020c8e8651427\r\n\n",
+          "id": 6024021186,
+          "html_url": "https://github.com/deftai/directive/issues/5421#issuecomment-6024021186",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T19:36:56Z",
+          "updated_at": "2026-10-06T19:36:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\r\n```quarantined\nrole: parent\r\n```\n\r\npanel-deposit\r\nround: 1\r\nsiblings: 3\r\ninput-ceiling: 6024039647\r\nfamilies: grok, claude, codex\r\nlaunch-probe: grok=pass rc0 pong; claude=pass rc0 pong; codex=pass rc0 pong\r\ndispatch-sha: 43a039efb3d5efdab655cf587a4362f5107192bf\r\nverification-path: pin-read git show 43a039efb3d5efdab655cf587a4362f5107192bf:; dest cwd-without-occupy\r\nStop-1: 6024021186\r\nPrefer-A-draft: 6024017135\r\nTarget-digest: sha256:12596c6bda305cea27d17a90ad533333a1d6a012d33e2fb5dbd020c8e8651427\r\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5421\r\n\r\n\n",
+          "id": 6024039647,
+          "html_url": "https://github.com/deftai/directive/issues/5421#issuecomment-6024039647",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T19:38:02Z",
+          "updated_at": "2026-10-06T19:38:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\nseat-family: codex\n\nVerdict: **amend Prefer-A**. A+B+C is the right direction, but the draft needs explicit evidence authority, diff semantics, and a complete lint-phase disposition before it closes P1/P2/P3.\n\nReview boundary: issue body, comments 6024017135 / 6024021186 / 6024039647, and the permitted files/tests pin-read at dispatch SHA `43a039efb3d5efdab655cf587a4362f5107192bf`. No sibling critiques or above-ceiling comments read. Findings below are source analysis; tests were read, not executed.\n\n1. **blocks-the-design — a closed skip string does not establish applicability authority (P2).** `observeCommandPhase` records caller-supplied command/exit/skip values after checking the run input hash. `commandSatisfied` accepts exit 0 before checking the skip; `isAllowedSkip` is only string equality. Adding an allowed coverage token alone therefore creates another assertion route, while leaving the existing arbitrary exit-0 route intact. The test \"refuses a second publish and a semantic digest mismatch\" actually publishes a first pass using `command: \"cmd\"` for every command phase. Require the coverage-specific satisfaction predicate to consume a controller-observed or independently recomputed applicability result tied to the run. An exact token with no such result must fail, including when paired with exit 0; arbitrary audit exit 0 must not count as measured coverage either. Distinguish authorized measured evidence from authorized N/A evidence at this predicate, rather than relying on skill prose or command-name equality. This can remain coverage-scoped without solving all of #4976. Test forged exact tokens, arbitrary exit-0 observations, and stale evidence after base/head/tree changes. Sources: [controller.ts, observeCommandPhase and commandSatisfied](https://github.com/deftai/directive/blob/43a039efb3d5efdab655cf587a4362f5107192bf/packages/core/src/pre-pr-controller/controller.ts), [phases.ts, isAllowedSkip](https://github.com/deftai/directive/blob/43a039efb3d5efdab655cf587a4362f5107192bf/packages/core/src/pre-pr-controller/phases.ts), [controller.test.ts](https://github.com/deftai/directive/blob/43a039efb3d5efdab655cf587a4362f5107192bf/packages/core/src/pre-pr-controller/controller.test.ts).\n\n2. **blocks-the-design — existing hotspot filters cannot become the applicability universe (P3).** `diffPaths` reads only `git diff --name-only <base> HEAD`; the base can be guessed, explicit path filters bypass that diff, and filters are literal substrings. These are diagnostic-selection conveniences, not proof of the complete reviewed change. A mixed code+docs PR with a docs-only filter, an executable renamed to a document, or a dirty executable change after a committed docs-only HEAD must not acquire N/A. Specify independently enumerated, status-aware old/new paths against the exact controller-bound base and reviewed tree, with content/type checks where classification needs them. Either classify the actual dirty review tree or reject a binding that does not represent it. Caller filters may narrow displayed hotspots but never classification. An empty/failed selection is not proof of an inert diff. Add filtered-mixed, deletion, rename, staged/unstaged, and invalid-base tests. Source: [evaluate.ts, resolveBaseRef / diffPaths / pathMatchesFilter / evaluateCoverageHotspots](https://github.com/deftai/directive/blob/43a039efb3d5efdab655cf587a4362f5107192bf/packages/core/src/coverage-hotspots/evaluate.ts).\n\n3. **blocks-the-design — the lint disposition cannot remain optional for the promised consumer path (P1).** `lint_iteration` is required and names `vitest run --coverage <changed-paths>` before `coverage_headroom`. The skill also requires affected/static gates in Phase 3. A valid coverage N/A can therefore leave the same refinement blocked one phase earlier, or encourage another arbitrary exit-0 stand-in. Make an explicit first-ship decision: retain and observe applicable static/content checks while marking only the targeted-coverage component N/A, or define a separately justified lint disposition. Do not infer that no coverable code means no lint obligations. The installed non-Istanbul consumer test must complete the whole prescribed controller path, not merely assert that coverage_headroom accepts its token. Sources: [phases.ts, PRE_PR_PHASES](https://github.com/deftai/directive/blob/43a039efb3d5efdab655cf587a4362f5107192bf/packages/core/src/pre-pr-controller/phases.ts), [pre-pr SKILL.md, Phase 3 and Phase 3c](https://github.com/deftai/directive/blob/43a039efb3d5efdab655cf587a4362f5107192bf/content/skills/deft-directive-pre-pr/SKILL.md).\n\n4. **sharpens-framing — define B as a pre-PR applicability disposition, not an empty report match or a global health pass.** Hotspots currently computes global totals/headroom before filtering only uncovered-branch samples; its report requires numeric totals and thresholds. \"No coverable changed paths\" must mean every change was positively classified inert, not that Istanbul contains no matching entries. Specify a discriminated machine-readable N/A outcome with binding and reason, without synthetic percentages, and state when it is enabled for standalone/report-wide invocations (`useDiffPaths: false` included). Preserve measured behavior for applicable or explicitly report-wide work. Existing tests cover global failures and zero matching samples, so retain those expectations and add N/A serialization/CLI tests. Sources: [evaluate.ts, result/report types and evaluateCoverageHotspots](https://github.com/deftai/directive/blob/43a039efb3d5efdab655cf587a4362f5107192bf/packages/core/src/coverage-hotspots/evaluate.ts), [evaluate.test.ts](https://github.com/deftai/directive/blob/43a039efb3d5efdab655cf587a4362f5107192bf/packages/core/src/coverage-hotspots/evaluate.test.ts).\n\nAccept the shared fail-closed classifier, distinct measured/N/A outcomes, and skill agreement after these amendments. Skill-only guidance, hotspots-only exit 0, optional coverage, and waiver-as-happy-path each leave at least one recorded pain unresolved. Full deft check, CI, coverage floors, self-review, and human review remain required.",
+          "id": 6024086433,
+          "html_url": "https://github.com/deftai/directive/issues/5421#issuecomment-6024086433",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T19:40:53Z",
+          "updated_at": "2026-10-06T19:40:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nseat-family: grok\ncharter: refutation\nround: 1\nSpend: N≥3\nPrefer-A-draft: 6024017135\nStop-1: 6024021186\ninput-ceiling: 6024039647\ndispatch-sha: 43a039efb3d5efdab655cf587a4362f5107192bf\nverification-path: pin-read git show 43a039efb3d5efdab655cf587a4362f5107192bf:; dest cwd-without-occupy\n\n## Verdict\n**amend** Prefer-A draft 6024017135.\n\nKeep A+B+C and the Reject list. The draft correctly binds a shared applicability decision and correctly rejects skill-only guidance, hotspots-only without a controller skip, optional `coverage_headroom`, and waiver-as-happy-path. Pin-read confirms Stop 1 pains P1–P3 against the live surfaces. Two Bound gaps leave P2 (and part of P3) open unless Prefer-A is amended before bind.\n\n## Pin-read facts (dispatch SHA 43a039efb3d5efdab655cf587a4362f5107192bf)\n\n1. `packages/core/src/pre-pr-controller/phases.ts` — `coverage_headroom` is required `command-observable` with command `deft coverage:hotspots`. `ALLOWED_SKIP_REASONS` only lists `plan_sequence` and `render_export`. No coverage applicability skip exists.\n2. `packages/core/src/pre-pr-controller/controller.ts` `commandSatisfied` — any input-bound observation with `exitCode === 0` satisfies a command phase; otherwise only `isAllowedSkip(phaseId, skipReason)`. No command-shape or N/A-evidence check.\n3. `packages/core/src/coverage-hotspots/evaluate.ts` `evaluateCoverageHotspots` — requires `coverage/coverage-final.json` to exist before resolving the changed-path filter. Missing report → exit 2. Diff/path work runs only after that existence check.\n4. `content/skills/deft-directive-pre-pr/SKILL.md` Phase 3c — always requires targeted coverage + `coverage:hotspots`. No not-applicable disposition. `lint_iteration` phase command remains `vitest run --coverage <changed-paths>` (phases.ts).\n\nThese four facts match Stop 1 pain-prose for P1/P2/P3 and the recorded refutation-target.\n\n## Findings\n\n### F1 — exit-0 hole survives Approach A as written\n**class:** blocks-the-design\n\nPrefer-A Approach A adds `ALLOWED_SKIP_REASONS.coverage_headroom` so a closed skip can pass. Prefer-A Tests claim a free-form audit string must not satisfy `coverage_headroom`. Pin-read `controller.ts` still returns true on any input-bound `exitCode === 0` before consulting skip reasons. The Freshservice A2 unbound changed-file audit remains a legal controller pass under that predicate.\n\nApproach C skill text forbidding unbound exit-0 does not close P2: that is the open-pressure skill-only path Prefer-A already Rejects. Approach B hotspots N/A exit 0 is fine only when the controller can tell authorized hotspots N/A from an invented audit command.\n\n**Amend required:** Prefer-A must state a controller-side rule that matches its own Tests claim. Concrete options (either is enough):\n- N/A satisfaction for `coverage_headroom` is only via non-zero exit + the exact closed skip reason (hotspots N/A / classifier emits that skip token; bare exit-0 free-form commands fail), or\n- `commandSatisfied` / observe path for `coverage_headroom` accepts exit 0 only when the observation is the authorized hotspots (or shared-evaluator) N/A machine outcome, not an arbitrary command string.\n\nWithout one of those, Prefer-A does not relieve P2.\n\n### F2 — lint_iteration co-gate must be required, not hedged\n**class:** sharpens-framing\n\nPrefer-A Approach A says apply the same applicability gate to `lint_iteration` \"when that phase's vitest/coverage command is equally inapplicable.\" Pin-read phases.ts makes `lint_iteration` required with `vitest run --coverage <changed-paths>`. On the specimen refinement (no executable modules; .NET/Coverlet consumer), Phase 3 still demands a coverage-producing command before Phase 3c. Leaving lint_iteration optional reopens P3's invent-report / waiver / unbound-exit-0 menu one phase earlier.\n\n**Amend:** Bound must require the shared classifier for both `lint_iteration` and `coverage_headroom`, each with a closed skip token (distinct tokens if the contract keeps phases distinct; shared token only if deliberately identical). Keep measured coverage floors when the classifier returns applicable/mixed.\n\n### F3 — Approach B must reorder before the report gate\n**class:** sharpens-framing\n\nPin-read `evaluate.ts`: report existence is checked first; pathFilter/diff resolution follows. Prefer-A B says short-circuit with N/A before requiring `coverage-final.json`, but does not name the reorder against today's control flow. Without that, implementers can leave the existence check first and treat \"no report\" as N/A — which Prefer-A Reject already forbids.\n\n**Amend:** Bound B must say: run the shared classifier on the complete reviewed diff + declared base/head/tree first; if not-applicable → exit 0 with machine-readable N/A and do not require the report; if applicable/mixed/unknown/classifier-failure → require the report and keep today's exit 2 on missing report. Report-missing alone never equals N/A.\n\n### F4 — open-pressure alternatives stay rejected\n**class:** footnote\n\n- Skill-only Phase 3c text: fails P2 (controller still accepts unbound exit-0) and leaves P1 skill/controller disagreement.\n- Hotspots-only N/A without controller skip grammar: measured pass and evidenced N/A collapse at the controller if both are bare exit-0; P2 remains.\n- Softening `coverage_headroom` to optional: erases the required observable; contradicts issue acceptance and Prefer-A Reject.\n- Operator waiver as documented happy path: anti-goal in issue Desired outcome and Prefer-A Reject.\n\nPrefer-A's Reject list is sound; keep it.\n\n### F5 — name the classifier reuse surface\n**class:** footnote\n\nPrefer-A says \"reuse existing project/source classification where it already exists\" and correctly Rejects treating all Markdown/JSON/xbrief as inherently inert. Pin-read shows test-boundary / class-checks `sourceRoots` style helpers exist in-tree; there is no ready-made coverage-applicability evaluator. Bound should either name the reuse entrypoint or admit a new closed shared evaluator module with fail-closed unknown/mixed/executable/classifier-failure outcomes. Handwavy \"reuse where appropriate\" is implement-time drift risk, not a pain block.\n\n## Pain map vs Prefer-A (after amend)\n\n| Pain | Prefer-A as posted | After F1–F3 amend |\n| --- | --- | --- |\n| P1 skill/controller disagree | A+C share disposition | still holds; tokens must match across skill, skip grammar, hotspots |\n| P2 any exit-0 accepted | A adds skip; exit-0 hole remains (F1) | closed only if controller rule matches Tests claim |\n| P3 missing report / no classifier path | A+B add classifier + N/A short-circuit | holds if B reorders (F3) and lint_iteration co-gates (F2) |\n\n## Open pressure (refutation)\n\nRefute skill-only, hotspots-only-without-skip, optional coverage_headroom, and waiver-as-happy-path. Prefer-A already Rejects them; pin-read shows why each fails at least one of P1–P3. Do not recut to those limbs.\n\n## Concrete amend package for successor lean\n\n1. Keep Approach A+B+C + Reject + Deferred as posted.\n2. Close F1: controller satisfaction for `coverage_headroom` N/A cannot be an arbitrary input-bound exit-0; align with Prefer-A Tests (\"free-form audit string does not\").\n3. Close F2: shared classifier is mandatory for `lint_iteration` and `coverage_headroom` with closed skip tokens.\n4. Close F3: classifier-before-report ordering in hotspots; missing report stays exit 2 when applicable.\n5. Preserve full `deft check` / CI / floors; no docs-only CI bypass; no Coverlet adapter invent in this Bound.\n\n**Disposition:** amend Prefer-A (do not accept as-posted; do not reject A+B+C).",
+          "id": 6024101182,
+          "html_url": "https://github.com/deftai/directive/issues/5421#issuecomment-6024101182",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T19:41:48Z",
+          "updated_at": "2026-10-06T19:41:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5[1m]\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nseat-family: claude\nround: 1\ncharter: refutation\nspend: N>=3\ndispatch-sha: 43a039efb3d5efdab655cf587a4362f5107192bf\nverification-path: pin-read `git show 43a039efb3d5efdab655cf587a4362f5107192bf:<path>`\ninput-ceiling: 6024039647\nTarget-digest: sha256:12596c6bda305cea27d17a90ad533333a1d6a012d33e2fb5dbd020c8e8651427\n\n## Verdict: amend\n\nThe refutation-target survives — Phase 3c and `coverage_headroom` really do lack a shared evidenced not-applicable outcome. Prefer-A's *direction* (one discoverable applicability decision; measured-pass and evidenced-N/A kept distinct; fail closed on unknown/mixed/executable) is right and I accept it.\n\nBut limbs A and B, as drafted, contradict each other at the CLI boundary, leave P2 entirely open, and B erodes a floor that holds today. Three blocks-the-design findings below. Limb C is accepted with one amendment.\n\n## In plain English\n\nPrefer-A says \"hotspots exits 0 with a not-applicable outcome\" (B) *and* \"the controller accepts a closed skip reason\" (A). The controller only looks at the skip reason when the exit code is non-zero, and the CLI flatly refuses a skip reason with exit 0. So an agent following Prefer-A gets either a bare exit-0 — exactly the unbound observation P2 condemns — or a CLI error. Separately, the controller never runs the command it claims to observe, so a closed vocabulary of skip strings restricts what the agent may type, not what is true. And the hotspots verdict is a whole-project floor check, not a changed-path check, so \"no coverable changed paths\" is not a reason to skip it.\n\n---\n\n## F1 — blocks-the-design: limbs A and B are mutually unreachable\n\nLimb B specifies `exit 0` with a machine-readable N/A. Limb A specifies a closed `ALLOWED_SKIP_REASONS.coverage_headroom`. These cannot both apply to the same observation.\n\n- `packages/core/src/pre-pr-controller/controller.ts:297-303` @ `43a039e` — `commandSatisfied` returns true at `if (row.exitCode === 0) return true;` (:301) and only reaches `isAllowedSkip(phaseId, row.skipReason)` (:302) on a non-zero exit.\n- `packages/cli/src/pre-pr-run.ts:388-392` @ `43a039e` — the CLI rejects the combination outright: `pre_pr_run: skip requires a non-zero --exit-code plus --skip-reason`, return 2.\n\nWorse, limb B's exit-0 N/A is unrepresentable as distinct in the record. The stored `CommandObservation` is `{phaseId, command, exitCode, inputHash, skipReason, completedAt}` (`controller.ts:193-199`), and `commandSatisfied` reads only `exitCode`. A machine-readable N/A payload on stdout is discarded at the controller boundary. So B's exit-0 N/A is byte-identical, in the record, to a measured coverage pass — defeating the issue's own acceptance line \"Distinguish measured coverage pass from evidenced not-applicable.\"\n\n**Amendment.** N/A must travel on the skip channel, not the exit-0 channel. Hotspots should keep failing non-zero when it cannot measure, and the authorized N/A should be `exit != 0` plus the closed `coverage_headroom` skip reason. That is ergonomically pleasant: the agent runs the real `deft coverage:hotspots`, gets the real exit 2, and records it under the blessed reason — no invented report, no exit-0 improvisation. Limb B then shrinks from \"short-circuit exit 0\" to \"emit a classifier-derived N/A artifact alongside the existing exit 2.\"\n\n## F2 — blocks-the-design: the closed skip reason does not close P2\n\nP2 is \"the controller accepts any input-bound exit-0 for `coverage_headroom`.\" Adding a token to `ALLOWED_SKIP_REASONS` does not narrow that, in either direction:\n\n1. **The exit-0 path stays wide open.** `controller.ts:301` short-circuits before the skip reason is consulted. Adding `ALLOWED_SKIP_REASONS.coverage_headroom` (`phases.ts:97-101`) subtracts nothing from what `commandSatisfied` already accepts.\n2. **The controller does not observe the command.** `packages/cli/src/pre-pr-run.ts:397` @ `43a039e` records the command as `args.command` when non-empty, falling back to `spec.command` only when the caller supplies nothing — a caller-supplied free string. Nothing anywhere compares it to `spec.command` (repo-wide `spec.command` hits at `43a039e` are this fallback, two tests, and the declaration). The CLI never executes anything: `--observe-command --phase coverage_headroom --exit-code 0` mints the phase with no command having run. For command phases, \"controller-observed\" is self-attestation.\n3. **The skip reason is self-attested too.** `isAllowedSkip` (`phases.ts:103-107`) string-compares an agent-supplied value against a constant. An agent that would have typed a free-form audit string will type the blessed string instead.\n\nSo Prefer-A's named test — *\"only the closed skip reason satisfies `coverage_headroom`; a free-form audit string does not\"* — is **not implementable** against this code without a change Prefer-A does not propose.\n\n**Amendment, and the one change that makes A+B non-inert.** The repo already has the right pattern one function away. `computeControllerObservedHash` (`controller.ts:49-68`) independently hashes reviewed-file contents and `pre-pr-run.ts` refuses a mismatch — semantic phases are verified, command phases are asserted. Extend verified treatment to this one skip: honor the `coverage_headroom` skip only when the controller re-derives applicability itself from the record's existing `repo`/`baseSha`/`headSha`/`treeHash` binding (`controller.ts:95-101`) and agrees. The binding Prefer-A asks for (\"bound to the complete reviewed diff and declared base/head/tree\") already exists in `PrePrInputBinding` — no new plumbing, and this is the only version of limb A that answers P2 rather than renaming it.\n\nSecondary, and cheap: bind `row.command` to `spec.command` in `commandSatisfied`. That closes the unbound-observation class for `branch_policy`, `lint_iteration`, `render_export` and `merge_chokepoint` (`deft check`) as well — all currently satisfiable with `--exit-code 0` and nothing run. If that is out of scope for this Bound, say so explicitly rather than leaving P2 recorded as addressed.\n\n## F3 — blocks-the-design: limb B's short-circuit removes a floor that holds today\n\nLimb B fires \"when the classifier proves no coverable changed paths.\" But the hotspots verdict is **not changed-path-scoped**:\n\n- `packages/core/src/coverage-hotspots/evaluate.ts:215-232` @ `43a039e` — `evaluatePassFail` compares *global* `totals.branches` against the project floor and *global* `headroomPp.branches` against `minHeadroomPp`. Nothing path-filtered enters the verdict.\n- `evaluate.ts:288-293` — `pathFilter` is consulted only at `pathMatchesFilter(relPath, pathFilter)` to collect `uncoveredBranches` samples. `report.ok` is `failReasons.length === 0` (`:302-315`), independent of the filter.\n\nSo \"no coverable changed paths\" does **not** mean \"nothing for hotspots to assert.\" It means \"no new hotspot samples.\" Today a docs-only PR in an Istanbul repo — Directive's own, dogfooding this skill — still gets the global branch-floor and headroom verdict. Limb B's pre-`existsSync` short-circuit deletes that verdict for exactly those PRs. The issue's acceptance says \"Preserve ... existing floors\" and \"does not authorize ... a lower coverage floor\"; B as drafted lands inside its own Reject list.\n\nIt is also self-reinforcing: if the same classifier also N/As `lint_iteration` (Prefer-A's optional limb), the vitest run that *produces* `coverage-final.json` never happens, the report is therefore always missing, and B therefore always fires. The erosion has no floor of its own.\n\n**Amendment.** B must not gate on diff content. Short-circuit only on the one condition under which the floor is genuinely unavailable rather than merely unmeasured — see F4.\n\n## F4 — sharpens-framing: two different applicability causes are conflated\n\nPrefer-A has one classifier keyed on diff content. The incident has two independent causes, and the classifier addresses the wrong one:\n\n- **(i) diff-level** — the changed paths contain no coverable code.\n- **(ii) toolchain-level** — the project is not Istanbul-measured at all. `evaluate.ts:246-252` requires `coverage/coverage-final.json`; `packages/core/src/coverage-hotspots/thresholds.ts:7-13,33-50` reads thresholds *only* from `vitest.config.{ts,mts,js,cjs,mjs}` and otherwise falls back to framework 85% defaults. Both halves of hotspots are vitest/Istanbul-shaped by construction.\n\nThe motivating consumer is .NET/Coverlet — a **(ii)** case. In (ii) the report is unobtainable and the 85% default floor is a number about a project never measured against it; N/A is the only honest outcome. In (i), inside an Istanbul repo, the report is obtainable and the floor is meaningful — that is F3.\n\nTwo consequences Prefer-A should state rather than inherit:\n\n1. **A diff-level classifier does not close the incident class.** The same consumer's *executable* .NET change still has no obtainable `coverage-final.json`, still hits exit 2, and still has only invent / waive / improvise-exit-0 available. The Bound rescues the docs-only sliver and leaves the larger sibling hole — same mechanism, same P2 — untouched. Legitimizing an N/A path while that hole stays open adds pressure to classify borderline .NET diffs as N/A.\n2. **The Deferred list defers the cause.** Prefer-A puts \"language-pack Coverlet/non-Istanbul report adapters\" out of scope — that is the actual cause of the reported incident. That may be the right call for one Bound, but then say plainly that this Bound closes the (i) sub-case only and (ii) remains an open improvisation surface, rather than reading as a resolution of #5421's scenario.\n\n**Recommendation.** Make **(ii)** the authorized N/A for this Bound — toolchain-applicability is a stable, project-level, fail-closed fact and touches no floor — and leave **(i)** alone. In an Istanbul repo a docs-only PR should keep running hotspots and keep getting the global floor verdict, because that is cheap and correct today.\n\n## F5 — sharpens-framing: Phase 3c's bind is partly a textual asymmetry, not only a missing disposition\n\n`content/skills/deft-directive-pre-pr/SKILL.md` @ `43a039e`:\n\n- `:136` — \"Run targeted coverage first: `vitest run --coverage <changed-paths>` **(or language equivalent)**\"\n- `:139` — \"Run `task coverage:hotspots` / `deft coverage:hotspots` to locate uncovered branches\" — no equivalence escape.\n\nThe skill already concedes a language equivalent for the *measurement* step but hard-names an Istanbul-only verb for the *location* step. A non-Istanbul consumer can satisfy :136 honestly and is then bound by :139 to a tool that structurally cannot run. Limb C should repair that asymmetry explicitly, not only append an N/A disposition — otherwise the contradictory instruction stays in place one line above the new text.\n\n## F6 — sharpens-framing: do not bundle `lint_iteration`\n\nPrefer-A offers the same applicability gate for `lint_iteration` (\"optionally\"). Decline it in this Bound:\n\n- `lint_iteration`'s spec command is `vitest run --coverage <changed-paths>` (`phases.ts:60-65`) — it is the phase that *produces* the report `coverage_headroom` consumes. One classifier deciding both is circular (F3).\n- Its trigger condition differs from coverage's: the phase stands in for a broader iteration-lane gate (`SKILL.md:124-128` names `verify:*` alongside vitest), and a docs-only diff still has applicable gates inside it.\n\nKeep it deferred with an explicit reason, not as an open option.\n\n## F7 — footnote: `ALLOWED_SKIP_REASONS` shape blocks the \"shared reason\" option\n\n`phases.ts:97` declares `Readonly<Record<string, string>>` — one reason per phase, key untyped. Prefer-A's \"its own closed skip reason **or shared reason**\" is not expressible without changing the type, and a mistyped phase key compiles silently into a dead entry. It fails closed, so severity is low, but it will cost someone an hour. Cheap fix while the file is open: `Partial<Record<PrePrPhaseId, string>>`.\n\n---\n\n## Accept / amend / reject\n\n| Limb | Disposition | Reason |\n|---|---|---|\n| Direction — one shared, discoverable, fail-closed applicability decision; measured-pass vs evidenced-N/A kept distinct | **accept** | Refutation-target survives; pin-reads confirm no such outcome exists at `43a039e`. |\n| A — shared evaluator + closed `ALLOWED_SKIP_REASONS.coverage_headroom` | **amend** | Closed token is vocabulary, not evidence (F2). Keep the skip channel; add controller-side re-derivation per the `computeControllerObservedHash` precedent. Drop or explicitly defer the `lint_iteration` extension (F6). |\n| B — hotspots short-circuit `exit 0` before requiring the report | **reject as drafted** | Unreachable in combination with A (F1); erases the global floor verdict for Istanbul repos (F3); exit-0 N/A is indistinguishable from a measured pass in the record (F1). Replace with: keep exit 2, emit a classifier-derived N/A artifact the controller can re-derive, gate on toolchain-applicability not diff content (F4). |\n| C — Phase 3c documents the disposition | **accept, amended** | Must also repair the `:136`/`:139` language-equivalence asymmetry (F5) and name the channel the controller actually honors (skip, not exit 0). |\n| Reject list — optional coverage, waiver-as-happy-path, all-md-inert, docs-only CI bypass, lower floor | **accept** | Correct, and F3 shows B as drafted lands inside the last two. |\n\n## Pain coverage after amendment\n\n- **P1** — addressed by amended A + C, provided C names the skip channel and fixes the `:139` asymmetry.\n- **P2** — **not addressed by Prefer-A as drafted.** Closes only under F2's controller-side re-derivation; the broader unbound-exit-0 class across all command phases stays open unless `row.command` is bound to `spec.command`. Either do it or record it as knowingly deferred.\n- **P3** — narrowed, not closed. After F4 the trilemma is resolved for toolchain-inapplicable projects; executable changes in those same projects keep all three bad options.\n\n## One open pressure Prefer-A does not list\n\nIf the authorized N/A rides the skip channel (F1), the record shows `coverage_headroom` as a non-zero exit with a blessed reason. Any downstream reader that treats `exitCode` as a health signal — dashboards, leftover-complete sweeps, future required-check-authority work (#4976) — will see \"failed\" where the contract means \"not applicable.\" Decide now whether `CommandObservation` grows an explicit applicability discriminant, or whether every reader is expected to re-apply `isAllowedSkip`. The second is how `plan_sequence` and `render_export` already work, so it is defensible — but it should be a decision, not a default.\n\n",
+          "id": 6024159102,
+          "html_url": "https://github.com/deftai/directive/issues/5421#issuecomment-6024159102",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T19:45:36Z",
+          "updated_at": "2026-10-06T19:45:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nSpec-path: Prefer-A\nconflict_group: pre-pr-coverage-applicability\nTarget-digest: sha256:12596c6bda305cea27d17a90ad533333a1d6a012d33e2fb5dbd020c8e8651427\ndispatch-sha: 43a039efb3d5efdab655cf587a4362f5107192bf\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5421\npanel-deposit: 6024039647\nround-1 critics: codex 6024086433; grok 6024101182; claude 6024159102\n\n## In plain English\n\nProblem: before opening a PR, Directive always asks for a coverage report. If the change is only design/docs and the project does not produce Istanbul coverage (common on .NET), agents either invent a report, ask for a waiver, or fake an exit-0 audit — and different agents pick different paths.\n\nAccepted solution: one shared, fail-closed applicability check. When every changed path is proven inert for coverage, record an authorized not-applicable result on the skip channel (not a fake success). The controller re-checks that claim itself. Real code changes still need real coverage. Full `deft check`, CI, and floors stay.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n\n### 1. Shared applicability evaluator (Approach A core)\nAdd one closed shared evaluator (new module under `packages/core/src/` or an explicit named reuse entrypoint — do not leave \"reuse where appropriate\" unspecified). Inputs: complete reviewed change set bound to the same `PrePrInputBinding` fields the controller already stores (`repo` / `baseSha` / `headSha` / `treeHash`). Enumerate status-aware old/new paths (not `git diff --name-only` alone; not caller `pathFilter` substrings). Classify each path coverable | inert | unknown. Outcomes:\n- **not-applicable** only when every path is inert (and binding represents the reviewed tree).\n- **applicable** when any path is coverable.\n- **refuse** (fail closed) on unknown, mixed+coverable, classifier failure, invalid base, rename-to-document without content/type proof, dirty tree that is not the bound reviewed tree, or empty/failed selection used as \"proof of inert\".\n\nDo not treat every Markdown/JSON/xbrief path as inherently inert without the classifier rules.\n\n### 2. N/A travels on the skip channel (A/B reconcile — Codex F1/F2, Grok F1, Claude F1)\n- Add exact closed `ALLOWED_SKIP_REASONS.coverage_headroom` token.\n- Authorized N/A is **non-zero exit + that closed skip reason**. Bare `exitCode === 0` free-form observations must **not** satisfy `coverage_headroom`.\n- Align CLI: skip already requires non-zero exit (`pre-pr-run.ts`); Prefer-A Bound uses that channel, not exit-0 N/A.\n- Distinguish measured pass (exit 0 from authorized hotspots/measured path) from evidenced N/A (skip channel) in skill + controller docs.\n\n### 3. Controller re-derives applicability before honoring skip (closes P2 — Claude F2 / Codex F1 / Grok F1)\nHonor `coverage_headroom` skip only when the controller independently re-derives the same not-applicable outcome from the run's `PrePrInputBinding` (same pattern as `computeControllerObservedHash` for semantic phases). Exact token with no matching re-derivation fails. Stale evidence after base/head/tree change fails. Tests: forged exact tokens; arbitrary exit-0 audits; stale binding; positive inert refinement.\n\nOptional same-Bound cheapen: bind `row.command` to `spec.command` for `coverage_headroom` observations. Broader bind across all command phases may be deferred explicitly if not landed here — but then record that deferral in acceptance (P2 coverage-scoped close).\n\n### 4. Hotspots behavior (Approach B amended — not exit-0 short-circuit)\n- Run classifier **before** requiring `coverage/coverage-final.json` when evaluating pre-PR applicability.\n- When N/A-eligible: emit machine-readable N/A artifact/reason; exit non-zero consistent with skip-channel recording; **do not invent percentages**.\n- When applicable and report missing: keep today's exit 2.\n- When toolchain can produce Istanbul and a report exists (or is cheaply produced): do **not** delete the global floor/headroom verdict for docs-only Istanbul dogfood (Claude F3). Diff-level inert alone is not a license to skip a meaningful global floor when measurement is available.\n- Caller path filters may narrow displayed hotspot samples; they never authorize classification / N/A.\n\n### 5. Toolchain vs diff causes (Claude F4 — stated scope)\nThis Bound's authorized N/A is the **diff-level inert** outcome (issue acceptance: verified non-executable refinement). State plainly:\n- Toolchain-only N/A for executable changes on non-Istanbul projects remains open (Coverlet/language-pack adapters stay Deferred). Do not use inert-classifier N/A to paper over executable .NET without measurement.\n- Skill Phase 3c must repair the asymmetry: measurement already allows \"or language equivalent\"; hotspots step must name the authorized N/A / skip path instead of hard-requiring Istanbul-only success (Claude F5).\n\n### 6. lint_iteration (Approach A hedge resolved — Claude F6 / Grok F2 / Codex F3)\n**Defer** bundling a full `lint_iteration` skip into this Bound. Skill Phase 3 must still say: when coverage is N/A, do not invent vitest `--coverage`; keep applicable static/`verify:*` gates; do not treat \"no coverable code\" as \"no lint obligations.\" A separate closed lint disposition (if needed for non-vitest consumers) is a leftover, not silent optional language.\n\n### 7. Skill Phase 3c (Approach C)\nDocument the discoverable path: run applicability → measured path OR authorized skip-channel N/A. Forbid unbound exit-0 audits as coverage satisfaction. Name the exact skip token and that the controller re-derives. Preserve full `deft check`, required CI, self-review, scope/intent, human review. No general docs-only CI bypass; no lower floor.\n\n### 8. Tests\nPositive installed-consumer refinement-only path completes `coverage_headroom` via authorized skip + controller re-derivation without inventing Istanbul. Negatives: executable, mixed, unknown, invalid base, rename-to-document, forged skip token, arbitrary exit-0, stale binding, filtered-mixed, Istanbul docs-only with available report still gets floor behavior per limb 4. Type `ALLOWED_SKIP_REASONS` as `Partial<Record<PrePrPhaseId, string>>` while the file is open (Claude F7 footnote).\n\n### Reject\n- Softening `coverage_headroom` to optional for every PR.\n- Operator waiver as the happy path.\n- All-md/json/xbrief inherently inert without classifier.\n- Exit-0 free-form / unbound audit as authorized N/A.\n- Hotspots exit-0 short-circuit that is indistinguishable from measured pass in the record.\n- Deleting Istanbul global floor verdict when measurement is available.\n- General docs-only CI bypass / lower coverage floor.\n- Closing #4976 or Coverlet adapters inside this Bound.\n\n### Deferred\n- Language-pack Coverlet/non-Istanbul measured-coverage adapters (executable non-Istanbul remains open).\n- Full `lint_iteration` closed skip / split static-vs-coverage phase redesign.\n- Binding `row.command` to `spec.command` for every command phase (coverage-scoped bind is in Bound; repo-wide may leftover).\n- Broader #4976 required-check authority.\n- Explicit `CommandObservation` applicability discriminant beyond skip-channel convention (readers keep using `isAllowedSkip` as plan_sequence/render_export do — decide documented).\r\n\n",
+          "id": 6024183465,
+          "html_url": "https://github.com/deftai/directive/issues/5421#issuecomment-6024183465",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T19:47:42Z",
+          "updated_at": "2026-10-06T19:47:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: sharpening, footnote\nharvest-changed: false\n\nPrefer-A Bound audited: 6024183465\nStop-1 pain denominator: 6024021186\ndispatch-sha: 43a039efb3d5efdab655cf587a4362f5107192bf\nverification-path: pin-read git show 43a039efb3d5efdab655cf587a4362f5107192bf:; dest cwd-without-occupy\nseat-family: grok\nround: pain-audit (Dual-stop reserved seat)\ncharter: refutation\ncontext-only (not re-litigated): round-1 6024086433 / 6024101182 / 6024159102\n\n## Verdict\n**bindable-as-posted.** Prefer-A Bound 6024183465 supports pain-P1, pain-P2, and pain-P3. Residue below is non-harvest sharpening/footnote for implement acceptance; Bound limbs need not change before bind.\n\n## In plain English\nStop 1 said: skill and controller disagree on coverage for docs-only work; any exit-0 observation can fake a pass; missing Istanbul leaves invent / waive / improvise. The Bound posts one shared fail-closed classifier, puts authorized N/A on the existing non-zero skip channel, makes the controller re-check the claim, keeps real coverage for real code, and documents the path in Phase 3c. Pin-read at the dispatch SHA matches those limbs. Bind as posted.\n\n---\n\n## pain-P1 — support\n\nStop-1 prose: Skill Phase 3c and the controller disagree — no discoverable shared coverage-applicability outcome for verified non-executable refinements.\n\n**Bound coverage:** limbs 1 (shared evaluator), 2 (closed `ALLOWED_SKIP_REASONS.coverage_headroom` on the skip channel), 5 (skill asymmetry repair), 7 (Phase 3c documents measured path OR authorized skip-channel N/A).\n\n**Pin-read evidence @ 43a039e:**\n- `phases.ts`: `coverage_headroom` is required `command-observable` with command `deft coverage:hotspots`. `ALLOWED_SKIP_REASONS` only lists `plan_sequence` and `render_export` — no coverage applicability token exists today.\n- `content/skills/deft-directive-pre-pr/SKILL.md` Phase 3c: always requires targeted coverage + `deft coverage:hotspots`; measurement line allows \"or language equivalent\" while the hotspots step does not name an N/A / skip path.\n- Bound limb 1 requires complete reviewed change set bound to existing `PrePrInputBinding` (`repo` / `baseSha` / `headSha` / `treeHash` — present on `StartControllerRunInput` / binding hash in `controller.ts`), status-aware old/new path enumeration, and closed outcomes not-applicable | applicable | refuse. That is the shared decision P1 asks for.\n\nAsserted `relieves: P1` holds.\n\n## pain-P2 — support\n\nStop-1 prose: Controller accepts any input-bound exit-0 command observation for `coverage_headroom`; that does not authorize a changed-file audit as not-applicable.\n\n**Bound coverage:** limb 2 (authorized N/A = non-zero exit + exact closed skip reason; bare exit-0 free-form must not satisfy; measured pass stays exit 0 on the authorized measured path) + limb 3 (controller independently re-derives not-applicable from the run's `PrePrInputBinding` before honoring skip; forged exact tokens, arbitrary exit-0 audits, and stale base/head/tree fail; tests named). Deferred clarifies coverage-scoped `row.command`↔`spec.command` bind is in Bound; repo-wide bind may leftover.\n\n**Pin-read evidence @ 43a039e:**\n- `controller.ts` `commandSatisfied`: `if (row.exitCode === 0) return true;` then `isAllowedSkip` — any input-bound exit-0 satisfies today, including an unbound changed-file audit.\n- `pre-pr-run.ts`: skip already requires non-zero `--exit-code` plus `--skip-reason` (rejects exit-0 + skip). Bound limb 2 uses that channel rather than inventing exit-0 N/A — reconciles the A/B CLI contradiction the round-1 panel flagged.\n- `computeControllerObservedHash` already independently verifies semantic phases; limb 3 extends that verified-treatment pattern to this one skip. That is what turns a closed vocabulary string into applicability authority rather than another self-attested label.\n\nAsserted `relieves: P2` holds. Exit-0 free-form as fake measured pass is closed by limb 2's normative ban plus the in-Bound coverage-scoped command bind (see S1).\n\n## pain-P3 — support\n\nStop-1 prose: Missing Istanbul report correctly fails hotspots today, but with no fail-closed classifier the only documented paths are invent a report, ask for a waiver, or improvise an unbound exit-0.\n\n**Bound coverage:** limb 1 (fail-closed classifier), limb 4 (classifier before requiring `coverage-final.json`; N/A-eligible → machine-readable N/A + non-zero consistent with skip; applicable+missing → keep exit 2; no invented percentages; Istanbul global floor preserved when measurement is available), limbs 5+7 (document authorized path; forbid unbound exit-0; Reject invent/waiver/optional coverage).\n\n**Pin-read evidence @ 43a039e:**\n- `evaluate.ts`: `existsSync(coverage/coverage-final.json)` runs before pathFilter/diff resolution; missing → exit 2. `diffPaths` is `git diff --name-only`; `pathMatchesFilter` is substring-only and only gates uncovered-branch samples. `evaluatePassFail` compares **global** `totals.branches` / headroom — pathFilter never enters the verdict. Bound limb 1 forbids treating caller filters or empty selection as inert proof; limb 4 preserves the global floor when Istanbul measurement exists (docs-only Istanbul dogfood still gets floor/headroom).\n- Today's documented menu really is invent / waive / unbound exit-0. Bound adds the missing fail-closed classifier path for verified diff-level inert refinements.\n\nAsserted `relieves: P3` holds for the Stop-1 / issue acceptance class (verified non-executable refinement). Toolchain-only Coverlet adapters for executable non-Istanbul remain Deferred with an explicit stated scope (limb 5) — that is honesty, not a silent does-not-relieve of P3's classifier gap.\n\n---\n\n## Sharpening (non-harvest; carry into implement acceptance)\n\n**S1 — coverage-scoped command bind is required for limb 2, not a soft option.**\nLimb 3's phrase \"Optional same-Bound cheapen\" for binding `row.command` to `spec.command` on `coverage_headroom` sits next to Deferred's \"coverage-scoped bind is in Bound.\" Measured pass remains exit 0. Without the coverage-scoped bind (or an equivalent machine-outcome check that distinguishes authorized hotspots exit 0 from an arbitrary audit string), limb 2's \"bare exit-0 free-form must not satisfy\" cannot be implemented against today's `commandSatisfied` short-circuit. **Implement acceptance:** treat coverage-scoped command bind (or equivalent) as required to land limb 2; only the repo-wide bind across other command phases may leftover. No Bound-limb rewrite needed — Deferred already places coverage-scoped bind in Bound.\n\n**S2 — `lint_iteration` deferral stays a leftover pressure on the full consumer path.**\nPin-read: `lint_iteration` is required with command `vitest run --coverage <changed-paths>` before `coverage_headroom`. Bound limb 6 defers a closed lint skip and requires skill Phase 3 to say: when coverage is N/A, do not invent vitest `--coverage`; keep applicable static/`verify:*` gates. That is an honest deferral for P1–P3 (Stop-1 pains name coverage applicability / `coverage_headroom`, not a lint redesign). **Implement acceptance:** skill text and any lint observation guidance must be concrete enough that agents do not re-open invent/waiver/unbound-exit-0 one phase earlier; a separate closed lint disposition remains the named leftover if non-vitest consumers still cannot observe the phase honestly.\n\n## Footnote\n\n**F1 — N/A record shape.** Authorized N/A is a non-zero exit + blessed skip reason (same reader convention as `plan_sequence` / `render_export` via `isAllowedSkip`). Bound Deferred already records that an explicit `CommandObservation` applicability discriminant beyond that convention may leftover. No harvest change.\n\n## Reject-list / open-pressure check (refutation)\nBound Reject (optional `coverage_headroom`, waiver-as-happy-path, all-md/json/xbrief inherently inert, exit-0 unbound audit as N/A, exit-0 short-circuit indistinguishable from measured pass, deleting Istanbul floor when measurement exists, docs-only CI bypass / lower floor, closing #4976 or Coverlet inside this Bound) still matches pin-read failure modes. Do not recut onto those limbs.\n\n## Disposition\n- pain-P1: **support**\n- pain-P2: **support**\n- pain-P3: **support**\n- finding-classes: sharpening, footnote\n- harvest-changed: **false** (bindable-as-posted; S1–S2 / F1 carry into implement acceptance)\r\n\n",
+          "id": 6024233926,
+          "html_url": "https://github.com/deftai/directive/issues/5421#issuecomment-6024233926",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T19:51:19Z",
+          "updated_at": "2026-10-06T19:51:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nrecorded takes for audit 6024233926\n\ntake S1: coverage-scoped `row.command`↔`spec.command` bind (or equivalent machine-outcome check distinguishing authorized hotspots exit 0 from arbitrary audit strings) is required implement acceptance to land Bound limb 2; only repo-wide bind across other command phases may leftover.\ntake S2: lint_iteration closed skip remains leftover; Phase 3 skill text must keep static/verify:* gates when coverage is N/A so invent/waiver/unbound-exit-0 does not reopen one phase earlier.\ntake F1: N/A readers keep `isAllowedSkip` convention (plan_sequence/render_export); explicit CommandObservation discriminant may leftover.\r\n\n",
+          "id": 6024252558,
+          "html_url": "https://github.com/deftai/directive/issues/5421#issuecomment-6024252558",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T19:52:23Z",
+          "updated_at": "2026-10-06T19:52:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nPrefer-A Bound (cite only): 6024183465\npain-audit: 6024233926\ndispatch-sha: 43a039efb3d5efdab655cf587a4362f5107192bf\n\n| Claim | Evidence | Status |\n| --- | --- | --- |\n| coverage_headroom is required with command deft coverage:hotspots; ALLOWED_SKIP_REASONS has only plan_sequence and render_export | pin-read phases.ts @ 43a039e | verified |\n| commandSatisfied accepts any input-bound exitCode === 0 before isAllowedSkip | pin-read controller.ts @ 43a039e | verified |\n| hotspots requires coverage-final.json before path/diff work; missing → exit 2 | pin-read evaluate.ts @ 43a039e | verified |\n| evaluatePassFail uses global branch totals/headroom; pathFilter only samples uncovered branches | pin-read evaluate.ts @ 43a039e | verified |\n| pre-pr-run rejects skip with exit 0; skip requires non-zero exit + reason | pin-read pre-pr-run.ts @ 43a039e | verified |\n| Phase 3c always requires targeted coverage + hotspots; measurement allows language equivalent, hotspots step does not name N/A | pin-read SKILL.md Phase 3c @ 43a039e | verified |\n| PrePrInputBinding already carries repo/baseSha/headSha/treeHash for controller re-derivation | pin-read controller.ts @ 43a039e | verified |\n| Prefer-A Bound 6024183465 relieves P1/P2/P3; PA 6024233926 support all three; harvest-changed false | thread comments 6024183465 / 6024233926 | verified |\r\n\n",
+          "id": 6024253061,
+          "html_url": "https://github.com/deftai/directive/issues/5421#issuecomment-6024253061",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T19:52:25Z",
+          "updated_at": "2026-10-06T19:52:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: pre-PR coverage headroom always demanded an Istanbul report. Docs-only or non-Istanbul refinements either blocked, invented a report, asked for a waiver, or faked an exit-0 audit — and agents disagreed which was allowed.\n\nAccepted solution (Prefer-A Bound): one shared fail-closed applicability check on the complete reviewed diff. When every path is proven inert, record authorized not-applicable on the existing non-zero skip channel; the controller re-checks the claim itself. Real code still needs real coverage. Istanbul dogfood keeps its global floor when measurement is available. Full check/CI/floors stay.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set) on successor lean 6024183465 with pain-audit 6024233926 bindable-as-posted (harvest-changed false).\n\nCitations:\n- successor lean 6024183465\n- verified-claims table 6024253061\n- pain-audit 6024233926\n- recorded takes 6024252558\n\nPanel: Stop 1 6024021186; Prefer-A draft 6024017135; panel-deposit 6024039647; round-1 codex 6024086433 / grok 6024101182 / claude 6024159102.\n\nNon-harvest residue into implement acceptance: coverage-scoped command bind required for limb 2; lint_iteration closed skip leftover; isAllowedSkip reader convention for N/A.\n\nNext operator verb after completed-arc: task issue:ingest\r\n\n",
+          "id": 6024257996,
+          "html_url": "https://github.com/deftai/directive/issues/5421#issuecomment-6024257996",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T19:52:42Z",
+          "updated_at": "2026-10-06T19:52:42Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\nThe prescribed pre-PR workflow has no explicit, evidenced coverage-applicability outcome for a consumer change that adds no executable code. Following the skill literally blocks a documentation/refinement PR on a missing Istanbul report; another agent can record a real changed-file audit as an exit-0 command and publish a controller pass. The intended contract is unclear, so equivalent work receives inconsistent treatment.\n\nThis occurred in FreshserviceAI A2 refinement [PR #857](https://github.com/bxc-3ci/FreshserviceAI/pull/857) versus A3 refinement [PR #860](https://github.com/bxc-3ci/FreshserviceAI/pull/860). Both delivered planning/design artifacts. A3 initially stopped for an unnecessary operator exception; comparison with A2's command history identified the different interpretation. A3 then used a real changed-path/acceptance audit and passed the full local check. No coverage result was fabricated and no verifier or policy was changed.\n\n## Verified evidence\nReproduced October 6, 2026 with the published PATH engine/package 0.121.0. The consumer pins/deposits 0.120.0; the relevant contract is also present in upstream master at `d721cdbab0423a0b388a85c29d098cbb4e25c2d4`.\n\n- [Pre-PR skill, Phase 3c](https://github.com/deftai/directive/blob/d721cdbab0423a0b388a85c29d098cbb4e25c2d4/content/skills/deft-directive-pre-pr/SKILL.md#L132-L139) requires targeted coverage and `deft coverage:hotspots`, without an explicit no-executable-change disposition.\n- [Phase definitions](https://github.com/deftai/directive/blob/d721cdbab0423a0b388a85c29d098cbb4e25c2d4/packages/core/src/pre-pr-controller/phases.ts) make `coverage_headroom` required. `ALLOWED_SKIP_REASONS` contains only plan-sequence and render-export cases.\n- [Hotspot evaluator](https://github.com/deftai/directive/blob/d721cdbab0423a0b388a85c29d098cbb4e25c2d4/packages/core/src/coverage-hotspots/evaluate.ts#L246-L251) requires `coverage/coverage-final.json` before resolving the changed-path filter. The consumer uses .NET/Coverlet, and the refinement adds no source/test modules.\n- [Controller satisfaction](https://github.com/deftai/directive/blob/d721cdbab0423a0b388a85c29d098cbb4e25c2d4/packages/core/src/pre-pr-controller/controller.ts#L297-L302) accepts an input-bound exit-0 command observation for the phase. It does not itself establish that a changed-file audit is an authorized not-applicable result. Acceptance of that observation is not proof that the skill has defined the alternative.\n\n## Reproduction\n1. In an installed consumer, make a reviewable design/refinement-only diff against a valid base. Inspect the full diff and verify that no executable modules, tests, build/workflow behavior or runtime configuration change. The A3 diff has one design document, a proposed story, three decision records and one generated registry reference.\n2. Run `deft coverage:hotspots` without an Istanbul report.\n3. Observe exit 2: `coverage-hotspots: coverage report missing at .../coverage/coverage-final.json`, followed by advice to run coverage.\n4. Inspect the mandatory coverage phase and closed skip reasons: no applicability outcome is available.\n5. Compare the recorded A2 workflow: an actual changed-path audit confirmed no executable changes, and was recorded as an exit-0 `coverage_headroom` command; the complete controller run passed after `deft check` passed. A3 ultimately followed the same approach.\n\nThe report-missing diagnostic itself is accurate. The defect is the missing agreement between skill guidance, applicability evidence and controller representation; this is not evidence of an incorrect coverage percentage calculation.\n\n## Desired outcome / acceptance\n- Define one discoverable, supported coverage-applicability decision for pre-PR, shared by skill guidance and the controller. Distinguish measured coverage pass from evidenced not-applicable.\n- Bind applicability evidence to the complete reviewed diff and base/head/tree. Reuse existing project/source classification where appropriate; do not treat every Markdown/JSON file or everything under xbrief as inherently inert.\n- A verified non-executable refinement can complete its applicable pre-PR checks without inventing an Istanbul report, recording fictitious coverage, or asking the operator to waive an irrelevant metric.\n- Executable/mixed changes still require the appropriate coverage evidence and existing floors. Missing reports for applicable work, unknown paths, invalid bases, rename-to-document cases and classifier failure cannot silently become not-applicable.\n- Test the documented CLI/controller path in an installed consumer, including the positive refinement case and negative executable/mixed/unknown cases.\n- Preserve full `deft check`, required CI checks, self-review, scope/intent checks and human review. This issue does not authorize a general docs-only CI bypass or a lower coverage floor.\n\n## Related, not duplicate\n- #2683 introduced hotspots and pre-PR headroom.\n- #4912 introduced the prescribed controller workflow.\n- #4976 concerns controller-observed required-check authority more broadly; this issue is specifically the coverage-applicability contract.\n- #4012 concerns consumer lifecycle-only CI and an exact completed-artifact lane. This issue does not request skipping consumer CI or treating proposed planning briefs as lifecycle-only artifacts.\n\nNo Directive implementation change is included or claimed.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5731886208,
+        "origin": "deftai/directive#5421",
+        "id": "github.issue.5731886208"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "12596c6bda305cea27d17a90ad533333a1d6a012d33e2fb5dbd020c8e8651427"
+      }
+    },
+    "acceptance": {
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add shared fail-closed coverage applicability evaluator bound to PrePrInputBinding reviewed tree; classify coverable|inert|unknown; not-applicable only when every path inert.",
+          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "Authorized coverage N/A travels on ALLOWED_SKIP_REASONS.coverage_headroom with non-zero exit; bare exit 0 free-form audits must not satisfy coverage_headroom.",
+          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "Controller independently re-derives not-applicable from PrePrInputBinding before honoring coverage_headroom skip; forged/stale tokens fail.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Hotspots classify before requiring coverage-final.json; N/A-eligible emits machine-readable skip-channel reason and non-zero exit; keep Istanbul floor when measurement available.",
+          "artifact_path": "packages/core/src/coverage-hotspots/index.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 5,
+          "text": "Skill Phase 3c documents applicability → measured path OR authorized skip-channel N/A; forbid unbound exit-0 audits as coverage satisfaction.",
+          "artifact_path": "content/skills/deft-directive-pre-pr/SKILL.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 6,
+          "text": "Tests cover inert refinement authorized skip + controller re-derivation and negatives (executable/mixed/unknown/forged/stale).",
+          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ],
+      "x-directive/admitted_source_sentences": [
+        "Add shared fail-closed coverage applicability evaluator bound to PrePrInputBinding reviewed tree; classify coverable|inert|unknown; not-applicable only when every path inert.",
+        "Authorized coverage N/A travels on ALLOWED_SKIP_REASONS.coverage_headroom with non-zero exit; bare exit 0 free-form audits must not satisfy coverage_headroom.",
+        "Controller independently re-derives not-applicable from PrePrInputBinding before honoring coverage_headroom skip; forged/stale tokens fail.",
+        "Hotspots classify before requiring coverage-final.json; N/A-eligible emits machine-readable skip-channel reason and non-zero exit; keep Istanbul floor when measurement available.",
+        "Skill Phase 3c documents applicability → measured path OR authorized skip-channel N/A; forbid unbound exit-0 audits as coverage satisfaction.",
+        "Tests cover inert refinement authorized skip + controller re-derivation and negatives (executable/mixed/unknown/forged/stale)."
+      ]
+    },
+    "id": "github.issue.5731886208",
+    "updated": "2026-10-06T20:39:25Z"
+  }
+}
