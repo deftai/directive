@@ -1733,7 +1733,11 @@ describe("changed-lifecycle admission shared predicate (#5412)", () => {
 
     git(root, ["checkout", "-q", "-b", "demote"]);
     git(root, ["rm", "-q", "--", "xbrief/active/story.xbrief.json"]);
-    writeTracked(root, "xbrief/pending/story.xbrief.json", planningBrief(planId, "pending", narrow));
+    writeTracked(
+      root,
+      "xbrief/pending/story.xbrief.json",
+      planningBrief(planId, "pending", narrow),
+    );
     writeTracked(root, "packages/core/src/b.ts", "export const b = 1;\n");
     writeTracked(root, "packages/core/src/c.ts", "export const c = 1;\n");
     writeTracked(root, "packages/core/src/d.ts", "export const d = 1;\n");
@@ -1779,11 +1783,7 @@ describe("changed-lifecycle admission shared predicate (#5412)", () => {
     root = initRepo();
     const planId = "story-plan";
     const scope = ["packages/core/src/future.ts"];
-    writeTracked(
-      root,
-      "xbrief/pending/plan.xbrief.json",
-      planningBrief(planId, "pending", scope),
-    );
+    writeTracked(root, "xbrief/pending/plan.xbrief.json", planningBrief(planId, "pending", scope));
     writeTracked(
       root,
       "xbrief/PROJECT-DEFINITION.xbrief.json",
