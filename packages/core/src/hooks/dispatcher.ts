@@ -142,16 +142,16 @@ import {
   storeDenyMessage,
 } from "./cursor-plan-choice/index.js";
 import {
-  decidePlanChoiceWithHatch,
-  decideQuestionHatchGate,
-  decideQuestionHatchPauseGate,
-} from "./dispatcher-plan-choice.js";
-import {
   classifyGitDestructive,
   classifyProductDestForms,
   type GitDestructiveForm,
   payloadWithInjectedWriteTarget,
 } from "./dest-form.js";
+import {
+  decidePlanChoiceWithHatch,
+  decideQuestionHatchGate,
+  decideQuestionHatchPauseGate,
+} from "./dispatcher-plan-choice.js";
 import { appendGitDestructiveRecord, GIT_DESTRUCTIVE_LOG_ENV } from "./git-destructive-log.js";
 import { classifyLauncherFamilyArgv, type LauncherArgvClass } from "./launcher-argv.js";
 import { isLexicalOutsideProjectRoot, isOutsideProjectRootWrite } from "./outside-project-root.js";

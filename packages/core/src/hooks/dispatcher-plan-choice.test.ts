@@ -5,16 +5,16 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cursorPlanChoiceStoreRoot } from "./cursor-plan-choice/index.js";
 import type { CursorPlanChoiceDeps } from "./cursor-plan-choice/types.js";
 import {
-  evaluateHatchPresence,
-  extractQuestionOptionGroups,
-  isHatchAliasText,
-} from "./dispatcher-plan-choice.js";
-import {
   decideHook,
   type HookDecision,
   type HookPolicySeams,
   renderHostDecision,
 } from "./dispatcher.js";
+import {
+  evaluateHatchPresence,
+  extractQuestionOptionGroups,
+  isHatchAliasText,
+} from "./dispatcher-plan-choice.js";
 
 const READY_RITUAL = {
   code: 0,
@@ -193,11 +193,7 @@ describe("question hatch gate (#5373)", () => {
             questions: [
               {
                 question: "Spend?",
-                options: [
-                  { label: "N=1" },
-                  { label: "Discuss" },
-                  { label: "Back" },
-                ],
+                options: [{ label: "N=1" }, { label: "Discuss" }, { label: "Back" }],
               },
             ],
           },

@@ -724,9 +724,10 @@
           "#5372"
         ]
       },
-      "activationPullRequest": 5380
+      "activationPullRequest": 5380,
+      "productPullRequest": 5410
     },
     "id": "github.issue.5713952089",
-    "updated": "2026-10-05T21:42:08.150Z"
+    "updated": "2026-10-06T12:11:34.996Z"
   }
 }

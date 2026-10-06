@@ -13,24 +13,21 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { platformUserConfigDir } from "../user-config/resolve-user-md.js";
 import { isQuestionToolName } from "../tool-events/classify.js";
+import { platformUserConfigDir } from "../user-config/resolve-user-md.js";
 import { fieldString, record, toolInputRecord } from "./classify/payload.js";
 import {
+  type CursorPlanChoiceDeps,
   decideCursorPlanChoice,
   defaultCursorPlanChoiceDeps,
-  type CursorPlanChoiceDeps,
 } from "./cursor-plan-choice/index.js";
-import type { HookDecision, HookDispatchInput, HookDecisionCode } from "./dispatcher.js";
+import type { HookDecision, HookDecisionCode, HookDispatchInput } from "./dispatcher.js";
 
 /** Visible normative hatch label (#5373). */
 export const QUESTION_HATCH_VISIBLE = "Discuss";
 
 /** Accepted-input aliases for the same halt control (trim, case-insensitive). */
-export const QUESTION_HATCH_ALIASES: ReadonlySet<string> = new Set([
-  "discuss",
-  "i have questions",
-]);
+export const QUESTION_HATCH_ALIASES: ReadonlySet<string> = new Set(["discuss", "i have questions"]);
 
 export const QUESTION_BACK_LABEL = "Back";
 
@@ -203,8 +200,7 @@ export type QuestionHatchPauseRecord = {
 function resolvePauseKey(payload: unknown, projectRoot: string): string | null {
   const top = record(payload);
   if (top === null) return null;
-  const conversationId =
-    fieldString(top, "conversation_id") ?? fieldString(top, "conversationId");
+  const conversationId = fieldString(top, "conversation_id") ?? fieldString(top, "conversationId");
   if (conversationId === null) return null;
   const workspace =
     fieldString(top, "cwd") ??
@@ -361,10 +357,7 @@ export function decideQuestionHatchPauseGate(
   );
 }
 
-function armDiscussPause(
-  input: HookDispatchInput,
-  nowMs: number,
-): HookDecision | null {
+function armDiscussPause(input: HookDispatchInput, nowMs: number): HookDecision | null {
   const environ = input.environ ?? process.env;
   const key = resolvePauseKey(input.payload, input.projectRoot);
   if (key === null) return null;
