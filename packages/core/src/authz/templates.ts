@@ -29,24 +29,10 @@ export type ClosedVerbTemplateName = (typeof CLOSED_VERB_TEMPLATE_NAMES)[number]
 /** Walk-away finish-loop template (#871 Wave 5) — not a release closed-verb. */
 export const FINISH_LOOP_TEMPLATE_NAME = "finish-loop" as const;
 
-/**
- * Spec-drift override hatch (#5350 / #1589 C3).
- * Binds scopeId + covered item ids + baseline/revision; Wave-1 mint only.
- */
-export const SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME = "spec-drift-override" as const;
-
-/** Default TTL for spec-drift-override (single-use preferred). */
-export const SPEC_DRIFT_OVERRIDE_DEFAULT_EXPIRY_HOURS = 24;
-
-export const SPEC_DRIFT_OVERRIDE_BASELINE_PREFIX = "spec-drift-override:baseline:";
-export const SPEC_DRIFT_OVERRIDE_SCOPE_PREFIX = "spec-drift-override:scope:";
-export const SPEC_DRIFT_OVERRIDE_ITEM_PREFIX = "spec-drift-override:item:";
-
 /** All AFK templates accepted by `authz:grant --template`. */
 export const AFK_TEMPLATE_NAMES = [
   ...CLOSED_VERB_TEMPLATE_NAMES,
   FINISH_LOOP_TEMPLATE_NAME,
-  SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME,
 ] as const;
 
 export type AfkTemplateName = (typeof AFK_TEMPLATE_NAMES)[number];
@@ -71,10 +57,6 @@ export function isClosedVerbTemplateName(name: string): name is ClosedVerbTempla
 
 export function isFinishLoopTemplateName(name: string): boolean {
   return name.trim().toLowerCase() === FINISH_LOOP_TEMPLATE_NAME;
-}
-
-export function isSpecDriftOverrideTemplateName(name: string): boolean {
-  return name.trim().toLowerCase() === SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME;
 }
 
 export function isAfkTemplateName(name: string): name is AfkTemplateName {
@@ -291,87 +273,9 @@ export function mintFinishLoopTemplateGrant(input: MintFinishLoopTemplateInput):
   return mintHumanOriginGrant(mintInput);
 }
 
-export interface MintSpecDriftOverrideTemplateInput {
-  readonly projectRoot: string;
-  /** Baseline/revision bind (required). */
-  readonly target: string;
-  /** Completing scope id (required). */
-  readonly planRef: string;
-  /** Covered item ids (required; Bound S2 — all three binds mandatory). */
-  readonly storyIds: readonly string[];
-  readonly actor?: string;
-  readonly expiresAt?: string | null;
-  readonly singleUse?: boolean;
-  readonly repo?: string | null;
-  readonly branch?: string | null;
-  readonly now?: Date;
-  readonly pinActive?: boolean;
-  readonly eventRef?: string | null;
-  readonly durationHours?: number;
-}
-
-/**
- * Mint human-origin spec-drift-override grant (#5350 limb 5).
- * Sole path: mintHumanOriginGrant / operator-cli. Agent brief edits cannot forge.
- */
-export function mintSpecDriftOverrideTemplateGrant(
-  input: MintSpecDriftOverrideTemplateInput,
-): MintGrantResult {
-  const dualMint = assertNoIndependentSessionAuthMint();
-  if (dualMint.sessionAuthIsAuthority || dualMint.mintPath !== "mintHumanOriginGrant") {
-    throw new Error(
-      "spec-drift-override template mint refused: dual authorization SoT is forbidden (#5350)",
-    );
-  }
-  const baseline = input.target.trim();
-  if (baseline.length === 0) {
-    throw new Error("template spec-drift-override requires --target <baselineRevision>");
-  }
-  const scopeId = input.planRef.trim();
-  if (scopeId.length === 0) {
-    throw new Error("template spec-drift-override requires --plan-ref <scopeId>");
-  }
-  const itemIds = input.storyIds.map((s) => s.trim()).filter((s) => s.length > 0);
-  if (itemIds.length === 0) {
-    throw new Error(
-      "template spec-drift-override requires --story-ids with at least one covered item id",
-    );
-  }
-  let expiresAt = input.expiresAt ?? null;
-  if (expiresAt === null || expiresAt === undefined) {
-    const hours =
-      input.durationHours !== undefined && Number.isFinite(input.durationHours)
-        ? Math.max(1, Math.floor(input.durationHours))
-        : SPEC_DRIFT_OVERRIDE_DEFAULT_EXPIRY_HOURS;
-    expiresAt = isoExpiry(input.now ?? new Date(), hours);
-  }
-  const surfaces = [
-    `${SPEC_DRIFT_OVERRIDE_SCOPE_PREFIX}${scopeId}`,
-    `${SPEC_DRIFT_OVERRIDE_BASELINE_PREFIX}${baseline}`,
-    ...itemIds.map((id) => `${SPEC_DRIFT_OVERRIDE_ITEM_PREFIX}${id}`),
-  ];
-  const mintInput: MintGrantInput = {
-    projectRoot: input.projectRoot,
-    actor: input.actor ?? "operator",
-    operations: ["settings"],
-    surfaces,
-    expiresAt,
-    // Prefer single-use for the hatch (Bound).
-    singleUse: input.singleUse !== false,
-    planRef: scopeId,
-    repo: input.repo ?? null,
-    branch: input.branch ?? null,
-    storyIds: itemIds,
-    pinActive: input.pinActive,
-    eventRef: input.eventRef ?? `template:${SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME}`,
-    now: input.now,
-  };
-  return mintHumanOriginGrant(mintInput);
-}
-
 /**
  * Dispatch AFK template mint by name. Closed-verb templates require target;
- * finish-loop does not; spec-drift-override requires target + planRef + storyIds.
+ * finish-loop does not.
  */
 export function mintAfkTemplateGrant(input: {
   readonly projectRoot: string;
@@ -407,36 +311,6 @@ export function mintAfkTemplateGrant(input: {
       storyIds: input.storyIds,
       issueIds: input.issueIds,
       cohortId: input.cohortId,
-      now: input.now,
-      pinActive: input.pinActive,
-      eventRef: input.eventRef,
-      durationHours: input.durationHours,
-    });
-  }
-  if (isSpecDriftOverrideTemplateName(name)) {
-    if (input.target === null || input.target === undefined || input.target.trim().length === 0) {
-      throw new Error(`template ${name} requires a non-empty --target <baselineRevision>`);
-    }
-    if (
-      input.planRef === null ||
-      input.planRef === undefined ||
-      input.planRef.trim().length === 0
-    ) {
-      throw new Error(`template ${name} requires --plan-ref <scopeId>`);
-    }
-    if (input.storyIds === undefined || input.storyIds.length === 0) {
-      throw new Error(`template ${name} requires --story-ids <covered-item-ids>`);
-    }
-    return mintSpecDriftOverrideTemplateGrant({
-      projectRoot: input.projectRoot,
-      target: input.target,
-      planRef: input.planRef,
-      storyIds: input.storyIds,
-      actor: input.actor,
-      expiresAt: input.expiresAt,
-      singleUse: input.singleUse,
-      repo: input.repo,
-      branch: input.branch,
       now: input.now,
       pinActive: input.pinActive,
       eventRef: input.eventRef,

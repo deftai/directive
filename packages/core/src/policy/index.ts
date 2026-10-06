@@ -142,6 +142,7 @@ export * from "./require-human-merge.js";
 export * from "./resolve.js";
 export * from "./reviewers.js";
 export * from "./runtime-authority.js";
+export * from "./spec-drift-override-grant.js";
 export * from "./spec-guard.js";
 export * from "./staleness-tickler.js";
 export * from "./sync-default.js";

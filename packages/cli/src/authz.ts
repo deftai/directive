@@ -48,6 +48,11 @@ import {
 } from "@deftai/directive-core/authz";
 import { uatCampaignEndSeal } from "@deftai/directive-core/authz/campaign-end-seal";
 import {
+  isSpecDriftOverrideTemplateName,
+  mintSpecDriftOverrideTemplateGrant,
+  SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME,
+} from "@deftai/directive-core/policy";
+import {
   type HumanPresenceMintSeams,
   refuseMintWhileUatActive,
   refuseNonInteractiveMint,
@@ -578,11 +583,65 @@ export function main(
           );
           return 0;
         }
+        // Spec-drift override hatch (#5350): policy module, not authz/** (class 4).
+        if (args.template !== null && isSpecDriftOverrideTemplateName(args.template)) {
+          if (args.target === null || args.target.trim().length === 0) {
+            process.stderr.write(
+              "authz:grant --template spec-drift-override requires --target <baselineRevision>\n",
+            );
+            return 2;
+          }
+          if (args.planRef === null || args.planRef.trim().length === 0) {
+            process.stderr.write(
+              "authz:grant --template spec-drift-override requires --plan-ref <scopeId>\n",
+            );
+            return 2;
+          }
+          if (args.storyIds.length === 0) {
+            process.stderr.write(
+              "authz:grant --template spec-drift-override requires --story-ids <covered-item-ids>\n",
+            );
+            return 2;
+          }
+          const blockedOverride = gateConfirm();
+          if (blockedOverride !== null) return blockedOverride;
+          const mintedOverride = mintSpecDriftOverrideTemplateGrant({
+            projectRoot: args.projectRoot,
+            target: args.target,
+            planRef: args.planRef,
+            storyIds: args.storyIds,
+            actor: args.actor,
+            expiresAt: args.expiresAt,
+            singleUse: args.singleUse,
+            repo: args.repo,
+            branch: args.branch,
+          });
+          if (!mintedOverride.ok) {
+            process.stderr.write(`authz:grant: ${mintedOverride.reason}\n`);
+            return 2;
+          }
+          const overrideGrant = mintedOverride.grant;
+          process.stdout.write(
+            `✓ human-origin grant minted id=${overrideGrant.id} origin=${overrideGrant.origin.kind} ` +
+              `template=${SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME}\n`,
+          );
+          process.stdout.write(
+            `  ops=[${overrideGrant.scope.operations.join(",")}] scope=${overrideGrant.scope.planRef} ` +
+              `items=${overrideGrant.scope.storyIds.join(",")} surfaces=${overrideGrant.scope.surfaces.join(", ")}\n`,
+          );
+          process.stdout.write(
+            "  Hatch: discharges rewrite/coverage refuse for bound ids only under enforce; single-use preferred.\n",
+          );
+          process.stdout.write(
+            "  Authorization SoT: Wave 1 grant store (.deft/authz/grants) — not session-auth.\n",
+          );
+          return 0;
+        }
         // AFK template path (#1095 / #871): presets only — still mintHumanOriginGrant.
         if (args.template !== null && args.template.trim().length > 0) {
           if (!isAfkTemplateName(args.template)) {
             process.stderr.write(
-              `authz:grant unknown --template '${args.template}'; expected one of: ${AFK_TEMPLATE_NAMES.join(", ")}\n`,
+              `authz:grant unknown --template '${args.template}'; expected one of: ${AFK_TEMPLATE_NAMES.join(", ")}, ${SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME}\n`,
             );
             return 2;
           }
@@ -595,49 +654,23 @@ export function main(
             );
             return 2;
           }
-          if (args.template.trim().toLowerCase() === "spec-drift-override") {
-            if (args.target === null || args.target.trim().length === 0) {
-              process.stderr.write(
-                "authz:grant --template spec-drift-override requires --target <baselineRevision>\n",
-              );
-              return 2;
-            }
-            if (args.planRef === null || args.planRef.trim().length === 0) {
-              process.stderr.write(
-                "authz:grant --template spec-drift-override requires --plan-ref <scopeId>\n",
-              );
-              return 2;
-            }
-            if (args.storyIds.length === 0) {
-              process.stderr.write(
-                "authz:grant --template spec-drift-override requires --story-ids <covered-item-ids>\n",
-              );
-              return 2;
-            }
-          }
           const blocked = gateConfirm();
           if (blocked !== null) return blocked;
-          let minted: ReturnType<typeof mintAfkTemplateGrant>;
-          try {
-            minted = mintAfkTemplateGrant({
-              projectRoot: args.projectRoot,
-              template: args.template,
-              target: args.target,
-              actor: args.actor,
-              expiresAt: args.expiresAt,
-              singleUse: args.singleUse,
-              planRef: args.planRef,
-              repo: args.repo,
-              branch: args.branch,
-              surfaces: args.surfaces,
-              storyIds: args.storyIds,
-              issueIds: args.issueIds,
-              cohortId: args.cohort,
-            });
-          } catch (err) {
-            process.stderr.write(`authz:grant: ${String(err)}\n`);
-            return 2;
-          }
+          const minted = mintAfkTemplateGrant({
+            projectRoot: args.projectRoot,
+            template: args.template,
+            target: args.target,
+            actor: args.actor,
+            expiresAt: args.expiresAt,
+            singleUse: args.singleUse,
+            planRef: args.planRef,
+            repo: args.repo,
+            branch: args.branch,
+            surfaces: args.surfaces,
+            storyIds: args.storyIds,
+            issueIds: args.issueIds,
+            cohortId: args.cohort,
+          });
           if (!minted.ok) {
             process.stderr.write(`authz:grant: ${minted.reason}\n`);
             return 2;
@@ -652,14 +685,6 @@ export function main(
               `  ops=[${grant.scope.operations.join(",")}] ` +
                 `(finish-loop walk-away; release-* NOT authorized)\n`,
             );
-          } else if (args.template.trim().toLowerCase() === "spec-drift-override") {
-            process.stdout.write(
-              `  ops=[${grant.scope.operations.join(",")}] scope=${grant.scope.planRef} ` +
-                `items=${grant.scope.storyIds.join(",")} surfaces=${grant.scope.surfaces.join(", ")}\n`,
-            );
-            process.stdout.write(
-              "  Hatch: discharges rewrite/coverage refuse for bound ids only under enforce; single-use preferred.\n",
-            );
           } else {
             process.stdout.write(
               `  ops=[${grant.scope.operations.join(",")}] target surfaces=${grant.scope.surfaces.join(", ")}\n`,
@@ -672,7 +697,7 @@ export function main(
         }
         if (args.operations.length === 0) {
           process.stderr.write(
-            "authz:grant requires --operations <edit,push,...>, --template <finish-loop|release-*>, " +
+            "authz:grant requires --operations <edit,push,...>, --template <finish-loop|release-*|spec-drift-override>, " +
               "or --parent + --draft (structural scope:decompose apply)\n",
           );
           return 2;

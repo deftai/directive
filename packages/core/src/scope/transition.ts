@@ -407,10 +407,9 @@ export function runTransition(
       );
       reuseValidatedDeliveryAncestry = gate.provenance.disposition === "delivered";
     }
-    // #4544 residual after #5178 / #5253: delivered codeBearing always enforces.
-    // Non-delivery dispositions (cancelled / accepted_not_delivered) only enforce
-    // when Prefer-A marker or this-session untracked product evidence exists —
-    // never stamp product completion on a clean non-delivery exit (#4544 P1).
+    // #4544 residual after #5178: delivered / code-bearing product completion must
+    // not leave scaffold edit-me; Prefer-A evaluator runs here so refuse does not
+    // depend on the agent remembering to stamp the marker or invoke check.
     if (gate.codeBearing) {
       const chokepoint =
         gate.provenance?.disposition === "delivered"
@@ -603,26 +602,63 @@ export function runTransition(
         // #5350: under enforce, record drift BEFORE unlinking active so a ledger
         // write failure cannot leave a completed brief without its required record.
         // Sync skips a second enforce record (double-record / spent-override P1).
+        // Honor non-null return (lock refuse / residual finding) and unexpected
+        // throws — both roll back dest (Greptile P1 / intent-constraint free-pattern).
         const enforceGuard = resolveSpecGuard(projectRoot, { hasSpecification: true });
         if (enforceGuard.enabled && enforceGuard.driftGuard.enforcement === "enforce") {
+          const scopeIdForEnforce =
+            typeof planObj.id === "string"
+              ? planObj.id
+              : relative(projectRoot, destPath).replace(/\\/g, "/");
+          const rollbackEnforceAttempt = (spentIds: readonly string[]): void => {
+            if (priorDriftLedger !== null) {
+              try {
+                rollbackScopeCompleteDrift(projectRoot, scopeIdForEnforce, {
+                  priorLedger: priorDriftLedger,
+                  spentGrantIds: spentIds,
+                });
+              } catch {
+                /* best-effort ledger rollback */
+              }
+            }
+            try {
+              unlinkSync(destPath);
+            } catch {
+              /* dest rollback after enforce ledger failure */
+            }
+          };
           try {
             priorDriftLedger = snapshotSpecDriftLedger(projectRoot);
-            recordScopeCompleteDrift(
+            const driftRecord = recordScopeCompleteDrift(
               projectRoot,
               data,
               relative(projectRoot, destPath).replace(/\\/g, "/"),
             );
+            if (driftRecord !== null) {
+              // Finding may already be on the ledger — restore prior snapshot so a
+              // refused completion does not leave unresolved drift for an active scope.
+              const spentIds = spentGrantIdsSinceSnapshot(
+                priorDriftLedger,
+                snapshotSpecDriftLedger(projectRoot),
+              );
+              rollbackEnforceAttempt(spentIds);
+              return {
+                ok: false,
+                message: `spec-drift ledger write failed under enforce: ${driftRecord.reason}`,
+                acceptanceReports,
+              };
+            }
             spentDriftGrantIds = spentGrantIdsSinceSnapshot(
               priorDriftLedger,
               snapshotSpecDriftLedger(projectRoot),
             );
             enforceDriftRecorded = true;
           } catch (err: unknown) {
-            try {
-              unlinkSync(destPath);
-            } catch {
-              /* dest rollback after enforce ledger failure */
-            }
+            const spentIds =
+              priorDriftLedger !== null
+                ? spentGrantIdsSinceSnapshot(priorDriftLedger, snapshotSpecDriftLedger(projectRoot))
+                : [];
+            rollbackEnforceAttempt(spentIds);
             return {
               ok: false,
               message: `spec-drift ledger write failed under enforce: ${String(err)}`,
@@ -692,6 +728,27 @@ export function runTransition(
         targetStatus,
       );
       if (!specSync.ok) {
+        // Move already landed; roll back dest (+ enforce ledger) so failure does not
+        // leave a completed brief without its required drift record (Greptile P1).
+        if (enforceDriftRecorded && priorDriftLedger !== null) {
+          const scopeIdForRollback =
+            typeof planObj.id === "string"
+              ? planObj.id
+              : relative(projectRoot, destPath).replace(/\\/g, "/");
+          try {
+            rollbackScopeCompleteDrift(projectRoot, scopeIdForRollback, {
+              priorLedger: priorDriftLedger,
+              spentGrantIds: spentDriftGrantIds,
+            });
+          } catch {
+            /* best-effort ledger rollback */
+          }
+        }
+        try {
+          unlinkSync(destPath);
+        } catch {
+          /* best-effort dest rollback */
+        }
         return {
           ok: false,
           message:

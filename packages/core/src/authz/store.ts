@@ -277,27 +277,6 @@ export function markGrantUsed(
   return used;
 }
 
-/**
- * Clear single-use spent marker after a failed lifecycle that already marked the grant.
- * Used when enforce drift recording succeeds but the active→completed move rolls back (#5350).
- */
-export function clearGrantUsedAt(projectRoot: string, grantId: string): HumanOriginGrant | null {
-  const grant = loadGrant(projectRoot, grantId);
-  if (grant === null) return null;
-  if (!grant.semantics.singleUse) return grant;
-  if (grant.semantics.usedAt === null) return grant;
-  const restored: HumanOriginGrant = {
-    ...grant,
-    semantics: {
-      ...grant.semantics,
-      usedAt: null,
-    },
-  };
-  const wrote = saveGrant(projectRoot, restored);
-  if (!wrote.ok) return null;
-  return restored;
-}
-
 /** Exclusive claim lock body under `.deft/authz/locks/<id>.lock` (#3239). */
 export interface GrantClaimLockRecord {
   readonly pid: number;

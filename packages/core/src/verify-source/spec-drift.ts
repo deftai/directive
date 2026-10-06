@@ -9,16 +9,22 @@
  */
 
 import { createHash } from "node:crypto";
-import { closeSync, existsSync, openSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import {
-  clearGrantUsedAt,
   listActiveHumanGrants,
   loadAuthzState,
+  loadGrant,
   markGrantUsed,
+  saveGrant,
 } from "../authz/store.js";
 import type { HumanOriginGrant } from "../authz/types.js";
-import { containedWrite } from "../fs/contained-write.js";
+import {
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  containedRemove,
+  containedWrite,
+} from "../fs/contained-write.js";
 import {
   resolveAuditPath,
   resolveLifecycleRoot,
@@ -752,32 +758,61 @@ export function evaluateCompletionCoverage(
   };
 }
 
-function withLedgerLock<T>(projectRoot: string, enforcement: SpecGuardEnforcement, fn: () => T): T {
+type LedgerLockResult<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly message: string };
+
+/**
+ * Clear single-use spent marker after a failed lifecycle that already marked the grant.
+ * Uses existing store load/save (no authz/** expansion — class 4 / #4980).
+ */
+function clearGrantUsedAt(projectRoot: string, grantId: string): HumanOriginGrant | null {
+  const grant = loadGrant(projectRoot, grantId);
+  if (grant === null) return null;
+  if (!grant.semantics.singleUse) return grant;
+  if (grant.semantics.usedAt === null) return grant;
+  const restored: HumanOriginGrant = {
+    ...grant,
+    semantics: {
+      ...grant.semantics,
+      usedAt: null,
+    },
+  };
+  const wrote = saveGrant(projectRoot, restored);
+  if (!wrote.ok) return null;
+  return restored;
+}
+
+function withLedgerLock<T>(
+  projectRoot: string,
+  enforcement: SpecGuardEnforcement,
+  fn: () => T,
+): LedgerLockResult<T> {
   if (enforcement !== "enforce") {
-    return fn();
+    return { ok: true, value: fn() };
   }
-  const lockPath = ledgerLockAbsPath(projectRoot);
-  let fd: number | null = null;
+  const root = resolve(projectRoot);
+  const lockPath = ledgerLockAbsPath(root);
+  const lockBody = `${process.pid}\n${new Date().toISOString()}\n`;
   try {
-    fd = openSync(lockPath, "wx");
-    writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`);
-    return fn();
+    containedWrite({ root, target: lockPath, data: lockBody, mode: "create" });
   } catch (err) {
-    throw new Error(
-      `spec-drift ledger lock failed under enforce (${SPEC_DRIFT_LEDGER_LOCK_NAME}): ${String(err)}`,
-    );
+    const exists =
+      err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS;
+    return {
+      ok: false,
+      message: exists
+        ? `spec-drift ledger lock failed under enforce (${SPEC_DRIFT_LEDGER_LOCK_NAME}): lock held`
+        : `spec-drift ledger lock failed under enforce (${SPEC_DRIFT_LEDGER_LOCK_NAME}): ${String(err)}`,
+    };
+  }
+  try {
+    return { ok: true, value: fn() };
   } finally {
-    if (fd !== null) {
-      try {
-        closeSync(fd);
-      } catch {
-        /* ignore */
-      }
-      try {
-        unlinkSync(lockPath);
-      } catch {
-        /* ignore */
-      }
+    try {
+      containedRemove({ root, target: lockPath });
+    } catch {
+      /* ignore */
     }
   }
 }
@@ -815,7 +850,13 @@ export function writeSpecDriftLedger(
   if (options.alreadyLocked === true || enforcement !== "enforce") {
     return write();
   }
-  return withLedgerLock(root, enforcement, write);
+  const locked = withLedgerLock(root, enforcement, write);
+  // Lock refuse is returned-failure (empty path); callers that need enforce RMW
+  // hold withLedgerLock themselves and pass alreadyLocked.
+  if (!locked.ok) {
+    return "";
+  }
+  return locked.value;
 }
 
 /** Seed or reseed the drift ledger from the live durable SPEC baseline (#5350 limb 7). */
@@ -887,15 +928,15 @@ export function seedSpecDriftLedger(
     };
   };
 
-  try {
-    return withLedgerLock(root, "enforce", apply);
-  } catch (err: unknown) {
+  const locked = withLedgerLock(root, "enforce", apply);
+  if (!locked.ok) {
     return {
       ok: false,
-      message: `spec-drift seed/reseed failed: ${String(err)}`,
+      message: locked.message,
       baselineRevision,
     };
   }
+  return locked.value;
 }
 
 /** Deep-clone the on-disk ledger for failed-move restore (pre-record snapshot). */
@@ -916,9 +957,12 @@ export function snapshotSpecDriftLedger(projectRoot: string): SpecDriftLedger {
 }
 
 /**
- * Restore a pre-record ledger snapshot after a failed active→completed move.
- * Prefer this over scopeId wipe so earlier coverage for the same scopeId survives
- * (#5350 Greptile P1: rollback must not erase prior completion evidence).
+ * Surgical failed-move rollback (#5350).
+ * With a pre-record snapshot: restore THIS scopeId's rows from the snapshot while
+ * keeping other scopes' rows from the live ledger (concurrent completions must not
+ * be erased by a full-snapshot restore). Keep live baseline/cutover. Restore prior
+ * requirements fingerprint only when this attempt's coverage set the live tip
+ * (do not rewind a concurrent none-completion fingerprint advance).
  * Only clears single-use grants spent by THIS attempt (`spentGrantIds`).
  */
 export function rollbackScopeCompleteDrift(
@@ -931,55 +975,77 @@ export function rollbackScopeCompleteDrift(
 ): { readonly ok: boolean; readonly message: string } {
   const root = resolve(projectRoot);
   const prior = options.priorLedger;
-  try {
-    return withLedgerLock(root, "enforce", () => {
-      if (prior !== undefined) {
-        if (!hasLedgerFile(root) && prior.coverage.length === 0 && prior.unresolved.length === 0) {
-          // Nothing durable existed before the failed attempt.
-          return { ok: true, message: `restored empty pre-record ledger for scope ${scopeId}` };
-        }
-        writeSpecDriftLedger(root, prior, { enforcement: "enforce", alreadyLocked: true });
-        for (const grantId of options.spentGrantIds ?? []) {
-          if (grantId.length > 0) clearGrantUsedAt(root, grantId);
-        }
-        return {
-          ok: true,
-          message: `restored pre-record spec-drift ledger snapshot for scope ${scopeId}`,
-        };
-      }
-      // Legacy path: scopeId wipe — only when no snapshot was captured.
-      if (!hasLedgerFile(root)) {
-        return { ok: true, message: "no ledger to roll back" };
-      }
-      const ledger = readLedger(root);
-      const priorGrantIds = new Set(
-        ledger.coverage
-          .filter((c) => c.scopeId === scopeId && typeof c.grantId === "string")
-          .map((c) => c.grantId as string),
-      );
-      // Prefer spentGrantIds when provided even without a full snapshot.
-      const grantIdsToClear = options.spentGrantIds ?? [...priorGrantIds];
+  const locked = withLedgerLock(root, "enforce", () => {
+    if (!hasLedgerFile(root) && prior === undefined) {
+      return { ok: true, message: "no ledger to roll back" };
+    }
+    const current = hasLedgerFile(root) ? readLedger(root) : emptyLedger();
+    if (prior !== undefined) {
+      const otherScopesCoverage = current.coverage.filter((c) => c.scopeId !== scopeId);
+      const thisScopeCoverage = current.coverage.filter((c) => c.scopeId === scopeId);
+      const liveFp = current.lastRequirementsFingerprint;
+      // Restore prior fp only when THIS attempt set the live fingerprint via its
+      // own coverage row AND no other scope's coverage anchors that tip. A
+      // concurrent specImpact=none completion can advance lastRequirementsFingerprint
+      // without adding coverage; restoring then would rewind that completion and
+      // let a later scope claim the intervening SPEC change as rewrite proof.
+      const thisAttemptSetLiveFp =
+        liveFp !== null && thisScopeCoverage.some((c) => c.afterRequirementsFingerprint === liveFp);
+      const otherAnchoredToLiveFp =
+        liveFp !== null &&
+        otherScopesCoverage.some((c) => c.afterRequirementsFingerprint === liveFp);
+      const restoredFp =
+        thisAttemptSetLiveFp && !otherAnchoredToLiveFp && prior.lastRequirementsFingerprint !== null
+          ? prior.lastRequirementsFingerprint
+          : (liveFp ?? prior.lastRequirementsFingerprint);
       const next: SpecDriftLedger = {
-        ...ledger,
-        unresolved: ledger.unresolved.filter((f) => f.scopeId !== scopeId),
-        shadowFindings: ledger.shadowFindings.filter((f) => f.scopeId !== scopeId),
-        coverage: ledger.coverage.filter((c) => c.scopeId !== scopeId),
+        baselineRevision: current.baselineRevision ?? prior.baselineRevision,
+        lastRequirementsFingerprint: restoredFp,
+        cutoverBoundary: current.cutoverBoundary ?? prior.cutoverBoundary,
+        coverage: [...otherScopesCoverage, ...prior.coverage.filter((c) => c.scopeId === scopeId)],
+        unresolved: [
+          ...current.unresolved.filter((f) => f.scopeId !== scopeId),
+          ...prior.unresolved.filter((f) => f.scopeId === scopeId),
+        ],
+        shadowFindings: [
+          ...current.shadowFindings.filter((f) => f.scopeId !== scopeId),
+          ...prior.shadowFindings.filter((f) => f.scopeId === scopeId),
+        ],
       };
       writeSpecDriftLedger(root, next, { enforcement: "enforce", alreadyLocked: true });
-      for (const grantId of grantIdsToClear) {
+      for (const grantId of options.spentGrantIds ?? []) {
         if (grantId.length > 0) clearGrantUsedAt(root, grantId);
       }
       return {
         ok: true,
-        message: `rolled back spec-drift ledger rows for scope ${scopeId}`,
+        message: `surgically restored pre-record rows for scope ${scopeId} (other scopes preserved; fingerprint restored when safe)`,
       };
-    });
-  } catch (err: unknown) {
-    return {
-      ok: false,
-      message: `spec-drift rollback failed for scope ${scopeId}: ${String(err)}`,
+    }
+    // Legacy path: scopeId wipe — only when no snapshot was captured.
+    const grantIdsToClear =
+      options.spentGrantIds ??
+      current.coverage
+        .filter((c) => c.scopeId === scopeId && typeof c.grantId === "string")
+        .map((c) => c.grantId as string);
+    const next: SpecDriftLedger = {
+      ...current,
+      unresolved: current.unresolved.filter((f) => f.scopeId !== scopeId),
+      shadowFindings: current.shadowFindings.filter((f) => f.scopeId !== scopeId),
+      coverage: current.coverage.filter((c) => c.scopeId !== scopeId),
     };
+    writeSpecDriftLedger(root, next, { enforcement: "enforce", alreadyLocked: true });
+    for (const grantId of grantIdsToClear) {
+      if (grantId.length > 0) clearGrantUsedAt(root, grantId);
+    }
+    return {
+      ok: true,
+      message: `rolled back spec-drift ledger rows for scope ${scopeId}`,
+    };
+  });
+  if (!locked.ok) {
+    return { ok: false, message: locked.message };
   }
+  return locked.value;
 }
 
 /** Grant ids newly present on coverage after a record vs a prior snapshot. */
@@ -1347,7 +1413,8 @@ export function gateScopeCompleteSpecDrift(
 
 /**
  * Record completion drift after lifecycle move. Branches on enforcement (#5350).
- * Under enforce, write failures throw (fail closed). Shadow records warnings without refuse.
+ * Under enforce, ledger lock refuse returns a finding (fail closed, no throw).
+ * Shadow records warnings without refuse.
  */
 export function recordScopeCompleteDrift(
   projectRoot: string,
@@ -1503,7 +1570,16 @@ export function recordScopeCompleteDrift(
   // Limb 7: under enforce, lock the full read-modify-write so concurrent completions
   // cannot overwrite each other's coverage/findings.
   if (enforcement === "enforce") {
-    return withLedgerLock(root, enforcement, mutate);
+    const locked = withLedgerLock(root, enforcement, mutate);
+    if (!locked.ok) {
+      return {
+        scopeId,
+        reason: locked.message,
+        specImpact: null,
+        completedAt: null,
+      };
+    }
+    return locked.value;
   }
   return mutate();
 }

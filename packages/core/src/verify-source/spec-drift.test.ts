@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { mintSpecDriftOverrideTemplateGrant } from "../authz/templates.js";
+import { mintSpecDriftOverrideTemplateGrant } from "../policy/spec-drift-override-grant.js";
 import { SPEC_IMPACT_KEY } from "../policy/spec-guard.js";
 import {
   AFFECTED_REQUIREMENT_REFS_KEY,
@@ -662,7 +662,7 @@ describe("verify:spec-drift (#1589 C2 / #5350 C3)", () => {
     expect(fake).toEqual([]);
   });
 
-  it("rollbackScopeCompleteDrift restores prior snapshot without wiping earlier same-scope coverage", () => {
+  it("rollbackScopeCompleteDrift surgically restores scope rows and preserves other scopes", () => {
     setup({
       withSpec: true,
       policy: {
@@ -743,6 +743,144 @@ describe("verify:spec-drift (#1589 C2 / #5350 C3)", () => {
     expect(ledger.unresolved).toEqual([]);
     expect(ledger.coverage).toHaveLength(1);
     expect(ledger.coverage[0]?.coveredItemIds).toEqual(["earlier"]);
+  });
+
+  it("rollbackScopeCompleteDrift keeps concurrent other-scope coverage from live ledger", () => {
+    setup({
+      withSpec: true,
+      policy: {
+        specGuard: { enabled: true, driftGuard: { enforcement: "enforce", trigger: "both" } },
+      },
+    });
+    expect(seedSpecDriftLedger(root).ok).toBe(true);
+    const prior = snapshotSpecDriftLedger(root);
+    // Concurrent scope B lands after A's snapshot.
+    writeSpecDriftLedger(
+      root,
+      {
+        ...prior,
+        coverage: [
+          {
+            scopeId: "scope-B",
+            coveredItemIds: ["b1"],
+            beforeRequirementsFingerprint: "x",
+            afterRequirementsFingerprint: "y",
+            affectedRequirementRefs: [],
+            recordedAt: "2026-10-02T00:00:00Z",
+            source: "rewrite",
+          },
+          {
+            scopeId: "scope-A",
+            coveredItemIds: ["a1"],
+            beforeRequirementsFingerprint: "x",
+            afterRequirementsFingerprint: "y",
+            affectedRequirementRefs: [],
+            recordedAt: "2026-10-02T00:00:00Z",
+            source: "override",
+            grantId: "grant-a",
+          },
+        ],
+        lastRequirementsFingerprint: "y",
+      },
+      { enforcement: "enforce" },
+    );
+    const rolled = rollbackScopeCompleteDrift(root, "scope-A", {
+      priorLedger: prior,
+      spentGrantIds: ["grant-a"],
+    });
+    expect(rolled.ok).toBe(true);
+    const ledger = JSON.parse(
+      readFileSync(join(root, "xbrief", ".audit", "spec-drift-ledger.json"), "utf8"),
+    ) as { coverage: Array<{ scopeId: string }> };
+    expect(ledger.coverage.some((c) => c.scopeId === "scope-B")).toBe(true);
+    expect(ledger.coverage.some((c) => c.scopeId === "scope-A")).toBe(false);
+  });
+
+  it("rollbackScopeCompleteDrift restores prior fingerprint when no other scope anchors live fp", () => {
+    setup({
+      withSpec: true,
+      policy: {
+        specGuard: { enabled: true, driftGuard: { enforcement: "enforce", trigger: "both" } },
+      },
+    });
+    expect(seedSpecDriftLedger(root).ok).toBe(true);
+    const prior = {
+      ...snapshotSpecDriftLedger(root),
+      lastRequirementsFingerprint: "fp-before",
+    };
+    writeSpecDriftLedger(root, prior, { enforcement: "enforce" });
+    const snap = snapshotSpecDriftLedger(root);
+    writeSpecDriftLedger(
+      root,
+      {
+        ...snap,
+        coverage: [
+          {
+            scopeId: "scope-A",
+            coveredItemIds: ["a1"],
+            beforeRequirementsFingerprint: "fp-before",
+            afterRequirementsFingerprint: "fp-after",
+            affectedRequirementRefs: [],
+            recordedAt: "2026-10-02T00:00:00Z",
+            source: "rewrite",
+          },
+        ],
+        lastRequirementsFingerprint: "fp-after",
+      },
+      { enforcement: "enforce" },
+    );
+    const rolled = rollbackScopeCompleteDrift(root, "scope-A", { priorLedger: snap });
+    expect(rolled.ok).toBe(true);
+    const ledger = JSON.parse(
+      readFileSync(join(root, "xbrief", ".audit", "spec-drift-ledger.json"), "utf8"),
+    ) as { lastRequirementsFingerprint: string | null; coverage: unknown[] };
+    expect(ledger.lastRequirementsFingerprint).toBe("fp-before");
+    expect(ledger.coverage).toEqual([]);
+  });
+
+  it("rollbackScopeCompleteDrift keeps live fp when concurrent none advanced past this attempt", () => {
+    // Greptile P1: concurrent specImpact=none can advance lastRequirementsFingerprint
+    // without a coverage row; restoring prior fp would rewind that completion.
+    setup({
+      withSpec: true,
+      policy: {
+        specGuard: { enabled: true, driftGuard: { enforcement: "enforce", trigger: "both" } },
+      },
+    });
+    expect(seedSpecDriftLedger(root).ok).toBe(true);
+    const prior = {
+      ...snapshotSpecDriftLedger(root),
+      lastRequirementsFingerprint: "fp-before",
+    };
+    writeSpecDriftLedger(root, prior, { enforcement: "enforce" });
+    const snap = snapshotSpecDriftLedger(root);
+    writeSpecDriftLedger(
+      root,
+      {
+        ...snap,
+        coverage: [
+          {
+            scopeId: "scope-A",
+            coveredItemIds: ["a1"],
+            beforeRequirementsFingerprint: "fp-before",
+            afterRequirementsFingerprint: "fp-after-A",
+            affectedRequirementRefs: [],
+            recordedAt: "2026-10-02T00:00:00Z",
+            source: "rewrite",
+          },
+        ],
+        // Concurrent none-completion advanced tip past A's after without coverage.
+        lastRequirementsFingerprint: "fp-after-none",
+      },
+      { enforcement: "enforce" },
+    );
+    const rolled = rollbackScopeCompleteDrift(root, "scope-A", { priorLedger: snap });
+    expect(rolled.ok).toBe(true);
+    const ledger = JSON.parse(
+      readFileSync(join(root, "xbrief", ".audit", "spec-drift-ledger.json"), "utf8"),
+    ) as { lastRequirementsFingerprint: string | null; coverage: unknown[] };
+    expect(ledger.lastRequirementsFingerprint).toBe("fp-after-none");
+    expect(ledger.coverage).toEqual([]);
   });
 
   it("second enforce record with unchanged fingerprint surfaces rewrite failure (sync must skip)", () => {
