@@ -2299,9 +2299,18 @@ export function evaluateOccupancyWriteGate(
     // derived from this lease, so once the lease is gone the grant authorizes
     // writes to a tree nobody holds — the exact bypass the cap exists to close,
     // one hop removed.
+    //
+    // #5413: thread primary / matching-reclaim context so a non-matching
+    // caller on the primary checkout gets the blocked-primary recovery text
+    // instead of a session:start re-claim that primary would still refuse.
+    const matchingReclaim =
+      admission === "owner" && matchingOwnerExpiredResidue(projectRoot, incoming, now, record);
     return {
       allow: false,
-      message: formatOccupancyAgeCapRemediation(record, now),
+      message: formatOccupancyAgeCapRemediation(record, now, OCCUPANCY_MAX_LEASE_MS, {
+        primaryCheckout: isMainWorktreePath(projectRoot),
+        matchingResidueReclaimAdmitted: matchingReclaim,
+      }),
       occupant: null,
       refreshed: false,
       warning: null,

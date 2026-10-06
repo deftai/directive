@@ -20,6 +20,7 @@ import {
   resolveLaunchOccupancySessionId,
   swarmLaunch,
 } from "../swarm/launch.js";
+import { destContentionItTimeout } from "../vitest-runner/dest-contention-it-timeout.helper.test.js";
 import {
   childOccupancyIdentitySourceKind,
   childOccupancyPath,
@@ -28,7 +29,6 @@ import {
   releaseChildOccupancyOnTerminal,
 } from "./child-occupancy.js";
 import { canonicalHostSessionId } from "./host-session-owner.js";
-import { destContentionItTimeout } from "../vitest-runner/dest-contention-it-timeout.helper.test.js";
 import {
   applyWorktreeOccupancy,
   evaluateOccupancyCeremonyEligibility,
@@ -3680,6 +3680,46 @@ describe("overnight max-lease + same-session primary residue reclaim (#5413)", (
     expect(blocked).toContain("primary-claim-exception=operator-default-branch");
     expect(blocked).toContain("Use a linked worktree");
     expect(blocked).toContain("Lease reclaim alone does not satisfy ritual readiness");
-    expect(blocked).not.toMatch(/re-claim the worktree with `deft session:start --session-id=owner`/);
+    expect(blocked).not.toMatch(
+      /re-claim the worktree with `deft session:start --session-id=owner`/,
+    );
   });
+
+  it(
+    "write-gate age-cap on primary wires blocked remediation for grant member (#5413)",
+    destContentionItTimeout(),
+    () => {
+      const root = gitRepo();
+      const claimedAt = new Date("2026-10-05T18:00:00Z");
+      const later = new Date(claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS + 60_000);
+      writePrimaryResidue(root, MEMBERSHIP_OWNER, claimedAt, later, [
+        {
+          owner_session_id: MEMBERSHIP_OWNER,
+          child_session_id: MEMBERSHIP_CHILD,
+          worktree_path: resolve(root),
+          role: "leaf-implementation",
+          expires_at: new Date(later.getTime() + 60 * 60 * 1000).toISOString(),
+        },
+      ]);
+
+      const memberGate = evaluateOccupancyWriteGate(root, {
+        sessionId: MEMBERSHIP_CHILD,
+        now: later,
+      });
+      expect(memberGate.allow).toBe(false);
+      expect(memberGate.message).toContain("primary-claim-exception=operator-default-branch");
+      expect(memberGate.message).toContain("Use a linked worktree");
+      expect(memberGate.message).not.toMatch(
+        /re-claim the worktree with `deft session:start --session-id=owner-session`/,
+      );
+
+      const ownerGate = evaluateOccupancyWriteGate(root, {
+        sessionId: MEMBERSHIP_OWNER,
+        now: later,
+      });
+      expect(ownerGate.allow).toBe(false);
+      expect(ownerGate.message).toContain("session:start --session-id=owner-session");
+      expect(ownerGate.message).not.toContain("primary-claim-exception");
+    },
+  );
 });
