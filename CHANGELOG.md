@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **pnpm-based Directive upgrades no longer reject unchanged dependencies with empty lockfile entries (#5384).** Existing unrelated dependencies must still remain unchanged, while new lockfile entries may accompany a Directive upgrade. Tracking #5384. Refs #5245, #3193.
 
+- **Stale `DEFT_ACTIVE_SCOPE` recovery (#5386).** When the pin names a missing brief, recovery says clear/repoint and restart; if exactly one eligible brief remains, Write/Edit warn and continue with that brief instead of freezing. Tracking #5386.
+
 ### Removed
 
 ## [0.122.0] - 2026-10-06

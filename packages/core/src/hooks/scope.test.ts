@@ -270,21 +270,168 @@ describe("shared-active write-fence bind (#4007)", () => {
   });
 });
 
-describe("omitted-env production pin fail-closed (#4506)", () => {
-  it("still fail-closes when an ineligible ambient pin is set", () => {
+describe("omitted-env production pin (#4506 / #5386)", () => {
+  it("warn+fallback when ambient pin misses and exactly one brief is eligible (#5386)", () => {
+    const project = root();
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const story = join(active, "story.xbrief.json");
+    writeFileSync(story, JSON.stringify({ plan: runningPlacement }), "utf8");
+    vi.stubEnv(ACTIVE_SCOPE_PIN_ENV, "xbrief/active/ineligible.xbrief.json");
+    const result = inspectActiveScope(project);
+    expect(result.ready).toBe(true);
+    expect(result.path).toBe(story);
+    expect(result.warning).toContain(ACTIVE_SCOPE_PIN_ENV);
+    expect(result.warning).toContain("ineligible.xbrief.json");
+    expect(result.warning).toContain("story.xbrief.json");
+  });
+
+  it("still fail-closes ambient pin miss when multiple briefs are eligible", () => {
     const project = root();
     const active = join(project, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "story.xbrief.json"),
+      join(active, "a-story.xbrief.json"),
+      JSON.stringify({ plan: runningPlacement }),
+      "utf8",
+    );
+    writeFileSync(
+      join(active, "b-story.xbrief.json"),
       JSON.stringify({ plan: runningPlacement }),
       "utf8",
     );
     vi.stubEnv(ACTIVE_SCOPE_PIN_ENV, "xbrief/active/ineligible.xbrief.json");
     const result = inspectActiveScope(project);
     expect(result.ready).toBe(false);
+    expect(result.denyKind).toBe("pin-miss");
     expect(result.message).toContain(ACTIVE_SCOPE_PIN_ENV);
     expect(result.message).toContain("ineligible.xbrief.json");
+  });
+});
+
+describe("stale DEFT_ACTIVE_SCOPE pin-miss recovery (#5386)", () => {
+  function writeRunning(project: string, name: string): string {
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const path = join(active, name);
+    writeFileSync(path, JSON.stringify({ plan: runningPlacement }), "utf8");
+    return path;
+  }
+
+  it("env miss + zero eligible: absent diagnosis + clear/repoint+restart, no promote/activate", () => {
+    const project = root();
+    const result = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/gone.xbrief.json" },
+    });
+    expect(result.ready).toBe(false);
+    expect(result.denyKind).toBe("pin-miss");
+    expect(result.message).toContain("absent from xbrief/active/");
+    expect(result.message).toContain("gone.xbrief.json");
+    expect(result.message).toMatch(/Clear or repoint/);
+    expect(result.message).toMatch(/restart the host/);
+    expect(result.message).toMatch(/Clearing the pin alone cannot make the fence ready/);
+    expect(result.message).not.toMatch(/scope:promote|scope:activate/);
+  });
+
+  it("env miss + one eligible: warn+fallback binds that brief", () => {
+    const project = root();
+    const story = writeRunning(project, "live.xbrief.json");
+    const result = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/stale.xbrief.json" },
+    });
+    expect(result.ready).toBe(true);
+    expect(result.path).toBe(story);
+    expect(result.warning).toBeDefined();
+    expect(result.warning).toContain("stale.xbrief.json");
+    expect(result.warning).toContain("live.xbrief.json");
+    expect(result.warning).toContain(ACTIVE_SCOPE_PIN_ENV);
+  });
+
+  it("env miss + many eligible: still deny (no first-wins)", () => {
+    const project = root();
+    writeRunning(project, "a.xbrief.json");
+    writeRunning(project, "b.xbrief.json");
+    const result = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/missing.xbrief.json" },
+    });
+    expect(result.ready).toBe(false);
+    expect(result.denyKind).toBe("pin-miss");
+    expect(result.message).toContain("absent from xbrief/active/");
+    expect(result.warning).toBeUndefined();
+  });
+
+  it("matched-rejected pin + one eligible alternative: still deny with evaluator reason", () => {
+    const project = root();
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(active, "blocked.xbrief.json"),
+      JSON.stringify({ plan: { status: "blocked" } }),
+      "utf8",
+    );
+    const alt = writeRunning(project, "other.xbrief.json");
+    const result = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/blocked.xbrief.json" },
+    });
+    expect(result.ready).toBe(false);
+    expect(result.denyKind).toBe("pin-miss");
+    expect(result.path).not.toBe(alt);
+    expect(result.message).toContain(ACTIVE_SCOPE_PIN_ENV);
+    expect(result.message).toContain("blocked.xbrief.json");
+    expect(result.message).toMatch(/plan\.status is 'blocked'|not implementation-eligible/);
+    expect(result.message).toContain("scope:unblock");
+    expect(result.warning).toBeUndefined();
+  });
+
+  it("explicit boundPath miss + one eligible alternative: still deny; no env-repair copy", () => {
+    const project = root();
+    writeRunning(project, "live.xbrief.json");
+    const result = inspectActiveScope(project, {
+      boundPath: "xbrief/active/missing-bound.xbrief.json",
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/live.xbrief.json" },
+    });
+    expect(result.ready).toBe(false);
+    expect(result.denyKind).toBe("pin-miss");
+    expect(result.message).toContain("boundPath");
+    expect(result.message).toContain("missing-bound.xbrief.json");
+    expect(result.message).toMatch(/does not override a nonempty boundPath/);
+    expect(result.warning).toBeUndefined();
+  });
+
+  it("valid boundPath overrides stale env pin", () => {
+    const project = root();
+    writeRunning(project, "a.xbrief.json");
+    const storyB = writeRunning(project, "b.xbrief.json");
+    const result = inspectActiveScope(project, {
+      boundPath: storyB,
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/stale.xbrief.json" },
+    });
+    expect(result).toMatchObject({ ready: true, path: storyB });
+    expect(result.warning).toBeUndefined();
+  });
+
+  it("valid env pin is unchanged", () => {
+    const project = root();
+    writeRunning(project, "a.xbrief.json");
+    const storyB = writeRunning(project, "b.xbrief.json");
+    const result = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/b.xbrief.json" },
+    });
+    expect(result).toMatchObject({ ready: true, path: storyB });
+    expect(result.warning).toBeUndefined();
+  });
+
+  it("fences a CR/LF-bearing env pin on allow-path warn (#5386 S2)", () => {
+    const project = root();
+    writeRunning(project, "live.xbrief.json");
+    const evilPin = "xbrief/active/stale\ninject.xbrief.json";
+    const result = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: evilPin },
+    });
+    expect(result.ready).toBe(true);
+    expect(result.warning).toBeDefined();
+    expect(result.warning).not.toContain("\n");
+    expect(result.warning).toContain(fenceUntrustedAcceptanceText("xbrief/active/stale inject.xbrief.json"));
   });
 });
 

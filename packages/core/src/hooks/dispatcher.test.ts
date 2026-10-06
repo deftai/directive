@@ -36,6 +36,7 @@ import {
 } from "./classify/host-session-identity.js";
 import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "./fixtures/index.js";
 import {
+  ACTIVE_SCOPE_PIN_ENV,
   ASSIST_SESSION_POSTURE_ENV,
   CURSOR_SESSION_START_PLANNING_LINE,
   CURSOR_TASK_SPAWN_CLASS_RECOVERY,
@@ -6712,5 +6713,166 @@ describe("kill_command_or_subagent attestation gate (#5281 Prefer-A Bound)", () 
     };
     expect(wire.decision).toBe("allow");
     expect(wire.reason).toContain("hung after REDISPATCH_OK");
+  });
+});
+
+describe("stale DEFT_ACTIVE_SCOPE pin-miss Write/Edit recovery (#5386)", () => {
+  const runningPlacement = {
+    status: "running",
+    metadata: {
+      intended_placement: {
+        schema: "deft.scope.intended_placement.v1",
+        files: ["src/new-module.ts"],
+        module_boundary: "new focused module",
+      },
+    },
+  };
+
+  function liveScopeSeams(): HookPolicySeams {
+    return {
+      verifyRitual: () => ({ ...READY_RITUAL, boundSessionId: "owner" }),
+      sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
+      runningInsideDeftRepo: () => true,
+      realpathLifecycleExecutionRoot: (path) => resolve(path),
+      loadStoryWriteFence: (_root, scopePath) => loadStoryWriteFenceFromPath(scopePath),
+    };
+  }
+
+  function pinMissProject(): string {
+    const root = mkdtempSync(join(tmpdir(), "hook-pin-miss-"));
+    hookTemps.push(root);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    applyWorktreeOccupancy(root, { sessionId: "owner", intent: "mutation" });
+    return root;
+  }
+
+  function writeRunning(root: string, name: string, fileScope: readonly string[]): string {
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const path = join(active, name);
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          ...runningPlacement,
+          metadata: {
+            ...runningPlacement.metadata,
+            swarm: { file_scope: [...fileScope] },
+          },
+        },
+      }),
+      "utf8",
+    );
+    return path;
+  }
+
+  it("Write pin-miss recovery names clear/repoint+restart and does not lead with promote/activate", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "Write", file_path: "/project/src/new-module.ts" },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message:
+            "DEFT_ACTIVE_SCOPE names a path absent from xbrief/active/ " +
+            "(got «untrusted:xbrief/active/gone.xbrief.json»). Clear or repoint " +
+            "DEFT_ACTIVE_SCOPE to an eligible running brief, then restart the host " +
+            "so the hook process sees the change.",
+          denyKind: "pin-miss",
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toMatch(/Clear or repoint|restart the host/);
+    expect(decision.message).not.toMatch(/scope:promote/);
+    expect(decision.message).not.toMatch(/scope:activate/);
+  });
+
+  it("Edit pin-miss recovery suppresses promote/activate fallthrough", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "Edit", file_path: "/project/src/new-module.ts" },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "DEFT_ACTIVE_SCOPE names a path absent from xbrief/active/ (got pin).",
+          denyKind: "pin-miss",
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).not.toMatch(/scope:promote/);
+    expect(decision.message).not.toMatch(/scope:activate/);
+  });
+
+  it("one-eligible env-miss allow message names stale pin and selected brief", () => {
+    const root = pinMissProject();
+    const story = writeRunning(root, "live-story.xbrief.json", ["src/new-module.ts"]);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "Write",
+          file_path: join(root, "src", "new-module.ts"),
+        },
+        environ: {
+          DEFT_SESSION_ID: "owner",
+          [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/stale-gone.xbrief.json",
+        },
+      },
+      liveScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready", scopePath: story });
+    expect(decision.message).toContain("stale-gone.xbrief.json");
+    expect(decision.message).toContain("live-story.xbrief.json");
+    expect(decision.message).toContain(ACTIVE_SCOPE_PIN_ENV);
+    expect(decision.message).toMatch(/Warning:/);
+  });
+
+  it("matched-rejected pin still denies Write even with one eligible alternative", () => {
+    const root = pinMissProject();
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(active, "blocked.xbrief.json"),
+      JSON.stringify({ plan: { ...runningPlacement, status: "blocked" } }),
+      "utf8",
+    );
+    writeRunning(root, "other.xbrief.json", ["src/new-module.ts"]);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "Write",
+          file_path: join(root, "src", "new-module.ts"),
+        },
+        environ: {
+          DEFT_SESSION_ID: "owner",
+          [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/blocked.xbrief.json",
+        },
+      },
+      liveScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("scope:unblock");
+    // Evaluator prose may mention activate; dispatcher must not append promote-then-activate.
+    expect(decision.message).not.toMatch(/auto-promote from proposed/);
+    expect(decision.message).toMatch(/Recovery: run `deft scope:unblock/);
   });
 });

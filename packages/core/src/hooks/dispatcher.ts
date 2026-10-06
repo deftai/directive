@@ -2137,6 +2137,10 @@ function inspectMutationGates(
           ` Recovery: record acceptance with \`deft ${STAMP_EVIDENCE_VERB} -- <brief>\` ` +
           "(evidence-only; no Edit of the brief), or set DEFT_ACTIVE_SCOPE to the " +
           "dispatched story path.";
+      } else if (scope.denyKind === "pin-miss") {
+        // #5386: recovery copy is composed in inspectActiveScope (source-aware;
+        // S1 — do not string-sniff evaluator prose here). Suppress promote/activate.
+        proposedPathHint = "";
       } else {
         proposedPathHint = options.proposedLifecycleExempt
           ? " Recovery: no approved xBRIEF is available to activate " +
@@ -2203,8 +2207,13 @@ function inspectMutationGates(
     const occupancyDeny = recheckOccupancyBeforeWriteAllow(true);
     if (occupancyDeny !== null) return occupancyDeny;
   }
+  // #5386 limb 4: scope.warning is independent of occupancyWarning so spawn
+  // allows (which skip recheckOccupancyBeforeWriteAllow) still surface it.
+  const scopeWarning = scope.warning?.trim() ?? "";
   const allowMessage = withOccupancyWarning(
-    `Directive ${isSpawnTool(toolName) ? "spawn" : "write"} gate passed for ${toolName}.`,
+    scopeWarning.length > 0
+      ? `Directive ${isSpawnTool(toolName) ? "spawn" : "write"} gate passed for ${toolName}. ${scopeWarning}`
+      : `Directive ${isSpawnTool(toolName) ? "spawn" : "write"} gate passed for ${toolName}.`,
   );
   if (isSpawnTool(toolName)) {
     const consult = spawnConsult;

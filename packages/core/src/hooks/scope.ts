@@ -19,6 +19,11 @@ export interface ActiveScopeInspection {
   readonly path: string | null;
   readonly message: string;
   readonly denyKind?: ActiveScopeDenyKind;
+  /**
+   * Allow-path advisory (#5386). Dispatcher merges this into allowMessage when
+   * ready:true (inspector-only message fields are discarded on allow).
+   */
+  readonly warning?: string;
 }
 
 /**
@@ -118,12 +123,18 @@ export function matchPinnedActiveScope(
 }
 
 /**
- * Assumptions: deny copy is operator-visible hook text; basenames come from the filesystem.
- * Guarantees: names are fenced and CR/LF-collapsed so they cannot break markdown or inject copy.
- * Non-goals: pin env values, preflight evaluator copy, origin-freshness messages.
+ * Assumptions: deny/allow copy is operator-visible hook text; basenames and pin
+ * env / boundPath values are untrusted (#5386 S2).
+ * Guarantees: names are fenced and CR/LF-collapsed so they cannot break markdown
+ * or inject copy onto deny or allow paths.
+ * Non-goals: preflight evaluator copy, origin-freshness messages.
  */
 function fenceActiveScopeName(path: string): string {
   return fenceUntrustedAcceptanceText(toPosix(basename(path)));
+}
+
+function fencePinValue(pin: string): string {
+  return fenceUntrustedAcceptanceText(toPosix(pin.trim()));
 }
 
 function formatMultipleActiveMessage(eligible: readonly EligibleScope[]): string {
@@ -146,10 +157,60 @@ function formatZeroEligibleBlockedMessage(blocked: readonly string[]): string {
   );
 }
 
-function formatMissingPinMessage(pin: string): string {
+/** Env pin with no scanned match (#5386): absent from active/; clear/repoint + restart. */
+function formatMissingEnvPinMessage(pin: string, eligibleCount: number): string {
+  const fenced = fencePinValue(pin);
+  const base =
+    `${ACTIVE_SCOPE_PIN_ENV} names a path absent from xbrief/active/ ` +
+    `(got ${fenced}).`;
+  if (eligibleCount === 0) {
+    return (
+      `${base} Clear or repoint ${ACTIVE_SCOPE_PIN_ENV} to an eligible running brief, ` +
+      "then restart the host so the hook process sees the change. " +
+      "Clearing the pin alone cannot make the fence ready while no eligible brief exists."
+    );
+  }
   return (
-    `${ACTIVE_SCOPE_PIN_ENV} does not name an eligible running xBRIEF under ` +
-    `xbrief/active/ (got ${pin}).`
+    `${base} Clear or repoint ${ACTIVE_SCOPE_PIN_ENV} to an eligible running brief, ` +
+    "then restart the host so the hook process sees the change."
+  );
+}
+
+/** Explicit boundPath with no scanned match (#5386): do not imply env repair. */
+function formatMissingBoundPathMessage(pin: string): string {
+  return (
+    `boundPath names a path absent from xbrief/active/ (got ${fencePinValue(pin)}). ` +
+    "Repair the dispatch binding / dest basename; changing " +
+    `${ACTIVE_SCOPE_PIN_ENV} does not override a nonempty boundPath.`
+  );
+}
+
+/** Pin matched a scanned artifact but preflight rejected it (#5386). */
+function formatMatchedRejectedPinMessage(
+  pin: string,
+  source: "env" | "boundPath",
+  rejected: string,
+  matchedPath: string,
+  isBlocked: boolean,
+): string {
+  const label = source === "boundPath" ? "boundPath" : ACTIVE_SCOPE_PIN_ENV;
+  const base =
+    `${label} ${fencePinValue(pin)} names a present brief that is not ` +
+    `implementation-eligible (${fenceActiveScopeName(matchedPath)}): ${rejected}`;
+  if (isBlocked) {
+    return (
+      `${base} Recovery: run \`deft scope:unblock -- ${fenceActiveScopeName(matchedPath)}\`.`
+    );
+  }
+  return base;
+}
+
+/** Allow-path warn after env-pin miss + sole-eligible fallback (#5386). */
+function formatStaleEnvPinFallbackWarning(pin: string, selectedPath: string): string {
+  return (
+    `Warning: ${ACTIVE_SCOPE_PIN_ENV} named absent path ${fencePinValue(pin)}; ` +
+    `falling back to sole eligible ${fenceActiveScopeName(selectedPath)}. ` +
+    `Clear or repoint ${ACTIVE_SCOPE_PIN_ENV} and restart the host.`
   );
 }
 
@@ -200,8 +261,13 @@ export function inspectActiveScope(
     }
   }
 
+  const explicitBound = options?.boundPath?.trim() ?? "";
+  const hasExplicitBound = explicitBound.length > 0;
+  const envBag = options?.env ?? process.env;
+  const envPin = envBag[ACTIVE_SCOPE_PIN_ENV]?.trim() ?? "";
   const pin = pinFrom(options);
   if (pin.length > 0) {
+    const pinSource: "env" | "boundPath" = hasExplicitBound ? "boundPath" : "env";
     const matched = matchPinnedActiveScope(
       projectRoot,
       pin,
@@ -215,13 +281,44 @@ export function inspectActiveScope(
       }
       const rejected = rejections.get(matched);
       if (rejected !== undefined) {
-        return { ready: false, path: null, message: rejected, denyKind: "pin-miss" };
+        const isBlocked =
+          blocked.includes(matched) || rejected.includes("plan.status is 'blocked'");
+        return {
+          ready: false,
+          path: null,
+          message: formatMatchedRejectedPinMessage(
+            pin,
+            pinSource,
+            rejected,
+            matched,
+            isBlocked,
+          ),
+          denyKind: "pin-miss",
+        };
       }
+    }
+    // Limb 3 (#5386): env pin, no scanned match, no boundPath, exactly one eligible.
+    const onlyEligible = eligible[0];
+    if (
+      !hasExplicitBound &&
+      envPin.length > 0 &&
+      matched === null &&
+      eligible.length === 1 &&
+      onlyEligible !== undefined
+    ) {
+      return {
+        ready: true,
+        path: onlyEligible.path,
+        message: onlyEligible.message,
+        warning: formatStaleEnvPinFallbackWarning(envPin, onlyEligible.path),
+      };
     }
     return {
       ready: false,
       path: null,
-      message: formatMissingPinMessage(pin),
+      message: hasExplicitBound
+        ? formatMissingBoundPathMessage(pin)
+        : formatMissingEnvPinMessage(pin, eligible.length),
       denyKind: "pin-miss",
     };
   }
