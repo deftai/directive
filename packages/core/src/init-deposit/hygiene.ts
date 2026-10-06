@@ -688,7 +688,9 @@ function pnpmNamedSectionByFullKey(
     }
     // Exact 2-space package key; `\S` rejects deeper-indented nested keys.
     // `\S.*` keeps colon-bearing keys (e.g. 'pkg@file:../pkg') in the full-key map.
-    const keyMatch = line.match(/^ {2}(\S.*):\s*$/);
+    // Inline-empty `: {}` is a key too (#5384); do not fold into the prior block.
+    const keyMatch =
+      line.match(/^ {2}(\S.*):\s*$/) || line.match(/^ {2}(\S.*?):\s*\{\}\s*$/);
     if (keyMatch) {
       flush();
       currentKey = pnpmUnquote(keyMatch[1] ?? "");

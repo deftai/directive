@@ -2502,3 +2502,167 @@ describe("expected-verdict corpus (#5245 P3/P5)", () => {
     expect(typeof isUpgradePinPathContentAllowed).toBe("function");
   });
 });
+
+/** Prefer-A Bound #5384: true inline `: {}` section keys must not fold. */
+describe("inline-empty pnpm section keys (#5384)", () => {
+  const lock = (opts: {
+    directive: string;
+    content: string;
+    types: string;
+    neighborBody?: string;
+    packagesExtra?: string[];
+    snapshotsExtra?: string[];
+  }): string => {
+    const neighborBody = opts.neighborBody ?? "    optionalDependencies:\n      css-tree: 3.2.1";
+    return [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    dependencies:",
+      "      left-pad:",
+      "        specifier: 1.3.0",
+      "        version: 1.3.0",
+      "    devDependencies:",
+      "      '@deftai/directive':",
+      `        specifier: ${opts.directive}`,
+      `        version: ${opts.directive}`,
+      "      '@deftai/directive-content':",
+      `        specifier: ${opts.content}`,
+      `        version: ${opts.content}`,
+      "      '@deftai/directive-types':",
+      `        specifier: ${opts.types}`,
+      `        version: ${opts.types}`,
+      "",
+      "packages:",
+      "",
+      "  '@csstools/css-syntax-patches-for-csstree@1.1.9(css-tree@3.2.1)':",
+      neighborBody,
+      "",
+      "  '@csstools/css-tokenizer@4.0.0': {}",
+      "",
+      `  '@deftai/directive@${opts.directive}':`,
+      "    resolution: {integrity: sha512-dir}",
+      "",
+      `  '@deftai/directive-content@${opts.content}': {}`,
+      "",
+      `  '@deftai/directive-types@${opts.types}': {}`,
+      "",
+      "  left-pad@1.3.0: {}",
+      "",
+      ...(opts.packagesExtra ?? []),
+      "snapshots:",
+      "",
+      "  '@csstools/css-syntax-patches-for-csstree@1.1.9(css-tree@3.2.1)':",
+      neighborBody,
+      "",
+      "  '@csstools/css-tokenizer@4.0.0': {}",
+      "",
+      `  '@deftai/directive@${opts.directive}': {}`,
+      "",
+      `  '@deftai/directive-content@${opts.content}': {}`,
+      "",
+      `  '@deftai/directive-types@${opts.types}': {}`,
+      "",
+      "  left-pad@1.3.0: {}",
+      "",
+      ...(opts.snapshotsExtra ?? []),
+    ].join("\n");
+  };
+
+  const base = lock({ directive: "0.119.12", content: "0.119.12", types: "0.119.12" });
+
+  it("pin-only Directive bump with inline content/types next to unchanged block neighbour → True", () => {
+    const head = lock({ directive: "0.121.0", content: "0.121.0", types: "0.121.0" });
+    expect(isUpgradePinPathContentAllowed("pnpm-lock.yaml", base, head)).toBe(true);
+    expect(isPnpmLockDirectivePinFollowThrough(base, head)).toBe(true);
+  });
+
+  it("same neighbour body change → False", () => {
+    const head = lock({
+      directive: "0.121.0",
+      content: "0.121.0",
+      types: "0.121.0",
+      neighborBody: "    optionalDependencies:\n      css-tree: 3.2.2",
+    });
+    expect(isUpgradePinPathContentAllowed("pnpm-lock.yaml", base, head)).toBe(false);
+  });
+
+  it("head-only non-Directive inline-{} addition with Directive bump → True", () => {
+    const head = lock({
+      directive: "0.121.0",
+      content: "0.121.0",
+      types: "0.121.0",
+      packagesExtra: ["  sneaky-app-dep@2.0.0: {}", ""],
+      snapshotsExtra: ["  sneaky-app-dep@2.0.0: {}", ""],
+    });
+    expect(isUpgradePinPathContentAllowed("pnpm-lock.yaml", base, head)).toBe(true);
+  });
+
+  it("non-Directive inline-{} deletion → False", () => {
+    const head = lock({ directive: "0.121.0", content: "0.121.0", types: "0.121.0" }).replace(
+      "  left-pad@1.3.0: {}\n\n",
+      "",
+    );
+    expect(isUpgradePinPathContentAllowed("pnpm-lock.yaml", base, head)).toBe(false);
+  });
+
+  it("non-Directive inline-{} changed body → False", () => {
+    const head = lock({ directive: "0.121.0", content: "0.121.0", types: "0.121.0" }).replace(
+      "  left-pad@1.3.0: {}",
+      "  left-pad@1.3.0:\n    dependencies:\n      is-number: 7.0.0",
+    );
+    expect(isUpgradePinPathContentAllowed("pnpm-lock.yaml", base, head)).toBe(false);
+  });
+
+  it("colon-bearing file: full keys remain distinct under the new matchers", () => {
+    const withFileKeys = [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    dependencies:",
+      "      local-a:",
+      "        specifier: file:../a",
+      "        version: link:../a",
+      "      local-b:",
+      "        specifier: file:../b",
+      "        version: link:../b",
+      "    devDependencies:",
+      "      '@deftai/directive':",
+      "        specifier: 0.119.12",
+      "        version: 0.119.12",
+      "",
+      "packages:",
+      "",
+      "  'local-pkg@file:../a':",
+      "    resolution: {directory: ../a, type: directory}",
+      "",
+      "  'local-pkg@file:../b':",
+      "    resolution: {directory: ../b, type: directory}",
+      "",
+      "  '@deftai/directive@0.119.12':",
+      "    resolution: {integrity: sha512-pin-base}",
+      "",
+      "snapshots:",
+      "",
+      "  'local-pkg@file:../a': {}",
+      "",
+      "  'local-pkg@file:../b': {}",
+      "",
+      "  '@deftai/directive@0.119.12': {}",
+      "",
+    ].join("\n");
+    const bumped = withFileKeys
+      .replaceAll("0.119.12", "0.121.0")
+      .replace("sha512-pin-base", "sha512-pin-head");
+    expect(isUpgradePinPathContentAllowed("pnpm-lock.yaml", withFileKeys, bumped)).toBe(true);
+    const changedB = bumped.replace(
+      "resolution: {directory: ../b, type: directory}",
+      "resolution: {directory: ../b-moved, type: directory}",
+    );
+    expect(isUpgradePinPathContentAllowed("pnpm-lock.yaml", withFileKeys, changedB)).toBe(false);
+  });
+});

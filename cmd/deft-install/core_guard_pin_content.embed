@@ -248,7 +248,10 @@ def pnpm_section_by_full_key(raw, section):
         if re.match(r"^[^\s#]", line) and not line.startswith(section):
             flush()
             break
-        m = re.match(r"^ {2}(\S.*):\s*$", line)
+        # Block-form bare colon + inline-empty ': {}' (#5384); keep full keys.
+        m = re.match(r"^ {2}(\S.*):\s*$", line) or re.match(
+            r"^ {2}(\S.*?):\s*\{\}\s*$", line
+        )
         if m:
             flush()
             cur = unq(m.group(1))

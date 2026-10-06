@@ -37,6 +37,16 @@ describe("core-guard pin-content SoT (#3193 / #3427)", () => {
     expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain("freeze-except-additions");
     expect(CORE_GUARD_PIN_CONTENT_PYTHON).not.toContain("def pnpm_packages_by_name");
     expect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain(String.raw`^ {2}(\S.*):\s*$`);
+    // Site-distinguishing pin (#5384): inline-empty matcher must live in
+    // pnpm_section_by_full_key, not only the importer-key copy of the bare colon.
+    const sectionIdx = CORE_GUARD_PIN_CONTENT_PYTHON.indexOf("def pnpm_section_by_full_key");
+    const importerIdx = CORE_GUARD_PIN_CONTENT_PYTHON.indexOf("def pnpm_importer_deps");
+    const inlineEmpty = String.raw`^ {2}(\S.*?):\s*\{\}\s*$`;
+    const inlineIdx = CORE_GUARD_PIN_CONTENT_PYTHON.indexOf(inlineEmpty);
+    expect(sectionIdx).toBeGreaterThan(importerIdx);
+    expect(inlineIdx).toBeGreaterThan(sectionIdx);
+    // Exactly one site: importer bare-colon copy alone cannot satisfy this.
+    expect(CORE_GUARD_PIN_CONTENT_PYTHON.indexOf(inlineEmpty, inlineIdx + 1)).toBe(-1);
   });
 
   it("leaves no tracked .py files in this repo (#3427)", () => {

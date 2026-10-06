@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **pnpm core-guard recognizes inline-empty `: {}` section keys (#5384).** Co-edit Python SoT + TS twin so `packages`/`snapshots` keys like `'@deftai/directive-content@…': {}` start their own full-key entries instead of folding into the prior block; pin-only Directive bumps no longer false-reject. Freeze-except-additions unchanged; head-only non-Directive inline-`{}` additions alongside a Directive bump remain allowed (#5245 semantics restored after the fold accidentally rejected them). Tracking #5384. Refs #5245, #3193.
+
 ### Removed
 
 ## [0.122.0] - 2026-10-06
