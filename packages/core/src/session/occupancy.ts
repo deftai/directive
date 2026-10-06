@@ -113,26 +113,29 @@ export const OCCUPANCY_REFRESH_AFTER_MS = OCCUPANCY_TTL_MS / 4;
 export const OCCUPANCY_STALE_WARN_MS = (OCCUPANCY_TTL_MS * 3) / 4;
 /**
  * Absolute lease age cap, keyed on `claimedAt` and independent of refresh
- * (#3599). Occupancy admits whoever presents the occupant's session id, so
- * "the owner is still writing" only proves that some process holds that
+ * (#3599 / #5413). Occupancy admits whoever presents the occupant's session id,
+ * so "the owner is still writing" only proves that some process holds that
  * string. Without a bound on claim age, refresh would turn the heartbeat TTL —
  * the sole mechanism that reclaims a worktree from a dead session — into
  * something a writer can extend forever.
  *
- * Thirty-six TTLs is twelve hours, sized by the stalled owner rather than the
- * busy one. Refresh keys on writes, so an agent that finishes overnight and
- * waits for its operator is alive, correct, and silent — it stops refreshing
- * while staying entirely legitimate. Twelve hours spans a 23:00 dispatch to a
- * 09:00 handoff and still bounds reclaim well inside a day. Reaching the cap
- * costs the owner one re-claim, not its work.
+ * Seventy-two TTLs is twenty-four hours, sized for the common evening→next-
+ * afternoon gap (16–20h) rather than only a 23:00→09:00 handoff. Refresh keys
+ * on writes (and #3987 non-write heartbeat), so an agent that finishes overnight
+ * and waits for its operator is alive, correct, and silent — it stops refreshing
+ * while staying entirely legitimate. Twenty-four hours still bounds reclaim
+ * inside a day. Reaching the cap costs the owner one re-claim, not its work.
  *
  * Known limitation: a pure time cap cannot tell a stalled-but-live owner from a
- * dead one, because the only liveness signal on this path is a write. If that
- * ambiguity starts to bite, the answer is a liveness signal that needs no write
- * — an explicit parked state, or refresh on non-write activity — not a larger
- * number here.
+ * dead one when the only signal on this path is a write. Owner-liveness (#3987)
+ * already refreshes `heartbeat_at` on non-write activity without moving
+ * `claimed_at`; extending that signal to reset `claimed_at` would dissolve the
+ * unbounded-lease bound the cap exists for (PID-reuse defense) and needs its
+ * own migration — not a still-larger number here. #5413 raises the default for
+ * overnight idle; same-session primary residue reclaim covers reclaim after the
+ * cap or heartbeat-stale without an operator exception.
  */
-export const OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 36;
+export const OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 72;
 
 /**
  * Lease-versus-ritual lifetime pin (#3729 Prefer-A Bound AC1).
@@ -601,22 +604,53 @@ export function formatOccupancyStaleWarning(
 }
 
 /**
- * Tell the holder its lease aged out of the absolute cap (#3599). Distinct
- * remediation from a stale heartbeat: beating harder cannot help, because the
- * lease is gone rather than merely quiet, so the answer is to re-claim.
+ * Optional eligibility hint for age-cap remediation (#5413). Callers that already
+ * know primary / matching-residue state thread it in; the formatter stays free
+ * of filesystem reads.
+ */
+export type OccupancyAgeCapRemediationContext = {
+  /**
+   * Same-session matching residue reclaim is available (Prefer-A Approach D).
+   * Defaults true for same-session call sites. When false on a primary that
+   * remains blocked, print linked-worktree / trusted-producer recovery instead.
+   */
+  readonly matchingResidueReclaimAdmitted?: boolean;
+  /** True when the denied tree is the primary checkout. */
+  readonly primaryCheckout?: boolean;
+};
+
+/**
+ * Tell the holder its lease aged out of the absolute cap (#3599 / #5413).
+ * Distinct remediation from a stale heartbeat: beating harder cannot help,
+ * because the lease is gone rather than merely quiet, so the answer is to
+ * re-claim — except on a still-blocked primary for a non-matching caller.
  */
 export function formatOccupancyAgeCapRemediation(
   record: OccupancyRecord,
   now: Date = new Date(),
   maxLeaseMs: number = OCCUPANCY_MAX_LEASE_MS,
+  context: OccupancyAgeCapRemediationContext = {},
 ): string {
   const hours = Math.round(maxLeaseMs / (60 * 60 * 1000));
-  return (
+  const sessionFlag = commandSessionId(record.sessionId, "<your-session-id>");
+  const base =
     `Occupancy lease for session ${record.sessionId} passed its ${hours}h absolute age cap ` +
     `(claimed ${leaseAgeSeconds(record, now)}s ago, ${occupancyClockLine(record)}), so this ` +
     "worktree is no longer held and a peer may claim it at any moment. Heartbeats cannot " +
-    "extend a capped lease — re-claim the worktree with " +
-    `\`deft session:start --session-id=${commandSessionId(record.sessionId, "<your-session-id>")}\` before writing again.`
+    "extend a capped lease";
+  const matchingAdmitted = context.matchingResidueReclaimAdmitted !== false;
+  if (context.primaryCheckout === true && matchingAdmitted === false) {
+    return (
+      `${base}. Same-session reclaim is not available for this caller on the primary checkout. ` +
+      "Use a linked worktree and claim that tree, or run " +
+      `\`deft session:start --primary-claim-exception=operator-default-branch --session-id=${sessionFlag}\` ` +
+      "from a trusted producer (CLI argv). Lease reclaim alone does not satisfy ritual readiness."
+    );
+  }
+  return (
+    `${base} — re-claim the worktree with ` +
+    `\`deft session:start --session-id=${sessionFlag}\` before writing again. ` +
+    "Lease reclaim alone does not satisfy ritual readiness."
   );
 }
 
@@ -1058,10 +1092,30 @@ function primaryCheckoutHasLiveSiblingLease(projectRoot: string, now: Date): boo
 }
 
 /**
+ * Matching tree residue that still names `incoming` and is no longer live
+ * (#5413). Extends the live same-owner escape across age-capped and
+ * heartbeat-stale residue; member / inherited / peer / stranger ids do not
+ * qualify as owner equality.
+ */
+function matchingOwnerExpiredResidue(
+  projectRoot: string,
+  incoming: string,
+  now: Date,
+  stored: OccupancyRecord | null,
+): boolean {
+  if (stored === null) return false;
+  if (!occupancyWorktreeMatches(stored.worktreePath, projectRoot)) return false;
+  if (stored.sessionId !== incoming) return false;
+  const liveness = occupancyLiveness(stored, now);
+  return liveness === "age-capped" || liveness === "heartbeat-stale";
+}
+
+/**
  * Whether an ordinary mutation claim on this tree would hit the #4445 sibling
- * fence. Same-owner heartbeat and the trusted argv exception still admit.
- * Preview (`write: false`) uses this same predicate so it cannot report
- * success for an operation persist would refuse (#4290).
+ * fence. Same-owner heartbeat, matching same-owner expired residue (#5413), and
+ * the trusted argv exception still admit. Preview (`write: false`) uses this
+ * same predicate so it cannot report success for an operation persist would
+ * refuse (#4290).
  */
 function primaryCheckoutClaimBlocked(
   projectRoot: string,
@@ -1069,9 +1123,11 @@ function primaryCheckoutClaimBlocked(
   now: Date,
   exception: string | undefined,
   live: OccupancyRecord | null,
+  stored: OccupancyRecord | null = null,
 ): boolean {
   if (isPrimaryClaimException(exception)) return false;
   if (live !== null && live.sessionId === incoming) return false;
+  if (matchingOwnerExpiredResidue(projectRoot, incoming, now, stored)) return false;
   return primaryCheckoutHasLiveSiblingLease(projectRoot, now);
 }
 
@@ -1167,6 +1223,7 @@ export function evaluateOccupancyCeremonyEligibility(
     now,
     input.primaryClaimException,
     live,
+    stored,
   );
   if (live !== null && isOwnInheritedPresentation(live.sessionId, incoming)) {
     return {
@@ -1271,12 +1328,17 @@ export function applyWorktreeOccupancy(
   const incoming = claim.sessionId;
   const existing = readOccupancy(projectRoot);
   const live = liveOccupancyOnTree(projectRoot, existing, now);
+  const stored =
+    existing !== null && occupancyWorktreeMatches(existing.worktreePath, projectRoot)
+      ? existing
+      : null;
   const primaryBlocked = primaryCheckoutClaimBlocked(
     projectRoot,
     incoming,
     now,
     input.primaryClaimException,
     live,
+    stored,
   );
 
   if (input.steal === true) {
@@ -1328,6 +1390,11 @@ export function applyWorktreeOccupancy(
     (fence) => {
       const existingLocked = readOccupancy(projectRoot);
       const liveLocked = liveOccupancyOnTree(projectRoot, existingLocked, now);
+      const storedLocked =
+        existingLocked !== null &&
+        occupancyWorktreeMatches(existingLocked.worktreePath, projectRoot)
+          ? existingLocked
+          : null;
       // Linked persist holds this same primary lock (occupancyLockProjectRoot),
       // so a sibling cannot land between this scan and writeOccupancyRecord.
       if (
@@ -1337,6 +1404,7 @@ export function applyWorktreeOccupancy(
           now,
           input.primaryClaimException,
           liveLocked,
+          storedLocked,
         )
       ) {
         return primaryClaimRefusal(projectRoot, incoming, path);
@@ -1476,16 +1544,25 @@ export function stealOccupancy(
       code: 1,
     };
   }
-  if (
-    primaryCheckoutClaimBlocked(
-      projectRoot,
-      incoming,
-      now,
-      input.primaryClaimException,
-      liveOccupancyOnTree(projectRoot, readOccupancy(projectRoot), now),
-    )
-  ) {
-    return primaryClaimRefusal(projectRoot, incoming, path);
+  {
+    const existingForFence = readOccupancy(projectRoot);
+    const storedForFence =
+      existingForFence !== null &&
+      occupancyWorktreeMatches(existingForFence.worktreePath, projectRoot)
+        ? existingForFence
+        : null;
+    if (
+      primaryCheckoutClaimBlocked(
+        projectRoot,
+        incoming,
+        now,
+        input.primaryClaimException,
+        liveOccupancyOnTree(projectRoot, existingForFence, now),
+        storedForFence,
+      )
+    ) {
+      return primaryClaimRefusal(projectRoot, incoming, path);
+    }
   }
   if (input.confirm !== true) {
     const current = readOccupancy(projectRoot);
@@ -1562,6 +1639,11 @@ export function stealOccupancy(
     (fence) => {
       const existingLocked = readOccupancy(projectRoot);
       const liveLocked = liveOccupancyOnTree(projectRoot, existingLocked, now);
+      const storedLocked =
+        existingLocked !== null &&
+        occupancyWorktreeMatches(existingLocked.worktreePath, projectRoot)
+          ? existingLocked
+          : null;
       if (
         primaryCheckoutClaimBlocked(
           projectRoot,
@@ -1569,6 +1651,7 @@ export function stealOccupancy(
           now,
           input.primaryClaimException,
           liveLocked,
+          storedLocked,
         )
       ) {
         return primaryClaimRefusal(projectRoot, incoming, path);

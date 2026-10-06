@@ -33,8 +33,8 @@
  *   is not renewed from this one. The caller supplies the tree the mutation
  *   gates authorized against — a linked worktree, not the payload root — so a
  *   worktree write renews the worktree's lease rather than the primary's.
- * - `claimed_at` is untouched, so `OCCUPANCY_MAX_LEASE_MS` — 12 hours — is
- *   unmoved. Liveness renewal cannot outlive the absolute cap.
+ * - `claimed_at` is untouched, so `OCCUPANCY_MAX_LEASE_MS` — 24 hours (#5413) —
+ *   is unmoved. Liveness renewal cannot outlive the absolute cap.
  * - Runs after the decision, never as an input to it. A liveness re-stamp must
  *   not change any verdict, and re-stamping before the mutation gates would
  *   suppress their own `markWrite = true` refresh by resetting the age floor.

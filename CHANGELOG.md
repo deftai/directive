@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complete the #5350 scope brief after product #5376; move the spec-guard enforce Prefer-A Bound brief into xbrief/completed.
 - Complete the #5391 scope brief after product #5401; move the CLI DX Prefer-A Bound brief into xbrief/completed.
 
+### Fixed
+
+- **Overnight occupancy reclaim on primary (#5413).** Raise `OCCUPANCY_MAX_LEASE_MS` to TTL×72 (24h); extend same-owner primary residue reclaim for age-capped or heartbeat-stale matching residue without `--primary-claim-exception`; branch age-cap remediation for blocked primary vs admitted reclaim. Tracking #5413. Refs #3599, #3755, #4290.
+
 - **Hard-stop hatch for structured questions (#5373).** Prefer-A Bound: refuse-missing-hatch on hook-admitted question tools (`QUESTION_TOOL_NAMES` subset); Cursor plan-choice deny-and-render keeps Discuss then Back; Discuss-pause latch only where selection ingress is observed; `I have questions` accepted-input alias; Grok `ask_user_question` audit row + render-absent residual named. Tracking #5373. Refs #1470, #767.
 
 ### Changed

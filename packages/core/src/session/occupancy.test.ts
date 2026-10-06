@@ -28,9 +28,12 @@ import {
   releaseChildOccupancyOnTerminal,
 } from "./child-occupancy.js";
 import { canonicalHostSessionId } from "./host-session-owner.js";
+import { destContentionItTimeout } from "../vitest-runner/dest-contention-it-timeout.helper.test.js";
 import {
   applyWorktreeOccupancy,
+  evaluateOccupancyCeremonyEligibility,
   evaluateOccupancyWriteGate,
+  formatOccupancyAgeCapRemediation,
   formatOccupancyClaimProvenance,
   formatOccupancyRemediation,
   formatOccupancySkipMutationClaimWhenMinted,
@@ -3374,5 +3377,309 @@ describe("live sibling-lease discriminator (#4445)", () => {
       }),
     ).toThrow(/timed out acquiring lock/);
     expect(readOccupancy(linked)).toBeNull();
+  });
+});
+
+describe("overnight max-lease + same-session primary residue reclaim (#5413)", () => {
+  function gitRepo(): string {
+    const root = mkdtempSync(join(tmpdir(), "occ-5413-"));
+    ephemeralTemps.push(root);
+    git(root, ["init", "-q"]);
+    git(root, ["config", "user.email", "t@t.local"]);
+    git(root, ["config", "user.name", "T"]);
+    writeFileSync(join(root, "README"), "x\n", "utf8");
+    git(root, ["add", "README"]);
+    git(root, ["commit", "-q", "-m", "init"]);
+    return root;
+  }
+
+  function addLinked(root: string, name = "linked"): string {
+    const linked = join(root, name);
+    git(root, ["worktree", "add", "-q", linked, "HEAD"]);
+    return linked;
+  }
+
+  function writePrimaryResidue(
+    root: string,
+    sessionId: string,
+    claimedAt: Date,
+    heartbeatAt: Date,
+    grants: readonly Record<string, unknown>[] = [],
+  ): void {
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      occupancyPath(root),
+      JSON.stringify({
+        schemaVersion: 1,
+        session_id: sessionId,
+        worktree_path: resolve(root),
+        intent: "mutation",
+        claimed_at: claimedAt.toISOString(),
+        heartbeat_at: heartbeatAt.toISOString(),
+        grants,
+      }),
+      "utf8",
+    );
+  }
+
+  it("pins absolute 24h max lease and grant-clamp reach (#5413 A2)", () => {
+    expect(OCCUPANCY_TTL_MS).toBe(20 * 60 * 1000);
+    expect(OCCUPANCY_MAX_LEASE_MS).toBe(24 * 60 * 60 * 1000);
+    expect(OCCUPANCY_MAX_LEASE_MS).toBe(OCCUPANCY_TTL_MS * 72);
+
+    const now = new Date("2026-10-05T18:00:00Z");
+    const root = tempRoot();
+    applyWorktreeOccupancy(root, { sessionId: MEMBERSHIP_OWNER, now, intent: "mutation" });
+    const granted = grantOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      childSessionId: MEMBERSHIP_CHILD,
+      role: "leaf-implementation",
+      ttlMs: OCCUPANCY_MAX_LEASE_MS * 2,
+      now,
+    });
+    expect(granted.code).toBe(0);
+    expect(readOccupancy(root)?.grants[0]?.expiresAt.toISOString()).toBe(
+      new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    );
+  });
+
+  it("exact-cap stays live; cap+1ms is age-capped (#5413)", () => {
+    const claimedAt = new Date("2026-10-05T18:00:00Z");
+    const atCap = new Date(claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS);
+    const pastCap = new Date(claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS + 1);
+    // Fresh heartbeat at the cap so only claim age decides age-capped vs live.
+    const record: OccupancyRecord = {
+      schemaVersion: 1,
+      sessionId: "owner",
+      worktreePath: "C:\\tmp\\tree",
+      intent: "mutation",
+      claimedAt,
+      heartbeatAt: atCap,
+      lastWriteAt: null,
+      identityProvenance: "explicit",
+      host: "none",
+      address: "none",
+      retainCapable: false,
+      joinProtocol: "none",
+      grants: [],
+      raw: {},
+    };
+    expect(occupancyLiveness(record, atCap)).toBe("live");
+    expect(occupancyLiveness(record, pastCap)).toBe("age-capped");
+  });
+
+  it("linked same-session reclaim succeeds past the new cap (#5413)", () => {
+    const claimedAt = new Date("2026-10-05T18:00:00Z");
+    const root = tempRoot();
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt, intent: "mutation" });
+    const later = new Date(claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS + 60_000);
+    const eligibility = evaluateOccupancyCeremonyEligibility(root, {
+      sessionId: "owner",
+      now: later,
+    });
+    expect(eligibility).toMatchObject({
+      admitCeremony: true,
+      occupancyCase: "age-capped-residue",
+      restrictedPrimary: false,
+    });
+    const preview = applyWorktreeOccupancy(root, {
+      sessionId: "owner",
+      now: later,
+      intent: "mutation",
+      write: false,
+    });
+    const persist = applyWorktreeOccupancy(root, {
+      sessionId: "owner",
+      now: later,
+      intent: "mutation",
+    });
+    expect(preview.code).toBe(0);
+    expect(persist.code).toBe(0);
+    expect(persist.action).toBe("claimed");
+    const reclaimed = readOccupancy(root);
+    expect(reclaimed?.sessionId).toBe("owner");
+    expect(reclaimed?.claimedAt.toISOString()).toBe(later.toISOString());
+    expect(reclaimed?.grants).toEqual([]);
+  });
+
+  it(
+    "primary + live sibling + matching age-capped residue admits without exception (#5413 D)",
+    destContentionItTimeout(),
+    () => {
+      const root = gitRepo();
+      const linked = addLinked(root);
+      const claimedAt = new Date("2026-10-05T18:00:00Z");
+      const later = new Date(claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS + 60_000);
+      applyWorktreeOccupancy(linked, { sessionId: "peer", now: later, intent: "mutation" });
+      writePrimaryResidue(root, "owner", claimedAt, later);
+      expect(occupancyLiveness(readOccupancy(root) as OccupancyRecord, later)).toBe("age-capped");
+
+      const eligibility = evaluateOccupancyCeremonyEligibility(root, {
+        sessionId: "owner",
+        now: later,
+      });
+      expect(eligibility).toMatchObject({
+        admitCeremony: true,
+        occupancyCase: "age-capped-residue",
+        restrictedPrimary: false,
+      });
+      const preview = applyWorktreeOccupancy(root, {
+        sessionId: "owner",
+        now: later,
+        intent: "mutation",
+        write: false,
+      });
+      const persist = applyWorktreeOccupancy(root, {
+        sessionId: "owner",
+        now: later,
+        intent: "mutation",
+      });
+      expect(preview.code).toBe(0);
+      expect(persist.code).toBe(0);
+      expect(persist.action).toBe("claimed");
+      expect(persist.message).not.toContain("primary-claim-exception");
+      const reclaimed = readOccupancy(root);
+      expect(reclaimed?.sessionId).toBe("owner");
+      expect(reclaimed?.claimedAt.toISOString()).toBe(later.toISOString());
+    },
+  );
+
+  it(
+    "primary + live sibling + matching 20h heartbeat-stale residue admits (#5413 overnight)",
+    destContentionItTimeout(),
+    () => {
+      const root = gitRepo();
+      const linked = addLinked(root);
+      const claimedAt = new Date("2026-10-05T18:00:00Z");
+      // 20h idle under the 24h cap → heartbeat-stale, not age-capped.
+      const later = new Date(claimedAt.getTime() + 20 * 60 * 60 * 1000);
+      applyWorktreeOccupancy(linked, { sessionId: "peer", now: later, intent: "mutation" });
+      writePrimaryResidue(root, "owner", claimedAt, claimedAt);
+      expect(occupancyLiveness(readOccupancy(root) as OccupancyRecord, later)).toBe(
+        "heartbeat-stale",
+      );
+      expect(later.getTime() - claimedAt.getTime()).toBeLessThan(OCCUPANCY_MAX_LEASE_MS);
+
+      const eligibility = evaluateOccupancyCeremonyEligibility(root, {
+        sessionId: "owner",
+        now: later,
+      });
+      expect(eligibility).toMatchObject({
+        admitCeremony: true,
+        occupancyCase: "heartbeat-expired-residue",
+        restrictedPrimary: false,
+      });
+      const gate = evaluateOccupancyWriteGate(root, { sessionId: "owner", now: later });
+      expect(gate.allow).toBe(true);
+      const persist = applyWorktreeOccupancy(root, {
+        sessionId: "owner",
+        now: later,
+        intent: "mutation",
+      });
+      expect(persist.code).toBe(0);
+      expect(persist.action).toBe("claimed");
+      expect(readOccupancy(root)?.claimedAt.toISOString()).toBe(later.toISOString());
+    },
+  );
+
+  it(
+    "stranger on age-capped primary with live sibling stays refused (#5413)",
+    destContentionItTimeout(),
+    () => {
+      const root = gitRepo();
+      const linked = addLinked(root);
+      const claimedAt = new Date("2026-10-05T18:00:00Z");
+      const later = new Date(claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS + 60_000);
+      applyWorktreeOccupancy(linked, { sessionId: "peer", now: later, intent: "mutation" });
+      writePrimaryResidue(root, "owner", claimedAt, later);
+
+      const eligibility = evaluateOccupancyCeremonyEligibility(root, {
+        sessionId: "stranger",
+        now: later,
+      });
+      expect(eligibility).toMatchObject({
+        admitCeremony: false,
+        occupancyCase: "restricted-primary",
+        restrictedPrimary: true,
+      });
+      const denied = applyWorktreeOccupancy(root, {
+        sessionId: "stranger",
+        now: later,
+        intent: "mutation",
+      });
+      expect(denied.code).toBe(1);
+      expect(denied.message).toContain("primary-claim-exception=operator-default-branch");
+      expect(readOccupancy(root)?.sessionId).toBe("owner");
+    },
+  );
+
+  it(
+    "member identity is not owner equality for primary residue reclaim (#5413)",
+    destContentionItTimeout(),
+    () => {
+      const root = gitRepo();
+      const linked = addLinked(root);
+      const claimedAt = new Date("2026-10-05T18:00:00Z");
+      const later = new Date(claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS + 60_000);
+      applyWorktreeOccupancy(linked, { sessionId: "peer", now: later, intent: "mutation" });
+      writePrimaryResidue(root, MEMBERSHIP_OWNER, claimedAt, later, [
+        {
+          owner_session_id: MEMBERSHIP_OWNER,
+          child_session_id: MEMBERSHIP_CHILD,
+          worktree_path: resolve(root),
+          role: "leaf-implementation",
+          expires_at: new Date(later.getTime() + 60 * 60 * 1000).toISOString(),
+        },
+      ]);
+
+      const eligibility = evaluateOccupancyCeremonyEligibility(root, {
+        sessionId: MEMBERSHIP_CHILD,
+        now: later,
+      });
+      expect(eligibility.admitCeremony).toBe(false);
+      expect(eligibility.occupancyCase).toBe("restricted-primary");
+      const denied = applyWorktreeOccupancy(root, {
+        sessionId: MEMBERSHIP_CHILD,
+        now: later,
+        intent: "mutation",
+      });
+      expect(denied.code).toBe(1);
+      expect(readOccupancy(root)?.sessionId).toBe(MEMBERSHIP_OWNER);
+    },
+  );
+
+  it("age-cap remediation branches for matching vs blocked primary (#5413 P3)", () => {
+    const claimedAt = new Date("2026-10-05T18:00:00Z");
+    const later = new Date(claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS + 60_000);
+    const record: OccupancyRecord = {
+      schemaVersion: 1,
+      sessionId: "owner",
+      worktreePath: "C:\\tmp\\tree",
+      intent: "mutation",
+      claimedAt,
+      heartbeatAt: later,
+      lastWriteAt: null,
+      identityProvenance: "explicit",
+      host: "none",
+      address: "none",
+      retainCapable: false,
+      joinProtocol: "none",
+      grants: [],
+      raw: {},
+    };
+    const matching = formatOccupancyAgeCapRemediation(record, later);
+    expect(matching).toContain("24h absolute age cap");
+    expect(matching).toContain("session:start --session-id=owner");
+    expect(matching).not.toContain("primary-claim-exception");
+    expect(matching).toContain("Lease reclaim alone does not satisfy ritual readiness");
+
+    const blocked = formatOccupancyAgeCapRemediation(record, later, OCCUPANCY_MAX_LEASE_MS, {
+      primaryCheckout: true,
+      matchingResidueReclaimAdmitted: false,
+    });
+    expect(blocked).toContain("primary-claim-exception=operator-default-branch");
+    expect(blocked).toContain("Use a linked worktree");
+    expect(blocked).toContain("Lease reclaim alone does not satisfy ritual readiness");
+    expect(blocked).not.toMatch(/re-claim the worktree with `deft session:start --session-id=owner`/);
   });
 });
