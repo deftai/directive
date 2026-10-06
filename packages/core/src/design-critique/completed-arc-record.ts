@@ -557,7 +557,10 @@ function matchPlainEnglishHeadingLine(line: string): { level: number; end: numbe
   while (level < line.length && line[level] === "#") level += 1;
   if (level !== 2) return null;
   if (level >= line.length || line[level] !== " ") return null;
-  const headingText = line.slice(level + 1).trim().toLowerCase();
+  const headingText = line
+    .slice(level + 1)
+    .trim()
+    .toLowerCase();
   if (headingText !== "in plain english") return null;
   return { level, end: line.length };
 }
@@ -604,6 +607,16 @@ function slicePlainEnglishBody(text: string, sectionStart: number): string {
   return after.slice(0, offset);
 }
 
+/** Comment-lead fields are not plain-English summary (#5415). */
+const PLAIN_ENGLISH_METADATA_LINE_RE = /^(?:model|role):\s*\S/i;
+
+function stripPlainEnglishMetadataLines(slice: string): string {
+  return slice
+    .split("\n")
+    .filter((line) => !PLAIN_ENGLISH_METADATA_LINE_RE.test(line.trim()))
+    .join("\n");
+}
+
 function lineNumberAt(text: string, offset: number): number {
   let line = 1;
   const end = Math.min(offset, text.length);
@@ -627,25 +640,27 @@ function leanResolutionDetail(lean: ThreadComment): string {
   return parts.length > 0 ? parts.join("; ") : "successor-lean predicate matched";
 }
 
-type PlainEnglishPresence =
-  | { readonly ok: true }
-  | { readonly ok: false; readonly detail: string };
+type PlainEnglishPresence = { readonly ok: true } | { readonly ok: false; readonly detail: string };
 
-function plainEnglishPresenceOnBody(body: string, artifactLabel: string, id: number): PlainEnglishPresence {
+function plainEnglishPresenceOnBody(
+  body: string,
+  artifactLabel: string,
+  id: number,
+): PlainEnglishPresence {
   const heading = findOperativePlainEnglishHeading(body);
   if (heading === null) {
     return {
       ok: false,
-      detail:
-        `${artifactLabel} ${String(id)} lacks an operative ## In plain English heading`,
+      detail: `${artifactLabel} ${String(id)} lacks an operative ## In plain English heading`,
     };
   }
-  const slice = slicePlainEnglishBody(body, heading.sectionStart).trim();
+  const slice = stripPlainEnglishMetadataLines(
+    slicePlainEnglishBody(body, heading.sectionStart),
+  ).trim();
   if (slice.length === 0) {
     return {
       ok: false,
-      detail:
-        `${artifactLabel} ${String(id)} has ## In plain English with an empty body slice`,
+      detail: `${artifactLabel} ${String(id)} has ## In plain English with an empty body slice`,
     };
   }
   return { ok: true };
@@ -672,24 +687,16 @@ function applyPlainEnglishPresence(
   }
   const synthesis = comments.find((comment) => comment.id === verdict.synthesisCommentId);
   if (synthesis === undefined) {
-    failures.push(
-      `synthesis ${String(verdict.synthesisCommentId)} is missing from this thread`,
-    );
+    failures.push(`synthesis ${String(verdict.synthesisCommentId)} is missing from this thread`);
   } else {
-    const synthPresence = plainEnglishPresenceOnBody(
-      synthesis.body,
-      "synthesis",
-      synthesis.id,
-    );
+    const synthPresence = plainEnglishPresenceOnBody(synthesis.body, "synthesis", synthesis.id);
     if (!synthPresence.ok) failures.push(synthPresence.detail);
   }
   if (failures.length === 0) return verdict;
   return {
     status: "blocked",
     reason: "missing-plain-english",
-    detail:
-      failures.join("; ") +
-      "; recovery: patch named comment id(s), then re-evaluate / re-chip",
+    detail: `${failures.join("; ")}; recovery: patch named comment id(s), then re-evaluate / re-chip`,
   };
 }
 

@@ -923,10 +923,7 @@ describe("typed table refusal partition (#3942)", () => {
         id: SYNTHESIS_ID,
         body: `design-critique: synthesis accepted, because agents agreed\n\n${cite}\n`,
       };
-      expect(
-        evalArc({ comments: [lean, headinglessTable, record] }),
-        label,
-      ).toEqual({
+      expect(evalArc({ comments: [lean, headinglessTable, record] }), label).toEqual({
         status: "complete",
         synthesisCommentId: SYNTHESIS_ID,
         citedLeanId: LEAN_ID,
@@ -957,10 +954,7 @@ describe("typed table refusal partition (#3942)", () => {
           "## Verified-claims table\n\n| # | Claim | Method | Verdict |\n" +
           "| --- | --- | --- | --- |\n",
       };
-      expect(
-        evalArc({ comments: [lean, live, typedRecord(id)] }),
-        String(id),
-      ).toEqual({
+      expect(evalArc({ comments: [lean, live, typedRecord(id)] }), String(id)).toEqual({
         status: "complete",
         synthesisCommentId: SYNTHESIS_ID,
         citedLeanId: LEAN_ID,
@@ -1427,9 +1421,7 @@ describe("pain coverage (#4496)", () => {
   });
 
   it("does not restore recut-needed as a block reason", () => {
-    expect(evalArc({ comments: [lean, table, synthesis] }).status).toBe(
-      "complete",
-    );
+    expect(evalArc({ comments: [lean, table, synthesis] }).status).toBe("complete");
     expect(COMPLETED_ARC_BLOCK_REASONS).not.toContain("recut-needed");
     expect(COMPLETED_ARC_BLOCK_REASONS).not.toContain("reframe-needed");
   });
@@ -1670,9 +1662,7 @@ describe("later-arc suffix in-flight after matching complete record (#4590)", ()
   it("does not treat a first-arc pain-audit critic as suffix (origin is synthesisCommentId)", () => {
     expect(isInFlightCritiqueThread(suffixAfter(LEAN_ID, boundWithPain))).toBe(true);
     expect(isInFlightCritiqueThread(suffixAfter(SYNTHESIS_ID, boundWithPain))).toBe(false);
-    expect(
-      evalArc({ comments: boundWithPain, issueNumber: 4590 }),
-    ).toMatchObject({
+    expect(evalArc({ comments: boundWithPain, issueNumber: 4590 })).toMatchObject({
       status: "complete",
       synthesisCommentId: SYNTHESIS_ID,
       citedLeanId: LEAN_ID,
@@ -1920,6 +1910,25 @@ describe("plain-English presence on cited lean + synthesis (#5415)", () => {
     }
   });
 
+  it("blocks metadata-only slices (model:/role: are not a summary)", () => {
+    const synthMetaOnly: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body:
+        "## In plain English\n\n" +
+        "model: grok-4.6\nrole: parent\n\n" +
+        "design-critique: synthesis accepted, because agents agreed\n\n" +
+        `Bound contract: successor lean ${String(LEAN_ID)}.\n`,
+    };
+    const verdict = evaluateCompletedArcRecord({
+      comments: [leanOk, synthMetaOnly],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-plain-english" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(`synthesis ${String(SYNTHESIS_ID)}`);
+      expect(verdict.detail).toContain("empty body slice");
+    }
+  });
+
   it("rejects prefix near-miss and fenced headings as non-operative", () => {
     const leanPrefix: ThreadComment = {
       id: LEAN_ID,
@@ -1933,8 +1942,7 @@ describe("plain-English presence on cited lean + synthesis (#5415)", () => {
 
     const leanFenced: ThreadComment = {
       id: LEAN_ID,
-      body:
-        "```\n## In plain English\n\nFenced only.\n```\n\n**Lean:** Prefer-A Bound.\n",
+      body: "```\n## In plain English\n\nFenced only.\n```\n\n**Lean:** Prefer-A Bound.\n",
     };
     expect(
       evaluateCompletedArcRecord({

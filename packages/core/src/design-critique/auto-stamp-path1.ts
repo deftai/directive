@@ -190,7 +190,19 @@ export function evaluateAutoStampPath1Write(
     issueNumber: input.issueNumber,
   });
   if (summary.length === 0) {
-    return refuse(unpublished, candidate, panelDelivery);
+    // Synthetic unpublished id is not on GitHub — recovery is candidate repair (#5415).
+    const path1Candidate: CompletedArcVerdict =
+      candidate.status === "blocked" && candidate.reason === "missing-plain-english"
+        ? {
+            status: "blocked",
+            reason: "missing-plain-english",
+            detail:
+              "path-1 unpublished candidate lacks a non-empty plainEnglishSummary; " +
+              "recovery: repair the candidate summary (not a GitHub patch of the synthetic id), " +
+              "then re-evaluate",
+          }
+        : candidate;
+    return refuse(unpublished, path1Candidate, panelDelivery);
   }
   if (candidate.status === "complete") {
     // When handbacks were supplied against a seat-bearing deposit, panel

@@ -322,9 +322,9 @@ Both operator-facing artifacts state their own conclusion in ordinary language.
 
 The synthesis terminates in a sentence fixed by `## Bind after accepted synthesis`, so an arc concluding "this design is fine" and an arc concluding "this cannot be built, here are four defects" end in the same words. The successor lean is the first operator surface and the consent gate for bind, and a per-heading take map does not say what confirming would assert. The next reader is routinely an agent or a human who did not follow the arc, because the completed-arc record is what clears `issue:ingest`.
 
-`evaluateCompletedArcRecord` observes presence only on the completed-arc cited artifacts (`citedLeanId` and `synthesisCommentId`): an operative `## In plain English` heading plus a non-empty body slice. That is the machine observer for this MUST (#5415). `evaluateParentAudit` still does not read a summary. Do not claim either one checks prose quality, and do not add a prose-quality or NLP parser.
+`evaluateCompletedArcRecord` observes presence only on the completed-arc cited artifacts (`citedLeanId` and `synthesisCommentId`): an operative `## In plain English` heading plus a non-empty body slice after stripping comment-lead `model:` / `role:` lines. That is the machine observer for this MUST (#5415). `evaluateParentAudit` still does not read a summary. Do not claim either one checks prose quality, and do not add a prose-quality or NLP parser.
 
-What this observer does and does not see: it checks presence of an operative non-empty section on those two ids. Pointer-only summaries (#4309), problem-then-solution shape, and the non-normativity rules remain parent-bound and unobserved. Path B does not add a maintainer-authorship gate; author-blindness is a locked test. Thread-wide anonymous heading count lint stays refused.
+What this observer does and does not see: it checks presence of an operative non-empty section on those two ids. Comment-lead `model:` / `role:` lines under the heading do not count as summary. Pointer-only summaries (#4309), problem-then-solution shape, and the non-normativity rules remain parent-bound and unobserved. Path B does not add a maintainer-authorship gate; author-blindness is a locked test. Thread-wide anonymous heading count lint stays refused.
 
 ### Why MUST and not SHOULD
 

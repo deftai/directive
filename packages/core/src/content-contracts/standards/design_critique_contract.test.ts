@@ -1763,6 +1763,12 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(summary).toContain(
       "observes presence only on the completed-arc cited artifacts (`citedLeanId` and `synthesisCommentId`)",
     );
+    expect(summary).toContain(
+      "non-empty body slice after stripping comment-lead `model:` / `role:` lines",
+    );
+    expect(summary).toContain(
+      "Comment-lead `model:` / `role:` lines under the heading do not count as summary",
+    );
     expect(summary).toContain("What this observer does and does not see");
     expect(summary).toContain("do not add a prose-quality or NLP parser");
     expect(summary).not.toContain("Nothing observes this section.");

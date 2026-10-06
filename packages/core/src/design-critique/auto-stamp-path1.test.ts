@@ -360,9 +360,10 @@ describe("path-1 plain-English summary (#5415)", () => {
       status: "blocked",
       reason: "missing-plain-english",
     });
-    expect(String(verdict.candidate.status === "blocked" ? verdict.candidate.detail : "")).toContain(
-      "synthesis",
-    );
+    const detail = String(verdict.candidate.status === "blocked" ? verdict.candidate.detail : "");
+    expect(detail).toContain("path-1 unpublished candidate");
+    expect(detail).toContain("repair the candidate summary");
+    expect(detail).not.toMatch(/patch named comment id/);
   });
 
   it("refuses both writes when the summary is whitespace-only", () => {
