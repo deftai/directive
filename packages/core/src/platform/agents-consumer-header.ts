@@ -204,9 +204,6 @@ export interface FirstShipHeaderPlaceholderResult {
  * placeholder. Absent AGENTS.md, custom headers, and Process-only pass.
  * Unreadable Prefer-A marker fails closed only while the header is still the
  * scaffold placeholder (not silent Process-only; do not refuse custom/absent).
- * Product-mutation completion is supplied by callers (Prefer-A marker and, after
- * Bound lean 6000271029, dirty product evidence via the check-surface helper) —
- * this evaluator still matches CONSUMER_HEADER_PLACEHOLDER_ONELINER only.
  * Returned failure only — no throw.
  */
 export function evaluateFirstShipHeaderPlaceholderGate(input: {

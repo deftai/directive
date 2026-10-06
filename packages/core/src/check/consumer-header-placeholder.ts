@@ -278,13 +278,7 @@ function resolveProjectDefinitionPath(projectRoot: string): string | null {
   return null;
 }
 
-/**
- * Confirmed Overview from PROJECT-DEFINITION narratives (setup Phase 3 CAS input).
- * Empty / missing Overview returns null — refuse path, not soft-missing pass.
- */
-export function readConfirmedOverviewAtRoot(projectRoot: string): string | null {
-  const path = resolveProjectDefinitionPath(projectRoot);
-  if (path === null) return null;
+function overviewFromProjectDefinitionFile(path: string): string | null {
   try {
     const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
     const root = asRecord(parsed);
@@ -301,6 +295,37 @@ export function readConfirmedOverviewAtRoot(projectRoot: string): string | null 
   } catch {
     return null;
   }
+}
+
+/**
+ * Confirmed Overview from PROJECT-DEFINITION narratives (setup Phase 3 CAS input).
+ * Prefers xbrief (or DEFT_PROJECT_PATH), then falls back to vbrief when the
+ * preferred file has no Overview — greenfield init may create xbrief while
+ * smoke/legacy still seed Overview only under vbrief (#4544 residual).
+ * Empty / missing Overview returns null — refuse path, not soft-missing pass.
+ */
+export function readConfirmedOverviewAtRoot(projectRoot: string): string | null {
+  const root = resolve(projectRoot);
+  const candidates: string[] = [];
+  const override = process.env.DEFT_PROJECT_PATH?.trim();
+  if (override) {
+    const configured = resolve(projectRoot, override);
+    if (existsSync(configured)) candidates.push(configured);
+  }
+  const migrated = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+  if (existsSync(migrated)) candidates.push(migrated);
+  const legacy = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+  if (existsSync(legacy)) candidates.push(legacy);
+
+  const seen = new Set<string>();
+  for (const path of candidates) {
+    const key = path.replace(/\\/g, "/").toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const overview = overviewFromProjectDefinitionFile(path);
+    if (overview !== null) return overview;
+  }
+  return null;
 }
 
 /** Evaluate the Prefer-A first-ship placeholder gate at a project root. */

@@ -10,6 +10,7 @@ import {
   evaluateConsumerHeaderPlaceholderAtRoot,
   hasDirtyProductMutationEvidence,
   isNonProductMutationPath,
+  readConfirmedOverviewAtRoot,
 } from "./consumer-header-placeholder.js";
 import {
   productMutationCompletionAtRoot,
@@ -167,6 +168,45 @@ describe("evaluateConsumerHeaderPlaceholderAtRoot (#4544 Prefer-A)", () => {
     const absent = evaluateConsumerHeaderPlaceholderAtRoot(absentRoot);
     expect(absent.ok).toBe(true);
     expect(absent.reason).toBe("no-agents-md");
+  });
+});
+
+describe("readConfirmedOverviewAtRoot (#4544 residual)", () => {
+  it("falls back to vbrief Overview when xbrief exists without Overview", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    mkdirSync(join(root, "vbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8", description: "empty narratives" },
+          plan: { title: "PROJECT-DEFINITION", status: "running", items: [], policy: {}, narratives: {} },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      `${JSON.stringify(
+        {
+          vBRIEFInfo: { version: "0.6", description: "legacy seed" },
+          plan: {
+            title: "PROJECT-DEFINITION",
+            status: "running",
+            items: [],
+            policy: {},
+            narratives: { Overview: "Greenfield smoke fixture (#2022 Phase 3)." },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    expect(readConfirmedOverviewAtRoot(root)).toBe("Greenfield smoke fixture (#2022 Phase 3).");
   });
 });
 
