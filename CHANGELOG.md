@@ -13,10 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
-
-### Fixed
-
-- Complete the #5412 live-discovery pending-planning scope brief after product #5417; move the brief into xbrief/completed.
 - Complete the #5350 scope brief after product #5376; move the spec-guard enforce Prefer-A Bound brief into xbrief/completed.
 - Complete the #5391 scope brief after product #5401; move the CLI DX Prefer-A Bound brief into xbrief/completed.
 
@@ -30,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pending planning briefs no longer count as active scope for live discovery (#5412).** Scope-provenance admits only an active seed or an active-on-base move into pending|completed|cancelled (same rule for live and injected paths). Tracking #5412. Refs #5192, #4774.
 
 ### Changed
+- Complete the #5412 live-discovery Prefer-A Bound brief after product #5417; move the brief into xbrief/completed.
 - Complete the #5413 occupancy overnight-reclaim Prefer-A Bound brief after product #5416; move the brief into xbrief/completed.
 - Complete the #5373 structured-question hard-stop hatch scope brief after product #5410; move the brief into xbrief/completed.
 
