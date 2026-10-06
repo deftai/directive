@@ -7,32 +7,32 @@
   "plan": {
     "id": "github.issue.5714501280",
     "title": "session:start cold: duration_ms ≫ sum(steps[]) — multi-minute unlabeled gap on Windows",
-    "status": "running",
+    "status": "completed",
     "items": [
       {
         "id": "1",
         "title": "Exclusive cold instrumentation into steps[]",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "2",
         "title": "Close measurement interval before process-cost emit",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "3",
         "title": "Operator-visible honesty line with residual",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "4",
         "title": "Instrument rearm + named finalize_owed step",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "5",
         "title": "Two-sided honesty regression + one cold row before cut",
-        "status": "pending"
+        "status": "completed"
       }
     ],
     "acceptance": {
@@ -46,37 +46,82 @@
         {
           "id": 1,
           "text": "Record exclusive phase timings for Bound-1 enum; fix orientation double-count so sum(exclusive leaves) is honest.",
-          "artifact_path": "packages/core/src/session/session-start.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5400",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5400"
+            }
+          }
         },
         {
           "id": 2,
           "text": "Move totalMs capture to last statement before emitSessionStartProcessCost on cold and rearm.",
-          "artifact_path": "packages/core/src/session/session-start.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5400",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5400"
+            }
+          }
         },
         {
           "id": 3,
           "text": "Print labeled exclusive phases plus unaccounted residual; compact mode must not hide large residual.",
-          "artifact_path": "packages/core/src/session/session-start.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5400",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5400"
+            }
+          }
         },
         {
           "id": 4,
           "text": "Replace rearm hardcoded zero stepTimings with real measurements; add finalize_owed named step; keep #5145 defer-owed short-circuit.",
-          "artifact_path": "packages/core/src/session/session-start.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5400",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5400"
+            }
+          }
         },
         {
           "id": 5,
           "text": "Fixture fails when |duration_ms - sum(exclusive leaves)| exceeds tolerance; capture one real cold row before cut/skip-when-warm.",
-          "artifact_path": "packages/core/src/session/session-start.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5400",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5400"
+            }
+          }
         }
       ],
       "ambiguity_attestation": "none_found"
@@ -112,7 +157,12 @@
         "depends_on": [],
         "file_scope_confidence": "high",
         "model_tier": "default"
-      }
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-06T02:38:34Z"
+      },
+      "productPullRequest": 5400
     },
     "references": [
       {
