@@ -2,32 +2,56 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "bug(worktree): payload reconstitution omits .deft/core/VERSION; doctor fails manifest-agreement and gates writes, remediation is deft update",
-    "updated": "2026-10-05T22:06:26Z"
+    "updated": "2026-10-06T02:03:56Z"
   },
   "plan": {
     "id": "github.issue.5717551052",
     "title": "bug(worktree): payload reconstitution omits .deft/core/VERSION; doctor fails manifest-agreement and gates writes, remediation is deft update",
-    "status": "running",
+    "status": "completed",
     "items": [
       {
         "id": "1",
         "title": "VERSION-complete reconstitution in reconstituteLinkedWorktreeDeposit: After successful payload copy, unconditionally ensure .deft/core/VERSION via buildInstallManifestText; source-version authority; disagree gate refuses bare-only synthesize; already-present repair behind containment/symlink guards; ensure-failure returns refused.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
+          "recorded_at": "2026-10-06T02:03:56.316Z",
+          "recorded_by": "Scott"
+        }
       },
       {
         "id": "2",
         "title": "Narrow doctor missing-YAML remediation to one executable route: When linked worktree + payload + missing VERSION + agreeing bare, emit narrow detail + suggested_fix to session:start reconstitution; keep deft update for true skew branches.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
+          "recorded_at": "2026-10-06T02:03:56.316Z",
+          "recorded_by": "Scott"
+        }
       },
       {
         "id": "3",
         "title": "Recovery honesty without #3738 violation: Do not make session:ready run doctor as repair; write-gate/hook recovery names session:start --rearm for this class.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
+          "recorded_at": "2026-10-06T02:03:56.316Z",
+          "recorded_by": "Scott"
+        }
       },
       {
         "id": "4",
         "title": "Tests + docs + CHANGELOG: Fixtures for VERSION-less reconstitute, already-present repair, disagree refuse, doctor narrow route; CHANGELOG Unreleased; conflict_group worktree-reconstitute-version-manifest.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
+          "recorded_at": "2026-10-06T02:03:56.316Z",
+          "recorded_by": "Scott"
+        }
       }
     ],
     "acceptance": {
@@ -39,30 +63,54 @@
         {
           "id": 1,
           "text": "After successful payload copy, unconditionally ensure .deft/core/VERSION via buildInstallManifestText; source-version authority; disagree gate refuses bare-only synthesize; already-present repair behind containment/symlink guards; ensure-failure returns refused.",
-          "artifact_path": "packages/core/src/init-deposit/gitignore.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
+            "recorded_at": "2026-10-06T02:03:56.316Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": 2,
           "text": "When linked worktree + payload + missing VERSION + agreeing bare, emit narrow detail + suggested_fix to session:start reconstitution; keep deft update for true skew branches.",
-          "artifact_path": "packages/core/src/doctor/checks.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
+            "recorded_at": "2026-10-06T02:03:56.316Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": 3,
           "text": "Do not make session:ready run doctor as repair; write-gate/hook recovery names session:start --rearm for this class.",
-          "artifact_path": "packages/core/src/session/verify-session-ritual.ts",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
+            "recorded_at": "2026-10-06T02:03:56.316Z",
+            "recorded_by": "Scott"
+          }
         },
         {
           "id": 4,
           "text": "Fixtures for VERSION-less reconstitute, already-present repair, disagree refuse, doctor narrow route; CHANGELOG Unreleased; conflict_group worktree-reconstitute-version-manifest.",
-          "artifact_path": "CHANGELOG.md",
+          "artifact_path": null,
           "ambiguous": false,
-          "provenance": "bound-prefer-a"
+          "provenance": "bound-prefer-a",
+          "x-directive/evidence": {
+            "kind": "merge",
+            "pointer": "a00ea92b3e3f4ab44dafa964800f9ad640a5d8a4",
+            "recorded_at": "2026-10-06T02:03:56.316Z",
+            "recorded_by": "Scott"
+          }
         }
       ],
       "ambiguity_attestation": "none_found"

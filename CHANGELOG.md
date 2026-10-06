@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 
+- **Complete the worktree VERSION reconstitution brief after product #5395.** Move the #5390 scope brief into xbrief/completed so orphan tracking clears. Tracking #5390.
 - Keep-active: Prefer-A Bound brief for #5375 (Path B activation).
 
 
