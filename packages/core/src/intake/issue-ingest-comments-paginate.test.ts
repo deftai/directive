@@ -37,10 +37,20 @@ const RECUT_LEAN_ID = 5516000102;
 const SHAPE_P1_ID = 5516000001;
 const SHAPE_P4_ID = 5516000103;
 
+const PLAIN_ENGLISH_SUMMARY =
+  "## In plain English\n\n" +
+  "The problem was missing ordinary-language summaries at ingest-ready.\n\n" +
+  "The accepted design adds a presence-only gate on the cited artifacts.\n\n";
+
+function withPlainEnglish(body: string): string {
+  if (/(?:^|\n)##\s+In plain English\b/i.test(body)) return body;
+  return `${PLAIN_ENGLISH_SUMMARY}${body}`;
+}
+
 function leanComment(id: number, extra = "chips are convenience."): IssueComment {
   return {
     id,
-    body: `**Lean:**\n${extra}\n`,
+    body: withPlainEnglish(`**Lean:**\n${extra}\n`),
     created_at: "2026-09-06T12:00:00Z",
     user: { login: "parent" },
   };
@@ -58,9 +68,10 @@ function tableComment(id: number): IssueComment {
 function synthesisComment(id: number, leanId: number, tableId: number): IssueComment {
   return {
     id,
-    body:
+    body: withPlainEnglish(
       "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-      `Bound contract: successor lean ${leanId}, verified-claims table ${tableId}.\n`,
+        `Bound contract: successor lean ${leanId}, verified-claims table ${tableId}.\n`,
+    ),
     created_at: "2026-09-06T12:02:00Z",
     user: { login: "parent" },
   };
