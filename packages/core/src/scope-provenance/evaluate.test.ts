@@ -1816,4 +1816,78 @@ describe("changed-lifecycle admission shared predicate (#5412)", () => {
     expect(live.exitCode).toBe(0);
     expect(live.findings).toEqual([]);
   });
+
+  it("injected brand-new pending in activeXbriefs does not bypass admission", () => {
+    const pendingRel = "xbrief/pending/brand-new.xbrief.json";
+    const pending = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: "brand-new",
+        status: "pending",
+        metadata: { swarm: { file_scope: ["packages/core/src/future.ts"] } },
+      },
+    };
+    const result = evaluateScopeProvenance("/tmp/proj-5412-injected-pending", {
+      changedFiles: [
+        pendingRel,
+        "xbrief/PROJECT-DEFINITION.xbrief.json",
+        "packages/core/src/companion.ts",
+      ],
+      activeXbriefs: new Map([[pendingRel, `${JSON.stringify(pending, null, 2)}\n`]]),
+      baseXbriefs: new Map(),
+      sourceRoots: ["packages"],
+      testRoots: ["tests"],
+      fixtureRoots: ["fixtures"],
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings).toEqual([]);
+  });
+
+  it("renamed active-on-base→pending keeps fence via plan.id census", () => {
+    const narrow = ["packages/core/src/a.ts"];
+    const baseActive = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: "story-rename",
+        status: "running",
+        metadata: { swarm: { file_scope: narrow } },
+      },
+    };
+    const headPending = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: "story-rename",
+        status: "pending",
+        metadata: { swarm: { file_scope: narrow } },
+      },
+    };
+    const pendingRel = "xbrief/pending/renamed-story.xbrief.json";
+    const result = evaluateScopeProvenance("/tmp/proj-5412-rename-fence", {
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        pendingRel,
+        "packages/core/src/b.ts",
+        "packages/core/src/c.ts",
+        "packages/core/src/d.ts",
+      ],
+      activeXbriefs: new Map([[pendingRel, `${JSON.stringify(headPending, null, 2)}\n`]]),
+      baseXbriefs: new Map([
+        ["xbrief/active/story.xbrief.json", `${JSON.stringify(baseActive, null, 2)}\n`],
+      ]),
+      sourceRoots: ["packages"],
+      testRoots: ["tests"],
+      fixtureRoots: ["fixtures"],
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(
+      result.findings.some(
+        (f) =>
+          f.kind === "production-scope-over-budget" ||
+          f.kind === "active-xbrief-modified-without-digest" ||
+          f.kind === "change-set-outside-approved-scope",
+      ),
+    ).toBe(true);
+  });
 });
