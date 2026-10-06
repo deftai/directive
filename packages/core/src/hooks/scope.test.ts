@@ -379,7 +379,8 @@ describe("stale DEFT_ACTIVE_SCOPE pin-miss recovery (#5386)", () => {
     expect(result.message).toContain(ACTIVE_SCOPE_PIN_ENV);
     expect(result.message).toContain("blocked.xbrief.json");
     expect(result.message).toMatch(/plan\.status is 'blocked'|not implementation-eligible/);
-    expect(result.message).toContain("scope:unblock");
+    expect(result.message).toMatch(/Recovery: run `deft scope:unblock -- <blocked-brief>`/);
+    expect(result.message).not.toMatch(/scope:unblock -- «/);
     expect(result.warning).toBeUndefined();
   });
 

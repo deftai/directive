@@ -197,7 +197,8 @@ function formatMatchedRejectedPinMessage(
     `${label} ${fencePinValue(pin)} names a present brief that is not ` +
     `implementation-eligible (${fenceActiveScopeName(matchedPath)}): ${rejected}`;
   if (isBlocked) {
-    return `${base} Recovery: run \`deft scope:unblock -- ${fenceActiveScopeName(matchedPath)}\`.`;
+    // Fenced name stays in `base`; command arg is a path placeholder (#5386 P2).
+    return `${base} Recovery: run \`deft scope:unblock -- <blocked-brief>\`.`;
   }
   return base;
 }

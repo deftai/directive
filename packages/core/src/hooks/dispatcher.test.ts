@@ -6841,6 +6841,30 @@ describe("stale DEFT_ACTIVE_SCOPE pin-miss Write/Edit recovery (#5386)", () => {
     expect(decision.message).toContain("live-story.xbrief.json");
     expect(decision.message).toContain(ACTIVE_SCOPE_PIN_ENV);
     expect(decision.message).toMatch(/Warning:/);
+    // #5386: empty allow hid the warn; assert host-visible render channels.
+    const grokWire = JSON.parse(renderHostDecision("grok", decision)) as {
+      decision: string;
+      reason: string;
+    };
+    expect(grokWire.decision).toBe("allow");
+    expect(grokWire.reason).toMatch(/Warning:/);
+    expect(grokWire.reason).toContain("stale-gone.xbrief.json");
+    const claudeWire = JSON.parse(renderHostDecision("claude", decision)) as {
+      hookSpecificOutput: {
+        permissionDecision: string;
+        permissionDecisionReason: string;
+      };
+    };
+    expect(claudeWire.hookSpecificOutput.permissionDecision).toBe("allow");
+    expect(claudeWire.hookSpecificOutput.permissionDecisionReason).toMatch(/Warning:/);
+    const cursorWire = JSON.parse(
+      renderHostDecision("cursor", { ...decision, host: "cursor" }),
+    ) as {
+      permission: string;
+      agent_message: string;
+    };
+    expect(cursorWire.permission).toBe("allow");
+    expect(cursorWire.agent_message).toMatch(/Warning:/);
   });
 
   it("matched-rejected pin still denies Write even with one eligible alternative", () => {
@@ -6873,6 +6897,7 @@ describe("stale DEFT_ACTIVE_SCOPE pin-miss Write/Edit recovery (#5386)", () => {
     expect(decision.message).toContain("scope:unblock");
     // Evaluator prose may mention activate; dispatcher must not append promote-then-activate.
     expect(decision.message).not.toMatch(/auto-promote from proposed/);
-    expect(decision.message).toMatch(/Recovery: run `deft scope:unblock/);
+    expect(decision.message).toMatch(/Recovery: run `deft scope:unblock -- <blocked-brief>`/);
+    expect(decision.message).not.toMatch(/scope:unblock -- «/);
   });
 });

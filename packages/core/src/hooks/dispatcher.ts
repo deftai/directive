@@ -3774,15 +3774,26 @@ function composeCursorSessionStartAdditionalContext(
  * `{"permission":"allow"}` within the deposit timeout. Other hosts keep empty
  * allow so the host permission flow is unchanged — except session.start /
  * session.compact soft re-bind injection (#3171), which surfaces checklist
- * text without a write tool.
+ * text without a write tool, and tool.before allow advisories (#5281 kill-force,
+ * #5386 stale-pin Warning:) which must not be dropped by empty allow.
  *
  * Cursor stdout always includes `code` (stable machine-readable decision code)
  * so agents can distinguish policy denials from host-integration failures
  * without parsing English (#2864). Exit status still does not encode the
  * verdict — see hook-dispatch `run()` exit-code contract.
  */
+/** Host-visible allow text: kill-force reason (#5281) or Warning: advisories (#5386). */
+function allowAdvisoryText(decision: HookDecision): string | null {
+  const msg = decision.message.trim();
+  if (msg.length === 0) return null;
+  if (decision.code === "kill-force-ready") return msg;
+  if (/\bWarning:/.test(msg)) return msg;
+  return null;
+}
+
 export function renderHostDecision(host: HookHost, decision: HookDecision): string {
   if (decision.verdict === "allow") {
+    const advisory = decision.event === "tool.before" ? allowAdvisoryText(decision) : null;
     if (
       decision.event === "tool.before" &&
       decision.updatedInput !== undefined &&
@@ -3793,6 +3804,7 @@ export function renderHostDecision(host: HookHost, decision: HookDecision): stri
           permission: "allow",
           code: decision.code,
           updated_input: decision.updatedInput,
+          ...(advisory !== null ? { agent_message: advisory } : {}),
         });
       }
       return JSON.stringify({
@@ -3800,6 +3812,7 @@ export function renderHostDecision(host: HookHost, decision: HookDecision): stri
           hookEventName: "PreToolUse",
           permissionDecision: "allow",
           updatedInput: decision.updatedInput,
+          ...(advisory !== null ? { permissionDecisionReason: advisory } : {}),
         },
       });
     }
@@ -3837,6 +3850,13 @@ export function renderHostDecision(host: HookHost, decision: HookDecision): stri
       if (decision.event === "prompt.submit" || decision.event === "agent.response") {
         return JSON.stringify({ continue: true, code: decision.code });
       }
+      if (advisory !== null) {
+        return JSON.stringify({
+          permission: "allow",
+          code: decision.code,
+          agent_message: advisory,
+        });
+      }
       return JSON.stringify({ permission: "allow", code: decision.code });
     }
     if (
@@ -3860,17 +3880,23 @@ export function renderHostDecision(host: HookHost, decision: HookDecision): stri
         });
       }
     }
-    // Grok force-kill allow must print the reason (#5281 DCR iii) — empty allow hides it.
-    if (
-      host === "grok" &&
-      decision.event === "tool.before" &&
-      decision.code === "kill-force-ready" &&
-      decision.message.trim().length > 0
-    ) {
-      return JSON.stringify({
-        decision: "allow",
-        reason: decision.message,
-      });
+    // tool.before allow advisories must print (#5281 kill-force; #5386 Warning:).
+    if (advisory !== null) {
+      if (host === "grok") {
+        return JSON.stringify({
+          decision: "allow",
+          reason: advisory,
+        });
+      }
+      if (host === "claude" || host === "codex") {
+        return JSON.stringify({
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse",
+            permissionDecision: "allow",
+            permissionDecisionReason: advisory,
+          },
+        });
+      }
     }
     return "";
   }
