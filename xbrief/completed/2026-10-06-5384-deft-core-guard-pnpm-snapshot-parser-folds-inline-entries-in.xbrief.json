@@ -1,0 +1,517 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5384",
+    "updated": "2026-10-06T21:30:50.591Z"
+  },
+  "plan": {
+    "title": "deft-core-guard: pnpm snapshot parser folds inline '{}' entries into the previous key, false-rejecting pin-only Directive upgrades",
+    "status": "completed",
+    "narratives": {
+      "Description": "deft-core-guard: pnpm snapshot parser folds inline '{}' entries into the previous key, false-rejecting pin-only Directive upgrades",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5384",
+      "Overview": "## Summary\n\nThe `deft-core-guard.yml` workflow deposited by Directive 0.121.0 rejects a canonical Directive upgrade PR's `pnpm-lock.yaml` even when the lock diff is `@deftai/directive*` only. The pnpm snapshot parser (`pnpm_section_by_full_key`, #5245) only recognises keys on lines ending in `:`. Inline-empty entries such as `'@deftai/directive-content@0.121.0': {}` are not seen as keys, so they get folded into the preceding package's block. The Directive version bump then looks like a change to an unrelated package, and `pnpm_ok` fails.\n\n## Environment\n\n- Consumer upgraded 0.119.12 -> 0.121.0 via `directive update` (pnpm 10.33.2 lockfile v9)\n- Guard: `.github/workflows/deft-core-guard.yml` as deposited by 0.121.0\n- PR: consumer upgrade PR, CI job `no-mixed-core-and-app`\n\n## Observed\n\n```\n##[error]package/lock co-travel with .deft/core/** must be @deftai/directive* pin-only + lock follow-through. Rejected: pnpm-lock.yaml\n```\n\nLock diff (`git diff --ignore-cr-at-eol`) is only the importer specifier/version and the `@deftai/directive`, `-core`, `-content`, `-types` package and snapshot entries.\n\n## Root cause\n\nRan the guard's embedded Python locally against base/head:\n\n```\nimporter ok: True\n  importer diff . @deftai/directive 0.119.12|0.119.12 0.121.0|0.121.0\nsnapshots changed @csstools/css-syntax-patches-for-csstree@1.1.9(css-tree@3.2.1)\n```\n\nThat snapshot is byte-identical in base and head. The captured body shows the parser absorbed the following inline entries:\n\n```\nBASE: \"  '@csstools/css-syntax-patches-for-csstree@1.1.9(css-tree@3.2.1)':\\n    optionalDependencies:\\n      css-tree: 3.2.1\\n\\n  '@csstools/css-tokenizer@4.0.0': {}\\n\\n  '@deftai/directive-content@0.119.12': {}\\n\"\nHEAD: \"  ... same ...\\n\\n  '@deftai/directive-content@0.121.0': {}\\n\"\n```\n\nThe key regex is `^ {2}(\\S.*):\\s*$`. A line like `  '<name>@<ver>': {}` does not match, so it is appended to the current block instead of starting its own. `is_dir_key` never sees `@deftai/directive-content@…`, and the neighbour's block compares unequal.\n\n## Impact\n\n- **Directive-owned.** Every pnpm consumer whose `snapshots:` (or `packages:`) section has an inline `{}` Directive entry next to another package gets a false red on the canonical upgrade PR. `@deftai/directive-content` and `-types` have no dependencies, so their snapshots are always `{}`.\n- Not blocking where the guard is not a required check (merge on review). Where it is required, the canonical upgrade cannot land without editing the guard.\n\n## Expected\n\nRecognise both forms as section keys: `^ {2}(\\S.*):\\s*$` and `^ {2}(\\S.*?):\\s*\\{\\}\\s*$` (or parse keys as `^ {2}(?P<key>'[^']+'|\\S+):`). Then `pnpm_ok` passes on a pin-only Directive bump. A regression fixture with an inline `{}` Directive snapshot next to a block-form neighbour would cover it.\n\n## Related\n\n- #5245: introduced full-key snapshot comparison\n- #3193 / #4735: pin + lock co-travel rule",
+      "Labels": "bug, ci-cd, agent-experience, process, Upgrade Blocker, source-of-truth, urgent, vendored-deposit, area:installer, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Co-edit Python SoT + TS twin to recognize inline-empty ': {}' full keys; strike first-colon equivalence",
+        "status": "pending"
+      },
+      {
+        "id": "2",
+        "title": "Keep freeze-except-additions; record head-only non-Directive inline-{} addition allowed with Directive bump",
+        "status": "pending"
+      },
+      {
+        "id": "3",
+        "title": "Behavioural TS regression cases via isUpgradePinPathContentAllowed with true inline fixtures",
+        "status": "pending"
+      },
+      {
+        "id": "4",
+        "title": "Replace inert AC-8 sole-regex toContain with site-distinguishing pin",
+        "status": "pending"
+      },
+      {
+        "id": "5",
+        "title": "No lasting consumer-local deft-core-guard.yml edit; no YAML library dependency",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "agent-experience",
+      "process",
+      "Upgrade Blocker",
+      "source-of-truth",
+      "urgent",
+      "vendored-deposit",
+      "area:installer",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "prefer-a-bound",
+      "through-merge",
+      "pnpm-inline-empty-section-keys"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5384",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5384: deft-core-guard: pnpm snapshot parser folds inline '{}' entries into the previous key, false-rejecting pin-only Directive upgrades"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "importer ok: True",
+          "reason": "first token \"importer\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L25"
+        },
+        {
+          "command": "importer diff . @deftai/directive 0.119.12|0.119.12 0.121.0|0.121.0",
+          "reason": "shell metacharacter \"|\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L25"
+        },
+        {
+          "command": "snapshots changed @csstools/css-syntax-patches-for-csstree@1.1.9(css-tree@3.2.1)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L25"
+        },
+        {
+          "command": "BASE: \"  '@csstools/css-syntax-patches-for-csstree@1.1.9(css-tree@3.2.1)':\\n    optionalDependencies:\\n      css-tree: 3.2.1\\n\\n  '@csstools/css-tokenizer@4.0.0': {}\\n\\n  '@deftai/directive-content@0.119.12': {}\\n\"",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L33"
+        },
+        {
+          "command": "HEAD: \"  ... same ...\\n\\n  '@deftai/directive-content@0.121.0': {}\\n\"",
+          "reason": "shell metacharacter \"{\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L33"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/core/src/init-deposit/core-guard-pin-content.ts",
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/init-deposit/hygiene.test.ts"
+        ],
+        "conflict_group": "pnpm-inline-empty-section-keys",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/hygiene.test.ts"
+        ],
+        "expected_outputs": [
+          "Tracking PR for #5384 Prefer-A Bound pnpm inline-empty section keys"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "Traces": [
+          "#5384",
+          "lean:6020604396"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft (pre-Stop-1)\n\n## In plain English\nDirective's deposited core-guard checks that a framework upgrade PR only changes Directive pins in the lockfile. Its pnpm parser only treats lines that end with a bare colon as package keys. Empty inline entries like `'@deftai/directive-content@0.121.0': {}` never start their own key, so they stick to the package above them. A clean Directive-only bump then looks like an unrelated package changed, and the upgrade CI goes red. Prefer-A teaches the parser to recognize those inline empty keys, keeps the pin-only rule, and lands the fix in the deposit SoT so every consumer gets it on update.\n\n## Bound remedy (draft limbs)\n1. In `pnpm_section_by_full_key` (CORE_GUARD_PIN_CONTENT_PYTHON in `packages/core/src/init-deposit/core-guard-pin-content.ts`, byte-synced to `cmd/deft-install/core_guard_pin_content.embed`), recognize both block-form keys `^ {2}(\\S.*):\\s*$` and inline-empty keys `^ {2}(\\S.*?):\\s*\\{\\}\\s*$` (or one equivalent 2-space key parse that takes the key before the first colon and allows optional trailing `{}`).\n2. Keep full-key freeze-except-additions and `is_dir_key` filtering unchanged: non-Directive base keys must still match head bodies; head-only Directive keys remain OK; unrelated snapshot/package body churn must still fail `pnpm_ok`.\n3. Add a regression fixture (string/byte or local Python invoke of the embedded SoT) where an inline `{}` `@deftai/directive-content` / `-types` snapshot sits next to a block-form neighbour: pin-only Directive version bump → `pnpm_ok` True; neighbour body byte-identical; a non-Directive neighbour body change → False.\n4. Update the AC-8 string assertion that currently pins the old sole regex `^ {2}(\\S.*):\\s*$` so the new key forms are covered without weakening the four entry-point / freeze-except-additions pins.\n5. No lasting consumer-local edit of deposited `deft-core-guard.yml` as the fix; no weakening of package/lock co-travel; no full YAML library dependency for this residual.\n\nApproaches considered:\n- A (Prefer): extend key match for inline `{}` (issue Expected).\n- B: generalize to `^ {2}(?P<key>'[^']+'|\\S+):` (broader; more false-key risk).\n- C: replace with a real YAML/pnpm lock parser (higher blast / deposit weight).\n- D: special-case only `@deftai/directive*` inline keys (narrower; leaves the same fold bug for other empty packages that neighbour Directive entries).\n\nReject: B-without-fixture, C-as-must-for-this-residual, D-only, consumer workflow PATCH as lasting fix, drop freeze-except-additions.\n\nspend-recommend: N≥3\r\n\n",
+          "id": 6020417070,
+          "html_url": "https://github.com/deftai/directive/issues/5384#issuecomment-6020417070",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:10:14Z",
+          "updated_at": "2026-10-06T16:10:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because the deposited pnpm snapshot parser in CORE_GUARD_PIN_CONTENT_PYTHON only matches 2-space keys that end with a bare colon, so inline-empty `@deftai/directive*` entries fold into the previous key and false-reject pin-only Directive upgrade PRs — a concrete parser defect against the #5245 full-key freeze-except-additions intent.\n\ncharter: open critique\nrefutation-target: (none — open critique of Prefer-A draft; issue names the broken key regex as the load-bearing premise)\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5384\norigin-ref: origin/HEAD\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\ndest-wo: leftover-complete\nverification-path: pin-read git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:\n\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: Stop 2 panel permission — high blast on the canonical pnpm upgrade path plus open A/B/C/D parser shapes (extend inline-empty vs broader key parse vs YAML library vs Directive-only special-case). Bare arc with recorded spend-recommend resolves spend-ask: resolved (#4705 / #5372).\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nDual-stop cap: 6 posts\n\npain:\n- P1\n- P2\n- P3\n\npain-prose:\n- P1: Inline-empty `{}` package/snapshot keys are not recognized as keys and fold into the previous block, so a pin-only `@deftai/directive*` bump fails `pnpm_ok` / `no-mixed-core-and-app` even when the neighbour body is byte-identical.\n- P2: A naive broaden of the key regex can treat nested or malformed 2-space lines as keys and either false-pass mixed lock churn or split legitimate multi-line blocks.\n- P3: The lasting fix must land in CORE_GUARD_PIN_CONTENT_PYTHON and stay byte-synced to the Go embed so `directive update` re-deposits the fixed guard; a consumer-local workflow edit is temporary theater.\n\nPrefer-A draft: 6020417070\nTarget-digest: sha256:1f0080f5807a59b7b82bb7307bfb9f89cc5a14c8cf74c6a19e3af8f00c672e46\n\nCharter for round-1 critics: open critique of Prefer-A draft comment 6020417070 (Approach A: recognize inline-empty keys; keep freeze-except-additions; regression fixture; SoT+embed sync; update AC-8 regex pin). Reject B-without-fixture, C-as-must-for-this-residual, D-only, consumer workflow PATCH as lasting fix, drop freeze-except-additions.\n\nSeat families (N≥3): grok, claude, codex\r\n\n",
+          "id": 6020421728,
+          "html_url": "https://github.com/deftai/directive/issues/5384#issuecomment-6020421728",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:10:29Z",
+          "updated_at": "2026-10-06T16:10:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\r\n```quarantined\nrole: parent\r\n```\n\r\npanel-deposit\r\nround: 1\r\nsiblings: 3\r\ninput-ceiling: 6020436672\r\nfamilies: grok, claude, codex\r\nlaunch-probe: claude=pong@0; codex=pong@0; grok=pong@0\r\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\r\nverification-path: pin-read git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:\r\nStop-1: 6020421728\r\nPrefer-A draft: 6020417070\r\nTarget-digest: sha256:1f0080f5807a59b7b82bb7307bfb9f89cc5a14c8cf74c6a19e3af8f00c672e46\r\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5384\r\n\r\n\n",
+          "id": 6020436672,
+          "html_url": "https://github.com/deftai/directive/issues/5384#issuecomment-6020436672",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:11:19Z",
+          "updated_at": "2026-10-06T16:11:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Plain-language summary\n\nPrefer A is the right narrow repair, but the draft cannot bind with its \"before the first colon\" alternative: that is not equivalent to preserving full package keys. Tighten that limb, require behavioral evidence from the deposited checker, and make the TypeScript counterpart's disposition explicit.\n\nReviewed Prefer-A 6020417070 against Stop 1 6020421728; input ceiling 6020436672. All source reads below used `git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:<path>`. No sibling posts read; no product edits.\n\n## Existing mechanisms and verification\n\n- `packages/core/src/init-deposit/core-guard-pin-content.ts`: `pnpm_section_by_full_key` already limits identities to exactly two spaces, retains full keys and raw block text, and feeds both `packages` and `snapshots` into `pnpm_ok`. The all-importer specifier/version comparison is separate. Freeze-except-additions compares non-Directive **base** keys; head-only keys, including non-Directive transitives, are already allowed.\n- `cmd/deft-install/core_guard_pin_content.embed`: I evaluated the pinned TS string constant and compared it with the pinned embed: byte equality passed. `core-guard-pin-content.test.ts` already checks this equality and four entry points. Its AC-8 check is explicitly string-only.\n- `packages/core/src/init-deposit/hygiene.ts`: `pnpmNamedSectionByFullKey` has the same bare-colon-only regex. `isPnpmLockDirectivePinFollowThrough` feeds `isUpgradePinPathContentAllowed` and `classifyMixedCoreAndAppContentAware`. Existing `hygiene.test.ts` corpus covers full-key additions, deletion, nested changes, importer changes, and colon-bearing `local-pkg@file:../local-pkg` keys, but exercises the TS implementation.\n- Executed the pinned Python embed in memory, without calling `main`: an unchanged `neighbor@1` block followed by inline `@deftai/directive-content@1` yields only the neighbor key; bumping Directive to @2 returns False. An in-memory diagnostic replacement with `^ {2}(\\S.*?):\\s*(?:\\{\\})?\\s*$` returns True for that bump and False for a neighbor dependency change, in both sections. It retains `local-pkg@file:../local-pkg` intact. This is a mechanism probe, not an implemented fix or full-suite pass.\n\n## F1 — blocks-the-design — Remove the first-colon equivalence (P2)\n\n**Evidence:** Draft limb 1 permits taking the key before the first colon. The pinned TS parser explicitly preserves colon-bearing full keys, and its existing regression uses `'local-pkg@file:../local-pkg':`. Splitting at the first colon produces `'local-pkg@file`, not the full identity. The narrow end-anchored optional-empty form tested above preserves it.\n\n**Failure mode:** Different file-qualified identities collapse to the same map key; later entries can overwrite earlier ones, defeating the full-key freeze invariant. This is a regression allowed by the draft's alternative wording, not an objection to the two proposed end-anchored regexes.\n\n**Disposition consequence:** Delete the first-colon alternative or require a delimiter after the complete key. Require a colon-bearing inline-empty fixture and preservation of distinct identities. A YAML library is unnecessary for this correction.\n\n## F2 — sharpens-framing — Behavioral coverage must reach the Python checker (P1/P2)\n\n**Evidence:** Draft limb 3 permits \"string/byte or local Python invoke.\" Existing AC-8 only tests token presence; the old regex also remains in `pnpm_importer_deps`, so a global contains assertion cannot locate the section matcher. I additionally reproduced an existing false pass: place `unrelated@1: {}` after a Directive block, then delete it. Original `pnpm_ok` returns True; the diagnostic narrow matcher returns False.\n\n**Failure mode:** A text-only regression can pass while section parsing still folds entries or hides non-Directive deletions inside an exempt Directive block.\n\n**Disposition consequence:** Keep A, but specify executable deposited-checker assertions, retaining byte equality as a separate delivery check. Cover both sections; inline Directive and non-Directive entries; unchanged-neighbor clean bumps; changed/deleted non-Directive entries; nested content; and colon-bearing keys. Reuse existing test infrastructure/corpus rather than creating another checker. Do not describe head-only non-Directive additions as newly forbidden: current freeze-except-additions deliberately allows them.\n\n## F3 — sharpens-framing — Name the parallel TS classifier's scope (P1/P3)\n\n**Evidence:** The pinned `hygiene.ts` matcher has the identical defect and participates in mixed-core/app content classification. Python/embed byte parity does not cover that implementation.\n\n**Failure mode:** Fixing only the deposited Python can leave local TypeScript classification rejecting the same clean upgrade that CI now accepts.\n\n**Disposition consequence:** Prefer applying the same boundary recognition and shared verdict cases to the TS counterpart. If this issue deliberately closes only deposited CI, explicitly record the TS residual rather than claiming the canonical upgrade path is repaired end to end. No new parser abstraction is required.\n\n## Road not taken\n\nA full YAML parser has the strongest general malformed-input story, but its deployment/dependency cost is not justified by this reproducible empty-map boundary defect. I would reconsider if supported pnpm output requires forms the narrow matcher cannot distinguish safely. Directive-only special-casing is weaker: the reproduced unrelated-inline deletion shows why every inline-empty section key needs its own boundary. Existing SoT/embed parity is the right P3 control; retain it.",
+          "id": 6020490929,
+          "html_url": "https://github.com/deftai/directive/issues/5384#issuecomment-6020490929",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:14:25Z",
+          "updated_at": "2026-10-06T16:14:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Round-1 open critique — Prefer-A draft 6020417070 vs Stop 1 P1–P3\n\nCharter: open critique. Pin-read at dispatch-sha `b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6`. Id ceiling honored (≤6020436672). No sibling critic reads.\n\n### Verified anchors (pin-read / local invoke of embed)\n\n- `packages/core/src/init-deposit/core-guard-pin-content.ts` → `pnpm_section_by_full_key` sole key match is `re.match(r\"^ {2}(\\S.*):\\s*$\", line)` (block-form only).\n- Twin embed `cmd/deft-install/core_guard_pin_content.embed` carries the same function/regex; existing test requires byte identity with `CORE_GUARD_PIN_CONTENT_PYTHON`.\n- `packages/core/src/init-deposit/hygiene.ts` → `pnpmNamedSectionByFullKey` uses the identical sole regex `^ {2}(\\S.*):\\s*$` and feeds `isPnpmLockDirectivePinFollowThrough` (packages + snapshots freeze-except-additions).\n- AC-8 in `core-guard-pin-content.test.ts` string-pins that sole regex plus four entry points + `freeze-except-additions`.\n- Existing `hygiene.test.ts` pnpm fixtures (basePnpm / Row1–3 / nested / file: key) use **block-form** empties (`key:\\n    {}`), which the sole regex already accepts — they cannot detect P1.\n- Local invoke of the pin-SHA embed against an issue-shaped snapshots corpus (block neighbour + inline `'…': {}` Directive and non-Directive empties): inline keys never appear in the section map; they append to the prior block; neighbour bodies diverge across a pin-only bump; `pnpm_ok` → False. Matches issue Observed.\n\n### Existing mechanisms (inventory before new ones)\n\nReuse, do not reinvent:\n\n1. `pnpm_section_by_full_key` / `pnpm_ok` in `CORE_GUARD_PIN_CONTENT_PYTHON` (deposited guard SoT).\n2. Byte-synced Go embed + `matches the Go embed byte-for-byte` test.\n3. TS mirror `pnpmNamedSectionByFullKey` + `isPnpmLockDirectivePinFollowThrough` in `hygiene.ts` (header: Python mirrors this path).\n4. AC-8 content string pins; four entry-point names; `freeze-except-additions` / `is_dir_key`.\n5. `hygiene.test.ts` full-key corpus (Row1 head-only ACCEPT, Row2 body FAIL, nested non-key, colon-bearing `file:` keys).\n\nPrefer-A Approach A extends (1) and updates (2)/(4); Bound text should also name (3)/(5).\n\n### Findings\n\n#### F1 — TS twin omitted from Bound limbs — `sharpens-framing`\n\n- **Evidence:** Prefer-A limbs 1/3/4 name only `CORE_GUARD_PIN_CONTENT_PYTHON` + embed + AC-8. Pin-read `hygiene.ts` `pnpmNamedSectionByFullKey` still has the sole block-form regex and is the Node oracle for the same freeze-except-additions rule. File header on the Python SoT says it mirrors `hygiene.ts` `isUpgradePinPathContentAllowed`.\n- **Failure mode:** Ship Python+embed only → deposited CI goes green while local/content-aware `isPnpmLockDirectivePinFollowThrough` still folds inline `{}` and false-rejects the same pin-only bump. Implementers can satisfy limb 3 via Python-only invoke and leave the TS corpus green on block-form fixtures.\n- **Disposition consequence:** Keep Approach A. Amend Bound limb 1 (and the regression limb) to co-change `pnpmNamedSectionByFullKey` and add the inline-neighbour fixture under the existing `hygiene.test.ts` corpus. Do not add a third parser.\n\n#### F2 — “Before first colon” parenthetical is not equivalent — `sharpens-framing`\n\n- **Evidence:** Limb 1 offers dual regexes **or** “one equivalent 2-space key parse that takes the key before the first colon and allows optional trailing `{}`.” Pin-read hygiene test “colon-bearing full keys stay in the freeze map (#5245 Greptile P1)” requires keys such as `'local-pkg@file:../local-pkg'` to remain whole identities. First-colon split truncates at `file:`.\n- **Failure mode:** An implementer treats the parenthetical as the chosen shape, passes an inline-`{}` happy path, and re-breaks the colon-bearing freeze map / P2 nested-key discipline.\n- **Disposition consequence:** Drop or rewrite that parenthetical. Keep the dual-regex form (block `:\\s*$` plus inline `:\\s*\\{\\}\\s*$` with `\\S.*` / non-greedy key capture that still lands the delimiter colon before `{}`), or any parse that preserves colon-bearing keys. Dual-regex is enough for P1 and is the safer P2 answer than Approach B’s broader key grammar.\n\n#### F3 — Fixture shape must be the issue’s inline form — `footnote`\n\n- **Evidence:** Current Row fixtures use block-form `key:\\n    {}` (accepted today). Prefer-A limb 3 already asks for inline `{}` beside a block-form neighbour plus a non-Directive neighbour-body FAIL case.\n- **Failure mode:** A “regression” that only restates block-form empties stays blind to P1 (same miss class as today’s corpus).\n- **Disposition consequence:** No design change. When binding, require the ACCEPT case to use single-line `: {}` keys (Directive and at least one non-Directive empty neighbour) adjacent to a multi-line block neighbour, matching the issue BASE/HEAD capture.\n\n### Pain relief map (draft as written, after F1–F2)\n\n| Pain | Relieved by Prefer-A Approach A? | Note |\n|------|----------------------------------|------|\n| P1 | Yes | Dual-regex / inline-empty recognition stops the fold; repro confirms the sole regex is the defect. |\n| P2 | Yes, if F2 applied | Scoped trailing-`{}` match avoids treating nested 4-space lines as keys; discard first-colon alternative. Limb 2 keeps freeze-except-additions. |\n| P3 | Yes | Limbs 1/4/5 put the lasting fix in deposit SoT + embed sync; reject consumer workflow PATCH. F1 is mirror-completeness on the existing TS twin, not a substitute lasting fix. |\n\n### Verdict\n\nPrefer-A Approach A (recognize inline-empty keys; keep freeze-except-additions; regression; SoT+embed; update AC-8; reject B-without-fixture / C-must / D-only / consumer PATCH / drop freeze) **survives** open critique for bind after Bound text absorbs F1 and F2.\n\n- **blocks-the-design:** none\n- **sharpens-framing:** F1 (name+test TS twin), F2 (drop first-colon parenthetical)\n- **footnote:** F3 (fixture must be truly inline)\n\n### Road-not-taken / steelman\n\nChose not to elevate Approach B (broader `[^']+|\\S+` key parse) or C (real YAML library) as musts for this residual. Steelman B: one grammar could cover non-empty single-line maps too. What would flip: evidence that pnpm lock v9 commonly emits non-empty inline package/snapshot maps that also fold under the sole regex and break pin-only upgrades. Issue capture and empty `@deftai/directive-content`/`-types` snapshots are specifically `: {}`; Prefer-A’s scoped fix matches that with lower P2 surface than B.\n\nInjection/swarm lens: N/A — parser/deposit SoT residual; no envelope, identity, or shared-state authority change.\n\n",
+          "id": 6020518802,
+          "html_url": "https://github.com/deftai/directive/issues/5384#issuecomment-6020518802",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:16:00Z",
+          "updated_at": "2026-10-06T16:16:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5[1m]\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Round-1 critic — open critique of Prefer-A draft 6020417070 vs Stop 1 pains P1–P3\n\nCharter: open critique. Verification: pin-read at `b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6`, plus a local execution of the pinned embed against synthetic locks (the parser is plain Python; line cites alone would be claims). Every behavioural statement below is from that run, not from reading.\n\n**Repro at the pin** (embed extracted from `cmd/deft-install/core_guard_pin_content.embed`, driver tail stripped, `pnpm_ok` called directly):\n\n```\npnpm_ok(base, head pin-only)        = False      <- P1 reproduced\n  only_dir_importer_diff            = True       <- importer oracle is clean\n  base snapshot keys seen by parser = ['@csstools/css-syntax-patches-for-csstree@1.1.9(css-tree@3.2.1)']\n```\n\nThat second line is the finding the draft does not have. The parser does not see **one** folded key — on a section whose entries are mostly inline `{}`, it sees **one key total**. The css-tokenizer entry, the `@deftai/directive-content` entry and `left-pad@1.3.0: {}` all collapse into the first block-form key's body. P1's prose (\"fold into the previous block\") is accurate but undersells the blast radius: in a real lockfile the `snapshots:` freeze is not a per-key comparison at all, it is a handful of giant text blobs.\n\nMechanism inventory first, since the envelope asks: **Prefer-A needs zero new mechanisms, and correctly proposes none.** Byte-sync for P3 is already enforced on both sides — `core-guard-pin-content.test.ts:12` (`expect(CORE_GUARD_PIN_CONTENT_PYTHON).toBe(goEmbed)`) and `cmd/deft-install/deposit_test.go:659`. A behavioural rail already exists and is already exercised: `isPnpmLockDirectivePinFollowThrough` / `isUpgradePinPathContentAllowed` (`hygiene.ts:801`), tested at `hygiene.test.ts:794-801` and `:2325`. `unq` / `pnpmUnquote` and the importer oracle exist. So P3 needs an editing-discipline AC (\"both files in one PR\"), not a new sync check — limb 1's parenthetical already implies this, and limb 5 is right to refuse a YAML dependency.\n\n---\n\n### F1 — blocks-the-design: the fold bug is load-bearing, and Prefer-A retires it without replacing what it was holding up\n\n**Evidence.** Same harness, head additionally gains one unrelated dependency-free transitive package (`  sneaky-app-dep@2.0.0: {}`) alongside the Directive bump; importers untouched:\n\n```\nPRE-FIX  pnpm_ok = False     <- rejected today\nPOST-FIX pnpm_ok = True      <- accepted after Approach A\nPOST-FIX base snapshot keys  = 4 keys (was 1)\n```\n\nPOST-FIX here is the draft's own limb 1 — inline-empty alternative added, everything else per limb 2.\n\n**Failure mode.** `pnpm_ok` iterates base keys only (`for key in bp:`; head-only keys are never examined) — that is #5245's deliberate freeze-**except-additions**. Today the snapshot fold accidentally defeats it: a head-only inline `{}` entry lands inside an existing base key's body, the body compares unequal, and the PR goes red. Fix the keys and that accident disappears. A PR that bumps Directive *and* carries an unrelated lock-only transitive addition goes from red to green on `no-mixed-core-and-app` — the exact mix the check is named for. The importer oracle does not cover it; a transitive addition touches no importer.\n\nThis is not a regression against #5245's *intent* — `packages:` already permitted block-form additions. It is the retirement of the only thing currently enforcing that promise for lock-only churn, delivered silently as a side effect of a parser fix. The fix is simultaneously a tightening (4 real keys compared instead of 1 blob) and a loosening (additions now genuinely free). Both directions are real; the draft names neither.\n\n**Disposition consequence.** Limb 2 (\"unrelated snapshot/package body churn must still fail\") and limb 3's fixture (\"a non-Directive **neighbour body change** → False\") are both satisfiable while this is live — a neighbour *body* change still fails post-fix, so that fixture goes green and reads as proof that mixed churn is still caught. It is not proof. An AC set shipped as drafted lets the panel close #5384 believing the guard is unchanged in strength.\n\n**Ask (in-cap).** Add one AC that pins the *post-fix verdict* for a head-only non-Directive inline-`{}` addition, and state in the issue which verdict is intended. I recommend accepting the loosening explicitly — it restores #5245's declared semantics, and the alternative (auditing head-only keys against a Directive dependency closure) is a different design with its own blast radius. Record it in the CHANGELOG entry as a behaviour change, not a bugfix-only line. Closure-auditing of head-only keys belongs in a separate issue, not bundled into this residual.\n\n---\n\n### F2 — blocks-the-design: the remedy surface omits the TS rail, and the draft has the SoT direction inverted\n\n**Evidence.** `hygiene.ts:691` carries the byte-identical defect, inside `pnpmNamedSectionByFullKey`:\n\n```ts\nconst keyMatch = line.match(/^ {2}(\\S.*):\\s*$/);\n```\n\nIt is reached by `isPnpmLockDirectivePinFollowThrough` → `isUpgradePinPathContentAllowed` (`hygiene.ts:801`) → `classifyMixedCoreAndAppContentAware` (`hygiene.ts:908`). And the Python SoT's own header, line 10 of the pinned file, reads:\n\n```\n# Mirrors packages/core/src/init-deposit/hygiene.ts isUpgradePinPathContentAllowed.\n```\n\nLimbs 1-4 name `CORE_GUARD_PIN_CONTENT_PYTHON`, the `.embed` twin, and the AC-8 string assertion. The thing the Python declares itself a mirror *of* is not named anywhere in the draft.\n\n**Failure mode.** Fix the mirror only and the deposited workflow goes green while the in-process TS classifier still folds — same false reject, different surface. Worse, the drift direction is now wrong: the next change regenerated from `hygiene.ts` re-introduces the fold into the Python, and the byte-sync tests will not notice, because they compare TS-embed to Go-embed, not either to `hygiene.ts`.\n\n**Disposition consequence.** \"Lands in the deposit SoT so every consumer gets it on update\" (draft, In plain English) is true and insufficient. The AC must name `pnpmNamedSectionByFullKey` as a co-edited surface, or the issue can be closed with the defect live on the TS rail.\n\n---\n\n### F3 — blocks-the-design: limb 3's \"string/byte **or** local Python invoke\" admits a fixture that cannot fail for the right reason\n\n**Evidence.** Every existing assertion in `core-guard-pin-content.test.ts` is a string assertion (`toContain` / `toBe` on the embed). Nothing in the repo executes the embedded Python. So the \"string/byte\" half of limb 3's disjunction resolves to *asserting the new regex literal is present* — satisfiable by a regex that is wrong, and it reproduces nothing.\n\nSharper: limb 4 is **inert as written**. The AC-8 pin is\n\n```ts\nexpect(CORE_GUARD_PIN_CONTENT_PYTHON).toContain(String.raw`^ {2}(\\S.*):\\s*$`);  // :39\n```\n\nand that literal appears **twice** in the pinned SoT — `:192` (`pnpm_importer_deps`, importer key) and `:258` (`pnpm_section_by_full_key`, section key). Mirrored at `hygiene.ts:592` / `:691` and embed `:185` / `:251`. Fix the section parser at `:258`, leave `:192` alone, and the AC-8 assertion **still passes unchanged**. Limb 4 describes updating an assertion that would not have gone red in the first place. There is currently no test anywhere that fails if the section parser is left unfixed.\n\n**Failure mode.** The residual lands, every gate is green, and nothing in CI distinguishes \"fixed\" from \"regex literal edited\". A later refactor silently reverts it.\n\n**Disposition consequence.** Strike the disjunction. The regression AC should be behavioural on the TS rail — F2 makes that free: `isUpgradePinPathContentAllowed(\"pnpm-lock.yaml\", base, head)` with an inline-`{}` Directive snapshot next to a block-form neighbour, asserting `true`; plus the F1 addition case asserting whichever verdict is chosen. Keep the Python honest via the existing byte-sync pair. Retain a string pin on the Python only as a cheap SoT-drift tripwire, and make it specific enough to distinguish the two call sites — the current one cannot.\n\n---\n\n### F4 — sharpens-framing: strike limb 1's \"takes the key before the first colon\" parenthetical\n\n**Evidence.** `hygiene.ts:690` carries a comment written precisely about this:\n\n```\n// `\\S.*` keeps colon-bearing keys (e.g. 'pkg@file:../pkg') in the full-key map.\n```\n\nMeasured on the same harness, for a section holding two `file:` entries that share a package name:\n\n```\ngreedy inline form  -> ['ts-node@file:../a', 'ts-node@file:../b']\nfirst-colon parse   -> {\"'ts-node@file\": 2}     <- two entries collapse to one\n```\n\n**Failure mode.** Two distinct entries map to one key; the later overwrites the earlier, and a body change in the overwritten one is invisible to `pnpm_ok` — a false accept, the class the guard exists to stop. Narrow (needs a monorepo with two `file:` specifiers sharing a name) but it silently undoes a decision #5245 made on purpose and documented in-tree.\n\nApproach B's `^ {2}(?P<key>'[^']+'|\\S+):` survives this — greedy `\\S+` backtracks correctly — but it drops the `\\s*$` anchor, so it is a strictly worse shape for no gain. P2 names this family in the abstract; the concrete instance is the parenthetical sitting *inside* the preferred limb as an equal-status alternative, which is where an implementer will actually reach for it.\n\n**Disposition consequence.** Keep the issue's two anchored alternatives verbatim and delete the \"or one equivalent … first colon\" escape hatch from limb 1. One line of AC text.\n\nOne correction to the issue's own Expected, so a reviewer does not flag it as a second bug: it writes the inline alternative with a lazy quantifier, `^ {2}(\\S.*?):\\s*\\{\\}\\s*$`. I checked — the required trailing `\\{\\}\\s*$` forces backtracking to the same answer, so lazy and greedy are equivalent here. The issue text is not wrong.\n\n### F5 — footnote: apply the fix as a shared key form, not a one-call-site patch\n\n`pnpm_importer_deps` (`:192`) and `pnpmLockImporterDeps` (`hygiene.ts:592`) use the same regex for importer keys. An importer with no dependencies serialises as `  packages/empty: {}` and is not recognised — but it has no following body lines to misattribute, and the next importer key re-anchors `cur_imp`, so practical impact is nil. Not a defect. Raised because F3 shows the two call sites are indistinguishable to the current AC: whatever shape is chosen should be applied to both (or factored once) so the string pin can be made site-specific and the next reader is not left guessing which of `:192` / `:258` the regex belongs to.\n\n### F6 — footnote: limb 5's \"no full YAML library\" is correct and under-argued\n\nThe deposited guard runs on an arbitrary consumer runner with `python3` and no pip install. A YAML dependency is not available, not merely heavy. Worth stating as the reason rather than as blast-radius preference — availability is a harder floor than weight, and it forecloses Approach C cleanly.\n\n---\n\n## Net\n\nApproach A is the right branch, and the four rejections at the foot of the draft are all correct. The draft is not yet dispositive: as written it fixes P1 on one of two surfaces (F2), ships an AC set in which no test fails if the fix is absent (F3), and trades away the guard's only current protection against mixed lock-only churn without saying so (F1). F1 is the one that should move the issue text, not just the AC list — the panel needs to decide and record whether the loosening is accepted, because the drafted fixture will read as evidence that it did not happen.\n\nMinimal edit to make the draft dispositive, all in-cap:\n\n1. Limb 1: add `pnpmNamedSectionByFullKey` (`hygiene.ts:691`) as a co-edited surface; delete the first-colon parenthetical.\n2. Limb 3: drop the `string/byte or` disjunction; make the regression behavioural on `isUpgradePinPathContentAllowed`; add the head-only inline-`{}` addition case with an explicitly chosen verdict.\n3. Limb 4: either make the string pin distinguish `:192` from `:258`, or demote it — it is currently inert.\n4. Issue body: record the addition-case verdict as a deliberate behaviour change.\n\nspend-recommend: N≥3 (unchanged; F1 is a design decision for the panel, not a drafting fix)\n\n",
+          "id": 6020587856,
+          "html_url": "https://github.com/deftai/directive/issues/5384#issuecomment-6020587856",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:19:49Z",
+          "updated_at": "2026-10-06T16:19:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nTarget-digest: sha256:1f0080f5807a59b7b82bb7307bfb9f89cc5a14c8cf74c6a19e3af8f00c672e46\ncritics: 6020490929, 6020518802, 6020587856\nStop 1: 6020421728\nPrefer-A draft: 6020417070\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\nconflict_group: pnpm-inline-empty-section-keys\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## In plain English\n\nThe upgrade guard’s pnpm lockfile parser only recognized package keys that end with a bare colon. Empty one-line entries like `'@deftai/directive-content@0.121.0': {}` never started their own key, so they stuck to the package above them and made a clean Directive-only bump look mixed. Prefer-A Bound teaches both the deposited Python parser and its TypeScript twin to recognize those inline empty keys, keeps the pin-only freeze rule (including its deliberate “new head-only keys are allowed” half), and proves the fix with real checker calls rather than a regex string that can stay green while the bug remains.\n\n## Bound remedy\n\n1. Co-edit `pnpm_section_by_full_key` in `CORE_GUARD_PIN_CONTENT_PYTHON` (`packages/core/src/init-deposit/core-guard-pin-content.ts`, byte-synced to `cmd/deft-install/core_guard_pin_content.embed`) **and** `pnpmNamedSectionByFullKey` in `packages/core/src/init-deposit/hygiene.ts` so both recognize block-form keys `^ {2}(\\S.*):\\s*$` **and** inline-empty keys `^ {2}(\\S.*?):\\s*\\{\\}\\s*$` (or the greedy equivalent with the same trailing `\\{\\}\\s*$` anchor). Delete the draft’s “key before the first colon” parenthetical — it truncates colon-bearing `file:` identities (#5245). Do not adopt Approach B’s unanchored broader key grammar for this residual.\n\n2. Keep full-key freeze-except-additions and `is_dir_key` filtering unchanged on both rails: non-Directive **base** keys must still match head bodies; nested 4-space content must not become keys; importer oracle stays separate. Explicitly accept #5245’s declared head-only addition semantics: after the parser fix, a head-only non-Directive inline-`{}` addition alongside a Directive pin bump is **allowed** (`pnpm_ok` / `isUpgradePinPathContentAllowed` True). Record that restoration in CHANGELOG as a behaviour clarification (pre-fix fold accidentally rejected those additions). Do not bundle head-only closure auditing into this issue.\n\n3. Regression coverage MUST be behavioural on the TS rail via `isUpgradePinPathContentAllowed(\"pnpm-lock.yaml\", base, head)` / existing `hygiene.test.ts` corpus, using true inline `: {}` forms (not block-form empties). Required cases at minimum:\n   - pin-only Directive bump with inline `@deftai/directive-content`/`-types` next to an unchanged block-form neighbour → True\n   - same neighbour body change → False\n   - head-only non-Directive inline-`{}` addition with Directive bump → True (limb 2 verdict)\n   - non-Directive inline-`{}` deletion / changed body → False\n   - colon-bearing `file:` full keys remain distinct identities under the new matchers\n   Cover both `packages` and `snapshots`. Keep Python/embed honesty via the existing byte-sync pair; do not rely on “string/byte or local Python invoke” as the sole regression.\n\n4. Replace the inert AC-8 sole-regex `toContain` with a site-distinguishing pin (or demote it to a cheap tripwire that cannot be satisfied by the importer-key copy alone). The behavioural cases in limb 3 are the fail-closed proof that the section parser changed.\n\n5. No lasting consumer-local edit of deposited `deft-core-guard.yml`; no weakening of package/lock co-travel beyond the explicit limb-2 addition clarification; no YAML library dependency (consumer runners have `python3` without pip).\n\n## Take map\n\n| Critic | Finding | Take |\n| --- | --- | --- |\n| Codex 6020490929 F1 blocks | Drop first-colon equivalence | Accept — Bound limb 1 |\n| Codex F2 sharpens | Behavioural deposited/TS coverage | Accept — Bound limb 3 |\n| Codex F3 sharpens | Name TS twin scope | Accept — Bound limb 1 co-edit |\n| Grok 6020518802 F1 sharpens | Co-fix hygiene.ts twin | Accept — Bound limb 1 |\n| Grok F2 sharpens | Drop first-colon parenthetical | Accept — Bound limb 1 |\n| Grok F3 footnote | True inline fixture shape | Accept — Bound limb 3 |\n| Claude 6020587856 F1 blocks | Record head-only addition verdict | Accept — Bound limb 2 + CHANGELOG |\n| Claude F2 blocks | Co-edit TS rail / SoT direction | Accept — Bound limb 1 |\n| Claude F3 blocks | Behavioural AC; AC-8 inert | Accept — Bound limbs 3–4 |\n| Claude F4 sharpens | Strike first-colon | Accept — Bound limb 1 |\n| Claude F5–F6 footnotes | Shared key form / YAML floor | Accept as footnotes (optional shared helper; YAML refuse stays) |\n\nReject: B-without-fixture, C-as-must-for-this-residual, D-only, consumer workflow PATCH as lasting fix, drop freeze-except-additions, first-colon key parse, string-only regression as sole proof, closing without naming the TS twin.\r\n\n",
+          "id": 6020604396,
+          "html_url": "https://github.com/deftai/directive/issues/5384#issuecomment-6020604396",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:20:47Z",
+          "updated_at": "2026-10-06T16:20:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Pain-audit — Prefer-A Bound 6020604396 vs Stop 1 6020421728 (P1–P3)\n\nCharter: open critique. Verification: pin-read `git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:` at dest `C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5384` (HEAD equals dispatch-sha). Id ceiling ≤6020604396 honored. Round-1 critics read: 6020490929 (codex), 6020518802 (grok), 6020587856 (claude). No product edits.\n\n### Pin-read anchors that still hold\n\n- `pnpm_section_by_full_key` in `CORE_GUARD_PIN_CONTENT_PYTHON` (`packages/core/src/init-deposit/core-guard-pin-content.ts`) still matches only `^ {2}(\\S.*):\\s*$` (block-form bare colon).\n- Twin `pnpmNamedSectionByFullKey` in `packages/core/src/init-deposit/hygiene.ts` uses the identical sole regex and feeds `isPnpmLockDirectivePinFollowThrough` → `isUpgradePinPathContentAllowed`.\n- Embed `cmd/deft-install/core_guard_pin_content.embed` carries the same bare-colon form (two call sites: importer + section).\n- AC-8 in `core-guard-pin-content.test.ts` is a `toContain` of that sole regex; the literal appears at both call sites, so the pin cannot fail if only the section matcher stays unfixed.\n- Existing `hygiene.test.ts` Row fixtures use block-form empties (`key:\\n    {}`), which the sole regex already accepts — they cannot detect P1.\n- `pnpm_ok` / freeze-except-additions iterates non-Directive **base** keys only; head-only keys are already permitted by design (#5245).\n\n### Pain relief\n\n| Pain | Bound limb(s) | Verdict |\n| --- | --- | --- |\n| P1 | 1 + 3 | **Relieved.** Dual-regex adds end-anchored inline-empty `^ {2}(\\S.*?):\\s*\\{\\}\\s*$` (or greedy equivalent with the same trailing `\\{\\}\\s*$`) on both Python SoT and TS twin; behavioural ACCEPT requires true single-line `: {}` Directive next to an unchanged block-form neighbour via `isUpgradePinPathContentAllowed`. That is the fold Stop 1 names. |\n| P2 | 1 + 2 + 3 | **Relieved.** Bound keeps exact `^ {2}` anchors, rejects Approach B’s unanchored broader key grammar, and deletes the draft’s first-colon parenthetical (would truncate `file:` identities — Codex F1 / Grok F2 / Claude F4). Limb 2 keeps freeze-except-additions + `is_dir_key`; nested 4-space must not become keys. Limb 3 requires colon-bearing `file:` keys to remain distinct and non-Directive body change / deletion → False. |\n| P3 | 1 + 4 + 5 | **Relieved.** Lasting edit lands in `CORE_GUARD_PIN_CONTENT_PYTHON` with embed byte-sync; limb 5 refuses consumer-local `deft-core-guard.yml` PATCH and YAML-library dependency. TS twin co-edit is mirror-completeness on the path the Python header already claims to mirror, not a substitute lasting deposit fix. Limb 4 replaces the inert sole-regex AC-8 with a site-distinguishing pin or demotes it; behavioural cases are the fail-closed proof. |\n\n### Round-1 take absorption (no leftover harvest)\n\nBound take map already folds the round-1 blocks into limbs: first-colon strike (limb 1), TS twin co-edit (limb 1), behavioural AC + AC-8 inert repair (limbs 3–4), and explicit head-only non-Directive inline-`{}` addition → True with CHANGELOG clarification restoring #5245 addition semantics (limb 2). Claude F5–F6 stay footnotes (optional shared key helper; YAML refuse as availability floor). No residual finding requires a Bound limb rewrite.\n\n### Disposition\n\nAsserted coverage holds. Prefer-A Bound 6020604396 is **bindable-as-posted** for P1–P3.\n\nsupport: P1, P2, P3",
+          "id": 6020640208,
+          "html_url": "https://github.com/deftai/directive/issues/5384#issuecomment-6020640208",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:22:50Z",
+          "updated_at": "2026-10-06T16:22:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nrecorded takes for audit 6020640208\n\nfinding-classes: none; harvest-changed: false — bindable-as-posted. No Bound rewrite. Proceed to verified-claims table and synthesis.\r\n\n",
+          "id": 6020650242,
+          "html_url": "https://github.com/deftai/directive/issues/5384#issuecomment-6020650242",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:23:25Z",
+          "updated_at": "2026-10-06T16:23:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n| --- | --- | --- |\n| `pnpm_section_by_full_key` sole key match is bare-colon `^ {2}(\\S.*):\\s*$` and folds inline `: {}` into the prior block | pin-read `core-guard-pin-content.ts` at b6a5f5bee; Stop 1 P1; critics 6020490929 / 6020518802 / 6020587856 local embed repros | verified |\n| TS twin `pnpmNamedSectionByFullKey` in `hygiene.ts` carries the identical sole regex and feeds `isPnpmLockDirectivePinFollowThrough` | pin-read hygiene.ts; Python SoT header mirrors that path; critics F1/F2/F3 | verified |\n| First-colon key parse truncates colon-bearing `file:` identities | pin-read #5245 hygiene comment / colon-bearing fixture; Codex F1; Claude F4; Grok F2 | verified |\n| Freeze-except-additions compares non-Directive **base** keys only; head-only keys are allowed by design | pin-read `pnpm_ok` `for key in bp`; Claude F1; Codex F2 | verified |\n| AC-8 sole-regex `toContain` is inert against a section-only fix because the importer site keeps the same literal | pin-read core-guard-pin-content.test.ts AC-8; Claude F3 | verified |\n| Prefer-A Bound 6020604396 absorbs Round-1 blocks into limbs 1–4 and relieves P1–P3 | pain-audit 6020640208 finding-classes:none harvest-changed:false | verified |\r\n\n",
+          "id": 6020650641,
+          "html_url": "https://github.com/deftai/directive/issues/5384#issuecomment-6020650641",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:23:26Z",
+          "updated_at": "2026-10-06T16:23:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound relieves P1–P3 with co-edited Python SoT + TS twin inline-empty key recognition, first-colon strike, behavioural TS regression cases including the explicit head-only addition verdict, and site-aware AC pins; pain-audit finding-classes none and harvest-changed false; verified-claims table corroborates pin-read anchors.\n\n## In plain English\n\nUpgrade PRs that only bump Directive were getting a false red from the core-guard because empty one-line lockfile entries were glued onto the wrong package. The accepted Bound fixes both the deposited Python parser and the matching TypeScript checker, keeps the pin-only freeze rule (including allowing new head-only keys the way #5245 already said), and proves it with real checker tests instead of a regex string that could stay green while the bug remained. Ingest stays a later separate verb.\n\nCited: successor lean 6020604396\nCited: verified-claims table 6020650641\npain-audit: 6020640208\ntakes: 6020650242\nStop 1: 6020421728\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\r\n\n",
+          "id": 6020653710,
+          "html_url": "https://github.com/deftai/directive/issues/5384#issuecomment-6020653710",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:23:37Z",
+          "updated_at": "2026-10-06T16:23:37Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5716185057,
+        "origin": "deftai/directive#5384",
+        "id": "github.issue.5716185057"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "1f0080f5807a59b7b82bb7307bfb9f89cc5a14c8cf74c6a19e3af8f00c672e46"
+      },
+      "productPullRequest": 5429,
+      "productMergeCommit": "46f4e93e0925cf4f8a6bc20ab4eee1c1bc5db442",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-06T21:30:50.591Z"
+      },
+      "completedAt": "2026-10-06T21:30:50.591Z",
+      "completionProvenance": {
+        "productMerge": "46f4e93e0",
+        "productPr": 5429,
+        "disposition": "delivered",
+        "verifier": "approach1-leftover-stamp-residual",
+        "recorded_at": "2026-10-06T21:30:50.591Z"
+      }
+    },
+    "acceptance": {
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Co-edit pnpm_section_by_full_key (Python SoT) and TS twin to recognize inline-empty full keys; preserve full package keys; strike first-colon equivalence.",
+          "artifact_path": "packages/core/src/init-deposit/core-guard-pin-content.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "Keep full-key freeze-except-additions; after parser fix, head-only non-Directive inline-{} addition alongside Directive pin bump is allowed; CHANGELOG clarifies.",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "Behavioural regression via isUpgradePinPathContentAllowed with true inline : {} fixtures covering pin-only bump, neighbour body change, head-only addition, deletion, file: keys.",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.test.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Replace inert AC-8 sole-regex toContain with site-distinguishing pin so behavioural cases prove the section parser changed.",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.test.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ],
+      "x-directive/admitted_source_sentences": [
+        "Co-edit pnpm_section_by_full_key (Python SoT) and TS twin to recognize inline-empty full keys; preserve full package keys; strike first-colon equivalence.",
+        "Keep full-key freeze-except-additions; after parser fix, head-only non-Directive inline-{} addition alongside Directive pin bump is allowed; CHANGELOG clarifies.",
+        "Behavioural regression via isUpgradePinPathContentAllowed with true inline : {} fixtures covering pin-only bump, neighbour body change, head-only addition, deletion, file: keys.",
+        "Replace inert AC-8 sole-regex toContain with site-distinguishing pin so behavioural cases prove the section parser changed."
+      ]
+    },
+    "id": "github.issue.5716185057",
+    "updated": "2026-10-06T21:30:50.591Z"
+  }
+}
