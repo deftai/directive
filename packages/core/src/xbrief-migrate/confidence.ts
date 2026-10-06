@@ -140,7 +140,11 @@ function migrateAtomicTempPath(targetPath: string): string {
 }
 
 /** Contained temp+rename so a failed replace cannot truncate the live brief. */
-function containedReplaceAtomic(root: string, target: string, data: string): void {
+function containedReplaceAtomic(
+  root: string,
+  target: string,
+  data: string,
+): { ok: true } | { ok: false } {
   const temporary = migrateAtomicTempPath(target);
   let preservedMode: number | undefined;
   try {
@@ -176,13 +180,14 @@ function containedReplaceAtomic(root: string, target: string, data: string): voi
       containedChmod({ root, target, mode: preservedMode, mutation: false });
     }
     fsyncContainedDirectory(dirname(target));
-  } catch (err) {
+    return { ok: true };
+  } catch {
     try {
       containedRemove({ root, target: temporary, mutation: false });
     } catch {
       /* best-effort temp cleanup */
     }
-    throw err;
+    return { ok: false };
   }
 }
 
@@ -299,10 +304,10 @@ export function migrateConfidenceCorpus(
     if (decision.residual.length > 0) {
       narratives.ConfidenceNote = decision.residual;
     }
-    try {
-      containedReplaceAtomic(root, file, `${JSON.stringify(parsed, null, 2)}\n`);
+    const replaced = containedReplaceAtomic(root, file, `${JSON.stringify(parsed, null, 2)}\n`);
+    if (replaced.ok) {
       changed.push(relPath);
-    } catch {
+    } else {
       declined.push({
         path: relPath,
         from: decision.from,

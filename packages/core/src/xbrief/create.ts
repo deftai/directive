@@ -270,11 +270,9 @@ export function createXbrief(options: CreateOptions): XbriefCliResult {
   // Writers MUST emit high|medium|low; lenient validate WARNs do not authorize create (#5385).
   const narratives = (doc as { plan?: { narratives?: Record<string, unknown> } }).plan?.narratives;
   if (narratives !== undefined && "Confidence" in narratives) {
-    try {
-      requireCanonicalConfidence(narratives.Confidence);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return fail(`xbrief:create refused: ${msg}\n`, 1);
+    const required = requireCanonicalConfidence(narratives.Confidence);
+    if (!required.ok) {
+      return fail(`xbrief:create refused: ${required.error}\n`, 1);
     }
   }
 

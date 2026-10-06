@@ -80,8 +80,11 @@ describe("Plan.narratives source provenance (#479)", () => {
   });
 
   it("requireCanonicalConfidence admits only high|medium|low for writers", () => {
-    expect(requireCanonicalConfidence("high")).toBe("high");
-    expect(() => requireCanonicalConfidence("High. prose")).toThrow(/MUST emit/);
+    expect(requireCanonicalConfidence("high")).toEqual({ ok: true, value: "high" });
+    expect(requireCanonicalConfidence("High. prose")).toEqual({
+      ok: false,
+      error: expect.stringMatching(/MUST emit/),
+    });
   });
 
   it("extractLeadingConfidenceToken maps unambiguous prose and declines ambiguous", () => {

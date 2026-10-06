@@ -52,14 +52,17 @@ export function isCanonicalConfidence(value: unknown): value is ConfidenceValue 
   return typeof value === "string" && CONFIDENCE_SET.has(value);
 }
 
-/** Writers MUST emit only high|medium|low (#5385). */
-export function requireCanonicalConfidence(value: unknown): ConfidenceValue {
+/** Writers MUST emit only high|medium|low (#5385). Returned failure — no throw. */
+export function requireCanonicalConfidence(
+  value: unknown,
+): { ok: true; value: ConfidenceValue } | { ok: false; error: string } {
   if (!isCanonicalConfidence(value)) {
-    throw new Error(
-      `plan.narratives.Confidence writers MUST emit one of ${CONFIDENCE_VALUES.join(", ")}`,
-    );
+    return {
+      ok: false,
+      error: `plan.narratives.Confidence writers MUST emit one of ${CONFIDENCE_VALUES.join(", ")}`,
+    };
   }
-  return value;
+  return { ok: true, value };
 }
 
 /**
