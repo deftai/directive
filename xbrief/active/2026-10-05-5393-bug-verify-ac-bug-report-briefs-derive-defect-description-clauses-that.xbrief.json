@@ -1,0 +1,120 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "bug(verify-ac): bug-report briefs derive defect-description clauses that cannot verify after the fix, so scope:complete has no exit for shipped work",
+    "updated": "2026-10-05T22:36:34.680Z"
+  },
+  "plan": {
+    "id": "github.issue.5717884039",
+    "title": "bug(verify-ac): bug-report briefs derive defect-description clauses that cannot verify after the fix, so scope:complete has no exit for shipped work",
+    "status": "running",
+    "items": [
+      {
+        "id": "1",
+        "title": "Defect-description source_kind + adjudicable:false on polarity miss",
+        "status": "pending"
+      },
+      {
+        "id": "2",
+        "title": "Prefer Done-when / must / checklist over defect paste in derivation",
+        "status": "pending"
+      },
+      {
+        "id": "3",
+        "title": "Honest remedies on clause-walk-failed with merge+pr",
+        "status": "pending"
+      },
+      {
+        "id": "4",
+        "title": "Tests + docs + CHANGELOG",
+        "status": "pending"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound lean 6002768585; cohort-add hand-stamp",
+      "commands": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Round-trip source_kind defect-description; token-present must not credit verified for defect claims; polarity miss adjudicable:false.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "Acceptance-shaped Done-when preference in #4867 ladder; no auto-confession of defect text as happy-path relief (#5055).",
+          "artifact_path": "packages/core/src/verify-ac/clauses.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "When --merge-commit + --pr and fails are defect-polarity, name stampable npm run check / npm test; do not claim disposition clears walk; keep #5120/#5106 write-before-refuse.",
+          "artifact_path": "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Intake->Done-when + defect source_kind fixtures; remedy string fixtures; CHANGELOG Unreleased; conflict_group bug-report-clause-complete-exit.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5717884039,
+        "origin": "deftai/directive#5393",
+        "id": "github.issue.5717884039"
+      },
+      "preferABound": {
+        "lean": 6002768585,
+        "conflict_group": "bug-report-clause-complete-exit"
+      },
+      "swarm": {
+        "conflict_group": "bug-report-clause-complete-exit",
+        "size": "M",
+        "file_scope": [
+          "packages/core/src/verify-ac/clauses.ts",
+          "packages/core/src/verify-ac/clauses.test.ts",
+          "packages/core/src/verify-ac/index.ts",
+          "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
+          "packages/core/src/product-first-done-gate/acceptance-resolver.test.ts",
+          "packages/core/src/product-first-done-gate/index.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "Prefer-A Bound land"
+        ],
+        "depends_on": [],
+        "file_scope_confidence": "high",
+        "model_tier": "default"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5393",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5393: bug(verify-ac): bug-report briefs derive defect-description clauses that cannot verify after the fix, so scope:complete has no exit for shipped work"
+      }
+    ],
+    "tags": [
+      "prefer-a",
+      "cohort"
+    ],
+    "narratives": {
+      "overview": "bug(verify-ac): bug-report briefs derive defect-description clauses that cannot verify after the fix, so scope:complete has no exit for shipped work"
+    },
+    "updated": "2026-10-05T22:36:34.680Z"
+  }
+}

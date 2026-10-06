@@ -123,8 +123,15 @@ const NON_PRODUCT_BASENAMES = new Set([
   "README.md",
   "LICENSE",
   "CHANGELOG.md",
-  // Greenfield smoke docs-impact body fixtures (not product source). Keeps
-  // Class-1-safe smoke green when Overview lives only on the selected PD.
+]);
+
+/**
+ * Greenfield smoke docs-impact body fixtures live only at the consumer root.
+ * Exact root paths stay Process-only so smoke stays Class-1-safe without an
+ * Overview seed in greenfield-python-free-smoke.ts; nested paths such as
+ * `src/docs-impact-valid.md` remain product evidence (#4544 Greptile P1).
+ */
+const ROOT_ONLY_NON_PRODUCT_PATHS = new Set([
   "docs-impact-invalid.md",
   "docs-impact-valid.md",
 ]);
@@ -141,6 +148,7 @@ function toPosixRel(rel: string): string {
 export function isNonProductMutationPath(relPath: string): boolean {
   const posix = toPosixRel(relPath);
   if (posix.length === 0 || posix === ".") return true;
+  if (ROOT_ONLY_NON_PRODUCT_PATHS.has(posix)) return true;
   const base = posix.includes("/") ? posix.slice(posix.lastIndexOf("/") + 1) : posix;
   if (NON_PRODUCT_BASENAMES.has(base)) return true;
   return NON_PRODUCT_PATH_PREFIXES.some(
