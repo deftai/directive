@@ -37,15 +37,29 @@ const LEAN_ID = 5442939496;
 const TABLE_ID = 5443106967;
 const SYNTHESIS_ID = 5443114746;
 
+const PLAIN_ENGLISH_SUMMARY =
+  "## In plain English\n\n" +
+  "The problem was missing ordinary-language summaries at ingest-ready.\n\n" +
+  "The accepted design adds a presence-only gate on the cited artifacts.\n\n";
+
+function withPlainEnglish(body: string): string {
+  if (/(?:^|\n)##\s+In plain English\b/i.test(body)) return body;
+  return `${PLAIN_ENGLISH_SUMMARY}${body}`;
+}
+
 const completeComments: ThreadComment[] = [
-  { id: LEAN_ID, body: "**Lean:** operator amend of 5442883752. Chips stay convenience.\n" },
+  {
+    id: LEAN_ID,
+    body: withPlainEnglish("**Lean:** operator amend of 5442883752. Chips stay convenience.\n"),
+  },
   { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
   {
     id: SYNTHESIS_ID,
-    body:
+    body: withPlainEnglish(
       "model: grok-4.6\nrole: parent\n\n" +
-      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-      `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+        "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+        `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+    ),
   },
 ];
 
@@ -62,14 +76,18 @@ const unresolvedPainComments: ThreadComment[] = [
     id: 10,
     body: "role: parent\n\ndesign-critique: warranted, because coverage gap.\n\npain: P1\npain: P2\n",
   },
-  { id: LEAN_ID, body: "**Lean:** bind relief.\n\nrelieves: P1\nrelieves: P2\n" },
+  {
+    id: LEAN_ID,
+    body: withPlainEnglish("**Lean:** bind relief.\n\nrelieves: P1\nrelieves: P2\n"),
+  },
   { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
   {
     id: SYNTHESIS_ID,
-    body:
+    body: withPlainEnglish(
       "model: grok-4.6\nrole: parent\n\n" +
-      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-      `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+        "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+        `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+    ),
   },
 ];
 
@@ -554,15 +572,16 @@ describe("runDesignCritiqueChip", () => {
     const comments: ThreadComment[] = [
       {
         id: LEAN_ID,
-        body: `**Lean:** pin.\n\nTarget-digest: sha256:${pinned}\n`,
+        body: withPlainEnglish(`**Lean:** pin.\n\nTarget-digest: sha256:${pinned}\n`),
       },
       { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
       {
         id: SYNTHESIS_ID,
-        body:
+        body: withPlainEnglish(
           "model: grok-4.6\nrole: parent\n\n" +
-          "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-          `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+            "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+            `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+        ),
       },
     ];
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);

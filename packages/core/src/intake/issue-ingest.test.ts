@@ -1284,10 +1284,20 @@ describe("ingestOne with fetchIssue", () => {
   });
 });
 
+const PLAIN_ENGLISH_SUMMARY =
+  "## In plain English\n\n" +
+  "The problem was missing ordinary-language summaries at ingest-ready.\n\n" +
+  "The accepted design adds a presence-only gate on the cited artifacts.\n\n";
+
+function withPlainEnglish(body: string): string {
+  if (/(?:^|\n)##\s+In plain English\b/i.test(body)) return body;
+  return `${PLAIN_ENGLISH_SUMMARY}${body}`;
+}
+
 describe("ingestOne completed-arc record (#3806)", () => {
   const lean = {
     id: 5442939496,
-    body: "**Lean:** chips are convenience.\n",
+    body: withPlainEnglish("**Lean:** chips are convenience.\n"),
   };
   const table = {
     id: 5443106967,
@@ -1295,9 +1305,10 @@ describe("ingestOne completed-arc record (#3806)", () => {
   };
   const synthesis = {
     id: 5443114746,
-    body:
+    body: withPlainEnglish(
       "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-      "Bound contract: successor lean 5442939496, verified-claims table 5443106967.\n",
+        "Bound contract: successor lean 5442939496, verified-claims table 5443106967.\n",
+    ),
   };
 
   it("ingests leftover mechanism-shaped when the completed-arc record cites the lean", () => {
@@ -1406,9 +1417,10 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
   const table = { id: 5587861177, body: "## Verified-claims table\n" };
   const synthesis = {
     id: 5587864554,
-    body:
+    body: withPlainEnglish(
       "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-      "Bound contract: successor lean 5587555346, verified-claims table 5587861177.\n",
+        "Bound contract: successor lean 5587555346, verified-claims table 5587861177.\n",
+    ),
   };
 
   it("harvests Bound-remedy items and stated acceptance, not GitHub-body checkboxes", () => {
@@ -1514,7 +1526,9 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
             [ISSUE_COMMENT_THREAD_KEY]: [
               {
                 id: 5587555346,
-                body: "Recut: next-build is not this body.\n**Lean:** accept.\n\n1. numbered without heading\n",
+                body: withPlainEnglish(
+                  "Recut: next-build is not this body.\n**Lean:** accept.\n\n1. numbered without heading\n",
+                ),
               },
               table,
               synthesis,
@@ -1558,9 +1572,10 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
             table,
             {
               id: 5587864554,
-              body:
+              body: withPlainEnglish(
                 "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-                "Bound contract: successor lean 5587555346, verified-claims table 5587861177.\n",
+                  "Bound contract: successor lean 5587555346, verified-claims table 5587861177.\n",
+              ),
             },
           ],
         },
@@ -1650,9 +1665,10 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
     const table4199 = { id: 5626230000, body: "## Verified-claims table\n" };
     const synthesis4199 = {
       id: 5626232238,
-      body:
+      body: withPlainEnglish(
         "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-        "Bound contract: successor lean 5626227158, verified-claims table 5626230000.\n",
+          "Bound contract: successor lean 5626227158, verified-claims table 5626230000.\n",
+      ),
     };
     for (const stem of ["Recut:", "Spec-path:"] as const) {
       const root = mkdtempSync(join(tmpdir(), `ingest-4361-4199-${stem.slice(0, 4)}-`));
@@ -1718,7 +1734,9 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
             [ISSUE_COMMENT_THREAD_KEY]: [
               {
                 id: 5587555346,
-                body: "Spec-path: next-build is not this body.\n**Lean:** accept.\n\n1. numbered without heading\n",
+                body: withPlainEnglish(
+                  "Spec-path: next-build is not this body.\n**Lean:** accept.\n\n1. numbered without heading\n",
+                ),
               },
               table,
               synthesis,
@@ -1870,7 +1888,7 @@ describe("ingestOne Target-digest (#4243)", () => {
   const digest = hashIssueBodyBytes(restBody);
   const lean = {
     id: 5442939496,
-    body: `**Lean:** chips are convenience.\n\nTarget-digest: sha256:${digest}\n`,
+    body: withPlainEnglish(`**Lean:** chips are convenience.\n\nTarget-digest: sha256:${digest}\n`),
   };
   const table = {
     id: 5443106967,
@@ -1878,9 +1896,10 @@ describe("ingestOne Target-digest (#4243)", () => {
   };
   const synthesis = {
     id: 5443114746,
-    body:
+    body: withPlainEnglish(
       "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-      "Bound contract: successor lean 5442939496, verified-claims table 5443106967.\n",
+        "Bound contract: successor lean 5442939496, verified-claims table 5443106967.\n",
+    ),
   };
 
   function liveIssueScm(issue: {
@@ -2059,7 +2078,7 @@ describe("ingestOne Target-digest (#4243)", () => {
           body: restBody,
           labels: [{ name: "design-critique:triage-ready" }],
           [ISSUE_COMMENT_THREAD_KEY]: [
-            { id: 5442939496, body: "**Lean:** Recut: leftover.\n" },
+            { id: 5442939496, body: withPlainEnglish("**Lean:** Recut: leftover.\n") },
             table,
             synthesis,
           ],
@@ -2116,7 +2135,7 @@ describe("ingestOne Target-digest (#4243)", () => {
 describe("ingestOne set-level recut-then-ingest (#4057)", () => {
   const lean = {
     id: 5442939496,
-    body: "**Lean:** chips are convenience.\n",
+    body: withPlainEnglish("**Lean:** chips are convenience.\n"),
   };
   const table = {
     id: 5443106967,
@@ -2124,9 +2143,10 @@ describe("ingestOne set-level recut-then-ingest (#4057)", () => {
   };
   const synthesis = {
     id: 5443114746,
-    body:
+    body: withPlainEnglish(
       "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-      "Bound contract: successor lean 5442939496, verified-claims table 5443106967.\n",
+        "Bound contract: successor lean 5442939496, verified-claims table 5443106967.\n",
+    ),
   };
 
   it("refuses harvest ingest of a cancelled sister", () => {
@@ -2847,7 +2867,7 @@ describe("ingestOne residual mode (#5177 Prefer-A)", () => {
   const residualArcThread = [
     {
       id: residualLeanId,
-      body: "**Lean:** Prefer-A residual re-ingest Bound.\n",
+      body: withPlainEnglish("**Lean:** Prefer-A residual re-ingest Bound.\n"),
     },
     {
       id: residualTableId,
@@ -2855,9 +2875,10 @@ describe("ingestOne residual mode (#5177 Prefer-A)", () => {
     },
     {
       id: residualSynthesisId,
-      body:
+      body: withPlainEnglish(
         "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-        `Bound contract: successor lean ${residualLeanId}, verified-claims table ${residualTableId}.\n`,
+          `Bound contract: successor lean ${residualLeanId}, verified-claims table ${residualTableId}.\n`,
+      ),
     },
   ];
 

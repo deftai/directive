@@ -262,15 +262,29 @@ describe("reconciliation branches", () => {
   });
 });
 
+const PLAIN_ENGLISH_SUMMARY =
+  "## In plain English\n\n" +
+  "The problem was missing ordinary-language summaries at ingest-ready.\n\n" +
+  "The accepted design adds a presence-only gate on the cited artifacts.\n\n";
+
+function withPlainEnglish(body: string): string {
+  if (/(?:^|\n)##\s+In plain English\b/i.test(body)) return body;
+  return `${PLAIN_ENGLISH_SUMMARY}${body}`;
+}
+
 const COMPLETE_ARC_COMMENTS = [
-  { id: 5442939496, body: "**Lean:** operator amend of 5442883752. Chips stay convenience.\n" },
+  {
+    id: 5442939496,
+    body: withPlainEnglish("**Lean:** operator amend of 5442883752. Chips stay convenience.\n"),
+  },
   { id: 5443106967, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
   {
     id: 5443114746,
-    body:
+    body: withPlainEnglish(
       "model: grok-4.6\nrole: parent\n\n" +
-      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-      "Bound contract: successor lean 5442939496, confirmed by operator, verified-claims table 5443106967.\n",
+        "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+        "Bound contract: successor lean 5442939496, confirmed by operator, verified-claims table 5443106967.\n",
+    ),
   },
 ];
 
@@ -384,15 +398,16 @@ describe("labels SCM client", () => {
     const comments = [
       {
         id: 5442939496,
-        body: `**Lean:** pin.\n\nTarget-digest: sha256:${pinned}\n`,
+        body: withPlainEnglish(`**Lean:** pin.\n\nTarget-digest: sha256:${pinned}\n`),
       },
       { id: 5443106967, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
       {
         id: 5443114746,
-        body:
+        body: withPlainEnglish(
           "model: grok-4.6\nrole: parent\n\n" +
-          "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
-          "Bound contract: successor lean 5442939496, confirmed by operator, verified-claims table 5443106967.\n",
+            "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+            "Bound contract: successor lean 5442939496, confirmed by operator, verified-claims table 5443106967.\n",
+        ),
       },
     ];
     const spy = vi.spyOn(scm, "call");
