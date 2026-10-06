@@ -10,9 +10,10 @@
  */
 
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
+import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
 import { isQuestionToolName } from "../tool-events/classify.js";
 import { platformUserConfigDir } from "../user-config/resolve-user-md.js";
 import { fieldString, record, toolInputRecord } from "./classify/payload.js";
@@ -210,11 +211,18 @@ function resolvePauseKey(payload: unknown, projectRoot: string): string | null {
   return sha256Hex(`cursor|${workspace}|${conversationId}`);
 }
 
+function ensurePauseRoot(environ: NodeJS.ProcessEnv): string {
+  const root = pauseStoreRoot(environ);
+  mkdirSync(root, { recursive: true });
+  return root;
+}
+
 function readPause(
   key: string,
   environ: NodeJS.ProcessEnv,
   nowMs: number,
 ): QuestionHatchPauseRecord | null {
+  const root = pauseStoreRoot(environ);
   const path = pauseRecordPath(key, environ);
   try {
     const raw = readFileSync(path, "utf8");
@@ -223,7 +231,7 @@ function readPause(
     const expires = Date.parse(parsed.expiresAt);
     if (!Number.isFinite(expires) || expires <= nowMs) {
       try {
-        rmSync(path, { force: true });
+        containedRemove({ root, target: path, mutation: false });
       } catch {
         /* ignore */
       }
@@ -236,16 +244,22 @@ function readPause(
 }
 
 function writePause(record: QuestionHatchPauseRecord, environ: NodeJS.ProcessEnv): "ok" | "fail" {
+  const root = ensurePauseRoot(environ);
   const path = pauseRecordPath(record.key, environ);
   const tmp = `${path}.${process.pid}.tmp`;
   try {
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(tmp, `${JSON.stringify(record, null, 2)}\n`, "utf8");
-    renameSync(tmp, path);
+    containedWrite({
+      root,
+      target: tmp,
+      data: `${JSON.stringify(record, null, 2)}\n`,
+      mode: "replace",
+      mutation: false,
+    });
+    containedRename({ root, from: tmp, to: path, mutation: false });
     return "ok";
   } catch {
     try {
-      rmSync(tmp, { force: true });
+      containedRemove({ root, target: tmp, mutation: false });
     } catch {
       /* ignore */
     }
@@ -255,7 +269,8 @@ function writePause(record: QuestionHatchPauseRecord, environ: NodeJS.ProcessEnv
 
 function clearPause(key: string, environ: NodeJS.ProcessEnv): void {
   try {
-    rmSync(pauseRecordPath(key, environ), { force: true });
+    const root = pauseStoreRoot(environ);
+    containedRemove({ root, target: pauseRecordPath(key, environ), mutation: false });
   } catch {
     /* ignore */
   }
@@ -422,6 +437,7 @@ export function decidePlanChoiceWithHatch(
   }
 
   // Free-text hatch alias while plan-choice is asking: treat as Discuss halt.
+  let base: ReturnType<typeof decideCursorPlanChoice> | null = null;
   if (input.event === "prompt.submit" && prompt !== null && isHatchAliasText(prompt)) {
     const probe = decideCursorPlanChoice(input, deps);
     if (probe.code === "plan-choice-question") {
@@ -440,9 +456,12 @@ export function decidePlanChoiceWithHatch(
         ].join("\n"),
       );
     }
+    base = probe;
   }
 
-  const base = decideCursorPlanChoice(input, deps);
+  if (base === null) {
+    base = decideCursorPlanChoice(input, deps);
+  }
   if (base.code === "plan-choice-discuss") {
     const armed = armDiscussPause(input, nowMs);
     if (armed !== null) return armed;
