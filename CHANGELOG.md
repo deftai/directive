@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Hard-stop hatch for structured questions (#5373).** Prefer-A Bound: refuse-missing-hatch on hook-admitted question tools (`QUESTION_TOOL_NAMES` subset); Cursor plan-choice deny-and-render keeps Discuss then Back; Discuss-pause latch only where selection ingress is observed; `I have questions` accepted-input alias; Grok `ask_user_question` audit row + render-absent residual named. Tracking #5373. Refs #1470, #767.
 
+### Fixed
+- **Live scope-provenance discovery no longer binds pending planning transitions as active (#5412).** Shared changed-lifecycle admission for live and injected paths: admit only active seed or active-on-base moves to pending|completed|cancelled. Tracking #5412. Refs #5192, #4774.
+
 ### Changed
 - Complete the #5413 occupancy overnight-reclaim Prefer-A Bound brief after product #5416; move the brief into xbrief/completed.
 - Complete the #5373 structured-question hard-stop hatch scope brief after product #5410; move the brief into xbrief/completed.

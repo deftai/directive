@@ -1,7 +1,9 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   buildApprovedScopeRecord,
   computeFileScopeDigest,
@@ -1590,5 +1592,228 @@ describe("docs and managed text after proceed (#4956)", () => {
       .join("\n");
     expect(scopeText).not.toMatch(/approved-scope/);
     expect(scopeText).not.toMatch(/fileScopeDigest/);
+  });
+});
+
+describe("changed-lifecycle admission shared predicate (#5412)", () => {
+  let root: string | undefined;
+
+  function git(cwd: string, args: string[]): void {
+    execFileSync("git", args, {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: "test",
+        GIT_AUTHOR_EMAIL: "test@example.com",
+        GIT_COMMITTER_NAME: "test",
+        GIT_COMMITTER_EMAIL: "test@example.com",
+      },
+    });
+  }
+
+  function initRepo(): string {
+    const dir = mkdtempSync(join(tmpdir(), "scope-prov-5412-"));
+    git(dir, ["init", "-q"]);
+    git(dir, ["checkout", "-b", "main"]);
+    git(dir, ["config", "user.email", "test@example.com"]);
+    git(dir, ["config", "user.name", "test"]);
+    return dir;
+  }
+
+  function writeFile(cwd: string, rel: string, body: string): void {
+    const full = join(cwd, rel);
+    mkdirSync(dirname(full), { recursive: true });
+    writeFileSync(full, body, "utf8");
+  }
+
+  function writeTracked(cwd: string, rel: string, body: string): void {
+    writeFile(cwd, rel, body);
+    git(cwd, ["add", "--", rel]);
+  }
+
+  function commit(cwd: string, msg: string): void {
+    git(cwd, ["commit", "-q", "-m", msg, "--allow-empty"]);
+  }
+
+  function planningBrief(
+    planId: string,
+    status: "proposed" | "pending" | "running" | "completed",
+    fileScope: string[],
+  ): string {
+    return `${JSON.stringify(
+      {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          id: planId,
+          status,
+          metadata: { swarm: { file_scope: fileScope } },
+        },
+      },
+      null,
+      2,
+    )}\n`;
+  }
+
+  afterEach(() => {
+    if (root !== undefined) {
+      rmSync(root, { recursive: true, force: true });
+      root = undefined;
+    }
+  });
+
+  it("proposed→pending planning transition exits 0 under live discovery and empty Map", () => {
+    root = initRepo();
+    const planId = "story-a2";
+    const scope = ["packages/core/src/a2.ts"];
+    writeTracked(root, "xbrief/proposed/a2.xbrief.json", planningBrief(planId, "proposed", scope));
+    writeTracked(
+      root,
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { id: "project", status: "running" } }, null, 2)}\n`,
+    );
+    writeTracked(
+      root,
+      "xbrief/specification.xbrief.json",
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { id: "spec", status: "running" } }, null, 2)}\n`,
+    );
+    commit(root, "base: proposed planning story");
+    git(root, ["branch", "base"]);
+
+    git(root, ["checkout", "-q", "-b", "promote"]);
+    git(root, ["rm", "-q", "--", "xbrief/proposed/a2.xbrief.json"]);
+    writeTracked(root, "xbrief/pending/a2.xbrief.json", planningBrief(planId, "pending", scope));
+    writeTracked(
+      root,
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: { id: "project", status: "running", title: "pending-promote" },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    writeTracked(
+      root,
+      "xbrief/specification.xbrief.json",
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: { id: "spec", status: "running", title: "pending-promote" },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    commit(root, "promote proposed to pending + registry companions");
+
+    const live = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
+    expect(live.exitCode).toBe(0);
+    expect(live.findings).toEqual([]);
+
+    const injected = evaluateScopeProvenance(root, {
+      baseRef: "base",
+      enforce: true,
+      activeXbriefs: new Map(),
+    });
+    expect(injected.exitCode).toBe(0);
+    expect(injected.findings).toEqual([]);
+  });
+
+  it("active-on-base→pending keeps fence under live discovery and empty-map shared predicate", () => {
+    root = initRepo();
+    const planId = "story-1";
+    const narrow = ["packages/core/src/a.ts"];
+    writeTracked(root, "xbrief/active/story.xbrief.json", planningBrief(planId, "running", narrow));
+    writeTracked(root, "packages/core/src/a.ts", "export const a = 1;\n");
+    commit(root, "base: active story");
+    git(root, ["branch", "base"]);
+
+    git(root, ["checkout", "-q", "-b", "demote"]);
+    git(root, ["rm", "-q", "--", "xbrief/active/story.xbrief.json"]);
+    writeTracked(root, "xbrief/pending/story.xbrief.json", planningBrief(planId, "pending", narrow));
+    writeTracked(root, "packages/core/src/b.ts", "export const b = 1;\n");
+    writeTracked(root, "packages/core/src/c.ts", "export const c = 1;\n");
+    writeTracked(root, "packages/core/src/d.ts", "export const d = 1;\n");
+    commit(root, "demote active to pending with out-of-fence extras");
+
+    const live = evaluateScopeProvenance(root, {
+      baseRef: "base",
+      enforce: true,
+      sourceRoots: ["packages"],
+      testRoots: ["tests"],
+      fixtureRoots: ["fixtures"],
+    });
+    expect(live.exitCode).toBe(1);
+    expect(
+      live.findings.some(
+        (f) =>
+          f.kind === "production-scope-over-budget" ||
+          f.kind === "active-xbrief-modified-without-digest" ||
+          f.kind === "change-set-outside-approved-scope",
+      ),
+    ).toBe(true);
+
+    const injected = evaluateScopeProvenance(root, {
+      baseRef: "base",
+      enforce: true,
+      activeXbriefs: new Map(),
+      sourceRoots: ["packages"],
+      testRoots: ["tests"],
+      fixtureRoots: ["fixtures"],
+    });
+    expect(injected.exitCode).toBe(1);
+    expect(
+      injected.findings.some(
+        (f) =>
+          f.kind === "production-scope-over-budget" ||
+          f.kind === "active-xbrief-modified-without-digest" ||
+          f.kind === "change-set-outside-approved-scope",
+      ),
+    ).toBe(true);
+  });
+
+  it("refining already-pending planning does not bind companions as active scope", () => {
+    root = initRepo();
+    const planId = "story-plan";
+    const scope = ["packages/core/src/future.ts"];
+    writeTracked(
+      root,
+      "xbrief/pending/plan.xbrief.json",
+      planningBrief(planId, "pending", scope),
+    );
+    writeTracked(
+      root,
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { id: "project", status: "running" } }, null, 2)}\n`,
+    );
+    commit(root, "base: already pending");
+    git(root, ["branch", "base"]);
+
+    git(root, ["checkout", "-q", "-b", "refine"]);
+    writeTracked(
+      root,
+      "xbrief/pending/plan.xbrief.json",
+      planningBrief(planId, "pending", [...scope, "packages/core/src/extra.ts"]),
+    );
+    writeTracked(
+      root,
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: { id: "project", status: "running", title: "refine-pending" },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    commit(root, "refine pending + registry");
+
+    const live = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
+    expect(live.exitCode).toBe(0);
+    expect(live.findings).toEqual([]);
   });
 });

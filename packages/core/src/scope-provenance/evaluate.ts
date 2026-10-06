@@ -1,5 +1,5 @@
 /**
- * verify:scope-provenance evaluation (#3145 / #4956 / #4774 / #5192).
+ * verify:scope-provenance evaluation (#3145 / #4956 / #4774 / #5192 / #5412).
  *
  * Path fence (#4956): the active brief's `file_scope` on the merge base is the
  * precommitment. Changed production files are checked against that base list
@@ -18,6 +18,12 @@
  * omit a mint. Peer coverage never clears a missing own allowlist. Same-PR
  * approval rewrite stays fail-closed. Missing-mint remediation is split or
  * land a widened concrete brief — never renew mint.
+ *
+ * Changed-lifecycle admission (#5192 item 6 / #5412): live discovery and an
+ * injected activeXbriefs map share one predicate — admit a changed lifecycle
+ * brief iff it is already in the active seed OR it was active on the merge
+ * base and appears under pending|completed|cancelled. Brand-new pending that
+ * was never active on base must not become an active scope.
  *
  * Intent-pin checks (#3385) remain for existing base-committed records.
  *
@@ -464,6 +470,47 @@ function resolveMergeBaseBriefRead(
   return { baseRel: headN, read: headRead };
 }
 
+/** True when a lifecycle path is pending|completed|cancelled (#5412 limb 1). */
+function isMovedLifecycleFolder(rel: string): boolean {
+  const n = normalizeRepoRelPath(rel);
+  return (
+    n.startsWith("xbrief/pending/") ||
+    n.startsWith("xbrief/completed/") ||
+    n.startsWith("xbrief/cancelled/")
+  );
+}
+
+/**
+ * Active-on-merge-base probe for changed-lifecycle admission (#5412 / #5192).
+ * Reuses preMoveSameBasenameLifecyclePaths (active before pending) and optional
+ * listLifecycleBriefsAtRef / baseXbriefs census for plan.id hits. Unreadable
+ * base probes fail closed by returning true so later gates can surface.
+ */
+function wasActiveOnMergeBase(input: {
+  readonly headRel: string;
+  readonly headPlanId: string | null;
+  readonly readAtBase: (rel: string) => BaseBriefReadLocal;
+  readonly census: readonly CensusBrief[] | null;
+}): boolean {
+  const headN = normalizeRepoRelPath(input.headRel);
+  for (const candidate of preMoveSameBasenameLifecyclePaths(headN)) {
+    if (!candidate.startsWith("xbrief/active/")) continue;
+    const read = input.readAtBase(candidate);
+    if (read.kind === "error") return true;
+    if (read.kind === "text") return true;
+    break;
+  }
+  if (input.headPlanId === null || input.census === null) return false;
+  const activeHits = input.census.filter(
+    (b) =>
+      normalizeRepoRelPath(b.rel).startsWith("xbrief/active/") &&
+      b.planId !== null &&
+      b.planId === input.headPlanId,
+  );
+  // Ambiguous duplicate active plan.id → admit so continuity refuse can fire.
+  return activeHits.length >= 1;
+}
+
 /** Head lifecycle paths for continuity move exclusivity (#5192). */
 function listHeadLifecycleRels(input: {
   readonly projectRoot: string;
@@ -713,34 +760,91 @@ export function evaluateScopeProvenance(
     }
   }
 
-  // #5192 item 6: also evaluate lifecycle briefs in the change set that left
-  // active/ (moved/completed) so completing in the same PR cannot drop fences.
-  // When an injected map omits a changed completed/cancelled path, fall through
-  // to HEAD disk. Do not re-add pending/ (or other omitted folders) — that would
-  // bind a new pending brief over an unrelated active story's product paths.
+  // Shared readAtBase for admission + per-story evaluation (#5412 / #5192).
+  const readAtBase = (baseRel: string): BaseBriefReadLocal => {
+    if (options.baseXbriefs !== undefined) {
+      const injected = options.baseXbriefs.get(normalizeRepoRelPath(baseRel));
+      return injected === undefined ? { kind: "missing" } : { kind: "text", text: injected };
+    }
+    if (options.readAtBase !== undefined) {
+      try {
+        const injected = options.readAtBase(baseRel);
+        return injected === null ? { kind: "missing" } : { kind: "text", text: injected };
+      } catch (err) {
+        return {
+          kind: "error",
+          message: err instanceof Error ? err.message : String(err),
+        };
+      }
+    }
+    if (discoveryBaseRef === null || discoveryBaseRef === "") return { kind: "missing" };
+    const read = readRepoFileAtRef(root, discoveryBaseRef, baseRel);
+    if (read.status === "ok") return { kind: "text", text: read.text };
+    if (read.status === "missing") return { kind: "missing" };
+    return { kind: "error", message: read.message };
+  };
+
+  // Admission census: injected base map, else live listLifecycleBriefsAtRef.
+  let admissionCensus: readonly CensusBrief[] | null = null;
+  if (options.baseXbriefs !== undefined) {
+    admissionCensus = censusFromBaseMap(options.baseXbriefs);
+  } else if (
+    discoveryBaseRef !== null &&
+    discoveryBaseRef !== "" &&
+    options.changedFiles === undefined
+  ) {
+    try {
+      const listed = listLifecycleBriefsAtRef(root, discoveryBaseRef, readAtBase);
+      if (listed.kind === "ok") admissionCensus = listed.briefs;
+    } catch {
+      admissionCensus = null;
+    }
+  }
+
+  // #5192 item 6 / #5412: shared live+injected changed-lifecycle admission.
+  // Seed (live xbrief/active/ or injected map) already populated above. Admit a
+  // changed pending|completed|cancelled brief only when it was active on the
+  // merge base — never bind brand-new pending solely because it is in the diff.
   const seenEvalRels = new Set(activeEntries.map((e) => e.rel));
   for (const changedRel of changed) {
     const n = normalizeRepoRelPath(changedRel);
     if (!isLifecycleXbriefPath(n) || seenEvalRels.has(n)) continue;
+    if (!isMovedLifecycleFolder(n)) continue;
+
+    let raw: string | undefined;
     if (options.activeXbriefs !== undefined) {
       const injected = options.activeXbriefs.get(n);
-      if (injected !== undefined) {
-        activeEntries.push({ rel: n, raw: injected });
-        seenEvalRels.add(n);
+      if (injected !== undefined) raw = injected;
+    }
+    if (raw === undefined) {
+      const full = join(root, n);
+      if (!existsSync(full)) continue;
+      try {
+        raw = readFileSync(full, "utf8");
+      } catch {
         continue;
       }
-      const isCompletedOrCancelled =
-        n.startsWith("xbrief/completed/") || n.startsWith("xbrief/cancelled/");
-      if (!isCompletedOrCancelled) continue;
     }
-    const full = join(root, n);
-    if (!existsSync(full)) continue;
+
+    let headPlanId: string | null = null;
     try {
-      activeEntries.push({ rel: n, raw: readFileSync(full, "utf8") });
-      seenEvalRels.add(n);
+      headPlanId = extractPlanId(JSON.parse(raw) as unknown);
     } catch {
-      // skip unreadable
+      headPlanId = null;
     }
+    if (
+      !wasActiveOnMergeBase({
+        headRel: n,
+        headPlanId,
+        readAtBase,
+        census: admissionCensus,
+      })
+    ) {
+      continue;
+    }
+
+    activeEntries.push({ rel: n, raw });
+    seenEvalRels.add(n);
   }
 
   const headLifecycleRels = listHeadLifecycleRels({
@@ -882,36 +986,6 @@ export function evaluateScopeProvenance(
       }
     }
     const approvalRecordRewritten = approvalInGitChange || approvalDiskOnly || preimageInGitChange;
-
-    type BaseBriefRead =
-      | { readonly kind: "text"; readonly text: string }
-      | { readonly kind: "missing" }
-      | { readonly kind: "error"; readonly message: string };
-
-    const readAtBase = (baseRel: string): BaseBriefRead => {
-      if (options.baseXbriefs !== undefined) {
-        // Injected base map is authoritative: absent key means missing on base.
-        const injected = options.baseXbriefs.get(normalizeRepoRelPath(baseRel));
-        return injected === undefined ? { kind: "missing" } : { kind: "text", text: injected };
-      }
-      if (options.readAtBase !== undefined) {
-        try {
-          const injected = options.readAtBase(baseRel);
-          return injected === null ? { kind: "missing" } : { kind: "text", text: injected };
-        } catch (err) {
-          return {
-            kind: "error",
-            message: err instanceof Error ? err.message : String(err),
-          };
-        }
-      }
-      if (discoveryBaseRef === null || discoveryBaseRef === "") return { kind: "missing" };
-      // Non-missing git failures fail closed via kind:error (#4956).
-      const read = readRepoFileAtRef(root, discoveryBaseRef, baseRel);
-      if (read.status === "ok") return { kind: "text", text: read.text };
-      if (read.status === "missing") return { kind: "missing" };
-      return { kind: "error", message: read.message };
-    };
 
     // Same-PR approved-scope rewrite still fails closed when a digest file is
     // co-changed (legacy anti-forgery). Remediation does not schedule a proceed
