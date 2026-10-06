@@ -326,6 +326,8 @@ describe("question hatch gate (#5373)", () => {
       seams,
     );
     expect(resumed.code).toBe("question-hatch-pause-resumed");
+    expect(resumed.verdict).toBe("deny");
+    expect(resumed.message).toContain("Re-ask the planning question");
 
     const after = decideHook(
       {

@@ -9,7 +9,6 @@
  * hooks → tool-events import: question-tool subset only (never full COORDINATE).
  */
 
-import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -18,9 +17,13 @@ import { isQuestionToolName } from "../tool-events/classify.js";
 import { platformUserConfigDir } from "../user-config/resolve-user-md.js";
 import { fieldString, record, toolInputRecord } from "./classify/payload.js";
 import {
+  CURSOR_PLAN_CHOICE_HOST,
   type CursorPlanChoiceDeps,
+  canonicalWorkspaceRoot,
   decideCursorPlanChoice,
   defaultCursorPlanChoiceDeps,
+  hashPlanChoiceTuple,
+  resolvePlanChoiceIdentity,
 } from "./cursor-plan-choice/index.js";
 import type { HookDecision, HookDecisionCode, HookDispatchInput } from "./dispatcher.js";
 
@@ -41,6 +44,7 @@ export type QuestionHatchDecisionCode =
   | "question-hatch-pause-lock-busy"
   | "question-hatch-pause-resumed";
 
+/** Retention hint only — elapsed time MUST NOT clear the latch (#5373). */
 const PAUSE_TTL_MS = 60 * 60 * 1000;
 const PAUSE_DIR = ["runtime", "question-hatch-pause", "v1"] as const;
 
@@ -175,10 +179,6 @@ export function pauseActiveMessage(toolName: string): string {
   ].join("\n");
 }
 
-function sha256Hex(text: string): string {
-  return createHash("sha256").update(text, "utf8").digest("hex");
-}
-
 function pauseStoreRoot(environ: NodeJS.ProcessEnv = process.env): string {
   const home = environ.HOME?.trim() || environ.USERPROFILE?.trim() || homedir();
   return join(platformUserConfigDir(process.platform, environ, home), ...PAUSE_DIR);
@@ -199,16 +199,22 @@ export type QuestionHatchPauseRecord = {
 };
 
 function resolvePauseKey(payload: unknown, projectRoot: string): string | null {
+  const classified = resolvePlanChoiceIdentity(payload, projectRoot);
+  if (classified.ok && classified.identity.recordKey.length > 0) {
+    return classified.identity.recordKey;
+  }
   const top = record(payload);
   if (top === null) return null;
   const conversationId = fieldString(top, "conversation_id") ?? fieldString(top, "conversationId");
   if (conversationId === null) return null;
+  // Never key on cwd — it diverges from Plan workspace_roots across events (#5373).
+  const fromRoots =
+    Array.isArray(top.workspace_roots) && typeof top.workspace_roots[0] === "string"
+      ? top.workspace_roots[0].trim()
+      : "";
   const workspace =
-    fieldString(top, "cwd") ??
-    (Array.isArray(top.workspace_roots) && typeof top.workspace_roots[0] === "string"
-      ? top.workspace_roots[0]
-      : projectRoot);
-  return sha256Hex(`cursor|${workspace}|${conversationId}`);
+    fromRoots.length > 0 ? canonicalWorkspaceRoot(fromRoots) : canonicalWorkspaceRoot(projectRoot);
+  return hashPlanChoiceTuple([CURSOR_PLAN_CHOICE_HOST, workspace, conversationId]);
 }
 
 function ensurePauseRoot(environ: NodeJS.ProcessEnv): string {
@@ -220,23 +226,15 @@ function ensurePauseRoot(environ: NodeJS.ProcessEnv): string {
 function readPause(
   key: string,
   environ: NodeJS.ProcessEnv,
-  nowMs: number,
+  _nowMs: number,
 ): QuestionHatchPauseRecord | null {
-  const root = pauseStoreRoot(environ);
   const path = pauseRecordPath(key, environ);
   try {
     const raw = readFileSync(path, "utf8");
     const parsed = JSON.parse(raw) as QuestionHatchPauseRecord;
     if (parsed.schema !== "deft.question-hatch-pause.v1") return null;
-    const expires = Date.parse(parsed.expiresAt);
-    if (!Number.isFinite(expires) || expires <= nowMs) {
-      try {
-        containedRemove({ root, target: path, mutation: false });
-      } catch {
-        /* ignore */
-      }
-      return null;
-    }
+    // Elapsed time must not clear Discuss-pause; only explicit resume does (#5373).
+    void _nowMs;
     return parsed;
   } catch {
     return null;
@@ -416,7 +414,8 @@ export function decidePlanChoiceWithHatch(
   const key = resolvePauseKey(input.payload, input.projectRoot);
   const prompt = promptText(input.payload);
 
-  // Explicit operator resume clears the Cursor plan-choice Discuss-pause latch.
+  // Explicit operator resume clears the latch, then re-enters plan-choice.
+  // A bare resume must not allow planning to proceed without a strategy.
   if (
     input.event === "prompt.submit" &&
     key !== null &&
@@ -426,12 +425,28 @@ export function decidePlanChoiceWithHatch(
     const live = readPause(key, environ, nowMs);
     if (live !== null) {
       clearPause(key, environ);
+      const reask = decideCursorPlanChoice(input, deps);
+      if (reask.code === "plan-choice-question" || reask.code === "plan-choice-discuss") {
+        return {
+          ...reask,
+          message: [
+            "Directive cleared Discuss-pause on explicit operator resume.",
+            "",
+            reask.message,
+          ].join("\n"),
+        };
+      }
       return decision(
         input,
-        "allow",
+        "deny",
         "question-hatch-pause-resumed",
         null,
-        "Directive cleared Discuss-pause on explicit operator resume.",
+        [
+          "Directive cleared Discuss-pause on explicit operator resume.",
+          "",
+          "Re-ask the planning question in Plan mode and select a strategy.",
+          "A bare resume does not complete planning choice.",
+        ].join("\n"),
       );
     }
   }

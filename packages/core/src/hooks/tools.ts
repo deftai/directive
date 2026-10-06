@@ -199,7 +199,10 @@ export const KILL_HOOK_MATCHER = KILL_TOOL_NAMES.join("|");
 
 /**
  * PreToolUse matcher tokens for structured-question hatch gate (#5373).
- * Deposit wiring is separate from this export; gate runs when the host admits.
+ * Gate runs when the host admits the payload. Deposit of this matcher into
+ * init-deposit/agent-hooks NESTED_PRE_TOOL_MATCHERS is a Bound carve-out /
+ * follow-up (write-fence outside #5373 file_scope); until deposited, hosts
+ * without admission keep the documented residual.
  */
 export const QUESTION_HOOK_MATCHER = "ask_user_question|AskQuestion|AskUserQuestion";
 

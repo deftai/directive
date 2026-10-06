@@ -166,7 +166,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=d0ab57864eb7 refreshed=2026-10-06T06:25:57Z session=1d13494fc93c -->
+<!-- deft:managed-section v3 sha=5dd62820b79e refreshed=2026-10-06T12:40:04Z session=eba0f62bb793 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -224,7 +224,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Deterministic questions runtime obligation (#1470)
 
-! Structured questions MUST end with `Discuss` then `Back`; `I have questions` is hatch alias (accepted input); Other free-text matching that set MUST halt; pause latch only where selection ingress is observed — `.deft/core/contracts/deterministic-questions.md` (#1470 / #767 / #5373).
+! Structured questions MUST end with `Discuss` then `Back`; hatch alias `I have questions`; pause latch on selection ingress — `.deft/core/contracts/deterministic-questions.md` (#1470 / #767 / #5373).
 
 ## Issue body→comments reading (#2143)
 

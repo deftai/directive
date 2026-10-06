@@ -83,6 +83,24 @@ function finalTwoAreDiscussBack(menu: readonly string[]): boolean {
   return isDiscussOption(hatch) && isBackOption(back);
 }
 
+function isOtherOption(label: string): boolean {
+  const core = optionCore(label);
+  return core === "other" || core.startsWith("other —") || core.startsWith("other -");
+}
+
+/**
+ * Decision menus identified without requiring BOTH hatch controls.
+ * Partial Discuss/Back or Other chrome is enough so removing one control
+ * cannot drop the menu from coverage while another intact menu keeps the
+ * scan-count assertion green (#5373 Greptile P2).
+ */
+function isStructuredQuestionMenu(menu: readonly string[]): boolean {
+  if (menu.length < 2 || menu.length > 12) return false;
+  return menu.some(
+    (label) => isDiscussOption(label) || isBackOption(label) || isOtherOption(label),
+  );
+}
+
 describe("test_deterministic_questions", () => {
   it("contract_file_exists", () => {
     expect(repoFileExists("contracts/deterministic-questions.md")).toBeTruthy();
@@ -203,9 +221,9 @@ describe("test_deterministic_questions", () => {
       const text = readRepoFile(rel);
       const menus = extractNumberedMenus(text);
       for (const menu of menus) {
-        // Only menus that carry both hatch controls — not strategy catalogs
-        // that happen to name a "discuss" mode, and not skill rule lists.
-        if (!(menu.some(isDiscussOption) && menu.some(isBackOption))) continue;
+        // Identify user-facing decision menus without requiring hatch controls
+        // first — otherwise removing Discuss/Back silently drops coverage (#5373).
+        if (!isStructuredQuestionMenu(menu)) continue;
         scanned += 1;
         if (!finalTwoAreDiscussBack(menu)) {
           failures.push(`${rel}: ${menu.join(" | ")}`);
