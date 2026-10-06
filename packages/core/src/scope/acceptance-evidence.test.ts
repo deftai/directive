@@ -2842,10 +2842,21 @@ describe("historical ship-closeout (#5403)", () => {
       recorded_at: "2026-10-06T12:00:00Z",
     });
     expect(result.stampedIds).toEqual([clauseKeyedItemId(1)]);
+    expect(item[ACCEPTANCE_REQUIRES_KEY]).toBe("merge");
+    expect(itemDeclaresMergeRequirement(item)).toBe(true);
     expect(item[ACCEPTANCE_EVIDENCE_KEY]).toMatchObject({
       kind: "merge",
       pointer: "abcdef1",
     });
+    // Stamp + suitability must agree so complete does not leave a refused stamp.
+    expect(
+      isEvidenceKindSuitable("merge", inferRequiredStrictAxes(item), {
+        mergeDeclared: itemDeclaresMergeRequirement(item),
+      }),
+    ).toBe(true);
+    const gate = evaluateAcceptanceEvidenceGate(plan);
+    expect(gate.ok).toBe(true);
+    expect(gate.reports[0]?.outcome).toBe("evidence");
   });
 
   it("stampDeclaredMergeEvidence without admitUndeclaredMerge still skips undeclared", () => {

@@ -977,13 +977,20 @@ export function stampDeclaredMergeEvidence(
       skipped.push({ clauseId: clause.id, reason: "already-stamped" });
       continue;
     }
-    if (!itemDeclaresMergeRequirement(item) && options.admitUndeclaredMerge !== true) {
+    const undeclared = !itemDeclaresMergeRequirement(item);
+    if (undeclared && options.admitUndeclaredMerge !== true) {
       skipped.push({ clauseId: clause.id, reason: "undeclared-merge" });
       continue;
     }
     if (inferRequiredStrictAxes(item).length > 0) {
       skipped.push({ clauseId: clause.id, reason: "strict-axis" });
       continue;
+    }
+    // #5403 declaration-side admit: write requires=merge so the later
+    // evaluateAcceptanceEvidenceGate / isEvidenceKindSuitable path agrees
+    // with this stamp (Greptile P1 on #5430). Strict axes already skipped.
+    if (undeclared && options.admitUndeclaredMerge === true) {
+      item[ACCEPTANCE_REQUIRES_KEY] = MERGE_ACCEPTANCE_REQUIREMENT;
     }
     stampNamespacedEvidence(item, {
       kind: "merge",
