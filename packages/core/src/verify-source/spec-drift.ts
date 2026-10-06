@@ -1048,18 +1048,21 @@ export function rollbackScopeCompleteDrift(
   return locked.value;
 }
 
-/** Grant ids newly present on coverage after a record vs a prior snapshot. */
+/** Grant ids newly present on coverage after a record vs a prior snapshot (this scope only). */
 export function spentGrantIdsSinceSnapshot(
   prior: SpecDriftLedger,
   current: SpecDriftLedger,
+  scopeId?: string,
 ): string[] {
   const before = new Set(
     prior.coverage
+      .filter((c) => scopeId === undefined || c.scopeId === scopeId)
       .map((c) => c.grantId)
       .filter((id): id is string => typeof id === "string" && id.length > 0),
   );
   const spent: string[] = [];
   for (const row of current.coverage) {
+    if (scopeId !== undefined && row.scopeId !== scopeId) continue;
     if (typeof row.grantId === "string" && row.grantId.length > 0 && !before.has(row.grantId)) {
       spent.push(row.grantId);
     }

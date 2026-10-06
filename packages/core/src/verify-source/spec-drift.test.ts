@@ -16,6 +16,7 @@ import {
   recordScopeCompleteDriftAdvise,
   resolveLiveRequirementsFingerprint,
   rollbackScopeCompleteDrift,
+  spentGrantIdsSinceSnapshot,
   seedSpecDriftLedger,
   snapshotSpecDriftLedger,
   writeSpecDriftLedger,
@@ -660,6 +661,45 @@ describe("verify:spec-drift (#1589 C2 / #5350 C3)", () => {
       },
     });
     expect(fake).toEqual([]);
+  });
+
+  it("spentGrantIdsSinceSnapshot ignores other scopes grants", () => {
+    const prior = {
+      baselineRevision: "b1",
+      unresolved: [],
+      coverage: [],
+      shadowFindings: [],
+      lastRequirementsFingerprint: null,
+      cutoverBoundary: null,
+    };
+    const current = {
+      ...prior,
+      coverage: [
+        {
+          scopeId: "scope-a",
+          coveredItemIds: ["i1"],
+          beforeRequirementsFingerprint: "x",
+          afterRequirementsFingerprint: "y",
+          affectedRequirementRefs: [],
+          recordedAt: "t",
+          source: "override" as const,
+          grantId: "grant-a",
+        },
+        {
+          scopeId: "scope-b",
+          coveredItemIds: ["i2"],
+          beforeRequirementsFingerprint: "x",
+          afterRequirementsFingerprint: "y",
+          affectedRequirementRefs: [],
+          recordedAt: "t",
+          source: "override" as const,
+          grantId: "grant-b",
+        },
+      ],
+    };
+    expect(spentGrantIdsSinceSnapshot(prior, current)).toEqual(["grant-a", "grant-b"]);
+    expect(spentGrantIdsSinceSnapshot(prior, current, "scope-a")).toEqual(["grant-a"]);
+    expect(spentGrantIdsSinceSnapshot(prior, current, "scope-b")).toEqual(["grant-b"]);
   });
 
   it("rollbackScopeCompleteDrift surgically restores scope rows and preserves other scopes", () => {

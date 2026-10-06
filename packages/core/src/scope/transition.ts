@@ -632,16 +632,35 @@ export function runTransition(
             const driftRecord = recordScopeCompleteDrift(
               projectRoot,
               data,
-              relative(projectRoot, destPath).replace(/\\/g, "/"),
+              relative(projectRoot, destPath).replace(/\/g, "/"),
             );
             if (driftRecord !== null) {
-              // Finding may already be on the ledger — restore prior snapshot so a
-              // refused completion does not leave unresolved drift for an active scope.
-              const spentIds = spentGrantIdsSinceSnapshot(
-                priorDriftLedger,
-                snapshotSpecDriftLedger(projectRoot),
-              );
-              rollbackEnforceAttempt(spentIds);
+              // Finding may already be on the ledger — restore prior rows for THIS
+              // scope only. Skip ledger rollback when this scope was not mutated
+              // (lock refuse) so concurrent other-scope coverage is untouched.
+              const afterSnap = snapshotSpecDriftLedger(projectRoot);
+              const thisScopeTouched =
+                priorDriftLedger.coverage.filter((c) => c.scopeId === scopeIdForEnforce).length !==
+                  afterSnap.coverage.filter((c) => c.scopeId === scopeIdForEnforce).length ||
+                priorDriftLedger.unresolved.filter((f) => f.scopeId === scopeIdForEnforce).length !==
+                  afterSnap.unresolved.filter((f) => f.scopeId === scopeIdForEnforce).length ||
+                priorDriftLedger.shadowFindings.filter((f) => f.scopeId === scopeIdForEnforce)
+                  .length !==
+                  afterSnap.shadowFindings.filter((f) => f.scopeId === scopeIdForEnforce).length;
+              if (thisScopeTouched) {
+                const spentIds = spentGrantIdsSinceSnapshot(
+                  priorDriftLedger,
+                  afterSnap,
+                  scopeIdForEnforce,
+                );
+                rollbackEnforceAttempt(spentIds);
+              } else {
+                try {
+                  unlinkSync(destPath);
+                } catch {
+                  /* dest rollback after lock-refuse finding */
+                }
+              }
               return {
                 ok: false,
                 message: `spec-drift ledger write failed under enforce: ${driftRecord.reason}`,
@@ -651,12 +670,17 @@ export function runTransition(
             spentDriftGrantIds = spentGrantIdsSinceSnapshot(
               priorDriftLedger,
               snapshotSpecDriftLedger(projectRoot),
+              scopeIdForEnforce,
             );
             enforceDriftRecorded = true;
           } catch (err: unknown) {
             const spentIds =
               priorDriftLedger !== null
-                ? spentGrantIdsSinceSnapshot(priorDriftLedger, snapshotSpecDriftLedger(projectRoot))
+                ? spentGrantIdsSinceSnapshot(
+                    priorDriftLedger,
+                    snapshotSpecDriftLedger(projectRoot),
+                    scopeIdForEnforce,
+                  )
                 : [];
             rollbackEnforceAttempt(spentIds);
             return {
