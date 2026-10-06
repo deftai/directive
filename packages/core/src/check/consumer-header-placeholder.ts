@@ -131,10 +131,7 @@ const NON_PRODUCT_BASENAMES = new Set([
  * Overview seed in greenfield-python-free-smoke.ts; nested paths such as
  * `src/docs-impact-valid.md` remain product evidence (#4544 Greptile P1).
  */
-const ROOT_ONLY_NON_PRODUCT_PATHS = new Set([
-  "docs-impact-invalid.md",
-  "docs-impact-valid.md",
-]);
+const ROOT_ONLY_NON_PRODUCT_PATHS = new Set(["docs-impact-invalid.md", "docs-impact-valid.md"]);
 
 function toPosixRel(rel: string): string {
   // Git porcelain already uses `/`. On POSIX a literal `\` in a filename is
