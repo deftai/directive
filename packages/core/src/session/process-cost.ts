@@ -104,11 +104,7 @@ function formatExclusivePhaseList(steps: readonly ProcessCostStepTiming[]): stri
   return leaves
     .map((step) => {
       const marker =
-        step.skipped === true
-          ? " skipped"
-          : step.deferred_decision === true
-            ? " deferred"
-            : "";
+        step.skipped === true ? " skipped" : step.deferred_decision === true ? " deferred" : "";
       const reason =
         step.skip_reason !== undefined && step.skip_reason.length > 0
           ? `(${step.skip_reason})`
