@@ -1,0 +1,1039 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5350",
+    "updated": "2026-10-06T07:04:27Z"
+  },
+  "plan": {
+    "title": "feat(spec): C3 enforce specGuard / verify:spec-drift (proof-of-rewrite + per-item impact) — leftover of #1589 / #5315",
+    "status": "completed",
+    "narratives": {
+      "Description": "",
+      "Overview": "",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5350"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Summary Child of epic #1589 C3 (reserved Wave 3): turn `plan.policy.specGuard` / `verify:spec-drift` from advise into an enforceable gate.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "2",
+        "title": "PR #5315 ships Prefer-A Bound C1 + C2 (advise) and only the C3 schema stub (`sqaPass` engine no-op).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "3",
+        "title": "Greptile holds #5315 below the 5/5 merge floor on fingerprints that require either a Bound-C2 recut or this C3 enforce work.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "4",
+        "title": "Problem In advise mode, agents can discharge drift coverage with stamps that Greptile treats as too soft: 1.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "5",
+        "title": "Impact declaration without rewrite proof — `x-directive/specImpact` `delta|new` can satisfy advise discharge without proving the specification artifact was rewritten.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "6",
+        "title": "Scope-level impact discharge — any nested `delta|new` can clear the whole story; per-item uncovered siblings stay soft under the current Bound.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "7",
+        "title": "Those behaviors match locked Bound C2 (warn, do not hard-block).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "8",
+        "title": "Enforce needs an explicit follow-up so #5315 is not thrashed as if they were accidental bugs.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "9",
+        "title": "Scope (C3) - Promote `specGuard` / `verify:spec-drift` from advise-default to an enforceable mode (exact policy surface TBD: `enforce` / `sqaPass` engine / merge-gate wiring).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "10",
+        "title": "Require proof of spec rewrite (or an explicit human-origin disposition) when impact is claimed.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "11",
+        "title": "Require per-item (or Bound-recut equivalent) impact coverage so nested stamps cannot silently clear uncovered siblings.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "12",
+        "title": "Keep reconstruction (C1) draft-only; do not auto-promote specs as part of enforce.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "13",
+        "title": "Document agents-entry / commands / CHANGELOG; wire fail-closed probe(s) the parent/CI can run.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "14",
+        "title": "Non-goals - Relitigating #5315 C1/C2 advise package as shipped.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "15",
+        "title": "Auto-rewriting SPECIFICATION as a silent side effect of merge.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "16",
+        "title": "Folding unrelated render/lifecycle adjacents (#630 / #1103 / #640) into this child.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "17",
+        "title": "Evidence / refs - Epic #1589 current-shape: C3 reserved (schema-validated, engine deferred) after C1/C2.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "18",
+        "title": "PR #5315 Prefer-A Bound: C3 `sqaPass` schema-only / engine no-op.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "19",
+        "title": "Greptile conf-hold fingerprints on #5315 (impact declaration bypasses coverage; item impacts miscounted) — intentional under Bound C2; actionable under this C3.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "20",
+        "title": "Acceptance (draft) - [ ] Typed policy + docs name how advise promotes to enforce (and what fails closed).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "21",
+        "title": "[ ] Enforce path refuses impact discharge without rewrite proof or typed human disposition.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "22",
+        "title": "[ ] Enforce path does not clear uncovered sibling items via a single nested stamp (or Bound documents the chosen coverage unit).",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "23",
+        "title": "[ ] Deterministic probe/tests cover advise-still-soft vs enforce-hard cases.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "24",
+        "title": "[ ] agents-entry / commands / CHANGELOG updated; epic #1589 current-shape marks C3 in progress/done.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      },
+      {
+        "id": "25",
+        "title": "Parent / standing - Parent epic: #1589 - Blocks clean 5/5 merge of #5315 under standing Greptile floor unless floor-exception or Bound-C2 recut is chosen instead.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5376",
+          "recorded_at": "2026-10-06T07:03:19.632Z",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedVia": "leftover-complete-after-5376",
+            "mintedAt": "2026-10-06T07:03:19.632Z"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:records"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5350",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5350: feat(spec): C3 enforce specGuard / verify:spec-drift (proof-of-rewrite + per-item impact) — leftover of #1589 / #5315"
+      }
+    ],
+    "acceptance": {
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound leftover-complete after product #5376; pathless disposition clauses preserve #5055 admitted identities",
+      "commands": [
+        "pnpm exec vitest run packages/core/src/policy/spec-guard.test.ts packages/core/src/verify-source/spec-drift.test.ts"
+      ],
+      "admitted_source_sentences": [
+        "Summary Child of epic #1589 C3 (reserved Wave 3): turn `plan.policy.specGuard` / `verify:spec-drift` from advise into an enforceable gate.",
+        "PR #5315 ships Prefer-A Bound C1 + C2 (advise) and only the C3 schema stub (`sqaPass` engine no-op).",
+        "Greptile holds #5315 below the 5/5 merge floor on fingerprints that require either a Bound-C2 recut or this C3 enforce work.",
+        "Problem In advise mode, agents can discharge drift coverage with stamps that Greptile treats as too soft: 1.",
+        "Impact declaration without rewrite proof — `x-directive/specImpact` `delta|new` can satisfy advise discharge without proving the specification artifact was rewritten.",
+        "Scope-level impact discharge — any nested `delta|new` can clear the whole story; per-item uncovered siblings stay soft under the current Bound.",
+        "Those behaviors match locked Bound C2 (warn, do not hard-block).",
+        "Enforce needs an explicit follow-up so #5315 is not thrashed as if they were accidental bugs.",
+        "Scope (C3) - Promote `specGuard` / `verify:spec-drift` from advise-default to an enforceable mode (exact policy surface TBD: `enforce` / `sqaPass` engine / merge-gate wiring).",
+        "Require proof of spec rewrite (or an explicit human-origin disposition) when impact is claimed.",
+        "Require per-item (or Bound-recut equivalent) impact coverage so nested stamps cannot silently clear uncovered siblings.",
+        "Keep reconstruction (C1) draft-only; do not auto-promote specs as part of enforce.",
+        "Document agents-entry / commands / CHANGELOG; wire fail-closed probe(s) the parent/CI can run.",
+        "Non-goals - Relitigating #5315 C1/C2 advise package as shipped.",
+        "Auto-rewriting SPECIFICATION as a silent side effect of merge.",
+        "Folding unrelated render/lifecycle adjacents (#630 / #1103 / #640) into this child.",
+        "Evidence / refs - Epic #1589 current-shape: C3 reserved (schema-validated, engine deferred) after C1/C2.",
+        "PR #5315 Prefer-A Bound: C3 `sqaPass` schema-only / engine no-op.",
+        "Greptile conf-hold fingerprints on #5315 (impact declaration bypasses coverage; item impacts miscounted) — intentional under Bound C2; actionable under this C3.",
+        "Acceptance (draft) - [ ] Typed policy + docs name how advise promotes to enforce (and what fails closed).",
+        "[ ] Enforce path refuses impact discharge without rewrite proof or typed human disposition.",
+        "[ ] Enforce path does not clear uncovered sibling items via a single nested stamp (or Bound documents the chosen coverage unit).",
+        "[ ] Deterministic probe/tests cover advise-still-soft vs enforce-hard cases.",
+        "[ ] agents-entry / commands / CHANGELOG updated; epic #1589 current-shape marks C3 in progress/done.",
+        "Parent / standing - Parent epic: #1589 - Blocks clean 5/5 merge of #5315 under standing Greptile floor unless floor-exception or Bound-C2 recut is chosen instead."
+      ],
+      "admitted_source_digest": "4d872e2f28f19fae0a821e503140f5369852939b47de16d6a855a28ca8c1dc0e",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Summary Child of epic #1589 C3 (reserved Wave 3): turn `plan.policy.specGuard` / `verify:spec-drift` from advise into an enforceable gate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 2,
+          "text": "PR #5315 ships Prefer-A Bound C1 + C2 (advise) and only the C3 schema stub (`sqaPass` engine no-op).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 3,
+          "text": "Greptile holds #5315 below the 5/5 merge floor on fingerprints that require either a Bound-C2 recut or this C3 enforce work.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 4,
+          "text": "Problem In advise mode, agents can discharge drift coverage with stamps that Greptile treats as too soft: 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 5,
+          "text": "Impact declaration without rewrite proof — `x-directive/specImpact` `delta|new` can satisfy advise discharge without proving the specification artifact was rewritten.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 6,
+          "text": "Scope-level impact discharge — any nested `delta|new` can clear the whole story; per-item uncovered siblings stay soft under the current Bound.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 7,
+          "text": "Those behaviors match locked Bound C2 (warn, do not hard-block).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 8,
+          "text": "Enforce needs an explicit follow-up so #5315 is not thrashed as if they were accidental bugs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 9,
+          "text": "Scope (C3) - Promote `specGuard` / `verify:spec-drift` from advise-default to an enforceable mode (exact policy surface TBD: `enforce` / `sqaPass` engine / merge-gate wiring).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 10,
+          "text": "Require proof of spec rewrite (or an explicit human-origin disposition) when impact is claimed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 11,
+          "text": "Require per-item (or Bound-recut equivalent) impact coverage so nested stamps cannot silently clear uncovered siblings.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 12,
+          "text": "Keep reconstruction (C1) draft-only; do not auto-promote specs as part of enforce.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 13,
+          "text": "Document agents-entry / commands / CHANGELOG; wire fail-closed probe(s) the parent/CI can run.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 14,
+          "text": "Non-goals - Relitigating #5315 C1/C2 advise package as shipped.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 15,
+          "text": "Auto-rewriting SPECIFICATION as a silent side effect of merge.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 16,
+          "text": "Folding unrelated render/lifecycle adjacents (#630 / #1103 / #640) into this child.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 17,
+          "text": "Evidence / refs - Epic #1589 current-shape: C3 reserved (schema-validated, engine deferred) after C1/C2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 18,
+          "text": "PR #5315 Prefer-A Bound: C3 `sqaPass` schema-only / engine no-op.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 19,
+          "text": "Greptile conf-hold fingerprints on #5315 (impact declaration bypasses coverage; item impacts miscounted) — intentional under Bound C2; actionable under this C3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 20,
+          "text": "Acceptance (draft) - [ ] Typed policy + docs name how advise promotes to enforce (and what fails closed).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 21,
+          "text": "[ ] Enforce path refuses impact discharge without rewrite proof or typed human disposition.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 22,
+          "text": "[ ] Enforce path does not clear uncovered sibling items via a single nested stamp (or Bound documents the chosen coverage unit).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 23,
+          "text": "[ ] Deterministic probe/tests cover advise-still-soft vs enforce-hard cases.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 24,
+          "text": "[ ] agents-entry / commands / CHANGELOG updated; epic #1589 current-shape marks C3 in progress/done.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        },
+        {
+          "id": 25,
+          "text": "Parent / standing - Parent epic: #1589 - Blocks clean 5/5 merge of #5315 under standing Greptile floor unless floor-exception or Bound-C2 recut is chosen instead.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "disposition": "not_applicable",
+            "reason": "Prefer-A leftover-complete after product PR #5376",
+            "recorded_at": "2026-10-06T07:03:19.632Z",
+            "provenance": {
+              "kind": "operator-session",
+              "actor": "Scott",
+              "mintedVia": "leftover-complete-after-5376",
+              "mintedAt": "2026-10-06T07:03:19.632Z"
+            }
+          }
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5704263582,
+        "origin": "deftai/directive#5350",
+        "id": "github.issue.5704263582"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ca8616afe5753412bc66c8dd56a8607cb3e092330f16e71ddf8fb5ba1a191f82"
+      },
+      "swarm": {
+        "file_scope": [
+          "AGENTS.md",
+          "CHANGELOG.md",
+          "content/commands.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-spec-reconstruct/SKILL.md",
+          "content/templates/agents-entry.md",
+          "docs/RULE-MAP.md",
+          "packages/cli/src/authz.ts",
+          "packages/cli/src/cli-router/route-argv.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/policy.ts",
+          "packages/core/src/policy/index.ts",
+          "packages/core/src/policy/spec-drift-override-grant.test.ts",
+          "packages/core/src/policy/spec-drift-override-grant.ts",
+          "packages/core/src/policy/spec-guard.test.ts",
+          "packages/core/src/policy/spec-guard.ts",
+          "packages/core/src/scope/specification-sync.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/verify-source/project-definition-mutation-boundary.ts",
+          "packages/core/src/verify-source/spec-drift.test.ts",
+          "packages/core/src/verify-source/spec-drift.ts",
+          "tasks/policy.yml",
+          "tasks/verify.yml",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/active/2026-10-06-5350-featspec-c3-enforce-specguard-verifyspec-drift-proof-of-rewr.xbrief.json"
+        ]
+      },
+      "productPullRequest": 5376,
+      "delivery": {
+        "required": false
+      },
+      "completedAt": "2026-10-06T07:04:27Z",
+      "completedSessionId": "host:grok:v1:MDFhMTBjOTAtOGM2MS03NjMzLTk0YjAtMzFmZTVmMGE3Mjlj",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-06T07:04:27Z"
+      }
+    },
+    "id": "github.issue.5704263582",
+    "updated": "2026-10-06T07:04:27Z"
+  }
+}

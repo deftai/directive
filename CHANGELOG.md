@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+- Complete the #5350 scope brief after product #5376; move the spec-guard enforce Prefer-A Bound brief into xbrief/completed.
 - Complete the #5391 scope brief after product #5401; move the CLI DX Prefer-A Bound brief into xbrief/completed.
 
 ### Changed
