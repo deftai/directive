@@ -695,6 +695,7 @@
           "content/contracts/deterministic-questions.md",
           "content/templates/agent-prompt-preamble.md",
           "content/templates/agents-entry.md",
+          "docs/RULE-MAP.md",
           "packages/core/src/content-contracts/skills/deterministic_questions.test.ts",
           "packages/core/src/hooks/dispatcher-plan-choice.test.ts",
           "packages/core/src/hooks/dispatcher-plan-choice.ts",
@@ -728,6 +729,6 @@
       "productPullRequest": 5410
     },
     "id": "github.issue.5713952089",
-    "updated": "2026-10-06T12:11:34.996Z"
+    "updated": "2026-10-06T12:59:00.080Z"
   }
 }

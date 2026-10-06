@@ -21,7 +21,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | ci-cd | CI runner and pipeline guidance, loaded when migrating or configuring CI. | 6 | 5 | 4 | 6 | 0 | 0 |
 | coding | Core software-development rules for agents: hygiene, testing, debugging, security, build output. | 10 | 201 | 59 | 147 | 2 | 5 |
 | context | How to feed agents context well: examples, deterministic splits, spec deltas. | 8 | 42 | 67 | 30 | 16 | 13 |
-| contracts | Interface/behavioral contracts the framework enforces. | 16 | 200 | 16 | 140 | 0 | 5 |
+| contracts | Interface/behavioral contracts the framework enforces. | 16 | 203 | 16 | 142 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
 | docs | Explanatory docs and the framework glossary. | 43 | 21 | 12 | 62 | 1 | 2 |
@@ -38,7 +38,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 40 | 595 | 120 | 704 | 0 | 18 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 318 | 88 | 138 | 0 | 11 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
-| templates | Reusable document/scaffold templates. | 11 | 101 | 10 | 54 | 1 | 5 |
+| templates | Reusable document/scaffold templates. | 11 | 104 | 10 | 55 | 1 | 5 |
 | tools | Tooling standards (telemetry, search, formatters, the Taskfile contract). | 7 | 91 | 73 | 33 | 1 | 15 |
 | vbrief | The durable state format: project definition, specification, scopes, plans. | 1 | 81 | 28 | 30 | 0 | 9 |
 | verification | How agents prove work is done: gates, validators, coverage, review. | 4 | 39 | 22 | 26 | 0 | 4 |
