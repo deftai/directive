@@ -8,7 +8,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 24 groupings, 283 documents
+- **Rules:** 24 groupings, 284 documents
 - **Tasks:** 64 namespaces, 276 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (717 entries from rules|lessons|patterns|skills|strategies|entries)
 
@@ -35,7 +35,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
 | scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 108 | 34 | 34 | 1 | 3 |
-| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 40 | 595 | 120 | 704 | 0 | 18 |
+| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 41 | 596 | 120 | 704 | 0 | 18 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 318 | 88 | 138 | 0 | 11 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 104 | 10 | 55 | 1 | 5 |
@@ -293,7 +293,7 @@ _Packaged multi-step agent workflows (build, release, interview, triage, review�
 - **deft-directive-article-review/** (1 files)
 - **deft-directive-build/** (1 files)
 - **deft-directive-cost/** (1 files)
-- **deft-directive-debug/** (1 files)
+- **deft-directive-debug/** (2 files)
 - **deft-directive-decompose/** (1 files)
 - **deft-directive-design-critique/** (2 files)
 - **deft-directive-feedback/** (1 files)
