@@ -15,7 +15,11 @@ import { scanVbrief } from "./conformance.js";
 import { runValidate } from "./main.js";
 import { validateOriginProvenance } from "./origin.js";
 import { reEmitVbriefArtifact } from "./roundtrip.js";
-import { validatePlanReferenceTypes, validateVbriefSchema } from "./schema.js";
+import {
+  isTerminalPlanStatus,
+  validatePlanReferenceTypes,
+  validateVbriefSchema,
+} from "./schema.js";
 import { validateAll } from "./validate-all.js";
 
 const MINIMAL_V08 = {
@@ -800,5 +804,196 @@ describe("Class B reserved-prefix compatibility (#4746 / #4765 / #4846)", () => 
     );
     expect(runValidate(["--vbrief-dir", vbrief])).toBe(1);
     rmSync(mixedRoot, { recursive: true, force: true });
+  });
+});
+
+const NEVER_REGISTERED_TYPE = "x-xbrief/zz-never-registered-subtype";
+
+function classRErrors(messages: readonly string[]): string[] {
+  return messages.filter((m) => m.includes("unknown reserved-prefix subtype"));
+}
+
+function classCErrors(messages: readonly string[]): string[] {
+  return messages.filter((m) => m.includes("invalid id") && m.includes("clause:"));
+}
+
+function terminalHistoricalDoc(
+  overrides: { status?: string; itemId?: string; nestedItemId?: string; refType?: string } = {},
+) {
+  const itemId = overrides.itemId ?? "clause:1";
+  const items =
+    overrides.nestedItemId === undefined
+      ? [{ id: itemId, title: "legacy clause", status: "completed" }]
+      : [
+          {
+            title: "parent",
+            status: "completed",
+            subItems: [{ id: overrides.nestedItemId, title: "nested", status: "completed" }],
+          },
+        ];
+  return {
+    xBRIEFInfo: { version: "0.8" },
+    plan: {
+      title: "terminal historical Visage corpus",
+      status: overrides.status ?? "completed",
+      items,
+      references: [
+        {
+          uri: "https://example.test/zz-never-registered",
+          type: overrides.refType ?? NEVER_REGISTERED_TYPE,
+        },
+      ],
+    },
+  };
+}
+
+describe("terminal Visage validate compat (#5422 Prefer-A)", () => {
+  it("treats completed, cancelled, and failed as terminal plan statuses", () => {
+    expect(isTerminalPlanStatus("completed")).toBe(true);
+    expect(isTerminalPlanStatus("cancelled")).toBe(true);
+    expect(isTerminalPlanStatus("failed")).toBe(true);
+    expect(isTerminalPlanStatus("running")).toBe(false);
+    expect(isTerminalPlanStatus("draft")).toBe(false);
+    expect(isTerminalPlanStatus(undefined)).toBe(false);
+  });
+
+  it("normative terminal fixture: 0 class R/C errors and warning for never-registered subtype", () => {
+    const warnings: string[] = [];
+    const errors = validateVbriefSchema(terminalHistoricalDoc(), "terminal.json", warnings);
+    expect(classRErrors(errors)).toEqual([]);
+    expect(classCErrors(errors)).toEqual([]);
+    expect(warnings.filter((w) => w.includes(NEVER_REGISTERED_TYPE))).toHaveLength(1);
+    expect(
+      warnings.some((w) => w.includes("legacy clause-colon id") && w.includes("clause:1")),
+    ).toBe(true);
+  });
+
+  it("demotes unknown reserved-prefix on cancelled and failed plans", () => {
+    for (const status of ["cancelled", "failed"] as const) {
+      const { errors, warnings } = validatePlanReferenceTypes(
+        [{ uri: "https://example.test/zz", type: NEVER_REGISTERED_TYPE }],
+        "brief.json",
+        status,
+      );
+      expect(errors, status).toEqual([]);
+      expect(warnings, status).toHaveLength(1);
+      expect(warnings[0], status).toContain(NEVER_REGISTERED_TYPE);
+    }
+  });
+
+  it("non-terminal control still hard-FAILs unknown reserved-prefix outside CLASS_B", () => {
+    const { errors, warnings } = validatePlanReferenceTypes(
+      [{ uri: "https://example.test/zz", type: NEVER_REGISTERED_TYPE }],
+      "brief.json",
+      "running",
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain(NEVER_REGISTERED_TYPE);
+    expect(warnings).toEqual([]);
+
+    const schemaWarnings: string[] = [];
+    const schemaErrors = validateVbriefSchema(
+      terminalHistoricalDoc({ status: "running" }),
+      "non-terminal.json",
+      schemaWarnings,
+    );
+    expect(classRErrors(schemaErrors)).toHaveLength(1);
+    expect(classCErrors(schemaErrors)).toHaveLength(1);
+  });
+
+  it("omitted plan status keeps CLASS_B-only severity for unit honesty", () => {
+    const unknown = validatePlanReferenceTypes(
+      [{ uri: "https://example.test/zz", type: NEVER_REGISTERED_TYPE }],
+      "brief.json",
+    );
+    expect(unknown.errors).toHaveLength(1);
+    expect(unknown.warnings).toEqual([]);
+
+    const classB = validatePlanReferenceTypes(
+      [{ uri: "https://example.test/ref", type: "x-xbrief/depends-on" }],
+      "brief.json",
+    );
+    expect(classB.errors).toEqual([]);
+    expect(classB.warnings).toHaveLength(1);
+  });
+
+  it("read-accepts nested clause:N on terminal and hard-FAILs malformed ids", () => {
+    const nestedWarnings: string[] = [];
+    const nestedErrors = validateVbriefSchema(
+      terminalHistoricalDoc({ nestedItemId: "clause:2", refType: "x-xbrief/github-issue" }),
+      "nested-colon.json",
+      nestedWarnings,
+    );
+    expect(classCErrors(nestedErrors)).toEqual([]);
+    expect(
+      nestedWarnings.some((w) => w.includes("legacy clause-colon id") && w.includes("clause:2")),
+    ).toBe(true);
+
+    const malformedWarnings: string[] = [];
+    const malformedErrors = validateVbriefSchema(
+      terminalHistoricalDoc({
+        itemId: "clause:bad",
+        refType: "x-xbrief/github-issue",
+      }),
+      "malformed-id.json",
+      malformedWarnings,
+    );
+    expect(malformedErrors.some((e) => e.includes("invalid id") && e.includes("clause:bad"))).toBe(
+      true,
+    );
+    expect(malformedWarnings.some((w) => w.includes("clause:bad"))).toBe(false);
+
+    const otherIllegal = validateVbriefSchema(
+      terminalHistoricalDoc({
+        itemId: "has spaces",
+        refType: "x-xbrief/github-issue",
+      }),
+      "spaces-id.json",
+    );
+    expect(otherIllegal.some((e) => e.includes("invalid id"))).toBe(true);
+  });
+
+  it("does not grow CLASS_B with Visage never-registered subtype", () => {
+    expect(
+      validatePlanReferenceTypes(
+        [{ uri: "https://example.test/zz", type: NEVER_REGISTERED_TYPE }],
+        "brief.json",
+        "draft",
+      ).errors,
+    ).toHaveLength(1);
+  });
+
+  it("C8 lite: envelope 0.8 terminal unknown reserved-prefix must not hard-FAIL without bump", () => {
+    const warnings: string[] = [];
+    const doc = terminalHistoricalDoc({ itemId: "clause.1" });
+    expect(doc.xBRIEFInfo.version).toBe("0.8");
+    const errors = validateVbriefSchema(doc, "c8-lite.json", warnings);
+    expect(classRErrors(errors)).toEqual([]);
+    expect(warnings.some((w) => w.includes(NEVER_REGISTERED_TYPE))).toBe(true);
+  });
+
+  it("validateAll and CLI collect demoted warnings; --warnings-as-errors stays fail-closed", () => {
+    const root = mkdtempSync(join(tmpdir(), "vb-5422-"));
+    const vbrief = join(root, "xbrief");
+    mkdirSync(join(vbrief, "completed"), { recursive: true });
+    writeFileSync(
+      join(vbrief, "completed", "2026-10-06-terminal-historical.xbrief.json"),
+      JSON.stringify(terminalHistoricalDoc()),
+      "utf8",
+    );
+
+    const result = validateAll(vbrief);
+    expect(classRErrors(result.errors)).toEqual([]);
+    expect(classCErrors(result.errors)).toEqual([]);
+    expect(
+      result.warnings.filter((w) => w.includes(NEVER_REGISTERED_TYPE)).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      result.warnings.filter((w) => w.includes("legacy clause-colon id")).length,
+    ).toBeGreaterThanOrEqual(1);
+
+    expect(runValidate(["--vbrief-dir", vbrief])).toBe(0);
+    expect(runValidate(["--vbrief-dir", vbrief, "--warnings-as-errors"])).toBe(1);
+    rmSync(root, { recursive: true, force: true });
   });
 });

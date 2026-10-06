@@ -20,6 +20,7 @@ import {
   ACCEPTANCE_EVIDENCE_KEY,
   ACCEPTANCE_REQUIRES_KEY,
   bindPlanItemIdsToClauses,
+  CLAUSE_KEYED_ITEM_ID_PREFIX,
   clauseKeyedItemId,
   evaluateAcceptanceEvidenceGate,
   evaluateScopeCompleteAcceptanceWalk,
@@ -2701,5 +2702,17 @@ describe("stampDeclaredMergeEvidence (#5105)", () => {
     expect(gate.ok).toBe(false);
     expect(gate.reports[0]?.outcome).toBe("missing");
     expect(item[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
+});
+
+describe("clauseKeyedItemId write-path mint (#5422)", () => {
+  it("mints dotted clause.N only so leftover-complete writers do not reintroduce clause:", () => {
+    expect(CLAUSE_KEYED_ITEM_ID_PREFIX).toBe("clause.");
+    expect(clauseKeyedItemId(1)).toBe("clause.1");
+    expect(clauseKeyedItemId(12)).toMatch(/^clause\.[0-9]+$/);
+    expect(clauseKeyedItemId(1)).not.toMatch(/^clause:/);
+    expect(
+      persistClauseKeyedPendingItems({ acceptance: { clauses: [{ id: 3, text: "x" }] } }).addedIds,
+    ).toEqual(["clause.3"]);
   });
 });

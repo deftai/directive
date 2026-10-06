@@ -56,6 +56,7 @@ export {
 } from "./roundtrip.js";
 export type { PlanReferenceTypeIssues } from "./schema.js";
 export {
+  isTerminalPlanStatus,
   normalizeNarrativeKey,
   validatePlanReferenceTypes,
   validateVbriefSchema,
