@@ -108,8 +108,10 @@
         "file_scope": [
           "CHANGELOG.md",
           "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
           "packages/core/src/scope/acceptance-evidence.ts",
           "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
           "content/docs/scope-provenance.md",
           "packages/core/src/hooks/scope.ts"
         ],
@@ -472,6 +474,9 @@
     },
     "acceptance": {
       "ambiguity_attestation": "none_found",
+      "none_stated": true,
+      "commands": [],
+      "source_rung": "derived",
       "clauses": [
         {
           "id": 1,
