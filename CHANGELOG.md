@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+### Changed
+
+- Keep-active: widen #5390 file_scope for worktrees.test.ts (Path B remint).
+
 
 ### Added
 
