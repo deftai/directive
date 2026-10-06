@@ -111,7 +111,7 @@
         "conflict_group": "pre-pr-coverage-applicability",
         "depends_on": [],
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/pre-pr-controller packages/core/src/coverage-hotspots"
+          "pnpm exec vitest run packages/core/src/pre-pr-controller packages/core/src/coverage-hotspots packages/core/src/coverage-applicability"
         ],
         "expected_outputs": [
           "Tracking PR for #5421 Prefer-A Bound pre-pr coverage applicability"
@@ -493,7 +493,7 @@
         {
           "id": 4,
           "text": "Hotspots classify before requiring coverage-final.json; N/A-eligible emits machine-readable skip-channel reason and non-zero exit; keep Istanbul floor when measurement available.",
-          "artifact_path": "packages/core/src/coverage-hotspots/index.ts",
+          "artifact_path": "packages/core/src/coverage-hotspots/evaluate.ts",
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         },
