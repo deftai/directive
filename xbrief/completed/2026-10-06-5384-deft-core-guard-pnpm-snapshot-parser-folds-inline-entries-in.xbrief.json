@@ -17,27 +17,27 @@
       {
         "id": "1",
         "title": "Co-edit Python SoT + TS twin to recognize inline-empty ': {}' full keys; strike first-colon equivalence",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "2",
         "title": "Keep freeze-except-additions; record head-only non-Directive inline-{} addition allowed with Directive bump",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "3",
         "title": "Behavioural TS regression cases via isUpgradePinPathContentAllowed with true inline fixtures",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "4",
         "title": "Replace inert AC-8 sole-regex toContain with site-distinguishing pin",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "5",
         "title": "No lasting consumer-local deft-core-guard.yml edit; no YAML library dependency",
-        "status": "pending"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -499,7 +499,7 @@
         {
           "id": 4,
           "text": "Replace inert AC-8 sole-regex toContain with site-distinguishing pin so behavioural cases prove the section parser changed.",
-          "artifact_path": "packages/core/src/init-deposit/hygiene.test.ts",
+          "artifact_path": "packages/core/src/init-deposit/core-guard-pin-content.test.ts",
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         }
