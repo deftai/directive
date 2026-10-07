@@ -1,0 +1,668 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5193",
+    "updated": "2026-10-07T03:34:37.360Z"
+  },
+  "plan": {
+    "title": "[framework-gap] bug(scope): completion prep creates clause ID titles that fail its own sentence coverage gate",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] bug(scope): completion prep creates clause ID titles that fail its own sentence coverage gate",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5193",
+      "Overview": "\n\n1. Recut P1 placeholder reader skip: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `persistClauseKeyedPendingItems` (`packages/core/src/scope/acceptance-evidence.ts` 1061-1089) still pushes `{id, title: id, status: \"pending\"}` with prefix `clause.`. Export one placeholder predicate next to `clauseKeyedItemId`: the id is `clause.N` or leftover `clause:N`, the title is empty or equal to that id, and there is no `narrative.Acceptance`. Apply it in `statementSentencesOnPlan` (`packages/core/src/product-first-done-gate/acceptance.ts`), which `acceptanceForSentenceFloor` / `stampAcceptanceFromLiteralCapture` actually scrape, and in `collectPlanItemAcceptanceSurface` as the same shared predicate. Do not skip every `clause.`-prefixed id. A collector-only skip is not P1 relief.\n2. Recut P1 keep persist title as the id: do not set generated `title` to clause text and do not stamp `narrative.Acceptance` with clause text as P1 relief. `inferRequiredStrictAxes` still reads persist title; title-copy recuts evidence axes on complete and stamp-evidence. `stampMatchAnyFileEvidence` overlay of clause text stays.\n3. Recut P1 recovery: the reader skip covers already-persisted `{id, title: id}` rows that `clauseHasKeyedItem` will not remint. First ship is prevention plus reader recovery. It does not rewrite authored titles or remint admitted-source identities. Stored `acceptance.sentences` that already contain `clause.1` stay a stored-list problem; the item skip still prevents restamp from reintroducing the placeholder when sentences are absent.\n4. Recut P1 composition fixtures: persist then the actual `verify:ac` / `evaluateVerifyAcFromPlan` floor; Description narrative; no stored sentences; custom `ui-1` plus generated `clause.N`; preexisting clause-keyed row with a real title stays mapped; title-follows-id placeholder unmapped count 0; authored `{id:\"clause.1\", title:\"The Cancel action preserves all input.\"}` stays visible; collector-only skip is not the passing test; `scope:complete`, `scope:stamp-evidence`, and `swarm:complete-cohort` dry-run surfaces. Strict-axis control: persist title stays the id so a UAT-worded clause does not add a strict axis on the generated row.\n5. Preserve: evidence kinds, executable-oracle #4870, `rewriteLegacyClauseKeyedItemIds`, `fenceUntrustedAcceptanceText`.\n6. Exclude: blanket prefix skip; lowering the sentence gate; treating extra mirrors beside custom ids as this P1; #5011 id-grammar migration as this number.\n\nTarget-digest: sha256:4e18a8a88fe952fd8a56f106e3dc5bdc952da09fc65bb31cd74227e5007d8ae0\n\n",
+      "Labels": "bug, agent-experience, process, source-of-truth, urgent, area:cli, area:vbrief, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Skip placeholder clause.N title-follows-id rows in statement sentence readers",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5449 squash-merge (Tracking #5193). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5449",
+            "mintedAt": "2026-10-07T03:34:37.360Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:34:37.360Z"
+        }
+      },
+      {
+        "id": "2",
+        "title": "Keep persist title as the clause id; do not copy clause text into title as P1 relief",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5449 squash-merge (Tracking #5193). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5449",
+            "mintedAt": "2026-10-07T03:34:37.360Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:34:37.360Z"
+        }
+      },
+      {
+        "id": "3",
+        "title": "Reader skip recovers already-persisted placeholder rows",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5449 squash-merge (Tracking #5193). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5449",
+            "mintedAt": "2026-10-07T03:34:37.360Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:34:37.360Z"
+        }
+      },
+      {
+        "id": "4",
+        "title": "Composition fixtures for persist then verify:ac sentence floor",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5449 squash-merge (Tracking #5193). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5449",
+            "mintedAt": "2026-10-07T03:34:37.360Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:34:37.360Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "area:vbrief",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates",
+      "prefer-a-bound",
+      "through-merge",
+      "clause-id-title-sentence-floor"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5193",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5193: [framework-gap] bug(scope): completion prep creates clause ID titles that fail its own sentence coverage gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3550",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3550"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "{id, title: id, status: \"pending\"}",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "{id, title: id}",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "{id:\"clause.1\", title:\"The Cancel action preserves all input.\"}",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        }
+      ],
+      "swarm": {
+        "conflict_group": "clause-id-title-sentence-floor",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "depends_on": [],
+        "file_scope": [
+          "packages/core/src/product-first-done-gate/acceptance.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "CHANGELOG.md",
+          "packages/core/src/verify-ac/clauses.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/acceptance-evidence.test.ts -t \"5193\""
+        ],
+        "expected_outputs": [
+          "Tracking PR open",
+          "tests green"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because complete-prep mints pending items whose title is the id `clause.N`, and verify:ac then treats that title as an unmapped statement sentence.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5193-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\ndest-wo: leftover-complete\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption with a refutation target\nspend: N≥3\nspend-ask: asked\nspend-why: operator \"use appropriate n\" (missing-token). Stop 2 panel permission: generated clause-keyed titles vs sentence coverage; competing remedies (title from clause text vs skip generated ids in statement scrape vs exclude clause-keyed titles from collectPlanItemAcceptanceSurface); blast radius is every scope:complete / scope:stamp-evidence with a Description-derived sentence list.\nDual-stop cap: 3 posts\n\npain: P1\n\ntarget: #5193\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: persistClauseKeyedPendingItems may mint title \"clause.1\" (the id) as a pending acceptance mirror without introducing a new unmapped statement.\n\n## Gate stamp\n\nRound-1 ceiling is this write-back plus panel-deposit (spend N≥3). Families: grok, claude (opus), codex.\n\nP1 is placeholder title becoming a new unmapped statement. `persistClauseKeyedPendingItems` pushes `{id, title: id, status: \"pending\"}` with `clauseKeyedItemId` prefix `clause.`. `scope:complete` and `scope:stamp-evidence` both call that helper. `collectPlanItemAcceptanceSurface` prefers `item.narrative.Acceptance` then `item.title`. `extractStatementSentences` / `evaluateStatementSentenceCoverage` then treat `clause.1` as a statement that is not clause text. Title-only repair to the existing clause text passes. A preexisting clause-keyed item with the actual clause text does not mint the extra item. Expected recut: canonical lifecycle preparation must not introduce a new unmapped requirement merely by creating its internal acceptance item. Generated titles should carry the clause text or be handled consistently by the statement extractor. Keep evidence and executable-oracle requirements intact.\n\nWhat this is not:\n\n- #5011 historical `clause:N` id migration. This number is valid dotted `clause.N` ids whose title equals the id.\n- Extra clause mirrors for custom existing IDs as a defect by themselves. Residual is the placeholder title.\n- #4814 vacuous acceptance walks / derivation priority. Residual is title-induced unmapped-sentence refusal.\n- Weakening `verify:ac` evidence or replacing the behavioral oracle.\n\nOpen forks the critic may take: set `title` to the clause text instead of the id; skip `clause.`-prefixed titles in `collectPlanItemAcceptanceSurface` / statement scrape; stamp `narrative.Acceptance` with the clause text; treat generated pending mirrors as non-statements. Lowering the sentence gate, or leaving title=`clause.1` while documenting a manual repair, does not relieve P1.\n\nRe-measured at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819` by pin-read.\n\nPin-read:\n\n- `packages/core/src/scope/acceptance-evidence.ts` blob `77a8e3841ac0f89da1209ef2c7cc4c75e679e2c4`. `CLAUSE_KEYED_ITEM_ID_PREFIX = \"clause.\"`. `persistClauseKeyedPendingItems` (1061-1089) pushes `title: id`.\n- `packages/core/src/scope/transition.ts` blob `c81cf0f41e0f48415e760f4c3dd64839d0c2f67d`. Line 390 calls persist on complete.\n- `packages/core/src/scope/stamp-evidence.ts` blob `3c21555f66069b4ddbe02ef689226bc6f022c33e`. Line 39 calls persist.\n- `packages/core/src/verify-ac/clauses.ts` blob `eaf0a725483c79c8920c7ca5be7b53057a6a2d97`. `collectPlanItemAcceptanceSurface` (262-279 region) uses `item.title`. `extractStatementSentences` (1286). `evaluateStatementSentenceCoverage` (1361-1396) unmapped when sentence text is neither clause nor confession.\n\nCatalog chip design-critique:mechanism-shaped applied via task scm:issue:design-critique-chip as its own write.\n\n",
+          "id": 5919145232,
+          "html_url": "https://github.com/deftai/directive/issues/5193#issuecomment-5919145232",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:27:34Z",
+          "updated_at": "2026-09-30T20:27:34Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5919226403\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\n\n",
+          "id": 5919226403,
+          "html_url": "https://github.com/deftai/directive/issues/5193#issuecomment-5919226403",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:32:00Z",
+          "updated_at": "2026-09-30T20:32:01Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nCharter: refutation. Round 1, fresh critic. Input ceiling 5919226403. Tree reads pinned to `5a311bf5cb976ccaacdcfe939e630878135ab819`.\n\n## Verdict on the refutation target\n\nThe refutation target does not survive. At the dispatch SHA, `persistClauseKeyedPendingItems` cannot mint `title: \"clause.1\"` without adding an unmapped statement when the sentence list is derived. P1 stands.\n\nThe chain I re-verified by pin-read and by running the extractor:\n\n1. `acceptance-evidence.ts` (blob `77a8e384`) `persistClauseKeyedPendingItems` pushes `{ id, title: id, status: \"pending\" }`.\n2. `evaluate.ts` (blob `2484cd3a`) `acceptanceForSentenceFloor` (1303-1321): with no stored `acceptance.sentences`, a walked clause, and a narrative statement, it calls `stampAcceptanceFromLiteralCapture(plan)` in memory. `applyStatementSentenceFloor` (1589) scores that result.\n3. `product-first-done-gate/acceptance.ts` (blob `668817a8`) `statementSentencesOnPlan` (352-395) reads each item's `narrative.Acceptance`, else `item.title`, and sends it to `extractStatementSentences`. Line 579 uses it when no sentence list is kept.\n4. I copied `extractStatementSentences` and helpers from `clauses.ts` (blob `eaf0a725`, 1185-1318) into a harness and ran it under node 24. `\"clause.1\"` gives `[\"clause.1\"]`: the `.` before a digit is not a boundary, and `pushStatementSentence` (1208) keeps any span that has a letter. That sentence is not a clause and not a confession, so `evaluateStatementSentenceCoverage` lists it as unmapped.\n\nThis matches the issue's reproduction.\n\n## Findings\n\n### F1: The inventory names the wrong reader. The sentence floor reads `statementSentencesOnPlan`, not `collectPlanItemAcceptanceSurface`.\n\nClass: `sharpens-framing`\n\nEvidence: `collectPlanItemAcceptanceSurface` (clauses.ts 266) has two callers at the SHA: `stampDerivedClausesOnAcceptance` (clauses.ts 577) and `intake/clause-derivation.ts` 430. Both are clause derivation inputs. The sentence floor gets its sentences from `statementSentencesOnPlan` in `product-first-done-gate/acceptance.ts`. That function has its own copy of the same Acceptance-then-title rule.\n\nFailure mode: the Stop 1 fork \"skip `clause.`-prefixed titles in `collectPlanItemAcceptanceSurface`\" leaves `statementSentencesOnPlan` unchanged. `clause.1` stays unmapped and P1 is not relieved. The regression composition test would still fail.\n\nDisposition consequence: the lean can bind. It must name `statementSentencesOnPlan` as the statement-scrape anchor. Whatever placeholder predicate is chosen should be applied to both readers as one shared predicate, so the two Acceptance-then-title copies cannot drift. Drop \"collectPlanItemAcceptanceSurface\" as a P1 remedy site.\n\n### F2: Setting the title to the clause text has a split hazard. It can create new unmapped sentences.\n\nClass: `sharpens-framing`\n\nEvidence (harness at the SHA): `extractStatementSentences(\"Save persists the form. Reload shows the saved value.\")` gives two sentences. `normalizeClauseText` gives one string for the whole clause. The coverage check (`clauseTexts.has(text)`) is exact equality, so neither half maps. Also, `stripSentenceChrome` removes a leading `1. ` / `- ` / `#`, but `normalizeClauseText` (clauses.ts 145) only collapses whitespace. So `\"1. Saving works\"` as a title gives sentence `\"Saving works\"`, and the clause text stays `\"1. Saving works\"`.\n\nFailure mode: if a clause has more than one sentence, or keeps a list or heading marker, \"title = clause text\" swaps one unmapped `clause.N` for one or more unmapped fragments. This is the same P1 class: completion prep adds a requirement the gate refuses. The issue's single-sentence repro does not reach this.\n\nDisposition consequence: the lean can bind on \"title = clause text\" only if that invariant is made explicit and tested. That means a multi-sentence clause and a marker-prefixed clause in the regression set. Otherwise prefer the placeholder-exclusion fork (see Road not taken below).\n\n### F3: Placeholders already on disk are outside a mint-only fix.\n\nClass: `sharpens-framing`\n\nEvidence: `transition.ts` (blob `c81cf0f4`) 390-405 calls `persistClauseKeyedPendingItems` and then `atomicWriteBrief` *before* `evaluateAcceptanceEvidenceGate`. The comment says it writes \"even when later acceptance refuses (#5120)\". `stamp-evidence.ts` 39 persists and then always writes.\n\nFailure mode: every brief where `scope:complete` or `scope:stamp-evidence` already ran now has `{ id: \"clause.N\", title: \"clause.N\" }` items on disk. The issue's eight-clause UI brief is one. A fix that changes only the `title:` literal at mint time does not change those items. `clauseHasKeyedItem` then sees the key and skips re-mint, so the refusal stays until someone repairs it by hand.\n\nDisposition consequence: the lean must say which of these it uses. (a) The statement reader treats the placeholder shape as a non-statement, which also covers existing briefs. (b) `persistClauseKeyedPendingItems` rewrites existing placeholder titles, using the same in-place pattern as `rewriteLegacyClauseKeyedItemIds`. Choose one. The regression list should add \"brief already carrying minted placeholders\".\n\n## Road not taken and steelman\n\nI recommend the placeholder exclusion. `statementSentencesOnPlan`, and the derivation reader per F1, skip an item when its id has `CLAUSE_KEYED_ITEM_ID_PREFIX`, its title is empty or equal to its own id, and it has no `narrative.Acceptance`. Export that predicate next to `clauseKeyedItemId` in `acceptance-evidence.ts`. This covers new mints and on-disk briefs (F3). It avoids the split hazard (F2) and does not touch evidence or oracle requirements.\n\nInjection/swarm lens: the predicate is narrow on purpose. A title equal to its own `clause.N` id carries no requirement text, so skipping it cannot hide an authored requirement. An authored `clause.N` item with a real title, or one with `narrative.Acceptance`, is still read. Do not widen the check to \"any `clause.`-prefixed id\". That would let an author hide real text behind a dotted id.\n\nSteelman for \"title = clause text\": briefs stay readable, and the item is self-describing without joining to `acceptance.clauses`. That flips my verdict if clause text is guaranteed to be one sentence with no marker under `extractStatementSentences` / `stripSentenceChrome`, for example by normalizing through `stripSentenceChrome` at mint time and refusing multi-sentence clauses. It also still needs F3(b) for on-disk briefs.\n\n## Footnotes\n\n- `footnote`: The inventory leaves out a third caller, `swarm/complete-cohort.ts` (blob `d39e2b83`) 245, `dryRunAcceptanceEvidenceGate`. It persists on a clone and does not write, but its gate verdict has the same P1 exposure. Add `swarm:complete-cohort` to the regression surface.\n- `footnote`: `intake/issue-ingest.ts` 1652/1662 restamps through `stampAcceptanceFromLiteralCapture`. On a first stamp it could store a `clause.N` sentence in `acceptance.sentences` if placeholders were already present. After that, stored wins (`acceptanceForSentenceFloor` 1306) and a title repair does nothing. Ingest normally runs before placeholders exist, so I did not show this path is reachable. The reader-side exclusion below closes it anyway.\n- `footnote`: I found no embedded instructions in the issue body or the two in-envelope comments. \"Do not replace the behavioral oracle or lower evidence requirements\" is a constraint, and it matches the Stop 1 non-goals.\n\n",
+          "id": 5919300850,
+          "html_url": "https://github.com/deftai/directive/issues/5193#issuecomment-5919300850",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:37:00Z",
+          "updated_at": "2026-09-30T20:37:00Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nThe refutation target is false: canonical preparation can create its own unmapped statement. A producer-side clause-text title is the narrowest surviving remedy. Blanket ID exclusion and a collector-only change fail the checks below.\n\nRead Stop 1 [5919145232](https://github.com/deftai/directive/issues/5193#issuecomment-5919145232) and panel-deposit [5919226403](https://github.com/deftai/directive/issues/5193#issuecomment-5919226403). All repository evidence is pinned to `5a311bf5cb976ccaacdcfe939e630878135ab819`.\n\n**Method.** Executed the pinned TypeScript modules in an isolated temporary project using Node 24.20.0, adapting local import suffixes for its TS loader. Reproduced the reported method: Description narrative, custom `ui-1` item, one behavioral clause with a declared test file, `none_stated:true`, empty commands, `none_found`, no stored sentence list; check-integrated evaluation with suite floor supplied, banking/reuse disabled. Assertions passed:\n\n| Control | verify:ac | Unmapped |\n| --- | --- | --- |\n| Before helper | pass | 0 |\n| After helper mints `clause.1` | fail | 1 (`clause.1`) |\n| Change only generated title to clause text | pass | 0 |\n| Stored clean sentence list, then mint | pass | 0 |\n| Preexisting clause-keyed row with clause-text title | pass | 0 |\n\nPurpose-only also passes without deriving a sentence list. In the title-repair case the clause remains **unverifiable**, with zero verified clauses. Even after supplying valid typed evidence for both rows, the complete acceptance walk still refuses the missing executable-pass oracle under #4870. This reproduces a sentence-coverage defect, not successful completion.\n\n## C1 — blocks-the-design: a clause ID is not permission to discard authored text\n\n**Evidence:** `bindPlanItemIdsToClauses` assigns `clause.N` to existing authored items; the generator adds only id/title/status, with no generated-origin discriminator ([binding](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/scope/acceptance-evidence.ts#L628-L678), [generator](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/scope/acceptance-evidence.ts#L1061-L1089)). In a negative control, a row keyed `clause.1` says “The Cancel action preserves all input.” while clause 1 covers Save. Current evaluation correctly reports one unmapped sentence. An isolated variant skipping `clause.` rows in acceptance collection and sentence stamping turns this into pass/zero unmapped.\n\n**Failure mode:** an author or worker can use the namespace to hide a distinct requirement. Typed evidence for Save does not establish coverage of Cancel. **Disposition:** reject blanket prefix or clause-keyed-item exclusion as the remedy. Preserve authored acceptance surfaces; prefer correcting the generated placeholder at its producer.\n\n## C2 — blocks-the-design: changing the cited collector alone does not repair P1\n\n**Evidence:** the actual floor independently uses [`statementSentencesOnPlan`](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/product-first-done-gate/acceptance.ts#L352-L391), which reads `narrative.Acceptance` or `title` directly. [`acceptanceForSentenceFloor`](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/product-first-done-gate/evaluate.ts#L1303-L1322) reaches that stamp when the list is absent. A collector-only exclusion variant removes `clause.1` from `collectPlanItemAcceptanceSurface` but leaves verification failing with one unmapped sentence.\n\n**Failure mode:** a patch at the triage's cited collector can look correct in collector tests while canonical verification still fails. **Disposition:** reject that single-reader remedy; the regression must exercise helper → actual evaluator composition.\n\n## C3 — sharpens-framing: prevention and recovery have different persistence paths\n\n**Evidence:** an existing dotted placeholder row produces `addedIds:[]`, `rewrittenIds:[]` and still fails after the helper. Existing stored `sentences:[clauseText,\"clause.1\"]` still fails after title repair because [stored lists win](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/product-first-done-gate/acceptance.ts#L573-L583). [Complete prep](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/scope/transition.ts#L389-L419) persists generated rows before later refusal, but its early write condition observes added IDs, rewritten IDs, or merge stamps. [Stamp-evidence](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/scope/stamp-evidence.ts#L38-L52) writes unconditionally.\n\n**Failure mode:** mint-only repair leaves previously generated rows blocked; an in-memory repair of an existing dotted title can also disappear when complete later refuses unless its mutation triggers persistence. **Disposition:** state whether the first ship only prevents new placeholders or also repairs existing ones. Any recovery needs bounded placeholder handling, a durable mutation signal, and an explicit stored-sentence policy; it must not erase arbitrary authored text or remint admitted-source identities.\n\n## C4 — sharpens-framing: title is also an evidence-axis input\n\n**Evidence:** [`inferRequiredStrictAxes`](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/scope/acceptance-evidence.ts#L318-L372) reads title and Acceptance text. With manually supplied kind:test evidence, changing an ID title to “UAT confirms the Save action shows a confirmation message.” changes inferred axes from empty to `uat` and changes the evidence gate from pass to refusal. The live [test-evidence writer](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/scope/acceptance-evidence.ts#L826-L852) already substitutes clause text for this inference and correctly returns `strict-axis` for an unstamped UAT clause.\n\n**Failure mode:** treating title repair as display-only can lead a later fix to suppress a legitimate strict-axis refusal or alter evidence kinds to regain green. **Disposition:** retain the existing writer and kind-suitability controls; include a strict-axis composition control alongside the ordinary behavioral-clause fixture. No new evidence mechanism is needed.\n\n**Road not taken / strongest alternative:** treating generated mirrors as ledger metadata would avoid duplicating acceptance text. That could become preferable with a deterministic generated-origin discriminator honored by every statement reader and tests proving authored clause-keyed requirements remain visible. The current ID namespace does not provide that discriminator.\n\n## C5 — footnote: untrusted text remains untrusted\n\nThe pinned acceptance-evidence tests contain an intentional “Ignore previous instructions…” fixture; I treated it as test data. Existing `fenceUntrustedAcceptanceText` protects acceptance report interpolation. Copying clause text into a title does not grant that text authority over agents or change the shared-state ownership of complete/stamp-evidence. No product files were changed.\n\n",
+          "id": 5919377294,
+          "html_url": "https://github.com/deftai/directive/issues/5193#issuecomment-5919377294",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:42:13Z",
+          "updated_at": "2026-09-30T20:42:13Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\ncharter: refutation\nround: 1\nsha: 5a311bf5cb976ccaacdcfe939e630878135ab819\n\n## Verdict\n\nP1 holds at this SHA. `persistClauseKeyedPendingItems` mints `{id, title: id}` with `id` `clause.N`. On a brief that already has clauses, a Description-class narrative, and no stored `plan.acceptance.sentences`, `stampAcceptanceFromLiteralCapture` restamps sentences from `statementSentencesOnPlan`, which reads `item.narrative.Acceptance` then `item.title`. `extractStatementSentences(\"clause.1\")` yields one sentence (the internal `.` is not a boundary; the next character is a digit). `evaluateStatementSentenceCoverage` then counts it unmapped against the real clause text.\n\nThe recorded target is the wrong layer. Persist minting `title: id` is the #3240 evidence-key writer. The unmapped statement is introduced when that key is scraped as a task statement. Binding P1 as \"write clause text onto the generated title\" (or onto `narrative.Acceptance`) recuts `inferRequiredStrictAxes` on complete and stamp-evidence. P1 relief is a statement-reader skip of placeholder rows (title equals id, id is `clause.N` / leftover `clause:N`), the same title-follows-id signal `rewriteLegacyClauseKeyedItemIds` already uses.\n\n## 1. Title-copy and narrative.Acceptance recut evidence axes\n`blocks-the-design`\n\n**Evidence** (pin-read `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/scope/acceptance-evidence.ts` blob `77a8e3841ac0f89da1209ef2c7cc4c75e679e2c4`):\n\n- Persist (1061–1089) pushes `title: id`. Idempotent: `clauseHasKeyedItem` skips an existing keyed row; tests lock \"does not replace a stamped clause-keyed item.\"\n- `inferRequiredStrictAxes` (318+) joins `item.title`, `item.id`, and `narrative.Acceptance` / Description / Test, then matches `\\buat\\b` / smoke / deploy / observed_behavior.\n- `stampDeclaredTestEvidence` (774) and `stampDeclaredMergeEvidence` (944) infer on the persisted item.\n- `evaluateOneItem` (1403) infers on the persisted item for evidence suitability.\n- `stampMatchAnyFileEvidence` (837–838) already overlays `{ ...item, title: clause.text }` before infer. The product already treats persisted `title: id` as not-the-clause for that writer.\n- `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/scope/stamp-evidence.ts` line 39 and `…:packages/core/src/scope/transition.ts` line 390 both call persist. Complete writes persist before the later walk (`#5120`).\n\n**Failure mode.** Copying clause text onto persist `title` (or stamping `narrative.Acceptance` with that text) feeds the same prose into `inferRequiredStrictAxes` for the test/merge stamp helpers and the evidence gate. A clause that mentions UAT, smoke, deploy, or observed behavior turns the generated pending row into a strict-axis criterion. `kind:test` / `kind:merge` stamps skip; already-stamped `kind:test` becomes `invalid`. That recuts evidence requirements on every `scope:complete` / `scope:stamp-evidence` that mints keys. The issue requires those requirements to stay intact.\n\nPersist-only title-copy also leaves already-written `#5120` rows in place: the next persist sees the keyed id and skips. Title-only repair stays a manual step for briefs that already have `title: \"clause.N\"`.\n\n**Disposition.** A lean cannot bind \"set title to the clause text\" or \"stamp `narrative.Acceptance` with the clause text\" as P1 relief. Those forks need a separate axis-stability recut of every `inferRequiredStrictAxes` caller that today reads persist title/narrative. P1 binds without that recut.\n\n## 2. The unmapped-sentence reader is statementSentencesOnPlan, not collectPlanItemAcceptanceSurface\n`sharpens-framing`\n\n**Evidence.**\n\n- `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/product-first-done-gate/evaluate.ts`: `acceptanceForSentenceFloor` restamps via `stampAcceptanceFromLiteralCapture` when clauses exist, `planCarriesNarrativeStatement` is true, and `sentences` is absent. `applyStatementSentenceFloor` then calls `evaluateStatementSentenceCoverage` (`git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/verify-ac/clauses.ts` 1361–1396).\n- `planCarriesNarrativeStatement` / `STATEMENT_SENTENCE_NARRATIVE_KEYS` (`git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/product-first-done-gate/acceptance.ts`) list Overview, Description, Acceptance, Test, Verification. Purpose is absent. A Purpose-only fixture never restamps; unmapped count stays 0. That matches the issue's scope note.\n- `statementSentencesOnPlan` (same file) walks items with the same Acceptance-then-title preference as `collectPlanItemAcceptanceSurface` (clauses.ts 266–291), then splits with `extractStatementSentences` (1286). Re-verified on a control-flow replica of those helpers: `\"clause.1\"` → one sentence, `unmappedSentenceCount=1` against a different clause text; title repaired to that clause text → count 0. Dest has no `node_modules`; the replica is the pin-read helpers, fences irrelevant for this token.\n- `collectPlanItemAcceptanceSurface` is the `#3826` `itemSurface` for `deriveAcceptanceClauses` / `stampDerivedClausesOnAcceptance` / `applyClauseDerivationToPlan`. Activate/promote run derivation (`transition.ts` ~320). Complete persist runs later (~390). Persist itself returns with no mint when `clauses.length === 0`, so `needsClauseDerivation` is already false whenever persist mints. Item-surface \"clause.1\" does not become the clause set on this complete path.\n\n**Failure mode.** A lean that relieves P1 by skipping `clause.`-prefixed titles only in `collectPlanItemAcceptanceSurface` leaves `statementSentencesOnPlan` scraping `title: \"clause.1\"`. The sentence floor still fails. A title-prefix skip is also wide (`clause.foo must render`) and misses leftover `clause:N` titles.\n\n**Disposition.** Name the P1 reader as `statementSentencesOnPlan` (the restamp inside `stampAcceptanceFromLiteralCapture`). The skip predicate is placeholder title-follows-id: `title === id` and the id is `clause.N` or leftover `clause:N` — the same signal `rewriteLegacyClauseKeyedItemIds` uses when it rewrites title with the id (`acceptance-evidence.ts` 1173–1176). That skip heals already-persisted `#5120` rows without rewriting them. A paired skip on `collectPlanItemAcceptanceSurface` is dormant defense if clauses are later stripped; it is not P1 relief.\n\n## Injection / swarm lens\n\nPersist writes `plan.items` on three shared paths: `scope:complete` (atomic write even when the later acceptance walk refuses, `#5120`), `scope:stamp-evidence` (persist then `stampMatchAnyFileEvidence`, no verify:ac), and `swarm:complete-cohort` dry-run on a clone. Those rows become statement sentences on the next `evaluateVerifyAcFromPlan` floor (`evaluate.ts` ~1223), including check-integrated. `stamp-evidence` can mint the placeholder and stamp `kind:test` in one write, so the evidence gate passes and the sentence floor is the remaining refuse. Title and `narrative.Acceptance` are also the `#3826` declared item surface and the free-text half of `inferRequiredStrictAxes`. Changing them changes acceptance-surface authority, not only a display string.\n\n## Road not taken\n\nTitle-copy is the strongest rejected fork. It matches `bindPlanItemIdsToClauses` (title equals clause text) and the overlay `stampMatchAnyFileEvidence` already applies. It would bind if every `inferRequiredStrictAxes` caller used that overlay (or explicit `requires` only) so persist title is never the axis source. That alignment is absent at this SHA: test/merge stamp helpers and `evaluateOneItem` still infer from persist title. Flip: add that overlay (or drop free-text infer on generated keys) as its own bound item; then title-copy is axis-neutral. That is a larger recut than P1.\n\nSkip-all-ids-matching-`clause.N` is the next rejected fork. Ingest already authors `{id: \"clause.1\", title: \"Widget renders\"}`. Skipping every keyed id would drop a real title that is the only copy of the statement. The title-follows-id predicate keeps those rows.\n\n## Footnotes\n`footnote`\n\n- [#5011](https://github.com/deftai/directive/issues/5011) is leftover `clause:N` id migration. The rewrite helper here already turns `title === \"clause:1\"` into `title: \"clause.1\"`, which is this P1 shape on historical rows. Distinct id grammar; same placeholder-title signal.\n- Extra mirrors beside a custom id such as `ui-1` stay out of P1, as the issue states. `bindPlanItemIdsToClauses` will not steal `ui-1` because it already has an id; persist then mints `clause.N`. Reader skip leaves that extra row in place as an evidence key.\n- Regression coverage the issue names (persist then verify:ac, Description, no stored sentences, custom ids, already keyed rows, title-only repair) is absent from `sentence-floor.test.ts` at this SHA; persist tests lock `title: clauseKeyedItemId(1)` without the floor.\n\n",
+          "id": 5919379026,
+          "html_url": "https://github.com/deftai/directive/issues/5193#issuecomment-5919379026",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:42:20Z",
+          "updated_at": "2026-09-30T20:42:20Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nComplete-prep still mints pending items whose title is the id `clause.N`, and the sentence floor then treats that title as an unmapped statement. Three isolated critics reproduced persist then `verify:ac` at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`: before the helper the floor is clean; after minting `title: \"clause.1\"` it refuses; repairing only that title passes. The live reader is `statementSentencesOnPlan`, not `collectPlanItemAcceptanceSurface`. Copying clause text onto the generated title recuts `inferRequiredStrictAxes`. Skipping every `clause.`-prefixed id hides authored text. Confirming this map skips only placeholder title-follows-id rows in both readers, keeps persist `title` as the id, and covers already-written placeholders without a new evidence mechanism.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. grok-4.6 was also a round-1 critic. Takes accept critic headings that already have cross-family corroboration (Claude opus, Codex gpt-6, Grok).\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: pain-P1 asserted until a pain-audit critic targets the cites.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after three isolated critics. Cites critic 5919300850, 5919377294, 5919379026. Supersedes Stop 1 write-back 5919145232. Round 1 sibling count 3.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5193-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\ntarget shape: single-issue\nround: 1\nsiblings: 3\nDual-stop cap: 3 posts\n\nTakes:\n\n- 5919300850 F1 The inventory names the wrong reader. The sentence floor reads statementSentencesOnPlan, not collectPlanItemAcceptanceSurface — accept-into-contract\n- 5919300850 F2 Setting the title to the clause text has a split hazard. It can create new unmapped sentences — accept-into-contract\n- 5919300850 F3 Placeholders already on disk are outside a mint-only fix — accept-into-contract\n- 5919377294 C1 a clause ID is not permission to discard authored text — accept-into-contract\n- 5919377294 C2 changing the cited collector alone does not repair P1 — accept-into-contract\n- 5919377294 C3 prevention and recovery have different persistence paths — accept-into-contract\n- 5919377294 C4 title is also an evidence-axis input — accept-into-contract\n- 5919379026 Title-copy and narrative.Acceptance recut evidence axes — accept-into-contract\n- 5919379026 The unmapped-sentence reader is statementSentencesOnPlan, not collectPlanItemAcceptanceSurface — accept-into-contract\n\nFootnotes stay footnotes.\n\nrelieves: P1\n\n## Bound remedy\n\n1. Recut P1 placeholder reader skip: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `persistClauseKeyedPendingItems` (`packages/core/src/scope/acceptance-evidence.ts` 1061-1089) still pushes `{id, title: id, status: \"pending\"}` with prefix `clause.`. Export one placeholder predicate next to `clauseKeyedItemId`: the id is `clause.N` or leftover `clause:N`, the title is empty or equal to that id, and there is no `narrative.Acceptance`. Apply it in `statementSentencesOnPlan` (`packages/core/src/product-first-done-gate/acceptance.ts`), which `acceptanceForSentenceFloor` / `stampAcceptanceFromLiteralCapture` actually scrape, and in `collectPlanItemAcceptanceSurface` as the same shared predicate. Do not skip every `clause.`-prefixed id. A collector-only skip is not P1 relief.\n2. Recut P1 keep persist title as the id: do not set generated `title` to clause text and do not stamp `narrative.Acceptance` with clause text as P1 relief. `inferRequiredStrictAxes` still reads persist title; title-copy recuts evidence axes on complete and stamp-evidence. `stampMatchAnyFileEvidence` overlay of clause text stays.\n3. Recut P1 recovery: the reader skip covers already-persisted `{id, title: id}` rows that `clauseHasKeyedItem` will not remint. First ship is prevention plus reader recovery. It does not rewrite authored titles or remint admitted-source identities. Stored `acceptance.sentences` that already contain `clause.1` stay a stored-list problem; the item skip still prevents restamp from reintroducing the placeholder when sentences are absent.\n4. Recut P1 composition fixtures: persist then the actual `verify:ac` / `evaluateVerifyAcFromPlan` floor; Description narrative; no stored sentences; custom `ui-1` plus generated `clause.N`; preexisting clause-keyed row with a real title stays mapped; title-follows-id placeholder unmapped count 0; authored `{id:\"clause.1\", title:\"The Cancel action preserves all input.\"}` stays visible; collector-only skip is not the passing test; `scope:complete`, `scope:stamp-evidence`, and `swarm:complete-cohort` dry-run surfaces. Strict-axis control: persist title stays the id so a UAT-worded clause does not add a strict axis on the generated row.\n5. Preserve: evidence kinds, executable-oracle #4870, `rewriteLegacyClauseKeyedItemIds`, `fenceUntrustedAcceptanceText`.\n6. Exclude: blanket prefix skip; lowering the sentence gate; treating extra mirrors beside custom ids as this P1; #5011 id-grammar migration as this number.\n\nTarget-digest: sha256:4e18a8a88fe952fd8a56f106e3dc5bdc952da09fc65bb31cd74227e5007d8ae0\n\n",
+          "id": 5919514982,
+          "html_url": "https://github.com/deftai/directive/issues/5193#issuecomment-5919514982",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:51:40Z",
+          "updated_at": "2026-09-30T20:51:40Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n\nCharter: refutation. Round: pain-audit, fresh critic, reserved Dual-stop slot. Id ceiling 5919514982 (inclusive). Tree reads pinned to `5a311bf5cb976ccaacdcfe939e630878135ab819`.\n\n## Verdict on `relieves: P1` (bind lean 5919514982)\n\nThe cite holds. The Bound-remedy covers P1 as written. I found no blocking or sharpening findings. The findings below are footnotes, so the bind map stays bindable.\n\nP1: complete-prep mints `{id: \"clause.N\", title: \"clause.N\"}`, and the sentence floor then counts that title as an unmapped statement.\n\n## What I re-verified\n\n1. **The reader is the right one, and it is the only one that matters.** `extractStatementSentences` has two production callers: `statementSentencesOnPlan` (acceptance.ts 383) and `extractAdmittedSourceSentencesFromText` (405, Overview text only, not items). `evaluateStatementSentenceCoverage` has one caller, `applyStatementSentenceFloor` (evaluate.ts 1589). `statementSentencesOnPlan` has one caller, `stampAcceptanceFromLiteralCapture` (579). That function is reached from `acceptanceForSentenceFloor` (evaluate.ts 1313, in memory) and from issue ingest (issue-ingest.ts 1652/1662). A skip in `statementSentencesOnPlan` therefore covers every path where a placeholder title becomes a floor sentence: `scope:complete`, `scope:stamp-evidence`, the `swarm:complete-cohort` dry-run, and re-ingest.\n2. **The predicate matches the minted shape.** `persistClauseKeyedPendingItems` (acceptance-evidence.ts 1061-1089) runs `rewriteLegacyClauseKeyedItemIds` first, then pushes `{id, title: id, status: \"pending\"}` with no narrative. The Bound-remedy test is \"clause-keyed id, title empty or equal to the id, no `narrative.Acceptance`\". That matches this row exactly. It also matches the precedence both readers already use: Acceptance first, then title (acceptance.ts 371-373; clauses.ts 277-279).\n3. **The extractor keeps every placeholder spelling.** I ran the pinned `extractStatementSentences` (clauses.ts 1182-1330, with fence stripping stubbed out) under Node 24.20.0. `\"clause.1\"`, `\"clause:1\"`, `\"clause.12\"`, and `\" clause.1 \"` each give one sentence equal to the trimmed id. So both arms of the predicate, `clause.N` and leftover `clause:N`, target a real sentence. `\"The Cancel action preserves all input.\"` stays a sentence. The authored-text control in fixture 4 therefore still sees it.\n4. **Reader recovery works on already-written briefs.** Both readers recompute from `plan.items` on every call. No scope or swarm writer stores `acceptance.sentences`. `git grep sentences` over `scope/*.ts` and `swarm/*.ts` finds only an unrelated `decompose.ts` message. `acceptanceForSentenceFloor` returns its stamp in memory only. So briefs that already carry `#5120` placeholder rows have no stored `clause.N` sentence, and the reader skip clears them without a rewrite. Item 3's statement that stored lists stay out of scope is accurate. The one way to store a list is ingest's first stamp, and the item skip also stops that.\n5. **Keeping the persisted title as the id does not change evidence axes.** `inferRequiredStrictAxes` reads title, id, and narrative. Leaving the title as the id keeps inputs unchanged for `stampDeclaredTestEvidence`, `stampDeclaredMergeEvidence`, and `evaluateOneItem`. The change only affects readers.\n\n## Injection / swarm lens\n\nThe change narrows what counts as acceptance text. It stays safe because the skipped text is always the item's own id, and an id carries no requirement. An authored `{id: \"clause.1\", title: <real text>}` fails the \"title equals id\" test, so it is still read. The same is true when `narrative.Acceptance` is set. `statementSentencesOnPlan` never reads item-level `Description` or `Test`, so an author cannot hide text there under a placeholder title. The remedy adds no writer, no new shared-state mutation, and no concurrency surface. Complete, stamp-evidence, and cohort writes stay the same. No embedded instructions appear in the issue body or in comments within the ceiling. \"Do not replace the behavioral oracle or lower evidence requirements\" is a constraint, and Bound-remedy item 5 preserves it.\n\n## Footnotes\n\n- `footnote`: **Placement.** \"Export one placeholder predicate next to `clauseKeyedItemId`\" would put it in `scope/acceptance-evidence.ts`. That file already imports `verify-ac/clauses.ts` and `product-first-done-gate/evaluate.ts`. At the pinned SHA, neither `verify-ac/` nor `product-first-done-gate/` imports from `scope/` (`git grep 'from \"../scope/'` returns nothing), and `biome.json` has no cycle rule. So this placement adds two import cycles. They are safe at runtime because the value is used only inside function bodies. The cleaner home is `verify-ac/clauses.ts`, which is already the shared lower layer. `CLAUSE_KEYED_ITEM_ID_PREFIX` can move there and be re-exported. This does not affect P1 relief.\n- `footnote`: **Wording in item 3.** \"First ship is prevention plus reader recovery\" is loose. The remedy does not stop minting. Persist still writes `title: id` on purpose (item 2). What the remedy prevents is the sentence, not the row.\n- `footnote`: **Strict-axis control in item 4.** \"A UAT-worded clause does not add a strict axis on the generated row\" should be written as \"axes unchanged from pre-fix\". It should not read as a property the design endorses. `stampMatchAnyFileEvidence` already overlays the clause text and refuses an unstamped UAT clause (C4). The fixture should lock that the remedy is neutral, not that generated rows never get axes.\n- `footnote`: **Case.** `\"Clause.1\"` is also one sentence. Persist only mints lowercase ids, so exact case-sensitive equality is enough for the minted shape. Do not add case folding. Case folding would widen the skip to authored ids.\n\n\n",
+          "id": 5919584386,
+          "html_url": "https://github.com/deftai/directive/issues/5193#issuecomment-5919584386",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:56:29Z",
+          "updated_at": "2026-10-07T01:39:57Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Method |\n|---|---|---|\n| At `5a311bf5cb976ccaacdcfe939e630878135ab819`, `persistClauseKeyedPendingItems` pushes `{id, title: id}` with prefix `clause.` | verified | pin-read `acceptance-evidence.ts` 1061-1089 blob `77a8e3841ac0f89da1209ef2c7cc4c75e679e2c4` |\n| `\"clause.1\"` is one statement sentence and is unmapped against real clause text | verified | round-1 5919300850 extractor harness; 5919377294 isolated persist-then-floor table; 5919379026 control-flow replica |\n| The live floor reader is `statementSentencesOnPlan` via `stampAcceptanceFromLiteralCapture` / `acceptanceForSentenceFloor`, not `collectPlanItemAcceptanceSurface` | verified | pin-read plus pain-audit 5919584386 caller graph |\n| Title-follows-id placeholder skip on that reader covers minted rows and already-written `#5120` rows because no scope/swarm writer stores `acceptance.sentences` | verified | pain-audit 5919584386 |\n| Authored `{id:\"clause.1\", title:\"The Cancel action preserves all input.\"}` stays a sentence; blanket prefix skip is rejected | verified | round-1 5919377294 C1 negative control; pain-audit 5919584386 extractor run |\n| Persist title stays the id, so `inferRequiredStrictAxes` inputs are unchanged | verified | pain-audit 5919584386 |\n| Bound-remedy harvest is six items on lean 5919514982 | verified | live `## Bound remedy` numbered list on lean 5919514982 |\n\nNon-self-arbitration: grok-4.6 parent authored Stop 1 and bind lean 5919514982. Rows rest on pin-read at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819` and Claude opus pain-audit 5919584386, not on parent agreement with round-1 grok-4.6.\n\n",
+          "id": 5919653044,
+          "html_url": "https://github.com/deftai/directive/issues/5193#issuecomment-5919653044",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T21:01:19Z",
+          "updated_at": "2026-09-30T21:01:19Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nComplete-prep currently mints pending items whose title is the id `clause.N`, and the sentence floor then treats that title as an unmapped statement. Confirming this recut skips only placeholder title-follows-id rows in `statementSentencesOnPlan` and `collectPlanItemAcceptanceSurface`, keeps persist title as the id, and covers already-written placeholders without a new evidence mechanism.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites successor lean 5919514982 and verified-claims table 5919653044.\npain-audit 5919584386 is footnote-only; leftover-pain of relieves: P1 is satisfied.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5193-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\nDual-stop cap: 3 posts\ndest-wo: leftover-complete\n\n",
+          "id": 5919662962,
+          "html_url": "https://github.com/deftai/directive/issues/5193#issuecomment-5919662962",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T21:02:00Z",
+          "updated_at": "2026-09-30T21:02:00Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Summary\n\nbug(scope): completion prep creates clause ID titles that fail its own sentence coverage gate\n\n## Context\n\nIn Directive 0.119.12, persistClauseKeyedPendingItems creates title: \"clause.1\" for a pending acceptance mirror. verify:ac treats that generated title as a statement sentence and rejects it as unmapped. Both scope:complete and scope:stamp-evidence call the generator.\n\n## Expected behavior\n\nCanonical lifecycle preparation must not introduce a new unmapped requirement merely by creating its internal acceptance item. Generated item titles should carry the clause text or otherwise be handled consistently by the statement extractor. Keep evidence and executable-oracle requirements intact.\n\n## Actual behavior / gap\n\n### Minimal reproduction\n\n1. Create a valid plan with narratives.Description, one existing item id ui-1 whose title is the clause text, and one derived clause id 1 with the same text and a declared test artifact. Include none_stated=true, commands=[], ambiguity_attestation=none_found and no preexisting acceptance.sentences list.\n2. In isolated check-integrated evaluation with the suite floor supplied, verify:ac passes before complete prep (0 unmapped statements; the behavioral clause remains explicitly unverifiable).\n3. Run persistClauseKeyedPendingItems. It adds a pending item {id:\"clause.1\",title:\"clause.1\"}.\n4. Re-evaluate: failure, unmappedSentenceCount=1, unmapped text clause.1.\n5. Change only the generated title to the existing clause text: the sentence gate passes again. Alternatively, a preexisting clause-keyed item with the actual clause text does not produce the extra item or refusal.\n\n### Impact\n\nA real eight-clause UI brief gained eight placeholder mirror items and required manual title repair before canonical completion could proceed.\n\nRefs #3550, #4986, #4870. #5011 is a separate historical clause:N ID migration issue, not this valid dotted-ID/title interaction.\n\n## Session notes\n\n### Scope and controls\n\nFailure requires an eligible narrative field such as Description and a sentence-list derivation path. A Purpose-only fixture did not fail, which narrows the defect. Extra clause mirrors for custom existing IDs are not by themselves claimed to be a defect. The faulty output is the placeholder title becoming a new unmapped statement.\n\n### Regression coverage\n\nComposition tests across generated pending items and verify:ac, with Description, no stored sentences, existing custom IDs, already clause-keyed items, and title-only repair. Do not replace the behavioral oracle or lower evidence requirements.\n\n### Duplicate distinction\n\nFresh dedup: #4814 is a UAT tracker whose current split covers vacuous acceptance walks and derivation priority. Its body mentions generated mirrors, but it does not cover this reproduced title-induced unmapped-sentence refusal. This report isolates that helper/evaluator composition; #5011 separately concerns invalid historical clause:N IDs.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5652283485,
+        "origin": "deftai/directive#5193",
+        "id": "github.issue.5652283485"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4e18a8a88fe952fd8a56f106e3dc5bdc952da09fc65bb31cd74227e5007d8ae0"
+      },
+      "productPullRequest": 5449,
+      "productMergeCommit": "af7542d3a91fff5330ad53a75cdf462fd3fd0fd1",
+      "completedAt": "2026-10-07T03:34:37.360Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-07T03:34:37.360Z"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5449,
+        "prBase": "master",
+        "mergeCommit": "af7542d3a91fff5330ad53a75cdf462fd3fd0fd1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "af7542d3a91fff5330ad53a75cdf462fd3fd0fd1",
+        "verifiedAt": "2026-10-07T03:34:37.360Z",
+        "verifier": "approach1-leftover-stamp-residual",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTE0NjYtN2ZmMC03OGQwLWEyNGEtYjZiZTExNDFkNDRm"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/scope/acceptance-evidence.test.ts -t \"5193\""
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "no recorded verbatim statement span; derived not stated (#3396)",
+      "sentences": [
+        "[framework-gap] bug(scope): completion prep creates clause ID titles that fail its own sentence coverage gate",
+        "Recut P1 placeholder reader skip: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `persistClauseKeyedPendingItems` (`packages/core/src/scope/acceptance-evidence.ts` 1061-1089) still pushes `{id, title: id, status: \"pending\"}` with prefix `clause.`.",
+        "Export one placeholder predicate next to `clauseKeyedItemId`: the id is `clause.N` or leftover `clause:N`, the title is empty or equal to that id, and there is no `narrative.Acceptance`.",
+        "Apply it in `statementSentencesOnPlan` (`packages/core/src/product-first-done-gate/acceptance.ts`), which `acceptanceForSentenceFloor` / `stampAcceptanceFromLiteralCapture` actually scrape, and in `collectPlanItemAcceptanceSurface` as the same shared predicate.",
+        "Do not skip every `clause.`-prefixed id.",
+        "A collector-only skip is not P1 relief.",
+        "Recut P1 keep persist title as the id: do not set generated `title` to clause text and do not stamp `narrative.Acceptance` with clause text as P1 relief.",
+        "`inferRequiredStrictAxes` still reads persist title; title-copy recuts evidence axes on complete and stamp-evidence.",
+        "`stampMatchAnyFileEvidence` overlay of clause text stays.",
+        "Recut P1 recovery: the reader skip covers already-persisted `{id, title: id}` rows that `clauseHasKeyedItem` will not remint.",
+        "First ship is prevention plus reader recovery.",
+        "It does not rewrite authored titles or remint admitted-source identities.",
+        "Stored `acceptance.sentences` that already contain `clause.1` stay a stored-list problem; the item skip still prevents restamp from reintroducing the placeholder when sentences are absent.",
+        "Recut P1 composition fixtures: persist then the actual `verify:ac` / `evaluateVerifyAcFromPlan` floor; Description narrative; no stored sentences; custom `ui-1` plus generated `clause.N`; preexisting clause-keyed row with a real title stays mapped; title-follows-id placeholder unmapped count 0; authored `{id:\"clause.1\", title:\"The Cancel action preserves all input.\"}` stays visible; collector-only skip is not the passing test; `scope:complete`, `scope:stamp-evidence`, and `swarm:complete-cohort` dry-run surfaces.",
+        "Strict-axis control: persist title stays the id so a UAT-worded clause does not add a strict axis on the generated row.",
+        "Preserve: evidence kinds, executable-oracle #4870, `rewriteLegacyClauseKeyedItemIds`, `fenceUntrustedAcceptanceText`.",
+        "Exclude: blanket prefix skip; lowering the sentence gate; treating extra mirrors beside custom ids as this P1; #5011 id-grammar migration as this number.",
+        "Target-digest: sha256:4e18a8a88fe952fd8a56f106e3dc5bdc952da09fc65bb31cd74227e5007d8ae0",
+        "Skip placeholder clause.N title-follows-id rows in statement sentence readers",
+        "Keep persist title as the clause id; do not copy clause text into title as P1 relief",
+        "Reader skip recovers already-persisted placeholder rows",
+        "Composition fixtures for persist then verify:ac sentence floor"
+      ],
+      "admitted_source_sentences": [
+        "Recut P1 placeholder reader skip: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `persistClauseKeyedPendingItems` (`packages/core/src/scope/acceptance-evidence.ts` 1061-1089) still pushes `{id, title: id, status: \"pending\"}` with prefix `clause.`.",
+        "Export one placeholder predicate next to `clauseKeyedItemId`: the id is `clause.N` or leftover `clause:N`, the title is empty or equal to that id, and there is no `narrative.Acceptance`.",
+        "Apply it in `statementSentencesOnPlan` (`packages/core/src/product-first-done-gate/acceptance.ts`), which `acceptanceForSentenceFloor` / `stampAcceptanceFromLiteralCapture` actually scrape, and in `collectPlanItemAcceptanceSurface` as the same shared predicate.",
+        "Do not skip every `clause.`-prefixed id.",
+        "A collector-only skip is not P1 relief.",
+        "Recut P1 keep persist title as the id: do not set generated `title` to clause text and do not stamp `narrative.Acceptance` with clause text as P1 relief.",
+        "`inferRequiredStrictAxes` still reads persist title; title-copy recuts evidence axes on complete and stamp-evidence.",
+        "`stampMatchAnyFileEvidence` overlay of clause text stays.",
+        "Recut P1 recovery: the reader skip covers already-persisted `{id, title: id}` rows that `clauseHasKeyedItem` will not remint.",
+        "First ship is prevention plus reader recovery.",
+        "It does not rewrite authored titles or remint admitted-source identities.",
+        "Stored `acceptance.sentences` that already contain `clause.1` stay a stored-list problem; the item skip still prevents restamp from reintroducing the placeholder when sentences are absent.",
+        "Recut P1 composition fixtures: persist then the actual `verify:ac` / `evaluateVerifyAcFromPlan` floor; Description narrative; no stored sentences; custom `ui-1` plus generated `clause.N`; preexisting clause-keyed row with a real title stays mapped; title-follows-id placeholder unmapped count 0; authored `{id:\"clause.1\", title:\"The Cancel action preserves all input.\"}` stays visible; collector-only skip is not the passing test; `scope:complete`, `scope:stamp-evidence`, and `swarm:complete-cohort` dry-run surfaces.",
+        "Strict-axis control: persist title stays the id so a UAT-worded clause does not add a strict axis on the generated row.",
+        "Preserve: evidence kinds, executable-oracle #4870, `rewriteLegacyClauseKeyedItemIds`, `fenceUntrustedAcceptanceText`.",
+        "Exclude: blanket prefix skip; lowering the sentence gate; treating extra mirrors beside custom ids as this P1; #5011 id-grammar migration as this number.",
+        "Target-digest: sha256:4e18a8a88fe952fd8a56f106e3dc5bdc952da09fc65bb31cd74227e5007d8ae0"
+      ],
+      "admitted_source_digest": "abc5028c9a45adafb5ee52daa07cfd85143509fd037436f04c1fc9a3d16d125f",
+      "confessions": [
+        "[framework-gap] bug(scope): completion prep creates clause ID titles that fail its own sentence coverage gate",
+        "Recut P1 placeholder reader skip: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `persistClauseKeyedPendingItems` (`packages/core/src/scope/acceptance-evidence.ts` 1061-1089) still pushes `{id, title: id, status: \"pending\"}` with prefix `clause.`.",
+        "Export one placeholder predicate next to `clauseKeyedItemId`: the id is `clause.N` or leftover `clause:N`, the title is empty or equal to that id, and there is no `narrative.Acceptance`.",
+        "Apply it in `statementSentencesOnPlan` (`packages/core/src/product-first-done-gate/acceptance.ts`), which `acceptanceForSentenceFloor` / `stampAcceptanceFromLiteralCapture` actually scrape, and in `collectPlanItemAcceptanceSurface` as the same shared predicate.",
+        "Do not skip every `clause.`-prefixed id.",
+        "A collector-only skip is not P1 relief.",
+        "Recut P1 keep persist title as the id: do not set generated `title` to clause text and do not stamp `narrative.Acceptance` with clause text as P1 relief.",
+        "`inferRequiredStrictAxes` still reads persist title; title-copy recuts evidence axes on complete and stamp-evidence.",
+        "`stampMatchAnyFileEvidence` overlay of clause text stays.",
+        "Recut P1 recovery: the reader skip covers already-persisted `{id, title: id}` rows that `clauseHasKeyedItem` will not remint.",
+        "First ship is prevention plus reader recovery.",
+        "It does not rewrite authored titles or remint admitted-source identities.",
+        "Stored `acceptance.sentences` that already contain `clause.1` stay a stored-list problem; the item skip still prevents restamp from reintroducing the placeholder when sentences are absent.",
+        "Recut P1 composition fixtures: persist then the actual `verify:ac` / `evaluateVerifyAcFromPlan` floor; Description narrative; no stored sentences; custom `ui-1` plus generated `clause.N`; preexisting clause-keyed row with a real title stays mapped; title-follows-id placeholder unmapped count 0; authored `{id:\"clause.1\", title:\"The Cancel action preserves all input.\"}` stays visible; collector-only skip is not the passing test; `scope:complete`, `scope:stamp-evidence`, and `swarm:complete-cohort` dry-run surfaces.",
+        "Strict-axis control: persist title stays the id so a UAT-worded clause does not add a strict axis on the generated row.",
+        "Preserve: evidence kinds, executable-oracle #4870, `rewriteLegacyClauseKeyedItemIds`, `fenceUntrustedAcceptanceText`.",
+        "Exclude: blanket prefix skip; lowering the sentence gate; treating extra mirrors beside custom ids as this P1; #5011 id-grammar migration as this number.",
+        "Target-digest: sha256:4e18a8a88fe952fd8a56f106e3dc5bdc952da09fc65bb31cd74227e5007d8ae0",
+        "Skip placeholder clause.N title-follows-id rows in statement sentence readers",
+        "Keep persist title as the clause id; do not copy clause text into title as P1 relief",
+        "Reader skip recovers already-persisted placeholder rows",
+        "Composition fixtures for persist then verify:ac sentence floor"
+      ],
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut P1 placeholder reader skip: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `persistClauseKeyedPendingItems` (`packages/core/src/scope/acceptance-evidence.ts` 1061-1089) still pushes `{id, title: id, status: \"pending\"}` with prefix `clause.`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "Export one placeholder predicate next to `clauseKeyedItemId`: the id is `clause.N` or leftover `clause:N`, the title is empty or equal to that id, and there is no `narrative.Acceptance`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "Apply it in `statementSentencesOnPlan` (`packages/core/src/product-first-done-gate/acceptance.ts`), which `acceptanceForSentenceFloor` / `stampAcceptanceFromLiteralCapture` actually scrape, and in `collectPlanItemAcceptanceSurface` as the same shared predicate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Do not skip every `clause.`-prefixed id.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 5,
+          "text": "A collector-only skip is not P1 relief.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 6,
+          "text": "Recut P1 keep persist title as the id: do not set generated `title` to clause text and do not stamp `narrative.Acceptance` with clause text as P1 relief.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 7,
+          "text": "`inferRequiredStrictAxes` still reads persist title; title-copy recuts evidence axes on complete and stamp-evidence.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 8,
+          "text": "`stampMatchAnyFileEvidence` overlay of clause text stays.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 9,
+          "text": "Recut P1 recovery: the reader skip covers already-persisted `{id, title: id}` rows that `clauseHasKeyedItem` will not remint.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 10,
+          "text": "First ship is prevention plus reader recovery.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 11,
+          "text": "It does not rewrite authored titles or remint admitted-source identities.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 12,
+          "text": "Stored `acceptance.sentences` that already contain `clause.1` stay a stored-list problem; the item skip still prevents restamp from reintroducing the placeholder when sentences are absent.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 13,
+          "text": "Recut P1 composition fixtures: persist then the actual `verify:ac` / `evaluateVerifyAcFromPlan` floor; Description narrative; no stored sentences; custom `ui-1` plus generated `clause.N`; preexisting clause-keyed row with a real title stays mapped; title-follows-id placeholder unmapped count 0; authored `{id:\"clause.1\", title:\"The Cancel action preserves all input.\"}` stays visible; collector-only skip is not the passing test; `scope:complete`, `scope:stamp-evidence`, and `swarm:complete-cohort` dry-run surfaces.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 14,
+          "text": "Strict-axis control: persist title stays the id so a UAT-worded clause does not add a strict axis on the generated row.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 15,
+          "text": "Preserve: evidence kinds, executable-oracle #4870, `rewriteLegacyClauseKeyedItemIds`, `fenceUntrustedAcceptanceText`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 16,
+          "text": "Exclude: blanket prefix skip; lowering the sentence gate; treating extra mirrors beside custom ids as this P1; #5011 id-grammar migration as this number.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 17,
+          "text": "Target-digest: sha256:4e18a8a88fe952fd8a56f106e3dc5bdc952da09fc65bb31cd74227e5007d8ae0",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ]
+    },
+    "id": "github.issue.5652283485",
+    "updated": "2026-10-07T03:34:37.360Z"
+  }
+}
