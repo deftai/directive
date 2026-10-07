@@ -498,8 +498,10 @@ export function validateVbriefSchema(
           filepath,
         );
         // Completed 0.8 plans: warn-accept missing invalidates (#5467); live ledgers stay fail-closed.
-        if (envelopeVersion === "0.8" && planObj.status === "completed" && warnings !== undefined) {
-          warnings.push(...invalidatesDiagnostics);
+        // Severity follows version+status alone so callers that omit `warnings`
+        // (e.g. reEmitVbriefArtifact) still accept completed briefs.
+        if (envelopeVersion === "0.8" && planObj.status === "completed") {
+          warnings?.push(...invalidatesDiagnostics);
         } else {
           errors.push(...invalidatesDiagnostics);
         }

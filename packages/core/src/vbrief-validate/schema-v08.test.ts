@@ -953,6 +953,19 @@ describe("Visage validate compat across VALID_PLAN_STATUSES (#5467 Prefer-A)", (
     expect(warnings.some((w) => w.includes("clause.3") && w.includes("invalidates"))).toBe(true);
   });
 
+  it("completed failed-without-invalidates still re-emits when warnings array is omitted", () => {
+    const doc = historicalDoc({
+      status: "completed",
+      itemId: "clause.3",
+      itemStatus: "failed",
+      refType: "x-xbrief/github-issue",
+    });
+    expect(classInvalidatesErrors(validateVbriefSchema(doc, "completed-no-warns.json"))).toEqual(
+      [],
+    );
+    expect(() => reEmitVbriefArtifact(doc, "completed-no-warns.json")).not.toThrow();
+  });
+
   it("demotes unknown reserved-prefix on every VALID_PLAN_STATUSES member under 0.8", () => {
     for (const status of VALID_PLAN_STATUSES) {
       const { errors, warnings } = validatePlanReferenceTypes(
