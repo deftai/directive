@@ -298,15 +298,13 @@ export function noteSkillFileOpen(): PrePrDecision {
   return deny("deny-skill-file-open", SKILL_FILE_OPEN_NOT_COMPLETION);
 }
 
-/** Safe observation-only flags for measured coverage_headroom commands. */
+/**
+ * Safe observation-only flags for measured coverage_headroom commands.
+ * Reject `--project-root` / `--base-ref` redirects — they can measure another tree
+ * while the observation stays labeled with this run's inputHash (#5421).
+ */
 function isSafeCoverageHotspotsFlag(token: string): boolean {
-  return (
-    token === "--json" ||
-    token === "--quiet" ||
-    token === "-q" ||
-    token.startsWith("--project-root=") ||
-    token.startsWith("--base-ref=")
-  );
+  return token === "--json" || token === "--quiet" || token === "-q";
 }
 
 /**
