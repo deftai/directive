@@ -12,6 +12,7 @@ import {
   stripFencedCodeBlocks,
 } from "../intake/markdown-scanners.js";
 import { hasGlobMagic, matchAny } from "../orchestration/pathspec.js";
+import { isClauseKeyedTitleFollowsIdPlaceholder } from "../scope/acceptance-evidence.js";
 
 export type ClauseOutcome = "verified" | "unverifiable" | "failed";
 
@@ -392,6 +393,10 @@ export function collectPlanItemAcceptanceSurface(plan: Record<string, unknown>):
   for (const entry of plan.items) {
     const item = asRecord(entry);
     if (item === null) {
+      continue;
+    }
+    // Skip title-follows-id clause.N / clause:N placeholders (#5193).
+    if (isClauseKeyedTitleFollowsIdPlaceholder(item)) {
       continue;
     }
     const narrative = asRecord(item.narrative);

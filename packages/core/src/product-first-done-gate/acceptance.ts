@@ -15,6 +15,7 @@ import {
   NOOP_ACCEPTANCE_REMEDIATION,
   readStoredLiteralAcceptanceCommands,
 } from "../literal-acceptance/index.js";
+import { isClauseKeyedTitleFollowsIdPlaceholder } from "../scope/acceptance-evidence.js";
 import {
   acceptanceSentenceListErrors,
   extractStatementSentences,
@@ -367,6 +368,10 @@ function statementSentencesOnPlan(plan: Record<string, unknown>): string[] {
     for (const item of plan.items) {
       const rec = asRecord(item);
       if (rec === null) {
+        continue;
+      }
+      // Skip title-follows-id clause.N / clause:N placeholders (#5193).
+      if (isClauseKeyedTitleFollowsIdPlaceholder(rec)) {
         continue;
       }
       const narrative = asRecord(rec.narrative);

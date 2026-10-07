@@ -14,7 +14,9 @@ import {
   acceptanceWalkReportsZeroVerified,
   SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE,
 } from "../check/rapid-zero-verified.js";
+import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js";
 import { ITEM_CORE, scanVbrief } from "../vbrief-validate/conformance.js";
+import { collectPlanItemAcceptanceSurface } from "../verify-ac/clauses.js";
 import {
   ACCEPTANCE_DISPOSITION_KEY,
   ACCEPTANCE_EVIDENCE_KEY,
@@ -31,6 +33,7 @@ import {
   HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION,
   HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE,
   inferRequiredStrictAxes,
+  isClauseKeyedTitleFollowsIdPlaceholder,
   isEvidenceKindSuitable,
   itemDeclaresMergeRequirement,
   MERGE_POINTER_SHAPE_REMEDIATION,
@@ -2722,6 +2725,260 @@ describe("clauseKeyedItemId write-path mint (#5422)", () => {
     expect(
       persistClauseKeyedPendingItems({ acceptance: { clauses: [{ id: 3, text: "x" }] } }).addedIds,
     ).toEqual(["clause.3"]);
+  });
+});
+
+describe("clause-keyed title-follows-id placeholder skip (#5193)", () => {
+  const CLAUSE_TEXT = "The Cancel action preserves all input.";
+  const UAT_CLAUSE_TEXT = "UAT confirms the Cancel action preserves all input.";
+
+  function writeProbeRoot(): string {
+    const root = mkdtempSync(join(tmpdir(), "deft-5193-"));
+    writeFileSync(join(root, "probe.txt"), "marker\n", "utf8");
+    return root;
+  }
+
+  function compositionPlan(extra: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      id: "5193-composition",
+      // Title matches the clause so it is not an extra unmapped statement.
+      title: CLAUSE_TEXT,
+      narratives: {
+        Description: CLAUSE_TEXT,
+      },
+      items: [{ id: "ui-1", title: CLAUSE_TEXT, status: "pending" }],
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          {
+            id: 1,
+            text: CLAUSE_TEXT,
+            artifact_path: "probe.txt",
+            ambiguous: false,
+          },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["probe.txt"] } },
+      ...extra,
+    };
+  }
+
+  function floorOptions(root: string) {
+    return {
+      projectRoot: root,
+      captureFromNarratives: false,
+      hasSuiteFloor: true,
+      bankOnPass: false,
+      reuseMode: "never" as const,
+    };
+  }
+
+  it("matches only clause.N / clause:N title-follows-id rows without narrative.Acceptance", () => {
+    expect(
+      isClauseKeyedTitleFollowsIdPlaceholder({
+        id: "clause.1",
+        title: "clause.1",
+      }),
+    ).toBe(true);
+    expect(
+      isClauseKeyedTitleFollowsIdPlaceholder({
+        id: "clause:2",
+        title: "clause:2",
+      }),
+    ).toBe(true);
+    expect(
+      isClauseKeyedTitleFollowsIdPlaceholder({
+        id: "clause.3",
+        title: "",
+      }),
+    ).toBe(true);
+    expect(
+      isClauseKeyedTitleFollowsIdPlaceholder({
+        id: "clause.1",
+        title: CLAUSE_TEXT,
+      }),
+    ).toBe(false);
+    expect(
+      isClauseKeyedTitleFollowsIdPlaceholder({
+        id: "clause.1",
+        title: "clause.1",
+        narrative: { Acceptance: CLAUSE_TEXT },
+      }),
+    ).toBe(false);
+    expect(
+      isClauseKeyedTitleFollowsIdPlaceholder({
+        id: "clause.foo",
+        title: "clause.foo",
+      }),
+    ).toBe(false);
+    expect(
+      isClauseKeyedTitleFollowsIdPlaceholder({
+        id: "ui-1",
+        title: "ui-1",
+      }),
+    ).toBe(false);
+  });
+
+  it("persist keeps title as the id and does not copy clause text onto the generated row", () => {
+    const plan = compositionPlan({
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          {
+            id: 1,
+            text: UAT_CLAUSE_TEXT,
+            artifact_path: "probe.txt",
+            ambiguous: false,
+          },
+        ],
+      },
+      narratives: { Description: UAT_CLAUSE_TEXT },
+      items: [{ id: "ui-1", title: UAT_CLAUSE_TEXT, status: "pending" }],
+    });
+    const persist = persistClauseKeyedPendingItems(plan);
+    expect(persist.addedIds).toEqual([clauseKeyedItemId(1)]);
+    const generated = (plan.items as Array<Record<string, unknown>>).find(
+      (row) => row.id === clauseKeyedItemId(1),
+    );
+    expect(generated).toMatchObject({
+      id: clauseKeyedItemId(1),
+      title: clauseKeyedItemId(1),
+      status: "pending",
+    });
+    expect(generated?.narrative).toBeUndefined();
+    expect(inferRequiredStrictAxes(generated as Record<string, unknown>)).toEqual([]);
+    expect(
+      inferRequiredStrictAxes({
+        id: clauseKeyedItemId(1),
+        title: UAT_CLAUSE_TEXT,
+        status: "pending",
+      }),
+    ).toEqual(["uat"]);
+  });
+
+  it("persist then verify:ac floor: placeholder unmapped count 0; authored title stays visible", () => {
+    const root = writeProbeRoot();
+    const before = compositionPlan();
+    const clean = evaluateVerifyAcFromPlan(before, floorOptions(root));
+    expect(clean.ok).toBe(true);
+    expect(clean.unmappedSentenceCount ?? 0).toBe(0);
+
+    const plan = compositionPlan();
+    persistClauseKeyedPendingItems(plan);
+    expect(
+      (plan.items as Array<{ id?: string; title?: string }>).some(
+        (row) => row.id === clauseKeyedItemId(1) && row.title === clauseKeyedItemId(1),
+      ),
+    ).toBe(true);
+
+    const after = evaluateVerifyAcFromPlan(plan, floorOptions(root));
+    expect(after.ok).toBe(true);
+    expect(after.unmappedSentenceCount ?? 0).toBe(0);
+    expect(after.cause).not.toBe("unmapped_statement_sentence");
+
+    // Preexisting clause-keyed row with a real title stays mapped / visible.
+    const authored = compositionPlan({
+      items: [
+        { id: "ui-1", title: CLAUSE_TEXT, status: "pending" },
+        {
+          id: clauseKeyedItemId(1),
+          title: CLAUSE_TEXT,
+          status: "pending",
+        },
+      ],
+    });
+    expect(persistClauseKeyedPendingItems(authored).addedIds).toEqual([]);
+    const authoredFloor = evaluateVerifyAcFromPlan(authored, floorOptions(root));
+    expect(authoredFloor.ok).toBe(true);
+    expect(authoredFloor.unmappedSentenceCount ?? 0).toBe(0);
+    expect(collectPlanItemAcceptanceSurface(authored)).toEqual(
+      expect.arrayContaining([CLAUSE_TEXT]),
+    );
+    expect(collectPlanItemAcceptanceSurface(authored)).not.toContain(clauseKeyedItemId(1));
+  });
+
+  it("reader skip recovers already-persisted placeholders without reminting", () => {
+    const root = writeProbeRoot();
+    const plan = compositionPlan({
+      items: [
+        { id: "ui-1", title: CLAUSE_TEXT, status: "pending" },
+        {
+          id: clauseKeyedItemId(1),
+          title: clauseKeyedItemId(1),
+          status: "pending",
+        },
+        {
+          id: "clause:2",
+          title: "clause:2",
+          status: "pending",
+        },
+      ],
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          {
+            id: 1,
+            text: CLAUSE_TEXT,
+            artifact_path: "probe.txt",
+            ambiguous: false,
+          },
+          {
+            id: 2,
+            text: CLAUSE_TEXT,
+            artifact_path: "probe.txt",
+            ambiguous: false,
+          },
+        ],
+      },
+    });
+    expect(persistClauseKeyedPendingItems(plan).addedIds).toEqual([]);
+    const result = evaluateVerifyAcFromPlan(plan, floorOptions(root));
+    expect(result.ok).toBe(true);
+    expect(result.unmappedSentenceCount ?? 0).toBe(0);
+    expect(collectPlanItemAcceptanceSurface(plan)).toEqual([CLAUSE_TEXT]);
+  });
+
+  it("does not skip every clause.-prefixed id (authored text stays on the collector)", () => {
+    const surface = collectPlanItemAcceptanceSurface({
+      items: [
+        { id: clauseKeyedItemId(1), title: CLAUSE_TEXT, status: "pending" },
+        {
+          id: clauseKeyedItemId(2),
+          title: clauseKeyedItemId(2),
+          status: "pending",
+        },
+        {
+          id: clauseKeyedItemId(3),
+          title: clauseKeyedItemId(3),
+          narrative: { Acceptance: "Authored acceptance narrative stays." },
+          status: "pending",
+        },
+      ],
+    });
+    expect(surface).toEqual([CLAUSE_TEXT, "Authored acceptance narrative stays."]);
+    expect(surface).not.toContain(clauseKeyedItemId(2));
+  });
+
+  it("scope:complete walk does not refuse on unmapped-sentence after persist", () => {
+    const root = writeProbeRoot();
+    const plan = compositionPlan();
+    persistClauseKeyedPendingItems(plan);
+    // Evidence may still be missing; P1 only requires the sentence floor stays clear.
+    const walk = evaluateScopeCompleteAcceptanceWalk(plan, floorOptions(root));
+    expect(walk.predicate).not.toBe("unmapped-sentence");
+    expect(String(walk.message ?? "")).not.toMatch(/unmapped statement sentence/i);
+    const floor = evaluateVerifyAcFromPlan(plan, floorOptions(root));
+    expect(floor.unmappedSentenceCount ?? 0).toBe(0);
+    expect(floor.cause).not.toBe("unmapped_statement_sentence");
   });
 });
 
