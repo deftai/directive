@@ -17,10 +17,12 @@ import { validateOriginProvenance } from "./origin.js";
 import { reEmitVbriefArtifact } from "./roundtrip.js";
 import {
   isTerminalPlanStatus,
+  isValidPlanStatusMember,
   validatePlanReferenceTypes,
   validateVbriefSchema,
 } from "./schema.js";
 import { validateAll } from "./validate-all.js";
+import { VALID_PLAN_STATUSES } from "./constants.js";
 
 const MINIMAL_V08 = {
   xBRIEFInfo: { version: "0.8" },
@@ -373,6 +375,8 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
     };
     expect(validateVbriefSchema(legal, "id-legal.json")).toEqual([]);
 
+    // Leftover clause:N warn-accepts on VALID_PLAN_STATUSES under 0.8 (#5467).
+    const colonWarnings: string[] = [];
     const colon = {
       ...MINIMAL_V08,
       plan: {
@@ -380,9 +384,12 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
         items: [{ id: "clause:1", title: "colon", status: "pending" }],
       },
     };
-    const errors = validateVbriefSchema(colon, "id-colon.json");
-    expect(errors.some((e) => e.includes("invalid id"))).toBe(true);
+    expect(validateVbriefSchema(colon, "id-colon.json", colonWarnings)).toEqual([]);
+    expect(
+      colonWarnings.some((w) => w.includes("legacy clause-colon id") && w.includes("clause:1")),
+    ).toBe(true);
 
+    const nestedWarnings: string[] = [];
     const nested = {
       ...MINIMAL_V08,
       plan: {
@@ -396,8 +403,23 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
         ],
       },
     };
+    expect(validateVbriefSchema(nested, "id-nested.json", nestedWarnings)).toEqual([]);
     expect(
-      validateVbriefSchema(nested, "id-nested.json").some((e) => e.includes("invalid id")),
+      nestedWarnings.some((w) => w.includes("legacy clause-colon id") && w.includes("clause:2")),
+    ).toBe(true);
+
+    // Non-legacy illegal ids still hard-FAIL.
+    expect(
+      validateVbriefSchema(
+        {
+          ...MINIMAL_V08,
+          plan: {
+            ...MINIMAL_V08.plan,
+            items: [{ id: "has spaces", title: "bad", status: "pending" }],
+          },
+        },
+        "id-spaces.json",
+      ).some((e) => e.includes("invalid id")),
     ).toBe(true);
   });
 
@@ -519,7 +541,8 @@ describe("validatePlanReferenceTypes reserved subtypes (#4698)", () => {
     ).toEqual({ errors: [], warnings: [] });
   });
 
-  it("validateVbriefSchema reports pull-request on the check path", () => {
+  it("validateVbriefSchema reports pull-request as a demoted warning under 0.8 (#5467)", () => {
+    const warnings: string[] = [];
     const errors = validateVbriefSchema(
       {
         ...MINIMAL_V08,
@@ -529,8 +552,10 @@ describe("validatePlanReferenceTypes reserved subtypes (#4698)", () => {
         },
       },
       "brief.json",
+      warnings,
     );
-    expect(errors.some((e) => e.includes("x-xbrief/pull-request"))).toBe(true);
+    expect(errors.some((e) => e.includes("x-xbrief/pull-request"))).toBe(false);
+    expect(warnings.some((w) => w.includes("x-xbrief/pull-request"))).toBe(true);
   });
 
   it("validateVbriefSchema keeps github-pr, web-page, and closes valid", () => {
@@ -690,7 +715,7 @@ describe("Class B reserved-prefix compatibility (#4746 / #4765 / #4846)", () => 
     expect(warnings).toEqual([]);
   });
 
-  it("keeps Class A aliases pull-request and github-pull-request as errors", () => {
+  it("keeps Class A aliases as helper errors when status/version omitted; 0.8 schema warns (#5467)", () => {
     for (const type of ["x-xbrief/pull-request", "x-vbrief/github-pull-request"]) {
       const { errors, warnings } = validatePlanReferenceTypes(
         [{ uri: "https://github.com/deftai/directive/pull/1", type }],
@@ -698,14 +723,18 @@ describe("Class B reserved-prefix compatibility (#4746 / #4765 / #4846)", () => 
       );
       expect(errors, type).toHaveLength(1);
       expect(warnings, type).toEqual([]);
+      const schemaWarnings: string[] = [];
+      expect(validateVbriefSchema(classBDoc(type), "brief.json", schemaWarnings), type).toEqual(
+        [],
+      );
       expect(
-        validateVbriefSchema(classBDoc(type), "brief.json").some((e) => e.includes(type)),
+        schemaWarnings.some((w) => w.includes(type)),
         type,
       ).toBe(true);
     }
   });
 
-  it("routes Class B to validateAll warnings and aliases to errors", () => {
+  it("routes Class B and Class A aliases to validateAll warnings under 0.8 (#5467)", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-4746-"));
     const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "proposed"), { recursive: true });
@@ -724,7 +753,8 @@ describe("Class B reserved-prefix compatibility (#4746 / #4765 / #4846)", () => 
       "utf8",
     );
     const mixed = validateAll(vbrief);
-    expect(mixed.errors.some((e) => e.includes("x-xbrief/pull-request"))).toBe(true);
+    expect(mixed.errors.some((e) => e.includes("x-xbrief/pull-request"))).toBe(false);
+    expect(mixed.warnings.some((w) => w.includes("x-xbrief/pull-request"))).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -772,14 +802,16 @@ describe("Class B reserved-prefix compatibility (#4746 / #4765 / #4846)", () => 
     },
   );
 
-  it("CLI keeps aliases as errors and mixed origin plus github_pr as error", () => {
+  it("CLI warn-accepts Class A aliases and github_pr under 0.8; --warnings-as-errors stays fail-closed", () => {
     const aliasRoot = mkdtempSync(join(tmpdir(), "vb-4746-alias-"));
     const aliasDir = writeProposedBrief(
       aliasRoot,
       "2026-09-18-alias.xbrief.json",
       "x-xbrief/pull-request",
     );
-    expect(runValidate(["--vbrief-dir", aliasDir])).toBe(1);
+    // Prefer-A (#5467): unknown reserved-prefix (including Class A aliases) warns on draft 0.8.
+    expect(runValidate(["--vbrief-dir", aliasDir])).toBe(0);
+    expect(runValidate(["--vbrief-dir", aliasDir, "--warnings-as-errors"])).toBe(1);
     rmSync(aliasRoot, { recursive: true, force: true });
 
     const mixedRoot = mkdtempSync(join(tmpdir(), "vb-4746-mixed-"));
@@ -802,7 +834,8 @@ describe("Class B reserved-prefix compatibility (#4746 / #4765 / #4846)", () => 
       }),
       "utf8",
     );
-    expect(runValidate(["--vbrief-dir", vbrief])).toBe(1);
+    expect(runValidate(["--vbrief-dir", vbrief])).toBe(0);
+    expect(runValidate(["--vbrief-dir", vbrief, "--warnings-as-errors"])).toBe(1);
     rmSync(mixedRoot, { recursive: true, force: true });
   });
 });
@@ -817,24 +850,34 @@ function classCErrors(messages: readonly string[]): string[] {
   return messages.filter((m) => m.includes("invalid id") && m.includes("clause:"));
 }
 
-function terminalHistoricalDoc(
-  overrides: { status?: string; itemId?: string; nestedItemId?: string; refType?: string } = {},
+function historicalDoc(
+  overrides: {
+    status?: string;
+    itemId?: string;
+    nestedItemId?: string;
+    refType?: string;
+    itemStatus?: string;
+    version?: string;
+  } = {},
 ) {
   const itemId = overrides.itemId ?? "clause:1";
+  const itemStatus = overrides.itemStatus ?? "completed";
   const items =
     overrides.nestedItemId === undefined
-      ? [{ id: itemId, title: "legacy clause", status: "completed" }]
+      ? [{ id: itemId, title: "legacy clause", status: itemStatus }]
       : [
           {
             title: "parent",
             status: "completed",
-            subItems: [{ id: overrides.nestedItemId, title: "nested", status: "completed" }],
+            subItems: [
+              { id: overrides.nestedItemId, title: "nested", status: itemStatus },
+            ],
           },
         ];
   return {
-    xBRIEFInfo: { version: "0.8" },
+    xBRIEFInfo: { version: overrides.version ?? "0.8" },
     plan: {
-      title: "terminal historical Visage corpus",
+      title: "Visage corpus historical brief",
       status: overrides.status ?? "completed",
       items,
       references: [
@@ -847,58 +890,85 @@ function terminalHistoricalDoc(
   };
 }
 
-describe("terminal Visage validate compat (#5422 Prefer-A)", () => {
-  it("treats completed, cancelled, and failed as terminal plan statuses", () => {
+function classInvalidatesErrors(messages: readonly string[]): string[] {
+  return messages.filter((m) => m.includes("invalidates"));
+}
+
+describe("Visage validate compat across VALID_PLAN_STATUSES (#5467 Prefer-A)", () => {
+  it("keeps isTerminalPlanStatus narrow; VALID_PLAN_STATUSES is the compatibility set", () => {
     expect(isTerminalPlanStatus("completed")).toBe(true);
     expect(isTerminalPlanStatus("cancelled")).toBe(true);
     expect(isTerminalPlanStatus("failed")).toBe(true);
     expect(isTerminalPlanStatus("running")).toBe(false);
     expect(isTerminalPlanStatus("draft")).toBe(false);
     expect(isTerminalPlanStatus(undefined)).toBe(false);
+    expect(isValidPlanStatusMember("draft")).toBe(true);
+    expect(isValidPlanStatusMember("running")).toBe(true);
+    expect(isValidPlanStatusMember("blocked")).toBe(true);
+    expect(isValidPlanStatusMember("active")).toBe(false);
+    expect(isValidPlanStatusMember(undefined)).toBe(false);
+    for (const status of VALID_PLAN_STATUSES) {
+      expect(isValidPlanStatusMember(status), status).toBe(true);
+    }
   });
 
-  it("normative terminal fixture: 0 class R/C errors and warning for never-registered subtype", () => {
+  it("normative draft fixture: unknown reserved subtype warns, zero class-R hard FAILs", () => {
     const warnings: string[] = [];
-    const errors = validateVbriefSchema(terminalHistoricalDoc(), "terminal.json", warnings);
+    const errors = validateVbriefSchema(
+      historicalDoc({ status: "draft", itemId: "clause.1", refType: NEVER_REGISTERED_TYPE }),
+      "draft-unknown.json",
+      warnings,
+    );
     expect(classRErrors(errors)).toEqual([]);
-    expect(classCErrors(errors)).toEqual([]);
     expect(warnings.filter((w) => w.includes(NEVER_REGISTERED_TYPE))).toHaveLength(1);
+  });
+
+  it("normative running fixture: leftover clause:1 warns, zero class-C hard FAILs", () => {
+    const warnings: string[] = [];
+    const errors = validateVbriefSchema(
+      historicalDoc({
+        status: "running",
+        itemId: "clause:1",
+        refType: "x-xbrief/github-issue",
+      }),
+      "running-colon.json",
+      warnings,
+    );
+    expect(classCErrors(errors)).toEqual([]);
     expect(
       warnings.some((w) => w.includes("legacy clause-colon id") && w.includes("clause:1")),
     ).toBe(true);
   });
 
-  it("demotes unknown reserved-prefix on cancelled and failed plans", () => {
-    for (const status of ["cancelled", "failed"] as const) {
+  it("normative completed fixture: failed-without-invalidates warns, zero hard FAILs of that class", () => {
+    const warnings: string[] = [];
+    const errors = validateVbriefSchema(
+      historicalDoc({
+        status: "completed",
+        itemId: "clause.3",
+        itemStatus: "failed",
+        refType: "x-xbrief/github-issue",
+      }),
+      "completed-no-invalidates.json",
+      warnings,
+    );
+    expect(classInvalidatesErrors(errors)).toEqual([]);
+    expect(classInvalidatesErrors(warnings)).toHaveLength(1);
+    expect(warnings.some((w) => w.includes("clause.3") && w.includes("invalidates"))).toBe(true);
+  });
+
+  it("demotes unknown reserved-prefix on every VALID_PLAN_STATUSES member under 0.8", () => {
+    for (const status of VALID_PLAN_STATUSES) {
       const { errors, warnings } = validatePlanReferenceTypes(
         [{ uri: "https://example.test/zz", type: NEVER_REGISTERED_TYPE }],
         "brief.json",
         status,
+        "0.8",
       );
       expect(errors, status).toEqual([]);
       expect(warnings, status).toHaveLength(1);
       expect(warnings[0], status).toContain(NEVER_REGISTERED_TYPE);
     }
-  });
-
-  it("non-terminal control still hard-FAILs unknown reserved-prefix outside CLASS_B", () => {
-    const { errors, warnings } = validatePlanReferenceTypes(
-      [{ uri: "https://example.test/zz", type: NEVER_REGISTERED_TYPE }],
-      "brief.json",
-      "running",
-    );
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain(NEVER_REGISTERED_TYPE);
-    expect(warnings).toEqual([]);
-
-    const schemaWarnings: string[] = [];
-    const schemaErrors = validateVbriefSchema(
-      terminalHistoricalDoc({ status: "running" }),
-      "non-terminal.json",
-      schemaWarnings,
-    );
-    expect(classRErrors(schemaErrors)).toHaveLength(1);
-    expect(classCErrors(schemaErrors)).toHaveLength(1);
   });
 
   it("omitted plan status keeps CLASS_B-only severity for unit honesty", () => {
@@ -917,10 +987,66 @@ describe("terminal Visage validate compat (#5422 Prefer-A)", () => {
     expect(classB.warnings).toHaveLength(1);
   });
 
-  it("read-accepts nested clause:N on terminal and hard-FAILs malformed ids", () => {
+  it("live running ledgers stay fail-closed on failed-without-invalidates", () => {
+    const warnings: string[] = [];
+    const errors = validateVbriefSchema(
+      historicalDoc({
+        status: "running",
+        itemId: "clause.3",
+        itemStatus: "failed",
+        refType: "x-xbrief/github-issue",
+      }),
+      "running-no-invalidates.json",
+      warnings,
+    );
+    expect(classInvalidatesErrors(errors)).toHaveLength(1);
+    expect(classInvalidatesErrors(warnings)).toEqual([]);
+  });
+
+  it("live-plan provenance errors remain errors (isTerminalPlanStatus not widened)", () => {
+    const warnings: string[] = [];
+    const errors = validateVbriefSchema(
+      {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "live provenance",
+          status: "running",
+          // Pure named-class Source without Evidence — hard-FAIL on live plans.
+          narratives: { Source: "verified:task-check" },
+          items: [{ id: "t1", title: "Task", status: "running" }],
+        },
+      },
+      "live-provenance.json",
+      warnings,
+    );
+    expect(errors.some((e) => e.includes("Evidence is required"))).toBe(true);
+
+    // Same payload on completed still grandfathers via terminal-only isTerminalPlanStatus.
+    const completedWarnings: string[] = [];
+    const completedErrors = validateVbriefSchema(
+      {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "completed provenance",
+          status: "completed",
+          narratives: { Source: "verified:task-check" },
+          items: [{ id: "t1", title: "Task", status: "completed" }],
+        },
+      },
+      "completed-provenance.json",
+      completedWarnings,
+    );
+    expect(completedErrors.some((e) => e.includes("Evidence is required"))).toBe(false);
+  });
+
+  it("read-accepts nested clause:N on running and hard-FAILs malformed ids", () => {
     const nestedWarnings: string[] = [];
     const nestedErrors = validateVbriefSchema(
-      terminalHistoricalDoc({ nestedItemId: "clause:2", refType: "x-xbrief/github-issue" }),
+      historicalDoc({
+        status: "running",
+        nestedItemId: "clause:2",
+        refType: "x-xbrief/github-issue",
+      }),
       "nested-colon.json",
       nestedWarnings,
     );
@@ -931,7 +1057,8 @@ describe("terminal Visage validate compat (#5422 Prefer-A)", () => {
 
     const malformedWarnings: string[] = [];
     const malformedErrors = validateVbriefSchema(
-      terminalHistoricalDoc({
+      historicalDoc({
+        status: "running",
         itemId: "clause:bad",
         refType: "x-xbrief/github-issue",
       }),
@@ -944,7 +1071,8 @@ describe("terminal Visage validate compat (#5422 Prefer-A)", () => {
     expect(malformedWarnings.some((w) => w.includes("clause:bad"))).toBe(false);
 
     const otherIllegal = validateVbriefSchema(
-      terminalHistoricalDoc({
+      historicalDoc({
+        status: "running",
         itemId: "has spaces",
         refType: "x-xbrief/github-issue",
       }),
@@ -954,6 +1082,7 @@ describe("terminal Visage validate compat (#5422 Prefer-A)", () => {
   });
 
   it("does not grow CLASS_B with Visage never-registered subtype", () => {
+    // Without envelope 0.8, draft stays hard-FAIL (Reject B: no per-consumer CLASS_B growth).
     expect(
       validatePlanReferenceTypes(
         [{ uri: "https://example.test/zz", type: NEVER_REGISTERED_TYPE }],
@@ -961,36 +1090,94 @@ describe("terminal Visage validate compat (#5422 Prefer-A)", () => {
         "draft",
       ).errors,
     ).toHaveLength(1);
+    // Under 0.8 the same subtype warns via status membership, not CLASS_B expansion.
+    const under08 = validatePlanReferenceTypes(
+      [{ uri: "https://example.test/zz", type: NEVER_REGISTERED_TYPE }],
+      "brief.json",
+      "draft",
+      "0.8",
+    );
+    expect(under08.errors).toEqual([]);
+    expect(under08.warnings).toHaveLength(1);
   });
 
-  it("C8 lite: envelope 0.8 terminal unknown reserved-prefix must not hard-FAIL without bump", () => {
+  it("C8 lite: envelope 0.8 stays 0.8; unknown reserved-prefix must not hard-FAIL without bump", () => {
     const warnings: string[] = [];
-    const doc = terminalHistoricalDoc({ itemId: "clause.1" });
+    const doc = historicalDoc({ status: "proposed", itemId: "clause.1" });
     expect(doc.xBRIEFInfo.version).toBe("0.8");
     const errors = validateVbriefSchema(doc, "c8-lite.json", warnings);
     expect(classRErrors(errors)).toEqual([]);
     expect(warnings.some((w) => w.includes(NEVER_REGISTERED_TYPE))).toBe(true);
   });
 
+  it("0.6 preserves terminal-only reserved-prefix demotion", () => {
+    const running06 = validatePlanReferenceTypes(
+      [{ uri: "https://example.test/zz", type: NEVER_REGISTERED_TYPE }],
+      "brief.json",
+      "running",
+      "0.6",
+    );
+    expect(running06.errors).toHaveLength(1);
+    expect(running06.warnings).toEqual([]);
+
+    const completed06 = validatePlanReferenceTypes(
+      [{ uri: "https://example.test/zz", type: NEVER_REGISTERED_TYPE }],
+      "brief.json",
+      "completed",
+      "0.6",
+    );
+    expect(completed06.errors).toEqual([]);
+    expect(completed06.warnings).toHaveLength(1);
+  });
+
   it("validateAll and CLI collect demoted warnings; --warnings-as-errors stays fail-closed", () => {
-    const root = mkdtempSync(join(tmpdir(), "vb-5422-"));
+    const root = mkdtempSync(join(tmpdir(), "vb-5467-"));
     const vbrief = join(root, "xbrief");
+    mkdirSync(join(vbrief, "proposed"), { recursive: true });
+    mkdirSync(join(vbrief, "active"), { recursive: true });
     mkdirSync(join(vbrief, "completed"), { recursive: true });
     writeFileSync(
-      join(vbrief, "completed", "2026-10-06-terminal-historical.xbrief.json"),
-      JSON.stringify(terminalHistoricalDoc()),
+      join(vbrief, "proposed", "2026-10-07-draft-unknown.xbrief.json"),
+      JSON.stringify(
+        historicalDoc({ status: "draft", itemId: "clause.1", refType: NEVER_REGISTERED_TYPE }),
+      ),
+      "utf8",
+    );
+    writeFileSync(
+      join(vbrief, "active", "2026-10-07-running-colon.xbrief.json"),
+      JSON.stringify(
+        historicalDoc({
+          status: "running",
+          itemId: "clause:1",
+          refType: "x-xbrief/github-issue",
+        }),
+      ),
+      "utf8",
+    );
+    writeFileSync(
+      join(vbrief, "completed", "2026-10-07-completed-no-invalidates.xbrief.json"),
+      JSON.stringify(
+        historicalDoc({
+          status: "completed",
+          itemId: "clause.3",
+          itemStatus: "failed",
+          refType: "x-xbrief/github-issue",
+        }),
+      ),
       "utf8",
     );
 
     const result = validateAll(vbrief);
     expect(classRErrors(result.errors)).toEqual([]);
     expect(classCErrors(result.errors)).toEqual([]);
+    expect(classInvalidatesErrors(result.errors)).toEqual([]);
     expect(
       result.warnings.filter((w) => w.includes(NEVER_REGISTERED_TYPE)).length,
     ).toBeGreaterThanOrEqual(1);
     expect(
       result.warnings.filter((w) => w.includes("legacy clause-colon id")).length,
     ).toBeGreaterThanOrEqual(1);
+    expect(classInvalidatesErrors(result.warnings).length).toBeGreaterThanOrEqual(1);
 
     expect(runValidate(["--vbrief-dir", vbrief])).toBe(0);
     expect(runValidate(["--vbrief-dir", vbrief, "--warnings-as-errors"])).toBe(1);

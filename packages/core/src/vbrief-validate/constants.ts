@@ -94,5 +94,6 @@ export const DEPRECATED_FILES = ["SPECIFICATION.md", "PROJECT.md"] as const;
 
 export const USAGE =
   "Usage: vbrief_validate.py [--vbrief-dir <path>] [--strict-origin-types] [--warnings-as-errors]\n" +
-  "  Warnings (Class B / terminal reserved-prefix / terminal clause-colon) print as WARN; " +
-  "--warnings-as-errors remains fail-closed (#5422).";
+  "  Warnings (Class B / 0.8 VALID_PLAN_STATUSES reserved-prefix / clause-colon / " +
+  "completed failed-without-invalidates) print as WARN; " +
+  "--warnings-as-errors remains fail-closed (#5422 / #5467).";

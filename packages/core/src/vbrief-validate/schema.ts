@@ -142,15 +142,21 @@ function validateStopConditions(value: unknown, itemPath: string, errors: string
 /** Terminal plan statuses that demote historical corpus warnings (#5422 Prefer-A). */
 const TERMINAL_PLAN_STATUSES: ReadonlySet<string> = new Set(["completed", "cancelled", "failed"]);
 
-/** Closed leftover clause-colon id predicate — read-accept on terminal only (#5422). */
+/** Closed leftover clause-colon id predicate — warn-accept under compatibility membership (#5422 / #5467). */
 const LEGACY_CLAUSE_COLON_ID_RE = /^clause:[0-9]+$/;
 
 export function isTerminalPlanStatus(status: unknown): boolean {
   return typeof status === "string" && TERMINAL_PLAN_STATUSES.has(status);
 }
 
+/** True when status is a closed VALID_PLAN_STATUSES member (#5467 compatibility, not folder `active`). */
+export function isValidPlanStatusMember(status: unknown): boolean {
+  return typeof status === "string" && VALID_PLAN_STATUSES.has(status);
+}
+
 interface ValidatePlanItemOptions {
-  readonly terminalPlan?: boolean;
+  /** Warn-accept leftover `clause:N` ids (VALID_PLAN_STATUSES under 0.8; terminal under 0.6). */
+  readonly warnAcceptLegacyClauseColon?: boolean;
   readonly warnings?: string[];
 }
 
@@ -192,10 +198,10 @@ function validatePlanItem(
   }
 
   if (typeof item.id === "string" && !PLAN_ITEM_ID_PATTERN.test(item.id)) {
-    if (options.terminalPlan === true && LEGACY_CLAUSE_COLON_ID_RE.test(item.id)) {
+    if (options.warnAcceptLegacyClauseColon === true && LEGACY_CLAUSE_COLON_ID_RE.test(item.id)) {
       options.warnings?.push(
         `${itemPath} legacy clause-colon id ${pyStrRepr(item.id)} ` +
-          `(accepted on terminal plan; writers mint clause.N)`,
+          `(accepted on VALID_PLAN_STATUSES plan; writers mint clause.N)`,
       );
     } else {
       errors.push(`${itemPath} invalid id: ${pyStrRepr(item.id)}`);
@@ -287,8 +293,14 @@ export interface PlanReferenceTypeIssues {
 function severityForUnknownReserved(
   unknown: UnknownReservedReferenceType,
   planStatus?: string | null,
+  envelopeVersion?: string | null,
 ): "error" | "warning" {
-  // Terminal plans: demote all unknown reserved-prefix subtypes to warnings (#5422 Prefer-A).
+  // Envelope 0.8: demote unknown reserved-prefix on every VALID_PLAN_STATUSES member (#5467).
+  // Do not widen isTerminalPlanStatus (provenance grandfather stays terminal-only).
+  if (envelopeVersion === "0.8" && isValidPlanStatusMember(planStatus)) {
+    return "warning";
+  }
+  // 0.6 / omitted version: terminal-only demotion (#5422 Prefer-A).
   // When status is omitted, keep CLASS_B-only severity so existing unit tests stay honest.
   if (isTerminalPlanStatus(planStatus)) {
     return "warning";
@@ -308,11 +320,12 @@ function formatUnknownReserved(
   return `${filepath}: plan.references[${index}].type ${pyStrRepr(unknown.type)} is an unknown reserved-prefix subtype${nearest}`;
 }
 
-/** Report reserved-prefix reference types no existing list consumes (#4698 / #4746 / #5422). */
+/** Report reserved-prefix reference types no existing list consumes (#4698 / #4746 / #5422 / #5467). */
 export function validatePlanReferenceTypes(
   references: unknown,
   filepath: string,
   planStatus?: string | null,
+  envelopeVersion?: string | null,
 ): PlanReferenceTypeIssues {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -339,7 +352,7 @@ export function validatePlanReferenceTypes(
     if (unknown === null) {
       continue;
     }
-    const severity = severityForUnknownReserved(unknown, planStatus);
+    const severity = severityForUnknownReserved(unknown, planStatus, envelopeVersion);
     const message = formatUnknownReserved(filepath, i, unknown);
     if (severity === "warning") {
       warnings.push(message);
@@ -417,6 +430,11 @@ export function validateVbriefSchema(
         );
       }
 
+      const envelopeVersion =
+        resolved !== null && typeof resolved.info.version === "string"
+          ? resolved.info.version
+          : null;
+
       if ("narratives" in planObj) {
         validateNarratives(planObj.narratives, `${filepath}: plan.narratives`, errors);
         validatePlanNarrativesProvenance(
@@ -425,15 +443,20 @@ export function validateVbriefSchema(
           errors,
           {
             // Terminal set for Source grandfather (#5385); Confidence WARN still fires.
+            // Do not widen isTerminalPlanStatus for #5467 compatibility demotions.
             grandfatherUnkeyed: isTerminalPlanStatus(planObj.status),
             warnings,
           },
         );
       }
 
-      const terminalPlan = isTerminalPlanStatus(planObj.status);
+      // 0.8: VALID_PLAN_STATUSES membership; 0.6: terminal-only (#5422 / #5467).
+      const warnAcceptLegacyClauseColon =
+        envelopeVersion === "0.8"
+          ? isValidPlanStatusMember(planObj.status)
+          : isTerminalPlanStatus(planObj.status);
       const itemOptions: ValidatePlanItemOptions = {
-        terminalPlan,
+        warnAcceptLegacyClauseColon,
         warnings,
       };
 
@@ -456,6 +479,7 @@ export function validateVbriefSchema(
         planObj.references,
         filepath,
         typeof planObj.status === "string" ? planObj.status : null,
+        envelopeVersion,
       );
       errors.push(...refIssues.errors);
       if (warnings !== undefined) {
@@ -468,9 +492,17 @@ export function validateVbriefSchema(
         planObj.status !== "failed" &&
         planObj.status !== "cancelled"
       ) {
-        errors.push(
-          ...collectFailedPlanItemInvalidatesErrors(planObj.items, planObj.edges, filepath),
+        const invalidatesDiagnostics = collectFailedPlanItemInvalidatesErrors(
+          planObj.items,
+          planObj.edges,
+          filepath,
         );
+        // Completed 0.8 plans: warn-accept missing invalidates (#5467); live ledgers stay fail-closed.
+        if (envelopeVersion === "0.8" && planObj.status === "completed" && warnings !== undefined) {
+          warnings.push(...invalidatesDiagnostics);
+        } else {
+          errors.push(...invalidatesDiagnostics);
+        }
       }
     }
   }

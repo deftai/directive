@@ -57,6 +57,7 @@ export {
 export type { PlanReferenceTypeIssues } from "./schema.js";
 export {
   isTerminalPlanStatus,
+  isValidPlanStatusMember,
   normalizeNarrativeKey,
   validatePlanReferenceTypes,
   validateVbriefSchema,

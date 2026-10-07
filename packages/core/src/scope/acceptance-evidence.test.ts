@@ -2944,7 +2944,7 @@ describe("stampDeclaredMergeEvidence (#5105)", () => {
   });
 });
 
-describe("clauseKeyedItemId write-path mint (#5422)", () => {
+describe("clauseKeyedItemId write-path mint (#5422 / #5467)", () => {
   it("mints dotted clause.N only so leftover-complete writers do not reintroduce clause:", () => {
     expect(CLAUSE_KEYED_ITEM_ID_PREFIX).toBe("clause.");
     expect(clauseKeyedItemId(1)).toBe("clause.1");
