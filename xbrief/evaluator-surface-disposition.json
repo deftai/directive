@@ -7,5 +7,5 @@
     "packages/core/src/intent-constraint/extract.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5194 / PR #5447: intent-constraint engine-relative TypeScript loader. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5194 / PR #5447: engine-relative TypeScript loader + cold parser-cache test helper. Disclosure only; not #3164 authorization."
 }
