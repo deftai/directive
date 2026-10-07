@@ -357,11 +357,14 @@ function commandSatisfied(
     }
     // Authorized N/A is exit 3 only (hotspots emits 3 when inert + no report).
     // Exit 1 measured floor fails must not launder into skip via inert re-derivation.
+    // When coverage-final.json exists, Prefer-A keeps the Istanbul floor — refuse skip.
     if (row.exitCode !== 3) return false;
     if (!isAllowedSkip(phaseId, row.skipReason)) return false;
+    const projectRoot = options?.projectRoot ?? process.cwd();
+    if (existsSync(join(projectRoot, "coverage", "coverage-final.json"))) return false;
     const derived = evaluateCoverageApplicability(
       {
-        projectRoot: options?.projectRoot ?? process.cwd(),
+        projectRoot,
         baseSha: record.baseSha,
         headSha: record.headSha,
         treeHash: record.treeHash,

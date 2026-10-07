@@ -411,57 +411,113 @@ describe("controller observations", () => {
   });
 
   it("coverage_headroom accepts authorized skip when applicability re-derives not-applicable", () => {
-    const store = new InProcessPrePrStore();
-    const rec = start(store, "ppr_cov_na");
-    for (const spec of PRE_PR_PHASES) {
-      if (spec.kind !== "command-observable") continue;
-      if (spec.id === "coverage_headroom") {
-        observeCommandPhase(store, rec.id, {
-          phaseId: spec.id,
-          command: spec.command ?? "",
-          exitCode: 3,
-          inputHash: rec.inputHash,
-          skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
-        });
-      } else {
-        observeCommandPhase(store, rec.id, {
-          phaseId: spec.id,
-          command: spec.command ?? "",
-          exitCode: 0,
-          inputHash: rec.inputHash,
-          skipReason: null,
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-na-"));
+    try {
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_cov_na");
+      for (const spec of PRE_PR_PHASES) {
+        if (spec.kind !== "command-observable") continue;
+        if (spec.id === "coverage_headroom") {
+          observeCommandPhase(store, rec.id, {
+            phaseId: spec.id,
+            command: spec.command ?? "",
+            exitCode: 3,
+            inputHash: rec.inputHash,
+            skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
+          });
+        } else {
+          observeCommandPhase(store, rec.id, {
+            phaseId: spec.id,
+            command: spec.command ?? "",
+            exitCode: 0,
+            inputHash: rec.inputHash,
+            skipReason: null,
+          });
+        }
+      }
+      for (const phase of ["read", "write", "diff", "loop"] as const) {
+        submitReviewerReport(store, rec.id, {
+          phaseId: phase,
+          reviewedFileManifest: ["docs/design.md"],
+          suppliedContentsHash: "h",
+          criteriaDigest: approved.digest,
+          reviewerReportRef: "r",
+          controllerObservedHash: "h",
         });
       }
-    }
-    for (const phase of ["read", "write", "diff", "loop"] as const) {
-      submitReviewerReport(store, rec.id, {
-        phaseId: phase,
-        reviewedFileManifest: ["docs/design.md"],
-        suppliedContentsHash: "h",
-        criteriaDigest: approved.digest,
-        reviewerReportRef: "r",
-        controllerObservedHash: "h",
-      });
-    }
-    const decided = runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
-      applicabilityDeps: {
-        runGit: (args) => {
-          const joined = args.join(" ");
-          if (joined.includes("rev-parse") && joined.includes("^{tree}")) {
-            return { ok: true as const, stdout: "tree" };
-          }
-          if (joined.includes("rev-parse")) {
-            return { ok: true as const, stdout: args.includes("base") ? "base" : "head" };
-          }
-          if (joined.includes("name-status")) {
-            return { ok: true as const, stdout: "A\tdocs/design.md\n" };
-          }
-          return { ok: true as const, stdout: "" };
+      const decided = runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+        projectRoot,
+        applicabilityDeps: {
+          runGit: (args) => {
+            const joined = args.join(" ");
+            if (joined.includes("rev-parse") && joined.includes("^{tree}")) {
+              return { ok: true as const, stdout: "tree" };
+            }
+            if (joined.includes("rev-parse")) {
+              return { ok: true as const, stdout: args.includes("base") ? "base" : "head" };
+            }
+            if (joined.includes("name-status")) {
+              return { ok: true as const, stdout: "A\tdocs/design.md\n" };
+            }
+            return { ok: true as const, stdout: "" };
+          },
+          classifyPath: () => "inert",
         },
-        classifyPath: () => "inert",
-      },
-    });
-    expect(decided.ok).toBe(true);
+      });
+      expect(decided.ok).toBe(true);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("coverage_headroom refuses authorized skip when a coverage report exists", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "pre-pr-cov-report-"));
+    try {
+      mkdirSync(join(projectRoot, "coverage"), { recursive: true });
+      writeFileSync(join(projectRoot, "coverage", "coverage-final.json"), "{}");
+      const store = new InProcessPrePrStore();
+      const rec = start(store, "ppr_cov_report");
+      for (const spec of PRE_PR_PHASES) {
+        if (spec.kind !== "command-observable") continue;
+        if (spec.id === "coverage_headroom") {
+          observeCommandPhase(store, rec.id, {
+            phaseId: spec.id,
+            command: spec.command ?? "",
+            exitCode: 3,
+            inputHash: rec.inputHash,
+            skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
+          });
+        } else {
+          observeCommandPhase(store, rec.id, {
+            phaseId: spec.id,
+            command: spec.command ?? "",
+            exitCode: 0,
+            inputHash: rec.inputHash,
+            skipReason: null,
+          });
+        }
+      }
+      for (const phase of ["read", "write", "diff", "loop"] as const) {
+        submitReviewerReport(store, rec.id, {
+          phaseId: phase,
+          reviewedFileManifest: ["docs/design.md"],
+          suppliedContentsHash: "h",
+          criteriaDigest: approved.digest,
+          reviewerReportRef: "r",
+          controllerObservedHash: "h",
+        });
+      }
+      const decided = runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+        projectRoot,
+        applicabilityDeps: {
+          runGit: () => ({ ok: true as const, stdout: "A\tdocs/design.md\n" }),
+          classifyPath: () => "inert",
+        },
+      });
+      expect(decided.ok).toBe(false);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
   });
 
   it("coverage_headroom measured pass requires the authorized hotspots command", () => {
