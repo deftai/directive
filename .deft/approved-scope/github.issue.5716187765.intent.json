@@ -448,7 +448,7 @@
         {
           "id": 5,
           "text": "contract-drift assertion binds CONFIDENCE_VALUES to schema Confidence vocabulary shape.",
-          "artifact_path": "packages/core/src/vbrief-validate/provenance.ts",
+          "artifact_path": "packages/core/src/verify-source/contract-drift.ts",
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         }

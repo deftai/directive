@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+- **Remint approved-scope for #5385 after Path B brief intent drift.** Rebinds intentDigest to the activate tip brief so verify:scope-provenance clears intent-digest-mismatch on PR #5443. Tracking #5385.
 
 
 - Recorded completion of #5193 after PR #5449 fixed generated clause IDs blocking scope completion.

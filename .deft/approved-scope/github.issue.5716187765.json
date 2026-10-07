@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-10-06-5385-01210-schema-makes-narrativesconfidence-an-enum-under-the-sa.xbrief.json",
   "planId": "github.issue.5716187765",
-  "approvedAt": "2026-10-06T23:55:31Z",
+  "approvedAt": "2026-10-07T11:50:55Z",
   "fileScope": [
     "CHANGELOG.md",
     "content/commands.md",
@@ -37,9 +37,9 @@
   "humanApproval": {
     "kind": "operator",
     "actor": "Scott",
-    "mintedAt": "2026-10-06T23:55:31Z",
+    "mintedAt": "2026-10-07T11:50:55Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "d07862596f839e225efa92e4e43732a9ba902647a543a01c0271e9948d3de225",
+  "intentDigest": "7d6adb081153b5b73ef057891a25f3df5ebfedca37b647fbc57be4431c65a6c5",
   "digestAlgo": "intent-extract-v1"
 }
