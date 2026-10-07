@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5421",
-    "updated": "2026-10-06T20:39:25Z"
+    "updated": "2026-10-07T02:18:21.382Z"
   },
   "plan": {
     "title": "bug(pre-pr): coverage applicability is undefined for non-executable consumer refinements",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(pre-pr): coverage applicability is undefined for non-executable consumer refinements",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5421",
@@ -17,42 +17,138 @@
       {
         "id": "1",
         "title": "Shared fail-closed coverage applicability evaluator on reviewed PrePrInputBinding diff",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:17:21.062Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:17:21.062Z"
+        }
       },
       {
         "id": "2",
         "title": "Authorized N/A on coverage_headroom skip channel (non-zero exit + closed skip reason)",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:17:21.062Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:17:21.062Z"
+        }
       },
       {
         "id": "3",
         "title": "Controller re-derives applicability before honoring coverage_headroom skip",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:17:21.062Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:17:21.062Z"
+        }
       },
       {
         "id": "4",
         "title": "Hotspots: classify before Istanbul require; N/A emits skip-channel artifact; keep floor when measured",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:17:21.062Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:17:21.062Z"
+        }
       },
       {
         "id": "5",
         "title": "State toolchain-only N/A deferred; skill Phase 3c names authorized N/A path",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:17:21.062Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:17:21.062Z"
+        }
       },
       {
         "id": "6",
         "title": "Defer full lint_iteration skip; skill still forbids inventing vitest --coverage when coverage N/A",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:17:21.062Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:17:21.062Z"
+        }
       },
       {
         "id": "7",
         "title": "Skill Phase 3c discoverable path: applicability → measured OR authorized skip-channel N/A",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:17:21.062Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:17:21.062Z"
+        }
       },
       {
         "id": "8",
         "title": "Tests: inert refinement skip+rederive; negatives forged/stale/mixed/executable; type ALLOWED_SKIP_REASONS",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:17:21.062Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:17:21.062Z"
+        }
       }
     ],
     "tags": [
@@ -464,6 +560,29 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "12596c6bda305cea27d17a90ad533333a1d6a012d33e2fb5dbd020c8e8651427"
+      },
+      "productPullRequest": 5431,
+      "productMergeCommit": "5b06d525cd3fcca03f7de17243855d1912c08966",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-07T02:18:21.382Z"
+      },
+      "completedAt": "2026-10-07T02:18:21.382Z",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5431,
+        "prBase": "master",
+        "mergeCommit": "5b06d525cd3fcca03f7de17243855d1912c08966",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b06d525cd3fcca03f7de17243855d1912c08966",
+        "verifiedAt": "2026-10-07T02:18:21.382Z",
+        "verifier": "approach1-leftover-stamp-residual",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTE0MjQtYTQ2My03YzQwLTljODEtYzEwOWRlMTcxNTll"
       }
     },
     "acceptance": {
@@ -522,6 +641,6 @@
       ]
     },
     "id": "github.issue.5731886208",
-    "updated": "2026-10-06T20:39:25Z"
+    "updated": "2026-10-07T02:18:21.382Z"
   }
 }
