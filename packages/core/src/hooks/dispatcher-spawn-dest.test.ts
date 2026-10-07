@@ -15,6 +15,7 @@ import {
   GROK_SPAWN_WRITING_SKIP_CLASS_FIELD,
   grokSpawnAdvertisedWritingSkipClass,
 } from "./classify/payload.js";
+import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import {
   CURSOR_TASK_SPAWN_CLASS_RECOVERY,
   CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY,
@@ -727,7 +728,7 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
   });
 
-  it("does not lead Grok multiple-eligible spawn-not-ready with scope:activate (#4391)", () => {
+  it("does not lead Grok multiple-eligible spawn-not-ready with scope:activate (#4391 / #4880)", () => {
     const { root, dest } = destFixture();
     const inspectRitual = vi.fn(() => STALE_RITUAL);
     const inspectScope = vi.fn(() => ({
@@ -735,7 +736,10 @@ describe("dest-proven implement spawn (#4215)", () => {
       path: null,
       message:
         "Multiple active xBRIEF artifacts are eligible (a-story.xbrief.json, b-story.xbrief.json). " +
-        "Set DEFT_ACTIVE_SCOPE to the dispatched story path, or keep one running brief in xbrief/active/.",
+        "Parent/operator: pin DEFT_ACTIVE_SCOPE to the dispatched story before spawn " +
+        "(or demote/complete competitors). " +
+        "Dispatched worker: report the eligible brief names upward; do not set host process env.",
+      denyKind: "multiple-eligible" as const,
     }));
     const decision = decideHook(
       {
@@ -753,7 +757,8 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(decision.message.startsWith(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)).toBe(false);
     expect(decision.message).toContain("DEFT_ACTIVE_SCOPE");
-    expect(decision.message).toMatch(/keep one running brief in xbrief\/active\//);
+    expect(decision.message).toContain("Parent/operator:");
+    expect(decision.message).not.toContain(SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE);
     expect(decision.message).not.toContain("grok --cwd --prompt-file");
     expect(decision.message).not.toContain("DEFT_ACTIVE_SCOPE_PIN");
     expect(inspectRitual).not.toHaveBeenCalled();

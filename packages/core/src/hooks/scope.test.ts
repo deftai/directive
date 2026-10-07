@@ -137,10 +137,18 @@ describe("shared-active write-fence bind (#4007)", () => {
     expect(result.message).toContain("Multiple active xBRIEF artifacts");
     expect(result.message).toContain(ACTIVE_SCOPE_PIN_ENV);
     expect(result.message).toContain("#4007");
-    expect(result.message).not.toContain("scope:stamp-evidence");
+    expect(result.message).toMatch(/Parent\/operator:/);
+    expect(result.message).toMatch(/Dispatched worker:/);
     expect(result.message).toContain("scope:block");
     expect(result.message).toContain("scope:complete");
     expect(result.message).toContain("--merge-commit");
+    // stamp-evidence is evidence-only; not a clear-deny peer (#4880 A).
+    expect(result.message).toContain("scope:stamp-evidence");
+    expect(result.message).toMatch(/does not clear this Write\/spawn deny/);
+    const workerSection = result.message.split("Dispatched worker:")[1] ?? "";
+    expect(workerSection).not.toMatch(/pin DEFT_ACTIVE_SCOPE|set DEFT_ACTIVE_SCOPE|Set DEFT_ACTIVE_SCOPE/);
+    expect(workerSection).not.toContain("scope:demote");
+    expect(workerSection).not.toContain("scope:complete");
   });
 
   it("names local completionProvenance hint without claiming network class (#5403)", () => {
@@ -221,6 +229,21 @@ describe("shared-active write-fence bind (#4007)", () => {
     expect(byBoundPath).toMatchObject({ ready: true, path: storyB });
   });
 
+  it("second inspect returns ready after parent pin is visible to hook environ (#4880)", () => {
+    const project = root();
+    writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
+    const storyB = writeRunning(project, "b-story.xbrief.json", ["packages/b/**"]);
+
+    const before = inspectActiveScope(project, { env: {} });
+    expect(before.ready).toBe(false);
+    expect(before.denyKind).toBe("multiple-eligible");
+
+    const after = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/b-story.xbrief.json" },
+    });
+    expect(after).toMatchObject({ ready: true, path: storyB });
+  });
+
   it("does not rewrite a backslash pin into a posix path except on win32", () => {
     const project = root();
     writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
@@ -285,6 +308,93 @@ describe("shared-active write-fence bind (#4007)", () => {
     ]);
     expect(inspectActiveScope(project, { env: {} })).toMatchObject({ ready: true, path: story });
     expect(matchPinnedActiveScope(project, "ui-story.xbrief.json", [story])).toBe(story);
+  });
+});
+
+describe("non-fencing partition for unpinned multi-eligible (#4880 Prefer-A C')", () => {
+  function writeFencing(project: string, name: string, fileScope: readonly string[]): string {
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const path = join(active, name);
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          ...runningPlacement,
+          metadata: {
+            ...runningPlacement.metadata,
+            swarm: { file_scope: [...fileScope] },
+          },
+        },
+      }),
+      "utf8",
+    );
+    return path;
+  }
+
+  function writePathless(project: string, name: string, emptyArray = false): string {
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const path = join(active, name);
+    const plan = emptyArray
+      ? {
+          ...runningPlacement,
+          metadata: {
+            ...runningPlacement.metadata,
+            swarm: { file_scope: [] },
+          },
+        }
+      : { ...runningPlacement };
+    writeFileSync(path, JSON.stringify({ plan }), "utf8");
+    return path;
+  }
+
+  it("fencing + absent file_scope competitor → unpinned ready binds fencing brief", () => {
+    const project = root();
+    const fencing = writeFencing(project, "fence-story.xbrief.json", ["packages/a/**"]);
+    writePathless(project, "admin-story.xbrief.json");
+
+    const result = inspectActiveScope(project, { env: {} });
+    expect(result).toMatchObject({ ready: true, path: fencing });
+    expect(result.denyKind).toBeUndefined();
+  });
+
+  it("fencing + empty file_scope competitor → unpinned ready binds fencing brief", () => {
+    const project = root();
+    const fencing = writeFencing(project, "fence-story.xbrief.json", ["packages/a/**"]);
+    writePathless(project, "empty-scope.xbrief.json", true);
+
+    const result = inspectActiveScope(project, { env: {} });
+    expect(result).toMatchObject({ ready: true, path: fencing });
+  });
+
+  it("two fencing briefs → still multiple-eligible", () => {
+    const project = root();
+    writeFencing(project, "a-story.xbrief.json", ["packages/a/**"]);
+    writeFencing(project, "b-story.xbrief.json", ["packages/b/**"]);
+
+    const result = inspectActiveScope(project, { env: {} });
+    expect(result.ready).toBe(false);
+    expect(result.denyKind).toBe("multiple-eligible");
+  });
+
+  it("sole no-file_scope → still ready", () => {
+    const project = root();
+    const pathless = writePathless(project, "solo-admin.xbrief.json");
+
+    const result = inspectActiveScope(project, { env: {} });
+    expect(result).toMatchObject({ ready: true, path: pathless });
+  });
+
+  it("explicit pin to no-file_scope with another fencing eligible → pin binds", () => {
+    const project = root();
+    writeFencing(project, "fence-story.xbrief.json", ["packages/a/**"]);
+    const pathless = writePathless(project, "admin-story.xbrief.json");
+
+    const result = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/admin-story.xbrief.json" },
+    });
+    expect(result).toMatchObject({ ready: true, path: pathless });
   });
 });
 

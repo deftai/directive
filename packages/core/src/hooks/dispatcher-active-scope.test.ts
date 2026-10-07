@@ -1,8 +1,10 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
+import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { ACTIVE_SCOPE_PIN_ENV, decideHook, type HookPolicySeams } from "./index.js";
 
@@ -107,9 +109,16 @@ describe("dispatcher shared-active story fence (#4007)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
     expect(decision.message).toContain("Multiple active xBRIEF artifacts");
     expect(decision.message).toContain(ACTIVE_SCOPE_PIN_ENV);
-    expect(decision.message).not.toContain("scope:stamp-evidence");
+    expect(decision.message).toMatch(/Parent\/operator:/);
+    expect(decision.message).toMatch(/Dispatched worker:/);
     expect(decision.message).toContain("scope:block");
     expect(decision.message).toContain("scope:complete");
+    expect(decision.message).toContain("scope:stamp-evidence");
+    expect(decision.message).toMatch(/does not clear this Write\/spawn deny/);
+    // Deduped: proposedPathHint must not re-print undifferentiated Set DEFT_ACTIVE_SCOPE.
+    expect(decision.message).not.toMatch(/Recovery: set DEFT_ACTIVE_SCOPE/);
+    const workerSection = decision.message.split("Dispatched worker:")[1] ?? "";
+    expect(workerSection).not.toMatch(/pin DEFT_ACTIVE_SCOPE|set DEFT_ACTIVE_SCOPE|Set DEFT_ACTIVE_SCOPE/);
   });
 
   it("names scope:unblock on a zero-eligible blocked deny and omits activate (#4840)", () => {
@@ -214,5 +223,58 @@ describe("dispatcher shared-active story fence (#4007)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
     expect(decision.message).toMatch(/story file_scope/);
+  });
+});
+
+describe("spawn multiple-eligible recovery (#4880 Prefer-A B')", () => {
+  it("does not emit promote-then-activate; leads with parent pin language", () => {
+    const root = project();
+    execFileSync("git", ["init", "-q"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["commit", "--allow-empty", "-q", "-m", "init"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    const dest = join(root, "wt");
+    execFileSync("git", ["worktree", "add", "--detach", dest, "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+
+    const labeled =
+      "Multiple active xBRIEF artifacts are eligible (a-story.xbrief.json, b-story.xbrief.json). " +
+      "The write fence cannot bind the first-sorted story (#4007). " +
+      "Parent/operator: pin DEFT_ACTIVE_SCOPE to the dispatched story before spawn " +
+      "(or demote/complete competitors). " +
+      "Dispatched worker: report the eligible brief names upward; do not set host process env.";
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message: labeled,
+      denyKind: "multiple-eligible" as const,
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement story" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      {
+        ...liveScopeSeams(),
+        inspectScope,
+        realpathLifecycleExecutionRoot: (path) => resolve(path),
+      },
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("Parent/operator:");
+    expect(decision.message).toContain("DEFT_ACTIVE_SCOPE");
+    expect(decision.message).not.toContain(SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE);
+    expect(decision.message).not.toMatch(/scope:promote -- .* then .*scope:activate/);
   });
 });

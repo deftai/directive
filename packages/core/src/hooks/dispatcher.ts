@@ -173,8 +173,6 @@ import {
 } from "./readonly.js";
 import {
   type ActiveScopeInspection,
-  BLOCK_SCOPE_VERB,
-  HISTORICAL_SHIP_CLOSEOUT_HINT,
   type InspectActiveScopeOptions,
   inspectActiveScope,
 } from "./scope.js";
@@ -2107,7 +2105,11 @@ function inspectMutationGates(
       mutationTargets.every((target) => isOutsideProjectRootWrite(projectRoot, target));
     if (!outsideRoot || isSpawnTool(toolName)) {
       let proposedPathHint: string;
-      if (isSpawnTool(toolName)) {
+      if (isSpawnTool(toolName) && scope.denyKind === "multiple-eligible") {
+        // #4880 Prefer-A B': do not emit promote-then-activate on multiple-eligible.
+        // Audience-labeled recovery is already in scope.message (A); suppress duplicate.
+        proposedPathHint = "";
+      } else if (isSpawnTool(toolName)) {
         // Multi-path recovery for implement-class spawns (#3080 AC4 / #3259 honesty).
         // Structural markers only — free-text prompt brackets are not sufficient.
         proposedPathHint =
@@ -2134,10 +2136,8 @@ function inspectMutationGates(
       } else if (scope.denyKind === "zero-eligible-blocked") {
         proposedPathHint = " Recovery: run `deft scope:unblock -- <blocked-brief>`.";
       } else if (scope.denyKind === "multiple-eligible") {
-        proposedPathHint =
-          ` Recovery: set DEFT_ACTIVE_SCOPE to the dispatched story path, or run ` +
-          `\`deft ${BLOCK_SCOPE_VERB} -- <brief>\` to clear a competitor from eligibility. ` +
-          HISTORICAL_SHIP_CLOSEOUT_HINT;
+        // #4880 Prefer-A A: labeled recovery is in scope.message; do not re-print pin advice.
+        proposedPathHint = "";
       } else if (scope.denyKind === "pin-miss") {
         // #5386: recovery copy is composed in inspectActiveScope (source-aware;
         // S1 — do not string-sniff evaluator prose here). Suppress promote/activate.
