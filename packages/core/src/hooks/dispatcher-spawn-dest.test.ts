@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import {
   GROK_CRITIC_SPAWN_NOT_READY_RECOVERY,
@@ -15,7 +16,6 @@ import {
   GROK_SPAWN_WRITING_SKIP_CLASS_FIELD,
   grokSpawnAdvertisedWritingSkipClass,
 } from "./classify/payload.js";
-import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import {
   CURSOR_TASK_SPAWN_CLASS_RECOVERY,
   CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY,
