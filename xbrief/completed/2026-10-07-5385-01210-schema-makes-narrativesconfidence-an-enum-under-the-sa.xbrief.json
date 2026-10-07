@@ -1,0 +1,625 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5385",
+    "updated": "2026-10-06T20:39:37Z"
+  },
+  "plan": {
+    "title": "0.121.0 schema makes narratives.Confidence an enum under the same 0.8 version, invalidating existing briefs with no migration",
+    "status": "completed",
+    "narratives": {
+      "Description": "0.121.0 schema makes narratives.Confidence an enum under the same 0.8 version, invalidating existing briefs with no migration",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5385",
+      "Overview": "## Summary\n\nDirective 0.121.0 changes `xbrief-core-0.8.schema.json` so `plan.narratives.Confidence` is an enum (`high | medium | low`, #479). Before, it was a free string with \"Recommended values: high, medium, low\". The envelope version stays `0.8` and no migration ships. Existing conformant 0.8 briefs that used prose there now fail `xbrief:validate` after a routine `directive update`.\n\n## Environment\n\n- Consumer upgraded 0.119.12 -> 0.121.0 via `directive update`\n- Windows 11, Node 24.20.0; same consumer tree before and after\n\n## Observed\n\nSame repository, before and after the upgrade:\n\n| Engine + schema | `xbrief:validate` errors |\n|---|---|\n| 0.119.12 on `origin/main` | 122 (pre-existing, unrelated classes) |\n| 0.121.0 after `directive update` | 188 |\n\nAll 66 new errors are one class:\n\n```\nFAIL: xbrief/proposed/2026-08-31-ops-3-interview-scope.xbrief.json: plan.narratives.Confidence invalid: 'High. The defect was reproduced, the fix is what the error message asks for, and the guard is static.' (expected one of high, medium, low)\n```\n\nSchema diff (0.119.12 -> 0.121.0):\n\n```diff\n-              \"description\": \"Agent certainty level. Recommended values: high, medium, low.\"\n+              \"enum\": [\"high\", \"medium\", \"low\"],\n+              \"description\": \"Agent certainty (#479). Does not substitute for Evidence on a verified claim.\"\n```\n\n## Impact\n\n- **Directive-owned.** The old schema's own description invited prose (\"Recommended values\"), and existing briefs were valid under it. Now a schema change rejects existing data without a version bump or migration.\n- Hits completed/cancelled briefs too: historical records become invalid, and `completed` briefs are not supposed to be rewritten.\n- `deft update` reports success and does not mention the new failures.\n- Not blocking here: validation is not a required CI gate in this consumer.\n\n## Expected\n\nOne of:\n- keep 0.8 backward-compatible (accept existing free-text `Confidence`, warn instead of fail) and enforce the enum only on new writes or a new envelope version; or\n- ship a `deft migrate:*` step that maps leading `High` / `Medium` / `Low` prose to the enum value and moves the rest into another narrative key, and have `directive update` run or name it.\n\n## Related\n\n- #479: introduced the atomic claim unit and enum",
+      "Labels": "bug, agent-experience, process, Upgrade Blocker, source-of-truth, urgent, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities, promise:records"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Keep envelope version 0.8",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5432 squash-merge (Tracking #5385). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5432",
+            "mintedAt": "2026-10-07T13:01:13.447Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T13:01:13.447Z"
+        }
+      },
+      {
+        "id": "2",
+        "title": "Lenient read in validatePlanNarrativesProvenance for legacy Confidence strings with WARN",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5432 squash-merge (Tracking #5385). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5432",
+            "mintedAt": "2026-10-07T13:01:13.447Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T13:01:13.447Z"
+        }
+      },
+      {
+        "id": "3",
+        "title": "Published 0.8 schema Confidence type string (both schema paths byte-equal); writers MUST emit enum",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5432 squash-merge (Tracking #5385). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5432",
+            "mintedAt": "2026-10-07T13:01:13.447Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T13:01:13.447Z"
+        }
+      },
+      {
+        "id": "4",
+        "title": "New write paths emit only high|medium|low",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5432 squash-merge (Tracking #5385). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5432",
+            "mintedAt": "2026-10-07T13:01:13.447Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T13:01:13.447Z"
+        }
+      },
+      {
+        "id": "5",
+        "title": "Optional migrate verb for unambiguous leading-token prose → enum + ConfidenceNote",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5432 squash-merge (Tracking #5385). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5432",
+            "mintedAt": "2026-10-07T13:01:13.447Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T13:01:13.447Z"
+        }
+      },
+      {
+        "id": "6",
+        "title": "xbrief:validate prints Confidence-compat WARN; update tip on schema-shape change",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5432 squash-merge (Tracking #5385). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5432",
+            "mintedAt": "2026-10-07T13:01:13.447Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T13:01:13.447Z"
+        }
+      },
+      {
+        "id": "7",
+        "title": "SoT vbrief.md reader vs writer Confidence split",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5432 squash-merge (Tracking #5385). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5432",
+            "mintedAt": "2026-10-07T13:01:13.447Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T13:01:13.447Z"
+        }
+      },
+      {
+        "id": "8",
+        "title": "contract-drift binds CONFIDENCE_VALUES to schema vocabulary",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5432 squash-merge (Tracking #5385). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5432",
+            "mintedAt": "2026-10-07T13:01:13.447Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T13:01:13.447Z"
+        }
+      },
+      {
+        "id": "9",
+        "title": "Acceptance fixtures for prose/enum/noncanonical Confidence across lifecycle folders",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5432 squash-merge (Tracking #5385). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5432",
+            "mintedAt": "2026-10-07T13:01:13.447Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T13:01:13.447Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "Upgrade Blocker",
+      "source-of-truth",
+      "urgent",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:records",
+      "prefer-a-bound",
+      "through-merge",
+      "confidence-enum-0.8-compat"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5385",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5385: 0.121.0 schema makes narratives.Confidence an enum under the same 0.8 version, invalidating existing briefs with no migration"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft migrate:*",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L46"
+        },
+        {
+          "command": "directive update",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L46"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "content/commands.md",
+          "content/vbrief/schemas/xbrief-core-0.8.schema.json",
+          "content/vbrief/vbrief.md",
+          "docs/RULE-MAP.md",
+          "packages/cli/src/dispatch.test.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/vbrief-validate/confidence-5385.test.ts",
+          "packages/core/src/vbrief-validate/confidence-schema-tip.test.ts",
+          "packages/core/src/vbrief-validate/confidence-schema-tip.ts",
+          "packages/core/src/vbrief-validate/fixtures/confidence-5385/active/exact-enum.xbrief.json",
+          "packages/core/src/vbrief-validate/fixtures/confidence-5385/active/prose-and-enum.xbrief.json",
+          "packages/core/src/vbrief-validate/fixtures/confidence-5385/cancelled/prose-medium.xbrief.json",
+          "packages/core/src/vbrief-validate/fixtures/confidence-5385/completed/failed-status-noncanonical.xbrief.json",
+          "packages/core/src/vbrief-validate/fixtures/confidence-5385/completed/prose-high.xbrief.json",
+          "packages/core/src/vbrief-validate/main.ts",
+          "packages/core/src/vbrief-validate/provenance.test.ts",
+          "packages/core/src/vbrief-validate/provenance.ts",
+          "packages/core/src/vbrief-validate/schema.ts",
+          "packages/core/src/verify-source/contract-drift.test.ts",
+          "packages/core/src/verify-source/contract-drift.ts",
+          "packages/core/src/xbrief-migrate/confidence.test.ts",
+          "packages/core/src/xbrief-migrate/confidence.ts",
+          "packages/core/src/xbrief-migrate/index.ts",
+          "packages/core/src/xbrief/create.test.ts",
+          "packages/core/src/xbrief/create.ts",
+          "packages/types/schemas/xbrief-core-0.8.schema.json"
+        ],
+        "conflict_group": "confidence-enum-0.8-compat",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/vbrief-validate/provenance.test.ts"
+        ],
+        "expected_outputs": [
+          "Tracking PR for #5385 Prefer-A Bound Confidence enum 0.8 compat"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "Traces": [
+          "#5385",
+          "lean:6020697167"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft (pre-Stop-1)\n\n## In plain English\nDirective 0.121.0 made `plan.narratives.Confidence` a strict `high|medium|low` enum under the same xBRIEF 0.8 envelope. Older briefs that wrote sentences there (the old schema invited that) now fail `xbrief:validate` after a normal update — including finished briefs you are not supposed to rewrite. Prefer-A keeps 0.8, softens validation for existing prose into a warn + coerce path, makes new writers emit only the enum, ships a named migrate for consumers who want a clean tree, and makes `directive update` name this failure class when it appears.\n\nOpen space (Stop 2 panel):\n- A (Prefer-A): 0.8 compat coerce/warn + new-write enum + named migrate + update tip\n- B: migrate-only hard-fail until rewritten (rejects completed-record freeze)\n- C: bump envelope to 0.9 with enum + migration (larger blast; still needs migrate)\n\n## Bound remedy (draft limbs)\n1. Keep envelope version `0.8`. Do not bump the envelope solely for this Confidence enum.\n2. In `validatePlanNarrativesProvenance` (`packages/core/src/vbrief-validate/provenance.ts`): when `Confidence` is present and not an exact enum member, attempt a leading-token coerce (case-insensitive `High`/`Medium`/`Low` at start of string, optional `.`/whitespace/prose after). On successful coerce: emit a **warn** (not a hard FAIL error that increments the fail count) that names the coerced value; do not push into `errors[]` for that class. On failed coerce: keep today's hard FAIL.\n3. Mirror the schema description so deposited `xbrief-core-0.8.schema.json` documents that readers may still see legacy prose and that writers MUST emit the enum; do not silently re-widen the JSON Schema `enum` without the coerce/warn path above (AJV/schema and TS provenance must agree on pass/fail for the same fixture).\n4. New write paths that set `plan.narratives.Confidence` (interview, xbrief:create, claim-unit writers) MUST emit only `high|medium|low`.\n5. Ship a named migrate (new verb or folded into an existing migrate surface) that maps coerceable prose to the enum and moves residual prose into a separate narrative key (e.g. `ConfidenceNote` or existing free narrative) — idempotent; safe on completed/cancelled as optional rewrite under operator migrate, not silent rewrite on validate.\n6. `directive update` / post-update hygiene MUST name this Confidence-prose class when validate finds it (success path tip or doctor/update summary), so a green update does not hide dozens of new FAILs.\n7. Acceptance: fixture with prose `High. …` under 0.8 validates with warn+coerce (0 hard FAIL of this class); exact enum still passes; garbage Confidence still FAILs; new writer emits enum; migrate dry-run shows rewrite map; update tip mentions the class when present.\n\nReject B as primary: completed briefs must not require rewrite to stay readable.\nReject C as primary: envelope bump alone does not fix already-deposited 0.8 trees and widens blast.\n\nconflict_group: confidence-enum-0.8-compat\nRelated: #479\nTarget-digest: sha256:3333bbfaa3234832863c8231352c0d3f4c28f93031c89f57efbd0c003e875e4d",
+          "id": 6020525318,
+          "html_url": "https://github.com/deftai/directive/issues/5385#issuecomment-6020525318",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:16:21Z",
+          "updated_at": "2026-10-06T16:16:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because 0.121.0 tightened plan.narratives.Confidence to an enum under the same xBRIEF 0.8 envelope with no migration, so previously valid prose Confidence values fail xbrief:validate after a routine directive update — including completed briefs that must not be rewritten.\n\ncharter: open critique\nrefutation-target: (none — open critique; Prefer-A drafted)\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5385\norigin-ref: origin/HEAD\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\ndest-wo: leftover-complete\nverification-path: pin-read git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:\n\nspend-recommend: NΓëÑ3\nspend: NΓëÑ3\nspend-ask: asked\nspend-why: Stop 2 panel permission — open A/B/C (0.8 compat coerce/warn + migrate + update tip vs migrate-only vs envelope bump). Operator selected NΓëÑ3 via Dual-stop spend ask (recommended).\ndual-stop-reserved: first post-lean pain-audit of asserted coverage is in-cap (NΓëÑ3 + nonempty pain); raise after reserved spent\nDual-stop cap: 6 posts\n\npain: P1, P2, P3\n\npain-prose:\nP1: Same 0.8 envelope + Confidence enum change invalidates previously valid free-text Confidence after routine update with no migration.\nP2: Completed/cancelled briefs become invalid and must not be rewritten; hard-fail validation poisons historical records.\nP3: directive update reports success and does not name the new Confidence failure class, so operators miss dozens of new FAILs.\n\nPrefer-A draft: 6020525318\nTarget-digest: sha256:3333bbfaa3234832863c8231352c0d3f4c28f93031c89f57efbd0c003e875e4d",
+          "id": 6020528696,
+          "html_url": "https://github.com/deftai/directive/issues/5385#issuecomment-6020528696",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:16:32Z",
+          "updated_at": "2026-10-06T16:16:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit: round-1 NΓëÑ3\nround: 1\nsiblings: 3\nseat-families: grok, claude, codex\nlaunch-probe: claude=pass(rc0,pong) codex=pass(rc0,pong) grok=pass(rc0,pong)\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\nverification-path: pin-read git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:\nStop-1: 6020528696\nPrefer-A-draft: 6020525318\nTarget-digest: sha256:3333bbfaa3234832863c8231352c0d3f4c28f93031c89f57efbd0c003e875e4d\narc-mode: no-ingest\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5385\ninput-ceiling: 6020545113\n\nRound-1 critics share this ceiling. May read only Stop 1 + this deposit. Sibling critic posts are out of envelope for other siblings.",
+          "id": 6020545113,
+          "html_url": "https://github.com/deftai/directive/issues/5385#issuecomment-6020545113",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:17:29Z",
+          "updated_at": "2026-10-06T16:17:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\naudit-targets: none\nseat-family: codex\n\nVerdict: AMEND Prefer-A. Keep 0.8 compatibility and canonical new writes, but limbs 2/3 do not yet satisfy P1/P2. B is insufficient; C is defensible only if strict read-time enum enforcement is a requirement.\n\n1. **Schema/TS parity is a blocking design contradiction.** The pinned schema has a literal enum at `$defs.Plan.properties.narratives.properties.Confidence`. Changing its description cannot make a raw document containing `High. Reproduced locally.` pass JSON Schema validation. A TS-only coercion path leaves independent schema consumers failing. Amend the actual read schema, and test the identical unmodified document through schema and TS. A normalized-copy adapter alone does not repair the published schema contract. Evidence: [packages/types/schemas/xbrief-core-0.8.schema.json @ b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6](https://github.com/deftai/directive/blob/b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6/packages/types/schemas/xbrief-core-0.8.schema.json).\n\n2. **Leading-token recovery is narrower than backward compatibility.** The issue reports the former contract as string, not a leading-token grammar. `Not assessed`, `Evidence is incomplete`, and even an empty string were admitted by that described contract. Calling these garbage and retaining hard FAIL leaves P1 unresolved, including for completed/cancelled records under P2. No field in the pinned Confidence validator distinguishes old prose from newly authored prose. Prefer restoring string acceptance for 0.8 reads, warning on noncanonical strings, and enforcing enum at new-write boundaries. Keep hard errors for non-string values. Leading-token extraction can assist optional migration, but an unrecognized string must not force historical rewrite. If hard FAIL on arbitrary strings is retained, explicitly narrow the promised compatibility; it cannot cover the stated pain. Evidence: [packages/core/src/vbrief-validate/provenance.ts @ b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6](https://github.com/deftai/directive/blob/b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6/packages/core/src/vbrief-validate/provenance.ts), `CONFIDENCE_SET` and `validatePlanNarrativesProvenance`; schema above. The former acceptance is from the supplied issue report, not an independently inspected older revision.\n\n3. **Warning transport and historical preservation need explicit contracts.** The pinned function returns void and accepts only `errors[]`; it has no warning sink. Confidence is checked before the `grandfatherUnkeyed` return, so that existing historical-Source option does not protect Confidence. Add a separate diagnostic channel through the callers; do not merely omit errors or log opportunistically. Verify warning visibility, zero Confidence hard failures, unchanged input/file bytes, and continued enforcement of unrelated Source/Evidence rules across proposed, active, completed, and cancelled fixtures. The pinned documentation explicitly mandates enum Confidence, so amend its read/write distinction too. Evidence: provenance.ts above and [content/vbrief/vbrief.md @ b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6](https://github.com/deftai/directive/blob/b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6/content/vbrief/vbrief.md), Source and Confidence section.\n\n4. **Keep migration optional and lossless; avoid inferred certainty as a read-side effect.** Define token boundaries, whitespace, punctuation, and ambiguity: `Highly uncertain` must not become high; `High uncertainty` is grammatically a high prefix but not necessarily high confidence. Preserve the original text, decline ambiguous automatic rewrites, and specify collision handling for an existing `ConfidenceNote`. Historical files should be excluded by default and require explicit inclusion for optional migration. Dry-run, rerun idempotence, note collisions, and no-write validation are acceptance cases. This is a proposal-level risk, not a claim that a migration implementation was inspected.\n\n5. **P3 needs observable diagnostics after the amendment.** If compatibility turns these failures into warnings, an update check keyed only to failures will miss them. Require the update summary to report the Confidence compatibility-warning class/count and name the optional migration command when present, even when unrelated validation errors also exist. Installation success and validation findings should remain distinguishable. Verify a fixture containing both a legacy Confidence string and an unrelated error, plus a clean fixture. No update implementation was inside this review envelope.\n\nMinimal amended A: permissive 0.8 string reads + explicit compatibility warnings; strict canonical writers; unchanged historical bytes; actual schema/TS acceptance parity; visible post-update diagnostics. A named lossless migration is useful but must not be a prerequisite for validity. B cannot meet P2. C can separate strict 0.9 writes from permissive 0.8 reads, but still must restore readable 0.8 data; a bump alone does not cure this regression.\n\nRead scope: issue body, Stop 1 (6020528696), Prefer-A (6020525318), deposit (6020545113), and the three allowed paths pinned at the dispatch SHA. No sibling posts or above-ceiling comments read; no product edits or PR.",
+          "id": 6020578652,
+          "html_url": "https://github.com/deftai/directive/issues/5385#issuecomment-6020578652",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:19:19Z",
+          "updated_at": "2026-10-06T16:19:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nseat-family: grok\nround: 1\ncharter: open critique\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\nverification-path: pin-read git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:\nStop-1: 6020528696\nPrefer-A-draft: 6020525318\ninput-ceiling: 6020545113\n\n## Verdict\n**Amend Prefer-A** (6020525318). Keep A as primary over B/C. Direction relieves P1/P2/P3, but three Bound limbs need concrete sharpenings before synthesis or the panel will re-open the same failure modes under a green update.\n\n## Pin-read facts (dispatch SHA b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6)\n\n1. `packages/core/src/vbrief-validate/provenance.ts` — `CONFIDENCE_VALUES = [\"high\",\"medium\",\"low\"]`; when `Confidence` is present and not an exact set member, `validatePlanNarrativesProvenance` always `errors.push(...Confidence invalid...)`. That check runs **before** the `grandfatherUnkeyed` early return. Grandfathering only skips later Source/atomic-claim checks for `plan.status === \"completed\"` callers; it does not soften Confidence.\n\n2. `packages/core/src/vbrief-validate/schema.ts` (call site at same SHA) — caller passes `{ grandfatherUnkeyed: planObj.status === \"completed\" }` only. Cancelled is outside that Source grandfather today. Confidence hard-FAIL therefore hits completed and cancelled/proposed/active alike — the P2 poison vector.\n\n3. `packages/types/schemas/xbrief-core-0.8.schema.json` — `plan.narratives.Confidence` is `type: string` + `enum: [high, medium, low]` with description \"Agent certainty (#479)...\". Envelope stays 0.8.\n\n4. `content/vbrief/vbrief.md` Source/Confidence — rule body: Confidence when present MUST be `high|medium|low` (case-sensitive). Historical Source strings remain readable (~); no Confidence-prose grandfather exists.\n\n5. Directive `xbrief:validate` path at this SHA is hand-rolled TS (`validateVbriefSchema` → `validatePlanNarrativesProvenance`), with an existing `warnings[]` channel used by chronology/reference-type classes. Provenance today accepts only `errors: string[]` — no warn sink.\n\n## Against Stop 1 pains\n\n### P1 (same 0.8 + enum invalidates prior free-text)\nPrefer-A limbs 1–2 + 4 correctly keep 0.8, soft-pass coerceable leading High/Medium/Low prose, and lock new writers to the enum. That matches the observed FAIL shape in the issue body (`'High. The defect was reproduced...'`). Leading-token coerce is the right classifier for that corpus.\n\n**Sharpen:** coerce runs on trimmed string; case-insensitive match of `High|Medium|Low` as the leading token; optional `.` / whitespace / residual prose after. Exact enum still silent-pass. Non-string Confidence stays hard FAIL (already covered by today's type check).\n\n### P2 (completed/cancelled must not require rewrite)\nPrefer-A correctly rejects B (migrate-only hard-fail) as primary: B forces rewrite of terminal records and violates completed-record freeze (#3383 posture in the same provenance header). Named migrate as **optional** operator rewrite (limb 5) is the right escape hatch.\n\n**Sharpen:** state explicitly that validate coerce is **classification-only** — no on-disk mutation during validate/update. Soft-pass must not be gated on `status === completed` alone; cancelled (and any lifecycle status) with coerceable prose must warn-pass the same way. Do not \"fix\" P2 by extending `grandfatherUnkeyed` to skip Confidence; keep Confidence visible as a named warn class.\n\n### P3 (update success hides new FAILs)\nLimb 6 is necessary and currently under-specified relative to limbs 2–3. Prefer-A moves this class from `errors[]` to warn. If the update tip only names the class when `errors[]` still contains it, converting FAIL→warn **reopens P3** as \"green update hides dozens of new WARNs\".\n\n**Amend limb 6:** `directive update` / post-update hygiene MUST name the Confidence-prose class when that class appears in the **warn channel** (and when residual hard FAILs remain for non-coerceable garbage). Tip text should point at the named migrate. Acceptance: after upgrade fixture with `High. …`, validate exit 0 with ΓëÑ1 Confidence-prose warn, and update summary mentions the class.\n\n## Limb 3 tension (blocking sharpening)\n\nPrefer-A limb 3 currently says both:\n- do not silently re-widen the JSON Schema `enum`; and\n- AJV/schema and TS provenance must agree on pass/fail for the same fixture.\n\nAt this dispatch SHA those two sentences conflict for a `High. …` fixture: deposited schema enum hard-rejects; Prefer-A TS warn-passes. Hand-rolled Directive validate is the live gate here (not AJV inside `vbrief-validate`), but the deposited schema is still a consumer contract.\n\n**Amend limb 3 — pick one closed resolution in Bound:**\n- **3a (recommended):** Keep schema `enum` as the **writer** contract; document in schema description that Directive validate may warn-pass legacy leading-token prose; Directive TS provenance is SoT for `xbrief:validate` pass/fail; external AJV against the deposited file may still reject legacy prose until migrate. Acceptance fixtures lock the TS path.\n- **3b:** Change deposited schema so the same coerceable prose does not hard-fail under AJV (e.g. description-only + pattern / oneOf), while writer docs and new-write paths still require exact enum. Then \"agree\" is literal.\n\nDo not leave both \"no re-widen\" and \"must agree\" without choosing 3a or 3b.\n\n## Warn plumbing (Bound must name)\n\nLimb 2 says \"emit a warn (not a hard FAIL error that increments the fail count)\". Pin-read shows provenance has no warnings parameter today. Bound must require threading: provenance → `validateVbriefSchema(…, warnings)` → `validateAll` warnings array, same pattern as chronology. Acceptance fixture asserts 0 errors of this class and ΓëÑ1 warning naming the coerced value.\n\n## Alternatives under pressure\n\n- **B migrate-only:** Reject as primary. Relieves P1 only after rewrite; fails P2; does not by itself fix P3 unless update forces or names migrate.\n- **C envelope 0.9 bump:** Reject as primary. Already-deposited 0.8 trees still need coerce or migrate; bump widens blast without relieving P2 on existing records.\n\n## Accept / amend / reject map\n- Accept Prefer-A limbs 1, 4, 5, 7 direction; reject B/C as primary.\n- Amend limbs 2, 3, 6 per sharpenings above before Prefer-A Bound.\n- Does-not-relieve: none of P1/P2/P3 if amendments land; as posted, limb 3 ambiguity + limb 6 warn-blind tip are harvest-changing sharpenings (not full reject).\n\nfinding-classes: sharpening\nharvest-changed: true\r\n\n",
+          "id": 6020624570,
+          "html_url": "https://github.com/deftai/directive/issues/5385#issuecomment-6020624570",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:21:56Z",
+          "updated_at": "2026-10-06T16:21:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nseat-family: claude\nround: 1 critic (fresh)\ncharter: open critique\nverification: pin-read `git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:<path>`\ninput-ceiling: 6020545113\n\n## Verdict\n\n**AMEND Prefer-A** (6020525318). The direction holds — 0.8 stays, leniency on the read side, enum on the write side — and both rejections (B, C) survive pin-read. But four limbs do not do what they claim, and two load-bearing limbs are missing. As written, Prefer-A **does not satisfy P2**, and limbs 2 and 3 contradict each other.\n\n---\n\n## F1 — P2 is not satisfied: leniency is keyed to prose shape, not lifecycle status (amend limb 2; highest)\n\nThe grandfather mechanism P2 needs **already exists in the same function**, and the Confidence check sits above it.\n\n`packages/core/src/vbrief-validate/provenance.ts` @ b6a5f5b:\n- `:104` — `if (\"Confidence\" in n)` … `:107` `errors.push(...)`\n- `:114` — `if (options?.grandfatherUnkeyed && !claimUnitKeysBind(n)) { return; }`\n\nThe Confidence hard-FAIL is ten lines **above** the lifecycle grandfather early-return, so no completed record is ever grandfathered on Confidence. The doc comment at `:85` states the intent being bypassed: *\"Completed records keep unkeyed historical Source readable (#3383 / vbrief.md ~).\"*\n\nThe grandfather that does exist is also narrower than P2:\n\n- `packages/core/src/vbrief-validate/schema.ts:390` — `{ grandfatherUnkeyed: planObj.status === \"completed\" }`\n- `packages/core/src/vbrief-validate/constants.ts` `FOLDER_ALLOWED_STATUSES` — `completed: [\"completed\", \"failed\"]`, `cancelled: [\"cancelled\"]`\n\nThree statuses are terminal (`completed`, `failed`, `cancelled`); exactly one is grandfathered. A `failed` brief parked in `completed/` and every `cancelled/` brief get full-strength validation today. P2 names completed **and** cancelled, and limb 5 says \"safe on completed/cancelled\" — but no limb closes that gap. (`schema.ts` ~`:419` already treats `failed`/`cancelled` as a joint terminal set for the failed-item rule, so the precedent for the wider set is in-file.)\n\nUnder limb 2 as drafted, a completed brief is protected **only if its prose happens to start with `High`/`Medium`/`Low`**. \"Fairly high — the repro is solid\", \"Moderate\", \"Low-ish\" all miss the coerce and keep today’s hard FAIL (limb 2: *\"On failed coerce: keep today’s hard FAIL\"*). That is a regex guarantee presented as a records guarantee.\n\n**Amend limb 2** — split the two concerns:\n- Terminal statuses (`completed` | `failed` | `cancelled`): Confidence **never** produces an `errors[]` entry, independent of prose shape. Implement by moving the Confidence block below the lifecycle gate, or by adding a sibling `ProvenanceOptions` flag; widen the `schema.ts:390` predicate from `=== \"completed\"` to the terminal set.\n- Non-terminal briefs: leading-token accept + warn as drafted; non-coerceable prose keeps the hard FAIL.\n\n**Also rename the limb.** \"Coerce\" is ambiguous about mutation. `validatePlanNarrativesProvenance` is a pure checker — it takes `errors: string[]` and returns `void`. If limb 2 means validate rewrites the in-memory value, then validate silently restates a historical agent’s claim (\"High … but unverified\" to `high`), which is the false-memory failure #479 exists to prevent. Say **lenient-accept + warn**, assert validate mutates nothing, and leave all normalization to limb 5’s migrate.\n\n*Mechanically feasible as amended:* `main.ts:78` already prints `WARN:` and `:85` already supports `--warnings-as-errors`; `schema.ts:321` already carries `warnings?: string[]` into the frame that calls provenance at `:386`. Only the `validatePlanNarrativesProvenance` signature needs the channel — it takes `errors` but no `warnings` today.\n\n## F2 — Limbs 2 and 3 contradict each other on a *published* artifact (amend limb 3)\n\nThe 0.8 schema is not an internal file. `packages/types/package.json` @ b6a5f5b exports `\"./schemas/xbrief-core-0.8.schema.json\"` and ships `files: [\"schemas/**/*.json\"]`; the document carries `$id: https://xbrief.dev/schemas/xbrief-core-0.8.schema.json`.\n\nLimb 3 forbids re-widening the schema `enum` while limb 2 makes the TS validator accept prose. Any external AJV consumer of the published 0.8 schema then reaches the **opposite verdict** from `xbrief:validate` on the identical fixture — the exact condition limb 3’s own parenthetical (\"AJV/schema and TS provenance must agree on pass/fail for the same fixture\") forbids. Limbs 2 and 3 cannot both hold.\n\nResolve it in the direction the issue asks: if 0.8 is to remain backward-compatible, the **published 0.8 schema must also stop hard-rejecting prose** — `\"type\": \"string\"` plus a non-normative recommended-values description (the 0.119.12 shape), or `anyOf: [{enum: [...]}, {type: \"string\"}]` — with the hard enum deferred to the next envelope. Keeping a strict `enum` under a `$id` that previously accepted prose is the original defect restated, not a fix for it.\n\nSecond defect in limb 3: it names only `packages/types/schemas/xbrief-core-0.8.schema.json`. `packages/core/src/verify-source/contract-drift.ts:25-26` enforces **byte-for-byte** equality against the canonical `content/vbrief/schemas/xbrief-core-0.8.schema.json`. A one-sided edit is an immediate drift-gate failure. Name both paths (and `packages/types/scripts/sync-schema.mjs`, which runs on `prebuild`).\n\n## F3 — Missing limb: the SoT rule body is never amended\n\n`content/vbrief/vbrief.md` @ b6a5f5b, section \"Source and Confidence (#479)\":\n- `:145` — `! Confidence, when present, MUST be high, medium, or low`\n- `:148` — `~ Historical Source strings without the atomic-claim keys remain readable; new verified claims SHOULD bind the atomic unit`\n- `:150` — \"`task vbrief:validate` enforces the rule body on `plan.narratives`.\"\n\nThe `~` leniency clause is written for **`Source` only**. `:145` is an unqualified `!` with no historical-record carve-out. The contract document is where the P1/P2 decision was actually made, and no Prefer-A limb touches it. Land limb 2 without amending `:145`/`:148` and the SoT says hard-MUST while the runtime warns — and nothing catches the divergence: `contract-drift.ts` asserts only schema byte-equality + `VALID_STATUSES` + `VBRIEF_VERSION`.\n\n**Add a limb:** amend `vbrief.md:145` to split reader obligation from writer obligation, and extend the `:148` `~` clause to cover Confidence on terminal records.\n\n## F4 — \"Schema and TS agree\" has no gate behind it (amend limb 3)\n\n`contract-drift.ts` @ b6a5f5b asserts four things (header `:5-10`): two schema byte-equality checks, `VALID_STATUSES` vs v0.6 `$defs.Status.enum` (`:170`), `VBRIEF_VERSION` vs the v0.8 version const (`:182`). Nothing binds `CONFIDENCE_VALUES` (`provenance.ts:20`) to the schema `narratives.Confidence` vocabulary.\n\nThat is the mechanism gap that let this ship: no gate required the two sides to be reasoned about together, so a one-sided tightening was invisible. Limb 3’s \"must agree\" is currently prose with no enforcement. **Add a fifth `contract-drift` assertion** binding `CONFIDENCE_VALUES` to the schema Confidence vocabulary, so the next vocabulary change cannot land on one side only. Without it, Prefer-A fixes the instance and leaves the generator intact.\n\n## F5 — Limb 6 is mis-scoped and under-costed (re-scope or split out)\n\nLimb 6 says `directive update` \"MUST name this Confidence-prose class when validate finds it (success path tip)\". Two problems.\n\n1. **No update path runs validate.** A `git grep` for `runValidate` / `xbrief:validate` / `vbrief:validate` across `packages/cli/src/init-cli/update.ts`, `packages/cli/src/framework-check-updates.ts`, `packages/core/src/check-updates/`, and `packages/core/src/init-deposit/` @ b6a5f5b returns nothing. Limb 6 is not a tip bolted onto an existing report — it introduces a **new post-upgrade validation pass over the whole consumer xBRIEF tree**. It is the largest limb in Prefer-A and is costed as the smallest.\n2. **Under limb 2 it fires on nothing.** Once this class stops producing errors, a Confidence-named tip has no trigger left. It is a point-fix aimed at a class the same remedy just removed.\n\nThe real content of P3 is general and survives either way: *update does not surface validate-error deltas introduced by the upgrade.* That recurs on the next tightening regardless of what happens to Confidence. **Recommend: drop limb 6 from this remedy and file P3 as its own issue** (upgrade hygiene / error-delta reporting). If the panel keeps it in scope, re-scope it to a generic pre/post error-count delta — not a Confidence-named string.\n\n## F6 — Acceptance (limb 7) cannot regress in this repo (amend limb 7)\n\nAt b6a5f5b, every `Confidence` value under `xbrief/**` in this tree is already enum-legal. Counting the distinct `\"Confidence\": \"<value>\"` literals across the lifecycle folders at the pin SHA yields exactly:\n\n```\n     12 medium\n      1 high\n```\n\nZero prose instances. The maintainer tree has no exposure to the class it shipped — which is why the tightening passed every in-repo gate while breaking a consumer with 66 instances. Limb 7 \"fixture with prose High. …\" is therefore the entire guard, and it is stated loosely enough to be satisfied by a happy-path unit test.\n\n**Amend limb 7** to require checked-in consumer-shaped legacy fixtures covering the matrix the amended limb 2 creates: prose Confidence in `completed/`, in `cancelled/`, in a `failed`-status brief, and in an active brief; plus one **non-coerceable** prose value in a terminal folder (must pass — this is the F1 case Prefer-A currently fails) and the same value in an active brief (must FAIL). Garbage-in-active and exact-enum cases stay as drafted.\n\n---\n\n## Rejections of B and C: confirmed, on stronger grounds than drafted\n\n**B (migrate-only, hard-fail until rewritten) — reject, on contract grounds rather than preference.** B does not merely inconvenience historical records; it reverses an already-codified clause. `vbrief.md:148` establishes `~` read-leniency for historical narrative provenance, and `provenance.ts:85-86,:114` implements it for `Source` on completed records (#3383). B would be the first deliberate reversal of that principle — a much higher bar than \"completed briefs should not need rewriting.\"\n\n**C (bump to 0.9) — reject, and the Prefer-A reason verifies.** `constants.ts:25` — `VALID_VBRIEF_VERSIONS = new Set([\"0.6\", \"0.8\"])`; `contract-drift.ts:182` pins `VBRIEF_VERSION` to the 0.8 schema version const. A 0.9 bump touches the version set, the drift gate, `sync-schema.mjs`, a new canonical+published schema pair, and a migrate — and **still leaves every already-deposited 0.8 brief failing**, because those documents keep declaring `0.8` and keep being read by the 0.8 schema. C is strictly additional work on top of the 0.8 relaxation, never a substitute for it. Confirmed reject.\n\n---\n\n## Amended limb set (net change to Prefer-A)\n\n| Limb | Status |\n|---|---|\n| 1 — keep envelope 0.8 | **accept** (C-rejection verified) |\n| 2 — coerce/warn | **amend** — lifecycle-keyed leniency for terminal statuses (F1); rename to lenient-accept + warn, validate mutates nothing; widen `schema.ts:390` to the terminal set |\n| 3 — schema/TS agree | **amend** — relax the published 0.8 enum too, or limbs 2+3 contradict (F2); name the canonical path and `sync-schema.mjs` |\n| 4 — new writers emit enum | **accept** |\n| 5 — named migrate | **accept**; owns all normalization (per the F1 rename) |\n| 6 — update tip | **re-scope or split out** (F5) — no update path runs validate; class is empty after limb 2 |\n| 7 — acceptance | **amend** — terminal x non-coerceable matrix, consumer-shaped fixtures (F6) |\n| **new 8** | amend the `vbrief.md:145` / `:148` rule body (F3) |\n| **new 9** | fifth `contract-drift` assertion: `CONFIDENCE_VALUES` vs schema Confidence vocabulary (F4) |\n\n**One line:** the Prefer-A direction holds, but its P2 guarantee is a regex where the codebase already offers a lifecycle gate ten lines away; limb 3 forbids the schema change limb 2 requires; and it leaves both the SoT rule body and the missing drift assertion — the mechanism that produced this bug — untouched.\n\nconflict_group: confidence-enum-0.8-compat\nRelated: #479\nTarget-digest: sha256:3333bbfaa3234832863c8231352c0d3f4c28f93031c89f57efbd0c003e875e4d\n\n",
+          "id": 6020674674,
+          "html_url": "https://github.com/deftai/directive/issues/5385#issuecomment-6020674674",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:24:50Z",
+          "updated_at": "2026-10-06T16:24:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nTarget-digest: sha256:3333bbfaa3234832863c8231352c0d3f4c28f93031c89f57efbd0c003e875e4d\ncritics: 6020578652, 6020624570, 6020674674\nStop 1: 6020528696\nPrefer-A draft: 6020525318\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\nconflict_group: confidence-enum-0.8-compat\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## In plain English\n\nIn 0.121.0, Directive made Confidence a strict high/medium/low value while keeping the same 0.8 brief format, with no migration. Old briefs that wrote sentences there started failing validation after a normal update — including finished briefs. Prefer-A Bound keeps 0.8, makes readers accept those old strings with a clear warning, makes new writers emit only the three words, relaxes the published 0.8 schema to match, ships an optional migrate for people who want a clean tree, and makes the warning class visible so an upgrade cannot hide the problem again.\n\n## Bound remedy\n\n1. Keep envelope version `0.8`. Do not bump the envelope solely for this Confidence change. Reject migrate-only hard-fail (B) and envelope-bump-as-substitute (C) as primary.\n\n2. **Lenient read, no mutate.** In `validatePlanNarrativesProvenance` (`packages/core/src/vbrief-validate/provenance.ts`):\n   - Exact `high|medium|low`: silent pass.\n   - Non-string Confidence: hard FAIL (unchanged).\n   - Any other string: do **not** push into `errors[]`; push a named WARN into the existing `warnings[]` channel (extend provenance signature; callers already carry warnings — `schema.ts` / `main.ts` WARN printing / `--warnings-as-errors`).\n   - Validate MUST NOT rewrite in-memory or on-disk Confidence values (classification-only). Normalization belongs only to the named migrate (limb 5).\n   - Terminal statuses (`completed` | `failed` | `cancelled`): same string-accept + WARN rule (never hard-FAIL on Confidence string shape). Widen any lifecycle grandfather predicate used for provenance from `status === \"completed\"` alone to that terminal set where Source grandfather already applies; do **not** skip Confidence visibility by early-return — keep the named WARN.\n   - Non-terminal briefs: same string-accept + WARN for noncanonical strings (full 0.8 backward compatibility, not leading-token-only). Leading-token High/Medium/Low extraction is migrate assistance only, not the validate accept gate.\n\n3. **Published 0.8 schema must match the read contract.** Relax `plan.narratives.Confidence` in **both** `content/vbrief/schemas/xbrief-core-0.8.schema.json` and `packages/types/schemas/xbrief-core-0.8.schema.json` (byte-equal via existing `contract-drift` / `sync-schema.mjs`): restore `type: string` with description that recommends `high|medium|low` and states writers MUST emit the enum; remove the hard JSON Schema `enum` under this same ``. Hard enum enforcement moves to writer boundaries and/or a future envelope, not silent one-sided TS soft-pass.\n\n4. New write paths that set `plan.narratives.Confidence` (interview, xbrief:create, claim-unit writers) MUST emit only `high|medium|low`.\n\n5. Ship a named optional migrate (new verb or folded surface) that maps unambiguous leading-token prose to the enum and moves residual prose into a separate narrative key (e.g. `ConfidenceNote`), with collision rules, dry-run, idempotence, and no ambiguous auto-rewrite (e.g. `Highly uncertain` / `High uncertainty` decline automatic high). Default excludes silent rewrite of historical trees; operator opt-in. Validate never requires migrate for readability.\n\n6. **P3 visibility without inventing a full silent tree-walk as the only tip.** Primary: `xbrief:validate` / `vbrief:validate` prints the named Confidence-compat WARN class (count + sample) whenever present. Secondary: when an update deposits a Confidence schema shape change for 0.8, the update success path prints a fixed tip naming that class and the migrate verb (schema-diff tip — no requirement that update itself walk every consumer brief). Residual generic \"upgrade error-delta census\" across all classes is out of this Bound (may be a later leftover); P3 for this class is relieved by WARN visibility + schema-change tip.\n\n7. **SoT rule body.** Amend `content/vbrief/vbrief.md` Source/Confidence (#479): split reader vs writer — writers MUST emit enum; readers of 0.8 MAY see legacy strings and MUST warn; extend the historical `~` readability clause to Confidence on terminal records (not Source-only).\n\n8. **Drift gate.** Add a `contract-drift` assertion binding `CONFIDENCE_VALUES` in provenance.ts to the schema Confidence vocabulary shape so a one-sided tighten cannot ship again.\n\n9. **Acceptance fixtures** (consumer-shaped, checked in): prose Confidence in completed/, cancelled/, failed-status, and active/; noncanonical non-leading-token string in terminal (WARN, 0 Confidence hard FAIL) and in active (WARN, 0 Confidence hard FAIL under limb 2 full string-accept); exact enum silent pass; non-string hard FAIL; new writer emits enum; migrate dry-run map; schema byte-equality both paths; contract-drift CONFIDENCE binding green; update tip fires on schema-shape change fixture.\n\nReject list: B migrate-only hard-fail; C envelope bump as substitute for 0.8 read repair.",
+          "id": 6020697167,
+          "html_url": "https://github.com/deftai/directive/issues/5385#issuecomment-6020697167",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:26:09Z",
+          "updated_at": "2026-10-06T16:26:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Pain-audit of Prefer-A Bound 6020697167 (Stop 1 6020528696)\n\nPin-read at dispatch-sha `b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6`: `packages/core/src/vbrief-validate/provenance.ts`, both `xbrief-core-0.8.schema.json` paths, `content/vbrief/vbrief.md` Source/Confidence (#479), and `schema.ts` caller (`grandfatherUnkeyed: planObj.status === \"completed\"`; Confidence hard-FAIL precedes that early-return).\n\n### pain-P1 — support\n\nStop 1: same 0.8 envelope + Confidence enum change invalidates previously valid free-text after routine update with no migration.\n\nBound limbs that relieve:\n- **1** keeps envelope `0.8` (rejects B migrate-only hard-fail and C envelope-bump-as-substitute as primary).\n- **2** lenient read: exact `high|medium|low` silent pass; other strings named WARN into `warnings[]` (not `errors[]`); no in-memory/on-disk rewrite; full-string accept for 0.8 (leading-token extraction migrate-only).\n- **3** relaxes published 0.8 schema Confidence hard `enum` on both content and types schema paths (byte-equal), restoring `type: string` with writer MUST-enum description — closes the pin-read one-sided harden (both schemas currently carry `\"enum\": [\"high\",\"medium\",\"low\"]` while provenance hard-FAILs noncanonical strings).\n- **4** new write paths MUST emit only the three words.\n- **8** contract-drift binds `CONFIDENCE_VALUES` to schema vocabulary so a silent one-sided tighten cannot ship again.\n\nTogether limbs 1–4 + 8 restore 0.8 read compatibility without an envelope bump. **support.**\n\n### pain-P2 — support\n\nStop 1: completed/cancelled briefs become invalid and must not be rewritten; hard-fail poisons historical records.\n\nBound limbs that relieve:\n- **2** terminal set `completed | failed | cancelled`: same string-accept + named WARN, never hard-FAIL on Confidence string shape; widens today’s Source-only `grandfatherUnkeyed` completed-alone predicate where it already applies; forbids skipping Confidence visibility via early-return (pin-read: Confidence is checked before the grandfather return, so completed briefs still hard-FAIL today — Bound keeps WARN visible rather than hiding it behind an early return).\n- **2** / **5** Validate MUST NOT rewrite; optional migrate is operator opt-in; validate never requires migrate for readability.\n- **7** SoT: extend the historical `~` readability clause to Confidence on terminal records (not Source-only).\n- **9** fixtures explicitly cover prose Confidence under completed/, cancelled/, and failed-status.\n\nHistorical trees stay readable without rewrite. **support.**\n\n### pain-P3 — support\n\nStop 1: `directive update` reports success and does not name the new Confidence failure class, so operators miss dozens of new FAILs.\n\nBound limbs that relieve:\n- **6** primary: `xbrief:validate` / `vbrief:validate` prints the named Confidence-compat WARN class (count + sample) whenever present — after limb 2, the former FAIL class is that WARN channel (existing `warnings[]` / main.ts printing / `--warnings-as-errors`).\n- **6** secondary: when an update deposits a Confidence schema shape change for 0.8, the update success path prints a fixed tip naming that class and the migrate verb (schema-diff tip; no mandatory full consumer-tree walk).\n- Bound explicitly parks residual generic upgrade error-delta census as out-of-Bound leftover; P3 for this class is the WARN visibility + schema-change tip.\n\nOperators can no longer absorb a silent Confidence harden without a named surface. **support.**\n\n## Disposition\n\nAll three Stop 1 pains are relieved by Prefer-A Bound 6020697167 as posted. No Bound-limb harvest. Bindable-as-posted; no Recut required from this audit.",
+          "id": 6020728323,
+          "html_url": "https://github.com/deftai/directive/issues/5385#issuecomment-6020728323",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:27:59Z",
+          "updated_at": "2026-10-06T16:27:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| 0.8 schema Confidence is hard enum at dispatch tip | verified | pin-read packages/types + content schemas @ b6a5f5bee; both carry enum high/medium/low |\n| validatePlanNarrativesProvenance hard-FAILs noncanonical Confidence before grandfatherUnkeyed | verified | pin-read provenance.ts @ b6a5f5bee; Confidence block precedes early-return |\n| grandfatherUnkeyed today is completed-only (not cancelled/failed) | verified | pin-read schema.ts caller @ b6a5f5bee |\n| warnings[] channel already exists on validate path | verified | critics + pin-read schema.ts/main.ts WARN / --warnings-as-errors |\n| Prefer-A Bound 6020697167 relieves P1/P2/P3 | verified | pain-audit 6020728323 finding-classes:none harvest-changed:false support all three |\n| Round-1 panel amend consensus (schema must relax; string-accept not leading-token-only; SoT + drift gate) | verified | critics 6020578652 / 6020624570 / 6020674674 folded into Bound |\n\nPrefer-A Bound (cite only): 6020697167\nStop 1: 6020528696\nPain-audit: 6020728323\nTarget issue digest (informational only; not a lean Target-digest line): sha256:3333bbfaa3234832863c8231352c0d3f4c28f93031c89f57efbd0c003e875e4d",
+          "id": 6020735962,
+          "html_url": "https://github.com/deftai/directive/issues/5385#issuecomment-6020735962",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:28:24Z",
+          "updated_at": "2026-10-06T16:29:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOld briefs that put full sentences in Confidence started failing after the 0.121.0 update because Directive tightened that field to three words under the same 0.8 format, with no migration. Prefer-A Bound keeps 0.8, lets readers accept those old strings with a warning, makes new writers emit only high/medium/low, relaxes the published schema to match, adds an optional migrate, updates the rule docs and a drift gate so this cannot ship one-sided again, and makes the warning class visible on validate (plus an update tip when the schema shape changes).\n\ndesign-critique: synthesis accepted, because successor lean 6020697167 and verified-claims table 6020735962 close Stop 1 pains P1–P3 with pain-audit 6020728323 (finding-classes: none; harvest-changed: false) and fold the round-1 AMEND consensus (schema/TS parity, full string-accept, SoT + contract-drift) without harvest change.\n\nCited: successor lean 6020697167\nCited: verified-claims table 6020735962\nStop 1: 6020528696\nPain-audit: 6020728323\nRound-1 critics: 6020578652, 6020624570, 6020674674\nconflict_group: confidence-enum-0.8-compat\narc-mode: no-ingest",
+          "id": 6020739344,
+          "html_url": "https://github.com/deftai/directive/issues/5385#issuecomment-6020739344",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:28:36Z",
+          "updated_at": "2026-10-06T16:28:36Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5716187765,
+        "origin": "deftai/directive#5385",
+        "id": "github.issue.5716187765"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3333bbfaa3234832863c8231352c0d3f4c28f93031c89f57efbd0c003e875e4d"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-07T13:01:13.447Z"
+      },
+      "productPullRequest": 5432
+    },
+    "acceptance": {
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep xBRIEF envelope version 0.8; do not bump solely for Confidence.",
+          "artifact_path": "content/vbrief/schemas/xbrief-core-0.8.schema.json",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "validatePlanNarrativesProvenance lenient-reads legacy Confidence strings with named WARN; writers still constrained to high|medium|low.",
+          "artifact_path": "packages/core/src/vbrief-validate/provenance.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "Both 0.8 schema paths restore Confidence type string recommending enum; hard enum enforcement moves to writer boundaries.",
+          "artifact_path": "content/vbrief/schemas/xbrief-core-0.8.schema.json",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Amend content/vbrief/vbrief.md Source/Confidence: writers MUST emit enum; readers of 0.8 MAY see legacy strings and MUST warn.",
+          "artifact_path": "content/vbrief/vbrief.md",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 5,
+          "text": "contract-drift assertion binds CONFIDENCE_VALUES to schema Confidence vocabulary shape.",
+          "artifact_path": "packages/core/src/verify-source/contract-drift.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ],
+      "x-directive/admitted_source_sentences": [
+        "Keep xBRIEF envelope version 0.8; do not bump solely for Confidence.",
+        "validatePlanNarrativesProvenance lenient-reads legacy Confidence strings with named WARN; writers still constrained to high|medium|low.",
+        "Both 0.8 schema paths restore Confidence type string recommending enum; hard enum enforcement moves to writer boundaries.",
+        "Amend content/vbrief/vbrief.md Source/Confidence: writers MUST emit enum; readers of 0.8 MAY see legacy strings and MUST warn.",
+        "contract-drift assertion binds CONFIDENCE_VALUES to schema Confidence vocabulary shape."
+      ],
+      "none_stated": true,
+      "commands": [],
+      "source_rung": "derived"
+    },
+    "id": "github.issue.5716187765",
+    "updated": "2026-10-07T13:01:13.447Z"
+  }
+}

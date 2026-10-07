@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+
+- Recorded the completed work for 0.8 Confidence read-compat WARN (#5385) delivered in PR #5432.
 - **Remint approved-scope for #5385 after Path B brief intent drift.** Rebinds intentDigest to the activate tip brief so verify:scope-provenance clears intent-digest-mismatch on PR #5443. Tracking #5385.
 
 
