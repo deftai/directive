@@ -190,8 +190,11 @@ export function observeCommandPhase(
         "command observation input hash does not match the run binding",
       );
     }
-    const failed =
-      observation.exitCode !== 0 && !isAllowedSkip(observation.phaseId, observation.skipReason);
+    const skipOk =
+      observation.phaseId === "coverage_headroom"
+        ? observation.exitCode === 3 && isAllowedSkip(observation.phaseId, observation.skipReason)
+        : isAllowedSkip(observation.phaseId, observation.skipReason);
+    const failed = observation.exitCode !== 0 && !skipOk;
     const row: CommandObservation = {
       phaseId: observation.phaseId,
       command: observation.command,
@@ -352,6 +355,9 @@ function commandSatisfied(
     if (row.exitCode === 0) {
       return spec.command !== null && coverageHotspotsCommandMatches(row.command, spec.command);
     }
+    // Authorized N/A is exit 3 only (hotspots emits 3 when inert + no report).
+    // Exit 1 measured floor fails must not launder into skip via inert re-derivation.
+    if (row.exitCode !== 3) return false;
     if (!isAllowedSkip(phaseId, row.skipReason)) return false;
     const derived = evaluateCoverageApplicability(
       {

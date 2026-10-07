@@ -356,6 +356,60 @@ describe("controller observations", () => {
     expect(runObservablesComplete(store2.getById(rec2.id) as PrePrExecutionRecord).ok).toBe(false);
   });
 
+  it("coverage_headroom rejects measured exit-1 laundered as authorized skip", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_cov_exit1");
+    for (const spec of PRE_PR_PHASES) {
+      if (spec.kind !== "command-observable") continue;
+      if (spec.id === "coverage_headroom") {
+        observeCommandPhase(store, rec.id, {
+          phaseId: spec.id,
+          command: spec.command ?? "",
+          exitCode: 1,
+          inputHash: rec.inputHash,
+          skipReason: ALLOWED_SKIP_REASONS.coverage_headroom ?? "",
+        });
+      } else {
+        observeCommandPhase(store, rec.id, {
+          phaseId: spec.id,
+          command: spec.command ?? "",
+          exitCode: 0,
+          inputHash: rec.inputHash,
+          skipReason: null,
+        });
+      }
+    }
+    for (const phase of ["read", "write", "diff", "loop"] as const) {
+      submitReviewerReport(store, rec.id, {
+        phaseId: phase,
+        reviewedFileManifest: ["docs/design.md"],
+        suppliedContentsHash: "h",
+        criteriaDigest: approved.digest,
+        reviewerReportRef: "r",
+        controllerObservedHash: "h",
+      });
+    }
+    const decided = runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord, {
+      applicabilityDeps: {
+        runGit: (args) => {
+          const joined = args.join(" ");
+          if (joined.includes("rev-parse") && joined.includes("^{tree}")) {
+            return { ok: true as const, stdout: "tree" };
+          }
+          if (joined.includes("rev-parse")) {
+            return { ok: true as const, stdout: args.includes("base") ? "base" : "head" };
+          }
+          if (joined.includes("name-status")) {
+            return { ok: true as const, stdout: "A\tdocs/design.md\n" };
+          }
+          return { ok: true as const, stdout: "" };
+        },
+        classifyPath: () => "inert",
+      },
+    });
+    expect(decided.ok).toBe(false);
+  });
+
   it("coverage_headroom accepts authorized skip when applicability re-derives not-applicable", () => {
     const store = new InProcessPrePrStore();
     const rec = start(store, "ppr_cov_na");

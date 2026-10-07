@@ -141,7 +141,8 @@ function resolveBaseRef(projectRoot: string, override: string | null | undefined
 }
 
 function diffPaths(projectRoot: string, baseRef: string): string[] {
-  return splitLines(runGit(["diff", "--name-only", baseRef, "HEAD"], projectRoot));
+  const mergeBase = runGit(["merge-base", baseRef, "HEAD"], projectRoot).trim();
+  return splitLines(runGit(["diff", "--name-only", mergeBase, "HEAD"], projectRoot));
 }
 
 function pct(covered: number, total: number): number {
@@ -300,7 +301,9 @@ function resolveApplicabilityBinding(
   }
   try {
     const baseRef = resolveBaseRef(projectRoot, options.baseRef);
-    const baseSha = runGit(["rev-parse", baseRef], projectRoot).trim();
+    // Reviewed changes = merge-base(base, HEAD)..HEAD so target-tip churn is not
+    // classified as feature deletions (#5421 Greptile / Prefer-A binding).
+    const baseSha = runGit(["merge-base", baseRef, "HEAD"], projectRoot).trim();
     const headSha = runGit(["rev-parse", "HEAD"], projectRoot).trim();
     const treeHash = runGit(["rev-parse", "HEAD^{tree}"], projectRoot).trim();
     return { baseSha, headSha, treeHash };

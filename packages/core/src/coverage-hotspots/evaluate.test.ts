@@ -748,6 +748,27 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.exitCode).toBe(2);
     expect(result.message).toContain("coverage report missing");
   });
+
+  it("uses merge-base so target-tip unknown files do not block feature N/A", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    childProcess.execFileSync("git", ["branch", "-M", "master"], { cwd: root });
+    childProcess.execFileSync("git", ["checkout", "-qb", "feature"], { cwd: root });
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/design.md"), "# design\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "docs"], { cwd: root });
+    childProcess.execFileSync("git", ["checkout", "-q", "master"], { cwd: root });
+    writeFileSync(join(root, "mystery.bin"), "target tip churn\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "master unknown"], { cwd: root });
+    childProcess.execFileSync("git", ["checkout", "-q", "feature"], { cwd: root });
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      baseRef: "master",
+    });
+    expect(result.exitCode).toBe(3);
+    expect(result.applicability?.outcome).toBe("not-applicable");
+  });
 });
 
 describe("summarizeCoverageFinal export", () => {
