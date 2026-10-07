@@ -1,0 +1,582 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Prefer-A Bound for #5465 agents-entry #5278 pre-dispatch cancel argv restore",
+    "updated": "2026-10-07T21:56:37.847Z"
+  },
+  "plan": {
+    "title": "docs(agents): 0.123.0 agents-entry #5278 drops required --scope-id/--target-id on pre-dispatch cancel",
+    "status": "completed",
+    "narratives": {
+      "Description": "Restore full swarm:pre-dispatch cancel argv (--scope-id/--target-id) in agents-entry, pin via content-contract, refresh Agents.md, and correct Phase-4 recovery short form.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5465",
+      "Overview": "## Bound remedy\n\n1. Rewrite agents-entry #5278 cancel example to name --scope-id and --target-id.\n2. Keep pre-cancel / bare-ledger / unread-steer obligations unchanged.\n3. Extend agents_entry_contract so short cancel form fails.\n4. Run agents:refresh so Agents.md matches.\n5. Fix Phase-4 Duplicate-Agent recovery cancel short form.\n6. Leave CLI cancel semantics unchanged.",
+      "Labels": "bug, documentation, urgent, design-critique:ingest-ready, framework-gap, core-capabilities, promise:swarm",
+      "Confidence": "high"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Restore agents-entry #5278 full cancel argv",
+        "status": "completed",
+        "x-directive/artifact_path": "content/templates/agents-entry.md",
+        "narrative": {
+          "Acceptance": "content/templates/agents-entry.md Query-before-cancel (#5278) cancel example names both --scope-id and --target-id before --action cancel."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5468 squash-merge (Tracking #5465). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5468",
+            "mintedAt": "2026-10-07T21:52:25.396Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T21:52:25.396Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Keep pre-cancel obligations unchanged",
+        "status": "completed",
+        "x-directive/artifact_path": "content/templates/agents-entry.md",
+        "narrative": {
+          "Acceptance": "content/templates/agents-entry.md keeps the deft subagent:pre-cancel / dual-invoke obligation and bare-ledger / unread-steer prohibitions unchanged."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5468 squash-merge (Tracking #5465). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5468",
+            "mintedAt": "2026-10-07T21:52:25.396Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T21:52:25.396Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Content-contract pins cancel argv",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+        "narrative": {
+          "Acceptance": "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts fails when the #5278 cancel example omits --scope-id or --target-id."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5468 squash-merge (Tracking #5465). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5468",
+            "mintedAt": "2026-10-07T21:52:25.396Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T21:52:25.396Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "agents:refresh projects restored argv",
+        "status": "completed",
+        "x-directive/artifact_path": "Agents.md",
+        "narrative": {
+          "Acceptance": "After task agents:refresh, root Agents.md managed section Query-before-cancel (#5278) matches the restored full cancel argv from agents-entry."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5468 squash-merge (Tracking #5465). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5468",
+            "mintedAt": "2026-10-07T21:52:25.396Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T21:52:25.396Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Fix Phase-4 recovery cancel short form",
+        "status": "completed",
+        "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/core-phase-4.md",
+        "narrative": {
+          "Acceptance": "content/skills/deft-directive-swarm/references/core-phase-4.md Duplicate-Agent recovery cancel bullet uses full --scope-id/--target-id/--action cancel argv."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5468 squash-merge (Tracking #5465). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5468",
+            "mintedAt": "2026-10-07T21:52:25.396Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T21:52:25.396Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Leave CLI cancel semantics unchanged",
+        "status": "completed",
+        "x-directive/artifact_path": "content/templates/agents-entry.md",
+        "narrative": {
+          "Acceptance": "No change to swarm:pre-dispatch CLI cancel flag requirements; short --action cancel alone remains refused."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5468 squash-merge (Tracking #5465). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5468",
+            "mintedAt": "2026-10-07T21:52:25.396Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T21:52:25.396Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "documentation",
+      "urgent",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5465",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5465: docs(agents): 0.123.0 agents-entry #5278 drops required --scope-id/--target-id on pre-dispatch cancel"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task agents:refresh",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "agents-entry-pre-dispatch-cancel-argv",
+        "expected_outputs": [
+          "Tracking PR for #5465 Prefer-A Bound agents-entry #5278 cancel argv restore"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
+        ],
+        "file_scope": [
+          "CHANGELOG.md",
+          "Agents.md",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-swarm/references/core-phase-4.md",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5465"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Additional evidence (post-merge)\n\nOn consumer `deftai/statusreport` after PR #222 merged with the corrected `AGENTS.md` + `.deft/core/templates/agents-entry.md` (full `--scope-id` / `--target-id` argv):\n\n- Local `agents-entry.md` on `master` still has the full argv.\n- A cold `deft session:start` ran `agents:refresh` (state=stale) and **rewrote working-tree `AGENTS.md` back to** `swarm:pre-dispatch --action cancel` only.\n- That means refresh is projecting from the **npm content package** (still short form), not from the consumer-patched deposited `agents-entry.md`.\n\nSo the deposit overwrite is not only `deft update` — `agents:refresh` also regenerates the incorrect line until the package template is fixed.\n\n",
+          "id": 6045717417,
+          "html_url": "https://github.com/deftai/directive/issues/5465#issuecomment-6045717417",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-07T19:56:35Z",
+          "updated_at": "2026-10-07T19:56:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft (pre-Stop-1 charter lean)\n\nLean: Prefer-A\nTarget-digest: sha256:12cdeca66b41da2adba4ceecadb10f8a4a7b9d264751fe1fa62f26300a021dd0\nconflict_group: agents-entry-pre-dispatch-cancel-argv\nspend-recommend: N=1\nspend-why: Expected argv is already named; restore deposited AGENTS example to live CLI usage. Panel permission does not apply.\n\n## In plain English\n\nProblem: the 0.123.0 content deposit shortened the managed AGENTS / agents-entry #5278 cancel example to `swarm:pre-dispatch --action cancel`, dropping required `--scope-id` / `--target-id`. Live CLI help still requires both. Swarm skill docs still show the full argv. Consumer SLizard flagged AGENTS.md as P1 incorrect-documentation after deposit overwrite undid a prior consumer restore.\n\nAccepted direction: restore the canonical cancel argv in `content/templates/agents-entry.md` (and therefore deposited AGENTS after `agents:refresh`) so it matches live `swarm:pre-dispatch` usage, and add a cheap content-contract so the next deposit cannot re-shorten that example.\n\n## Bind map (draft)\n\n1. In `content/templates/agents-entry.md`, rewrite the #5278 Query-before-cancel line so the cancel example is exactly `swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel` (or an equivalent form that still names both required flags before `--action cancel`).\n2. Keep the `deft subagent:pre-cancel` / dual-invoke obligation and the bare-ledger / unread-steer prohibitions unchanged.\n3. Add a content-contract (or extend an existing agents-entry contract) that fails when the #5278 cancel example omits `--scope-id` or `--target-id`.\n4. Run `task agents:refresh` so root `Agents.md` managed section matches the template.\n5. Leave CLI behavior, swarm skill Phase-4 full argv, and #5278 pre-cancel semantics unchanged.\n\n## Reject list (draft)\n\n- Make `--scope-id` / `--target-id` optional on `--action cancel` (product change; hides the docs bug).\n- Patch only consumer AGENTS without fixing the deposit source.\n- Rely on swarm skill docs alone while agents-entry stays short.\n\n",
+          "id": 6045760826,
+          "html_url": "https://github.com/deftai/directive/issues/5465#issuecomment-6045760826",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-07T19:59:18Z",
+          "updated_at": "2026-10-07T19:59:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because deposited AGENTS / agents-entry #5278 cancel example omits required --scope-id/--target-id while live swarm:pre-dispatch usage still requires both, so consumers get P1 incorrect-documentation after every deposit overwrite.\n\ncharter: refutation\nrefutation-target: the deposited AGENTS #5278 cancel example may safely omit --scope-id/--target-id (short form `swarm:pre-dispatch --action cancel` is adequate for consumer AGENTS)\nspend: N=1\nspend-ask: resolved\nspend-recommend: N=1\nspend-why: Expected argv already named on the issue; restore agents-entry to live CLI usage. Panel permission does not apply.\narc-mode: no-ingest\nyolo-standing: on\ndispatch-sha: 7826224ebc8f59e6851d703950b08e213e49fd7b\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5465\nverification-path: pin-read git show 7826224ebc8f59e6851d703950b08e213e49fd7b:; dest cwd-without-occupy\npain: P1\n\nP1 surface: agents-entry / deposited AGENTS #5278 cancel example drops required --scope-id/--target-id\n\n## Stop 2\n\ncharter=refutation; spend=N=1 (resolved from spend-recommend); reason=docs argv restore with clear Expected form; content-contract anti-regression is in Prefer-A bind map as sharpening, not a competing charter.\n\n## Plain-language summary\n\nThe 0.123.0 deposit taught consumers a cancel command that the live CLI rejects. Prefer-A restores the full argv in the template that deposits AGENTS, and adds a small contract so the short form cannot return.\n\n",
+          "id": 6045761269,
+          "html_url": "https://github.com/deftai/directive/issues/5465#issuecomment-6045761269",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-07T19:59:20Z",
+          "updated_at": "2026-10-07T20:09:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\ncharter: refutation\nround: 1\nrefutation-target: the deposited AGENTS #5278 cancel example may safely omit --scope-id/--target-id (short form `swarm:pre-dispatch --action cancel` is adequate for consumer AGENTS)\nverdict: refuted\ndispatch-sha: 7826224ebc8f59e6851d703950b08e213e49fd7b\n\n## In plain English\n\nThe short cancel example in deposited AGENTS is not safe. Live `swarm:pre-dispatch` rejects it with exit 2 because `--scope-id` is required. Prefer-A's restore of the full argv in agents-entry is the right bind direction.\n\n## Finding 1 — short-form adequacy is false\n\n- class: blocks-the-design\n- of: Stop 1 refutation-target (short form adequate)\n- evidence:\n  - pin-read `git show 7826224ebc8f59e6851d703950b08e213e49fd7b:content/templates/agents-entry.md` Query-before-cancel (#5278) line embeds `swarm:pre-dispatch --action cancel` with no `--scope-id` / `--target-id`.\n  - live help: `deft swarm:pre-dispatch --help` and `task swarm:pre-dispatch -- --help` both open with `Usage: task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree|branch> [options]`.\n  - live invoke: `deft swarm:pre-dispatch --action cancel` and `task swarm:pre-dispatch -- --action cancel` both exit 2 with reason `--scope-id is required (story/issue or xBRIEF plan id)`.\n  - pin-read `core-phase-4.md` residual / deny-gate cancel examples keep the full argv (`--scope-id` + `--target-id` + `--action cancel`).\n- failure mode: a consumer agent copies the always-loaded AGENTS example, cancel fails closed, the delivery-attempt unit stays active, residual/takeover begin stays DENY_DUPLICATE_ACTIVE, and SLizard keeps scoring AGENTS as P1 incorrect-documentation after each deposit overwrite.\n- disposition consequence: Prefer-A bind map limb 1 (rewrite agents-entry #5278 cancel example to name both required flags) must stand; the short-form premise cannot bind.\n\n## Finding 2 — Phase-4 recovery short form still teaches the same defect\n\n- class: sharpens-framing\n- of: Prefer-A draft limb 5 (\"Leave … swarm skill Phase-4 full argv … unchanged\")\n- evidence: pin-read `core-phase-4.md` Duplicate-Agent recovery bullet still says cancel via `task swarm:pre-dispatch -- --action cancel` (no unit ids), while the residual-pass and Pre-dispatch deny-gate examples on the same file show the full argv.\n- failure mode: after agents-entry is restored, an agent following that recovery bullet still hits exit 2 and cannot clear the ledger unit before replacement spawn.\n- disposition consequence: Prefer-A can bind the agents-entry restore; sharpen limb 5 so that one recovery short form is either corrected in the same Bound or explicitly parked as a same-fingerprint residual with a named follow-up. Do not treat Phase-4 as already fully aligned.\n\n## Finding 3 — content-contract limb uses existing inventory\n\n- class: footnote\n- evidence: `packages/core/src/content-contracts/skills/agents_entry_contract.test.ts` already enforces marker lists across template + Agents.md (#1309). No #5278 cancel-argv marker is present today.\n- note: Prefer-A limb 3 (extend that contract) invents no new mechanism family; it is the cheap anti-regression path the Ask already names.\n\n## Injection / swarm lens\n\nTriggered: cancel addresses the shared delivery-attempt ledger keyed by `scopeId` + `targetId` (#3143). Omitting those flags is not a local constant change; the unit cannot be named, so cancel cannot clear concurrency deny.\n\n## Road-not-taken / steelman\n\nSteelmans of the refutation-target: AGENTS is a pointer-dense surface; agents should read `--help` or Phase-4 for full argv; short form saves tokens.\nWhat flips it: AGENTS is the always-loaded consumer surface SLizard already scored as P1; live CLI hard-requires both flags (exit 2); deposit overwrite undid a prior consumer restore. Pointer density does not license an example the authoritative CLI rejects.\n\n## Take on Prefer-A draft (6045760826)\n\n- accept-into-contract: limbs 1–4 (restore full cancel argv in agents-entry; keep pre-cancel obligations; extend agents_entry_contract; agents:refresh).\n- sharpen: limb 5 — Phase-4 is not uniformly full-argv; fix or park the recovery short form.\n- disagree: none on the refutation-target (it fails).\n\nNormative rules pointer: content/contracts/design-critique.md\n\n",
+          "id": 6045853857,
+          "html_url": "https://github.com/deftai/directive/issues/5465#issuecomment-6045853857",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-07T20:05:02Z",
+          "updated_at": "2026-10-07T20:05:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nSpec-path: Prefer-A\nconflict_group: agents-entry-pre-dispatch-cancel-argv\nTarget-digest: sha256:0bf3c22e770db5725ea67c5af9443456cfe4ac34736ca86583020e45a6470954\ndispatch-sha: 7826224ebc8f59e6851d703950b08e213e49fd7b\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-5465\nStop-1: 6045761269\nPrefer-A-draft: 6045760826\nround-1 critics: 1 (grok 6045853857)\nsupersedes: 6045760826\n\nrelieves: P1\n\n## In plain English\n\nProblem: the 0.123.0 deposit put a cancel example in always-loaded AGENTS that the live CLI rejects (exit 2, missing `--scope-id`). Consumers copy it, cancel fails, and the delivery-attempt ledger stays blocked.\n\nAccepted solution: restore the full cancel argv in `content/templates/agents-entry.md`, pin it with the existing agents-entry content-contract, refresh managed AGENTS, and correct the one Phase-4 recovery bullet that still teaches the same short form. CLI semantics and pre-cancel obligations stay as they are.\n\n## Parent takes (round 1)\n\n- Finding 1 — short-form adequacy is false → accept-into-contract\n- Finding 2 — Phase-4 recovery short form still teaches the same defect → accept-into-contract (Bound limb 5)\n- Finding 3 — content-contract limb uses existing inventory → accept-into-contract\n\ndisagree: none\ndefer: none\nround sibling count: 1; critic id: 6045853857\n\n## Bound remedy\n\n1. In `content/templates/agents-entry.md`, rewrite the #5278 Query-before-cancel line so the cancel example names both required flags before `--action cancel`, e.g. `swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel`.\n2. Keep the `deft subagent:pre-cancel` / dual-invoke obligation and the bare-ledger / unread-steer prohibitions unchanged.\n3. Extend `packages/core/src/content-contracts/skills/agents_entry_contract.test.ts` (or the marker list it enforces) so the #5278 cancel example fails the contract when `--scope-id` or `--target-id` is omitted.\n4. Run `task agents:refresh` so root `Agents.md` managed section matches the template.\n5. In `content/skills/deft-directive-swarm/references/core-phase-4.md`, rewrite the Duplicate-Agent recovery cancel bullet that currently shows `task swarm:pre-dispatch -- --action cancel` so it uses the same full argv as the residual-pass / Pre-dispatch deny-gate examples on that file.\n6. Leave CLI behavior and #5278 pre-cancel semantics unchanged.\n\n## Reject list\n\n- Make `--scope-id` / `--target-id` optional on `--action cancel`.\n- Patch only consumer AGENTS without fixing the deposit source.\n- Rely on swarm skill docs alone while agents-entry stays short.\n- Leave the Phase-4 recovery short form unaddressed while claiming Phase-4 already aligned.\n\n## Parent-side substantiation\n\nNo new load-bearing premises beyond critic-accepted evidence. Round-1 critic 6045853857 measured live CLI exit 2 and pin-read short forms.\n\nyolo-standing: on (launching utterance bare arc; confirm conjunct for this all-accept map)\n\n",
+          "id": 6045870490,
+          "html_url": "https://github.com/deftai/directive/issues/5465#issuecomment-6045870490",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-07T20:06:04Z",
+          "updated_at": "2026-10-07T20:10:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n\n## Pain-audit of Prefer-A Bound `relieves: P1`\n\nBound lean audited: 6045870490\nStop 1 pain: 6045761269 — P1 agents-entry / deposited AGENTS #5278 cancel example drops required `--scope-id`/`--target-id`\nRound-1 critic: 6045853857\nPrefer-A draft: 6045760826\ndispatch-sha: 7826224ebc8f59e6851d703950b08e213e49fd7b\n\n## Verdict\n\n`relieves: P1` is honest. Bound limbs 1 and 4 restore the always-loaded cancel example to the live CLI shape; limb 3 pins anti-regression; limb 5 absorbs the same-fingerprint Phase-4 recovery short form already accepted from round-1 Finding 2. No Bound rewrite is required from this seat.\n\n## Reconfirm evidence (pin-read + live help)\n\n- agents-entry at dispatch SHA: Query-before-cancel (#5278) still embeds `swarm:pre-dispatch --action cancel` with no `--scope-id` / `--target-id`.\n- Live help: `deft swarm:pre-dispatch --help` and `task swarm:pre-dispatch -- --help` both open `Usage: task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree|branch> [options]`.\n- core-phase-4.md at dispatch SHA: residual-pass / Pre-dispatch deny-gate cancel examples already name both flags; Duplicate-Agent recovery bullet still shows `task swarm:pre-dispatch -- --action cancel`.\n\n## Honesty check against P1\n\nStop 1 P1 names the agents-entry / deposited AGENTS #5278 cancel short form. Bound limb 1 rewrites that line to name both required flags before `--action cancel`; limb 4 runs `agents:refresh` so the managed AGENTS deposit matches. That is the P1 surface. Limb 5 corrects the Phase-4 recovery short form that teaches the same defect; it extends relief of the same fingerprint rather than leaving P1 open. Reject list still bars optionalizing the flags or consumer-only patches.\n\n## Classified findings\n\nnone",
+          "id": 6045890739,
+          "html_url": "https://github.com/deftai/directive/issues/5465#issuecomment-6045890739",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-07T20:07:21Z",
+          "updated_at": "2026-10-07T20:07:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nPrefer-A Bound (cite only): 6045870490\npain-audit (cite only): 6045890739\nround-1 critic (cite only): 6045853857\n\n| Claim | Verdict | Method |\n|---|---|---|\n| Live `swarm:pre-dispatch` requires `--scope-id` and `--target-id` (short `--action cancel` alone exits 2) | verified | primary re-run of `deft swarm:pre-dispatch --help` / bare `--action cancel` invoke (critic 6045853857; pain-audit 6045890739) |\n| agents-entry #5278 at dispatch SHA embeds short cancel form without those flags | verified | pin-read `git show 7826224ebc8f59e6851d703950b08e213e49fd7b:content/templates/agents-entry.md` |\n| core-phase-4 residual/deny-gate examples keep full argv; Duplicate-Agent recovery bullet still short | verified | pin-read same SHA `content/skills/deft-directive-swarm/references/core-phase-4.md` |\n| Stop 1 pain P1 is relieved by Bound limbs 1+4 (+ limb 5 same fingerprint); harvest unchanged | verified | pain-audit 6045890739 `finding-classes: none` `harvest-changed: false` |\n| Prefer-A Bound all-accept over round-1 classified set (Finding 1–2 + footnote 3) | verified | successor lean 6045870490 take map; empty disagree/defer |\n\n## In plain English\n\nThe deposited AGENTS cancel example is wrong against the live CLI. The Bound restores the full argv in the template, pins it with a content-contract, refreshes managed AGENTS, and fixes the matching Phase-4 recovery short form. Pain-audit found no blocking leftover and no harvest change.\n\n",
+          "id": 6045910305,
+          "html_url": "https://github.com/deftai/directive/issues/5465#issuecomment-6045910305",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-07T20:08:34Z",
+          "updated_at": "2026-10-07T20:08:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: 0.123.0 deposited an AGENTS #5278 cancel example that omits required `--scope-id` / `--target-id`, so consumers copy a command the live CLI rejects.\n\nAccepted solution: Prefer-A Bound 6045870490 restores the full argv in `content/templates/agents-entry.md`, extends the agents-entry content-contract, runs `agents:refresh`, and corrects the Phase-4 recovery short form that taught the same defect. CLI cancel semantics stay unchanged.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\nsuccessor lean 6045870490\n\narc-mode: no-ingest\nyolo-standing: on\npain-audit clearance: 6045890739 harvest-changed:false finding-classes:none\n\n",
+          "id": 6045912052,
+          "html_url": "https://github.com/deftai/directive/issues/5465#issuecomment-6045912052",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-07T20:08:41Z",
+          "updated_at": "2026-10-07T20:08:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Prevention follow-up filed: #5466 (bare-arc spend recommend-first still asks — spend-resolve verb + ask-deny). Continuing with `task issue:ingest` on this thread.",
+          "id": 6046045040,
+          "html_url": "https://github.com/deftai/directive/issues/5465#issuecomment-6046045040",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-07T20:16:51Z",
+          "updated_at": "2026-10-07T20:16:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Correction: not running `issue:ingest`. Ingest stays a later operator verb. #5466 is filed; this thread remains `design-critique:ingest-ready` with Prefer-A Bound 6045870490.",
+          "id": 6046054778,
+          "html_url": "https://github.com/deftai/directive/issues/5465#issuecomment-6046054778",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-07T20:17:26Z",
+          "updated_at": "2026-10-07T20:17:26Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\nIn `@deftai/directive` **0.123.0** content deposit, the managed AGENTS section / `templates/agents-entry.md` #5278 line was shortened to:\n\n```\nswarm:pre-dispatch --action cancel\n```\n\nThat omits required `--scope-id` / `--target-id`. Live CLI help still requires both:\n\n```\nUsage: task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree|branch> [options]\n```\n\nSwarm skill docs (`skills/deft-directive-swarm/references/core-phase-4.md`) still show the full argv. Consumer SLizard on statusreport#222 flagged `AGENTS.md:134` as **P1 incorrect-documentation** (deterministic).\n\n## Expected\nCanonical cancel argv in deposited AGENTS / agents-entry:\n\n```\nswarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel\n```\n\n## Actual\n0.123.0 deposit emits `--action cancel` only. Consumer had previously restored the full argv; deposit overwrite reintroduced the incomplete form.\n\n## Evidence\n- Consumer restore commit on statusreport PR #222: `b3eeec4`\n- `deft swarm:pre-dispatch --help` (0.123.0) requires `--scope-id` and `--target-id`\n- SLizard fingerprint / finding: AGENTS.md:134 incorrect-documentation (P1, blocking)\n\n## Ask\nKeep `templates/agents-entry.md` (and any generator that shortens examples) aligned with the live `swarm:pre-dispatch` usage contract so the next `deft update` does not regress consumer AGENTS again.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5750901136,
+        "origin": "deftai/directive#5465",
+        "id": "github.issue.5750901136"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0bf3c22e770db5725ea67c5af9443456cfe4ac34736ca86583020e45a6470954"
+      },
+      "productPullRequest": 5468,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-07T21:56:37.847Z"
+      }
+    },
+    "acceptance": {
+      "criteria": [
+        "agents-entry and Agents.md #5278 cancel example name --scope-id and --target-id",
+        "agents_entry_contract fails on short cancel form",
+        "Phase-4 recovery cancel bullet uses full argv"
+      ],
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from Prefer-A Bound remedy (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "content/templates/agents-entry.md Query-before-cancel (#5278) cancel example names both --scope-id and --target-id before --action cancel.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "content/templates/agents-entry.md keeps the deft subagent:pre-cancel / dual-invoke obligation and bare-ledger / unread-steer prohibitions unchanged.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts fails when the #5278 cancel example omits --scope-id or --target-id.",
+          "artifact_path": "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "After task agents:refresh, root Agents.md managed section Query-before-cancel (#5278) matches the restored full cancel argv from agents-entry.",
+          "artifact_path": "Agents.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "content/skills/deft-directive-swarm/references/core-phase-4.md Duplicate-Agent recovery cancel bullet uses full --scope-id/--target-id/--action cancel argv.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/core-phase-4.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "No change to swarm:pre-dispatch CLI cancel flag requirements; short --action cancel alone remains refused.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "content/templates/agents-entry.md Query-before-cancel (#5278) cancel example names both --scope-id and --target-id before --action cancel.",
+        "content/templates/agents-entry.md keeps the deft subagent:pre-cancel / dual-invoke obligation and bare-ledger / unread-steer prohibitions unchanged.",
+        "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts fails when the #5278 cancel example omits --scope-id or --target-id.",
+        "After task agents:refresh, root Agents.md managed section Query-before-cancel (#5278) matches the restored full cancel argv from agents-entry.",
+        "content/skills/deft-directive-swarm/references/core-phase-4.md Duplicate-Agent recovery cancel bullet uses full --scope-id/--target-id/--action cancel argv.",
+        "No change to swarm:pre-dispatch CLI cancel flag requirements; short --action cancel alone remains refused."
+      ],
+      "confessions": [
+        "Bound remedy Overview framing and CHANGELOG prose are covered by clauses 1-5 and the product PR.",
+        "Limb 6 (CLI unchanged) is a non-edit constraint verified by absence of CLI package diffs."
+      ]
+    },
+    "id": "github.issue.5750901136",
+    "updated": "2026-10-07T20:31:35Z"
+  }
+}

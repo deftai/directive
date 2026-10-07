@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- chore: leftover-complete #5465 after Tracking PR #5468 (completed xBRIEF + #3675 Prefer-A residual).
+
 ### Fixed
 
 - **agents-entry #5278 cancel example restores required `--scope-id`/`--target-id` (#5465).** Deposit/template and Phase-4 Duplicate-Agent recovery no longer teach short `swarm:pre-dispatch --action cancel`; content-contract pins the full argv. Raise `agentsMdBudget.absoluteMaxBytes` 28000→28100 for the restored argv. Tracking #5465.
