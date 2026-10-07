@@ -898,6 +898,11 @@ export function ensureGitattributes(projectDir: string, io: InitDepositIo): bool
   // Targeted removal of legacy forced-text, independent of additions short-circuit (#5245).
   const withoutLegacy = lines.filter((line) => line.trim() !== LEGACY_CORE_TEXT_EOL_LF);
   const removedLegacy = withoutLegacy.length !== lines.length;
+  // Drop only the final empty Split artifact from a trailing newline; keep
+  // consumer blank lines above it (#5463 Greptile P2).
+  if (withoutLegacy.length > 0 && withoutLegacy[withoutLegacy.length - 1] === "") {
+    withoutLegacy.pop();
+  }
   const present = new Set(
     withoutLegacy.map((line) => line.trim()).filter((line) => line.length > 0),
   );
@@ -909,9 +914,7 @@ export function ensureGitattributes(projectDir: string, io: InitDepositIo): bool
     return false;
   }
   let body = withoutLegacy.join("\n");
-  // Drop trailing empty lines left by filter so we can append cleanly.
-  while (body.endsWith("\n\n")) body = body.slice(0, -1);
-  if (body && !body.endsWith("\n")) body += "\n";
+  if (body.length > 0) body += "\n";
   if (additions.length > 0) {
     if (body && !body.endsWith("\n\n")) body += "\n";
     body += gitattributesDepositComment(additions);

@@ -646,8 +646,9 @@ func EnsureGitattributes(w *Wizard, projectDir string) (bool, error) {
 		}
 		kept = append(kept, line)
 	}
-	// Rebuild without trailing empty splits from Split on trailing newline.
-	for len(kept) > 0 && kept[len(kept)-1] == "" {
+	// Drop only the final empty Split artifact from a trailing newline; keep
+	// consumer blank lines above it (#5463 Greptile P2).
+	if len(kept) > 0 && kept[len(kept)-1] == "" {
 		kept = kept[:len(kept)-1]
 	}
 

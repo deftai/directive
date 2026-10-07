@@ -65,6 +65,26 @@ func TestEnsureGitattributes_AppendsPreservesExisting(t *testing.T) {
 	}
 }
 
+func TestEnsureGitattributes_PreservesTrailingBlankLines(t *testing.T) {
+	tmp := t.TempDir()
+	// Two intentional blank lines before EOF (three trailing newlines after content).
+	pre := "# consumer attrs\nvbrief/.eval/*.jsonl  merge=union\n\n\n"
+	if err := os.WriteFile(filepath.Join(tmp, ".gitattributes"), []byte(pre), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := EnsureGitattributes(newDepositWizard(), tmp); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, ".gitattributes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	if !strings.HasPrefix(content, pre) {
+		t.Errorf("trailing blank lines must survive augment; got:\n%q", content)
+	}
+}
+
 func TestEnsureGitattributes_Idempotent(t *testing.T) {
 	tmp := t.TempDir()
 	w := newDepositWizard()

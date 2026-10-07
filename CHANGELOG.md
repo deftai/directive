@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Installer consumer text: dual-invoke `task deft:subagent:pre-cancel` + `.gitattributes` comment/attribute agreement (#5463).** agents-entry #5278 dual-invoke uses the include-only `deft:` Taskfile form; TS/Go deposit comments claim generated/vendored only when those lines are in the same write; Go aligns to `text=auto eol=lf` (#5245). Tracking #5463.
+- **Installer consumer text: dual-invoke `task deft:subagent:pre-cancel` + `.gitattributes` comment/attribute agreement (#5463).** agents-entry #5278 dual-invoke uses the include-only `deft:` Taskfile form; TS/Go deposit comments claim generated/vendored only when those lines are in the same write; Go aligns to `text=auto eol=lf` (#5245); EnsureGitattributes keeps consumer trailing blank lines. Tracking #5463.
 - **agents-entry #5278 cancel example restores required `--scope-id`/`--target-id` (#5465).** Deposit/template and Phase-4 Duplicate-Agent recovery no longer teach short `swarm:pre-dispatch --action cancel`; content-contract pins the full argv. Raise `agentsMdBudget.absoluteMaxBytes` 28000→28100 for the restored argv. Tracking #5465.
 
 ### Removed

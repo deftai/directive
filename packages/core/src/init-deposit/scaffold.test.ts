@@ -475,6 +475,16 @@ describe("init-deposit scaffold", () => {
     expect(attrs).toContain("# byte identity (#5245).");
   });
 
+  it("preserves consumer trailing blank lines when augmenting (#5463)", () => {
+    const project = freshRoot("scaffold-gitattributes-blanks-");
+    const { io } = captureIo();
+    const pre = "# consumer attrs\n*.md text\n\n\n";
+    writeFileSync(join(project, ".gitattributes"), pre, "utf8");
+    expect(ensureGitattributes(project, io)).toBe(true);
+    const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
+    expect(attrs.startsWith(pre)).toBe(true);
+  });
+
   it("full greenfield write claims generated+vendored with linguist markers (#5463)", () => {
     const project = freshRoot("scaffold-gitattributes-full-");
     const { io } = captureIo();
