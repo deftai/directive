@@ -1,0 +1,565 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4880",
+    "updated": "2026-10-07T03:04:56.043Z"
+  },
+  "plan": {
+    "title": "Path-write fence tells a dispatched worker to set host-only DEFT_ACTIVE_SCOPE",
+    "status": "completed",
+    "narratives": {
+      "Description": "Path-write fence tells a dispatched worker to set host-only DEFT_ACTIVE_SCOPE",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4880",
+      "Overview": "Parent: #4842\n\n## Finding\n\nThe multiple-active refusal tells the reader to set DEFT_ACTIVE_SCOPE or leave one running brief. A subagent cannot set the host process environment, and the active set was fixed before dispatch. A competing brief with no file_scope stayed eligible.\n\nSplit out of #4842 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: GATES\n- Priority: Medium (audit scale S3)\n- Source: #4842\n\n## Related\n\n- #5386: stale DEFT_ACTIVE_SCOPE naming an absent brief (recovery-text inverse of this issue).\n\n",
+      "Labels": "bug, agent-experience, process, harness, source-of-truth, urgent, area:cli, area:vbrief, status:child, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Audience-labeled multiple-eligible recovery for Parent/operator vs Dispatched worker",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5445 squash-merge (Tracking #4880). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5445",
+            "mintedAt": "2026-10-07T03:04:56.043Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:04:56.043Z"
+        }
+      },
+      {
+        "id": "2",
+        "title": "Spawn multiple-eligible must not emit promote-then-activate; lead with parent pin language",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5445 squash-merge (Tracking #4880). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5445",
+            "mintedAt": "2026-10-07T03:04:56.043Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:04:56.043Z"
+        }
+      },
+      {
+        "id": "3",
+        "title": "Non-fencing partition: exclude empty file_scope from unpinned multi-eligible when fencing exists",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5445 squash-merge (Tracking #4880). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5445",
+            "mintedAt": "2026-10-07T03:04:56.043Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:04:56.043Z"
+        }
+      },
+      {
+        "id": "4",
+        "title": "State-transition tests for labeled recovery, spawn hint, fencing partition, and pin binds",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5445 squash-merge (Tracking #4880). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5445",
+            "mintedAt": "2026-10-07T03:04:56.043Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:04:56.043Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "harness",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "area:vbrief",
+      "status:child",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates",
+      "prefer-a-bound",
+      "through-merge",
+      "multi-eligible-host-env-recovery"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4880",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4880: Path-write fence tells a dispatched worker to set host-only DEFT_ACTIVE_SCOPE"
+      }
+    ],
+    "acceptance": {
+      "ambiguity_attestation": "none_found",
+      "none_stated": true,
+      "commands": [],
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Rewrite multiple-eligible recovery with Parent/operator vs Dispatched worker labels; stamp-evidence is evidence-only not a clear-deny peer; keep multi-active fail-closed.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "On spawn multiple-eligible, do not emit promote-then-activate; lead with parent pin or demote-or-complete language; preserve dest unique-basename auto-pin.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "When at least one fencing eligible exists, exclude non-fencing empty file_scope briefs from the unpinned set that creates multiple-eligible; sole pathless stays ready; explicit pin still binds.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Tests cover labeled messages, spawn hint, fencing plus non-fencing binds fencing, two fencing still multiple-eligible, sole pathless ready, and pin to pathless binds.",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Cross-link: inverse sibling of this finding is #5386 (stale DEFT_ACTIVE_SCOPE naming an absent brief; recovery text misleads workers who cannot clear host env). #5386 Related already cites #4880.",
+          "id": 6020291311,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020291311",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:03:38Z",
+          "updated_at": "2026-10-06T16:03:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft (pre-Stop-1 charter lean)\n\n## In plain English\n\nProblem: when more than one active story brief is eligible, the write fence refuses the write and tells the agent to set DEFT_ACTIVE_SCOPE (or leave only one brief running). A dispatched worker cannot set the host process environment, and the active set was already fixed before dispatch. Recovery advice that only a parent/operator can follow is written as if the leaf could fix it. A competing brief with no file_scope can still count as eligible and create that multi-active refuse.\n\nAccepted direction: keep multi-active fail-closed (#4007). Split recovery by actor (parent vs leaf). Make parent pin-before-dispatch the primary fix path for implement-class spawn. Stop no-file_scope briefs from competing as write-fence eligibles that create multiple-eligible against a fencing story.\n\nLean: Approach A + B + C for multiple-eligible host-env recovery (#4880).\n\n**Approach A — role-split multiple-eligible recovery.** Rewrite `formatMultipleActiveMessage` (packages/core/src/hooks/scope.ts) and the dispatcher `denyKind === \"multiple-eligible\"` `proposedPathHint` (packages/core/src/hooks/dispatcher.ts) so recovery names two audiences:\n1. Parent/operator: pin `DEFT_ACTIVE_SCOPE` to the dispatched story before spawn (or demote/complete competitors / `deft scope:stamp-evidence -- <brief>`), then restart the host if the env changed so the hook process sees it.\n2. Dispatched worker: report the eligible brief names upward; do not attempt to set host process env (impossible from the leaf).\nKeep #4007 fail-closed (no first-wins). Keep stamp-evidence as an evidence-only path (no Edit of the brief).\n\n**Approach B — parent pin-before-dispatch on implement-class spawn.** When spawn would hit multiple-eligible without a dest unique-basename `boundPath` pin, `spawn-not-ready` recovery must lead with parent pin/demote language, not worker-set-env. Preserve existing dest unique-basename auto-pin (#4393). When dest itself holds two+ actives, refuse with parent-facing text (already no auto-pin). Do not invent worker-writable host env or a second pin variable name.\n\n**Approach C — no-file_scope briefs are not write-fence competitors.** On the mutation / write-fence inspectActiveScope path, a running brief that has no `file_scope` must not enter the eligible set that creates `multiple-eligible` against a fencing brief. Soft-missing AC / explicit-path selection stays on its own resolver. Tests: one fencing brief + one no-file_scope competitor → single eligible (fencing brief); two fencing briefs → still multiple-eligible.\n\n**Tests.** multiple-eligible Write/Edit recovery contains parent pin/demote + worker report-upward language; does not present \"set DEFT_ACTIVE_SCOPE\" as a leaf-executable step. Spawn multiple-eligible without dest pin leads with parent-facing recovery. no-file_scope competitor does not create multiple-eligible against one fencing brief. Two fencing briefs still deny. Fixtures in dispatcher-spawn-dest / scope / dispatcher-active-scope tests. Do not reintroduce DEFT_ACTIVE_SCOPE_PIN.\n\n**conflict_group:** multi-eligible-host-env-recovery\n\n### Reject\n- Softening multiple-eligible to first-wins (#4007).\n- Primary recovery that tells a dispatched worker to set host-only DEFT_ACTIVE_SCOPE.\n- Closing #5386 inside this Bound (inverse sibling; keep cross-link; separate arc).\n- Inventing a second env var name for the same pin.\n\n### Deferred (not this Bound)\n- Auto-clearing User-level DEFT_ACTIVE_SCOPE from scope:complete (OS/host permission; optional leftover).\n- Doctor detect of stale User/system DEFT_ACTIVE_SCOPE (nice-to-have leftover; may pair with #5386 leftovers).\n\nspend-recommend: N≥3\nspend-why: Stop 2 panel permission — open A/B/C solution space (role-split recovery vs parent pin-before-dispatch vs no-file_scope eligibility) with agent blast on every multi-active write deny; Prefer-A binds A+B+C.\n\narc-mode: no-ingest\nTarget-digest: sha256:4ae3f4a9e8bdede45b15ed192d71934266af3c637bcfb9c664b65240235a461e\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-4880\r\n\n",
+          "id": 6020455303,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020455303",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:12:22Z",
+          "updated_at": "2026-10-06T16:12:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the issue stamps a mechanism-shaped write-fence multiple-eligible failure with concrete land sites (formatMultipleActiveMessage + dispatcher denyKind branch) and an open A/B/C solution space that needs a Bound before implement.\n\nmechanism-shaped: true\ncharter: open critique\narc-mode: no-ingest\nyolo-standing: on\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: Stop 2 panel permission — open A/B/C solution space (role-split recovery vs parent pin-before-dispatch vs no-file_scope eligibility); bare arc resolved from recorded spend-recommend.\ndual-stop-reserved: first post-lean pain-audit of asserted coverage is in-cap via Dual-stop reserved slot; ask raise only after that seat is spent.\nverification-path: pin-read git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:; dest cwd-without-occupy\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-4880\nTarget-digest: sha256:4ae3f4a9e8bdede45b15ed192d71934266af3c637bcfb9c664b65240235a461e\nPrefer-A draft: 6020455303\nconflict_group: multi-eligible-host-env-recovery\n\npain:\n- P1\n- P2\n- P3\n\npain-prose:\n- P1: multiple-eligible recovery tells a dispatched worker to set host-only DEFT_ACTIVE_SCOPE (or leave one running brief), which the leaf cannot do; active set was fixed before dispatch.\n- P2: implement-class spawn that would hit multiple-eligible without a dest unique-basename pin still surfaces worker-set-env language instead of parent pin-before-dispatch / demote recovery.\n- P3: a competing running brief with no file_scope stays eligible and can create multiple-eligible against a fencing story.\n\nStop 2: charter open critique; spend N≥3 (panel permission used after spend-recommend resolve).",
+          "id": 6020462061,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020462061",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:12:46Z",
+          "updated_at": "2026-10-06T16:12:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6020474246\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\nlaunch-probe: claude=pong@0; codex=pong@0; grok=pong@0\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\nverification-path: pin-read git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:; dest cwd-without-occupy\nStop-1: 6020462061\nPrefer-A draft: 6020455303\nTarget-digest: sha256:4ae3f4a9e8bdede45b15ed192d71934266af3c637bcfb9c664b65240235a461e\nconflict_group: multi-eligible-host-env-recovery\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-4880",
+          "id": 6020474246,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020474246",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:13:29Z",
+          "updated_at": "2026-10-06T16:13:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nPrefer-A A+B+C cannot bind as written. A addresses P1 and the parent-facing part of B addresses P2. C addresses P3's symptom but leaves the authority used to classify a \"fencing brief\" unspecified.\n\nVerification: read the live issue body and comments through 6020474246 only; inspected source with `git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:`. No sibling critic inputs or executable test results are claimed.\n\n### 1. blocks-the-design — C needs an authoritative fence classification and explicit selection semantics\n\nEvidence: [scope.ts](https://github.com/deftai/directive/blob/b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6/packages/core/src/hooks/scope.ts) builds eligibility from working-tree preflight, then resolves boundPath/environment pins before unpinned cardinality. In contrast, [write-fence.ts](https://github.com/deftai/directive/blob/b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6/packages/core/src/policy/write-fence.ts#L400) explicitly uses the immutable merge-base brief, never working-tree head, for runtime fence authority. Its resolveWriteFence also treats nonempty story denyPaths as an active fence even without allow paths.\n\nConcrete failure: filtering on the current brief's missing file_scope can discard a story whose merge-base fence is still active, or a deny-only story. With another eligible story present, an ambiguity denial becomes selection of that other story's fence. This changes write authority based on mutable metadata, not merely recovery copy. Filtering the shared eligible array also makes an explicitly pinned, preflight-valid no-file_scope brief become pin-miss unless that case is deliberately handled. Neither result is specified by C's two proposed tests.\n\nDisposition consequence: recut C before binding. Define \"no fence\" using the existing authoritative fence semantics, retain fail-closed handling for unreadable authority, and state whether the change applies only to unpinned competition or also changes explicit pin/single-scope admission. Keep soft-missing AC separate as proposed. Require cases for merge-base/head disagreement, deny-only fences, explicit pin to a no-file_scope brief, and all-no-file_scope actives, in addition to the mixed and two-fencing cases. No new pin variable or first-wins fallback is needed.\n\n### 2. sharpens-framing — B conflates absence of a destination auto-pin with a destination refusal\n\nEvidence: [dispatcher.ts](https://github.com/deftai/directive/blob/b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6/packages/core/src/hooks/dispatcher.ts#L2074) passes a destination-derived boundPath to inspectActiveScope(effectiveRoot), otherwise retains the environment fallback. uniqueActiveBasenameFromDestPath at line 2329 counts distinct basenames across both lifecycle roots; returning null does not itself deny.\n\nConcrete failure: \"dest itself holds two+ actives, refuse\" may be implemented as a new unconditional destination-cardinality gate, rejecting a valid explicit pin. Conversely, a copy-only implementation cannot honestly claim that unconditional refusal already exists. Two files sharing a basename across the compatibility roots also do not equal two distinct basename tokens.\n\nDisposition consequence: B can bind with narrower wording: preserve the existing destination auto-pin and environment precedence; change recovery when actual inspection returns multiple-eligible. State any proposed new destination validation separately. Test a multi-active destination with a valid environment pin as well as an unpinned denial.\n\n### 3. sharpens-framing — stamp-evidence is an alternate operation, not write/spawn recovery\n\nEvidence: [stamp-evidence.ts](https://github.com/deftai/directive/blob/b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6/packages/core/src/scope/stamp-evidence.ts) stamps namespaced evidence. It does not select a scope or remove an eligible competitor.\n\nConcrete failure: A's parenthetical grouping of stamp-evidence with pin/demote/complete can send the parent through evidence stamping and then the identical multiple-eligible refusal on retry.\n\nDisposition consequence: retain the evidence-only escape, but label it \"if your intended operation is acceptance recording\"; keep pinning or legitimate lifecycle changes as recovery for product writes/spawn. This sharpens A without widening scope into #5386.\n\nThe strongest case for C is that a truly non-fencing administrative brief should not obstruct a fencing story. I endorse that goal. The rejected shortcut is raw current-file field absence as the authority predicate. A recut that preserves authoritative fence classification and explicit pin behavior would change my blocking verdict. Preserve fenced eligible-name rendering in report-upward text; names remain untrusted data. This round does not attest panel completeness or constitute a later pain audit.\n\r\n\n",
+          "id": 6020535502,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020535502",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:16:56Z",
+          "updated_at": "2026-10-06T16:16:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\n## Verdict\n\nPrefer-A A+B+C **cannot bind as written**. Approach C’s eligible-set limb, read as an unconditional filter, regresses today’s sole no-`file_scope` ready path. Amend C with a closed predicate and a fencing/non-fencing partition rule; fold the two sharpenings below into the Bound text. After that amendment, A+B+C can bind and cover Stop 1 P1–P3 without softening #4007 or inventing a second pin env name.\n\nCharter fit: open critique of Prefer-A draft 6020455303 against pains P1–P3 (6020462061) and the live issue body. Ceiling 6020474246 honored; sibling critic posts unread. Pin-read `git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:` on dest cwd-without-occupy.\n\n## Findings\n\n### blocks-the-design — Approach C must not unconditionally drop no-`file_scope` from `inspectActiveScope` eligible\n\n**Evidence (pin-read):**\n- `packages/core/src/preflight/evaluate.ts` at dispatch-sha has **zero** `file_scope` references; eligibility is active+`running` (+ intent/lineage), not fencing metadata.\n- `packages/core/src/hooks/scope.ts` `inspectActiveScope` pushes every `evaluate(...).exitCode === 0` candidate into `eligible` with no `file_scope` gate.\n- `packages/core/src/hooks/scope.test.ts` “reuses canonical preflight for active/running scope” writes `runningPlacement` **without** `swarm.file_scope` and expects `inspectActiveScope` → `ready: true`.\n- Prefer-A C: “a running brief that has no `file_scope` must not enter the eligible set that creates `multiple-eligible` against a fencing brief,” with tests only for fencing+no-file_scope → single eligible and two fencing → still multiple-eligible. No sole / zero-fencing acceptance. “Fencing brief” and “no `file_scope`” (absent field vs `file_scope: []`) are undefined.\n\n**Concrete failure mode:** Implement lands `eligible = eligible.filter(hasFileScope)` (natural reading of “must not enter the eligible set”). A lone leftover/process brief without `file_scope` — currently ready — becomes `eligible.length === 0` → `zero-eligible` deny on Write/Edit. P3 is “relieved” by breaking the sole no-file_scope path that today’s fence already admits. Empty `[]` vs missing field diverges across workers.\n\n**Disposition consequence:** Do not bind C as posted. Amend C before Prefer-A Bound: (1) closed predicate — treat **absent or empty** `metadata.swarm.file_scope` as non-fencing; (2) partition rule — when ≥1 fencing eligible exists, non-fencing briefs are excluded from the set that can create `multiple-eligible` against that fencing brief; when zero fencing eligibles exist, preserve today’s sole/multi no-file_scope behavior (or name an intentional behavior change with tests); (3) acceptance must include sole no-file_scope → still ready, plus fencing+empty/`[]` competitor → single fencing eligible, two fencing → still multiple-eligible. Soft-missing stays on its own resolver as drafted.\n\n### sharpens-framing — Approach B pin recovery must name hook-visible environ, not bare “set DEFT_ACTIVE_SCOPE”\n\n**Evidence (pin-read):**\n- Prefer-A A already says parent pin then “restart the host if the env changed so the hook process sees it.”\n- Prefer-A B leads spawn multiple-eligible recovery with “parent pin/demote” and preserves dest unique-basename auto-pin (#4393) but does not restate pin-visibility / restart honesty.\n- `packages/core/src/hooks/scope.ts` `pinFrom` reads `boundPath` then `options.env ?? process.env` for `DEFT_ACTIVE_SCOPE`.\n- `packages/core/src/hooks/classify/payload.ts`: stdin env bag merges over fallback; comment: “Not process-wide DEFT_ACTIVE_SCOPE.”\n- `dispatcher-spawn-dest.test.ts` “does not lead Grok multiple-eligible spawn-not-ready with scope:activate (#4391)” still surfaces `DEFT_ACTIVE_SCOPE` as the recovery cue (P2 specimen).\n\n**Concrete failure mode:** Parent “sets” User/system `DEFT_ACTIVE_SCOPE` per B’s recovery text; PreToolUse still sees an environ bag without the pin (no process restart / no stdin bag merge). Spawn remains `spawn-not-ready` with multiple-eligible; P2 recurs after the parent believes the pin was applied. Dest unique-basename path works when present; the unpinned path is the hole B claims to fix.\n\n**Disposition consequence:** Bindable after wording change. B recovery MUST lead with parent pin/demote **and** state that the pin must be visible to the hook environ the deny measured (`process.env` / spawn stdin `env|environ` bag), with the same restart honesty as A when only User/system scope was updated. Keep Reject: no `DEFT_ACTIVE_SCOPE_PIN`; preserve #4393 dest unique-basename auto-pin; dest with two+ actives → parent-facing refuse.\n\n### sharpens-framing — Approach A audience split needs labeled deny anatomy in acceptance\n\n**Evidence (pin-read):**\n- `formatMultipleActiveMessage` (`scope.ts`) and dispatcher `denyKind === \"multiple-eligible\"` `proposedPathHint` both say “Set DEFT_ACTIVE_SCOPE …” with no parent/worker split (P1 specimen).\n- Prefer-A A correctly names two audiences (parent pin/demote/stamp-evidence; worker report-upward, do not set host env) and keeps #4007 fail-closed.\n- Prefer-A Tests: recovery “contains parent pin/demote + worker report-upward language; does not present `set DEFT_ACTIVE_SCOPE` as a leaf-executable step” — content check only, no required audience labels.\n\n**Concrete failure mode:** One undifferentiated prose blob can still include “set DEFT_ACTIVE_SCOPE” where a leaf reads it as its next step (P1 recurrence) while still matching a loose “contains parent + worker language” test.\n\n**Disposition consequence:** Bindable after sharpening. Acceptance MUST require explicit audience labels in the deny string (e.g. `Parent/operator:` … `Dispatched worker:` …), assert the worker section does not instruct setting host env, and cover both Write/Edit (`formatMultipleActiveMessage` + `proposedPathHint`) and unpinned implement-class spawn (`spawn-not-ready` multiple-eligible). Stamp-evidence remains evidence-only / no Edit of the brief.\n\n### footnote — Inventory of existing mechanisms (no new pin variable)\n\nExisting controls already cover most of the design space Prefer-A reuses: `ACTIVE_SCOPE_PIN_ENV` / `boundPath` / `matchPinnedActiveScope` (#4007); dest unique-basename auto-pin (#4393); `STAMP_EVIDENCE_VERB` evidence-only path; soft-missing on a separate resolver (`resolveSoftMissingAcTargets`). Prefer-A Reject correctly bars first-wins softening, worker-primary set-env, closing #5386 in this Bound, and inventing a second env name. No disposition weight.\n\n### footnote — Injection / swarm lens\n\nTarget touches write-fence authority, shared `xbrief/active` state, and implement-class spawn concurrency. Prefer-A keeps fail-closed multi-fencing and does not add a worker-writable host pin. The residual risk is Approach C’s eligibility partition (blocking finding above), not a new injection surface.\n\n## Pain coverage (after C amendment + sharpenings)\n\n| Pain | Prefer-A limb | Critic take |\n|---|---|---|\n| P1 worker told to set host-only env | A (+ B for spawn) | Relieves once audience-labeled acceptance lands |\n| P2 unpinned spawn still worker-set-env | B | Relieves once hook-visible pin language lands |\n| P3 no-file_scope competitor creates multiple-eligible | C | Relieves only after C amended (closed predicate + partition + sole-ready acceptance) |\n\n## Road-not-taken / steelman\n\n**Road-not-taken:** Message-only A without C leaves P3 live (pin-read: evaluate ignores `file_scope`, so no-file_scope competitors remain eligible). Dest-basename-only B without env-pin recovery leaves primary Write multiple-eligible and unpinned spawn recovery unfixed. A+B+C is the right composition once C is partition-scoped.\n\n**Steelman (rejected): soften #4007 to first-wins.** Would silence P1 by binding the first-sorted story, but `formatMultipleActiveMessage` already states the cohort would share that story’s `file_scope` and over-permit other workers. Prefer-A Reject is correct. Flip only if every implement spawn were mandatory unique `boundPath` and shared-active first-wins were deleted — out of this Bound.\n\n## Bind judgment\n\n**Cannot bind Prefer-A A+B+C as posted.** Blocking: amend Approach C. Sharpenings: B pin-visibility; A audience-labeled acceptance. Keep Reject list (#4007 first-wins; worker-primary set-env; #5386 out of Bound; no second pin env name). After those edits, A+B+C is bind-capable for P1–P3.\r\n\n",
+          "id": 6020554848,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020554848",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:18:02Z",
+          "updated_at": "2026-10-06T16:18:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5[1m]\n```quarantined\nrole: critic\n```\n\nRound 1 critic, fresh seat. Charter: open critique. Pin-read `git show b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6:` from the dest worktree. Inputs: live issue body, Prefer-A draft 6020455303, Stop 1 write-back 6020462061. Id ceiling 6020474246 honored; no sibling text read.\n\n## blocks-the-design — `scope:stamp-evidence` is named as multiple-eligible recovery and does not clear the deny; A carries it forward\n\n**Evidence.** `packages/core/src/hooks/scope.ts:129` `formatMultipleActiveMessage` prints \"...or record acceptance with `deft scope:stamp-evidence -- <brief>`\" as a peer of the pin. `packages/core/src/scope/stamp-evidence.ts:25-53` `stampEvidenceOnBrief` calls `stampMatchAnyFileEvidence` (`:42`) and `atomicWriteBrief` (`:48`) and returns; it never touches `plan.status` and never moves the artifact out of `active/`. Eligibility is decided solely by `evaluate()` — `packages/core/src/preflight/evaluate.ts:228` rejects on `status !== ELIGIBLE_STATUS`, and that file contains no `file_scope` read at all. Running the verb leaves `eligible.length` identical.\n\n**Failure mode.** The denied worker runs the one clause in the string it is actually able to execute, retries the Write, and gets a byte-identical deny. Unbounded retry, with a brief now mutated for no gate effect. The honest two-step is `scope:stamp-evidence` *then* `scope:complete` — AC evidence is a precondition of completion, not a substitute for it.\n\n**Disposition consequence.** A's \"Keep stamp-evidence as an evidence-only path (no Edit of the brief)\" preserves a dead recovery, and A's parent bucket lists it as an alternative to \"demote/complete competitors\" — the same false equivalence under a new label. A cannot bind until that clause becomes the explicit two-step or leaves the multiple-eligible string. This is the P1 defect class — recovery the named actor cannot follow — sitting inside the fix for P1.\n\n## blocks-the-design — B names a site that does not carry the defect, and the site it should name prints a deny-worsening step\n\n**Evidence.** `packages/core/src/hooks/dispatcher.ts:2108-2141`. The `proposedPathHint` chain opens with `if (isSpawnTool(toolName))` at `:2109`, so the `scope.denyKind === \"multiple-eligible\"` arm at `:2135` is **unreachable for spawn**. The spawn hint (`:2112-2127`) contains no `DEFT_ACTIVE_SCOPE` text. The worker-set-env string that P2 reports on a spawn deny arrives via `scope.message` in the concatenation at `:2166` — that is `formatMultipleActiveMessage`, i.e. A's site, not B's. Meanwhile spawn recovery path (1) is `SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE` (`packages/core/src/scope/transition-hint.ts`) = `scope:promote` then `scope:activate`.\n\n**Failure mode.** On a spawn multiple-eligible deny, the printed first recovery tells the agent to activate another brief: eligible goes 2 to 3, the deny persists, and the active set is dirtier than before the agent followed instructions. Separately, B implemented at its named site changes nothing observable, because A already rewrites the string that carries the env advice — B's own test (\"spawn multiple-eligible without dest pin leads with parent-facing recovery\") goes green on A alone.\n\n**Disposition consequence.** B does not bind as a distinct approach. Either fold it into A, or respecify it as \"on `denyKind === \"multiple-eligible\"`, the spawn branch must not emit `SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE`\" — a different change at `:2109-2127` with a different test. B's dest-pin clause is accurate as stated and needs no work: `uniqueActiveBasenameFromDestPath` (`:2329-2344`) returns `null` on two or more distinct dest basenames, so \"dest holds two+ actives, refuse, already no auto-pin\" already holds.\n\n## blocks-the-design — C under-specifies the pin branch and the zero-eligible branch, and in doing so kills A+B's primary path\n\n**Evidence.** `packages/core/src/hooks/scope.ts:203-226`. The pin path calls `matchPinnedActiveScope(projectRoot, pin, eligible.map(...), candidates)`; the first loop in that helper (`:95-101`) iterates *scanned*, so a path-shaped pin matches a candidate regardless of the eligible subset. Control then reaches `eligible.find(...)` at `:212`, which is `undefined` under C; then `rejections.get(matched)` at `:216`, also `undefined`, because the brief passed `evaluate` and was never recorded as a rejection; and falls through to `formatMissingPinMessage(pin)` at `:224`.\n\n**Failure mode, branch 1.** The parent does exactly what A and B make primary — pins `DEFT_ACTIVE_SCOPE` to the dispatched story before spawn. That story has no `file_scope`. The worker reads \"`DEFT_ACTIVE_SCOPE` does not name an eligible running xBRIEF under xbrief/active/ (got ...)\": false on its face, with no mention of `file_scope`, about a brief sitting in `active/` at status running. The designated fix path dies on the exact brief it was dispatched to bind, and the message misdirects the parent to the pin value.\n\n**Failure mode, branch 2.** Every active brief is pathless. `eligible` is 0, `rejections` is empty, `blocked` is empty, `firstRejection` is null, so `:253-261` prints \"No active xBRIEF artifact was found under xbrief/active/\" with two artifacts present and no recovery offered. Today that repo writes (`resolveWriteFence`, `packages/core/src/policy/write-fence.ts:486-497`, returns `fenceActive: false` for empty story scope plus disabled project policy); after C it is bricked and told a falsehood about why.\n\n**Disposition consequence.** \"Must not enter the eligible set\" is not sufficient to implement. C must state which mechanism it is: (a) pathless briefs enter `rejections` with a reason, so pin-miss and zero-eligible both print honest copy; or (b) pathless briefs are dropped only as a tie-break once `eligible.length > 1`, leaving solo and pinned selection untouched. Those differ in blast radius and in message surface, and C's three listed tests cover neither branch. Not bindable as written. Note also that C adds the first non-`evaluate` eligibility predicate to `inspectActiveScope`, whose docblock at `:152-155` states it \"intentionally creates no second lifecycle/status policy stack\" — that comment becomes a claim C falsifies, and must be updated in the same change. C's carve-out for the soft-missing resolver is correct: `resolveSoftMissingAcTargets` (`:319-364`) selects over `scanned`, never over `eligible`, so it is genuinely untouched.\n\n## sharpens-framing — the role split is argued from capability, but the hazard is authority, and no deterministic control backs it (injection / swarm lens)\n\nThe lens fires: this target is dispatch envelopes, concurrency, worktrees, and shared lifecycle state.\n\n**Evidence.** A's split rests on \"impossible from the leaf\". That holds for `DEFT_ACTIVE_SCOPE` — the hook reads `options.env` / `process.env` (`scope.ts:74-81`) in the host process, and a subagent cannot write it. It does **not** hold for the rest of A's parent bucket: `deft scope:demote` and `deft scope:complete` are ordinary CLI verbs, and a grep for those two verbs under `packages/core/src/hooks/` at the dispatch SHA returns nothing — the hook layer does not gate them. Today's string names the outcome (\"keep one running brief in xbrief/active/\"); A promotes the actual verbs into leaf-visible copy for the first time.\n\n**Failure mode.** A cohort worker, denied, reads \"Parent/operator: ... demote/complete competitors\" and clears its own deny by completing a peer's story in a shared checkout. Nothing refuses it. Stopping there on the expectation that a parent will notice is the reviewer-attention close the method forbids.\n\n**Disposition consequence.** A can still bind, but it must either keep demote/complete out of the leaf-visible string (worker bucket: report brief names upward, full stop) or pair it with a deterministic gate. That changes what A prints and how the split is justified, not whether the approach stands.\n\n## sharpens-framing — the proposed tests are token-presence assertions, which is the defect class that produced P1\n\n**Evidence.** `packages/core/src/hooks/dispatcher-active-scope.test.ts:110` asserts that the deny message contains the literal `scope:stamp-evidence`. That assertion is green today, and the verb it guards does not clear the deny (first finding). Prefer-A's Tests block is the same shape throughout: recovery \"contains parent pin/demote + worker report-upward language\"; \"does not present 'set DEFT_ACTIVE_SCOPE' as a leaf-executable step\".\n\n**Failure mode.** New strings land, assertions pass, and the next no-op recovery ships through the identical gap. A substring test cannot distinguish advice that works from advice that is merely worded differently.\n\n**Disposition consequence.** At least one test per approach must assert the state transition: after the named parent recovery runs, a second `inspectActiveScope` on the same root returns ready. Scope change to the Tests block, not a bind blocker.\n\n## footnote\n\n- The Write/Edit multiple-eligible deny prints the pin-and-stamp-evidence advice twice — once from `scope.message` (`scope.ts:133-137`), again from `proposedPathHint` (`dispatcher.ts:2136-2139`). A rewrites both sites; it should say they must not re-duplicate.\n- A's \"(no Edit of the brief)\" reads as \"the artifact is not modified\". `stampEvidenceOnBrief` does `atomicWriteBrief` (`stamp-evidence.ts:48`). The intended sense is \"no agent Edit tool on the brief\"; three words fix it.\n\n## Road not taken\n\nI considered reading C charitably as the tie-break mechanism — filter pathless briefs only after `eligible.length > 1` — which dodges both bad branches and matches the \"against a fencing story\" phrasing. I did not critique against that reading, because the draft's operative sentence is \"must not enter the eligible set\", and because even the tie-break reading leaves the pin branch undefined when a parent pins the pathless member of a two-brief set. I named it as an option in C's disposition rather than silently adopting it.\n\n## Steelman\n\nThe strongest rejected position: P1 is the stamped pain, A's site carries the offending string on every path including spawn, and a recovery-copy Bound does not need B and C decomposed before implement — so bind A+B+C and let implementation resolve the branches. That is defensible for B, whose only real cost is a redundant approach label. It is not defensible for C, because C changes gate behavior rather than copy, and both of its undefined branches fail closed with a false message.\n\nWhat would flip me: on C, if `evaluate()` already rejected pathless briefs, C would be a harmless no-op restatement and could bind — it does not (`preflight/evaluate.ts` reads no `file_scope`). On B, if a spawn multiple-eligible deny printed `DEFT_ACTIVE_SCOPE` from the hint rather than from `scope.message`, B's site would be correct — the branch is unreachable for spawn (`dispatcher.ts:2109`).\n\n## Verdict\n\n**A+B+C cannot bind as drafted.**\n\n- **A** binds after two amendments: the `stamp-evidence` clause becomes the explicit two-step or is dropped, and the role split is re-grounded on authority with demote/complete kept out of leaf-visible copy (or gated).\n- **B** does not bind as a distinct approach. Fold it into A, or respecify it against `SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE` on the spawn branch — a real and currently unnamed defect worth keeping.\n- **C** does not bind until the pin branch and the zero-eligible branch each have a named behavior and a named message, and the `inspectActiveScope` docblock claim is reconciled.\n\n#4007 first-wins is untouched by any of this; nothing above asks to soften it. No second pin variable name. #5386 stays out of this Bound.\n\n",
+          "id": 6020626132,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020626132",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:22:02Z",
+          "updated_at": "2026-10-06T16:22:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: when more than one active story is eligible, the write fence refuses and tells the worker to set DEFT_ACTIVE_SCOPE. A leaf cannot set host process env, and the active set was fixed before dispatch. Stamp-evidence does not clear that refuse. Spawn recovery can even tell the agent to activate another brief and make multi-active worse. A pathless competing brief can also create a false multi-active refuse against a fencing story.\n\nAccepted solution: keep multi-active fail-closed (#4007). Rewrite recovery with labeled Parent/operator vs Dispatched worker sections. Fix spawn so multiple-eligible does not print promote-then-activate. Exclude non-fencing briefs from unpinned multi-eligible competition only when at least one fencing eligible exists; sole pathless briefs stay ready; explicit pins still bind.\n\nLean: Prefer-A Bound (A+B'+C' amended after round-1 critics 6020535502 / 6020554848 / 6020626132)\n\n## Bound remedy\n\n**A — audience-labeled multiple-eligible recovery (amended).** Rewrite \formatMultipleActiveMessage and the dispatcher Write/Edit denyKind === \"multiple-eligible\" proposedPathHint so both emit explicit audience labels:\n- Parent/operator: pin DEFT_ACTIVE_SCOPE to the dispatched story before spawn (or demote/complete competitors), and ensure the pin is visible to the hook environ that measured the deny (process.env / spawn stdin env bag); restart the host when only User/system env was updated.\n- Dispatched worker: report the eligible brief names upward; do not set host process env.\nDo not put demote/complete verbs in the worker section. Do not present stamp-evidence as a peer recovery that clears multiple-eligible for Write/spawn: label it only as \"if your intended operation is acceptance recording\" (evidence-only; may Edit the brief via stampEvidenceOnBrief; does not change plan.status or leave active/). Deduplicate so scope.message + proposedPathHint do not print the same pin advice twice. Keep #4007 fail-closed (no first-wins).\n\n**B' — spawn multiple-eligible must not promote-then-activate (respecified).** On isSpawnTool + denyKind === \"multiple-eligible\", the spawn proposedPathHint must NOT emit SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE. Lead with the same parent pin / demote-or-complete / hook-visible-pin language as A. Preserve dest unique-basename auto-pin (#4393). When dest has two+ distinct active basenames, no auto-pin (already); recovery stays parent-facing. Do not invent a new unconditional dest-cardinality gate that rejects a valid env pin. Do not invent DEFT_ACTIVE_SCOPE_PIN. Note: the worker-set-env string on spawn denies arrives via scope.message (A's site); B' additionally fixes the spawn-hint promote-then-activate defect critics named.\n\n**C' — non-fencing partition for unpinned multi-eligible (amended).** Closed predicate: absent or empty metadata.swarm.file_scope (and deny-only / merge-base authority per write-fence semantics — prefer the existing authoritative fence view, not raw working-tree field absence alone) is non-fencing. Partition rule: when ≥1 fencing eligible exists, non-fencing briefs are excluded from the unpinned set that can create multiple-eligible against that fencing brief. When zero fencing eligibles exist, preserve today's sole/multi no-file_scope behavior (sole pathless still ready). Explicit pin / boundPath to a preflight-valid no-file_scope brief still binds (do not turn that into false pin-miss). Soft-missing AC stays on its own resolver. Update the inspectActiveScope docblock that claims no second eligibility predicate. Fail-closed on unreadable fence authority.\n\n**Tests (state-transition, not token-presence alone).**\n1. After parent pin is visible to hook environ, second inspectActiveScope on the same root returns ready (or spawn admits) for the pinned story.\n2. Write/Edit multiple-eligible message contains labeled Parent/operator: and Dispatched worker: sections; worker section does not instruct setting host env; stamp-evidence is not presented as clearing the deny.\n3. Spawn + multiple-eligible does not contain promote-then-activate; leads with parent pin/demote language.\n4. Fencing + non-fencing competitor (absent or empty file_scope) → unpinned ready binds fencing brief (not multiple-eligible).\n5. Two fencing briefs → still multiple-eligible.\n6. Sole no-file_scope → still ready.\n7. Explicit pin to no-file_scope with another fencing eligible → pin binds (not pin-miss).\n8. Multi-active dest with valid env pin still admits (no new dest-cardinality hard refuse).\nDo not reintroduce DEFT_ACTIVE_SCOPE_PIN.\n\n**conflict_group:** multi-eligible-host-env-recovery\n\n### Reject\n- Softening multiple-eligible to first-wins (#4007).\n- Primary recovery that tells a dispatched worker to set host-only DEFT_ACTIVE_SCOPE.\n- Closing #5386 inside this Bound.\n- Inventing a second env var name for the same pin.\n- Unconditional drop of all no-file_scope briefs from eligible (regresses sole pathless ready).\n- stamp-evidence as a peer that clears multiple-eligible for Write/spawn.\n\n### Deferred\n- Auto-clearing User-level DEFT_ACTIVE_SCOPE from scope:complete.\n- Doctor detect of stale User/system DEFT_ACTIVE_SCOPE.\n- Hook-gating demote/complete against peer stories (authority leftover; worker copy keeps those verbs out of leaf section).\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTakes map (yolo all-accept after amendment):\n- accept: critic amendments folded into A / B' / C'\n- disagree: none\n- defer: hook-gate demote/complete; doctor stale pin; scope:complete auto-clear\n\narc-mode: no-ingest\nyolo-standing: on\nTarget-digest: sha256:4ae3f4a9e8bdede45b15ed192d71934266af3c637bcfb9c664b65240235a461e\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-4880\nround-1 critics: 6020535502 (codex), 6020554848 (grok), 6020626132 (claude)\nStop-1: 6020462061",
+          "id": 6020645070,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020645070",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:23:07Z",
+          "updated_at": "2026-10-06T16:23:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: sharpening\nharvest-changed: false\n\nPain-audit of Prefer-A Bound 6020645070 (asserted coverage) against Stop 1 6020462061. Pin-read at dispatch-sha b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6; dest cwd-without-occupy. Ceiling 6020645070.\n\n## P1 — support (relieves)\n\nStop 1 pain-prose: multiple-eligible recovery tells a dispatched worker to set host-only DEFT_ACTIVE_SCOPE (or leave one running brief); leaf cannot do that; active set fixed before dispatch.\n\nPin evidence:\n- `packages/core/src/hooks/scope.ts` `formatMultipleActiveMessage` currently ends with `Set DEFT_ACTIVE_SCOPE to the dispatched story path, or record acceptance with deft scope:stamp-evidence … Or keep one running brief in xbrief/active/.`\n- Write/Edit `denyKind === \"multiple-eligible\"` `proposedPathHint` in `dispatcher.ts` (~2135) repeats stamp-evidence OR set DEFT_ACTIVE_SCOPE (no audience split).\n\nBound limb **A** rewrites both sites into labeled Parent/operator vs Dispatched worker sections; worker reports eligible names upward and must not set host env; demote/complete stay out of the worker section; stamp-evidence is evidence-only (may Edit via stampEvidenceOnBrief; does not clear the Write/spawn deny); keeps #4007 fail-closed. That is the P1 recovery-audience miss.\n\n## P2 — support (relieves)\n\nStop 1 pain-prose: implement-class spawn that hits multiple-eligible without a dest unique-basename pin still surfaces worker-set-env language instead of parent pin-before-dispatch / demote recovery.\n\nPin evidence:\n- `dispatcher.ts` recovery branch orders `if (isSpawnTool(toolName))` first (~2114) and always emits `SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE` for product implementation, so spawn never reaches the later `denyKind === \"multiple-eligible\"` arm (~2135).\n- Combined deny is `scope.message` (worker-set-env from A’s site) + promote-then-activate hint. Fixture `dispatcher-spawn-dest.test.ts` (~730) currently expects that DEFT_ACTIVE_SCOPE / keep-one-running copy on Grok spawn-not-ready multiple-eligible.\n\nBound limb **B'** requires `isSpawnTool + denyKind === \"multiple-eligible\"` must not emit promote-then-activate; lead with the same parent pin / demote-or-complete / hook-visible-pin language as A; preserve dest unique-basename auto-pin (#4393); no new unconditional dest-cardinality refuse; no `DEFT_ACTIVE_SCOPE_PIN`. Together with A’s `scope.message` rewrite, that is the P2 spawn-recovery miss.\n\n## P3 — support (relieves)\n\nStop 1 pain-prose: a competing running brief with no file_scope stays eligible and can create multiple-eligible against a fencing story.\n\nPin evidence:\n- `inspectActiveScope` docblock: delegates eligibility solely to preflight evaluate and “intentionally creates no second … policy stack.”\n- `scope.test.ts` `runningPlacement` has no `metadata.swarm.file_scope`; sole such brief is `ready: true`. Unpinned multi with one fencing + one pathless therefore both enter `eligible` and deny `multiple-eligible`.\n\nBound limb **C'** closes the partition: absent/empty `file_scope` (prefer authoritative fence view) is non-fencing; when ≥1 fencing eligible exists, exclude non-fencing from the unpinned competition set; zero fencing preserves today’s sole/multi pathless behavior; explicit pin to a preflight-valid no-file_scope still binds; soft-missing AC stays on its resolver; fail-closed on unreadable fence authority. Tests 4–7 name those transitions. That is the P3 eligibility miss.\n\n## Disposition\n\nBindable-as-posted. All three asserted `relieves:` hold under pin-read. No blocking. No harvest change to Bound limbs.\n\nNon-harvest sharpening (parent takes / PR acceptance residue):\n- S1: Bound A text typo `ormatMultipleActiveMessage` → `formatMultipleActiveMessage` (land site unambiguous from Reject list + tests 1–3).\n- S2: Land B' by special-casing `isSpawnTool && denyKind === \"multiple-eligible\"` before the generic spawn promote-then-activate arm at `dispatcher.ts` ~2114 (outcome already Bound; current if-order is the defect site).\n- S3: Flip fixture expectations that currently lock the old worker-set-env / promote-then-activate copy (e.g. spawn-dest ~730) to Bound tests 2–3.\n\nReject list and Deferred (doctor stale pin; scope:complete auto-clear; hook-gate demote/complete) stay outside this pain denominator.",
+          "id": 6020686059,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020686059",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:25:31Z",
+          "updated_at": "2026-10-06T16:25:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nrecorded takes for audit 6020686059\n\nNon-harvest sharpenings from pain-audit 6020686059 (harvest-changed: false; bindable-as-posted):\n- Fix typo residue called out in the audit (ormat. / similar copy nits) in implement acceptance, not a Bound recut.\n- Land B' before the generic spawn proposedPathHint arm so multiple-eligible cannot fall through to promote-then-activate.\n- Fixture flips: assert state transition after parent pin is hook-visible; assert spawn+multiple-eligible omits SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE; assert fencing+non-fencing unpinned binds fencing brief.\n\nTakes: accept audit support for P1–P3; carry sharpenings into PR acceptance; no new bind lean.",
+          "id": 6020700152,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020700152",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:26:19Z",
+          "updated_at": "2026-10-06T16:26:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| multiple-eligible recovery currently tells workers to set DEFT_ACTIVE_SCOPE | verified | pin-read formatMultipleActiveMessage + dispatcher multiple-eligible proposedPathHint at b6a5f5bee5c8 |\n| stamp-evidence does not clear multiple-eligible | verified | stampEvidenceOnBrief does not change plan.status / leave active/; critics 6020626132 / 6020535502 |\n| spawn multiple-eligible arm is unreachable; spawn hint can emit promote-then-activate | verified | dispatcher.ts isSpawnTool branch before denyKind multiple-eligible; critic 6020626132 |\n| preflight evaluate does not require file_scope | verified | evaluate.ts pin-read; sole no-file_scope ready fixture in scope.test.ts |\n| Prefer-A Bound A+B'+C' relieves P1–P3 with non-harvest sharpenings only | verified | pain-audit 6020686059 finding-classes:sharpening harvest-changed:false |\n| #4007 first-wins stays rejected | verified | Bound Reject + critic steelman |\n\nCited successor lean: 6020645070\nCited pain-audit: 6020686059\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6",
+          "id": 6020700483,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020700483",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:26:20Z",
+          "updated_at": "2026-10-06T16:26:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: multi-active write refuses told the leaf to set a host-only env var it cannot change, offered a stamp-evidence path that does not clear the refuse, and on spawn could even tell the agent to activate another brief. Pathless competitors could also create a false multi-active refuse.\n\nAccepted solution: Prefer-A Bound 6020645070 — labeled parent vs worker recovery, spawn no longer promote-then-activates on multiple-eligible, and non-fencing briefs are partitioned out of unpinned multi-eligible only when a fencing eligible exists. Pain-audit supported P1–P3 with harvest-changed false.\n\ndesign-critique: synthesis accepted, because successor lean 6020645070 and verified-claims table 6020700483 close the arc after pain-audit 6020686059 supported P1–P3 with finding-classes:sharpening and harvest-changed:false.\n\nCited: successor lean 6020645070\nCited: verified-claims table 6020700483\n\narc-mode: no-ingest\nconflict_group: multi-eligible-host-env-recovery\ndispatch-sha: b6a5f5bee5c8a67f1734c15f4c43ab392d1166b6",
+          "id": 6020704165,
+          "html_url": "https://github.com/deftai/directive/issues/4880#issuecomment-6020704165",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-06T16:26:34Z",
+          "updated_at": "2026-10-06T16:26:34Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540572617,
+        "origin": "deftai/directive#4880",
+        "id": "github.issue.5540572617"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4ae3f4a9e8bdede45b15ed192d71934266af3c637bcfb9c664b65240235a461e"
+      },
+      "swarm": {
+        "conflict_group": "multi-eligible-host-env-recovery",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "depends_on": [],
+        "file_scope": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/scope.test.ts",
+          "CHANGELOG.md",
+          "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "Tracking PR open",
+          "tests green"
+        ]
+      },
+      "productPullRequest": 5445,
+      "productMergeCommit": "500bbd1997b094f98d060da222b15bc90de0aecc",
+      "completedAt": "2026-10-07T03:04:56.043Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-07T03:04:56.043Z"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5445,
+        "prBase": "master",
+        "mergeCommit": "500bbd1997b094f98d060da222b15bc90de0aecc",
+        "deliveryBranch": "master",
+        "deliveryCommit": "500bbd1997b094f98d060da222b15bc90de0aecc",
+        "verifiedAt": "2026-10-07T03:04:56.043Z",
+        "verifier": "approach1-leftover-stamp-residual",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTE0NGUtMTkzYS03MmEyLWI3YjgtZmU1M2NhOGE4MjU4"
+      }
+    },
+    "id": "github.issue.5540572617",
+    "updated": "2026-10-07T03:04:56.043Z"
+  }
+}
