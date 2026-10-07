@@ -145,6 +145,8 @@ const COVERABLE_EXTENSIONS = new Set([
   ".sql",
   ".vue",
   ".svelte",
+  // MDX can embed JS/JSX — treat as coverable, never inert N/A (#5421 Greptile P1).
+  ".mdx",
 ]);
 
 /** Runtime / build / test / workflow config that changes executable behavior. */
@@ -193,7 +195,6 @@ const COVERABLE_BASENAME_PREFIXES = [
 
 const INERT_EXTENSIONS = new Set([
   ".md",
-  ".mdx",
   ".txt",
   ".rst",
   ".adoc",
@@ -352,8 +353,114 @@ export interface NameStatusRow {
   readonly oldPath: string | null;
 }
 
-/** Parse `git diff --name-status` (status-aware; renames keep old+new). */
+/**
+ * Decode one Git C-quoted path (`"docs/caf\303\251.md"` → `docs/café.md`).
+ * Unquoted paths are returned unchanged. Used only for non-`-z` fallbacks.
+ */
+export function decodeGitQuotedPath(raw: string): string {
+  const trimmed = raw.trim();
+  if (!(trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2)) {
+    return trimmed;
+  }
+  const inner = trimmed.slice(1, -1);
+  let out = "";
+  const utf8Bytes: number[] = [];
+  const flushBytes = (): void => {
+    if (utf8Bytes.length === 0) return;
+    out += Buffer.from(utf8Bytes).toString("utf8");
+    utf8Bytes.length = 0;
+  };
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i];
+    if (ch !== "\\") {
+      flushBytes();
+      out += ch;
+      continue;
+    }
+    const next = inner[i + 1];
+    if (next === undefined) {
+      flushBytes();
+      out += "\\";
+      break;
+    }
+    if (next >= "0" && next <= "7") {
+      let oct = next;
+      let consumed = 1;
+      const n2 = inner[i + 2];
+      const n3 = inner[i + 3];
+      if (n2 !== undefined && n2 >= "0" && n2 <= "7") {
+        oct += n2;
+        consumed = 2;
+        if (n3 !== undefined && n3 >= "0" && n3 <= "7") {
+          oct += n3;
+          consumed = 3;
+        }
+      }
+      utf8Bytes.push(Number.parseInt(oct, 8));
+      i += consumed;
+      continue;
+    }
+    flushBytes();
+    switch (next) {
+      case "n":
+        out += "\n";
+        break;
+      case "t":
+        out += "\t";
+        break;
+      case "r":
+        out += "\r";
+        break;
+      case "b":
+        out += "\b";
+        break;
+      case '"':
+      case "\\":
+        out += next;
+        break;
+      default:
+        out += next;
+        break;
+    }
+    i += 1;
+  }
+  flushBytes();
+  return out;
+}
+
+/**
+ * Parse `git diff -z --name-status` (NUL-separated; no C-quoting).
+ * Also accepts legacy tab/LF text and decodes quoted paths.
+ */
 export function parseNameStatus(text: string): NameStatusRow[] {
+  if (text.includes("\0")) {
+    const tokens = text.split("\0");
+    const rows: NameStatusRow[] = [];
+    let i = 0;
+    while (i < tokens.length) {
+      const status = (tokens[i] ?? "").trim();
+      if (status.length === 0) {
+        i += 1;
+        continue;
+      }
+      if (status.startsWith("R") || status.startsWith("C")) {
+        const oldPath = tokens[i + 1] ?? "";
+        const path = tokens[i + 2] ?? "";
+        if (oldPath.length > 0 && path.length > 0) {
+          rows.push({ status, oldPath, path });
+        }
+        i += 3;
+        continue;
+      }
+      const path = tokens[i + 1] ?? "";
+      if (path.length > 0) {
+        rows.push({ status, oldPath: null, path });
+      }
+      i += 2;
+    }
+    return rows;
+  }
+
   const rows: NameStatusRow[] = [];
   for (const line of text.replace(/\r\n/g, "\n").split("\n")) {
     if (line.trim().length === 0) continue;
@@ -364,15 +471,15 @@ export function parseNameStatus(text: string): NameStatusRow[] {
       if (parts.length < 3) continue;
       rows.push({
         status,
-        oldPath: parts[1] ?? null,
-        path: parts[2] ?? "",
+        oldPath: decodeGitQuotedPath(parts[1] ?? ""),
+        path: decodeGitQuotedPath(parts[2] ?? ""),
       });
       continue;
     }
     rows.push({
       status,
       oldPath: null,
-      path: parts[1] ?? "",
+      path: decodeGitQuotedPath(parts[1] ?? ""),
     });
   }
   return rows.filter((r) => r.path.length > 0);
@@ -437,12 +544,27 @@ export function evaluateCoverageApplicability(
     }
   }
 
+  // Prefer-A Bound: dirty tree that is not the bound reviewed tree must refuse.
+  // Covers uncommitted staged/unstaged/untracked (non-ignored) edits before N/A.
+  const dirtyResult = runGit(["status", "--porcelain", "-uall"], input.projectRoot);
+  if (!dirtyResult.ok) return refuseGitFailure(dirtyResult.message, input, empty);
+  if (dirtyResult.stdout.trim().length > 0) {
+    return {
+      outcome: "refuse",
+      code: "dirty-tree",
+      reason:
+        "coverage-applicability: dirty working tree is not the bound reviewed tree; " +
+        "commit or stash coverable edits before coverage N/A",
+      changes: empty,
+    };
+  }
+
   // Validate base is resolvable.
   const baseResult = runGit(["rev-parse", "--verify", "-q", input.baseSha], input.projectRoot);
   if (!baseResult.ok) return refuseGitFailure(baseResult.message, input, empty);
 
   const nameStatusResult = runGit(
-    ["diff", "--name-status", "--find-renames", input.baseSha, input.headSha],
+    ["diff", "-z", "--name-status", "--find-renames", input.baseSha, input.headSha],
     input.projectRoot,
   );
   if (!nameStatusResult.ok) return refuseGitFailure(nameStatusResult.message, input, empty);

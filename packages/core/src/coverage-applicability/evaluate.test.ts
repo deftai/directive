@@ -4,7 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { COVERAGE_HEADROOM_NOT_APPLICABLE_SKIP } from "../pre-pr-controller/phases.js";
-import { classifyChangedPath, evaluateCoverageApplicability, parseNameStatus } from "./evaluate.js";
+import {
+  classifyChangedPath,
+  decodeGitQuotedPath,
+  evaluateCoverageApplicability,
+  parseNameStatus,
+} from "./evaluate.js";
 
 const temps: string[] = [];
 afterAll(() => {
@@ -63,6 +68,11 @@ describe("classifyChangedPath", () => {
     expect(classifyChangedPath("CHANGELOG.md", "M", null)).toBe("inert");
   });
 
+  it("keeps MDX coverable (executable embeds; never inert N/A)", () => {
+    expect(classifyChangedPath("docs/guide.mdx", "A", null)).toBe("coverable");
+    expect(classifyChangedPath("src/pages/index.mdx", "M", null)).toBe("coverable");
+  });
+
   it("keeps live xbrief settings coverable (not inert planning prose)", () => {
     expect(classifyChangedPath("xbrief/PROJECT-DEFINITION.xbrief.json", "M", null)).toBe(
       "coverable",
@@ -87,6 +97,17 @@ describe("parseNameStatus", () => {
     expect(parseNameStatus("R100\told.ts\tnew.md\nA\tdocs/a.md\n")).toEqual([
       { status: "R100", oldPath: "old.ts", path: "new.md" },
       { status: "A", oldPath: null, path: "docs/a.md" },
+    ]);
+  });
+
+  it("parses NUL-separated -z output and decodes quoted fallbacks", () => {
+    expect(parseNameStatus("A\0docs/a.md\0R100\0old.ts\0new.md\0")).toEqual([
+      { status: "A", oldPath: null, path: "docs/a.md" },
+      { status: "R100", oldPath: "old.ts", path: "new.md" },
+    ]);
+    expect(decodeGitQuotedPath('"docs/caf\\303\\251.md"')).toBe("docs/café.md");
+    expect(parseNameStatus('A\t"docs/caf\\303\\251.md"\n')).toEqual([
+      { status: "A", oldPath: null, path: "docs/café.md" },
     ]);
   });
 });
@@ -211,6 +232,22 @@ describe("evaluateCoverageApplicability", () => {
     });
     expect(stale.outcome).toBe("refuse");
     if (stale.outcome === "refuse") expect(stale.code).toBe("tree-mismatch");
+  });
+
+  it("refuses when the working tree is dirty relative to the bound head", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs/design.md"), "# design\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "docs"], { cwd: root });
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src/app.ts"), "export const n = 1;\n");
+    const dirty = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(dirty.outcome).toBe("refuse");
+    if (dirty.outcome === "refuse") expect(dirty.code).toBe("dirty-tree");
   });
 
   it("ignores caller-style path filters (not an input) and uses status-aware enumeration", () => {

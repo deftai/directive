@@ -3,6 +3,7 @@ export {
   type CoverageApplicabilityDeps,
   type CoverageApplicabilityResult,
   classifyChangedPath,
+  decodeGitQuotedPath,
   type EvaluateCoverageApplicabilityInput,
   evaluateCoverageApplicability,
   isCoverageHeadroomNotApplicable,
