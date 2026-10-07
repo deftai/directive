@@ -1,0 +1,350 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5467",
+    "updated": "2026-10-07T23:23:49.206Z"
+  },
+  "plan": {
+    "title": "BLOCKER 0.123.0 still fail-closes Visage vbrief:validate on proposed/active history after #5427; consumer remains on 0.119.2",
+    "status": "completed",
+    "narratives": {
+      "Description": "Prefer-A Bound for #5467: demote three Visage vbrief:validate fail classes to warnings across VALID_PLAN_STATUSES under envelope 0.8.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5467",
+      "Overview": "## Bound remedy\n\n1. Keep envelope 0.8.\n2. Demote unknown reserved-prefix subtypes to warnings for every VALID_PLAN_STATUSES member without widening isTerminalPlanStatus (packages/core/src/vbrief-validate/schema.ts).\n3. Warn-accept leftover colon-form clause ids on the same status membership (packages/core/src/vbrief-validate/schema.ts).\n4. Writers mint dotted clause-keyed ids only (packages/core/src/scope/acceptance-evidence.ts).\n5. Route failed PlanItem missing invalidates to warnings on completed plans (packages/core/src/vbrief-validate/schema.ts).\n6. Keep demoted-class warnings visible on the consumer validate path (packages/core/src/vbrief-validate/schema-v08.test.ts).\n7. Normative fixtures for the three demoted classes (packages/core/src/vbrief-validate/schema-v08.test.ts).\n8. Prefer-A clears the Visage 4.9.179 fail classes as warnings on a published engine newer than 0.119.2 without rewriting the consumer corpus.\n\nReject: per-consumer CLASS_B growth; rewrite of historical briefs as the upgrade path; envelope bump alone; leave #5427 terminal-only as shipped.",
+      "Labels": "bug, agent-experience, process, Upgrade Blocker, source-of-truth, urgent, area:vbrief, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:records, promise:gates"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Keep envelope version 0.8 for compatibility carve",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/vbrief-validate/schema.ts",
+        "narrative": {
+          "Acceptance": "packages/core/src/vbrief-validate/schema.ts keeps envelope 0.8; no bump solely for the three demoted compatibility classes."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5471 squash-merge (Tracking #5467). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5471",
+            "mintedAt": "2026-10-07T23:23:49.206Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:23:49.206Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Demote unknown reserved-prefix across VALID_PLAN_STATUSES",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/vbrief-validate/schema.ts",
+        "narrative": {
+          "Acceptance": "packages/core/src/vbrief-validate/schema.ts validatePlanReferenceTypes and severityForUnknownReserved demote unknown reserved-prefix subtypes to warnings for every VALID_PLAN_STATUSES member without widening isTerminalPlanStatus."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5471 squash-merge (Tracking #5467). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5471",
+            "mintedAt": "2026-10-07T23:23:49.206Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:23:49.206Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Warn-accept leftover colon clause ids on VALID_PLAN_STATUSES",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/vbrief-validate/schema.ts",
+        "narrative": {
+          "Acceptance": "packages/core/src/vbrief-validate/schema.ts warn-accepts leftover colon-form clause ids on VALID_PLAN_STATUSES and keeps hard FAIL for other illegal ids, including nested items."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5471 squash-merge (Tracking #5467). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5471",
+            "mintedAt": "2026-10-07T23:23:49.206Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:23:49.206Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Writers mint dotted clause ids only",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+        "narrative": {
+          "Acceptance": "packages/core/src/scope/acceptance-evidence.ts writers mint dotted clause-keyed PlanItem ids only; CLAUSE_KEYED_ITEM_ID_PREFIX stays the dotted form."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5471 squash-merge (Tracking #5467). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5471",
+            "mintedAt": "2026-10-07T23:23:49.206Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:23:49.206Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Completed failed-without-invalidates routes to warnings",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/vbrief-validate/schema.ts",
+        "narrative": {
+          "Acceptance": "packages/core/src/vbrief-validate/schema.ts routes failed PlanItem missing invalidates to warnings on completed plans under envelope 0.8; live running ledgers stay fail-closed."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5471 squash-merge (Tracking #5467). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5471",
+            "mintedAt": "2026-10-07T23:23:49.206Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:23:49.206Z"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Warnings visible on consumer validate path",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/vbrief-validate/schema-v08.test.ts",
+        "narrative": {
+          "Acceptance": "packages/core/src/vbrief-validate/schema-v08.test.ts asserts demoted-class warning presence on the consumer validate path, not only error absence."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5471 squash-merge (Tracking #5467). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5471",
+            "mintedAt": "2026-10-07T23:23:49.206Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:23:49.206Z"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Normative fixtures for three demoted classes",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/vbrief-validate/schema-v08.test.ts",
+        "narrative": {
+          "Acceptance": "packages/core/src/vbrief-validate/schema-v08.test.ts covers draft unknown reserved subtype, running colon-form clause id, and completed failed-without-invalidates with zero hard FAILs of those classes plus warnings."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5471 squash-merge (Tracking #5467). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5471",
+            "mintedAt": "2026-10-07T23:23:49.206Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:23:49.206Z"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Acceptance clears Visage corpus on published engine",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/vbrief-validate/schema-v08.test.ts",
+        "narrative": {
+          "Acceptance": "Prefer-A clears the reported Visage 4.9.179 fail classes as warnings on a published engine newer than 0.119.2 without rewriting the consumer corpus."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5471 squash-merge (Tracking #5467). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5471",
+            "mintedAt": "2026-10-07T23:23:49.206Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:23:49.206Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "Upgrade Blocker",
+      "source-of-truth",
+      "urgent",
+      "area:vbrief",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:records",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5467",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5467: BLOCKER 0.123.0 still fail-closes Visage vbrief:validate on proposed/active history after #5427; consumer remains on 0.119.2"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "CLAUSE_KEYED_ITEM_ID_PREFIX = \"clause.\"",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "visage-reserved-prefix-clause-0.8-compat",
+        "expected_outputs": [
+          "Tracking PR for #5467 Prefer-A Bound VALID_PLAN_STATUSES warn-compat for reserved-prefix/clause:N/failed-without-invalidates"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/vbrief-validate/schema-v08.test.ts packages/core/src/vbrief-validate/provenance.test.ts packages/core/src/scope/acceptance-evidence.test.ts"
+        ],
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/core/src/vbrief-validate/schema.ts",
+          "packages/core/src/vbrief-validate/schema-v08.test.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "packages/core/src/vbrief-validate/constants.ts",
+          "packages/core/src/vbrief-validate/provenance.test.ts",
+          "packages/core/src/vbrief-validate/index.ts"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5467"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5751355220,
+        "origin": "deftai/directive#5467",
+        "id": "github.issue.5751355220"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7ba4cff353f9e3e71f4b71f4a6c626e872d4a44558a5fe82536351fd512e811b"
+      },
+      "boundLeanCommentId": 6046877429,
+      "painAuditClearanceCommentId": 6046928681,
+      "conflict_group": "visage-reserved-prefix-clause-0.8-compat",
+      "productPullRequest": 5471,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-07T23:23:49.206Z"
+      },
+      "completedAt": "2026-10-07T23:23:49.206Z"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Prefer-A Bound limbs hand-stamped into plan.items for cohort promote (#5467)",
+      "sentences": [
+        "packages/core/src/vbrief-validate/schema.ts keeps envelope 0.8; no bump solely for the three demoted compatibility classes.",
+        "packages/core/src/vbrief-validate/schema.ts validatePlanReferenceTypes and severityForUnknownReserved demote unknown reserved-prefix subtypes to warnings for every VALID_PLAN_STATUSES member without widening isTerminalPlanStatus.",
+        "packages/core/src/vbrief-validate/schema.ts warn-accepts leftover colon-form clause ids on VALID_PLAN_STATUSES and keeps hard FAIL for other illegal ids, including nested items.",
+        "packages/core/src/scope/acceptance-evidence.ts writers mint dotted clause-keyed PlanItem ids only; CLAUSE_KEYED_ITEM_ID_PREFIX stays the dotted form.",
+        "packages/core/src/vbrief-validate/schema.ts routes failed PlanItem missing invalidates to warnings on completed plans under envelope 0.8; live running ledgers stay fail-closed.",
+        "packages/core/src/vbrief-validate/schema-v08.test.ts asserts demoted-class warning presence on the consumer validate path, not only error absence.",
+        "packages/core/src/vbrief-validate/schema-v08.test.ts covers draft unknown reserved subtype, running colon-form clause id, and completed failed-without-invalidates with zero hard FAILs of those classes plus warnings.",
+        "Prefer-A clears the reported Visage 4.9.179 fail classes as warnings on a published engine newer than 0.119.2 without rewriting the consumer corpus."
+      ],
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "packages/core/src/vbrief-validate/schema.ts keeps envelope 0.8; no bump solely for the three demoted compatibility classes.",
+          "artifact_path": "packages/core/src/vbrief-validate/schema.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "packages/core/src/vbrief-validate/schema.ts validatePlanReferenceTypes and severityForUnknownReserved demote unknown reserved-prefix subtypes to warnings for every VALID_PLAN_STATUSES member without widening isTerminalPlanStatus.",
+          "artifact_path": "packages/core/src/vbrief-validate/schema.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "packages/core/src/vbrief-validate/schema.ts warn-accepts leftover colon-form clause ids on VALID_PLAN_STATUSES and keeps hard FAIL for other illegal ids, including nested items.",
+          "artifact_path": "packages/core/src/vbrief-validate/schema.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "packages/core/src/scope/acceptance-evidence.ts writers mint dotted clause-keyed PlanItem ids only; CLAUSE_KEYED_ITEM_ID_PREFIX stays the dotted form.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "packages/core/src/vbrief-validate/schema.ts routes failed PlanItem missing invalidates to warnings on completed plans under envelope 0.8; live running ledgers stay fail-closed.",
+          "artifact_path": "packages/core/src/vbrief-validate/schema.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "packages/core/src/vbrief-validate/schema-v08.test.ts asserts demoted-class warning presence on the consumer validate path, not only error absence.",
+          "artifact_path": "packages/core/src/vbrief-validate/schema-v08.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "packages/core/src/vbrief-validate/schema-v08.test.ts covers draft unknown reserved subtype, running colon-form clause id, and completed failed-without-invalidates with zero hard FAILs of those classes plus warnings.",
+          "artifact_path": "packages/core/src/vbrief-validate/schema-v08.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Prefer-A clears the reported Visage 4.9.179 fail classes as warnings on a published engine newer than 0.119.2 without rewriting the consumer corpus.",
+          "artifact_path": "packages/core/src/vbrief-validate/schema-v08.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "id": "github.issue.5751355220",
+    "updated": "2026-10-07T23:23:49.206Z"
+  }
+}
