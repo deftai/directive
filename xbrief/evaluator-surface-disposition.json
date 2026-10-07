@@ -1,10 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5195,
+  "issue": 5194,
   "surfaces": [
-    "tasks/verify.yml",
+    "packages/core/src/intent-constraint/extract.ts",
+    "packages/core/src/intent-constraint/extract.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5195 / PR #5436: tasks/verify.yml investigation ledger path desc vbrief→xbrief. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5194 / PR #5447: intent-constraint engine-relative TypeScript loader. Disclosure only; not #3164 authorization."
 }
