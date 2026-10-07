@@ -145,8 +145,10 @@ const COVERABLE_EXTENSIONS = new Set([
   ".sql",
   ".vue",
   ".svelte",
-  // MDX can embed JS/JSX — treat as coverable, never inert N/A (#5421 Greptile P1).
+  // MDX/HTML can embed JS — treat as coverable, never inert N/A (#5421 Greptile P1).
   ".mdx",
+  ".html",
+  ".htm",
 ]);
 
 /** Runtime / build / test / workflow config that changes executable behavior. */
@@ -210,8 +212,6 @@ const INERT_EXTENSIONS = new Set([
   ".scss",
   ".sass",
   ".less",
-  ".html",
-  ".htm",
 ]);
 
 const INERT_BASENAMES = new Set([

@@ -298,6 +298,39 @@ export function noteSkillFileOpen(): PrePrDecision {
   return deny("deny-skill-file-open", SKILL_FILE_OPEN_NOT_COMPLETION);
 }
 
+/** Safe observation-only flags for measured coverage_headroom commands. */
+function isSafeCoverageHotspotsFlag(token: string): boolean {
+  return (
+    token === "--json" ||
+    token === "--quiet" ||
+    token === "-q" ||
+    token.startsWith("--project-root=") ||
+    token.startsWith("--base-ref=")
+  );
+}
+
+/**
+ * Accept the phase-spec hotspots command, plus documented wrappers / safe flags
+ * (`--json`, `task coverage:hotspots`, `directive coverage:hotspots`).
+ */
+function coverageHotspotsCommandMatches(observed: string, specCommand: string): boolean {
+  const normalized = observed.trim().replace(/\s+/g, " ");
+  if (normalized.length === 0) return false;
+  if (normalized === specCommand) return true;
+  const tokens = normalized.split(" ");
+  const head = tokens[0]?.toLowerCase() ?? "";
+  const verb = tokens[1] ?? "";
+  if ((head === "deft" || head === "directive") && verb === "coverage:hotspots") {
+    return tokens.slice(2).every(isSafeCoverageHotspotsFlag);
+  }
+  if (head === "task" && (verb === "coverage:hotspots" || verb === "deft:coverage:hotspots")) {
+    const rest = tokens.slice(2);
+    if (rest[0] === "--") return rest.slice(1).every(isSafeCoverageHotspotsFlag);
+    return rest.every(isSafeCoverageHotspotsFlag);
+  }
+  return false;
+}
+
 /**
  * Coverage-scoped satisfaction (#5421 Prefer-A Bound):
  * - measured pass: exit 0 only when command matches the phase spec (hotspots)
@@ -319,7 +352,7 @@ function commandSatisfied(
   if (phaseId === "coverage_headroom") {
     const spec = phaseSpec(phaseId);
     if (row.exitCode === 0) {
-      return spec.command !== null && row.command === spec.command;
+      return spec.command !== null && coverageHotspotsCommandMatches(row.command, spec.command);
     }
     if (!isAllowedSkip(phaseId, row.skipReason)) return false;
     const derived = evaluateCoverageApplicability(

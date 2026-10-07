@@ -435,4 +435,36 @@ describe("controller observations", () => {
     }
     expect(runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord).ok).toBe(true);
   });
+
+  it("coverage_headroom measured pass accepts --json and task wrappers", () => {
+    for (const command of [
+      "deft coverage:hotspots --json",
+      "task coverage:hotspots",
+      "task deft:coverage:hotspots -- --json",
+    ]) {
+      const store = new InProcessPrePrStore();
+      const rec = start(store, `ppr_cov_${command.length}`);
+      for (const spec of PRE_PR_PHASES) {
+        if (spec.kind !== "command-observable") continue;
+        observeCommandPhase(store, rec.id, {
+          phaseId: spec.id,
+          command: spec.id === "coverage_headroom" ? command : (spec.command ?? ""),
+          exitCode: 0,
+          inputHash: rec.inputHash,
+          skipReason: null,
+        });
+      }
+      for (const phase of ["read", "write", "diff", "loop"] as const) {
+        submitReviewerReport(store, rec.id, {
+          phaseId: phase,
+          reviewedFileManifest: ["a.ts"],
+          suppliedContentsHash: "h",
+          criteriaDigest: approved.digest,
+          reviewerReportRef: "r",
+          controllerObservedHash: "h",
+        });
+      }
+      expect(runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord).ok).toBe(true);
+    }
+  });
 });

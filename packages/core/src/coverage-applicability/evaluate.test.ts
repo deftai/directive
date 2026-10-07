@@ -68,9 +68,11 @@ describe("classifyChangedPath", () => {
     expect(classifyChangedPath("CHANGELOG.md", "M", null)).toBe("inert");
   });
 
-  it("keeps MDX coverable (executable embeds; never inert N/A)", () => {
+  it("keeps MDX/HTML coverable (executable embeds; never inert N/A)", () => {
     expect(classifyChangedPath("docs/guide.mdx", "A", null)).toBe("coverable");
     expect(classifyChangedPath("src/pages/index.mdx", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("index.html", "M", null)).toBe("coverable");
+    expect(classifyChangedPath("docs/page.htm", "A", null)).toBe("coverable");
   });
 
   it("keeps live xbrief settings coverable (not inert planning prose)", () => {
