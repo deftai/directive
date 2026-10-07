@@ -52,7 +52,7 @@ function slashResolve(path: string): string {
   return resolve(path).replace(/\\/g, "/");
 }
 
-function directoryIgnoresCase(dir: string): boolean {
+function directoryIgnoresCase(dir: string, options?: { readonly bypassCache?: boolean }): boolean {
   let existing = resolve(dir);
   while (!existsSync(existing)) {
     const parent = dirname(existing);
@@ -61,9 +61,11 @@ function directoryIgnoresCase(dir: string): boolean {
     }
     existing = parent;
   }
-  const cached = caseInsensitiveDirCache.get(existing);
-  if (cached !== undefined) {
-    return cached;
+  if (options?.bypassCache !== true) {
+    const cached = caseInsensitiveDirCache.get(existing);
+    if (cached !== undefined) {
+      return cached;
+    }
   }
   const tag = randomBytes(6).toString("hex");
   const lower = join(existing, `.deft-cs-${tag}a`);
@@ -83,6 +85,9 @@ function directoryIgnoresCase(dir: string): boolean {
     probed = true;
   } catch {
     // Fail closed: do not fold unless the probe proved case-insensitivity.
+    // Cache false so a later prune safety check cannot inherit a stale true.
+    ignores = false;
+    probed = true;
   } finally {
     try {
       containedRemove({ root: existing, target: lower, mutation: false });
@@ -99,6 +104,24 @@ function directoryIgnoresCase(dir: string): boolean {
     caseInsensitiveDirCache.set(existing, ignores);
   }
   return ignores;
+}
+
+/** True when paths name the same worktree, including case-fold only on case-insensitive dirs. */
+function worktreePathsReferToSame(left: string, right: string): boolean {
+  if (canonicalizeWorktreePath(left) !== canonicalizeWorktreePath(right)) {
+    return false;
+  }
+  const leftBase = basename(left.replace(/\/\.git$/u, ""));
+  const rightBase = basename(right.replace(/\/\.git$/u, ""));
+  if (leftBase === rightBase) {
+    return true;
+  }
+  if (leftBase.toLowerCase() !== rightBase.toLowerCase()) {
+    return true;
+  }
+  // Case-only basename difference: re-probe without cache so a stale true cannot
+  // unregister a case-distinct sibling after a failed sensitivity probe.
+  return directoryIgnoresCase(dirname(resolve(right)), { bypassCache: true });
 }
 
 function canonicalizeWorktreePath(path: string): string {
@@ -157,7 +180,6 @@ function pruneEvaluatorWorktreeAdmin(
   if (!existsSync(worktreesDir)) {
     return;
   }
-  const needle = canonicalizeWorktreePath(worktreePath);
   let names: string[] = [];
   try {
     names = readdirSync(worktreesDir);
@@ -179,7 +201,7 @@ function pruneEvaluatorWorktreeAdmin(
       continue;
     }
     const recordedWorktree = recorded.replace(/\\/g, "/").replace(/\/\.git$/u, "");
-    if (canonicalizeWorktreePath(recordedWorktree) === needle) {
+    if (worktreePathsReferToSame(recordedWorktree, worktreePath)) {
       containedRemove({
         root: resolve(worktreesDir),
         target: join(worktreesDir, name),

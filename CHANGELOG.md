@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+- **Worktrees probe fail-closed case-fold harden (#5460).** Cache false when the sensitivity probe cannot write, and refuse case-only admin-entry matches unless a fresh bypass-cache probe proves the parent folds. Tracking #5460.
 - **Mint approved-scope for #5460 (Path B membership).** Operator TTY stamp of merge-base `.deft/approved-scope/github.issue.5748573348.json` (+ intent preimage) so the product PR can resolve continuity-keyed membership. Mint-only — no product code. Tracking #5460.
 - Recorded the completed work for stamp-evidence kind/pointer coherence on markdown matchAny pointers (#5382) delivered in PR #5458.
 
