@@ -2546,10 +2546,7 @@ describe("stampMatchAnyFileEvidence (#4840)", () => {
     });
     expect(result.repairedIds).toEqual([]);
     expect(result.stampedIds).toEqual([]);
-    expect(result.skipped.map((row) => row.reason)).toEqual([
-      "already-stamped",
-      "already-stamped",
-    ]);
+    expect(result.skipped.map((row) => row.reason)).toEqual(["already-stamped", "already-stamped"]);
     expect(uatItem[ACCEPTANCE_EVIDENCE_KEY]).toMatchObject({ kind: "uat", pointer });
     expect((badItem[ACCEPTANCE_EVIDENCE_KEY] as Record<string, unknown>).pointer).toBeUndefined();
     expect(evaluateAcceptanceEvidenceGate({ items: [uatItem] }).ok).toBe(false);

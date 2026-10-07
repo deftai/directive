@@ -918,10 +918,7 @@ export function stampMatchAnyFileEvidence(
         continue;
       }
       const pointer = resolveMatchAnyFilePointer(clause.artifact_path, declared, projectRoot);
-      if (
-        pointer === null ||
-        posixPointer(pointer) !== posixPointer(existing.pointer)
-      ) {
+      if (pointer === null || posixPointer(pointer) !== posixPointer(existing.pointer)) {
         skipped.push({ clauseId: clause.id, reason: "already-stamped" });
         continue;
       }

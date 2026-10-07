@@ -51,8 +51,7 @@ export function stampEvidenceOnBrief(
   }
   const skipped = stamped.skipped.map((row) => `clause.${row.clauseId}:${row.reason}`).join(", ");
   const stampedList = stamped.stampedIds.length > 0 ? stamped.stampedIds.join(",") : "(none)";
-  const repairedList =
-    stamped.repairedIds.length > 0 ? stamped.repairedIds.join(",") : "";
+  const repairedList = stamped.repairedIds.length > 0 ? stamped.repairedIds.join(",") : "";
   return {
     ok: true,
     message:
