@@ -2731,10 +2731,23 @@ describe("clauseKeyedItemId write-path mint (#5422)", () => {
 describe("clause-keyed title-follows-id placeholder skip (#5193)", () => {
   const CLAUSE_TEXT = "The Cancel action preserves all input.";
   const UAT_CLAUSE_TEXT = "UAT confirms the Cancel action preserves all input.";
+  const UNIQUE_AUTHORED_TITLE =
+    "Only the clause-keyed authored title carries this unmapped sentence.";
+  const UNIQUE_AUTHORED_ACCEPTANCE =
+    "Only narrative.Acceptance carries this distinct unmapped sentence.";
+  const probeRoots: string[] = [];
+
+  afterEach(() => {
+    while (probeRoots.length > 0) {
+      const root = probeRoots.pop();
+      if (root) rmSync(root, { recursive: true, force: true });
+    }
+  });
 
   function writeProbeRoot(): string {
     const root = mkdtempSync(join(tmpdir(), "deft-5193-"));
     writeFileSync(join(root, "probe.txt"), "marker\n", "utf8");
+    probeRoots.push(root);
     return root;
   }
 
@@ -2966,6 +2979,47 @@ describe("clause-keyed title-follows-id placeholder skip (#5193)", () => {
     });
     expect(surface).toEqual([CLAUSE_TEXT, "Authored acceptance narrative stays."]);
     expect(surface).not.toContain(clauseKeyedItemId(2));
+  });
+
+  it("rejects unique unmapped text found only on authored clause-keyed rows", () => {
+    const root = writeProbeRoot();
+
+    const titleOnly = compositionPlan({
+      items: [
+        { id: "ui-1", title: CLAUSE_TEXT, status: "pending" },
+        {
+          id: clauseKeyedItemId(1),
+          title: UNIQUE_AUTHORED_TITLE,
+          status: "pending",
+        },
+      ],
+    });
+    expect(collectPlanItemAcceptanceSurface(titleOnly)).toEqual(
+      expect.arrayContaining([UNIQUE_AUTHORED_TITLE]),
+    );
+    const titleFloor = evaluateVerifyAcFromPlan(titleOnly, floorOptions(root));
+    expect(titleFloor.ok).toBe(false);
+    expect(titleFloor.unmappedSentenceCount ?? 0).toBeGreaterThan(0);
+    expect(String(titleFloor.message ?? "")).toContain(UNIQUE_AUTHORED_TITLE);
+
+    const narrativeOnly = compositionPlan({
+      items: [
+        { id: "ui-1", title: CLAUSE_TEXT, status: "pending" },
+        {
+          id: clauseKeyedItemId(1),
+          title: clauseKeyedItemId(1),
+          narrative: { Acceptance: UNIQUE_AUTHORED_ACCEPTANCE },
+          status: "pending",
+        },
+      ],
+    });
+    expect(collectPlanItemAcceptanceSurface(narrativeOnly)).toEqual(
+      expect.arrayContaining([UNIQUE_AUTHORED_ACCEPTANCE]),
+    );
+    const narrativeFloor = evaluateVerifyAcFromPlan(narrativeOnly, floorOptions(root));
+    expect(narrativeFloor.ok).toBe(false);
+    expect(narrativeFloor.unmappedSentenceCount ?? 0).toBeGreaterThan(0);
+    expect(String(narrativeFloor.message ?? "")).toContain(UNIQUE_AUTHORED_ACCEPTANCE);
   });
 
   it("scope:complete walk does not refuse on unmapped-sentence after persist", () => {
