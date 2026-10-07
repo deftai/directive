@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **agents-entry #5278 cancel example restores required `--scope-id`/`--target-id` (#5465).** Deposit/template and Phase-4 Duplicate-Agent recovery no longer teach short `swarm:pre-dispatch --action cancel`; content-contract pins the full argv. Tracking #5465.
+
 ### Removed
 
 ## [0.123.0] - 2026-10-07

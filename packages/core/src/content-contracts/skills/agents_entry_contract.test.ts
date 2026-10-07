@@ -261,6 +261,17 @@ const STICKY_TIP_ROT_MARKERS = [
   "BLOCKED: greptile-sha-stall",
 ] as const;
 
+/** Query-before-cancel (#5278) must name both required cancel flags (#5465 / #1309). */
+const QUERY_BEFORE_CANCEL_5278_MARKERS = [
+  "Query-before-cancel (#5278)",
+  "swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel",
+  "subagent:pre-cancel",
+  "Bare ledger cancel",
+] as const;
+
+/** Short cancel form that drops required flags — must not reappear (#5465). */
+const QUERY_BEFORE_CANCEL_5278_FORBIDDEN_SHORT = "swarm:pre-dispatch --action cancel";
+
 const SKILLS_POINTER_MARKERS = ["## Skills", "Skills Index", "packs:slice skills list"] as const;
 
 const INDEXED_SKILL_IDS = [
@@ -1076,6 +1087,13 @@ describe("test_agents_entry_contract", () => {
     expect(missingMarkers(agents, SKILL_PIN_ANTI_PATTERN_MARKERS)).toEqual([]);
     expect(missingMarkers(template, STICKY_TIP_ROT_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, STICKY_TIP_ROT_MARKERS)).toEqual([]);
+  });
+
+  it("query_before_cancel_5278_requires_full_cancel_argv (#5465 / #1309)", () => {
+    expect(missingMarkers(template, QUERY_BEFORE_CANCEL_5278_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, QUERY_BEFORE_CANCEL_5278_MARKERS)).toEqual([]);
+    expect(template).not.toContain(QUERY_BEFORE_CANCEL_5278_FORBIDDEN_SHORT);
+    expect(agents).not.toContain(QUERY_BEFORE_CANCEL_5278_FORBIDDEN_SHORT);
   });
 
   it("references_md_documents_pin_tiers", () => {

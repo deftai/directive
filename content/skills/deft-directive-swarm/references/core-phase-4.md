@@ -178,7 +178,7 @@ When taking over: read the agent's current state (git log, diff, PR comments), c
 **Recovery guidance:**
 - ! Keep original agents active until their PR is merged — do not terminate agent processes that appear stalled (for Warp tabs: keep the tab open; for grok-build / spawn_subagent agents: verify via `get_command_or_subagent_output` before replacing; for openclaw / sessions_spawn: verify via heartbeat + absence of parent completion announce)
 - ! If an agent appears stalled, attempt to resume it in its original context (for Warp: go to the original Warp tab and say "continue from where you left off"; for grok-build: re-query via `get_command_or_subagent_output` or send a resume message; for openclaw: re-announce / resume the same session rather than spawning a replacement) rather than spawning a replacement — resume does **not** open a second delivery-attempt (`task swarm:pre-dispatch` will DENY while the first is active)
-- ! If the original agent is truly unrecoverable (Warp crash, tab closed, spawn_subagent process terminated, or OpenClaw session ended without recovery), only then create a new agent — cancel the prior attempt via `task swarm:pre-dispatch -- --action cancel`, run pre-dispatch begin (exit 0 required), and verify worktree state (`git status`, `git log`, `gh pr list`) before spawn
+- ! If the original agent is truly unrecoverable (Warp crash, tab closed, spawn_subagent process terminated, or OpenClaw session ended without recovery), only then create a new agent — cancel the prior attempt via `task swarm:pre-dispatch -- --scope-id <id> --target-id <target> --action cancel`, run pre-dispatch begin (exit 0 required), and verify worktree state (`git status`, `git log`, `gh pr list`) before spawn
 
 ### Context-Length Warning
 
