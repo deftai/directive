@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5403",
-    "updated": "2026-10-07T01:46:51.629Z"
+    "updated": "2026-10-07T01:59:24.014Z"
   },
   "plan": {
     "title": "Multi-active write fence poisoned by already-merged actives that cannot scope:complete under #3284 acceptance.commands",
@@ -540,11 +540,20 @@
       },
       "completedAt": "2026-10-07T01:46:51.629Z",
       "completionProvenance": {
-        "productMerge": "51331946da21e4adbd2668e82f60f0c47755147e",
-        "productPr": 5430,
-        "disposition": "delivered",
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5430,
+        "prBase": "master",
+        "mergeCommit": "51331946da21e4adbd2668e82f60f0c47755147e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "51331946da21e4adbd2668e82f60f0c47755147e",
+        "verifiedAt": "2026-10-07T01:59:24.014Z",
         "verifier": "approach1-leftover-stamp-residual",
-        "recorded_at": "2026-10-07T01:46:51.629Z"
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTE0MDgtNTc5Zi03ZTgxLTkxOGYtNTQ4NDFiMTg0YzI1"
       }
     },
     "acceptance": {
