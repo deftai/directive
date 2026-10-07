@@ -275,8 +275,7 @@ const QUERY_BEFORE_CANCEL_5278_MARKERS = [
 const QUERY_BEFORE_CANCEL_5278_FORBIDDEN_SHORT = "swarm:pre-dispatch --action cancel";
 
 /** Bare dual-invoke without deft: namespace — not runnable on include-only consumers (#5463). */
-const QUERY_BEFORE_CANCEL_5278_FORBIDDEN_BARE_DUAL =
-  "dual-invoke `task subagent:pre-cancel`";
+const QUERY_BEFORE_CANCEL_5278_FORBIDDEN_BARE_DUAL = "dual-invoke `task subagent:pre-cancel`";
 
 const SKILLS_POINTER_MARKERS = ["## Skills", "Skills Index", "packs:slice skills list"] as const;
 
