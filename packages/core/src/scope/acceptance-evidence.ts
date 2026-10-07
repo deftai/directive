@@ -158,17 +158,13 @@ const CLAUSE_KEYED_PLACEHOLDER_ID_RE = /^clause[.:](\d+)$/;
  * and `narrative.Acceptance` is absent/empty. Do not treat every `clause.`-prefixed
  * id as a placeholder — authored titles and Acceptance narrative stay visible.
  */
-export function isClauseKeyedTitleFollowsIdPlaceholder(
-  item: Record<string, unknown>,
-): boolean {
+export function isClauseKeyedTitleFollowsIdPlaceholder(item: Record<string, unknown>): boolean {
   const id = typeof item.id === "string" ? item.id.trim() : "";
   if (!CLAUSE_KEYED_PLACEHOLDER_ID_RE.test(id)) {
     return false;
   }
   const narrative =
-    typeof item.narrative === "object" &&
-    item.narrative !== null &&
-    !Array.isArray(item.narrative)
+    typeof item.narrative === "object" && item.narrative !== null && !Array.isArray(item.narrative)
       ? (item.narrative as Record<string, unknown>)
       : null;
   const acceptance = narrative?.Acceptance;
