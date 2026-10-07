@@ -91,4 +91,61 @@ describe("stampEvidenceOnBrief (#4840)", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/lacks a plan object/);
   });
+
+  it("repairs incoherent kind:test markdown and reports repaired= (#5382)", () => {
+    const root = repo();
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs", "guide.md"), "# guide\n", "utf8");
+    const file = join(root, "xbrief", "active", "md.xbrief.json");
+    writeFileSync(
+      file,
+      formatBriefJson(
+        minimalScopeBrief({
+          title: "T",
+          status: "running",
+          items: [
+            {
+              id: "clause.1",
+              title: "clause.1",
+              status: "pending",
+              [ACCEPTANCE_EVIDENCE_KEY]: {
+                kind: "test",
+                pointer: "docs/guide.md",
+                recorded_at: "2026-10-01T00:00:00Z",
+                recorded_by: "hand",
+              },
+            },
+          ],
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            clauses: [
+              {
+                id: 1,
+                text: "The guide documents the rule.",
+                artifact_path: "docs/guide.md",
+                ambiguous: false,
+              },
+            ],
+          },
+          metadata: { swarm: { file_scope: ["docs/**"] } },
+        }),
+      ),
+      "utf8",
+    );
+    const result = stampEvidenceOnBrief(file, {
+      projectRoot: root,
+      recorded_at: "2026-10-07T00:00:00Z",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain("repaired=clause.1");
+    const parsed = JSON.parse(readFileSync(file, "utf8")) as {
+      plan: { items: Array<Record<string, unknown>> };
+    };
+    expect(parsed.plan.items[0]?.[ACCEPTANCE_EVIDENCE_KEY]).toMatchObject({
+      kind: "review",
+      pointer: "docs/guide.md",
+      recorded_by: STAMP_EVIDENCE_VERB,
+    });
+  });
 });

@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **stamp-evidence kind/pointer coherence for markdown (#5382).** `scope:stamp-evidence` stamps matchAny markdown/CHANGELOG/PR-prose pointers as `kind:review` (and repairs incoherent already-stamped `kind:test` markdown the same way) so stamp→complete no longer rejects rows the stamp verb just wrote under #5105. Keeps the hand-path kind:test ban and #4840 matchAny remedy. Tracking #5382. Refs #5105, #4840.
 - **Multiple-eligible write-fence recovery names Parent/operator vs Dispatched worker (#4880).** Leaf copy no longer tells workers to set host-only `DEFT_ACTIVE_SCOPE`; spawn multiple-eligible no longer prints promote-then-activate; non-fencing empty `file_scope` briefs are partitioned out of unpinned multi-eligible when a fencing brief exists, using the same merge-base fence SoT as the write gate. Tracking #4880.
 - **Completion-prep clause.N placeholders no longer fail the sentence floor (#5193).** `statementSentencesOnPlan` and `collectPlanItemAcceptanceSurface` skip only title-follows-id `clause.N` / leftover `clause:N` rows with empty `narrative.Acceptance`; persist still keeps `title` as the id. Tracking #5193.
 - **intent-constraint loads TypeScript from the Directive engine install (#5194).** Global CLI can parse production `.js`/`.ts` without a consumer TypeScript install. Tracking #5194. Refs #4541.

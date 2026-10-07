@@ -444,9 +444,11 @@ export function isEvidenceKindSuitable(
 }
 
 /**
- * Structural x-directive/evidence parse. Landing-set may pass
- * requirePointerShape:false only for historical kind:uat (#4563); other kinds keep
- * the default pointer-shape check. Empty {} / missing fields still refuse
+ * Structural x-directive/evidence parse.
+ * requirePointerShape:false has two sanctioned uses:
+ * (a) landing-set structural probe that re-tightens for non-uat (#4563 / #4879);
+ * (b) stampMatchAnyFileEvidence repair reader that keeps the loose parse for
+ *     kind:test shape-bad rows (#5382). Empty {} / missing fields still refuse
  * (Greptile P1 / #4879).
  */
 function parseEvidence(
@@ -785,6 +787,7 @@ export interface StampDeclaredTestEvidenceSkip {
 
 export interface StampDeclaredTestEvidenceResult {
   readonly stampedIds: readonly string[];
+  readonly repairedIds: readonly string[];
   readonly skipped: readonly StampDeclaredTestEvidenceSkip[];
 }
 
@@ -794,10 +797,10 @@ export interface StampDeclaredTestEvidenceResult {
  * member (or that member copied onto artifact_path by #4008). Does not read PR
  * paths, verify_commands, or issue/comment prose (#3835).
  *
- * Inventory (#5105 / #4840): live production kind:test writer is
- * stampMatchAnyFileEvidence via scope:stamp-evidence. This helper stays exported
- * for exact-member callers and tests; it has no production CLI caller (documented
- * #4732 orphan — not wired here).
+ * Inventory (#5105 / #4840 / #5382): live production matchAny writer is
+ * stampMatchAnyFileEvidence via scope:stamp-evidence (kind test|review coherence).
+ * This helper stays exported for exact-member callers and tests; it has no
+ * production CLI caller (documented #4732 orphan — not wired here).
  */
 export function stampDeclaredTestEvidence(
   plan: Record<string, unknown>,
@@ -811,12 +814,13 @@ export function stampDeclaredTestEvidence(
   const declared = readDeclaredArtifactScope(plan);
   const clauses = readAcceptanceClauses(plan.acceptance);
   const stampedIds: string[] = [];
+  const repairedIds: string[] = [];
   const skipped: StampDeclaredTestEvidenceSkip[] = [];
   if (recordedBy.length === 0) {
     for (const clause of clauses) {
       skipped.push({ clauseId: clause.id, reason: "recorded_by-required" });
     }
-    return { stampedIds, skipped };
+    return { stampedIds, repairedIds, skipped };
   }
   for (const clause of clauses) {
     const item = findClauseKeyedItem(plan.items, clause.id);
@@ -846,7 +850,7 @@ export function stampDeclaredTestEvidence(
     });
     stampedIds.push(itemIdKey(item) ?? clauseKeyedItemId(clause.id));
   }
-  return { stampedIds, skipped };
+  return { stampedIds, repairedIds, skipped };
 }
 
 export interface StampMatchAnyFileEvidenceOptions {
@@ -856,10 +860,17 @@ export interface StampMatchAnyFileEvidenceOptions {
 }
 
 /**
- * Evidence-only skip-row writer (#4840). Calls stampNamespacedEvidence for a
- * non-glob file that matchAny(file_scope) accepts. Does not take disposition,
- * --pr, or --merge-commit. Does not copy file_scope[0] or classifyGlob.prefix.
- * Null-path persist-default rows stay unstamped.
+ * MatchAny evidence coherence writer (#4840 / #5382).
+ * After resolveMatchAnyFilePointer, chooses kind via evidencePointerShapeError("test"):
+ * null → kind test; non-null (md/CHANGELOG/PR prose) → kind review with the same
+ * pointer so stamp→complete stays coherent under #5105. Does not weaken the hand-path
+ * kind:test ban. Repairs already-stamped incoherent kind:test markdown via
+ * parseEvidence(..., { requirePointerShape: false }); no uat/merge repair.
+ * Strict-axis uses inferRequiredStrictAxes(item) (auto title:id → []). Surviving
+ * skips: no-allowed-pointer, unbound, strict-axis when the aligned probe is
+ * non-empty. Precedent: stampDeclaredMergeEvidence stamp-time coherence (#5105).
+ * Does not take disposition, --pr, or --merge-commit. Does not copy file_scope[0]
+ * or classifyGlob.prefix. Null-path persist-default rows stay unstamped.
  */
 export function stampMatchAnyFileEvidence(
   plan: Record<string, unknown>,
@@ -874,12 +885,13 @@ export function stampMatchAnyFileEvidence(
   const declared = readDeclaredArtifactScope(plan);
   const clauses = readAcceptanceClauses(plan.acceptance);
   const stampedIds: string[] = [];
+  const repairedIds: string[] = [];
   const skipped: StampDeclaredTestEvidenceSkip[] = [];
   if (recordedBy.length === 0) {
     for (const clause of clauses) {
       skipped.push({ clauseId: clause.id, reason: "recorded_by-required" });
     }
-    return { stampedIds, skipped };
+    return { stampedIds, repairedIds, skipped };
   }
   for (const clause of clauses) {
     const item = findClauseKeyedItem(plan.items, clause.id);
@@ -888,12 +900,47 @@ export function stampMatchAnyFileEvidence(
       continue;
     }
     const fields = readNamespacedAcceptanceFields(item);
-    if (fields.hasEvidence || fields.hasDisposition) {
+    // Disposition guard: repair only when hasEvidence && !hasDisposition (#5382).
+    if (fields.hasDisposition) {
       skipped.push({ clauseId: clause.id, reason: "already-stamped" });
       continue;
     }
-    const axisItem = { ...item, title: clause.text };
-    if (inferRequiredStrictAxes(axisItem).length > 0) {
+    if (fields.hasEvidence) {
+      const parsed = parseEvidence(fields.evidence, { requirePointerShape: false });
+      if (!parsed.ok) {
+        // Malformed → no throw; leave for the gate (#5382).
+        skipped.push({ clauseId: clause.id, reason: "already-stamped" });
+        continue;
+      }
+      const existing = parsed.record;
+      if (existing.kind !== "test" || testPointerShapeError(existing.pointer) === null) {
+        skipped.push({ clauseId: clause.id, reason: "already-stamped" });
+        continue;
+      }
+      const pointer = resolveMatchAnyFilePointer(clause.artifact_path, declared, projectRoot);
+      if (
+        pointer === null ||
+        posixPointer(pointer) !== posixPointer(existing.pointer)
+      ) {
+        skipped.push({ clauseId: clause.id, reason: "already-stamped" });
+        continue;
+      }
+      if (inferRequiredStrictAxes(item).length > 0) {
+        skipped.push({ clauseId: clause.id, reason: "strict-axis" });
+        continue;
+      }
+      stampNamespacedEvidence(item, {
+        kind: "review",
+        pointer: existing.pointer,
+        recorded_at: recordedAt,
+        recorded_by: recordedBy,
+      });
+      const id = itemIdKey(item) ?? clauseKeyedItemId(clause.id);
+      repairedIds.push(id);
+      continue;
+    }
+    // Fresh stamp: align strict-axis with the gate (auto title:id → []).
+    if (inferRequiredStrictAxes(item).length > 0) {
       skipped.push({ clauseId: clause.id, reason: "strict-axis" });
       continue;
     }
@@ -902,15 +949,17 @@ export function stampMatchAnyFileEvidence(
       skipped.push({ clauseId: clause.id, reason: "no-allowed-pointer" });
       continue;
     }
+    const shapeErr = evidencePointerShapeError("test", pointer);
+    const kind = shapeErr === null ? "test" : "review";
     stampNamespacedEvidence(item, {
-      kind: "test",
+      kind,
       pointer,
       recorded_at: recordedAt,
       recorded_by: recordedBy,
     });
     stampedIds.push(itemIdKey(item) ?? clauseKeyedItemId(clause.id));
   }
-  return { stampedIds, skipped };
+  return { stampedIds, repairedIds, skipped };
 }
 
 export type MergeAncestryVerifier = (
@@ -946,8 +995,10 @@ export interface StampDeclaredMergeEvidenceOptions {
  *
  * Production caller: stampMergeFromCompletionProvenance on the scope:complete
  * persist path after delivery provenance is on the plan and before the shared
- * read-only gate (#5120). Live kind:test writer remains stampMatchAnyFileEvidence /
- * scope:stamp-evidence (#4840); stampDeclaredTestEvidence stays the #4732 orphan.
+ * read-only gate (#5120). Live matchAny coherence writer remains
+ * stampMatchAnyFileEvidence / scope:stamp-evidence (kind test|review, #4840 /
+ * #5382); stampDeclaredTestEvidence stays the #4732 orphan. Stamp-time
+ * coherence precedent for the matchAny kind choice.
  */
 export function stampDeclaredMergeEvidence(
   plan: Record<string, unknown>,
@@ -964,25 +1015,26 @@ export function stampDeclaredMergeEvidence(
   const projectRoot = typeof options.projectRoot === "string" ? options.projectRoot.trim() : "";
   const clauses = readAcceptanceClauses(plan.acceptance);
   const stampedIds: string[] = [];
+  const repairedIds: string[] = [];
   const skipped: StampDeclaredTestEvidenceSkip[] = [];
   if (recordedBy.length === 0) {
     for (const clause of clauses) {
       skipped.push({ clauseId: clause.id, reason: "recorded_by-required" });
     }
-    return { stampedIds, skipped };
+    return { stampedIds, repairedIds, skipped };
   }
   if (mergeCommit.length === 0 || deliveryBranch.length === 0 || projectRoot.length === 0) {
     for (const clause of clauses) {
       skipped.push({ clauseId: clause.id, reason: "merge-pointer-required" });
     }
-    return { stampedIds, skipped };
+    return { stampedIds, repairedIds, skipped };
   }
   const shape = mergePointerShapeError(mergeCommit);
   if (shape !== null) {
     for (const clause of clauses) {
       skipped.push({ clauseId: clause.id, reason: "merge-pointer-shape" });
     }
-    return { stampedIds, skipped };
+    return { stampedIds, repairedIds, skipped };
   }
   const verify = options.verifyAncestry ?? verifyDeliveryAncestry;
   const ancestry = verify(projectRoot, mergeCommit, deliveryBranch, options.runGit);
@@ -990,7 +1042,7 @@ export function stampDeclaredMergeEvidence(
     for (const clause of clauses) {
       skipped.push({ clauseId: clause.id, reason: "ancestry-failed" });
     }
-    return { stampedIds, skipped };
+    return { stampedIds, repairedIds, skipped };
   }
   for (const clause of clauses) {
     const item = findClauseKeyedItem(plan.items, clause.id);
@@ -1026,7 +1078,7 @@ export function stampDeclaredMergeEvidence(
     });
     stampedIds.push(itemIdKey(item) ?? clauseKeyedItemId(clause.id));
   }
-  return { stampedIds, skipped };
+  return { stampedIds, repairedIds, skipped };
 }
 
 function readCompletionProvenance(plan: Record<string, unknown>): Record<string, unknown> | null {
@@ -1083,7 +1135,7 @@ export function stampMergeFromCompletionProvenance(
   plan: Record<string, unknown>,
   options: StampMergeFromCompletionProvenanceOptions = {},
 ): StampDeclaredTestEvidenceResult {
-  const empty: StampDeclaredTestEvidenceResult = { stampedIds: [], skipped: [] };
+  const empty: StampDeclaredTestEvidenceResult = { stampedIds: [], repairedIds: [], skipped: [] };
   if (!isHistoricalShipCloseout(plan)) {
     return empty;
   }
@@ -1424,9 +1476,10 @@ function evaluateOneItem(
   // even when already terminal; persist skips creating a second pending row (#4385).
   if (!NON_TERMINAL_ITEM_STATUSES.has(status) && !isClauseBindingItem(item, clauseKeys)) {
     // #4879 Prefer-A: landing-set statuses cannot enter completed/ without typed
-    // evidence. Only historical kind:uat may skip pointer-shape (#4563); other
-    // kinds keep requirePointerShape. Empty {} / malformed do not count
-    // (Greptile P1).
+    // evidence. requirePointerShape:false here is the landing-set structural
+    // probe (#4563) — re-tighten for non-uat. Distinct from the #5382
+    // stampMatchAnyFileEvidence repair reader, which keeps the loose parse for
+    // kind:test shape-bad rows. Empty {} / malformed do not count (Greptile P1).
     if (COMPLETED_LANDING_WITHOUT_EVIDENCE_STATUSES.has(status)) {
       const landingFields = readNamespacedAcceptanceFields(item);
       let landingEvidence: ReturnType<typeof parseEvidence> | null = null;

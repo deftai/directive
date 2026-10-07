@@ -51,11 +51,14 @@ export function stampEvidenceOnBrief(
   }
   const skipped = stamped.skipped.map((row) => `clause.${row.clauseId}:${row.reason}`).join(", ");
   const stampedList = stamped.stampedIds.length > 0 ? stamped.stampedIds.join(",") : "(none)";
+  const repairedList =
+    stamped.repairedIds.length > 0 ? stamped.repairedIds.join(",") : "";
   return {
     ok: true,
     message:
       `${STAMP_EVIDENCE_VERB} stamped ${stamped.stampedIds.length} item(s) ` +
       `(ids=${stampedList}` +
+      (repairedList.length > 0 ? `; repaired=${repairedList}` : "") +
       (skipped.length > 0 ? `; skipped ${skipped}` : "") +
       ")",
     stampedIds: stamped.stampedIds,

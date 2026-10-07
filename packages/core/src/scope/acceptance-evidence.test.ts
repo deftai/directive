@@ -27,6 +27,7 @@ import {
   evaluateAcceptanceEvidenceGate,
   evaluateScopeCompleteAcceptanceWalk,
   evaluateScopeStatus,
+  evidencePointerShapeError,
   fenceUntrustedAcceptanceText,
   formatAcceptanceCompletionListing,
   formatScopeStatus,
@@ -2392,6 +2393,236 @@ describe("stampMatchAnyFileEvidence (#4840)", () => {
       }).skipped[0]?.reason,
     ).toBe("no-allowed-pointer");
     expect(item[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
+
+  it("stamps eligible markdown as kind:review and gate accepts (#5382)", () => {
+    const root = mkdtempSync(join(tmpdir(), "matchany-md-"));
+    temps.push(root);
+    mkdirSync(join(root, "docs"), { recursive: true });
+    const pointer = "docs/guide.md";
+    writeFileSync(join(root, pointer), "# guide\n", "utf8");
+    const item: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: clauseKeyedItemId(1),
+      status: "pending",
+    };
+    const plan: Record<string, unknown> = {
+      items: [item],
+      acceptance: {
+        clauses: [
+          {
+            id: 1,
+            text: "The guide documents the rule.",
+            artifact_path: pointer,
+            ambiguous: false,
+          },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["docs/**"] } },
+    };
+    const result = stampMatchAnyFileEvidence(plan, {
+      recorded_by: "scope:stamp-evidence",
+      recorded_at: "2026-10-07T00:00:00Z",
+      projectRoot: root,
+    });
+    expect(result.stampedIds).toEqual([clauseKeyedItemId(1)]);
+    expect(result.repairedIds).toEqual([]);
+    expect(item[ACCEPTANCE_EVIDENCE_KEY]).toEqual({
+      kind: "review",
+      pointer,
+      recorded_at: "2026-10-07T00:00:00Z",
+      recorded_by: "scope:stamp-evidence",
+    });
+    expect(evidencePointerShapeError("review", pointer)).toBeNull();
+    expect(evaluateAcceptanceEvidenceGate({ items: [item] }).ok).toBe(true);
+  });
+
+  it("repairs incoherent kind:test markdown to review (#5382)", () => {
+    const root = mkdtempSync(join(tmpdir(), "matchany-repair-"));
+    temps.push(root);
+    mkdirSync(join(root, "docs"), { recursive: true });
+    const pointer = "docs/guide.md";
+    writeFileSync(join(root, pointer), "# guide\n", "utf8");
+    const item: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: clauseKeyedItemId(1),
+      status: "pending",
+      [ACCEPTANCE_EVIDENCE_KEY]: {
+        kind: "Test",
+        pointer,
+        recorded_at: "2026-10-01T00:00:00Z",
+        recorded_by: "hand",
+      },
+    };
+    const plan: Record<string, unknown> = {
+      items: [item],
+      acceptance: {
+        clauses: [
+          {
+            id: 1,
+            text: "The guide documents the rule.",
+            artifact_path: pointer,
+            ambiguous: false,
+          },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["docs/**"] } },
+    };
+    expect(evaluateAcceptanceEvidenceGate({ items: [item] }).ok).toBe(false);
+    const result = stampMatchAnyFileEvidence(plan, {
+      recorded_by: "scope:stamp-evidence",
+      recorded_at: "2026-10-07T00:00:00Z",
+      projectRoot: root,
+    });
+    expect(result.repairedIds).toEqual([clauseKeyedItemId(1)]);
+    expect(result.stampedIds).toEqual([]);
+    expect(item[ACCEPTANCE_EVIDENCE_KEY]).toEqual({
+      kind: "review",
+      pointer,
+      recorded_at: "2026-10-07T00:00:00Z",
+      recorded_by: "scope:stamp-evidence",
+    });
+    expect(evaluateAcceptanceEvidenceGate({ items: [item] }).ok).toBe(true);
+  });
+
+  it("does not repair kind:uat markdown and does not throw on malformed (#5382)", () => {
+    const root = mkdtempSync(join(tmpdir(), "matchany-uat-"));
+    temps.push(root);
+    mkdirSync(join(root, "docs"), { recursive: true });
+    const pointer = "docs/guide.md";
+    writeFileSync(join(root, pointer), "# guide\n", "utf8");
+    const uatItem: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: clauseKeyedItemId(1),
+      status: "pending",
+      [ACCEPTANCE_EVIDENCE_KEY]: {
+        kind: "uat",
+        pointer,
+        recorded_at: "2026-10-01T00:00:00Z",
+        recorded_by: "hand",
+      },
+    };
+    const badItem: Record<string, unknown> = {
+      id: clauseKeyedItemId(2),
+      title: clauseKeyedItemId(2),
+      status: "pending",
+      [ACCEPTANCE_EVIDENCE_KEY]: {
+        kind: "test",
+        recorded_at: "2026-10-01T00:00:00Z",
+        recorded_by: "hand",
+      },
+    };
+    const plan: Record<string, unknown> = {
+      items: [uatItem, badItem],
+      acceptance: {
+        clauses: [
+          {
+            id: 1,
+            text: "UAT guide row",
+            artifact_path: pointer,
+            ambiguous: false,
+          },
+          {
+            id: 2,
+            text: "malformed test row",
+            artifact_path: pointer,
+            ambiguous: false,
+          },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["docs/**"] } },
+    };
+    expect(() =>
+      stampMatchAnyFileEvidence(plan, {
+        recorded_by: "scope:stamp-evidence",
+        recorded_at: "2026-10-07T00:00:00Z",
+        projectRoot: root,
+      }),
+    ).not.toThrow();
+    const result = stampMatchAnyFileEvidence(plan, {
+      recorded_by: "scope:stamp-evidence",
+      recorded_at: "2026-10-07T00:00:00Z",
+      projectRoot: root,
+    });
+    expect(result.repairedIds).toEqual([]);
+    expect(result.stampedIds).toEqual([]);
+    expect(result.skipped.map((row) => row.reason)).toEqual([
+      "already-stamped",
+      "already-stamped",
+    ]);
+    expect(uatItem[ACCEPTANCE_EVIDENCE_KEY]).toMatchObject({ kind: "uat", pointer });
+    expect((badItem[ACCEPTANCE_EVIDENCE_KEY] as Record<string, unknown>).pointer).toBeUndefined();
+    expect(evaluateAcceptanceEvidenceGate({ items: [uatItem] }).ok).toBe(false);
+  });
+
+  it("aligns strict-axis with auto title:id and keeps explicit requires (#5382)", () => {
+    const root = mkdtempSync(join(tmpdir(), "matchany-axis-"));
+    temps.push(root);
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs", "guide.md"), "# guide\n", "utf8");
+    writeFileSync(join(root, "docs", "uat.md"), "# uat\n", "utf8");
+    const freeTextItem: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: clauseKeyedItemId(1),
+      status: "pending",
+    };
+    const requiresItem: Record<string, unknown> = {
+      id: clauseKeyedItemId(2),
+      title: clauseKeyedItemId(2),
+      status: "pending",
+      [ACCEPTANCE_REQUIRES_KEY]: "uat",
+    };
+    const plan: Record<string, unknown> = {
+      items: [freeTextItem, requiresItem],
+      acceptance: {
+        clauses: [
+          {
+            id: 1,
+            text: "UAT sign-off for the guide",
+            artifact_path: "docs/guide.md",
+            ambiguous: false,
+          },
+          {
+            id: 2,
+            text: "explicit uat axis",
+            artifact_path: "docs/uat.md",
+            ambiguous: false,
+          },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["docs/**"] } },
+    };
+    expect(inferRequiredStrictAxes(freeTextItem)).toEqual([]);
+    expect(inferRequiredStrictAxes(requiresItem)).toEqual(["uat"]);
+    const result = stampMatchAnyFileEvidence(plan, {
+      recorded_by: "scope:stamp-evidence",
+      recorded_at: "2026-10-07T00:00:00Z",
+      projectRoot: root,
+    });
+    expect(result.stampedIds).toEqual([clauseKeyedItemId(1)]);
+    expect(freeTextItem[ACCEPTANCE_EVIDENCE_KEY]).toMatchObject({
+      kind: "review",
+      pointer: "docs/guide.md",
+    });
+    expect(result.skipped).toEqual([{ clauseId: 2, reason: "strict-axis" }]);
+    expect(requiresItem[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+    expect(evaluateAcceptanceEvidenceGate({ items: [freeTextItem] }).ok).toBe(true);
+  });
+
+  it("keeps hand-stamped kind:test markdown rejected without repair (#5382 / #5105)", () => {
+    const item: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: clauseKeyedItemId(1),
+      status: "pending",
+      [ACCEPTANCE_EVIDENCE_KEY]: {
+        kind: "test",
+        pointer: "docs/guide.md",
+        recorded_at: "2026-10-01T00:00:00Z",
+        recorded_by: "hand",
+      },
+    };
+    expect(evidencePointerShapeError("test", "docs/guide.md")).not.toBeNull();
+    expect(evaluateAcceptanceEvidenceGate({ items: [item] }).ok).toBe(false);
   });
 });
 
