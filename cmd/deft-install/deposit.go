@@ -67,15 +67,18 @@ print("OK: GENERATION.json monotonic vs origin/$BASE_REF")
 // it as such.
 const coreGlob = ".deft/core/**"
 
-// coreGitattributesLines pin the vendored payload to LF and mark it generated
-// AND vendored so Git does not rewrite it and GitHub's linguist excludes it
-// from language statistics. Mirrors the line-based, idempotent contract of
-// EnsureGitignoreLines.
+// coreGitattributesLines pin the vendored payload to text=auto + LF and mark
+// it generated AND vendored so Git does not rewrite binary bytes (#5245) and
+// GitHub's linguist excludes it from language statistics. Mirrors the
+// line-based, idempotent contract of EnsureGitignoreLines / TS scaffold.
 var coreGitattributesLines = []string{
-	coreGlob + " text eol=lf",
+	coreGlob + " text=auto eol=lf",
 	coreGlob + " linguist-generated=true",
 	coreGlob + " linguist-vendored=true",
 }
+
+// legacyCoreTextEolLf is the pre-#5245 forced-text line removed on refresh.
+const legacyCoreTextEolLf = coreGlob + " text eol=lf"
 
 // codeqlConfigRelPath / coreGuardWorkflowRelPath are the POSIX-relative deposit
 // locations (converted to OS-native separators at use sites).
@@ -591,10 +594,34 @@ func pruneVendoredTSTests(w *Wizard, projectDir string) (int, error) {
 	return removed, nil
 }
 
-// EnsureGitattributes appends the LF/generated/vendored markers for .deft/core/**
-// to the consumer's .gitattributes if any line is missing. The file is created
-// when absent; pre-existing lines are preserved byte-for-byte. Mirrors
-// EnsureGitignoreLines (#1430, #2118). Returns true if the file was modified.
+// gitattributesDepositComment describes only the attribute lines in this write
+// (#5463). Claim generated+vendored only when those tokens are among additions.
+func gitattributesDepositComment(additions []string) string {
+	hasGenerated := false
+	hasVendored := false
+	for _, line := range additions {
+		if strings.Contains(line, "linguist-generated") {
+			hasGenerated = true
+		}
+		if strings.Contains(line, "linguist-vendored") {
+			hasVendored = true
+		}
+	}
+	if hasGenerated && hasVendored {
+		return "# Deft framework: the vendored payload is packaged framework code, not\n" +
+			"# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
+			"# byte identity. Mark generated + vendored (#1430, #2118, #5245).\n"
+	}
+	return "# Deft framework: the vendored payload is packaged framework code, not\n" +
+		"# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
+		"# byte identity (#5245).\n"
+}
+
+// EnsureGitattributes appends the text=auto/generated/vendored markers for
+// .deft/core/** to the consumer's .gitattributes if any line is missing, and
+// removes the legacy forced-text pin (#5245). The file is created when absent;
+// other pre-existing lines are preserved. Mirrors EnsureGitignoreLines /
+// TS ensureGitattributes (#1430, #2118, #5463). Returns true if modified.
 func EnsureGitattributes(w *Wizard, projectDir string) (bool, error) {
 	if err := assertConsumerProjectionContained(projectDir, ".gitattributes"); err != nil {
 		return false, err
@@ -609,11 +636,27 @@ func EnsureGitattributes(w *Wizard, projectDir string) (bool, error) {
 		existing = string(data)
 	}
 
-	// Build the set of existing lines via strings.Split (not bufio.Scanner) so
-	// an over-long line can never silently truncate the idempotency probe.
-	present := map[string]bool{}
+	// Drop legacy forced-text independently of additions (#5245).
+	var kept []string
+	removedLegacy := false
 	for _, line := range strings.Split(existing, "\n") {
-		present[strings.TrimSpace(line)] = true
+		if strings.TrimSpace(line) == legacyCoreTextEolLf {
+			removedLegacy = true
+			continue
+		}
+		kept = append(kept, line)
+	}
+	// Rebuild without trailing empty splits from Split on trailing newline.
+	for len(kept) > 0 && kept[len(kept)-1] == "" {
+		kept = kept[:len(kept)-1]
+	}
+
+	present := map[string]bool{}
+	for _, line := range kept {
+		trimmed := strings.TrimSpace(line)
+		if trimmed != "" {
+			present[trimmed] = true
+		}
 	}
 
 	var additions []string
@@ -622,31 +665,38 @@ func EnsureGitattributes(w *Wizard, projectDir string) (bool, error) {
 			additions = append(additions, line)
 		}
 	}
-	if len(additions) == 0 {
-		w.printf(".gitattributes already marks %s as LF-pinned/generated/vendored — skipping.\n", coreGlob)
+	if len(additions) == 0 && !removedLegacy {
+		w.printf(".gitattributes already marks %s as text=auto/generated/vendored — skipping.\n", coreGlob)
 		return false, nil
 	}
 
 	var body strings.Builder
-	body.WriteString(existing)
-	if existing != "" && !strings.HasSuffix(existing, "\n") {
+	if len(kept) > 0 {
+		body.WriteString(strings.Join(kept, "\n"))
 		body.WriteString("\n")
 	}
-	if existing != "" && !strings.HasSuffix(existing, "\n\n") {
-		body.WriteString("\n")
-	}
-	body.WriteString("# Deft framework: the vendored payload is packaged framework code, not\n")
-	body.WriteString("# consumer source. Pin LF endings and mark it generated + vendored so\n")
-	body.WriteString("# Git does not rewrite it and diffs treat .deft/core/** as machine-managed (#1430, #2118).\n")
-	for _, add := range additions {
-		body.WriteString(add)
-		body.WriteString("\n")
+	if len(additions) > 0 {
+		if body.Len() > 0 {
+			body.WriteString("\n")
+		}
+		body.WriteString(gitattributesDepositComment(additions))
+		for _, add := range additions {
+			body.WriteString(add)
+			body.WriteString("\n")
+		}
 	}
 
 	if err := os.WriteFile(path, []byte(body.String()), 0o644); err != nil {
 		return false, fmt.Errorf("could not write .gitattributes: %w", err)
 	}
-	w.printf(".gitattributes updated with Deft core markers: %s\n", strings.Join(additions, ", "))
+	parts := []string{}
+	if removedLegacy {
+		parts = append(parts, "removed "+legacyCoreTextEolLf)
+	}
+	if len(additions) > 0 {
+		parts = append(parts, "added "+strings.Join(additions, ", "))
+	}
+	w.printf(".gitattributes updated with Deft core markers: %s\n", strings.Join(parts, "; "))
 	return true, nil
 }
 

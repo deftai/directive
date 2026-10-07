@@ -24,6 +24,7 @@ import {
   ensureCodeqlPathsIgnore,
   ensureCoreGuardWorkflow,
   ensureGitattributes,
+  gitattributesDepositComment,
   ensureGreptileIgnore,
   ensurePackageJsonPin,
   ensureTaskfile,
@@ -457,6 +458,41 @@ describe("init-deposit scaffold", () => {
     expect((attrs.match(/\.deft\/core\/\*\* text eol=lf/g) ?? []).length).toBe(0);
     expect((attrs.match(/text=auto eol=lf/g) ?? []).length).toBe(1);
     expect(lines.join("")).not.toMatch(/skipping/);
+  });
+
+  it("comment claims generated+vendored only when those lines are in the same write (#5463)", () => {
+    const project = freshRoot("scaffold-gitattributes-comment-");
+    const { io } = captureIo();
+    writeFileSync(
+      join(project, ".gitattributes"),
+      ".deft/core/** linguist-generated=true\n.deft/core/** linguist-vendored=true\n",
+      "utf8",
+    );
+    expect(ensureGitattributes(project, io)).toBe(true);
+    const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
+    expect(attrs).toContain(".deft/core/** text=auto eol=lf");
+    expect(attrs).not.toContain("Mark generated + vendored");
+    expect(attrs).toContain("# byte identity (#5245).");
+  });
+
+  it("full greenfield write claims generated+vendored with linguist markers (#5463)", () => {
+    const project = freshRoot("scaffold-gitattributes-full-");
+    const { io } = captureIo();
+    expect(ensureGitattributes(project, io)).toBe(true);
+    const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
+    expect(attrs).toContain("Mark generated + vendored");
+    expect(attrs).toContain("linguist-generated=true");
+    expect(attrs).toContain("linguist-vendored=true");
+    expect(gitattributesDepositComment([".deft/core/** text=auto eol=lf"])).not.toContain(
+      "Mark generated + vendored",
+    );
+    expect(
+      gitattributesDepositComment([
+        ".deft/core/** text=auto eol=lf",
+        ".deft/core/** linguist-generated=true",
+        ".deft/core/** linguist-vendored=true",
+      ]),
+    ).toContain("Mark generated + vendored");
   });
 
   it("prunes framework self-tests and vendored TS test files", async () => {

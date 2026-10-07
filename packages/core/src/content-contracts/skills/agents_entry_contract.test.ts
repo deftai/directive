@@ -267,10 +267,16 @@ const QUERY_BEFORE_CANCEL_5278_MARKERS = [
   "swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel",
   "subagent:pre-cancel",
   "Bare ledger cancel",
+  // Consumer include-only mount needs the deft: Taskfile namespace (#5463).
+  "task deft:subagent:pre-cancel",
 ] as const;
 
 /** Short cancel form that drops required flags — must not reappear (#5465). */
 const QUERY_BEFORE_CANCEL_5278_FORBIDDEN_SHORT = "swarm:pre-dispatch --action cancel";
+
+/** Bare dual-invoke without deft: namespace — not runnable on include-only consumers (#5463). */
+const QUERY_BEFORE_CANCEL_5278_FORBIDDEN_BARE_DUAL =
+  "dual-invoke `task subagent:pre-cancel`";
 
 const SKILLS_POINTER_MARKERS = ["## Skills", "Skills Index", "packs:slice skills list"] as const;
 
@@ -1094,6 +1100,13 @@ describe("test_agents_entry_contract", () => {
     expect(missingMarkers(agents, QUERY_BEFORE_CANCEL_5278_MARKERS)).toEqual([]);
     expect(template).not.toContain(QUERY_BEFORE_CANCEL_5278_FORBIDDEN_SHORT);
     expect(agents).not.toContain(QUERY_BEFORE_CANCEL_5278_FORBIDDEN_SHORT);
+  });
+
+  it("query_before_cancel_5278_dual_invoke_uses_deft_namespace (#5463)", () => {
+    expect(template).toContain("task deft:subagent:pre-cancel");
+    expect(agents).toContain("task deft:subagent:pre-cancel");
+    expect(template).not.toContain(QUERY_BEFORE_CANCEL_5278_FORBIDDEN_BARE_DUAL);
+    expect(agents).not.toContain(QUERY_BEFORE_CANCEL_5278_FORBIDDEN_BARE_DUAL);
   });
 
   it("references_md_documents_pin_tiers", () => {

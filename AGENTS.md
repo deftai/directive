@@ -166,7 +166,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=7826224ebc8f refreshed=2026-10-07T20:38:48Z session=780fa8de98ac -->
+<!-- deft:managed-section v3 sha=3f59a28cdeab refreshed=2026-10-07T22:33:45Z session=71144684fe46 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -299,7 +299,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Parent-steer inbox (#4286)
 
 ! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json`. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: content/docs/subagent-heartbeat.md (.deft/core/docs). ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
-! Query-before-cancel (#5278): before `swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel` on a still ledger-active attempt, run `deft subagent:pre-cancel`. Exit 0 only when status-steer ack/observed window clears, heartbeat is STALE/missing under #2879 grace, or `--force --reason` is set. ⊗ Bare ledger cancel while pre-cancel is red. ⊗ Treat unread steer as `REDISPATCH_OK`.
+! Query-before-cancel (#5278): before `swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel` on a still ledger-active attempt, run `deft subagent:pre-cancel` (dual-invoke `task deft:subagent:pre-cancel`). Exit 0 only when status-steer ack/observed window clears, heartbeat is STALE/missing under #2879 grace, or `--force --reason` is set. ⊗ Bare ledger cancel while pre-cancel is red. ⊗ Treat unread steer as `REDISPATCH_OK`.
 
 ## Review-surface precedence (#2308)
 

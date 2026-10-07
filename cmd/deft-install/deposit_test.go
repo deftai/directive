@@ -85,12 +85,15 @@ func TestEnsureGitattributes_Idempotent(t *testing.T) {
 	if got := strings.Count(string(data), "linguist-vendored=true"); got != 1 {
 		t.Errorf("expected exactly one linguist-vendored line, got %d", got)
 	}
-	if got := strings.Count(string(data), "text eol=lf"); got != 1 {
-		t.Errorf("expected exactly one LF pin line, got %d", got)
+	if got := strings.Count(string(data), "text=auto eol=lf"); got != 1 {
+		t.Errorf("expected exactly one text=auto LF pin line, got %d", got)
+	}
+	if strings.Contains(string(data), legacyCoreTextEolLf) {
+		t.Errorf("legacy forced-text pin must not remain: %q", legacyCoreTextEolLf)
 	}
 }
 
-func TestEnsureGitattributes_RepairsMissingLfPin(t *testing.T) {
+func TestEnsureGitattributes_RepairsMissingTextAuto(t *testing.T) {
 	tmp := t.TempDir()
 	pre := coreGlob + " linguist-generated=true\n" + coreGlob + " linguist-vendored=true\n"
 	if err := os.WriteFile(filepath.Join(tmp, ".gitattributes"), []byte(pre), 0o644); err != nil {
@@ -101,18 +104,71 @@ func TestEnsureGitattributes_RepairsMissingLfPin(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !changed {
-		t.Error("expected changed=true when LF pin is missing")
+		t.Error("expected changed=true when text=auto pin is missing")
 	}
 	data, _ := os.ReadFile(filepath.Join(tmp, ".gitattributes"))
 	content := string(data)
-	if !strings.Contains(content, coreGlob+" text eol=lf") {
-		t.Fatalf(".gitattributes missing LF pin after repair:\n%s", content)
+	if !strings.Contains(content, coreGlob+" text=auto eol=lf") {
+		t.Fatalf(".gitattributes missing text=auto pin after repair:\n%s", content)
+	}
+	if strings.Contains(content, "Mark generated + vendored") {
+		t.Fatalf("partial text=auto-only write must not claim generated+vendored:\n%s", content)
+	}
+	if !strings.Contains(content, "# byte identity (#5245).") {
+		t.Fatalf("partial write comment must describe text normalization:\n%s", content)
 	}
 	if got := strings.Count(content, "linguist-generated=true"); got != 1 {
 		t.Errorf("expected exactly one linguist-generated line, got %d", got)
 	}
 	if got := strings.Count(content, "linguist-vendored=true"); got != 1 {
 		t.Errorf("expected exactly one linguist-vendored line, got %d", got)
+	}
+}
+
+func TestEnsureGitattributes_CommentAgreesWithFullBlock(t *testing.T) {
+	tmp := t.TempDir()
+	changed, err := EnsureGitattributes(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected greenfield write")
+	}
+	data, _ := os.ReadFile(filepath.Join(tmp, ".gitattributes"))
+	content := string(data)
+	if !strings.Contains(content, "Mark generated + vendored") {
+		t.Fatalf("full block must claim generated+vendored:\n%s", content)
+	}
+	if !strings.Contains(content, "linguist-generated=true") || !strings.Contains(content, "linguist-vendored=true") {
+		t.Fatalf("full block must include linguist markers:\n%s", content)
+	}
+}
+
+func TestEnsureGitattributes_RemovesLegacyForcedText(t *testing.T) {
+	tmp := t.TempDir()
+	pre := legacyCoreTextEolLf + "\n" +
+		coreGlob + " linguist-generated=true\n" +
+		coreGlob + " linguist-vendored=true\n"
+	if err := os.WriteFile(filepath.Join(tmp, ".gitattributes"), []byte(pre), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := EnsureGitattributes(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected changed=true when removing legacy forced-text")
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, ".gitattributes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	if strings.Contains(content, legacyCoreTextEolLf) {
+		t.Fatalf("legacy forced-text must be removed:\n%s", content)
+	}
+	if !strings.Contains(content, coreGlob+" text=auto eol=lf") {
+		t.Fatalf("text=auto pin must be present:\n%s", content)
 	}
 }
 

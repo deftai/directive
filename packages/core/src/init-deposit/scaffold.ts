@@ -95,6 +95,24 @@ const CORE_GITATTRIBUTES_LINES = [
 /** Exact legacy forced-text line removed on refresh (#5245 / #1430). */
 export const LEGACY_CORE_TEXT_EOL_LF = `${CORE_GLOB} text eol=lf` as const;
 
+/** Comment for the lines being appended in this write (#5463). */
+export function gitattributesDepositComment(additions: readonly string[]): string {
+  const hasGenerated = additions.some((line) => line.includes("linguist-generated"));
+  const hasVendored = additions.some((line) => line.includes("linguist-vendored"));
+  if (hasGenerated && hasVendored) {
+    return (
+      "# Deft framework: the vendored payload is packaged framework code, not\n" +
+      "# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
+      "# byte identity. Mark generated + vendored (#1430, #2118, #5245).\n"
+    );
+  }
+  return (
+    "# Deft framework: the vendored payload is packaged framework code, not\n" +
+    "# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
+    "# byte identity (#5245).\n"
+  );
+}
+
 const VBRIEF_LIFECYCLE_DIRS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 
 const VBRIEF_LIFECYCLE_GITKEEP = `# This file keeps the lifecycle directory present in version control and
@@ -896,10 +914,7 @@ export function ensureGitattributes(projectDir: string, io: InitDepositIo): bool
   if (body && !body.endsWith("\n")) body += "\n";
   if (additions.length > 0) {
     if (body && !body.endsWith("\n\n")) body += "\n";
-    body +=
-      "# Deft framework: the vendored payload is packaged framework code, not\n" +
-      "# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
-      "# byte identity. Mark generated + vendored (#1430, #2118, #5245).\n";
+    body += gitattributesDepositComment(additions);
     for (const add of additions) {
       body += `${add}\n`;
     }
