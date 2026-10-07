@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5403",
-    "updated": "2026-10-06T20:39:29Z"
+    "updated": "2026-10-07T01:46:51.629Z"
   },
   "plan": {
     "title": "Multi-active write fence poisoned by already-merged actives that cannot scope:complete under #3284 acceptance.commands",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Multi-active write fence poisoned by already-merged actives that cannot scope:complete under #3284 acceptance.commands",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5403",
@@ -17,27 +17,87 @@
       {
         "id": "1",
         "title": "Historical ship-closeout via explicit-target scope:complete with delivery ancestry + linked PR proof",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5430 squash-merge (Tracking #5403). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5430",
+            "mintedAt": "2026-10-07T01:46:51.629Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T01:46:51.629Z"
+        }
       },
       {
         "id": "2",
         "title": "Stage ladder honesty: none_stated migration only with merge proof; Stage-2 clause-less vs exemption path",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5430 squash-merge (Tracking #5403). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5430",
+            "mintedAt": "2026-10-07T01:46:51.629Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T01:46:51.629Z"
+        }
       },
       {
         "id": "3",
         "title": "Fence deny wording names verbs that clear eligibility (block/pin/closeout); keep #4007 fail-closed",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5430 squash-merge (Tracking #5403). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5430",
+            "mintedAt": "2026-10-07T01:46:51.629Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T01:46:51.629Z"
+        }
       },
       {
         "id": "4",
         "title": "P3: ship-closeout for shipped class; document fence-unblock via scope:block",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5430 squash-merge (Tracking #5403). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5430",
+            "mintedAt": "2026-10-07T01:46:51.629Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T01:46:51.629Z"
+        }
       },
       {
         "id": "5",
         "title": "Tests: historical closeout lands completed/; negatives refuse; multi-eligible after closeout binds",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5430 squash-merge (Tracking #5403). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5430",
+            "mintedAt": "2026-10-07T01:46:51.629Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T01:46:51.629Z"
+        }
       }
     ],
     "tags": [
@@ -471,6 +531,20 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "94e64bdbc386f0e14dc3c2c9081feb8bd877a105de601a3b4672543cacc02504"
+      },
+      "productPullRequest": 5430,
+      "productMergeCommit": "51331946da21e4adbd2668e82f60f0c47755147e",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-07T01:46:51.629Z"
+      },
+      "completedAt": "2026-10-07T01:46:51.629Z",
+      "completionProvenance": {
+        "productMerge": "51331946da21e4adbd2668e82f60f0c47755147e",
+        "productPr": 5430,
+        "disposition": "delivered",
+        "verifier": "approach1-leftover-stamp-residual",
+        "recorded_at": "2026-10-07T01:46:51.629Z"
       }
     },
     "acceptance": {
