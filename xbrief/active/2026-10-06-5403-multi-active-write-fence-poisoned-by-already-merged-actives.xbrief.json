@@ -113,7 +113,8 @@
           "packages/core/src/hooks/dispatcher.ts",
           "packages/core/src/hooks/dispatcher.test.ts",
           "content/docs/scope-provenance.md",
-          "packages/core/src/hooks/scope.ts"
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts"
         ],
         "conflict_group": "stale-active-multi-fence-poison",
         "depends_on": [],
