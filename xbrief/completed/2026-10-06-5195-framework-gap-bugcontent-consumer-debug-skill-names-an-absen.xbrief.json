@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5195",
-    "updated": "2026-10-06T20:39:45Z"
+    "updated": "2026-10-07T00:46:25.223Z"
   },
   "plan": {
     "title": "[framework-gap] bug(content): consumer debug skill names an absent investigation template",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] bug(content): consumer debug skill names an absent investigation template",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5195",
@@ -17,37 +17,121 @@
       {
         "id": "1",
         "title": "Place native investigation.xbrief.json + outcome-template.md under content/skills/deft-directive-debug/",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5436 squash-merge (Tracking #5195). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5436",
+            "mintedAt": "2026-10-07T00:46:25.223Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T00:46:25.223Z"
+        }
       },
       {
         "id": "2",
         "title": "Edit authored skills-pack then packs:render; skill MUST paths name pack-relative flatten objects",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5436 squash-merge (Tracking #5195). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5436",
+            "mintedAt": "2026-10-07T00:46:25.223Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T00:46:25.223Z"
+        }
       },
       {
         "id": "3",
         "title": "Ship 0.8 xBRIEFInfo ledger scaffold with forensic-research-v1 profile; omit created/updated",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5436 squash-merge (Tracking #5195). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5436",
+            "mintedAt": "2026-10-07T00:46:25.223Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T00:46:25.223Z"
+        }
       },
       {
         "id": "4",
         "title": "Drop parallel-wave MUST pointer to orchestrator-protocol this ship",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5436 squash-merge (Tracking #5195). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5436",
+            "mintedAt": "2026-10-07T00:46:25.223Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T00:46:25.223Z"
+        }
       },
       {
         "id": "5",
         "title": "Extend deposit-required-paths + evaluateDepositClosure against stageContentPack; rewrite debugging test",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5436 squash-merge (Tracking #5195). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5436",
+            "mintedAt": "2026-10-07T00:46:25.223Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T00:46:25.223Z"
+        }
       },
       {
         "id": "6",
         "title": "Preserve close-gate profile check and VENDORED.md verbatim vendor tree",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5436 squash-merge (Tracking #5195). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5436",
+            "mintedAt": "2026-10-07T00:46:25.223Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T00:46:25.223Z"
+        }
       },
       {
         "id": "7",
         "title": "Exclude repo-root docs/ deposit extension and vendored protocol ship",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5436 squash-merge (Tracking #5195). Bound limbs shipped; Greptile CLEAN then MERGED.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5436",
+            "mintedAt": "2026-10-07T00:46:25.223Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T00:46:25.223Z"
+        }
       }
     ],
     "tags": [
@@ -524,6 +608,20 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "4c1d1b0cfc25f19351385eae329a944483a59494679d942f88ed570fbe694930"
+      },
+      "productPullRequest": 5436,
+      "productMergeCommit": "a8aeedfd1fbb68ca09924163eed5e3218c3cdbfd",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-07T00:46:25.223Z"
+      },
+      "completedAt": "2026-10-07T00:46:25.223Z",
+      "completionProvenance": {
+        "productMerge": "a8aeedfd1",
+        "productPr": 5436,
+        "disposition": "delivered",
+        "verifier": "approach1-leftover-stamp-residual",
+        "recorded_at": "2026-10-07T00:46:25.223Z"
       }
     },
     "acceptance": {
