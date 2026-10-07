@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+- Recorded the completed work for intent-constraint engine-relative TypeScript load (#5194) delivered in PR #5447.
 - Recorded the completed work for multiple-eligible write-fence parent/worker recovery (#4880) delivered in PR #5445.
 - Recorded the completed work for pre-PR coverage applicability on inert refinements (#5421) delivered in PR #5431.
 - Recorded the completed work for the pnpm upgrade fix (#5384) delivered in PR #5429.

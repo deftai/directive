@@ -1,0 +1,651 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5194",
+    "updated": "2026-10-07T03:40:21.021Z"
+  },
+  "plan": {
+    "title": "[framework-gap] bug(verify): global CLI cannot resolve its bundled TypeScript parser in a .NET consumer",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] bug(verify): global CLI cannot resolve its bundled TypeScript parser in a .NET consumer",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5194",
+      "Overview": "\n\n1. Recut P1 bundled-first loader: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `loadTypeScript` (`packages/core/src/intent-constraint/extract.ts` 54-90) uses `createRequire(join(projectRoot, \"package.json\")).resolve(\"typescript\")`. Change it to `createRequire(import.meta.url)` as `packages/core/src/presentation-ceiling/evaluate.ts` already does for JS/TS. Keep `createSourceFile`, version string, and major ≥ 5 fail-closed on that module. Fail closed when the engine install cannot load a parser. Use the same selected parser for baseline and candidate. Retitle the config message to the engine resolve, not `no typescript resolvable from ${projectRoot}`.\n2. Recut P1 reject consumer-owned parser as the supported path: do not consumer-root first then fall back to bundled. Do not make doctor/setup provision consumer `typescript` the supported global-CLI contract. Do not document `NODE_PATH` as the supported contract; it may appear only as a workaround for already-shipped versions.\n3. Recut P1 isolated regression: published/global CLI path; fixture outside the workspace and ancestor TypeScript installs; `NODE_PATH` unset; no consumer `typescript`; `.js` and `.ts`; harmless change passes; added unapproved throw-site and numeric-const fail; a planted consumer wrapper that empties `createSourceFile` still harvests through the engine parser. Include a linked worktree with no dest `node_modules`.\n4. Recut P1 sibling sites: this ship changes intent-constraint only. Name presentation-ceiling (already bundled) and observable-scope / durable-effect (consumer-root, `.jsx`/`.tsx`) as out of this P1. Bundled-first is the rule for gates that admit `.js`.\n5. Preserve: `FACT_KINDS`, `.js` admission, fail-closed parser errors, no shim, no skip of the semantic check.\n6. Exclude: rewriting every `createRequire(join(projectRoot, \"package.json\"))` in one ship; requiring every consumer to become a Node project.\n\nTarget-digest: sha256:0a8d08b849e0143a8f7ca1bfc9c261803674cb6700d472599537017506f36eba\n\n",
+      "Labels": "bug, agent-experience, process, source-of-truth, urgent, area:cli, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "loadTypeScript uses createRequire(import.meta.url) engine-relative resolve",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5447 squash-merge (Tracking #5194). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5447",
+            "mintedAt": "2026-10-07T03:40:21.021Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:40:21.021Z"
+        }
+      },
+      {
+        "id": "2",
+        "title": "Reject consumer-owned parser as the supported global CLI path",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5447 squash-merge (Tracking #5194). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5447",
+            "mintedAt": "2026-10-07T03:40:21.021Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:40:21.021Z"
+        }
+      },
+      {
+        "id": "3",
+        "title": "Isolated regression for published global CLI without consumer typescript",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5447 squash-merge (Tracking #5194). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5447",
+            "mintedAt": "2026-10-07T03:40:21.021Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:40:21.021Z"
+        }
+      },
+      {
+        "id": "4",
+        "title": "Scope this ship to intent-constraint; leave sibling sites named out of scope",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5447 squash-merge (Tracking #5194). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5447",
+            "mintedAt": "2026-10-07T03:40:21.021Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T03:40:21.021Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "area:cli",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates",
+      "prefer-a-bound",
+      "through-merge",
+      "intent-constraint-bundled-typescript"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5194",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5194: [framework-gap] bug(verify): global CLI cannot resolve its bundled TypeScript parser in a .NET consumer"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4541",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4541"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "ambiguity_attestation": "none_found",
+      "none_stated": false,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/intent-constraint/extract.test.ts"
+      ],
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut P1 bundled-first loader: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `loadTypeScript` (`packages/core/src/intent-constraint/extract.ts` 54-90) uses `createRequire(join(projectRoot, \"package.json\")).resolve(\"typescript\")`.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 2,
+          "text": "Change it to `createRequire(import.meta.url)` as `packages/core/src/presentation-ceiling/evaluate.ts` already does for JS/TS.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 3,
+          "text": "Keep `createSourceFile`, version string, and major ≥ 5 fail-closed on that module.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 4,
+          "text": "Fail closed when the engine install cannot load a parser.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 5,
+          "text": "Use the same selected parser for baseline and candidate.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 6,
+          "text": "Retitle the config message to the engine resolve, not `no typescript resolvable from ${projectRoot}`.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 7,
+          "text": "Recut P1 reject consumer-owned parser as the supported path: do not consumer-root first then fall back to bundled.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 8,
+          "text": "Do not make doctor/setup provision consumer `typescript` the supported global-CLI contract.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 9,
+          "text": "Do not document `NODE_PATH` as the supported contract; it may appear only as a workaround for already-shipped versions.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 10,
+          "text": "Recut P1 isolated regression: published/global CLI path; fixture outside the workspace and ancestor TypeScript installs; `NODE_PATH` unset; no consumer `typescript`; `.js` and `.ts`; harmless change passes; added unapproved throw-site and numeric-const fail; a planted consumer wrapper that empties `createSourceFile` still harvests through the engine parser.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.test.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 11,
+          "text": "Include a linked worktree with no dest `node_modules`.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.test.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 12,
+          "text": "Recut P1 sibling sites: this ship changes intent-constraint only.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 13,
+          "text": "Name presentation-ceiling (already bundled) and observable-scope / durable-effect (consumer-root, `.jsx`/`.tsx`) as out of this P1.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 14,
+          "text": "Bundled-first is the rule for gates that admit `.js`.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 15,
+          "text": "Preserve: `FACT_KINDS`, `.js` admission, fail-closed parser errors, no shim, no skip of the semantic check.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 16,
+          "text": "Exclude: rewriting every `createRequire(join(projectRoot, \"package.json\"))` in one ship; requiring every consumer to become a Node project.",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        },
+        {
+          "id": 17,
+          "text": "Target-digest: sha256:0a8d08b849e0143a8f7ca1bfc9c261803674cb6700d472599537017506f36eba",
+          "artifact_path": "packages/core/src/intent-constraint/extract.ts",
+          "ambiguous": false,
+          "provenance": "bound-prefer-a"
+        }
+      ],
+      "sentences": [
+        "Recut P1 bundled-first loader: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `loadTypeScript` (`packages/core/src/intent-constraint/extract.ts` 54-90) uses `createRequire(join(projectRoot, \"package.json\")).resolve(\"typescript\")`.",
+        "Change it to `createRequire(import.meta.url)` as `packages/core/src/presentation-ceiling/evaluate.ts` already does for JS/TS.",
+        "Keep `createSourceFile`, version string, and major ≥ 5 fail-closed on that module.",
+        "Fail closed when the engine install cannot load a parser.",
+        "Use the same selected parser for baseline and candidate.",
+        "Retitle the config message to the engine resolve, not `no typescript resolvable from ${projectRoot}`.",
+        "Recut P1 reject consumer-owned parser as the supported path: do not consumer-root first then fall back to bundled.",
+        "Do not make doctor/setup provision consumer `typescript` the supported global-CLI contract.",
+        "Do not document `NODE_PATH` as the supported contract; it may appear only as a workaround for already-shipped versions.",
+        "Recut P1 isolated regression: published/global CLI path; fixture outside the workspace and ancestor TypeScript installs; `NODE_PATH` unset; no consumer `typescript`; `.js` and `.ts`; harmless change passes; added unapproved throw-site and numeric-const fail; a planted consumer wrapper that empties `createSourceFile` still harvests through the engine parser.",
+        "Include a linked worktree with no dest `node_modules`.",
+        "Recut P1 sibling sites: this ship changes intent-constraint only.",
+        "Name presentation-ceiling (already bundled) and observable-scope / durable-effect (consumer-root, `.jsx`/`.tsx`) as out of this P1.",
+        "Bundled-first is the rule for gates that admit `.js`.",
+        "Preserve: `FACT_KINDS`, `.js` admission, fail-closed parser errors, no shim, no skip of the semantic check.",
+        "Exclude: rewriting every `createRequire(join(projectRoot, \"package.json\"))` in one ship; requiring every consumer to become a Node project.",
+        "Target-digest: sha256:0a8d08b849e0143a8f7ca1bfc9c261803674cb6700d472599537017506f36eba"
+      ],
+      "confessions": [
+        "[framework-gap] bug(verify): global CLI cannot resolve its bundled TypeScript parser in a .NET consumer",
+        "loadTypeScript uses createRequire(import.meta.url) engine-relative resolve",
+        "Reject consumer-owned parser as the supported global CLI path",
+        "Isolated regression for published global CLI without consumer typescript",
+        "Scope this ship to intent-constraint; leave sibling sites named out of scope"
+      ],
+      "admitted_source_sentences": [
+        "Recut P1 bundled-first loader: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `loadTypeScript` (`packages/core/src/intent-constraint/extract.ts` 54-90) uses `createRequire(join(projectRoot, \"package.json\")).resolve(\"typescript\")`.",
+        "Change it to `createRequire(import.meta.url)` as `packages/core/src/presentation-ceiling/evaluate.ts` already does for JS/TS.",
+        "Keep `createSourceFile`, version string, and major ≥ 5 fail-closed on that module.",
+        "Fail closed when the engine install cannot load a parser.",
+        "Use the same selected parser for baseline and candidate.",
+        "Retitle the config message to the engine resolve, not `no typescript resolvable from ${projectRoot}`.",
+        "Recut P1 reject consumer-owned parser as the supported path: do not consumer-root first then fall back to bundled.",
+        "Do not make doctor/setup provision consumer `typescript` the supported global-CLI contract.",
+        "Do not document `NODE_PATH` as the supported contract; it may appear only as a workaround for already-shipped versions.",
+        "Recut P1 isolated regression: published/global CLI path; fixture outside the workspace and ancestor TypeScript installs; `NODE_PATH` unset; no consumer `typescript`; `.js` and `.ts`; harmless change passes; added unapproved throw-site and numeric-const fail; a planted consumer wrapper that empties `createSourceFile` still harvests through the engine parser.",
+        "Include a linked worktree with no dest `node_modules`.",
+        "Recut P1 sibling sites: this ship changes intent-constraint only.",
+        "Name presentation-ceiling (already bundled) and observable-scope / durable-effect (consumer-root, `.jsx`/`.tsx`) as out of this P1.",
+        "Bundled-first is the rule for gates that admit `.js`.",
+        "Preserve: `FACT_KINDS`, `.js` admission, fail-closed parser errors, no shim, no skip of the semantic check.",
+        "Exclude: rewriting every `createRequire(join(projectRoot, \"package.json\"))` in one ship; requiring every consumer to become a Node project.",
+        "Target-digest: sha256:0a8d08b849e0143a8f7ca1bfc9c261803674cb6700d472599537017506f36eba"
+      ],
+      "admitted_source_digest": "c88bbf2ff8e5d225752b259784c3ffbd2ca785999c3377ea4dbc6dc4badfd1b8"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because intent-constraint resolves TypeScript only through createRequire(consumer/package.json), so the documented global CLI cannot parse production JS in a .NET consumer that has no consumer typescript install.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5194-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\ndest-wo: leftover-complete\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption with a refutation target\nspend: N≥3\nspend-ask: asked\nspend-why: operator \"use appropriate n\" (missing-token). Stop 2 panel permission: bundled parser vs consumer-root resolve; competing remedies (createRequire from the Directive package vs documented NODE_PATH vs doctor-provision consumer typescript); blast radius is every non-Node consumer running the global CLI.\nDual-stop cap: 3 posts\n\npain: P1\n\ntarget: #5194\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: createRequire(join(projectRoot, \"package.json\")).resolve(\"typescript\") is a sufficient parser contract for the documented global CLI on a .NET consumer with no consumer node_modules.\n\n## Gate stamp\n\nRound-1 ceiling is this write-back plus panel-deposit (spend N≥3). Families: grok, claude, codex.\n\nP1 is global-install parser unavailability. `loadTypeScript` does `createRequire(join(projectRoot, \"package.json\")).resolve(\"typescript\")` and returns config `no typescript resolvable from ${projectRoot}` on catch. Directive core 0.119.12 declares `typescript` as a runtime dependency and ships the parser in the installed package. Consumer-root resolution is deliberate in current code. A .NET consumer with changed production `.js` and no consumer TypeScript install exits 2 with NODE_PATH absent, and exits 0 when NODE_PATH points at the global Directive `node_modules`. Expected recut: the supported global CLI path should have a reliable parser dependency contract. Prefer a validated installed-dependency resolution path, or explicitly provision and document the required consumer dependency in setup/tool readiness. Preserve parser validation/version requirements and fail closed when no valid parser is available. Do not use a shim or silently skip the semantic check.\n\nWhat this is not:\n\n- #4541 closed extract of throw/reject/abort and numeric consts. Residual is parser resolution, not the harvest grammar.\n- A claim that fail-closed parser errors are wrong.\n- Weakening FACT_KINDS or skipping `.js` inputs.\n- Requiring every consumer to become a Node project.\n\nOpen forks the critic may take: resolve typescript from the Directive package (createRequire(import.meta.url) or the global install root) then fall back to consumer-root; keep consumer-root first and fall back to the bundled parser; doctor/setup fail-closed with a documented consumer typescript install; document NODE_PATH as the supported path only if setup actually provisions it. Silent skip, or a fake parser, does not relieve P1.\n\nRe-measured at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819` by pin-read.\n\nPin-read:\n\n- `packages/core/src/intent-constraint/extract.ts` blob `b52e1679e24f980f7f3bbd61fe03b232a411e971`. `loadTypeScript` (54-66) `createRequire(join(projectRoot, \"package.json\")).resolve(\"typescript\")`; catch message `no typescript resolvable from ${projectRoot}`. `isProductionSourcePath` admits `.ts`/`.js` only.\n- `packages/core/src/intent-constraint/evaluate.ts` blob `9fd0898ec3e4823b202a4b16bbc14b810e2aaebf` consumes that extract.\n\nCatalog chip design-critique:mechanism-shaped applied via task scm:issue:design-critique-chip as its own write.\n\n",
+          "id": 5919145751,
+          "html_url": "https://github.com/deftai/directive/issues/5194#issuecomment-5919145751",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:27:35Z",
+          "updated_at": "2026-09-30T20:27:35Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5919226894\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\n\n",
+          "id": 5919226894,
+          "html_url": "https://github.com/deftai/directive/issues/5194#issuecomment-5919226894",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:32:02Z",
+          "updated_at": "2026-09-30T20:32:03Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nCharter: refutation. Round 1, fresh critic. Input ceiling 5919226894 (inclusive). All tree reads pinned to `5a311bf5cb976ccaacdcfe939e630878135ab819`.\n\n**Verdict on the refutation target: refuted.** Resolving `typescript` from the consumer root is not a sufficient parser contract for the global CLI. It is also not a *safe* contract, even on Node consumers (F1).\n\n## Anchor re-verification (run, not read)\n\n- Blobs match: `extract.ts` `b52e1679…`, `evaluate.ts` `9fd0898e…`. `loadTypeScript` starts at line 54. `createRequire(join(projectRoot, \"package.json\"))` is at line 57. The message is at line 65. `isProductionSourcePath` admits only `.ts` / `.js`.\n- Live install `@deftai/directive@0.119.12` (engine `directive-core@0.119.12`). `createRequire(<empty tmp consumer>/package.json).resolve(\"typescript\")` → `MODULE_NOT_FOUND`. `createRequire(<global>/@deftai/directive/node_modules/@deftai/directive-core/dist/index.js)` → `…/@deftai/directive/node_modules/typescript/lib/typescript.js` 5.9.3. So P1 reproduces, and the bundled parser can be reached from core's own module URL.\n- I called the installed `extractConstraintFacts(src, \"src/a.js\", {projectRoot})` with `const MAX_RETRIES = 3; throw new Error(\"x\");`:\n  - root with the real TS: `ok:true`, two facts (`numeric-const:MAX_RETRIES=3`, `throw-site`).\n  - root with no TS: `ok:false code:config`, message \"no typescript resolvable\".\n  - root with a planted `node_modules/typescript` (version \"5.0.0\", `createSourceFile` wraps the real one but parses `\"\"`): **`ok:true`, `facts:[]`**.\n\n## Existing-mechanism inventory\n\nThe repo already has both doctrines, applied inconsistently:\n\n- `presentation-ceiling/evaluate.ts:283`: `createRequire(import.meta.url)`. The comment says \"JS/TS uses the gate's bundled parser\". It parses `.js`. This is the bundled-first path, already shipped. The remedy is alignment, not a new mechanism.\n- `observable-scope/extract.ts:~215–255`: consumer-root, with a documented rationale: \"never from Directive's own bundle… A project with .jsx/.tsx surfaces already carries typescript.\"\n- `durable-effect-acquisition/jsx.ts:25`: consumer-root. It checks for `createSourceFile` only and has no version floor. Scope is `.jsx/.tsx` (\"TypeScript required for .jsx/.tsx\").\n- `intent-constraint/extract.ts:54`: consumer-root. It admits **`.js`**.\n- Packaging: `cli` and `core` build with `tsc -b` (not bundled). `core` declares `typescript: ^5.9.3` in `dependencies`. So `import.meta.url` in core `dist` resolves core's own install tree.\n\n## Findings\n\n**F1 — blocks-the-design.** Parser identity under consumer-root resolution is controlled by the consumer, and a planted parser forges a clean verdict.\n- Evidence: the third probe above. The validation at lines 67–86 is a duck-type check (`createSourceFile` is a function, `version` is a string, major ≥ 5). It is not an identity check. `req(resolved)` also *executes* the resolved module.\n- Failure mode: `node_modules/` is gitignored, so it never shows in the diff under review. Any process that can write the worktree can plant an untracked `node_modules/typescript` shim that returns zero facts. The gate then reports no new throw/numeric-const sites. This is the gate-integrity (#3156) class: red is cleared without touching the product.\n- Disposition consequence: the remedy cannot be \"consumer-root first, then fall back to bundled\", and cannot be \"doctor provisions consumer TS\" as the sole contract. Both keep the forgeable path first. The recut that can bind is **bundled-first** (`createRequire(import.meta.url)`, as presentation-ceiling does), with the same shape/version validation kept as a fail-closed check. Fallback to consumer-root, if kept at all, must be explicit opt-in, not the default.\n\n**F2 — sharpens-framing.** \"Consumer-root is deliberate\" is true, but its rationale does not carry over to this gate.\n- Evidence: the observable-scope comment justifies consumer-root because `.jsx/.tsx` surfaces imply a TS toolchain. intent-constraint admits plain `.js`, and plain `.js` implies nothing about a toolchain. The issue's .NET/browser-JS repro is exactly that case.\n- Failure mode: if the recut scopes only `intent-constraint`, the repo keeps two doctrines for `.js`-admitting gates (presentation-ceiling bundled, intent-constraint consumer). Contributors will copy either one.\n- Disposition consequence: the recut should state the rule per site. Bundled-first applies wherever the gate admits `.js`. For the `.jsx/.tsx`-only gates (observable-scope, durable-effect), either keep consumer-root with the F1 risk recorded, or move them in the same change. The acceptance criteria should name all four sites, even if only one changes.\n\n**F3 — sharpens-framing (swarm lens).** Consumer-root resolution walks up parent directories, so the verdict depends on where the worktree sits.\n- Evidence: this dest worktree (`…/.grok/worktrees/deft-directive/issue-5194-dc`) has no `node_modules`. Resolving from `packages/core/package.json` here → `MODULE_NOT_FOUND`, even though deft is a Node repo. A primary checkout with `pnpm install` resolves.\n- Failure mode: the same commit exits 2 in a dest-placed worker and 0 in the primary checkout. An ancestor-directory `node_modules/typescript` (for example `~/node_modules`) can also silently supply the parser. Workers then either stall on exit 2 or learn to set `NODE_PATH`.\n- Disposition consequence: the regression coverage in the issue should add \"linked worktree with no install\" beside \".NET consumer\". Bundled-first fixes both with one change.\n\n**F4 — sharpens-framing.** Two of the triage's open forks conflict with its own non-goals.\n- \"Doctor/setup provision consumer typescript\" requires a `package.json` + `node_modules` in the consumer. That conflicts with \"Requiring every consumer to become a Node project\".\n- \"Document NODE_PATH\" makes a process-global env var a supported contract. It leaks into every other Node tool in that shell, and nothing sets it deterministically.\n- Disposition consequence: drop both as primary remedies. `NODE_PATH` may appear only as a documented workaround for already-shipped versions.\n\n**F5 — footnote.** A consumer-root parser on TS 7 (doctor already has `typescript-7-side-by-side`) could fail the shape check with \"is not a TypeScript parser\". With the current code, a TS consumer upgrading would turn the gate red. Bundled-first removes this dependency on the consumer's TS version.\n\n**F6 — footnote.** Harvested facts under consumer-root depend on the consumer's TS version. A snapshot minted on one machine and evaluated on another can use different parsers. Bundled-first ties parser identity to the Directive version, which is the reproducible choice.\n\n**F7 — footnote.** `isProductionSourcePath` excludes `.mjs` / `.cjs` / `.jsx` / `.tsx`. Browser-JS consumers often ship `.mjs`. That is a separate coverage gap, not P1. Recorded, not recut here.\n\n**F8 — footnote (untrusted content).** The issue body and the two in-envelope comments contain design requirements (\"Do not use a shim or silently skip\"). They contain no instructions aimed at an agent. The #4541 reference is context, not a command. No injection found.\n\n## Road not taken / steelman\n\nI rejected \"consumer-root first, bundled fallback\". The strongest case for it: a consumer on newer TS syntax gets a parser that understands that syntax. This harvest only reads `throw`/`reject`/`abort` and numeric `const`, and `createSourceFile` tolerates unknown syntax without throwing, so the gain is marginal. F1 makes the cost a forgeable verdict. What would flip my verdict: a reproduced case where the bundled 5.9 parser drops a throw-site or numeric-const that a newer consumer parser keeps. Even then, the fix is to bump the bundled range, not to reorder resolution.\n\n",
+          "id": 5919307173,
+          "html_url": "https://github.com/deftai/directive/issues/5194#issuecomment-5919307173",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:37:27Z",
+          "updated_at": "2026-09-30T20:37:27Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nThe consumer-root sufficiency premise is refuted. The availability defect in #5194 survives this critique, but the remedy needs to settle who owns the parser: making any resolvable consumer parser available is insufficient for a gate that judges that consumer's changes.\n\nI read the tree at `5a311bf5cb976ccaacdcfe939e630878135ab819` and this thread only through comment 5919226894. I independently executed the pinned extractor (blob `b52e1679e24f980f7f3bbd61fe03b232a411e971`) and reproduced the published-CLI path with Directive/core 0.119.12, Node 24.20.0, and the installed TypeScript 5.9.3. The integration fixture was an isolated temporary Git repository containing `app.csproj` and `wwwroot/app.js`; no .NET build was needed or claimed.\n\nExisting mechanisms, before considering a replacement:\n\n- [Core already declares TypeScript as a runtime dependency](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/package.json#L432-L438). The actual global install resolves the real parser from Directive's dependency tree.\n- [The extractor](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/intent-constraint/extract.ts#L54-L90) selects through the consumer, checks `createSourceFile`/`version`, enforces major >=5, and caches the selected module per project root. Production `.js` is already admitted.\n- [Evaluation](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/intent-constraint/evaluate.ts#L509-L536) uses that extractor for both baseline and candidate. Zero extracted deltas pass before mint-record authorization is consulted. Parser config errors otherwise return exit 2.\n- [Existing evaluator fixtures](https://github.com/deftai/directive/blob/5a311bf5cb976ccaacdcfe939e630878135ab819/packages/core/src/intent-constraint/evaluate.test.ts#L53-L74) use checkout dependencies or symlink them into consumers. These exercise extraction, not dependency availability in a clean global installation.\n\n### F1 — blocks-the-design — Consumer-selected parser can erase the evidence it judges\n\n**Evidence.** In the isolated Git fixture, `verify:intent-constraint --origin-ref <fixed-baseline-SHA>` produced:\n\n| Candidate / parser source | Measured exit |\n| --- | --- |\n| Harmless committed JS change; no consumer dependencies, `NODE_PATH` unset | 2: `no typescript resolvable from ...` |\n| Identical committed source; `NODE_PATH` points to installed Directive dependencies | 0: no new facts |\n| New `throw new Error(\"deny\")` and `const LIMIT = 7`; real installed parser via `NODE_PATH` | 1: unapproved throw-site and numeric-const |\n| Identical new hard facts; consumer package delegates to real TS but drops source text; `NODE_PATH` unset | 0: no new facts |\n\nThe adversarial test package was just this wrapper around the real installed parser:\n\n```js\nconst ts = require(REAL_INSTALLED_TYPESCRIPT_PATH);\nmodule.exports = {\n  ...ts,\n  createSourceFile: (name, source, ...rest) => ts.createSourceFile(name, \"\", ...rest)\n};\n```\n\nThe pinned extractor independently returned `{ok:true,facts:[]}` for the same throw/constant source under this wrapper, versus both facts under real TypeScript. Its current shape/version checks accept the wrapper. This is an executable-dependency trust boundary, not an instruction from source text.\n\n**Failure mode.** Consumer-first fallback and consumer-provisioning remedies can remove the availability error while retaining a parser controlled by the subject of the check. Bundled-first with an automatic consumer fallback has the same weakness when the installed dependency is unavailable. Merge-base-only mint authority cannot compensate: the parser has already erased the deltas.\n\n**Disposition consequence.** An availability-only remedy with unspecified parser authority cannot bind as written. The smallest preferred recut is a Directive-owned installed dependency resolved relative to the executing core module, retaining the existing supported-version checks and using the same selected parser for baseline and candidate. Failure to load or validate that dependency remains a configuration failure; it does not select arbitrary consumer code or skip harvest. This does not require a new parser framework or a change to fact kinds.\n\n**Road not taken / steelman.** Consumer-first supports the project's compiler version and avoids grammar mismatch. That is a plausible compiler-integration choice, but this gate uses syntactic extraction, not the consumer's type-checking configuration. I would reconsider if a supported syntax fixture required consumer-version selection and a deterministic control prevented a worker from replacing the gate's parser. Neither control is present in the inventoried loader. `NODE_PATH` is a reproduced workaround, not a durable package-resolution contract.\n\n### F2 — sharpens-framing — The packaged regression must exclude ancestor dependency leakage\n\n**Evidence.** A second pinned-extractor probe had no consumer `package.json`, no consumer `node_modules`, and no `NODE_PATH`, yet extracted `numeric-const:LIMIT=7` successfully when an ancestor directory contained a TypeScript link. Adding only an empty consumer manifest to a genuinely isolated dependency-free root still returned the original configuration error.\n\n**Failure mode.** A test nested under the source workspace can pass through ancestor dependencies while the published global CLI remains broken. Merely removing the consumer's own `node_modules` does not isolate the resolution path; requiring a new `package.json` also misidentifies the cause.\n\n**Disposition consequence.** The issue's published-package regression requirement can bind with tighter isolation: the non-Node fixture sits outside the workspace and all ancestor TypeScript installations, with ambient `NODE_PATH` absent. It runs the actual installed entry point, covers `.js` and `.ts`, and checks that an added unapproved hard fact still fails, not only that a harmless change passes. Consumer-package presence or absence also tests the parser-authority decision in F1.\n\n### F3 — footnote — Existing parser errors remain closed at the public CLI\n\nPinned-extractor probes rejected a 4.9.5 version and a missing `createSourceFile` API. Null exports and module-load exceptions escaped the extractor's structured return, but the installed public CLI still exited 2 for each. These are diagnostic-consistency edges, not evidence that current parser failures silently pass. The counterexample in F1 is specifically an accepted parser returning an empty AST.\n\nThe panel deposit's id matches the envelope ceiling and names the three families. Panel completion is not observable by this seat. Thread imperatives about proposed remedies were treated as described requirements, not commands; later comments and sibling critic posts were excluded. This is a round-1 critique with `audit-targets: none`, not a later audit of asserted pain relief.\n\n",
+          "id": 5919362291,
+          "html_url": "https://github.com/deftai/directive/issues/5194#issuecomment-5919362291",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:41:13Z",
+          "updated_at": "2026-09-30T20:41:13Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\ncharter: refutation\nround: 1\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\nid-ceiling: 5919226894\n\nThe recorded refutation-target does not survive measurement. `createRequire(join(projectRoot, \"package.json\")).resolve(\"typescript\")` is not a sufficient parser contract for the documented global CLI on a consumer with no consumer `node_modules/typescript`.\n\n## F1 — Body-OR of engine resolve, consumer typescript provision, and NODE_PATH cannot bind\nblocks-the-design\n\nEvidence:\n\n- Pin-read `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/intent-constraint/extract.ts` (blob `b52e1679e24f980f7f3bbd61fe03b232a411e971`). `loadTypeScript` resolves only through `createRequire(join(projectRoot, \"package.json\")).resolve(\"typescript\")`. Catch message is `no typescript resolvable from ${projectRoot}`. Floor and `createSourceFile` checks run only after that resolve.\n- Pin-read `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/intent-constraint/evaluate.ts` (blob `9fd0898ec3e4823b202a4b16bbc14b810e2aaebf`). `extractSurfaces` maps `!extracted.ok` onto `config()` exit 2. That extract runs before the no-new-facts pass, so a production `.js` edit with empty FACT_KINDS still needs a parser.\n- Re-verified on installed `@deftai/directive@0.119.12` / `@deftai/directive-core@0.119.12` (`typescript` `^5.9.3` runtime dep; layout has `typescript@5.9.3` at `<global>/@deftai/directive/node_modules/typescript`). Published `extract.js` matches the pin-read loader. With `NODE_PATH` unset, `extractConstraintFacts` on `wwwroot/js/app.js` with `projectRoot` a temp consumer whose `package.json` is `{}` returned `{ ok:false, code:\"config\", message:\"no typescript resolvable from <consumer>\" }`. The same source with `projectRoot` the Directive package root returned `{ ok:true }` with `numeric-const` `MAX=1024` and a `throw-site`. Setting `NODE_PATH` to that Directive `node_modules` made consumer-root return those same facts from the same `typescript.js`.\n- Pin-read `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/doctor/checks.ts`: the typescript-7-side-by-side check passes with detail `No typescript dependency declared; TypeScript 7 side-by-side alias not required.`\n- `git grep NODE_PATH` at the dispatch SHA under `content/` and `packages/` is empty.\n\nFailure mode: ingesting the issue expected recut as an OR lets an implementer relieve named pain P1 by adding a consumer `typescript` install, which gives a .NET tree a Node package identity (Stop 1 already records that this motion does not require every consumer to become a Node project), or by documenting `NODE_PATH`, which is a process-wide module search path. Both arms select the harvest parser through ambient resolve.\n\nDisposition: a successor lean cannot take `accept-into-contract` on the GitHub-body OR, on a doctor/setup mandate that consumers declare `typescript`, or on `NODE_PATH` as the supported global-CLI contract. P1 stays unrelieved until the lean harvests one engine-pinned loader.\n\n## F2 — Inventory pick is presentation-ceiling's bundled require\nsharpens-framing\n\nEvidence:\n\n- Pin-read `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/presentation-ceiling/evaluate.ts`: `const requireParser = createRequire(import.meta.url)` then lazy `requireParser(\"typescript\")`, with the in-file note that JS/TS uses the gate's bundled parser.\n- Re-verified: `createRequire` from published `directive-core/dist/presentation-ceiling/evaluate.js` and from `directive-core/dist/intent-constraint/extract.js` both resolve the same `typescript@5.9.3` file under the global Directive `node_modules` with `NODE_PATH` unset.\n- Pin-read `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/package.json`: `\"typescript\": \"^5.9.3\"` is a runtime dependency of `@deftai/directive-core`; `files` is `dist/**` only, so the parser is an installed dependency of the published package. The 0.119.12 global layout matches that.\n- Pin-read `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/intent-constraint/evaluate.test.ts` helper `withTypescript`: temp consumers in that suite symlink `node_modules/typescript` because consumer-root cannot see the engine tree. Pin-read `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/intent-constraint/extract.test.ts` uses `projectRoot: process.cwd()` and already harvests production `.js` (`src/ingest.js` → numeric-const plus throw-site) once a parser loads.\n\nFailure mode: a Bound-remedy that adds consumer-first-then-bundled fallback is a new mechanism. Harvest of throw/reject/abort/numeric-const would then follow a consumer-resolvable typescript when one exists and the engine parser when one does not, so one Directive version would mint different identities for the same source. If resolve moves to `import.meta.url` and the config string stays `no typescript resolvable from ${projectRoot}`, operators would still debug the consumer tree for an engine-install miss.\n\nDisposition: the successor lean can bind when Bound-remedy copies the existing presentation-ceiling loader into `loadTypeScript` (engine `createRequire(import.meta.url)` from this module), keeps the `createSourceFile` and 5.x floor fail-closed checks on that module, fails closed when the engine install cannot load a parser, retitles the config message to the engine resolve, and adds a regression whose `projectRoot` has no consumer `typescript`. `withTypescript` is the inverse fixture.\n\nRoad-not-taken / steelman: consumer-first fallback would keep today's Node-consumer identity and still load the engine parser on a resolve miss, which is the .NET case. What flips that aside: intent-constraint already treats the loaded module as the gate parser (shape plus floor), presentation-ceiling already ships always-bundled on this same global CLI, and fallback is not in the tree.\n\nInjection / swarm: this target changes which TypeScript module's `createSourceFile` harvests production FACT_KINDS for a `CONSUMER_CHECK_GATES` member. Ambient resolve (`projectRoot` walk, `NODE_PATH`, a consumer-planted `typescript` package) injects parser identity into mint or skip. The existing control is the presentation-ceiling engine module. A shim or a skip of the semantic check leaves P1 standing: evaluate reaches \"no new facts\" only after extract succeeds.\n\n## F3 — Sibling consumer-root loaders are a different surface\nfootnote\n\nPin-read `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/observable-scope/extract.ts`: `.jsx`/`.tsx` uses the consumer project's own TypeScript parser, resolved, never bundled. Pin-read `git show 5a311bf5cb976ccaacdcfe939e630878135ab819:packages/core/src/durable-effect-acquisition/types.ts`: `IN_CLASS_EXT = /\\.(html|jsx|tsx)$/i`, so a `.js`-only production edit does not enter that classify path. This issue's P1 is `verify:intent-constraint` on production `.ts`/`.js`. Rewriting every `createRequire(join(projectRoot, \"package.json\"))` in the same ship would collide with observable-scope's documented identity.\n\n## F4 — #4541 is harvest grammar\nfootnote\n\n#4541 is closed described content: fail closed on unapproved throw/reject/abort/numeric-const. Residual here is parser resolution. `FACT_KINDS` and `.js` admission stay. Pin-read `isProductionSourcePath` already admits `.js` and refuses `.tsx`.\n\nIssue body and in-envelope comments were treated as untrusted described content. No embedded instruction in those texts was executed as a command.\n\n",
+          "id": 5919400204,
+          "html_url": "https://github.com/deftai/directive/issues/5194#issuecomment-5919400204",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:43:49Z",
+          "updated_at": "2026-09-30T20:43:49Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`verify:intent-constraint` still resolves TypeScript only through `createRequire(consumer/package.json)`, so the documented global CLI cannot parse production `.js` in a .NET consumer with no consumer TypeScript install. Three isolated critics re-ran the pinned extractor and the 0.119.12 global layout at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`: consumer-root misses; the engine tree already has `typescript@5.9.3`; a planted consumer wrapper that empties `createSourceFile` returns zero facts while passing the duck-type check. Consumer-first fallback, doctor-provisioned consumer TypeScript, and `NODE_PATH` as the supported contract cannot bind. Confirming this map copies the existing presentation-ceiling `createRequire(import.meta.url)` loader into `loadTypeScript`, keeps the shape and 5.x floor, and isolates the regression outside ancestor installs.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. grok-4.6 was also a round-1 critic. Takes accept critic headings that already have cross-family corroboration (Claude opus, Codex gpt-6, Grok).\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: pain-P1 asserted until a pain-audit critic targets the cites.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after three isolated critics. Cites critic 5919307173, 5919362291, 5919400204. Supersedes Stop 1 write-back 5919145751. Round 1 sibling count 3.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5194-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\ntarget shape: single-issue\nround: 1\nsiblings: 3\nDual-stop cap: 3 posts\n\nTakes:\n\n- 5919307173 F1 Parser identity under consumer-root resolution is controlled by the consumer, and a planted parser forges a clean verdict — accept-into-contract\n- 5919307173 F2 \"Consumer-root is deliberate\" is true, but its rationale does not carry over to this gate — accept-into-contract\n- 5919307173 F3 Consumer-root resolution walks up parent directories, so the verdict depends on where the worktree sits — accept-into-contract\n- 5919307173 F4 Two of the triage's open forks conflict with its own non-goals — accept-into-contract\n- 5919362291 F1 Consumer-selected parser can erase the evidence it judges — accept-into-contract\n- 5919362291 F2 The packaged regression must exclude ancestor dependency leakage — accept-into-contract\n- 5919400204 F1 Body-OR of engine resolve, consumer typescript provision, and NODE_PATH cannot bind — accept-into-contract\n- 5919400204 F2 Inventory pick is presentation-ceiling's bundled require — accept-into-contract\n\nFootnotes stay footnotes.\n\nrelieves: P1\n\n## Bound remedy\n\n1. Recut P1 bundled-first loader: at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819`, `loadTypeScript` (`packages/core/src/intent-constraint/extract.ts` 54-90) uses `createRequire(join(projectRoot, \"package.json\")).resolve(\"typescript\")`. Change it to `createRequire(import.meta.url)` as `packages/core/src/presentation-ceiling/evaluate.ts` already does for JS/TS. Keep `createSourceFile`, version string, and major ≥ 5 fail-closed on that module. Fail closed when the engine install cannot load a parser. Use the same selected parser for baseline and candidate. Retitle the config message to the engine resolve, not `no typescript resolvable from ${projectRoot}`.\n2. Recut P1 reject consumer-owned parser as the supported path: do not consumer-root first then fall back to bundled. Do not make doctor/setup provision consumer `typescript` the supported global-CLI contract. Do not document `NODE_PATH` as the supported contract; it may appear only as a workaround for already-shipped versions.\n3. Recut P1 isolated regression: published/global CLI path; fixture outside the workspace and ancestor TypeScript installs; `NODE_PATH` unset; no consumer `typescript`; `.js` and `.ts`; harmless change passes; added unapproved throw-site and numeric-const fail; a planted consumer wrapper that empties `createSourceFile` still harvests through the engine parser. Include a linked worktree with no dest `node_modules`.\n4. Recut P1 sibling sites: this ship changes intent-constraint only. Name presentation-ceiling (already bundled) and observable-scope / durable-effect (consumer-root, `.jsx`/`.tsx`) as out of this P1. Bundled-first is the rule for gates that admit `.js`.\n5. Preserve: `FACT_KINDS`, `.js` admission, fail-closed parser errors, no shim, no skip of the semantic check.\n6. Exclude: rewriting every `createRequire(join(projectRoot, \"package.json\"))` in one ship; requiring every consumer to become a Node project.\n\nTarget-digest: sha256:0a8d08b849e0143a8f7ca1bfc9c261803674cb6700d472599537017506f36eba\n\n",
+          "id": 5919515324,
+          "html_url": "https://github.com/deftai/directive/issues/5194#issuecomment-5919515324",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:51:41Z",
+          "updated_at": "2026-09-30T20:51:41Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\nfinding-classes: sharpening\nharvest-changed: false\n\nCharter: refutation. Round: pain-audit, fresh critic. Id ceiling 5919515324 (inclusive). Tree reads are pinned to `5a311bf5cb976ccaacdcfe939e630878135ab819`. This audits the `relieves` cite for P1 on bind map 5919515324.\n\n**Verdict:** the Bound-remedy covers P1 as written. I found no blocking finding. One sharpening finding corrects the parser-identity claim behind the map. It does not change a harvested Bound-remedy item.\n\n## Anchor re-verification (run, not read)\n\n- `extract.ts` blob is `b52e1679e24f980f7f3bbd61fe03b232a411e971`. `loadTypeScript` spans lines 54-90. It resolves only through `createRequire(join(projectRoot, \"package.json\"))`. Validation is duck-type only: `createSourceFile` is a function, `version` is a string, major ≥ 5.\n- `presentation-ceiling/evaluate.ts:283` is `createRequire(import.meta.url)`. The bound item 1 copies an existing mechanism. It does not add one.\n- Packaging: `packages/cli` and `packages/core` build with `tsc -b`, with no bundler. `core` declares `typescript: ^5.9.3` in `dependencies`. So `import.meta.url` in core `dist` is core's own install path.\n- Global install on this host: `@deftai/directive` with core `0.119.12`, Node 24.20.0, `NODE_PATH` unset. `createRequire(<global>/…/directive-core/dist/intent-constraint/extract.js).resolve(\"typescript\")` returns `<global>/@deftai/directive/node_modules/typescript/lib/typescript.js`, version 5.9.3. That parser read `const MAX = 3; throw new Error('x');` as 2 statements. This is the P1 case, and the bound loader works for it.\n- Callers: `extractConstraintFacts` is the only consumer of this `loadTypeScript` (`evaluate.ts:394`). observable-scope has its own separate `loadTypeScript` at `observable-scope/extract.ts:223`. Item 4 already leaves it out of scope.\n\n## Findings\n\n### A1 — sharpens-framing — The engine-relative loader fixes availability, but parser identity still depends on where Directive is installed\n\n**Evidence.** Local install is a supported path. `resolution/pin.ts` pins a committed `@deftai/directive` devDependency, `resolution/plan.ts:275` falls back to \"a local install\", and agents-entry names `.\\node_modules\\.bin\\deft`. I built a copy of the npm-hoisted local layout under `/tmp`: the consumer has `node_modules/@deftai/directive-core/...` and the hoisted `node_modules/typescript`. Then I resolved from core's `dist/intent-constraint/extract.js`, which is exactly what the bound item 1 does:\n\n| Layout | Resolved | version | statements parsed |\n| --- | --- | --- | --- |\n| global install (control) | `<global>/@deftai/directive/node_modules/typescript/lib/typescript.js` | 5.9.3 | 2 |\n| local install, real hoisted TS | `<consumer>/node_modules/typescript/lib/typescript.js` | 5.9.3 | 2 |\n| local install, planted wrapper at the hoisted path (`createSourceFile` given `\"\"`) | `<consumer>/node_modules/typescript/index.js` | 5.9.3 | 0 |\n\nThe wrapper passes the existing shape and version checks and returns an empty AST. It is the same wrapper the round-1 critics used.\n\n**Failure mode.** The map's plain-English summary, and the accepted F1 findings from critics 5919307173 and 5919362291, say that rejecting the consumer-owned parser closes the \"planted parser forges a clean verdict\" channel. That is true only for a global install. On a local install, npm hoists the engine's `typescript` into `<consumer>/node_modules/typescript`, which the consumer can write. Engine-relative resolution reaches that file first. Any process that can write the worktree can still clear a new throw-site or numeric const there. A builder or reviewer who reads the map as \"parser identity is now Directive-owned\" will overstate what the gate guarantees.\n\n**Why no new control in this ship.** The obvious deterministic control is to require the resolved realpath to sit inside the engine package directory. That check fails closed on the normal hoisted local install, where `typescript` sits beside `@deftai`, not under `directive-core`. So it would bring P1's exit-2 failure back for local installs. A version-string pin does not help either, because the wrapper copies `version`. Without one of those controls, the honest fix is to state the scope, not to add a mechanism.\n\n**Disposition consequence.** `relieves` for P1 holds. P1 is about availability on the global install, and items 1 and 3 cover that. Item 3 is already scoped to \"published/global CLI path\", so its planted-wrapper row passes as written. No harvested item changes. The parent should record on a non-lean parent comment that the identity improvement applies to the global install only. On a local install, the parser is whatever sits at the hoisted path. If the operator wants parser identity to be a real gate property (the #3156 gate-integrity class), that is a separate issue. It should not be folded into P1.\n\n### A2 — footnote — On a miss, the engine-relative resolve still checks ancestor directories and `NODE_PATH`\n\nNode's resolution from core `dist` walks up the engine's parent directories and then checks `NODE_PATH`. On this host `~/node_modules` exists. It has no `typescript` today. If the engine's declared dependency were ever missing, item 1's \"fail closed when the engine install cannot load a parser\" could quietly pick up an ancestor or `NODE_PATH` parser instead. The engine declares the dependency, so this needs a broken install. It carries no disposition weight.\n\n### A3 — footnote — Item 3's linked-worktree row must run the global CLI\n\nA linked worktree with no `node_modules` cannot run its own `packages/core/dist` either, because no dependencies are installed there. The row only means something when it runs the global or published entry point with the worktree as `projectRoot`. Item 3 is written under \"published/global CLI path\", so this is a note for whoever builds the fixture.\n\n### A4 — footnote — Untrusted content\n\nThe issue body and the in-envelope comments contain design requirements (\"Do not use a shim or silently skip\"). They contain no instructions aimed at an agent. The map's \"This is not an instruction to a later builder\" is a statement about the map, not a command. No injection found.\n\n## Injection / swarm lens\n\nThe target changes which `createSourceFile` harvests production FACT_KINDS. A1 is that lens applied: parser authority moves from the consumer root to the engine install location. That fully closes the channel on a global install and does not close it on a local install. No deterministic control fits in this ship without reopening P1. I left A1 as a scoping record, not as a claim that a reviewer would catch it.\n\n## Road not taken / steelman\n\nI considered calling A1 blocking. The strongest case is that the map's accepted F1 findings bind a forgery-closing rationale, and on a supported layout that rationale is false. It is not blocking because the audit target is P1, P1 is availability, and no harvested item asserts the forgery property outside the global path. My verdict would flip to `blocks-the-design` if a harvested item required the planted-wrapper regression on every supported install layout. No item does.\n\n\n",
+          "id": 5919570670,
+          "html_url": "https://github.com/deftai/directive/issues/5194#issuecomment-5919570670",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T20:55:31Z",
+          "updated_at": "2026-10-07T01:39:58Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Method |\n|---|---|---|\n| At `5a311bf5cb976ccaacdcfe939e630878135ab819`, `loadTypeScript` resolves only through `createRequire(join(projectRoot, \"package.json\"))` | verified | pin-read `extract.ts` 54-90 blob `b52e1679e24f980f7f3bbd61fe03b232a411e971` |\n| 0.119.12 global core already has `typescript@5.9.3`; consumer-root on an empty .NET-shaped tree returns config `no typescript resolvable` | verified | round-1 5919307173 / 5919362291 / 5919400204 live install probes; pain-audit 5919570670 global resolve |\n| `createRequire(import.meta.url)` from published `directive-core` dist resolves that same engine TypeScript on the global install | verified | round-1 5919400204; pain-audit 5919570670 |\n| A planted consumer wrapper that empties `createSourceFile` returns zero facts while passing the duck-type check | verified | round-1 5919307173 / 5919362291 |\n| On a local hoisted install, engine-relative resolve still reaches `<consumer>/node_modules/typescript`; identity improvement is global-install only | verified | pain-audit 5919570670 A1; no harvested Bound-remedy item changes |\n| Bound-remedy harvest is six items on lean 5919515324 | verified | live `## Bound remedy` numbered list on lean 5919515324 |\n\nNon-self-arbitration: grok-4.6 parent authored Stop 1 and bind lean 5919515324. Rows rest on pin-read at dispatch SHA `5a311bf5cb976ccaacdcfe939e630878135ab819` and Claude opus pain-audit 5919570670, not on parent agreement with round-1 grok-4.6.\n\n",
+          "id": 5919653342,
+          "html_url": "https://github.com/deftai/directive/issues/5194#issuecomment-5919653342",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T21:01:21Z",
+          "updated_at": "2026-09-30T21:01:21Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`verify:intent-constraint` currently resolves TypeScript only through the consumer root, so the documented global CLI cannot parse production `.js` without a consumer TypeScript install. Confirming this recut copies presentation-ceiling's `createRequire(import.meta.url)` into `loadTypeScript`, keeps the shape and 5.x floor, and isolates the regression on the published/global CLI path. Parser-identity improvement is global-install only.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites successor lean 5919515324 and verified-claims table 5919653342.\npain-audit 5919570670 is footnote-only on harvested items; leftover-pain of relieves: P1 is satisfied.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-5194-dc\norigin-ref: origin/master\ndispatch-sha: 5a311bf5cb976ccaacdcfe939e630878135ab819\nDual-stop cap: 3 posts\ndest-wo: leftover-complete\n\n",
+          "id": 5919663155,
+          "html_url": "https://github.com/deftai/directive/issues/5194#issuecomment-5919663155",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-30T21:02:01Z",
+          "updated_at": "2026-09-30T21:02:01Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nrecorded takes for audit 5919570670\n\nNon-harvest sharpening from pain-audit 5919570670 (harvest-changed: false; bindable-as-posted):\n- A1 (sharpens-framing): engine-relative loader fixes availability on the published/global CLI path; on a local/hoisted install, parser identity remains whatever sits at the hoisted typescript path. Record as scoping note only — does not change harvested Bound-remedy items 1–6. Parser-identity-as-gate-property (gate-integrity class) stays a separate issue if wanted later.\n- A2–A4 footnotes: acknowledged; no Bound item change.\n\nTakes map:\n- accept: A1 as non-harvest scoping record on Prefer-A Bound 5919515324\n- disagree: none\n- defer: separate parser-identity gate issue\n\nCite: Prefer-A Bound 5919515324\nCite: pain-audit 5919570670\r\n\n",
+          "id": 6029060902,
+          "html_url": "https://github.com/deftai/directive/issues/5194#issuecomment-6029060902",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-07T01:41:50Z",
+          "updated_at": "2026-10-07T01:41:50Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nbug(verify): global CLI cannot resolve its bundled TypeScript parser in a .NET consumer\n\n## Context\n\nDirective core 0.119.12 declares typescript ^5.9.3 as a runtime dependency and the installed package has the real parser. intent-constraint nevertheless resolves it only through createRequire(<consumer>/package.json).resolve(\"typescript\"). A .NET project with ordinary browser JavaScript and no installed consumer node_modules cannot run the check through the documented global CLI.\n\nConsumer-root resolution is deliberate in current code. This report is an integration/dependency-availability defect in the global-install consumer path, not a claim that fail-closed parser errors are wrong.\n\nRefs #4541. No exact open duplicate found in targeted parser/error/title searches.\n\n## Expected behavior\n\nThe supported global CLI path should have a reliable parser dependency contract. Prefer a validated, deterministic installed dependency resolution path, or explicitly provision and document the required consumer dependency in setup/tool readiness before implementation. Preserve parser validation/version requirements and fail closed when no valid parser is available. Do not use a shim or silently skip the semantic check.\n\n## Actual behavior / gap\n\n### Reproduction\n\nUse an installed global Directive 0.119.12 and a .NET consumer with changed production .js and no consumer TypeScript installation. Run verify:intent-constraint against a fixed earlier origin commit with NODE_PATH absent: exit 2, no typescript resolvable from <consumer>. Run against the identical committed source with NODE_PATH pointing to the actual global Directive node_modules: exit 0, no new throw/reject/abort sites or numeric consts in one production file. The installed parser also extracts the same synthetic numeric const correctly when resolution is rooted at the Directive package, while consumer-root extraction fails.\n\n### Impact\n\nA passing .NET/browser UI change required manual NODE_PATH discovery during postcommit verification even though Directive already ships the parser. No production source, package manifest or quality gate needed changing for the workaround.\n\n## Session notes\n\n### Regression coverage\n\nPublished global package in a non-Node .NET/HTML/JS consumer, with no NODE_PATH; valid consumer parser; bundled parser availability; unsupported/malformed parser; .js and .ts inputs.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5652285286,
+        "origin": "deftai/directive#5194",
+        "id": "github.issue.5652285286"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0a8d08b849e0143a8f7ca1bfc9c261803674cb6700d472599537017506f36eba"
+      },
+      "swarm": {
+        "conflict_group": "intent-constraint-bundled-typescript",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "depends_on": [],
+        "file_scope": [
+          "packages/core/src/intent-constraint/extract.ts",
+          "packages/core/src/intent-constraint/extract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/intent-constraint/extract.test.ts"
+        ],
+        "expected_outputs": [
+          "Tracking PR open",
+          "tests green"
+        ]
+      },
+      "productPullRequest": 5447,
+      "productMergeCommit": "e41f300e45d8c07b82de7686984dac1236d58370",
+      "completedAt": "2026-10-07T03:40:21.021Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-07T03:40:21.021Z"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 5447,
+        "prBase": "master",
+        "mergeCommit": "e41f300e45d8c07b82de7686984dac1236d58370",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e41f300e45d8c07b82de7686984dac1236d58370",
+        "verifiedAt": "2026-10-07T03:40:21.021Z",
+        "verifier": "approach1-leftover-stamp-residual",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMTE0NmUtODI1ZS03NjAxLThhODgtYzk3NmNlZWZlMTI0"
+      }
+    },
+    "id": "github.issue.5652285286",
+    "updated": "2026-10-07T03:40:21.021Z"
+  }
+}
