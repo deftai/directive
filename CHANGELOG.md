@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+- Recorded the completed work for stamp-evidence kind/pointer coherence on markdown matchAny pointers (#5382) delivered in PR #5458.
 
 - Recorded the completed work for 0.8 Confidence read-compat WARN (#5385) delivered in PR #5432.
 - **Human-approved scope digest for #5382.** Records the Prefer-A Bound allowlist so a later product PR can pass scope membership. Does not change stamp-evidence behavior yet. Tracking #5382.
