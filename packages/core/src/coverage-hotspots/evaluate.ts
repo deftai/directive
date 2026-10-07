@@ -351,9 +351,15 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
     if (applicability.outcome === "refuse") {
       // Fail closed on refuse even when a prior report exists — unknown/mismatched
       // diffs must not inherit a measured pass from stale Istanbul dogfood.
-      // Exception: empty-selection refuse is "not proof of N/A"; with a report present
-      // continue to the measured floor path (Bound limb 4 dogfood), not exit-0 N/A.
-      if (!(applicability.code === "empty-selection" && reportExists)) {
+      // Exceptions that continue to the measured floor when a report exists:
+      // - empty-selection: not proof of N/A (Bound limb 4 dogfood)
+      // - dirty-tree: blocks N/A only; before-commit measured hotspots must still run
+      if (
+        !(
+          (applicability.code === "empty-selection" || applicability.code === "dirty-tree") &&
+          reportExists
+        )
+      ) {
         return {
           exitCode: 2,
           report: null,
