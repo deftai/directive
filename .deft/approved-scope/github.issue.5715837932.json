@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-07-5382-scopestamp-evidence-writes-kindtest-evidence-on-markdown-poi.xbrief.json",
+  "planId": "github.issue.5715837932",
+  "approvedAt": "2026-10-07T12:53:01Z",
+  "fileScope": [],
+  "fileScopeDigest": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-10-07T12:53:01Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "1f97c146428477218ef8e6e269230f59a80dbbfa7e26ae5fa73802b3a708192e",
+  "digestAlgo": "intent-extract-v1"
+}
