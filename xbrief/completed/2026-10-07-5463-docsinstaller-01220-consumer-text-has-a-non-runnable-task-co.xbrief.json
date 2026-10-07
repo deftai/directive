@@ -1,0 +1,300 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5463",
+    "updated": "2026-10-07T23:07:29.346Z"
+  },
+  "plan": {
+    "title": "docs(installer): 0.122.0 consumer text has a non-runnable task command, missing required flags, and a .gitattributes comment/attribute mismatch",
+    "status": "completed",
+    "narratives": {
+      "Description": "docs(installer): 0.122.0 consumer text has a non-runnable task command, missing required flags, and a .gitattributes comment/attribute mismatch",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5463",
+      "Overview": "\n\n1. In `content/templates/agents-entry.md` Query-before-cancel (#5278), change the dual-invoke parenthetical from `task subagent:pre-cancel` to `task deft:subagent:pre-cancel`. Keep `deft subagent:pre-cancel` as the CLI form. Run `task agents:refresh` so root managed AGENTS matches.\n2. Leave #5465 Prefer-A Bound 6045870490 cancel argv (`--scope-id` / `--target-id`) intact; do not shorten it again on this thread.\n3. In `packages/core/src/init-deposit/scaffold.ts` `ensureGitattributes` (and matching refresh/tests): make the written comment agree with the lines in that same write. Only claim \"Mark generated + vendored\" when `linguist-generated` / `linguist-vendored` are among the lines being written in that block; otherwise rewrite the comment to describe what is actually appended (e.g. text normalization / #5245). Do not treat \"restore missing linguist markers\" as the primary P2 limb  -  on the cited superchecker#57 upgrade those markers already remained earlier in the file.\n4. Align Go `cmd/deft-install/deposit.go` `coreGitattributesLines` to the TS `#5245` `text=auto eol=lf` contract (drop forced `text eol=lf`) so a live Go neutralization path cannot reintroduce PNG byte-rewrite. Keep linguist markers if neutralization still requires them; keep comment/attribute agreement on that path too.\n5. Add or extend a content-contract / deposit test that fails when agents-entry #5278 dual-invoke regresses to bare `task subagent:pre-cancel`, and fails when a `.gitattributes` deposit comment claims generated/vendored without those attribute tokens in the same written block.\n\n\n",
+      "Labels": "bug, documentation, swarm, agent-experience, process, source-of-truth, urgent, vendored-deposit, area:installer, area:guidance, dogfood, design-critique:ingest-ready, core-capabilities, promise:swarm"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Restore consumer-runnable dual-invoke task deft:subagent:pre-cancel",
+        "status": "completed",
+        "x-directive/artifact_path": "content/templates/agents-entry.md",
+        "narrative": {
+          "Acceptance": "content/templates/agents-entry.md Query-before-cancel (#5278) dual-invoke parenthetical is task deft:subagent:pre-cancel; deft subagent:pre-cancel CLI form remains; agents:refresh projects into Agents.md."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5470 squash-merge (Tracking #5463). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5470",
+            "mintedAt": "2026-10-07T23:07:29.346Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:07:29.346Z"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Leave #5465 cancel argv Prefer-A Bound intact",
+        "status": "completed",
+        "x-directive/artifact_path": "content/templates/agents-entry.md",
+        "narrative": {
+          "Acceptance": "content/templates/agents-entry.md keeps #5465 Prefer-A Bound cancel argv --scope-id/--target-id; this story does not shorten it."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5470 squash-merge (Tracking #5463). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5470",
+            "mintedAt": "2026-10-07T23:07:29.346Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:07:29.346Z"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Gitattributes comment agrees with written attribute lines",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/init-deposit/scaffold.ts",
+        "narrative": {
+          "Acceptance": "packages/core/src/init-deposit/scaffold.ts ensureGitattributes only claims Mark generated + vendored when linguist-generated/linguist-vendored are in the same written block; otherwise comment describes the actual append."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5470 squash-merge (Tracking #5463). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5470",
+            "mintedAt": "2026-10-07T23:07:29.346Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:07:29.346Z"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Go deposit gitattributes matches TS text=auto eol=lf",
+        "status": "completed",
+        "x-directive/artifact_path": "cmd/deft-install/deposit.go",
+        "narrative": {
+          "Acceptance": "cmd/deft-install/deposit.go coreGitattributesLines uses text=auto eol=lf (not forced text eol=lf) with comment/attribute agreement."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5470 squash-merge (Tracking #5463). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5470",
+            "mintedAt": "2026-10-07T23:07:29.346Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:07:29.346Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Content-contract pins dual-invoke and gitattributes comment agreement",
+        "status": "completed",
+        "x-directive/artifact_path": "packages/core/src/init-deposit/scaffold.test.ts",
+        "narrative": {
+          "Acceptance": "packages/core/src/init-deposit/scaffold.test.ts (and/or agents_entry_contract) fails when dual-invoke regresses to bare task subagent:pre-cancel or when a .gitattributes deposit comment claims generated/vendored without those tokens in the same written block."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5470 squash-merge (Tracking #5463). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5470",
+            "mintedAt": "2026-10-07T23:07:29.346Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T23:07:29.346Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "documentation",
+      "swarm",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "urgent",
+      "vendored-deposit",
+      "area:installer",
+      "area:guidance",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5463",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5463: docs(installer): 0.122.0 consumer text has a non-runnable task command, missing required flags, and a .gitattributes comment/attribute mismatch"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task subagent:pre-cancel",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "task deft:subagent:pre-cancel",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "deft subagent:pre-cancel",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "task agents:refresh",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "installer-consumer-text-dual-invoke-gitattributes",
+        "expected_outputs": [
+          "Tracking PR for #5463 Prefer-A Bound dual-invoke + gitattributes comment/attribute agreement"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/scaffold.test.ts packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
+        ],
+        "file_scope": [
+          "CHANGELOG.md",
+          "Agents.md",
+          "content/templates/agents-entry.md",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/scaffold.test.ts",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "cmd/deft-install/deposit.go",
+          "cmd/deft-install/deposit_test.go"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5463"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5749558152,
+        "origin": "deftai/directive#5463",
+        "id": "github.issue.5749558152"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "30fd98070c2b6334586611321562b601d21583fa318b1b7acd0e18943ecd61dc"
+      },
+      "boundLeanCommentId": 6046624447,
+      "painAuditClearanceCommentId": 6046679859,
+      "conflict_group": "installer-consumer-text-dual-invoke-gitattributes",
+      "productPullRequest": 5470,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-07T23:07:29.346Z"
+      },
+      "completedAt": "2026-10-07T23:07:29.346Z"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "docs(installer): 0.122.0 consumer text has a non-runnable task command, missing required flags, and a .gitattributes comment/attribute mismatch",
+        "In `content/templates/agents-entry.md` Query-before-cancel (#5278), change the dual-invoke parenthetical from `task subagent:pre-cancel` to `task deft:subagent:pre-cancel`.",
+        "Keep `deft subagent:pre-cancel` as the CLI form.",
+        "Run `task agents:refresh` so root managed AGENTS matches.",
+        "Leave #5465 Prefer-A Bound 6045870490 cancel argv (`--scope-id` / `--target-id`) intact; do not shorten it again on this thread.",
+        "In `packages/core/src/init-deposit/scaffold.ts` `ensureGitattributes` (and matching refresh/tests): make the written comment agree with the lines in that same write.",
+        "Only claim \"Mark generated + vendored\" when `linguist-generated` / `linguist-vendored` are among the lines being written in that block; otherwise rewrite the comment to describe what is actually appended (e.g.",
+        "text normalization / #5245).",
+        "Do not treat \"restore missing linguist markers\" as the primary P2 limb  -  on the cited superchecker#57 upgrade those markers already remained earlier in the file.",
+        "Align Go `cmd/deft-install/deposit.go` `coreGitattributesLines` to the TS `#5245` `text=auto eol=lf` contract (drop forced `text eol=lf`) so a live Go neutralization path cannot reintroduce PNG byte-rewrite.",
+        "Keep linguist markers if neutralization still requires them; keep comment/attribute agreement on that path too.",
+        "Add or extend a content-contract / deposit test that fails when agents-entry #5278 dual-invoke regresses to bare `task subagent:pre-cancel`, and fails when a `.gitattributes` deposit comment claims generated/vendored without those attribute tokens in the same written block."
+      ],
+      "admitted_source_sentences": [
+        "In `content/templates/agents-entry.md` Query-before-cancel (#5278), change the dual-invoke parenthetical from `task subagent:pre-cancel` to `task deft:subagent:pre-cancel`.",
+        "Keep `deft subagent:pre-cancel` as the CLI form.",
+        "Run `task agents:refresh` so root managed AGENTS matches.",
+        "Leave #5465 Prefer-A Bound 6045870490 cancel argv (`--scope-id` / `--target-id`) intact; do not shorten it again on this thread.",
+        "In `packages/core/src/init-deposit/scaffold.ts` `ensureGitattributes` (and matching refresh/tests): make the written comment agree with the lines in that same write.",
+        "Only claim \"Mark generated + vendored\" when `linguist-generated` / `linguist-vendored` are among the lines being written in that block; otherwise rewrite the comment to describe what is actually appended (e.g.",
+        "text normalization / #5245).",
+        "Do not treat \"restore missing linguist markers\" as the primary P2 limb  -  on the cited superchecker#57 upgrade those markers already remained earlier in the file.",
+        "Align Go `cmd/deft-install/deposit.go` `coreGitattributesLines` to the TS `#5245` `text=auto eol=lf` contract (drop forced `text eol=lf`) so a live Go neutralization path cannot reintroduce PNG byte-rewrite.",
+        "Keep linguist markers if neutralization still requires them; keep comment/attribute agreement on that path too.",
+        "Add or extend a content-contract / deposit test that fails when agents-entry #5278 dual-invoke regresses to bare `task subagent:pre-cancel`, and fails when a `.gitattributes` deposit comment claims generated/vendored without those attribute tokens in the same written block."
+      ],
+      "admitted_source_digest": "6af675943173695f1c28495db95e7ad40506aabcb9d3a00e9e373bca4f21b66e",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "In `content/templates/agents-entry.md` Query-before-cancel (#5278), change the dual-invoke parenthetical from `task subagent:pre-cancel` to `task deft:subagent:pre-cancel`. Keep `deft subagent:pre-cancel` as the CLI form. Run `task agents:refresh` so root managed AGENTS matches.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Leave #5465 Prefer-A Bound 6045870490 cancel argv (`--scope-id` / `--target-id`) intact; do not shorten it again on this thread.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "In `packages/core/src/init-deposit/scaffold.ts` `ensureGitattributes` (and matching refresh/tests): make the written comment agree with the lines in that same write. Only claim \"Mark generated + vendored\" when `linguist-generated` / `linguist-vendored` are among the lines being written in that block; otherwise rewrite the comment to describe what is actually appended (e.g. text normalization / #5245). Do not treat \"restore missing linguist markers\" as the primary P2 limb  -  on the cited superchecker#57 upgrade those markers already remained earlier in the file.",
+          "artifact_path": "packages/core/src/init-deposit/scaffold.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Align Go `cmd/deft-install/deposit.go` `coreGitattributesLines` to the TS `#5245` `text=auto eol=lf` contract (drop forced `text eol=lf`) so a live Go neutralization path cannot reintroduce PNG byte-rewrite. Keep linguist markers if neutralization still requires them; keep comment/attribute agreement on that path too.",
+          "artifact_path": "cmd/deft-install/deposit.go",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Add or extend a content-contract / deposit test that fails when agents-entry #5278 dual-invoke regresses to bare `task subagent:pre-cancel`, and fails when a `.gitattributes` deposit comment claims generated/vendored without those attribute tokens in the same written block.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5749558152",
+    "updated": "2026-10-07T23:07:29.346Z"
+  }
+}
