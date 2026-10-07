@@ -20,6 +20,12 @@ type TSModule = typeof TS;
  */
 const requireParser = createRequire(import.meta.url);
 let cachedParser: TSModule | undefined;
+
+/** Clears the engine parser cache so loader tests start cold (#5194). */
+export function resetTypeScriptParserCacheForTests(): void {
+  cachedParser = undefined;
+}
+
 const PROD_EXT = /\.(ts|js)$/i;
 const DECL_EXT = /\.d\.ts$/i;
 const TEST_FILE = /\.(test|spec)\.(ts|js)$/i;

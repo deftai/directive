@@ -2,11 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   extractConstraintFacts,
   extractSurface,
   isProductionSourcePath,
+  resetTypeScriptParserCacheForTests,
   surfaceSnapshot,
 } from "./extract.js";
 
@@ -282,25 +283,16 @@ function deny(x) {
 }
 `;
 
-  afterEach(() => {
-    vi.resetModules();
-  });
-
-  async function loadExtract() {
-    vi.resetModules();
-    return import("./extract.js");
-  }
-
-  it("harvests .ts/.js from a consumer with no typescript and NODE_PATH unset", async () => {
+  it("harvests .ts/.js from a consumer with no typescript and NODE_PATH unset", () => {
     const prev = process.env.NODE_PATH;
     delete process.env.NODE_PATH;
     try {
-      const { extractConstraintFacts: extractFresh } = await loadExtract();
+      resetTypeScriptParserCacheForTests();
       const consumer = isolatedConsumer("no-ts");
-      const tsResult = extractFresh(hardFacts, "wwwroot/app.ts", {
+      const tsResult = extractConstraintFacts(hardFacts, "wwwroot/app.ts", {
         projectRoot: consumer,
       });
-      const jsResult = extractFresh(hardFactsJs, "wwwroot/app.js", {
+      const jsResult = extractConstraintFacts(hardFactsJs, "wwwroot/app.js", {
         projectRoot: consumer,
       });
       expect(tsResult.ok).toBe(true);
@@ -315,7 +307,7 @@ function deny(x) {
     }
   });
 
-  it("ignores a planted consumer typescript wrapper that empties createSourceFile", async () => {
+  it("ignores a planted consumer typescript wrapper that empties createSourceFile", () => {
     const prev = process.env.NODE_PATH;
     delete process.env.NODE_PATH;
     try {
@@ -336,8 +328,8 @@ module.exports = {
 };
 `,
       );
-      const { extractConstraintFacts: extractFresh } = await loadExtract();
-      const result = extractFresh(hardFacts, "wwwroot/app.ts", {
+      resetTypeScriptParserCacheForTests();
+      const result = extractConstraintFacts(hardFacts, "wwwroot/app.ts", {
         projectRoot: consumer,
       });
       expect(result.ok).toBe(true);
@@ -349,14 +341,14 @@ module.exports = {
     }
   });
 
-  it("harvests from a linked-worktree-shaped root with no dest node_modules", async () => {
+  it("harvests from a linked-worktree-shaped root with no dest node_modules", () => {
     const prev = process.env.NODE_PATH;
     delete process.env.NODE_PATH;
     try {
       const dest = isolatedConsumer("linked-worktree");
       // No node_modules at all — mirrors a dest worktree without a local install.
-      const { extractConstraintFacts: extractFresh } = await loadExtract();
-      const result = extractFresh(hardFactsJs, "src/app.js", {
+      resetTypeScriptParserCacheForTests();
+      const result = extractConstraintFacts(hardFactsJs, "src/app.js", {
         projectRoot: dest,
       });
       expect(result.ok).toBe(true);
