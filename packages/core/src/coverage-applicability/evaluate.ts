@@ -544,21 +544,6 @@ export function evaluateCoverageApplicability(
     }
   }
 
-  // Prefer-A Bound: dirty tree that is not the bound reviewed tree must refuse.
-  // Covers uncommitted staged/unstaged/untracked (non-ignored) edits before N/A.
-  const dirtyResult = runGit(["status", "--porcelain", "-uall"], input.projectRoot);
-  if (!dirtyResult.ok) return refuseGitFailure(dirtyResult.message, input, empty);
-  if (dirtyResult.stdout.trim().length > 0) {
-    return {
-      outcome: "refuse",
-      code: "dirty-tree",
-      reason:
-        "coverage-applicability: dirty working tree is not the bound reviewed tree; " +
-        "commit or stash coverable edits before coverage N/A",
-      changes: empty,
-    };
-  }
-
   // Validate base is resolvable.
   const baseResult = runGit(["rev-parse", "--verify", "-q", input.baseSha], input.projectRoot);
   if (!baseResult.ok) return refuseGitFailure(baseResult.message, input, empty);
@@ -618,20 +603,36 @@ export function evaluateCoverageApplicability(
     };
   }
 
+  if (!changes.every((c) => c.classification === "coverable" || c.classification === "inert")) {
+    return {
+      outcome: "refuse",
+      code: "mixed-unclassified",
+      reason: "coverage-applicability: mixed classification without all-inert proof",
+      changes,
+    };
+  }
+
+  // Prefer-A Bound: dirty tree that is not the bound reviewed tree must refuse N/A.
+  // Run after committed refuse paths so unknown/rename/etc. are not masked by dirty-tree
+  // (hotspots may still measure when a report exists for dirty-tree only).
+  const dirtyResult = runGit(["status", "--porcelain", "-uall"], input.projectRoot);
+  if (!dirtyResult.ok) return refuseGitFailure(dirtyResult.message, input, empty);
+  if (dirtyResult.stdout.trim().length > 0) {
+    return {
+      outcome: "refuse",
+      code: "dirty-tree",
+      reason:
+        "coverage-applicability: dirty working tree is not the bound reviewed tree; " +
+        "commit or stash coverable edits before coverage N/A",
+      changes,
+    };
+  }
+
   const coverable = changes.filter((c) => c.classification === "coverable");
   if (coverable.length > 0) {
     return {
       outcome: "applicable",
       coverablePaths: coverable.map((c) => c.path),
-      changes,
-    };
-  }
-
-  if (!changes.every((c) => c.classification === "inert")) {
-    return {
-      outcome: "refuse",
-      code: "mixed-unclassified",
-      reason: "coverage-applicability: mixed classification without all-inert proof",
       changes,
     };
   }

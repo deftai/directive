@@ -669,6 +669,38 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.report).not.toBeNull();
   });
 
+  it("still refuses committed unknown-path even when dirty with a report", () => {
+    const root = gitRepo({
+      "README.md": "# base\n",
+      "coverage/coverage-final.json": JSON.stringify({
+        "src/a.ts": { s: { "0": 1 }, f: { "0": 1 }, b: { "0": [1, 1] } },
+      }),
+      "vitest.config.ts":
+        "export default { test: { coverage: { thresholds: { branches: 85 } } } };",
+    });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, "mystery.bin"), "x");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "unknown"], { cwd: root });
+    const headSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    const treeHash = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, "extra.md"), "extra\n");
+    const result = evaluateCoverageHotspots({
+      projectRoot: root,
+      inputBinding: { baseSha, headSha, treeHash },
+      useDiffPaths: false,
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.report).toBeNull();
+    expect(result.applicability?.outcome).toBe("refuse");
+  });
+
   it("still refuses dirty-tree N/A when no coverage report exists", () => {
     const root = gitRepo({ "README.md": "# base\n" });
     const baseSha = childProcess

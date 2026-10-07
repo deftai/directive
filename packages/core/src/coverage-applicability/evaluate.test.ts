@@ -250,6 +250,20 @@ describe("evaluateCoverageApplicability", () => {
     if (dirty.outcome === "refuse") expect(dirty.code).toBe("dirty-tree");
   });
 
+  it("keeps committed unknown-path refuse ahead of dirty-tree", () => {
+    const root = gitRepo({ "README.md": "# base\n" });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(join(root, "mystery.bin"), "x");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "unknown"], { cwd: root });
+    writeFileSync(join(root, "docs-note.md"), "note\n");
+    const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(result.outcome).toBe("refuse");
+    if (result.outcome === "refuse") expect(result.code).toBe("unknown-path");
+  });
+
   it("ignores caller-style path filters (not an input) and uses status-aware enumeration", () => {
     const root = gitRepo({ "README.md": "# base\n" });
     const baseSha = childProcess
