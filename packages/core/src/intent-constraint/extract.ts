@@ -7,13 +7,19 @@
  * indexes are not numeric-const. Do not forEachChild-harvest NumericLiteral.
  */
 import { createRequire } from "node:module";
-import { join } from "node:path";
 import type * as TS from "typescript";
 import type { ConstraintFact, FactKind, SurfaceSnapshot } from "./types.js";
 
 type TSModule = typeof TS;
 
-const TS_CACHE = new Map<string, TSModule>();
+/**
+ * Engine-relative TypeScript loader (#5194). Mirrors presentation-ceiling's
+ * createRequire(import.meta.url). Intent-constraint admits .js, so consumer-root
+ * resolve is not the supported path. Out of this ship: observable-scope and
+ * durable-effect keep consumer-root for .jsx/.tsx.
+ */
+const requireParser = createRequire(import.meta.url);
+let cachedParser: TSModule | undefined;
 const PROD_EXT = /\.(ts|js)$/i;
 const DECL_EXT = /\.d\.ts$/i;
 const TEST_FILE = /\.(test|spec)\.(ts|js)$/i;
@@ -51,21 +57,28 @@ export type ExtractErr = {
 };
 export type ExtractResult = ExtractOk | ExtractErr;
 
-function loadTypeScript(projectRoot: string): TSModule | ExtractErr {
-  const cached = TS_CACHE.get(projectRoot);
-  if (cached !== undefined) return cached;
-  const req = createRequire(join(projectRoot, "package.json"));
+function loadTypeScript(): TSModule | ExtractErr {
+  if (cachedParser !== undefined) return cachedParser;
   let resolved: string;
   try {
-    resolved = req.resolve("typescript");
+    resolved = requireParser.resolve("typescript");
   } catch {
     return {
       ok: false,
       code: "config",
-      message: `no typescript resolvable from ${projectRoot}`,
+      message: "no typescript resolvable from the Directive engine install",
     };
   }
-  const mod = req(resolved) as TSModule | { default?: TSModule };
+  let mod: TSModule | { default?: TSModule };
+  try {
+    mod = requireParser(resolved) as TSModule | { default?: TSModule };
+  } catch (err) {
+    return {
+      ok: false,
+      code: "config",
+      message: `typescript at ${resolved} failed to load from the Directive engine install: ${String(err)}`,
+    };
+  }
   const ts = "createSourceFile" in mod ? mod : (mod as { default?: TSModule }).default;
   if (
     ts === undefined ||
@@ -86,7 +99,7 @@ function loadTypeScript(projectRoot: string): TSModule | ExtractErr {
       message: `typescript@${ts.version} at ${resolved} is below the supported floor 5.x`,
     };
   }
-  TS_CACHE.set(projectRoot, ts);
+  cachedParser = ts;
   return ts;
 }
 
@@ -181,7 +194,10 @@ export function extractConstraintFacts(
 ): ExtractResult {
   const posix = path.replace(/\\/g, "/");
   if (!isProductionSourcePath(posix)) return { ok: true, facts: [] };
-  const loaded = loadTypeScript(opts.projectRoot);
+  // projectRoot remains in the public opts for call-site identity; parser
+  // resolve is engine-relative (#5194) and does not consult the consumer tree.
+  void opts.projectRoot;
+  const loaded = loadTypeScript();
   if ("ok" in loaded && loaded.ok === false) return loaded;
   const ts = loaded as TSModule;
   const kind = posix.toLowerCase().endsWith(".js") ? ts.ScriptKind.JS : ts.ScriptKind.TS;

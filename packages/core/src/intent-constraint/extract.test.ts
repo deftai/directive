@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { createRequire } from "node:module";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   extractConstraintFacts,
   extractSurface,
@@ -7,6 +11,22 @@ import {
 } from "./extract.js";
 
 const root = process.cwd();
+const isolatedRoots: string[] = [];
+
+afterEach(() => {
+  while (isolatedRoots.length > 0) {
+    const next = isolatedRoots.pop();
+    if (next !== undefined) rmSync(next, { recursive: true, force: true });
+  }
+});
+
+/** Fixture outside the workspace / ancestor TypeScript installs (#5194). */
+function isolatedConsumer(label: string): string {
+  const base = mkdtempSync(join(tmpdir(), `ic-5194-${label}-`));
+  isolatedRoots.push(base);
+  writeFileSync(join(base, "package.json"), "{}\n");
+  return base;
+}
 
 function kinds(source: string, path = "src/ingest.ts"): string[] {
   const result = extractConstraintFacts(source, path, { projectRoot: root });
@@ -245,5 +265,94 @@ function go(x) {
 }
 `;
     expect(kinds(src, "src/ingest.js")).toEqual(["numeric-const", "throw-site"]);
+  });
+});
+
+describe("intent-constraint engine-relative parser (#5194)", () => {
+  const hardFacts = `
+const LIMIT = 7;
+export function deny(x: number): void {
+  if (x > LIMIT) throw new Error("deny");
+}
+`;
+  const hardFactsJs = `
+const LIMIT = 7;
+function deny(x) {
+  if (x > LIMIT) throw new Error("deny");
+}
+`;
+
+  it("harvests .ts/.js from a consumer with no typescript and NODE_PATH unset", () => {
+    const prev = process.env.NODE_PATH;
+    delete process.env.NODE_PATH;
+    try {
+      const consumer = isolatedConsumer("no-ts");
+      const tsResult = extractConstraintFacts(hardFacts, "wwwroot/app.ts", {
+        projectRoot: consumer,
+      });
+      const jsResult = extractConstraintFacts(hardFactsJs, "wwwroot/app.js", {
+        projectRoot: consumer,
+      });
+      expect(tsResult.ok).toBe(true);
+      expect(jsResult.ok).toBe(true);
+      if (!tsResult.ok || !jsResult.ok) return;
+      expect(tsResult.facts.map((f) => f.kind).sort()).toEqual(["numeric-const", "throw-site"]);
+      expect(jsResult.facts.map((f) => f.kind).sort()).toEqual(["numeric-const", "throw-site"]);
+      expect(tsResult.facts.some((f) => f.value === "7")).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.NODE_PATH;
+      else process.env.NODE_PATH = prev;
+    }
+  });
+
+  it("ignores a planted consumer typescript wrapper that empties createSourceFile", () => {
+    const prev = process.env.NODE_PATH;
+    delete process.env.NODE_PATH;
+    try {
+      const consumer = isolatedConsumer("planted");
+      const realTs = createRequire(import.meta.url).resolve("typescript");
+      const plantedDir = join(consumer, "node_modules", "typescript");
+      mkdirSync(plantedDir, { recursive: true });
+      writeFileSync(
+        join(plantedDir, "package.json"),
+        JSON.stringify({ name: "typescript", version: "5.9.3", main: "index.js" }) + "\n",
+      );
+      writeFileSync(
+        join(plantedDir, "index.js"),
+        `const ts = require(${JSON.stringify(realTs)});
+module.exports = {
+  ...ts,
+  createSourceFile: (name, _source, ...rest) => ts.createSourceFile(name, "", ...rest),
+};
+`,
+      );
+      const result = extractConstraintFacts(hardFacts, "wwwroot/app.ts", {
+        projectRoot: consumer,
+      });
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.facts.map((f) => f.kind).sort()).toEqual(["numeric-const", "throw-site"]);
+    } finally {
+      if (prev === undefined) delete process.env.NODE_PATH;
+      else process.env.NODE_PATH = prev;
+    }
+  });
+
+  it("harvests from a linked-worktree-shaped root with no dest node_modules", () => {
+    const prev = process.env.NODE_PATH;
+    delete process.env.NODE_PATH;
+    try {
+      const dest = isolatedConsumer("linked-worktree");
+      // No node_modules at all — mirrors a dest worktree without a local install.
+      const result = extractConstraintFacts(hardFactsJs, "src/app.js", {
+        projectRoot: dest,
+      });
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.facts.map((f) => f.kind).sort()).toEqual(["numeric-const", "throw-site"]);
+    } finally {
+      if (prev === undefined) delete process.env.NODE_PATH;
+      else process.env.NODE_PATH = prev;
+    }
   });
 });
