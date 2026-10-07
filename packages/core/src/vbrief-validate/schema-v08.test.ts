@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 import { atomicWriteBrief, validateBriefForPersist } from "../scope/brief-io.js";
 import { destContentionItTimeout } from "../vitest-runner/dest-contention-it-timeout.helper.test.js";
 import { scanVbrief } from "./conformance.js";
+import { VALID_PLAN_STATUSES } from "./constants.js";
 import { runValidate } from "./main.js";
 import { validateOriginProvenance } from "./origin.js";
 import { reEmitVbriefArtifact } from "./roundtrip.js";
@@ -22,7 +23,6 @@ import {
   validateVbriefSchema,
 } from "./schema.js";
 import { validateAll } from "./validate-all.js";
-import { VALID_PLAN_STATUSES } from "./constants.js";
 
 const MINIMAL_V08 = {
   xBRIEFInfo: { version: "0.8" },
@@ -724,9 +724,7 @@ describe("Class B reserved-prefix compatibility (#4746 / #4765 / #4846)", () => 
       expect(errors, type).toHaveLength(1);
       expect(warnings, type).toEqual([]);
       const schemaWarnings: string[] = [];
-      expect(validateVbriefSchema(classBDoc(type), "brief.json", schemaWarnings), type).toEqual(
-        [],
-      );
+      expect(validateVbriefSchema(classBDoc(type), "brief.json", schemaWarnings), type).toEqual([]);
       expect(
         schemaWarnings.some((w) => w.includes(type)),
         type,
@@ -869,9 +867,7 @@ function historicalDoc(
           {
             title: "parent",
             status: "completed",
-            subItems: [
-              { id: overrides.nestedItemId, title: "nested", status: itemStatus },
-            ],
+            subItems: [{ id: overrides.nestedItemId, title: "nested", status: itemStatus }],
           },
         ];
   return {
