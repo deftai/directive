@@ -118,7 +118,9 @@ describe("dispatcher shared-active story fence (#4007)", () => {
     // Deduped: proposedPathHint must not re-print undifferentiated Set DEFT_ACTIVE_SCOPE.
     expect(decision.message).not.toMatch(/Recovery: set DEFT_ACTIVE_SCOPE/);
     const workerSection = decision.message.split("Dispatched worker:")[1] ?? "";
-    expect(workerSection).not.toMatch(/pin DEFT_ACTIVE_SCOPE|set DEFT_ACTIVE_SCOPE|Set DEFT_ACTIVE_SCOPE/);
+    expect(workerSection).not.toMatch(
+      /pin DEFT_ACTIVE_SCOPE|set DEFT_ACTIVE_SCOPE|Set DEFT_ACTIVE_SCOPE/,
+    );
   });
 
   it("names scope:unblock on a zero-eligible blocked deny and omits activate (#4840)", () => {

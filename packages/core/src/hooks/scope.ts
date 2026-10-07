@@ -3,7 +3,8 @@ import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import {
   isStoryWriteFenceUnreadable,
-  loadStoryWriteFenceFromPath,
+  loadStoryWriteFenceFromMergeBase,
+  type StoryWriteFenceView,
 } from "../policy/write-fence.js";
 import { evaluate } from "../preflight/evaluate.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
@@ -64,6 +65,12 @@ export interface InspectActiveScopeOptions {
    * only. When omitted, `process.env` is consulted so CLI callers stay pinned.
    */
   readonly env?: NodeJS.ProcessEnv;
+  /**
+   * Story fence loader for the unpinned non-fencing partition (#4880 / #4956).
+   * Defaults to merge-base authority (same SoT as the write gate). Tests may
+   * inject a working-tree or fixture loader.
+   */
+  readonly loadStoryWriteFence?: (projectRoot: string, scopePath: string) => StoryWriteFenceView;
 }
 
 interface EligibleScope {
@@ -179,10 +186,15 @@ function formatMultipleActiveMessage(eligible: readonly EligibleScope[]): string
 /**
  * Write-fence storyActive predicate for eligibility partition (#4880 Prefer-A C').
  * Non-fencing = absent/empty allow + empty deny. Unreadable authority fails closed
- * (treated as fencing so it stays in unpinned competition).
+ * (treated as fencing so it stays in unpinned competition). Uses the same fence
+ * source as the write gate (merge-base by default), not working-tree head.
  */
-function isFencingEligibleBrief(briefPath: string): boolean {
-  const fence = loadStoryWriteFenceFromPath(briefPath);
+function isFencingEligibleBrief(
+  projectRoot: string,
+  briefPath: string,
+  loadFence: (projectRoot: string, scopePath: string) => StoryWriteFenceView,
+): boolean {
+  const fence = loadFence(projectRoot, briefPath);
   if (isStoryWriteFenceUnreadable(fence)) return true;
   return fence.fileScope.length > 0 || fence.denyPaths.length > 0;
 }
@@ -192,9 +204,13 @@ function isFencingEligibleBrief(briefPath: string): boolean {
  * competition set. Zero fencing preserves today's sole/multi pathless behavior.
  */
 function partitionUnpinnedEligible(
+  projectRoot: string,
   eligible: readonly EligibleScope[],
+  loadFence: (projectRoot: string, scopePath: string) => StoryWriteFenceView,
 ): readonly EligibleScope[] {
-  const fencing = eligible.filter((item) => isFencingEligibleBrief(item.path));
+  const fencing = eligible.filter((item) =>
+    isFencingEligibleBrief(projectRoot, item.path, loadFence),
+  );
   if (fencing.length >= 1) return fencing;
   return eligible;
 }
@@ -383,7 +399,9 @@ export function inspectActiveScope(
   }
 
   // Unpinned path only (#4880 C'): partition non-fencing out when fencing exists.
-  const competition = partitionUnpinnedEligible(eligible);
+  // Same fence SoT as the write gate (merge-base unless a test seam overrides).
+  const loadFence = options?.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
+  const competition = partitionUnpinnedEligible(projectRoot, eligible, loadFence);
   const only = competition[0];
   if (competition.length === 1 && only !== undefined) {
     return { ready: true, path: only.path, message: only.message };

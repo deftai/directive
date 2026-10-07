@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
 import {
   ACTIVE_SCOPE_PIN_ENV,
@@ -9,6 +10,11 @@ import {
   matchPinnedActiveScope,
   resolveSoftMissingAcTargets,
 } from "./index.js";
+
+/** Fixture tempdirs are not git merge-base trees; use working-tree fence SoT. */
+const pathFenceSeam = {
+  loadStoryWriteFence: (_root: string, scopePath: string) => loadStoryWriteFenceFromPath(scopePath),
+};
 
 const originFreshness = vi.hoisted(() => ({
   evaluate: vi.fn((_payload: unknown, _options?: { readonly skip?: boolean }) => ({
@@ -146,7 +152,9 @@ describe("shared-active write-fence bind (#4007)", () => {
     expect(result.message).toContain("scope:stamp-evidence");
     expect(result.message).toMatch(/does not clear this Write\/spawn deny/);
     const workerSection = result.message.split("Dispatched worker:")[1] ?? "";
-    expect(workerSection).not.toMatch(/pin DEFT_ACTIVE_SCOPE|set DEFT_ACTIVE_SCOPE|Set DEFT_ACTIVE_SCOPE/);
+    expect(workerSection).not.toMatch(
+      /pin DEFT_ACTIVE_SCOPE|set DEFT_ACTIVE_SCOPE|Set DEFT_ACTIVE_SCOPE/,
+    );
     expect(workerSection).not.toContain("scope:demote");
     expect(workerSection).not.toContain("scope:complete");
   });
@@ -354,7 +362,7 @@ describe("non-fencing partition for unpinned multi-eligible (#4880 Prefer-A C')"
     const fencing = writeFencing(project, "fence-story.xbrief.json", ["packages/a/**"]);
     writePathless(project, "admin-story.xbrief.json");
 
-    const result = inspectActiveScope(project, { env: {} });
+    const result = inspectActiveScope(project, { env: {}, ...pathFenceSeam });
     expect(result).toMatchObject({ ready: true, path: fencing });
     expect(result.denyKind).toBeUndefined();
   });
@@ -364,7 +372,7 @@ describe("non-fencing partition for unpinned multi-eligible (#4880 Prefer-A C')"
     const fencing = writeFencing(project, "fence-story.xbrief.json", ["packages/a/**"]);
     writePathless(project, "empty-scope.xbrief.json", true);
 
-    const result = inspectActiveScope(project, { env: {} });
+    const result = inspectActiveScope(project, { env: {}, ...pathFenceSeam });
     expect(result).toMatchObject({ ready: true, path: fencing });
   });
 
@@ -373,7 +381,7 @@ describe("non-fencing partition for unpinned multi-eligible (#4880 Prefer-A C')"
     writeFencing(project, "a-story.xbrief.json", ["packages/a/**"]);
     writeFencing(project, "b-story.xbrief.json", ["packages/b/**"]);
 
-    const result = inspectActiveScope(project, { env: {} });
+    const result = inspectActiveScope(project, { env: {}, ...pathFenceSeam });
     expect(result.ready).toBe(false);
     expect(result.denyKind).toBe("multiple-eligible");
   });
@@ -382,7 +390,7 @@ describe("non-fencing partition for unpinned multi-eligible (#4880 Prefer-A C')"
     const project = root();
     const pathless = writePathless(project, "solo-admin.xbrief.json");
 
-    const result = inspectActiveScope(project, { env: {} });
+    const result = inspectActiveScope(project, { env: {}, ...pathFenceSeam });
     expect(result).toMatchObject({ ready: true, path: pathless });
   });
 
@@ -393,8 +401,27 @@ describe("non-fencing partition for unpinned multi-eligible (#4880 Prefer-A C')"
 
     const result = inspectActiveScope(project, {
       env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/admin-story.xbrief.json" },
+      ...pathFenceSeam,
     });
     expect(result).toMatchObject({ ready: true, path: pathless });
+  });
+
+  it("merge-base fencing beats emptied working-tree scope (write-gate SoT)", () => {
+    const project = root();
+    const emptied = writePathless(project, "emptied-story.xbrief.json", true);
+    writeFencing(project, "other-story.xbrief.json", ["packages/b/**"]);
+    const result = inspectActiveScope(project, {
+      env: {},
+      loadStoryWriteFence: (_root, scopePath) => {
+        // Merge-base still fences both; working-tree emptied one.
+        if (scopePath === emptied) {
+          return { fileScope: ["packages/a/**"], denyPaths: [] };
+        }
+        return loadStoryWriteFenceFromPath(scopePath);
+      },
+    });
+    expect(result.ready).toBe(false);
+    expect(result.denyKind).toBe("multiple-eligible");
   });
 });
 
