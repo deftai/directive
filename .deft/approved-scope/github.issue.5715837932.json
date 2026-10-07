@@ -2,15 +2,22 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-10-07-5382-scopestamp-evidence-writes-kindtest-evidence-on-markdown-poi.xbrief.json",
   "planId": "github.issue.5715837932",
-  "approvedAt": "2026-10-07T12:53:01Z",
-  "fileScope": [],
-  "fileScopeDigest": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+  "approvedAt": "2026-10-07T13:39:45Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/commands.md",
+    "packages/core/src/scope/acceptance-evidence.test.ts",
+    "packages/core/src/scope/acceptance-evidence.ts",
+    "packages/core/src/scope/stamp-evidence.test.ts",
+    "packages/core/src/scope/stamp-evidence.ts"
+  ],
+  "fileScopeDigest": "edaa83fa02c57fc33c7e639aef6cc83f1b3fc4cadfb0cb07ca951aaec78b6db2",
   "humanApproval": {
     "kind": "operator",
     "actor": "Scott",
-    "mintedAt": "2026-10-07T12:53:01Z",
+    "mintedAt": "2026-10-07T13:39:45Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "1f97c146428477218ef8e6e269230f59a80dbbfa7e26ae5fa73802b3a708192e",
+  "intentDigest": "8a5a764fa2bacf5e17784f5c239e823e2f00a6ef362564c0fb8183f93fb665d3",
   "digestAlgo": "intent-extract-v1"
 }

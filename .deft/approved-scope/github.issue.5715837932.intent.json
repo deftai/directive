@@ -962,7 +962,17 @@
       },
       "conflict_group": "stamp-evidence-kind-pointer-coherence",
       "boundLeanCommentId": 6025174077,
-      "painAuditClearanceCommentId": 6026297211
+      "painAuditClearanceCommentId": 6026297211,
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "packages/core/src/scope/stamp-evidence.ts",
+          "packages/core/src/scope/stamp-evidence.test.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ]
+      }
     },
     "id": "github.issue.5715837932",
     "file_scope": [
