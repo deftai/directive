@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+- **Mint approved-scope for #5460 (Path B membership).** Operator TTY stamp of merge-base `.deft/approved-scope/github.issue.5748573348.json` (+ intent preimage) so the product PR can resolve continuity-keyed membership. Mint-only — no product code. Tracking #5460.
 - Recorded the completed work for stamp-evidence kind/pointer coherence on markdown matchAny pointers (#5382) delivered in PR #5458.
 
 - Recorded the completed work for 0.8 Confidence read-compat WARN (#5385) delivered in PR #5432.

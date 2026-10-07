@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "narratives": {
+      "Confidence": "high",
+      "Description": "Harden evaluator worktree prune so a failed case-sensitivity probe cannot unregister a case-distinct sibling admin entry (release 0.123.0 flake on tip CI).",
+      "Overview": "## Bound remedy\n\n1. **Fail-closed probe cache.** When `directoryIgnoresCase` cannot write its probe file, cache `false` for that directory (do not leave the cache unset so a stale `true` can win later).\n\n2. **Case-only match safety on prune.** In `pruneEvaluatorWorktreeAdmin`, after canonical path equality, if the basenames differ only by case, require a fresh cache-bypassing case-insensitive probe on the target parent before deleting the admin entry. Refuse the match when the probe fails or proves case-sensitive.\n\n3. **Tests.** Keep `worktrees-probe.test.ts` covering denied `containedWrite`; assert sibling `aaa` remains and target `zzz` is removed. Extend `worktrees.test.ts` if needed for the safety limb.\n\n4. **CHANGELOG.** Unreleased Fixed bullet for #5460.",
+      "Origin": "https://github.com/deftai/directive/issues/5460"
+    },
+    "references": [],
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Fail-closed probe caches false",
+        "narrative": {
+          "Acceptance": "When containedWrite throws in directoryIgnoresCase, the cache stores false for that directory and canonicalize does not lowercase the leaf."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Prune refuses unsafe case-only matches",
+        "narrative": {
+          "Acceptance": "pruneEvaluatorWorktreeAdmin does not delete a case-distinct sibling admin entry unless a bypass-cache probe proves the parent is case-insensitive."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Probe test stays green",
+        "narrative": {
+          "Acceptance": "pnpm exec vitest run packages/core/src/triage/evaluate/worktrees-probe.test.ts packages/core/src/triage/evaluate/worktrees.test.ts exits 0."
+        }
+      }
+    ],
+    "title": "fix(triage): worktrees probe fail-closed must not case-fold sibling admin entries",
+    "acceptance": {
+      "criteria": [
+        "Probe deny path cannot unregister aaa when removing Wt-Eval on a case-sensitive directory",
+        "Tip TypeScript coverage-of-record is green after the land"
+      ]
+    },
+    "id": "github.issue.5748573348",
+    "metadata": {
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "packages/core/src/triage/evaluate/worktrees.ts",
+          "packages/core/src/triage/evaluate/worktrees-probe.test.ts",
+          "packages/core/src/triage/evaluate/worktrees.test.ts"
+        ],
+        "Traces": [
+          "#5460"
+        ]
+      }
+    }
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.swarm.Traces"
+  ]
+}
