@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recorded the completed work for the historical ship-closeout for stale merged actives (#5403) delivered in PR #5430.
 ### Added
 
+- **Path B activation for #5385.** Land the Prefer-A Bound active brief so product PR #5432 can pass scope membership. Tracking #5385.
 - **Confidence enum 0.8 compatibility can proceed for #5385.** Records the approved file list for the product fix so scope checks can pass on PR #5432. Tracking #5385. Refs #5441.
 - **Path B activation for #5403.** Land the Prefer-A Bound active brief so the stacked product PR can pass scope membership. Tracking #5403.
 - **Keep active #5195 Prefer-A Bound brief for Path B continuity.** Lands the continuity-resolved active xBRIEF with concrete file_scope on master so the stacked product PR can pass verify:scope-provenance membership (#5192 / #4774). Leaves metadata.productPullRequest unset on this activation land. Tracking #5195.
