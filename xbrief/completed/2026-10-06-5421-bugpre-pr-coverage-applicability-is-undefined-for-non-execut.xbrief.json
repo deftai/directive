@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "bug(pre-pr): coverage applicability is undefined for non-executable consumer refinements",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(pre-pr): coverage applicability is undefined for non-executable consumer refinements",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5421",
@@ -17,42 +17,138 @@
       {
         "id": "1",
         "title": "Shared fail-closed coverage applicability evaluator on reviewed PrePrInputBinding diff",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:21:07.190Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:21:07.190Z"
+        }
       },
       {
         "id": "2",
         "title": "Authorized N/A on coverage_headroom skip channel (non-zero exit + closed skip reason)",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:21:07.190Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:21:07.190Z"
+        }
       },
       {
         "id": "3",
         "title": "Controller re-derives applicability before honoring coverage_headroom skip",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:21:07.190Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:21:07.190Z"
+        }
       },
       {
         "id": "4",
         "title": "Hotspots: classify before Istanbul require; N/A emits skip-channel artifact; keep floor when measured",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:21:07.190Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:21:07.190Z"
+        }
       },
       {
         "id": "5",
         "title": "State toolchain-only N/A deferred; skill Phase 3c names authorized N/A path",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:21:07.190Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:21:07.190Z"
+        }
       },
       {
         "id": "6",
         "title": "Defer full lint_iteration skip; skill still forbids inventing vitest --coverage when coverage N/A",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:21:07.190Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:21:07.190Z"
+        }
       },
       {
         "id": "7",
         "title": "Skill Phase 3c discoverable path: applicability → measured OR authorized skip-channel N/A",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:21:07.190Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:21:07.190Z"
+        }
       },
       {
         "id": "8",
         "title": "Tests: inert refinement skip+rederive; negatives forged/stale/mixed/executable; type ALLOWED_SKIP_REASONS",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A leftover-complete after product PR #5431 squash-merge (Tracking #5421). Bound limbs shipped; Greptile CLEAN then MERGED. scope:complete refused on empty forge closer set (Tracking/Refs only; #3675 Prefer-A residual).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "eventRef": "leftover-complete-after-5431",
+            "mintedAt": "2026-10-07T02:21:07.190Z",
+            "mintedVia": "parent-retained-closer"
+          },
+          "recorded_at": "2026-10-07T02:21:07.190Z"
+        }
       }
     ],
     "tags": [
@@ -464,7 +560,20 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "12596c6bda305cea27d17a90ad533333a1d6a012d33e2fb5dbd020c8e8651427"
-      }
+      },
+      "completedAt": "2026-10-07T02:21:07.190Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-10-07T02:21:07.190Z"
+      },
+      "completionProvenance": {
+        "productMerge": "5b06d525c",
+        "productPr": 5431,
+        "disposition": "delivered",
+        "verifier": "approach1-leftover-stamp-residual",
+        "recorded_at": "2026-10-07T02:21:07.190Z"
+      },
+      "productPullRequest": 5431
     },
     "acceptance": {
       "ambiguity_attestation": "none_found",
@@ -472,42 +581,42 @@
         {
           "id": 1,
           "text": "Add shared fail-closed coverage applicability evaluator bound to PrePrInputBinding reviewed tree; classify coverable|inert|unknown; not-applicable only when every path inert.",
-          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         },
         {
           "id": 2,
           "text": "Authorized coverage N/A travels on ALLOWED_SKIP_REASONS.coverage_headroom with non-zero exit; bare exit 0 free-form audits must not satisfy coverage_headroom.",
-          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         },
         {
           "id": 3,
           "text": "Controller independently re-derives not-applicable from PrePrInputBinding before honoring coverage_headroom skip; forged/stale tokens fail.",
-          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         },
         {
           "id": 4,
           "text": "Hotspots classify before requiring coverage-final.json; N/A-eligible emits machine-readable skip-channel reason and non-zero exit; keep Istanbul floor when measurement available.",
-          "artifact_path": "packages/core/src/coverage-hotspots/evaluate.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         },
         {
           "id": 5,
           "text": "Skill Phase 3c documents applicability → measured path OR authorized skip-channel N/A; forbid unbound exit-0 audits as coverage satisfaction.",
-          "artifact_path": "content/skills/deft-directive-pre-pr/SKILL.md",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         },
         {
           "id": 6,
           "text": "Tests cover inert refinement authorized skip + controller re-derivation and negatives (executable/mixed/unknown/forged/stale).",
-          "artifact_path": "packages/core/src/pre-pr-controller/phases.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "bound-prefer-a"
         }
@@ -522,6 +631,6 @@
       ]
     },
     "id": "github.issue.5731886208",
-    "updated": "2026-10-06T20:39:25Z"
+    "updated": "2026-10-07T02:21:07.190Z"
   }
 }
