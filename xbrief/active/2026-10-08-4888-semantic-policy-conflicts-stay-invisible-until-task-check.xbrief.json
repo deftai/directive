@@ -150,7 +150,7 @@
           "content/packs/skills/skills-pack-0.1.json",
           "meta/lessons.md"
         ],
-        "module_boundary": "Path B activate #4888",
+        "module_boundary": "semantic-green policy conflict visibility",
         "cohesion_exemption": "CHANGELOG.md shared release notes; Path B activation Keep active bullet only."
       },
       "x-directive/plan-id": {
