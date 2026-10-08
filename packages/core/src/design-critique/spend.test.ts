@@ -519,7 +519,8 @@ describe("parent-defect bare-arc path (#5466 Prefer-A)", () => {
     if (missing.ok) return;
     expect(missing.code).toBe("missing-recommend");
     expect(missing.message).toContain("parent defect");
-    expect(isSpendAskDeniedByArcState(missing.state)).toBe(true);
+    expect(isSpendAskDeniedByArcState(missing.state, { spendShaped: true })).toBe(true);
+    expect(isSpendAskDeniedByArcState(missing.state, { spendShaped: false })).toBe(false);
     expect(parseRecommendFlag("N=1")).toBe(N1_SPEND);
     expect(parseRecommendFlag("N>=3")).toBe(N3_SPEND);
     expect(parseRecommendFlag("N≥3")).toBe(N3_SPEND);
@@ -555,10 +556,12 @@ describe("parent-defect bare-arc path (#5466 Prefer-A)", () => {
   it("opens the deny gate at arc start and clears abandoned state", () => {
     const root = spendTempRoot();
     const opened = openArcSpendGate(root, { utterance: "arc 5466" });
-    expect(isSpendAskDeniedByArcState(opened)).toBe(true);
+    expect(isSpendAskDeniedByArcState(opened, { spendShaped: true })).toBe(true);
+    expect(isSpendAskDeniedByArcState(opened, { spendShaped: false })).toBe(false);
     expect(readArcSpendState(root)?.askPermitted).toBe(false);
     expect(clearArcSpendState(root)).toBe(true);
     expect(readArcSpendState(root)).toBeNull();
+    expect(isSpendAskDeniedByArcState(null, { spendShaped: true })).toBe(true);
     expect(isSpendAskDeniedByArcState(null)).toBe(false);
   });
 
@@ -609,10 +612,27 @@ describe("parent-defect bare-arc path (#5466 Prefer-A)", () => {
     const root = spendTempRoot();
     openArcSpendGate(root, { utterance: "arc A", sessionId: "sess-a" });
     openArcSpendGate(root, { utterance: "arc B", sessionId: "sess-b" });
-    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-a" }))).toBe(true);
-    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-b" }))).toBe(true);
+    expect(
+      isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-a" }), {
+        spendShaped: true,
+      }),
+    ).toBe(true);
+    expect(
+      isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-b" }), {
+        spendShaped: true,
+      }),
+    ).toBe(true);
     expect(clearArcSpendState(root, { sessionId: "sess-a" })).toBe(true);
     expect(readArcSpendState(root, { sessionId: "sess-a" })).toBeNull();
-    expect(isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-b" }))).toBe(true);
+    expect(
+      isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-b" }), {
+        spendShaped: true,
+      }),
+    ).toBe(true);
+    expect(
+      isSpendAskDeniedByArcState(readArcSpendState(root, { sessionId: "sess-b" }), {
+        spendShaped: false,
+      }),
+    ).toBe(false);
   });
 });

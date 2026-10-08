@@ -330,12 +330,13 @@ export function spendRecommendRequiredMessage(toolName: string): string {
 }
 
 /**
- * State-keyed deny for QUESTION_HOOK tools while arc is in flight and no
- * spend-recommend is recorded yet (#5466). Not utterance-keyed; no NLP.
- * Spend-shaped option labels (N=1 / N≥3) are also denied when session state is
- * missing so a fresh arc cannot slip the first ask past an unopened gate.
- * #5373 hatch remains for lawful asks after a resolve attempt sets askPermitted
- * or after spend-recommend / resolved spend is recorded.
+ * State-keyed deny for spend-shaped QUESTION_HOOK tools while the session arc
+ * gate is open and no spend-recommend is recorded yet (#5466). Not
+ * utterance-keyed; no NLP. Option labels N=1 / N≥3 are the spend shape.
+ * Missing session state still denies those spend-shaped asks so a fresh arc
+ * cannot slip the first ask past an unopened gate. Unrelated questions are
+ * never blanket-denied by abandoned session state.
+ * #5373 hatch remains for lawful asks after askPermitted or resolved spend.
  */
 export function decideSpendRecommendGate(
   input: HookDispatchInput,
@@ -343,30 +344,17 @@ export function decideSpendRecommendGate(
 ): HookDecision | null {
   if (input.event !== "tool.before") return null;
   if (!isQuestionToolName(toolName)) return null;
+  const groups = extractQuestionOptionGroups(input.payload);
+  const spendShaped = groups.some((group) => optionLabelsLookLikeSpend(group.labels));
   const state = readArcSpendState(input.projectRoot, { env: input.environ });
-  if (isSpendAskDeniedByArcState(state)) {
-    return decision(
-      input,
-      "deny",
-      "spend-recommend-required",
-      toolName,
-      spendRecommendRequiredMessage(toolName),
-    );
-  }
-  if (state === null) {
-    const groups = extractQuestionOptionGroups(input.payload);
-    const spendShaped = groups.some((group) => optionLabelsLookLikeSpend(group.labels));
-    if (spendShaped) {
-      return decision(
-        input,
-        "deny",
-        "spend-recommend-required",
-        toolName,
-        spendRecommendRequiredMessage(toolName),
-      );
-    }
-  }
-  return null;
+  if (!isSpendAskDeniedByArcState(state, { spendShaped })) return null;
+  return decision(
+    input,
+    "deny",
+    "spend-recommend-required",
+    toolName,
+    spendRecommendRequiredMessage(toolName),
+  );
 }
 
 /**

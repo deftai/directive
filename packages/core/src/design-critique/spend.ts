@@ -461,18 +461,34 @@ export function clearArcSpendState(projectRoot: string, opts: ArcSpendSessionOpt
   return sessionRemoved || legacyRemoved;
 }
 
+export type SpendAskDenyOpts = {
+  /**
+   * True when the structured-question option labels are Dual-stop spend choices
+   * (N=1 / N≥3). Missing session state denies only spend-shaped asks so a fresh
+   * arc cannot slip the first spend question past an unopened gate; unrelated
+   * questions stay allowed (#5466).
+   */
+  readonly spendShaped?: boolean;
+};
+
 /**
- * Deny structured asks while arc Stop 1 is open and no closed spend-recommend
- * exists yet, unless a prior resolve attempt marked ask lawful (#5466).
- * Missing state alone is not deny — callers also gate spend-shaped asks.
+ * Deny spend-shaped structured asks while the session arc gate is open and no
+ * closed spend-recommend / resolved spend exists yet, unless a prior resolve
+ * attempt marked ask lawful (#5466). Missing state denies only when
+ * `spendShaped` is true — never blanket-deny unrelated questions, and never
+ * read the deprecated project-wide path.
  */
-export function isSpendAskDeniedByArcState(state: ArcSpendState | null): boolean {
-  if (state === null) return false;
+export function isSpendAskDeniedByArcState(
+  state: ArcSpendState | null,
+  opts: SpendAskDenyOpts = {},
+): boolean {
+  const spendShaped = opts.spendShaped === true;
+  if (state === null) return spendShaped;
   if (state.status !== "in-flight") return false;
   if (state.spendRecommend !== null) return false;
   if (state.spendAsk === "resolved" && state.spend !== null) return false;
   if (state.askPermitted) return false;
-  return true;
+  return spendShaped;
 }
 
 /** True when structured-question option labels look like Dual-stop spend choices. */

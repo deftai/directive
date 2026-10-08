@@ -445,7 +445,17 @@ describe("spend-recommend gate (#5466)", () => {
         event: "tool.before",
         projectRoot: root,
         environ: {},
-        payload: { tool_name: "ask_user_question", tool_input: { questions: [] } },
+        payload: {
+          tool_name: "ask_user_question",
+          tool_input: {
+            questions: [
+              {
+                question: "Pick?",
+                options: [{ label: "Alpha" }, { label: "Discuss" }, { label: "Back" }],
+              },
+            ],
+          },
+        },
       },
       "ask_user_question",
     );
@@ -476,5 +486,41 @@ describe("spend-recommend gate (#5466)", () => {
     );
     expect(gate?.verdict).toBe("deny");
     expect(gate?.code).toBe("spend-recommend-required");
+  });
+
+  it("allows unrelated questions while session gate is open without recommend", () => {
+    const root = tempDir("spend-gate-unrelated-");
+    writeArcSpendState(root, {
+      schema: "deft.design-critique.arc-spend-state.v1",
+      status: "in-flight",
+      spendRecommend: null,
+      spend: null,
+      spendAsk: null,
+      askPermitted: false,
+      updatedAt: new Date().toISOString(),
+      utterance: "arc 5466",
+      sessionId: "no-session",
+    });
+    const gate = decideSpendRecommendGate(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        environ: {},
+        payload: {
+          tool_name: "ask_user_question",
+          tool_input: {
+            questions: [
+              {
+                question: "Unrelated?",
+                options: [{ label: "Alpha" }, { label: "Discuss" }, { label: "Back" }],
+              },
+            ],
+          },
+        },
+      },
+      "ask_user_question",
+    );
+    expect(gate).toBeNull();
   });
 });
