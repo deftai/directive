@@ -445,28 +445,6 @@ export function resolveDesignCritiqueSpend(
       ? null
       : parseRecommendFlag(input.recommendRaw);
 
-  if (input.unclosableRecommend === true) {
-    const state: ArcSpendState = {
-      schema: ARC_SPEND_STATE_SCHEMA,
-      status: "in-flight",
-      spendRecommend: null,
-      spend: null,
-      spendAsk: null,
-      askPermitted: true,
-      updatedAt,
-      utterance: input.utterance,
-    };
-    writeArcSpendState(input.projectRoot, state);
-    return {
-      ok: false,
-      code: "unclosable",
-      message:
-        "design-critique:spend-resolve: parent declared unclosable recommend. " +
-        "Ask is lawful under the #5373 hatch; do not invent N.",
-      state,
-    };
-  }
-
   if (
     input.recommendRaw !== undefined &&
     input.recommendRaw !== null &&
@@ -519,6 +497,27 @@ export function resolveDesignCritiqueSpend(
   }
 
   if (parse.kind === "ask" && parse.reason === "missing-token") {
+    if (input.unclosableRecommend === true) {
+      const state: ArcSpendState = {
+        schema: ARC_SPEND_STATE_SCHEMA,
+        status: "in-flight",
+        spendRecommend: null,
+        spend: null,
+        spendAsk: null,
+        askPermitted: true,
+        updatedAt,
+        utterance: input.utterance,
+      };
+      writeArcSpendState(input.projectRoot, state);
+      return {
+        ok: false,
+        code: "unclosable",
+        message:
+          "design-critique:spend-resolve: parent declared unclosable recommend. " +
+          "Ask is lawful under the #5373 hatch; do not invent N.",
+        state,
+      };
+    }
     const state: ArcSpendState = {
       schema: ARC_SPEND_STATE_SCHEMA,
       status: "in-flight",

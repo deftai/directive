@@ -575,4 +575,18 @@ describe("parent-defect bare-arc path (#5466 Prefer-A)", () => {
     expect(unclosable.state.askPermitted).toBe(true);
     expect(isSpendAskDeniedByArcState(unclosable.state)).toBe(false);
   });
+
+  it("lets explicit n= win over --unclosable-recommend", () => {
+    const root = spendTempRoot();
+    const resolved = resolveDesignCritiqueSpend({
+      utterance: "arc n=1",
+      unclosableRecommend: true,
+      projectRoot: root,
+    });
+    expect(resolved.ok).toBe(true);
+    if (!resolved.ok) return;
+    expect(resolved.spend).toBe(N1_SPEND);
+    expect(resolved.spendRecommend).toBe(N1_SPEND);
+    expect(isSpendAskDeniedByArcState(resolved.state)).toBe(false);
+  });
 });
